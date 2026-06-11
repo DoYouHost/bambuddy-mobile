@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "name": "A1 mini",
+  "connected": true,
+  "state": "IDLE",
+  "current_print": null,
+  "gcode_file": null,
+  "progress": 0,
+  "remaining_time": 0,
+  "layer_num": 0,
+  "total_layers": 0,
+  "temperatures": {
+    "nozzle": 24.1,
+    "bed": 23.8
+  }
+}

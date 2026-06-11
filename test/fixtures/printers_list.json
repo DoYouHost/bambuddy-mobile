@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "X1C Warsztat",
+    "serial_number": "00M00A000000000",
+    "ip_address": "192.168.1.50",
+    "access_code": "12345678",
+    "model": "X1C",
+    "location": "warsztat",
+    "is_active": true,
+    "_unknown_future_field": {"nested": true}
+  },
+  {
+    "id": 2,
+    "name": "A1 mini",
+    "serial_number": "00M00B000000000",
+    "ip_address": "192.168.1.51",
+    "access_code": "87654321",
+    "model": "A1 mini",
+    "location": null,
+    "is_active": false
+  }
+]

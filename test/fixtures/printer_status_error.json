@@ -1,0 +1,18 @@
+{
+  "id": 1,
+  "name": "X1C Warsztat",
+  "connected": true,
+  "state": "FAILED",
+  "current_print": "benchy.3mf",
+  "progress": "61.0",
+  "remaining_time": "88",
+  "layer_num": null,
+  "total_layers": 203,
+  "temperatures": {
+    "nozzle": 25,
+    "bed": "off"
+  },
+  "hms_errors": [
+    {"code": "0500_0100", "message": "Filament runout detected"}
+  ]
+}

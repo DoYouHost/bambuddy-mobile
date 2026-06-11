@@ -1,0 +1,51 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
+
+/// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —
+/// tak uruchamia testy `flutter test`).
+dynamic readFixture(String name) =>
+    jsonDecode(File('test/fixtures/$name').readAsStringSync());
+
+/// CredentialsStore w pamięci — testy rdzenia nie dotykają pluginu.
+class InMemoryCredentialsStore implements CredentialsStore {
+  String? jwt;
+  String? apiKey;
+  String? username;
+  String? password;
+
+  @override
+  Future<String?> readJwt() async => jwt;
+
+  @override
+  Future<void> writeJwt(String token) async => jwt = token;
+
+  @override
+  Future<String?> readApiKey() async => apiKey;
+
+  @override
+  Future<void> writeApiKey(String key) async => apiKey = key;
+
+  @override
+  Future<({String username, String password})?> readRememberedLogin() async {
+    final u = username;
+    final p = password;
+    if (u == null || p == null) return null;
+    return (username: u, password: p);
+  }
+
+  @override
+  Future<void> writeRememberedLogin(String username, String password) async {
+    this.username = username;
+    this.password = password;
+  }
+
+  @override
+  Future<void> clearAll() async {
+    jwt = null;
+    apiKey = null;
+    username = null;
+    password = null;
+  }
+}

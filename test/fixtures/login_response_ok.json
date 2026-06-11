@@ -1,0 +1,6 @@
+{
+  "access_token": "eyJhbGciOiJIUzI1NiJ9.test.token",
+  "token_type": "bearer",
+  "user": {"id": 1, "username": "tester", "is_admin": true},
+  "requires_2fa": false
+}

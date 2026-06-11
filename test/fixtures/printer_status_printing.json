@@ -1,0 +1,30 @@
+{
+  "id": 1,
+  "name": "X1C Warsztat",
+  "connected": true,
+  "state": "RUNNING",
+  "current_print": "benchy.3mf",
+  "subtask_name": "benchy",
+  "gcode_file": "benchy_plate_1.gcode",
+  "progress": 42.5,
+  "remaining_time": 137,
+  "layer_num": 87,
+  "total_layers": 203,
+  "temperatures": {
+    "nozzle": 219.7,
+    "bed": 60,
+    "chamber": 31.2
+  },
+  "ams_exists": true,
+  "ams": [
+    {
+      "id": 0,
+      "trays": [
+        {"id": 0, "tray_color": "00FF00FF", "tray_type": "PLA"}
+      ]
+    }
+  ],
+  "hms_errors": [],
+  "firmware_version": "01.08.02.00",
+  "_unknown_future_field": "ignore me"
+}
