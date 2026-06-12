@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Server unreachable — data may be out of date'**
   String get serverUnreachableStale;
 
+  /// No description provided for @wsReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting live updates…'**
+  String get wsReconnecting;
+
   /// No description provided for @connectFailed.
   ///
   /// In en, this message translates to:

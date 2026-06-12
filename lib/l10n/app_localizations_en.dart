@@ -22,6 +22,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Server unreachable — data may be out of date';
 
   @override
+  String get wsReconnecting => 'Reconnecting live updates…';
+
+  @override
   String get connectFailed => 'Could not connect to the server';
 
   @override

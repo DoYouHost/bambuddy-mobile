@@ -4,9 +4,11 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,10 +34,20 @@ class _FakeProfileNotifier extends ServerProfileNotifier {
       );
 }
 
+/// Inert WS: testy dashboardu sprawdzają render z pollingu, nie żywy socket.
+class _InertStatusesNotifier extends PrinterStatusesNotifier {
+  @override
+  Map<int, PrinterStatus> build() => const {};
+}
+
 Widget _app(DashboardState state) => ProviderScope(
       overrides: [
         dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
+        wsConnectionStateProvider.overrideWith(
+          (ref) => Stream.value(WsConnectionState.connected),
+        ),
       ],
       child: MaterialApp(
         locale: const Locale('pl'),

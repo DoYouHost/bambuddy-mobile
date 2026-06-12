@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/api/ws_client.dart';
+import '../../core/models/printer_status.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -9,6 +11,7 @@ import '../../providers.dart';
 import 'providers.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/printer_card.dart';
+import 'ws_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -19,6 +22,28 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _query = '';
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cykl życia WS wg §3 planu: w tle zamykamy socket (bez FGS na Androidzie),
+    // przy powrocie najpierw backfill REST (natychmiastowa świeżość), potem
+    // reconnect WS. WS żyje tylko, gdy dashboard jest zamontowany.
+    _lifecycle = AppLifecycleListener(
+      onPause: () => ref.read(printerStatusesProvider.notifier).suspend(),
+      onResume: () {
+        ref.read(dashboardProvider.notifier).refresh();
+        ref.read(printerStatusesProvider.notifier).resume();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +62,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final state = ref.watch(dashboardProvider);
     final profile = ref.watch(serverProfileProvider);
+    final wsStatuses = ref.watch(printerStatusesProvider);
+    final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -65,14 +92,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: Column(
         children: [
           if (state.stale)
-            ConnectionBanner(message: l10n.serverUnreachableStale),
-          Expanded(child: _body(context, state, l10n)),
+            ConnectionBanner(message: l10n.serverUnreachableStale)
+          // WS wznawia połączenie, ale polling wciąż daje aktualne dane —
+          // baner informacyjny, nie alarmowy. Nie dublujemy banera „stale".
+          else if (_wsReconnecting(wsState))
+            ConnectionBanner(
+              message: l10n.wsReconnecting,
+              tone: BannerTone.info,
+            ),
+          Expanded(child: _body(context, state, wsStatuses, l10n)),
         ],
       ),
     );
   }
 
-  Widget _body(BuildContext context, DashboardState state, AppLocalizations l10n) {
+  /// Baner WS pokazujemy, gdy aktywnie próbujemy odzyskać połączenie —
+  /// nie przy `connected` (cisza) ani `suspended` (apka w tle).
+  bool _wsReconnecting(WsConnectionState? s) =>
+      s == WsConnectionState.connecting || s == WsConnectionState.waitingRetry;
+
+  Widget _body(
+    BuildContext context,
+    DashboardState state,
+    Map<int, PrinterStatus> wsStatuses,
+    AppLocalizations l10n,
+  ) {
     if (state.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -101,7 +145,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    final printers = state.printers!;
+    // Nakładamy świeży status z WS na listę z pollingu (REST daje skład
+    // drukarek, WS — aktualność). Brak wpisu WS → zostaje status z pollingu.
+    final printers = [
+      for (final p in state.printers!)
+        wsStatuses.containsKey(p.printer.id)
+            ? PrinterWithStatus(
+                printer: p.printer,
+                status: wsStatuses[p.printer.id],
+              )
+            : p,
+    ];
     final q = _query.trim().toLowerCase();
     final filtered = q.isEmpty
         ? printers

@@ -22,6 +22,9 @@ class AppLocalizationsPl extends AppLocalizations {
       'Serwer nieosiągalny — dane mogą być nieaktualne';
 
   @override
+  String get wsReconnecting => 'Wznawianie podglądu na żywo…';
+
+  @override
   String get connectFailed => 'Nie udało się połączyć z serwerem';
 
   @override

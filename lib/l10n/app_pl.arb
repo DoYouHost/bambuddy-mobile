@@ -5,6 +5,7 @@
   "changeServer": "Zmień serwer",
   "sessionExpired": "Sesja wygasła — zaloguj się ponownie",
   "serverUnreachableStale": "Serwer nieosiągalny — dane mogą być nieaktualne",
+  "wsReconnecting": "Wznawianie podglądu na żywo…",
   "connectFailed": "Nie udało się połączyć z serwerem",
   "retry": "Spróbuj ponownie",
   "searchPrinters": "Szukaj drukarek…",
