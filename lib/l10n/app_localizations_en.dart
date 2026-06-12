@@ -116,6 +116,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlAirductHeating => 'Heating';
 
   @override
+  String get detailsShow => 'Details';
+
+  @override
+  String get detailsHide => 'Hide details';
+
+  @override
+  String get cameraTooltip => 'Camera';
+
+  @override
+  String get cameraConnecting => 'Connecting to camera…';
+
+  @override
+  String get cameraError => 'Couldn\'t load the camera stream';
+
+  @override
+  String amsUnit(int number) {
+    return 'AMS $number';
+  }
+
+  @override
+  String get externalSpool => 'External spool';
+
+  @override
+  String get traySlotEmpty => 'Empty';
+
+  @override
+  String get extruderLeft => 'Left extruder';
+
+  @override
+  String get extruderRight => 'Right extruder';
+
+  @override
+  String get extruderLeftShort => 'L';
+
+  @override
+  String get extruderRightShort => 'R';
+
+  @override
+  String get amsHumidityTooltip => 'AMS humidity';
+
+  @override
+  String get amsTempTooltip => 'AMS temperature';
+
+  @override
+  String get wifiTooltip => 'Wi-Fi signal';
+
+  @override
+  String get doorOpen => 'Door open';
+
+  @override
+  String get doorClosed => 'Door closed';
+
+  @override
   String get statusUnavailable => 'status unavailable';
 
   @override

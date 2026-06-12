@@ -17,4 +17,13 @@ abstract final class Endpoints {
   /// Mint tokenu strumienia kamery (ważny ~60 min). Wymagany jako `?token=`
   /// dla okładki wydruku (`cover_url`) i — od M2 — dla podglądu kamery.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';
+
+  /// Strumień MJPEG kamery (`multipart/x-mixed-replace; boundary=frame`).
+  /// Autoryzacja przez `?token=` (mint w [cameraStreamToken]).
+  static String cameraStream(int printerId) =>
+      '$apiPrefix/printers/$printerId/camera/stream';
+
+  /// Pojedyncza klatka JPEG (fallback/odświeżenie). Również `?token=`.
+  static String cameraSnapshot(int printerId) =>
+      '$apiPrefix/printers/$printerId/camera/snapshot';
 }

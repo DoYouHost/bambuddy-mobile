@@ -30,6 +30,14 @@ class PrinterStatus {
     this.speedLevel,
     this.chamberLight,
     this.airductMode,
+    this.ams,
+    this.vtTray,
+    this.trayNow,
+    this.activeExtruder,
+    this.amsExtruderMap,
+    this.model,
+    this.wifiSignal,
+    this.doorOpen,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -100,6 +108,40 @@ class PrinterStatus {
   @JsonKey(fromJson: _toIntOrNull)
   final int? airductMode;
 
+  /// Jednostki AMS (po jednej na moduł). Parsowane defensywnie — element
+  /// nie-mapowy jest pomijany, nigdy nie wywraca statusu.
+  @JsonKey(fromJson: _toAmsListOrNull)
+  final List<AmsUnit>? ams;
+
+  /// Zewnętrzna szpula (external spool) — ta sama struktura co slot AMS.
+  /// Serwer zwykle podaje 1–2 wpisy (id 254/255).
+  @JsonKey(fromJson: _toTrayListOrNull)
+  final List<AmsTray>? vtTray;
+
+  /// Globalny numer aktywnego slotu (AMS: jednostka*4 + slot; szpula 254/255).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? trayNow;
+
+  /// Aktywny ekstruder (dysza) na maszynach dwudyszowych (X2D/H2D); 0/1.
+  /// null/0 na zwykłych jednodyszowych.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? activeExtruder;
+
+  /// Mapa „id jednostki AMS → ekstruder, który karmi". Klucze przychodzą
+  /// jako stringi (np. `{"0":1}`) — normalizujemy do int.
+  @JsonKey(fromJson: _toExtruderMapOrNull)
+  final Map<int, int>? amsExtruderMap;
+
+  /// Model drukarki z serwera (np. „X2D", „P1S").
+  final String? model;
+
+  /// Siła sygnału Wi-Fi w dBm (ujemna; bliżej 0 = lepiej). null = brak/LAN.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? wifiSignal;
+
+  /// Czy drzwiczki/pokrywa są otwarte (jeśli drukarka to raportuje).
+  final bool? doorOpen;
+
   /// true = grzanie, false = chłodzenie, null = brak/nieznany tryb.
   bool? get airductIsHeating => switch (airductMode) {
         0 => false,
@@ -140,6 +182,148 @@ class PrinterStatus {
   /// Faza przygotowania: aktywny wydruk, ale jeszcze bez realnego postępu —
   /// wtedy w UI pokazujemy nazwę etapu zamiast paska 0%.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
+
+  /// Szpule zewnętrzne uporządkowane po id rosnąco (254, 255, …).
+  List<AmsTray> get externalSpools {
+    final list = [...?vtTray];
+    list.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+    return list;
+  }
+
+  /// Maszyna dwudyszowa — wtedy w UI rozróżniamy, który materiał siedzi na
+  /// którym ekstruderze (na zwykłej jednodyszowej to zbędne).
+  bool get isDualExtruder =>
+      externalSpools.length > 1 || (amsExtruderMap?.length ?? 0) > 1;
+
+  /// Numer ekstrudera, który karmi szpula zewnętrzna o danym `id`.
+  ///
+  /// Kontrakt H2D/X2D potwierdzony przy fizycznej drukarce: szpule mapują się
+  /// ODWROTNIE do kolejności id — 254 → ekstruder 1 (lewy), 255 → ekstruder 0
+  /// (prawy). Stąd odwrócony indeks względem [externalSpools] (rosnących).
+  int? extruderForExternal(int? trayId) {
+    if (trayId == null) return null;
+    final spools = externalSpools;
+    final i = spools.indexWhere((t) => t.id == trayId);
+    return i < 0 ? null : (spools.length - 1) - i;
+  }
+
+  /// Materiał aktualnie załadowany na drukarce (na aktywnym ekstruderze).
+  ///
+  /// Założenie kontraktu X2D/H2D (zweryfikowane na żywo dla AMS; dla szpuli
+  /// przyjęte wg ustaleń): `tray_now` ≥ 254 oznacza szpulę zewnętrzną — wtedy
+  /// liczy się szpula karmiąca [activeExtruder] (254→ekstruder 0, 255→1).
+  /// Dla `tray_now` < 254 to slot AMS o numerze globalnym `jednostka*4 + slot`.
+  AmsTray? get activeTray {
+    final now = trayNow;
+    if (now == null) return null;
+
+    // Szpula zewnętrzna: wybór po aktywnym ekstruderze, nie po samym id
+    // (na dwudyszowej `tray_now` nie rozróżnia obu szpul jednoznacznie).
+    // Mapowanie szpula→ekstruder jest odwrotne do id (patrz extruderForExternal).
+    if (now >= 254) {
+      final spools = externalSpools;
+      if (spools.isEmpty) return null;
+      final ext = activeExtruder ?? 0;
+      for (final t in spools) {
+        if (extruderForExternal(t.id) == ext) return t;
+      }
+      // Fallback: dopasowanie po id, a w ostateczności pierwsza szpula.
+      return spools.firstWhere(
+        (t) => t.id == now,
+        orElse: () => spools.first,
+      );
+    }
+
+    // Slot AMS: numer globalny = indeks jednostki * 4 + numer slotu.
+    final units = ams ?? const [];
+    for (var u = 0; u < units.length; u++) {
+      for (final t in units[u].trays ?? const []) {
+        if (u * 4 + (t.id ?? -1) == now) return t;
+      }
+    }
+    return null;
+  }
+
+  /// Czy są jakiekolwiek dane do rozwinięcia w sekcji szczegółów
+  /// (AMS, szpula zewnętrzna lub metadane łączności/modelu).
+  bool get hasDetails =>
+      (ams != null && ams!.isNotEmpty) ||
+      (vtTray != null && vtTray!.isNotEmpty) ||
+      model != null ||
+      wifiSignal != null ||
+      doorOpen != null;
+}
+
+/// Pojedyncza jednostka AMS: wilgotność, temperatura i sloty (tace).
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class AmsUnit {
+  const AmsUnit({this.id, this.humidity, this.temp, this.trays});
+
+  factory AmsUnit.fromJson(Map<String, dynamic> json) =>
+      _$AmsUnitFromJson(json);
+
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? id;
+
+  /// Wilgotność wewnątrz AMS w procentach (jeśli moduł ją mierzy).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? humidity;
+
+  /// Temperatura wewnątrz AMS w °C (serwer bywa, że podaje jako string).
+  @JsonKey(fromJson: _toDoubleOrNull)
+  final double? temp;
+
+  /// Sloty na filament. Klucz serwera to `tray`.
+  @JsonKey(name: 'tray', fromJson: _toTrayListOrNull)
+  final List<AmsTray>? trays;
+}
+
+/// Slot filamentu (taca AMS lub szpula zewnętrzna). Tylko pola potrzebne
+/// do chipów — kolor, materiał i pozostała ilość; reszta ignorowana.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class AmsTray {
+  const AmsTray({
+    this.id,
+    this.trayColor,
+    this.trayType,
+    this.traySubBrands,
+    this.remain,
+  });
+
+  factory AmsTray.fromJson(Map<String, dynamic> json) =>
+      _$AmsTrayFromJson(json);
+
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? id;
+
+  /// Kolor filamentu jako hex RRGGBBAA (np. „F55A74FF"); null/puste = brak.
+  final String? trayColor;
+
+  /// Typ materiału (np. „PLA", „PETG", „TPU"); null/puste = pusty slot.
+  final String? trayType;
+
+  /// Wariant marki (np. „PLA Basic"), gdy serwer poda.
+  final String? traySubBrands;
+
+  /// Pozostała ilość w procentach (0–100); -1 = nieznana (bez tagu RFID).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? remain;
+
+  /// Pusty slot: brak materiału lub w pełni przezroczysty kolor (alpha 00).
+  bool get isEmpty {
+    final type = trayType?.trim();
+    if (type == null || type.isEmpty) return true;
+    final color = trayColor;
+    return color != null && color.length == 8 && color.endsWith('00');
+  }
+
+  /// Etykieta materiału do chipa (wariant marki, gdy jest sensowny).
+  String? get materialLabel {
+    final sub = traySubBrands?.trim();
+    if (sub != null && sub.isNotEmpty) return sub;
+    final type = trayType?.trim();
+    return (type == null || type.isEmpty) ? null : type;
+  }
 }
 
 double? _toDoubleOrNull(dynamic value) => switch (value) {
@@ -162,4 +346,34 @@ Map<String, double>? _toTemperaturesOrNull(dynamic value) {
     if (v != null) out[entry.key.toString()] = v;
   }
   return out;
+}
+
+/// Mapa `id AMS → ekstruder` z kluczami-stringami (`{"0":1}`) → `{0:1}`.
+Map<int, int>? _toExtruderMapOrNull(dynamic value) {
+  if (value is! Map) return null;
+  final out = <int, int>{};
+  for (final entry in value.entries) {
+    final k = _toIntOrNull(entry.key);
+    final v = _toIntOrNull(entry.value);
+    if (k != null && v != null) out[k] = v;
+  }
+  return out;
+}
+
+/// Lista jednostek AMS — elementy nie-mapowe pomijamy (parsowanie defensywne).
+List<AmsUnit>? _toAmsListOrNull(dynamic value) {
+  if (value is! List) return null;
+  return [
+    for (final e in value)
+      if (e is Map) AmsUnit.fromJson(Map<String, dynamic>.from(e)),
+  ];
+}
+
+/// Lista slotów filamentu (tace AMS lub szpule) — elementy nie-mapowe pomijamy.
+List<AmsTray>? _toTrayListOrNull(dynamic value) {
+  if (value is! List) return null;
+  return [
+    for (final e in value)
+      if (e is Map) AmsTray.fromJson(Map<String, dynamic>.from(e)),
+  ];
 }

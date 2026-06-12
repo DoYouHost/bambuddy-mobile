@@ -199,7 +199,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     itemCount: filtered.length,
-                    itemBuilder: (_, i) => PrinterCard(item: filtered[i]),
+                    itemBuilder: (_, i) => PrinterCard(
+                      key: ValueKey(filtered[i].printer.id),
+                      item: filtered[i],
+                    ),
                   ),
           ),
         ),

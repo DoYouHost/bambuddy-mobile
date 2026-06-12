@@ -118,6 +118,59 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlAirductHeating => 'Grzanie';
 
   @override
+  String get detailsShow => 'Szczegóły';
+
+  @override
+  String get detailsHide => 'Ukryj szczegóły';
+
+  @override
+  String get cameraTooltip => 'Kamera';
+
+  @override
+  String get cameraConnecting => 'Łączenie z kamerą…';
+
+  @override
+  String get cameraError => 'Nie udało się wczytać strumienia kamery';
+
+  @override
+  String amsUnit(int number) {
+    return 'AMS $number';
+  }
+
+  @override
+  String get externalSpool => 'Szpula zewnętrzna';
+
+  @override
+  String get traySlotEmpty => 'Pusty';
+
+  @override
+  String get extruderLeft => 'Lewy ekstruder';
+
+  @override
+  String get extruderRight => 'Prawy ekstruder';
+
+  @override
+  String get extruderLeftShort => 'L';
+
+  @override
+  String get extruderRightShort => 'P';
+
+  @override
+  String get amsHumidityTooltip => 'Wilgotność AMS';
+
+  @override
+  String get amsTempTooltip => 'Temperatura AMS';
+
+  @override
+  String get wifiTooltip => 'Sygnał Wi-Fi';
+
+  @override
+  String get doorOpen => 'Drzwiczki otwarte';
+
+  @override
+  String get doorClosed => 'Drzwiczki zamknięte';
+
+  @override
   String get statusUnavailable => 'status niedostępny';
 
   @override

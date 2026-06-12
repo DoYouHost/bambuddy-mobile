@@ -21,6 +21,7 @@ dependencies:
   json_annotation: ^4.9.0
   shared_preferences: ^2.3.3
   web_socket_channel: ^3.0.3
+  flutter_mjpeg: ^2.0.4
 
 dev_dependencies:
   flutter_test:

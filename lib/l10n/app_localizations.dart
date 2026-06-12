@@ -284,6 +284,108 @@ abstract class AppLocalizations {
   /// **'Heating'**
   String get ctrlAirductHeating;
 
+  /// No description provided for @detailsShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get detailsShow;
+
+  /// No description provided for @detailsHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide details'**
+  String get detailsHide;
+
+  /// No description provided for @cameraTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get cameraTooltip;
+
+  /// No description provided for @cameraConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to camera…'**
+  String get cameraConnecting;
+
+  /// No description provided for @cameraError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the camera stream'**
+  String get cameraError;
+
+  /// No description provided for @amsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS {number}'**
+  String amsUnit(int number);
+
+  /// No description provided for @externalSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'External spool'**
+  String get externalSpool;
+
+  /// No description provided for @traySlotEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get traySlotEmpty;
+
+  /// No description provided for @extruderLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left extruder'**
+  String get extruderLeft;
+
+  /// No description provided for @extruderRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Right extruder'**
+  String get extruderRight;
+
+  /// No description provided for @extruderLeftShort.
+  ///
+  /// In en, this message translates to:
+  /// **'L'**
+  String get extruderLeftShort;
+
+  /// No description provided for @extruderRightShort.
+  ///
+  /// In en, this message translates to:
+  /// **'R'**
+  String get extruderRightShort;
+
+  /// No description provided for @amsHumidityTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS humidity'**
+  String get amsHumidityTooltip;
+
+  /// No description provided for @amsTempTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS temperature'**
+  String get amsTempTooltip;
+
+  /// No description provided for @wifiTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi signal'**
+  String get wifiTooltip;
+
+  /// No description provided for @doorOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Door open'**
+  String get doorOpen;
+
+  /// No description provided for @doorClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Door closed'**
+  String get doorClosed;
+
   /// No description provided for @statusUnavailable.
   ///
   /// In en, this message translates to:

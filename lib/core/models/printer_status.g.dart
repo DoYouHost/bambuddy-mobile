@@ -28,4 +28,27 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       speedLevel: _toIntOrNull(json['speed_level']),
       chamberLight: json['chamber_light'] as bool?,
       airductMode: _toIntOrNull(json['airduct_mode']),
+      ams: _toAmsListOrNull(json['ams']),
+      vtTray: _toTrayListOrNull(json['vt_tray']),
+      trayNow: _toIntOrNull(json['tray_now']),
+      activeExtruder: _toIntOrNull(json['active_extruder']),
+      amsExtruderMap: _toExtruderMapOrNull(json['ams_extruder_map']),
+      model: json['model'] as String?,
+      wifiSignal: _toIntOrNull(json['wifi_signal']),
+      doorOpen: json['door_open'] as bool?,
     );
+
+AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
+  id: _toIntOrNull(json['id']),
+  humidity: _toIntOrNull(json['humidity']),
+  temp: _toDoubleOrNull(json['temp']),
+  trays: _toTrayListOrNull(json['tray']),
+);
+
+AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
+  id: _toIntOrNull(json['id']),
+  trayColor: json['tray_color'] as String?,
+  trayType: json['tray_type'] as String?,
+  traySubBrands: json['tray_sub_brands'] as String?,
+  remain: _toIntOrNull(json['remain']),
+);

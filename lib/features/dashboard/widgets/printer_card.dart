@@ -5,20 +5,31 @@ import '../../../core/models/printer_status.dart';
 import '../../../data/printers_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../camera/camera_view.dart';
 
-class PrinterCard extends StatelessWidget {
+class PrinterCard extends StatefulWidget {
   const PrinterCard({super.key, required this.item});
 
   final PrinterWithStatus item;
 
   @override
+  State<PrinterCard> createState() => _PrinterCardState();
+}
+
+class _PrinterCardState extends State<PrinterCard> {
+  /// Rozwinięcie sekcji szczegółów (AMS, szpula, łączność). Trzymane lokalnie,
+  /// więc przeżywa odświeżenia z pollingu/WS (karta ma klucz po id drukarki).
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final status = item.status;
+    final status = widget.item.status;
     final connected = status?.connected ?? false;
     final printing = status?.isPrinting ?? false;
     final readings = _buildReadings(status?.temperatures);
+    final hasDetails = status?.hasDetails ?? false;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -38,11 +49,27 @@ class PrinterCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    item.printer.name,
+                    widget.item.printer.name,
                     style: theme.textTheme.titleMedium,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                // Podgląd kamery — tylko gdy drukarka jest połączona (offline
+                // i tak nie zwróci strumienia).
+                if (connected)
+                  IconButton(
+                    tooltip: l10n.cameraTooltip,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.videocam_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CameraView(
+                          printerId: widget.item.printer.id,
+                          printerName: widget.item.printer.name,
+                        ),
+                      ),
+                    ),
+                  ),
                 _StateChip(
                   label: status == null
                       ? l10n.statusUnavailable
@@ -62,11 +89,409 @@ class PrinterCard extends StatelessWidget {
               _TempGrid(readings: readings),
             ],
             if (status != null) _ControlsRow(status: status),
+            if (hasDetails) ...[
+              const SizedBox(height: 6),
+              _DetailsToggle(
+                expanded: _expanded,
+                onTap: () => setState(() => _expanded = !_expanded),
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _expanded
+                    ? _DetailsPanel(status: status!)
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+/// Klikalny pasek „Szczegóły ▾" rozwijający sekcję AMS/łączności.
+class _DetailsToggle extends StatelessWidget {
+  const _DetailsToggle({required this.expanded, required this.onTap});
+
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final scheme = theme.colorScheme;
+    final color = scheme.onSurfaceVariant;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Ink(
+        decoration: BoxDecoration(
+          // Delikatne odróżnienie od tła karty — ten sam ton co kafelki/chipy.
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              expanded ? l10n.detailsHide : l10n.detailsShow,
+              style: theme.textTheme.labelLarge?.copyWith(color: color),
+            ),
+            const SizedBox(width: 4),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(Icons.expand_more, size: 20, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Rozwinięta sekcja szczegółów: jednostki AMS z kolorowymi slotami,
+/// szpula zewnętrzna oraz metadane łączności (model, Wi-Fi, drzwiczki).
+class _DetailsPanel extends StatelessWidget {
+  const _DetailsPanel({required this.status});
+
+  final PrinterStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final ams = status.ams ?? const [];
+    final spools = status.externalSpools;
+    // Materiał faktycznie załadowany (na aktywnym ekstruderze) — to JEGO
+    // podświetlamy, niezależnie od kolejności na liście.
+    final active = status.activeTray;
+    final dual = status.isDualExtruder;
+    final activeExtruder = status.activeExtruder;
+
+    final sections = <Widget>[
+      for (var i = 0; i < ams.length; i++)
+        _AmsUnitView(
+          unit: ams[i],
+          unitIndex: i,
+          active: active,
+          // Na dwudyszowej pokazujemy, który ekstruder karmi ta jednostka.
+          extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
+          activeExtruder: activeExtruder,
+        ),
+      if (spools.isNotEmpty)
+        _TraySection(
+          title: l10n.externalSpool,
+          trays: spools,
+          active: active,
+          // Szpula→ekstruder liczona z id (odwrotnie do kolejności: 254→lewy).
+          extruderOf:
+              dual ? (i) => status.extruderForExternal(spools[i].id) : (_) => null,
+          activeExtruder: activeExtruder,
+        ),
+    ];
+
+    final info = _InfoRow(status: status);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final s in sections) ...[s, const SizedBox(height: 10)],
+          info,
+        ],
+      ),
+    );
+  }
+}
+
+/// Jedna jednostka AMS: nagłówek (numer + ekstruder + wilgotność + temperatura)
+/// i sloty. [active] to instancja faktycznie załadowanego slotu (z modelu) —
+/// porównujemy przez tożsamość, więc podświetla się dokładnie ten jeden.
+class _AmsUnitView extends StatelessWidget {
+  const _AmsUnitView({
+    required this.unit,
+    required this.unitIndex,
+    required this.active,
+    required this.extruder,
+    required this.activeExtruder,
+  });
+
+  final AmsUnit unit;
+  final int unitIndex;
+  final AmsTray? active;
+  final int? extruder;
+  final int? activeExtruder;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    final trays = unit.trays ?? const [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              l10n.amsUnit(unitIndex + 1),
+              style: theme.textTheme.labelLarge,
+            ),
+            if (extruder != null) ...[
+              const SizedBox(width: 6),
+              _ExtruderBadge(
+                extruder: extruder!,
+                active: extruder == activeExtruder,
+              ),
+            ],
+            const Spacer(),
+            if (unit.humidity != null)
+              _MetaItem(
+                icon: Icons.water_drop_outlined,
+                text: '${unit.humidity}%',
+              ),
+            if (unit.humidity != null && unit.temp != null)
+              const SizedBox(width: 12),
+            if (unit.temp != null)
+              _MetaItem(
+                icon: Icons.thermostat,
+                text: '${unit.temp!.toStringAsFixed(0)}°',
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final t in trays)
+              _TrayChip(tray: t, active: identical(t, active)),
+          ],
+        ),
+        if (trays.isEmpty)
+          Text('—', style: theme.textTheme.bodySmall?.copyWith(color: color)),
+      ],
+    );
+  }
+}
+
+/// Sekcja slotów z tytułem (np. szpula zewnętrzna). [extruderOf] mapuje indeks
+/// na ekstruder (na dwudyszowej), [active] to faktycznie załadowany slot.
+class _TraySection extends StatelessWidget {
+  const _TraySection({
+    required this.title,
+    required this.trays,
+    required this.active,
+    required this.extruderOf,
+    required this.activeExtruder,
+  });
+
+  final String title;
+  final List<AmsTray> trays;
+  final AmsTray? active;
+  final int? Function(int index) extruderOf;
+  final int? activeExtruder;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < trays.length; i++)
+              _TrayChip(
+                tray: trays[i],
+                active: identical(trays[i], active),
+                extruder: extruderOf(i),
+                activeExtruder: activeExtruder,
+                // Szpula zewnętrzna: drukarka nie mierzy zapełnienia (brak RFID
+                // jak w oryginalnych filamentach Bambu w AMS) — nie pokazujemy %.
+                allowRemain: false,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Chip pojedynczego slotu: opcjonalny znacznik ekstrudera + kropka w kolorze
+/// filamentu + materiał + ilość. Aktywny (załadowany) slot dostaje obwódkę.
+class _TrayChip extends StatelessWidget {
+  const _TrayChip({
+    required this.tray,
+    required this.active,
+    this.extruder,
+    this.activeExtruder,
+    this.allowRemain = true,
+  });
+
+  final AmsTray tray;
+  final bool active;
+  final int? extruder;
+  final int? activeExtruder;
+
+  /// Czy w ogóle pokazywać % zapełnienia (tylko AMS — szpula zewnętrzna nie ma
+  /// wiarygodnego pomiaru).
+  final bool allowRemain;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final empty = tray.isEmpty;
+    final dotColor = empty ? null : _parseTrayColor(tray.trayColor);
+
+    final label = empty
+        ? l10n.traySlotEmpty
+        : (tray.materialLabel ?? l10n.traySlotEmpty);
+    final remain = tray.remain;
+    final showRemain = allowRemain && !empty && remain != null && remain >= 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: active
+            ? Border.all(color: scheme.primary, width: 1.5)
+            : Border.all(color: Colors.transparent, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (extruder != null) ...[
+            _ExtruderBadge(
+              extruder: extruder!,
+              active: extruder == activeExtruder,
+            ),
+            const SizedBox(width: 6),
+          ],
+          _ColorDot(color: dotColor),
+          const SizedBox(width: 6),
+          Text(
+            showRemain ? '$label · $remain%' : label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: empty ? scheme.onSurfaceVariant : scheme.onSurface,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Mały znacznik ekstrudera dla maszyn dwudyszowych: ikona + strona
+/// (L/P — lewy/prawy). Mapowanie wg kontraktu: ekstruder 1 = lewy, 0 = prawy
+/// (potwierdzone na żywo: AMS → ekstruder 1 = lewy). Aktywny ekstruder w
+/// kolorze akcentu, pozostałe przygaszone.
+class _ExtruderBadge extends StatelessWidget {
+  const _ExtruderBadge({required this.extruder, required this.active});
+
+  final int extruder;
+  final bool active;
+
+  bool get _isLeft => extruder == 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final color = active ? scheme.primary : scheme.onSurfaceVariant;
+    final short = _isLeft ? l10n.extruderLeftShort : l10n.extruderRightShort;
+    return Tooltip(
+      message: _isLeft ? l10n.extruderLeft : l10n.extruderRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.print_outlined, size: 13, color: color),
+          const SizedBox(width: 2),
+          Text(
+            short,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kółko w kolorze filamentu; pusty/nieznany slot → przekreślona obwódka.
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color});
+
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (color == null) {
+      return Icon(Icons.circle_outlined, size: 14, color: scheme.outline);
+    }
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: scheme.outlineVariant, width: 0.5),
+      ),
+    );
+  }
+}
+
+/// Wiersz metadanych łączności: model, sygnał Wi-Fi, stan drzwiczek.
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.status});
+
+  final PrinterStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final items = <Widget>[
+      if (status.model != null)
+        _MetaItem(icon: Icons.precision_manufacturing, text: status.model!),
+      if (status.wifiSignal != null)
+        _MetaItem(icon: Icons.wifi, text: '${status.wifiSignal} dBm'),
+      if (status.doorOpen != null)
+        _MetaItem(
+          icon: status.doorOpen!
+              ? Icons.meeting_room
+              : Icons.meeting_room_outlined,
+          text: status.doorOpen! ? l10n.doorOpen : l10n.doorClosed,
+        ),
+    ];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Wrap(spacing: 14, runSpacing: 4, children: items);
+  }
+}
+
+/// Parsuje kolor filamentu z hex RRGGBBAA na [Color]; null gdy niepoprawny.
+Color? _parseTrayColor(String? hex) {
+  if (hex == null || hex.length != 8) return null;
+  final rgb = int.tryParse(hex.substring(0, 6), radix: 16);
+  final a = int.tryParse(hex.substring(6, 8), radix: 16);
+  if (rgb == null || a == null) return null;
+  return Color((a << 24) | rgb);
 }
 
 /// Panel aktywnego wydruku: nazwa, pasek postępu z %, ETA i warstwy.

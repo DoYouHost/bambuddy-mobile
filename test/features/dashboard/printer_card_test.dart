@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
+import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -133,6 +134,93 @@ void main() {
     expect(find.text('A1 mini'), findsOneWidget);
     expect(find.text('status niedostępny'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  group('rozwijane szczegóły (AMS)', () {
+    PrinterWithStatus realItem() {
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      // Miniatura okładki (sieciowa) jest testowana osobno — usuwamy ją tu,
+      // by izolować sekcję AMS i nie czekać na request HTTP w teście.
+      data.remove('cover_url');
+      return PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X2D-3DP'),
+        status: PrinterStatus.fromJson(data),
+      );
+    }
+
+    testWidgets('szczegóły domyślnie zwinięte, rozwijają się po tapnięciu',
+        (tester) async {
+      await tester.pumpWidget(plApp(Scaffold(
+        body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+      )));
+
+      // Zwinięte: jest przełącznik „Szczegóły", brak treści AMS.
+      expect(find.text('Szczegóły'), findsOneWidget);
+      expect(find.text('AMS 1'), findsNothing);
+
+      await tester.tap(find.text('Szczegóły'));
+      // Nie pumpAndSettle — faza przygotowania ma nieoznaczony pasek postępu,
+      // który animuje się bez końca. Przewijamy tylko czas rozwinięcia (200 ms).
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // Rozwinięte: AMS, szpula zewnętrzna i metadane widoczne.
+      expect(find.text('Ukryj szczegóły'), findsOneWidget);
+      expect(find.text('AMS 1'), findsOneWidget);
+      expect(find.text('Szpula zewnętrzna'), findsOneWidget);
+      // Materiał slotu z wariantem marki + pozostała ilość.
+      expect(find.text('PLA Basic · 66%'), findsOneWidget);
+      // Metadane łączności.
+      expect(find.textContaining('-59 dBm'), findsOneWidget);
+      expect(find.text('Drzwiczki zamknięte'), findsOneWidget);
+    });
+
+    testWidgets('brak danych AMS → brak przełącznika szczegółów',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 9, name: 'A1'),
+        status: const PrinterStatus(id: 9, connected: true, state: 'IDLE'),
+      );
+
+      await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+  });
+
+  group('podgląd kamery', () {
+    testWidgets('połączona drukarka: przycisk kamery otwiera podgląd',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C Warsztat'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
+
+      await tester.pumpWidget(_cardWithProviders(item));
+
+      final camBtn = find.byIcon(Icons.videocam_outlined);
+      expect(camBtn, findsOneWidget);
+
+      await tester.tap(camBtn);
+      // Przewijamy tylko przejście trasy (~300 ms) — nie settle'ujemy, bo
+      // strumień MJPEG robi request sieciowy i spinner kręci się bez końca.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(CameraView), findsOneWidget);
+    });
+
+    testWidgets('niepołączona drukarka: brak przycisku kamery',
+        (tester) async {
+      const item = PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini'));
+
+      await tester.pumpWidget(_cardWithProviders(item));
+
+      expect(find.byIcon(Icons.videocam_outlined), findsNothing);
+    });
   });
 
   group('_CoverThumbnail', () {
