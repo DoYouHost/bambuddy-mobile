@@ -2,6 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+
+/// Owija widżet w MaterialApp z polską lokalizacją — testy asertują
+/// polskie stringi, więc wymuszamy locale `pl`.
+Widget plApp(Widget child) => MaterialApp(
+      locale: const Locale('pl'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: child,
+    );
 
 /// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —
 /// tak uruchamia testy `flutter test`).

@@ -2,25 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/printers_repository.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import 'providers.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/printer_card.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     // Wygaśnięcie sesji → łagodny powrót do konfiguracji,
     // nigdy crash ani martwy dashboard.
-    ref.listen(dashboardProvider.select((s) => s.authExpired),
-        (_, expired) {
+    ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
       if (expired) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sesja wygasła — zaloguj się ponownie'),
-          ),
+          SnackBar(content: Text(l10n.sessionExpired)),
         );
         context.go('/setup');
       }
@@ -31,12 +40,12 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drukarki'),
+        title: Text(l10n.printersTitle),
         actions: [
           IconButton(
-            tooltip: 'Zmień serwer',
+            tooltip: l10n.changeServer,
             icon: const Icon(Icons.settings),
-            onPressed: () => _confirmChangeServer(context, ref),
+            onPressed: () => _confirmChangeServer(context, ref, l10n),
           ),
         ],
         bottom: profile == null
@@ -55,16 +64,14 @@ class DashboardScreen extends ConsumerWidget {
       body: Column(
         children: [
           if (state.stale)
-            ConnectionBanner(
-              message: 'Serwer nieosiągalny — dane mogą być nieaktualne',
-            ),
-          Expanded(child: _body(context, ref, state)),
+            ConnectionBanner(message: l10n.serverUnreachableStale),
+          Expanded(child: _body(context, state, l10n)),
         ],
       ),
     );
   }
 
-  Widget _body(BuildContext context, WidgetRef ref, DashboardState state) {
+  Widget _body(BuildContext context, DashboardState state, AppLocalizations l10n) {
     if (state.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -79,13 +86,13 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.cloud_off, size: 48),
               const SizedBox(height: 12),
-              Text(state.error ?? 'Nie udało się połączyć z serwerem',
+              Text(state.error?.localized(l10n) ?? l10n.connectFailed,
                   textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () =>
                     ref.read(dashboardProvider.notifier).refresh(),
-                child: const Text('Spróbuj ponownie'),
+                child: Text(l10n.retry),
               ),
             ],
           ),
@@ -94,43 +101,72 @@ class DashboardScreen extends ConsumerWidget {
     }
 
     final printers = state.printers!;
-    return RefreshIndicator(
-      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
-      child: printers.isEmpty
-          ? ListView(
-              children: const [
-                Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(
-                    child: Text('Brak drukarek — dodaj je na serwerze'),
-                  ),
-                ),
-              ],
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              itemCount: printers.length,
-              itemBuilder: (_, i) => PrinterCard(item: printers[i]),
+    final q = _query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? printers
+        : printers
+            .where((p) => p.printer.name.toLowerCase().contains(q))
+            .toList();
+
+    return Column(
+      children: [
+        _SummaryHeader(printers: printers),
+        // Wyszukiwarka ma sens dopiero przy wielu drukarkach.
+        if (printers.length > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: SearchBar(
+              hintText: l10n.searchPrinters,
+              leading: const Icon(Icons.search),
+              onChanged: (v) => setState(() => _query = v),
             ),
+          )
+        else
+          const SizedBox(height: 8),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+            child: filtered.isEmpty
+                ? ListView(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            printers.isEmpty
+                                ? l10n.noPrinters
+                                : l10n.noSearchResults(_query),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) => PrinterCard(item: filtered[i]),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
   Future<void> _confirmChangeServer(
-      BuildContext context, WidgetRef ref) async {
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Zmienić serwer?'),
-        content: const Text(
-            'Zapisany profil i poświadczenia zostaną usunięte.'),
+        title: Text(l10n.changeServerQuestion),
+        content: Text(l10n.changeServerWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Anuluj'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Zmień'),
+            child: Text(l10n.change),
           ),
         ],
       ),
@@ -138,5 +174,86 @@ class DashboardScreen extends ConsumerWidget {
     if (confirmed ?? false) {
       await ref.read(serverProfileProvider.notifier).clear();
     }
+  }
+}
+
+/// Podsumowanie u góry listy: ile drukarek pracuje i która zwolni się
+/// najwcześniej (najmniej pozostałego czasu).
+class _SummaryHeader extends StatelessWidget {
+  const _SummaryHeader({required this.printers});
+
+  final List<PrinterWithStatus> printers;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final active = printers.where((p) => p.status?.isPrinting ?? false).toList()
+      ..sort((a, b) => (a.status!.remainingTime ?? 1 << 30)
+          .compareTo(b.status!.remainingTime ?? 1 << 30));
+
+    final next = active.isEmpty ? null : active.first;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: active.isEmpty ? theme.disabledColor : scheme.primary,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            active.isEmpty
+                ? l10n.noActivePrints
+                : l10n.printingCount(active.length),
+            style: theme.textTheme.bodyMedium,
+          ),
+          if (next != null) ...[
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                    text: l10n.nextAvailableLabel,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  TextSpan(
+                    text: next.printer.name,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(
+                    text: _nextSuffix(l10n, next),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ]),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _nextSuffix(AppLocalizations l10n, PrinterWithStatus next) {
+    final p = next.status?.progress;
+    final r = next.status?.remainingTime;
+    final parts = [
+      if (p != null) '${p.toStringAsFixed(0)}%',
+      if (r != null)
+        r < 60
+            ? l10n.durationMinutes(r)
+            : l10n.durationHoursMinutes(r ~/ 60, r % 60),
+    ];
+    return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
   }
 }

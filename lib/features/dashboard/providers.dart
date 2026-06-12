@@ -19,8 +19,8 @@ class DashboardState {
   /// poll padnie (baner zamiast pustego ekranu).
   final List<PrinterWithStatus>? printers;
 
-  /// Błąd ostatniego pollingu (null = ostatni poll OK).
-  final String? error;
+  /// Błąd ostatniego pollingu (null = ostatni poll OK); tłumaczony w UI.
+  final AppApiException? error;
 
   /// Sesja/klucz odrzucone i nieodnowialne — UI odsyła do /setup.
   final bool authExpired;
@@ -66,7 +66,7 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
       state = DashboardState(printers: state.printers, authExpired: true);
     } on AppApiException catch (e) {
       if (generation != _generation) return;
-      state = DashboardState(printers: state.printers, error: e.message);
+      state = DashboardState(printers: state.printers, error: e);
     }
   }
 }

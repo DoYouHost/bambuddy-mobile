@@ -67,20 +67,18 @@ class AuthService {
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw const AuthException('Nieprawidłowy login lub hasło');
+        throw const AuthException(AppErrorCode.invalidCredentials);
       }
       throw mapDioException(e);
     }
 
     final body = res.data ?? const {};
     if (body['requires_2fa'] == true) {
-      throw const AuthException(
-          'Konto wymaga 2FA — nieobsługiwane w tej wersji. '
-          'Użyj klucza API (Ustawienia → API Keys na serwerze).');
+      throw const AuthException(AppErrorCode.twoFactorUnsupported);
     }
     final token = body['access_token'];
     if (token is! String || token.isEmpty) {
-      throw const ApiException('Odpowiedź logowania bez access_token');
+      throw const ApiException(AppErrorCode.malformedResponse);
     }
 
     await _credentials.writeJwt(token);
@@ -104,9 +102,7 @@ class AuthService {
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {
-        throw const AuthException(
-            'Klucz API odrzucony — sprawdź klucz i jego scope '
-            '(wymagany can_read_status)');
+        throw const AuthException(AppErrorCode.apiKeyRejected);
       }
       throw mapDioException(e);
     }

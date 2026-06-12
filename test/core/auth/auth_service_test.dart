@@ -53,7 +53,7 @@ void main() {
           (server) => server.reply(404, {'detail': 'Not Found'}),
         )
         ..onGet(
-          '$baseUrl/api/v1/printers',
+          '$baseUrl/api/v1/printers/',
           (server) => server.reply(200, readFixture('printers_list.json')),
         );
 
@@ -69,7 +69,7 @@ void main() {
           (server) => server.reply(404, {'detail': 'Not Found'}),
         )
         ..onGet(
-          '$baseUrl/api/v1/printers',
+          '$baseUrl/api/v1/printers/',
           (server) => server.reply(401, {'detail': 'Unauthorized'}),
         );
 
@@ -127,8 +127,8 @@ void main() {
       await expectLater(
         service.login(
             baseUrl: baseUrl, username: 'tester', password: 'sekret'),
-        throwsA(isA<AuthException>()
-            .having((e) => e.message, 'message', contains('2FA'))),
+        throwsA(isA<AuthException>().having(
+            (e) => e.code, 'code', AppErrorCode.twoFactorUnsupported)),
       );
       expect(store.jwt, isNull);
     });
@@ -184,7 +184,7 @@ void main() {
   group('verifyAndStoreApiKey', () {
     test('200 → klucz zapisany', () async {
       adapter.onGet(
-        '$baseUrl/api/v1/printers',
+        '$baseUrl/api/v1/printers/',
         (server) => server.reply(200, readFixture('printers_list.json')),
         headers: {'X-API-Key': 'bb_dobry'},
       );
@@ -195,7 +195,7 @@ void main() {
 
     test('403 → AuthException, klucz niezapisany', () async {
       adapter.onGet(
-        '$baseUrl/api/v1/printers',
+        '$baseUrl/api/v1/printers/',
         (server) => server.reply(403, {'detail': 'Missing scope'}),
         headers: {'X-API-Key': 'bb_slaby'},
       );

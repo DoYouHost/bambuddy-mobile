@@ -8,7 +8,9 @@ abstract final class Endpoints {
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
-  static const printers = '$apiPrefix/printers';
+  // Trailing slash wymagany: serwer (FastAPI) ma trasę pod `/printers/`,
+  // a `/printers` (bez slasha) zwraca 404 dla uwierzytelnionego żądania.
+  static const printers = '$apiPrefix/printers/';
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 }

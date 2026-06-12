@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_exceptions.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import 'providers.dart';
 
 /// Konfiguracja połączenia: URL → sonda trybu auth → (opcjonalnie)
@@ -32,11 +35,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(setupControllerProvider);
     final controller = ref.read(setupControllerProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Połącz z serwerem')),
+      appBar: AppBar(title: Text(l10n.connectToServer)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -47,12 +51,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               enabled: !state.busy,
               keyboardType: TextInputType.url,
               autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'Adres serwera bambuddy',
-                hintText: 'np. 192.168.1.10:8000',
-                helperText:
-                    'Dostęp zdalny: użyj HTTPS przez reverse proxy',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.serverAddressLabel,
+                hintText: l10n.serverAddressHint,
+                helperText: l10n.serverAddressHelper,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (v) => controller.probe(v),
             ),
@@ -60,7 +63,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             FilledButton(
               onPressed:
                   state.busy ? null : () => controller.probe(_url.text),
-              child: const Text('Testuj połączenie'),
+              child: Text(l10n.testConnection),
             ),
             if (state.busy)
               const Padding(
@@ -71,88 +74,80 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
-                  state.error!,
+                  _setupErrorText(l10n, state.error!),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
-            if (state.needsAuth && !state.busy) ..._authSection(controller),
+            if (state.needsAuth && !state.busy)
+              ..._authSection(l10n, controller),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _authSection(SetupController controller) => [
+  List<Widget> _authSection(
+          AppLocalizations l10n, SetupController controller) =>
+      [
         const SizedBox(height: 24),
-        const Text(
-          'Serwer wymaga uwierzytelnienia',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.serverRequiresAuth,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: false,
-              label: Text('Klucz API (zalecane)'),
-            ),
-            ButtonSegment(value: true, label: Text('Login i hasło')),
+          segments: [
+            ButtonSegment(value: false, label: Text(l10n.authModeApiKey)),
+            ButtonSegment(value: true, label: Text(l10n.authModeLogin)),
           ],
           selected: {_useLogin},
           onSelectionChanged: (s) => setState(() => _useLogin = s.first),
         ),
         const SizedBox(height: 16),
         if (!_useLogin) ...[
-          const Text(
-            'Klucz API nie wygasa i ma ograniczone uprawnienia — '
-            'utwórz go na serwerze: Settings → API Keys.',
-          ),
+          Text(l10n.apiKeyExplain),
           const SizedBox(height: 12),
           TextField(
             controller: _apiKey,
             autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Klucz API',
+            decoration: InputDecoration(
+              labelText: l10n.apiKeyLabel,
               hintText: 'bb_…',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () => controller.connectWithApiKey(_apiKey.text),
-            child: const Text('Zapisz i połącz'),
+            child: Text(l10n.saveAndConnect),
           ),
         ] else ...[
-          const Text(
-            'Sesja logowania wygasa po 24 h. Zaznacz „Zapamiętaj mnie", '
-            'żeby aplikacja logowała się ponownie automatycznie.',
-          ),
+          Text(l10n.loginExplain),
           const SizedBox(height: 12),
           TextField(
             controller: _username,
             autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Login lub e-mail',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.usernameLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _password,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Hasło',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.passwordLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           CheckboxListTile(
             value: _remember,
             onChanged: (v) => setState(() => _remember = v ?? false),
-            title: const Text('Zapamiętaj mnie'),
-            subtitle: const Text(
-              'Hasło trafi do szyfrowanego magazynu (Android Keystore)',
-            ),
+            title: Text(l10n.rememberMe),
+            subtitle: Text(l10n.rememberMeSubtitle),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
@@ -162,8 +157,23 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               password: _password.text,
               remember: _remember,
             ),
-            child: const Text('Zaloguj i połącz'),
+            child: Text(l10n.signInAndConnect),
           ),
         ],
       ];
+}
+
+/// Tłumaczy błąd setupu: [AppApiException] z sieci albo lokalny
+/// [SetupErrorCode] walidacji.
+String _setupErrorText(AppLocalizations l10n, Object error) {
+  if (error is AppApiException) return error.localized(l10n);
+  if (error is SetupErrorCode) {
+    return switch (error) {
+      SetupErrorCode.missingUrl => l10n.errMissingUrl,
+      SetupErrorCode.missingApiKey => l10n.errMissingApiKey,
+      SetupErrorCode.missingCredentials => l10n.errMissingCredentials,
+      SetupErrorCode.requiresServerSetup => l10n.errRequiresServerSetup,
+    };
+  }
+  return error.toString();
 }

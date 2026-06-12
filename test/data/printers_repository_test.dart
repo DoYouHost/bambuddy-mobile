@@ -20,7 +20,7 @@ void main() {
   test('fetchAll: lista + statusy', () async {
     adapter
       ..onGet(
-        '/api/v1/printers',
+        '/api/v1/printers/',
         (server) => server.reply(200, readFixture('printers_list.json')),
       )
       ..onGet(
@@ -45,7 +45,7 @@ void main() {
   test('padnięty status jednej drukarki nie wywala dashboardu', () async {
     adapter
       ..onGet(
-        '/api/v1/printers',
+        '/api/v1/printers/',
         (server) => server.reply(200, readFixture('printers_list.json')),
       )
       ..onGet(
@@ -67,7 +67,7 @@ void main() {
 
   test('niesparsowalny wpis na liście jest pomijany', () async {
     adapter.onGet(
-      '/api/v1/printers',
+      '/api/v1/printers/',
       (server) => server.reply(200, [
         {'id': 1, 'name': 'OK'},
         {'name': 'bez id — odpada'},
@@ -83,7 +83,7 @@ void main() {
   test('401 na liście → AuthException (UI odsyła do konfiguracji)',
       () async {
     adapter.onGet(
-      '/api/v1/printers',
+      '/api/v1/printers/',
       (server) => server.reply(401, {'detail': 'Unauthorized'}),
     );
 
@@ -93,7 +93,7 @@ void main() {
   test('401 na statusie też wypływa jako AuthException', () async {
     adapter
       ..onGet(
-        '/api/v1/printers',
+        '/api/v1/printers/',
         (server) => server.reply(200, [
           {'id': 1, 'name': 'OK'},
         ]),
@@ -108,11 +108,11 @@ void main() {
 
   test('timeout → NetworkException', () async {
     adapter.onGet(
-      '/api/v1/printers',
+      '/api/v1/printers/',
       (server) => server.throws(
         408,
         DioException(
-          requestOptions: RequestOptions(path: '/api/v1/printers'),
+          requestOptions: RequestOptions(path: '/api/v1/printers/'),
           type: DioExceptionType.connectionTimeout,
         ),
       ),

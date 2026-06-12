@@ -5,6 +5,15 @@ import '../../core/auth/auth_service.dart';
 import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
+/// Błędy walidacji/konfiguracji pochodzące z samego ekranu setupu
+/// (w odróżnieniu od [AppApiException] z warstwy sieci). Tłumaczone w UI.
+enum SetupErrorCode {
+  missingUrl,
+  missingApiKey,
+  missingCredentials,
+  requiresServerSetup,
+}
+
 class SetupState {
   const SetupState({
     this.busy = false,
@@ -14,7 +23,9 @@ class SetupState {
   });
 
   final bool busy;
-  final String? error;
+
+  /// [SetupErrorCode] albo [AppApiException]; tłumaczone przy wyświetlaniu.
+  final Object? error;
 
   /// Wynik sondy trybu auth; null = URL jeszcze nie zweryfikowany.
   final AuthProbeResult? probe;
@@ -27,7 +38,7 @@ class SetupState {
 
   SetupState copyWith({
     bool? busy,
-    String? error,
+    Object? error,
     AuthProbeResult? probe,
     String? baseUrl,
   }) =>
@@ -53,7 +64,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   Future<void> probe(String rawUrl) async {
     final url = ServerProfile.normalizeBaseUrl(rawUrl);
     if (url.isEmpty) {
-      state = state.copyWith(error: 'Podaj adres serwera');
+      state = state.copyWith(error: SetupErrorCode.missingUrl);
       return;
     }
     state = const SetupState(busy: true);
@@ -61,10 +72,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       final probe =
           await ref.read(authServiceProvider).probeAuthStatus(url);
       if (probe.requiresSetup) {
-        state = SetupState(
-          error: 'Serwer wymaga początkowej konfiguracji — '
-              'dokończ ją w przeglądarce i wróć tutaj.',
-        );
+        state = const SetupState(error: SetupErrorCode.requiresServerSetup);
         return;
       }
       if (!probe.authEnabled) {
@@ -73,7 +81,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       }
       state = SetupState(probe: probe, baseUrl: url);
     } on AppApiException catch (e) {
-      state = SetupState(error: e.message);
+      state = SetupState(error: e);
     }
   }
 
@@ -81,7 +89,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     final url = state.baseUrl;
     if (url == null) return;
     if (apiKey.trim().isEmpty) {
-      state = state.copyWith(error: 'Podaj klucz API');
+      state = state.copyWith(error: SetupErrorCode.missingApiKey);
       return;
     }
     state = state.copyWith(busy: true, error: null);
@@ -92,7 +100,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
           );
       await _saveProfile(url, AuthMode.apiKey);
     } on AppApiException catch (e) {
-      state = state.copyWith(busy: false, error: e.message);
+      state = state.copyWith(busy: false, error: e);
     }
   }
 
@@ -104,7 +112,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     final url = state.baseUrl;
     if (url == null) return;
     if (username.isEmpty || password.isEmpty) {
-      state = state.copyWith(error: 'Podaj login i hasło');
+      state = state.copyWith(error: SetupErrorCode.missingCredentials);
       return;
     }
     state = state.copyWith(busy: true, error: null);
@@ -117,7 +125,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
           );
       await _saveProfile(url, AuthMode.jwt);
     } on AppApiException catch (e) {
-      state = state.copyWith(busy: false, error: e.message);
+      state = state.copyWith(busy: false, error: e);
     }
   }
 
