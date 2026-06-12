@@ -23,6 +23,13 @@ class PrinterStatus {
     this.temperatures,
     this.coverUrl,
     this.stgCurName,
+    this.coolingFanSpeed,
+    this.bigFan1Speed,
+    this.bigFan2Speed,
+    this.heatbreakFanSpeed,
+    this.speedLevel,
+    this.chamberLight,
+    this.airductMode,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -64,6 +71,51 @@ class PrinterStatus {
   /// Nazwa bieżącego etapu z serwera (np. „Auto bed leveling", „Heating");
   /// null/pusta poza fazą przygotowania. Przychodzi po angielsku.
   final String? stgCurName;
+
+  /// Wentylator chłodzenia części (part cooling), 0–100%.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? coolingFanSpeed;
+
+  /// Wentylator pomocniczy (aux/big fan 1), 0–100%.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? bigFan1Speed;
+
+  /// Wentylator komory (big fan 2), 0–100%.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? bigFan2Speed;
+
+  /// Wentylator heatbreaku, 0–100% (zwykle 0 — sterowany przez firmware).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? heatbreakFanSpeed;
+
+  /// Poziom prędkości Bambu: 1 Silent, 2 Standard, 3 Sport, 4 Ludicrous.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? speedLevel;
+
+  /// Czy światło komory jest włączone.
+  final bool? chamberLight;
+
+  /// Tryb nawiewu komory: 0 = chłodzenie, 1 = grzanie. Inne wartości → null
+  /// w [airductIsHeating] (nie zakładamy więcej trybów niż znane).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? airductMode;
+
+  /// true = grzanie, false = chłodzenie, null = brak/nieznany tryb.
+  bool? get airductIsHeating => switch (airductMode) {
+        0 => false,
+        1 => true,
+        _ => null,
+      };
+
+  /// Procent prędkości odpowiadający [speedLevel] (mapowanie Bambu);
+  /// null gdy poziom nieznany/nieustawiony.
+  int? get speedPercent => switch (speedLevel) {
+        1 => 50,
+        2 => 100,
+        3 => 124,
+        4 => 166,
+        _ => null,
+      };
 
   /// Czy trwa zadanie wydruku — w tym fazy przygotowania (nagrzewanie,
   /// auto bed leveling, pauza), gdzie `progress`/`remainingTime` bywają

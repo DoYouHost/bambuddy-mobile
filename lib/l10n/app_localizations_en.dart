@@ -83,6 +83,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ctrlFanPart => 'Part fan';
+
+  @override
+  String get ctrlFanAux => 'Aux fan';
+
+  @override
+  String get ctrlFanChamber => 'Chamber fan';
+
+  @override
+  String get ctrlSpeed => 'Speed';
+
+  @override
+  String get ctrlLight => 'Chamber light';
+
+  @override
+  String get ctrlLightOn => 'On';
+
+  @override
+  String get ctrlLightOff => 'Off';
+
+  @override
+  String get ctrlAirduct => 'Airduct';
+
+  @override
+  String get ctrlAirductCooling => 'Cooling';
+
+  @override
+  String get ctrlAirductHeating => 'Heating';
+
+  @override
   String get statusUnavailable => 'status unavailable';
 
   @override

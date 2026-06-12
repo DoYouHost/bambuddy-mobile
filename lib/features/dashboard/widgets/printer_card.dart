@@ -61,6 +61,7 @@ class PrinterCard extends StatelessWidget {
               const SizedBox(height: 10),
               _TempGrid(readings: readings),
             ],
+            if (status != null) _ControlsRow(status: status),
           ],
         ),
       ),
@@ -294,6 +295,172 @@ class _TempGrid extends StatelessWidget {
   }
 }
 
+/// Pasek read-only chipów ze stanem sterowania (wentylatory, prędkość,
+/// światło komory). Wysyłanie komend wejdzie w M4 — tu tylko odczyt.
+/// Renderuje się tylko gdy serwer poda którąkolwiek wartość.
+class _ControlsRow extends StatelessWidget {
+  const _ControlsRow({required this.status});
+
+  final PrinterStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final fanColor = _fanColor(context);
+
+    // `valueAlternatives` rezerwuje szerokość na najszerszą możliwą wartość,
+    // żeby chip nie zmieniał rozmiaru przy pollingu (np. 53% → 100%).
+    // Wentylatory 0–100%, prędkość do 166% (Ludicrous) → 3 cyfry.
+    final chips = <Widget>[
+      if (status.coolingFanSpeed != null)
+        _ControlChip(
+          icon: Icons.air,
+          label: l10n.ctrlFanPart,
+          value: '${status.coolingFanSpeed}%',
+          valueAlternatives: const ['100%'],
+          color: fanColor(status.coolingFanSpeed!),
+        ),
+      if (status.bigFan1Speed != null)
+        _ControlChip(
+          icon: Icons.cyclone,
+          label: l10n.ctrlFanAux,
+          value: '${status.bigFan1Speed}%',
+          valueAlternatives: const ['100%'],
+          color: fanColor(status.bigFan1Speed!),
+        ),
+      if (status.bigFan2Speed != null)
+        _ControlChip(
+          icon: Icons.wind_power,
+          label: l10n.ctrlFanChamber,
+          value: '${status.bigFan2Speed}%',
+          valueAlternatives: const ['100%'],
+          color: fanColor(status.bigFan2Speed!),
+        ),
+      if (status.speedPercent != null)
+        _ControlChip(
+          icon: Icons.speed,
+          label: l10n.ctrlSpeed,
+          value: '${status.speedPercent}%',
+          valueAlternatives: const ['166%'],
+        ),
+      if (status.chamberLight != null)
+        _ControlChip(
+          icon: status.chamberLight!
+              ? Icons.lightbulb
+              : Icons.lightbulb_outline,
+          label: l10n.ctrlLight,
+          value: status.chamberLight! ? l10n.ctrlLightOn : l10n.ctrlLightOff,
+          valueAlternatives: [l10n.ctrlLightOn, l10n.ctrlLightOff],
+          color: status.chamberLight! ? const Color(0xFFFFC107) : null,
+        ),
+      if (status.airductIsHeating != null)
+        _ControlChip(
+          icon: status.airductIsHeating!
+              ? Icons.local_fire_department
+              : Icons.ac_unit,
+          label: l10n.ctrlAirduct,
+          value: status.airductIsHeating!
+              ? l10n.ctrlAirductHeating
+              : l10n.ctrlAirductCooling,
+          valueAlternatives: [l10n.ctrlAirductCooling, l10n.ctrlAirductHeating],
+          color: status.airductIsHeating!
+              ? const Color(0xFFFF8A50)
+              : const Color(0xFF4FC3F7),
+        ),
+    ];
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(spacing: 8, runSpacing: 8, children: chips),
+    );
+  }
+
+  // Wentylator: stojący (0%) przygaszony, kręcący się — chłodny akcent.
+  Color Function(int) _fanColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return (speed) =>
+        speed > 0 ? const Color(0xFF4FC3F7) : scheme.onSurfaceVariant;
+  }
+}
+
+/// Pojedynczy chip sterowania: ikona + etykieta (mała) + wartość.
+class _ControlChip extends StatelessWidget {
+  const _ControlChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueAlternatives = const [],
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  /// Wszystkie wartości, jakie ten chip może pokazać. Slot wartości
+  /// rezerwuje szerokość na najszerszą z nich, więc chip ma stały rozmiar
+  /// niezależnie od bieżącej wartości (np. „53%" vs „100%").
+  final List<String> valueAlternatives;
+
+  /// Akcent ikony/wartości; null = neutralny kolor z motywu.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = color ?? scheme.onSurfaceVariant;
+    // Tabular figures: każda cyfra tej samej szerokości — brak drgania
+    // przy zmianie cyfr o tej samej długości (np. 53% → 67%).
+    final valueStyle = (theme.textTheme.labelMedium ?? const TextStyle())
+        .copyWith(
+      color: accent,
+      fontWeight: FontWeight.w600,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    // Szerokość slotu = najszersza z możliwych wartości (zmierzona, nie
+    // zgadnięta) → chip ma stały rozmiar mimo zmian wartości przy pollingu.
+    // Pomiar uwzględnia skalowanie tekstu z MediaQuery.
+    final scaler = MediaQuery.textScalerOf(context);
+    final dir = Directionality.of(context);
+    var slotWidth = 0.0;
+    for (final v in [value, ...valueAlternatives]) {
+      final tp = TextPainter(
+        text: TextSpan(text: v, style: valueStyle),
+        textDirection: dir,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      if (tp.width > slotWidth) slotWidth = tp.width;
+    }
+
+    return Tooltip(
+      message: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: accent),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: slotWidth.ceilToDouble(),
+              child: Text(value, style: valueStyle, maxLines: 1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TempTile extends StatelessWidget {
   const _TempTile({required this.reading});
 
@@ -307,13 +474,9 @@ class _TempTile extends StatelessWidget {
     final actual = reading.actual;
     final target = reading.target;
 
-    final value = StringBuffer(
-      actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-    );
+    final iconColor = _tempIconColor(scheme, actual, target);
     // Cel pokazujemy tylko gdy ustawiony (>0); 0 = grzanie wyłączone.
-    if (target != null && target > 0) {
-      value.write(' / ${target.toStringAsFixed(0)}°');
-    }
+    final hasTarget = target != null && target > 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -322,32 +485,67 @@ class _TempTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Ikona w lewym górnym rogu + etykieta czujnika.
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(reading.icon, size: 14, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 4),
+              Icon(reading.icon, size: 16, color: iconColor),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   reading.label(l10n),
-                  style: theme.textTheme.labelSmall
+                  style: theme.textTheme.labelMedium
                       ?.copyWith(color: scheme.onSurfaceVariant),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            value.toString(),
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+          const SizedBox(height: 8),
+          // Aktualna: duża, żywy kolor, przy lewej. Cel: mniejszy,
+          // półprzezroczysty, dosunięty do prawej krawędzi.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: iconColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (hasTarget) ...[
+                const Spacer(),
+                Text(
+                  '${target.toStringAsFixed(0)}°',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: iconColor.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+/// Kolor ikony kafelka temperatury zależny od stanu czujnika:
+/// biała gdy cel nieustawiony, niebieska przy chłodzeniu (aktualna nad celem),
+/// pomarańczowa przy rozgrzewaniu i utrzymywaniu wysokiej temperatury.
+Color _tempIconColor(ColorScheme scheme, double? actual, double? target) {
+  // Cel nieustawiony (null lub 0 = grzanie wyłączone) → neutralna biała.
+  if (target == null || target <= 0) return scheme.onSurface;
+  // Tolerancja, by drobne wahania przy celu nie migotały kolorem.
+  const tolerance = 2.0;
+  if (actual != null && actual > target + tolerance) {
+    return const Color(0xFF4FC3F7); // chłodzenie — niebieska
+  }
+  return const Color(0xFFFF8A50); // rozgrzewanie / wysoka temp — pomarańczowa
 }
 
 class _StateChip extends StatelessWidget {
@@ -405,7 +603,7 @@ class _TempReading {
 
   IconData get icon => switch (kind) {
         _TempKind.nozzle => Icons.local_fire_department,
-        _TempKind.bed => Icons.iron,
+        _TempKind.bed => Icons.wb_iridescent,
         _TempKind.chamber => Icons.thermostat,
         _TempKind.unknown => Icons.device_thermostat,
       };

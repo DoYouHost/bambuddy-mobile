@@ -218,6 +218,66 @@ abstract class AppLocalizations {
   /// **'Nozzle {n}'**
   String tempNozzleNumbered(String n);
 
+  /// No description provided for @ctrlFanPart.
+  ///
+  /// In en, this message translates to:
+  /// **'Part fan'**
+  String get ctrlFanPart;
+
+  /// No description provided for @ctrlFanAux.
+  ///
+  /// In en, this message translates to:
+  /// **'Aux fan'**
+  String get ctrlFanAux;
+
+  /// No description provided for @ctrlFanChamber.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber fan'**
+  String get ctrlFanChamber;
+
+  /// No description provided for @ctrlSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get ctrlSpeed;
+
+  /// No description provided for @ctrlLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber light'**
+  String get ctrlLight;
+
+  /// No description provided for @ctrlLightOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get ctrlLightOn;
+
+  /// No description provided for @ctrlLightOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get ctrlLightOff;
+
+  /// No description provided for @ctrlAirduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Airduct'**
+  String get ctrlAirduct;
+
+  /// No description provided for @ctrlAirductCooling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cooling'**
+  String get ctrlAirductCooling;
+
+  /// No description provided for @ctrlAirductHeating.
+  ///
+  /// In en, this message translates to:
+  /// **'Heating'**
+  String get ctrlAirductHeating;
+
   /// No description provided for @statusUnavailable.
   ///
   /// In en, this message translates to:

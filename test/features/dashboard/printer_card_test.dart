@@ -51,6 +51,37 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
 
+  testWidgets('pasek kontrolek: wentylatory, prędkość i światło z fixture\'a',
+      (tester) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C Warsztat'),
+      status: PrinterStatus.fromJson(
+          readFixture('printer_status_printing.json') as Map<String, dynamic>),
+    );
+
+    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+
+    expect(find.text('53%'), findsOneWidget); // wentylator części
+    expect(find.text('73%'), findsOneWidget); // pomocniczy
+    expect(find.text('60%'), findsOneWidget); // komory
+    expect(find.text('100%'), findsOneWidget); // prędkość (poziom 2)
+    expect(find.text('Wł.'), findsOneWidget); // światło komory włączone
+    expect(find.text('Chłodzenie'), findsOneWidget); // nawiew (tryb 0)
+  });
+
+  testWidgets('pasek kontrolek nie renderuje się bez danych sterowania',
+      (tester) async {
+    final item = PrinterWithStatus(
+      printer: const Printer(id: 9, name: 'A1'),
+      status: const PrinterStatus(id: 9, connected: true, state: 'IDLE'),
+    );
+
+    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+
+    // Brak pól wentylatorów/prędkości/światła → żadnych chipów „%".
+    expect(find.textContaining('%'), findsNothing);
+  });
+
   testWidgets('kafelki temperatur: parowanie aktualna/cel, cel 0 ukryty, '
       'numerowana dysza, nieznany klucz', (tester) async {
     final item = PrinterWithStatus(
@@ -74,11 +105,12 @@ void main() {
 
     await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
 
-    // Parowanie aktualna/cel.
+    // Aktualna i cel jako osobne teksty (aktualna duża, cel mniejszy).
     expect(find.text('Stół'), findsOneWidget);
-    expect(find.text('70° / 70°'), findsOneWidget);
+    expect(find.text('70°'), findsNWidgets(2)); // stół: aktualna + cel
     expect(find.text('Dysza'), findsOneWidget);
-    expect(find.text('244° / 245°'), findsOneWidget);
+    expect(find.text('244°'), findsOneWidget); // aktualna dyszy
+    expect(find.text('245°'), findsOneWidget); // cel dyszy
     // Cel = 0 → pokazujemy tylko wartość aktualną.
     expect(find.text('Dysza 2'), findsOneWidget);
     expect(find.text('47°'), findsOneWidget);

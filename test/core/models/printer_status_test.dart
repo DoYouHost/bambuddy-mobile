@@ -28,6 +28,41 @@ void main() {
       expect(status.isPrinting, isTrue);
     });
 
+    test('parsuje pola sterowania (wentylatory, prędkość, światło)', () {
+      final status = PrinterStatus.fromJson(
+          readFixture('printer_status_printing.json') as Map<String, dynamic>);
+
+      expect(status.coolingFanSpeed, 53);
+      expect(status.bigFan1Speed, 73);
+      expect(status.bigFan2Speed, 60);
+      expect(status.heatbreakFanSpeed, 0);
+      expect(status.speedLevel, 2);
+      expect(status.speedPercent, 100, reason: 'poziom 2 = Standard = 100%');
+      expect(status.chamberLight, isTrue);
+      expect(status.airductMode, 0);
+      expect(status.airductIsHeating, isFalse, reason: '0 = chłodzenie');
+    });
+
+    test('airductIsHeating: 0 chłodzi, 1 grzeje, reszta null', () {
+      bool? heat(int? m) => PrinterStatus(id: 1, airductMode: m).airductIsHeating;
+
+      expect(heat(0), isFalse);
+      expect(heat(1), isTrue);
+      expect(heat(7), isNull);
+      expect(heat(null), isNull);
+    });
+
+    test('speedPercent mapuje poziomy i zwraca null dla nieznanego', () {
+      int? pct(int? level) => PrinterStatus(id: 1, speedLevel: level).speedPercent;
+
+      expect(pct(1), 50);
+      expect(pct(2), 100);
+      expect(pct(3), 124);
+      expect(pct(4), 166);
+      expect(pct(9), isNull);
+      expect(pct(null), isNull);
+    });
+
     test('parsuje status bezczynnej drukarki', () {
       final status = PrinterStatus.fromJson(
           readFixture('printer_status_idle.json') as Map<String, dynamic>);

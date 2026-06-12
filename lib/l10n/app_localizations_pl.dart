@@ -85,6 +85,36 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get ctrlFanPart => 'Wentylator części';
+
+  @override
+  String get ctrlFanAux => 'Wentylator pomocniczy';
+
+  @override
+  String get ctrlFanChamber => 'Wentylator komory';
+
+  @override
+  String get ctrlSpeed => 'Prędkość';
+
+  @override
+  String get ctrlLight => 'Światło komory';
+
+  @override
+  String get ctrlLightOn => 'Wł.';
+
+  @override
+  String get ctrlLightOff => 'Wył.';
+
+  @override
+  String get ctrlAirduct => 'Nawiew';
+
+  @override
+  String get ctrlAirductCooling => 'Chłodzenie';
+
+  @override
+  String get ctrlAirductHeating => 'Grzanie';
+
+  @override
   String get statusUnavailable => 'status niedostępny';
 
   @override

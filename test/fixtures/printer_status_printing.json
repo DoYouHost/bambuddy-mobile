@@ -15,6 +15,13 @@
     "bed": 60,
     "chamber": 31.2
   },
+  "cooling_fan_speed": 53,
+  "big_fan1_speed": 73,
+  "big_fan2_speed": 60,
+  "heatbreak_fan_speed": 0,
+  "speed_level": 2,
+  "chamber_light": true,
+  "airduct_mode": 0,
   "ams_exists": true,
   "ams": [
     {
