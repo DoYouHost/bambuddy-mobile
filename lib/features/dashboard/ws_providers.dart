@@ -43,9 +43,16 @@ final wsClientProvider = Provider<WsClient>((ref) {
     throw StateError('wsClientProvider użyty bez profilu serwera');
   }
   final creds = ref.watch(credentialsStoreProvider);
+  final auth = ref.watch(authServiceProvider);
   final client = WsClient(
     url: wsUrlFor(profile.baseUrl),
     authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+    // Tylko JWT da się odświeżyć cichym re-loginem; klucz API jest stały,
+    // a serwer bez auth nie odrzuca. silentReLogin zapisuje świeży JWT,
+    // który authHeaders odczyta przy ponownym połączeniu.
+    refreshAuth: profile.authMode == AuthMode.jwt
+        ? () async => await auth.silentReLogin(profile.baseUrl) != null
+        : null,
   );
   ref.onDispose(client.dispose);
   return client;

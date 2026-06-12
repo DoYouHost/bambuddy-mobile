@@ -37,7 +37,10 @@ class FakeConn implements WsConnection {
 
 void main() {
   /// Buduje klienta + listę utworzonych połączeń (jedno per próba).
-  ({WsClient client, List<FakeConn> conns}) build({WsBackoff? backoff}) {
+  ({WsClient client, List<FakeConn> conns}) build({
+    WsBackoff? backoff,
+    Future<bool> Function()? refreshAuth,
+  }) {
     final conns = <FakeConn>[];
     final client = WsClient(
       url: Uri.parse('wss://example/api/v1/ws'),
@@ -48,6 +51,7 @@ void main() {
         return c;
       },
       backoff: backoff ?? WsBackoff(random: () => 1.0),
+      refreshAuth: refreshAuth,
     );
     return (client: client, conns: conns);
   }
@@ -171,6 +175,116 @@ void main() {
 
       client.dispose();
       async.flushMicrotasks();
+    });
+  });
+
+  group('re-login JWT przy odrzuconym handshake\'u', () {
+    test('odrzucenie auth + udany re-login → natychmiastowy reconnect', () {
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            return true;
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail('HTTP 401 Unauthorized');
+        async.flushMicrotasks();
+
+        expect(refreshCalls, 1);
+        // Po udanym re-loginie łączy OD RAZU, bez czekania na backoff.
+        expect(conns, hasLength(2));
+        expect(client.state, WsConnectionState.connecting);
+
+        conns[1].connectOk();
+        async.flushMicrotasks();
+        expect(client.state, WsConnectionState.connected);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('odrzucenie auth + nieudany re-login → zwykły backoff', () {
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            return false;
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail('401');
+        async.flushMicrotasks();
+
+        expect(refreshCalls, 1);
+        expect(client.state, WsConnectionState.waitingRetry);
+        expect(conns, hasLength(1)); // czeka na backoff, nie łączy od razu
+
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(conns, hasLength(2));
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('błąd nie-auth (brak łączności) nie wyzwala re-loginu', () {
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            return true;
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail('SocketException: Connection refused');
+        async.flushMicrotasks();
+
+        expect(refreshCalls, 0);
+        expect(client.state, WsConnectionState.waitingRetry);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('re-login najwyżej raz na serię niepowodzeń', () {
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            return true; // „odświeżony", ale serwer i tak dalej odrzuca
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail('401');
+        async.flushMicrotasks();
+        expect(refreshCalls, 1);
+        expect(conns, hasLength(2)); // re-login → reconnect
+
+        // Druga próba też odrzucona — re-login się NIE powtarza (guard).
+        conns[1].connectFail('401');
+        async.flushMicrotasks();
+        expect(refreshCalls, 1);
+        expect(client.state, WsConnectionState.waitingRetry);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
     });
   });
 }
