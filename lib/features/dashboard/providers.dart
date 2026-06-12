@@ -3,10 +3,17 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/api/ws_client.dart';
 import '../../data/printers_repository.dart';
 import '../../providers.dart';
+import 'ws_providers.dart';
 
+/// Szybki polling — fallback, gdy WS nie jest połączony (świeżość statusów).
 const pollInterval = Duration(seconds: 5);
+
+/// Wolny polling przy WS `connected` — WS niesie świeżość statusów, REST
+/// dociąga już tylko skład drukarek (roster), który zmienia się rzadko.
+const slowPollInterval = Duration(seconds: 60);
 
 class DashboardState {
   const DashboardState({
@@ -45,11 +52,39 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     // Przebudowa przy zmianie profilu/klienta (np. zmiana serwera).
     ref.watch(printersRepositoryProvider);
     final generation = ++_generation;
-    _timer?.cancel();
-    _timer = Timer.periodic(pollInterval, (_) => _poll(generation));
+
+    // Tempo pollingu zależy od WS: connected → wolno (60 s, tylko roster),
+    // w innym razie → szybko (5 s, fallback). Reagujemy przez ref.listen, a
+    // NIE watch — inaczej każdy flap WS przebudowałby notifier i zresetował
+    // listę do spinnera. Stan zostaje, zmienia się tylko interwał timera.
+    ref.listen(
+      wsConnectionStateProvider
+          .select((s) => s.valueOrNull == WsConnectionState.connected),
+      (_, connected) => _retune(connected: connected, generation: generation),
+    );
+
+    _arm(connected: _wsConnectedNow(), generation: generation);
     ref.onDispose(() => _timer?.cancel());
     Future.microtask(() => _poll(generation));
     return const DashboardState();
+  }
+
+  bool _wsConnectedNow() =>
+      ref.read(wsConnectionStateProvider).valueOrNull ==
+      WsConnectionState.connected;
+
+  void _arm({required bool connected, required int generation}) {
+    _timer?.cancel();
+    final interval = connected ? slowPollInterval : pollInterval;
+    _timer = Timer.periodic(interval, (_) => _poll(generation));
+  }
+
+  /// Zmiana stanu WS: przy utracie połączenia natychmiast dociągnij REST
+  /// (fallback wskakuje od razu) i przyspiesz; przy odzyskaniu zwolnij.
+  void _retune({required bool connected, required int generation}) {
+    if (generation != _generation) return;
+    _arm(connected: connected, generation: generation);
+    if (!connected) _poll(generation);
   }
 
   Future<void> refresh() => _poll(_generation);
