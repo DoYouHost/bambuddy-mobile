@@ -92,5 +92,19 @@
   "errMalformedResponse": "Nieprawidłowa odpowiedź serwera",
   "errInvalidCredentials": "Nieprawidłowy login lub hasło",
   "errTwoFactorUnsupported": "Konto wymaga 2FA — nieobsługiwane w tej wersji. Użyj klucza API (Ustawienia → API Keys na serwerze).",
-  "errApiKeyRejected": "Klucz API odrzucony — sprawdź klucz i jego scope (wymagany can_read_status)"
+  "errApiKeyRejected": "Klucz API odrzucony — sprawdź klucz i jego scope (wymagany can_read_status)",
+
+  "notifOngoingBody": "{percent}% · ETA {eta}",
+  "notifMorePrints": "+{count}",
+  "printFinishedTitle": "Wydruk zakończony",
+  "printFinishedBody": "{name} gotowe",
+  "printFailedTitle": "Wydruk nieudany",
+  "printFailedBody": "{name} — błąd",
+  "batteryOptTitle": "Niezawodne powiadomienia w tle",
+  "batteryOptBody": "Aby powiadomienia o wydruku działały, gdy aplikacja jest w tle, zezwól BambuBuddy na pracę bez ograniczeń baterii. Na telefonach Samsung to konieczne.",
+  "batteryOptAllow": "Otwórz ustawienia",
+  "batteryOptLater": "Później",
+  "batteryOptMenu": "Powiadomienia w tle",
+  "notificationsReady": "Powiadomienia są skonfigurowane",
+  "notificationsBlocked": "Powiadomienia są wyłączone — włącz je w ustawieniach systemu"
 }

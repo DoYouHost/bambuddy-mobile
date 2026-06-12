@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/ws_client.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/battery_optimization.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -24,19 +25,93 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _query = '';
   late final AppLifecycleListener _lifecycle;
 
+  static const _onboardingFlag = 'notif_onboarded';
+
   @override
   void initState() {
     super.initState();
-    // Cykl życia WS wg §3 planu: w tle zamykamy socket (bez FGS na Androidzie),
-    // przy powrocie najpierw backfill REST (natychmiastowa świeżość), potem
-    // reconnect WS. WS żyje tylko, gdy dashboard jest zamontowany.
+    // Cykl życia WS: w tle wstrzymujemy socket TYLKO gdy nic się nie drukuje
+    // (oszczędność baterii). Gdy wydruk trwa, zostawiamy WS żywy — foreground
+    // service (wiszące powiadomienie) trzyma proces, więc dalej dostajemy ramki
+    // i odpalamy alert „skończone/błąd". Przy powrocie: backfill REST, potem
+    // ewentualny reconnect WS (resume jest no-opem, gdy socket nie był wstrzymany).
     _lifecycle = AppLifecycleListener(
-      onPause: () => ref.read(printerStatusesProvider.notifier).suspend(),
+      onPause: () {
+        final printing = ref
+            .read(printerStatusesProvider)
+            .values
+            .any((s) => s.isPrinting);
+        if (!printing) {
+          ref.read(printerStatusesProvider.notifier).suspend();
+        }
+      },
       onResume: () {
         ref.read(dashboardProvider.notifier).refresh();
         ref.read(printerStatusesProvider.notifier).resume();
       },
     );
+    // Po pierwszym renderze: jednorazowy onboarding powiadomień (uprawnienie +
+    // prośba o „Bez ograniczeń" dla baterii).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeOnboardNotifications();
+    });
+  }
+
+  Future<void> _maybeOnboardNotifications() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool(_onboardingFlag) ?? false) return;
+    await prefs.setBool(_onboardingFlag, true);
+    await _runNotificationOnboarding();
+  }
+
+  /// Prosi o uprawnienie powiadomień, a jeśli apka nie jest zwolniona z
+  /// optymalizacji baterii — pokazuje dialog z linkiem do ustawień.
+  ///
+  /// `manual` = wywołane przyciskiem (nie auto-onboardingiem): wtedy na „cichych"
+  /// ścieżkach (uprawnienie odrzucone / wszystko już ustawione) dajemy SnackBar,
+  /// żeby przycisk nie wyglądał na martwy.
+  Future<void> _runNotificationOnboarding({bool manual = false}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final granted =
+        await ref.read(notificationServiceProvider).requestPermission();
+    if (!mounted) return;
+    if (!granted) {
+      if (manual) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.notificationsBlocked)),
+        );
+      }
+      return;
+    }
+    final battery = BatteryOptimization();
+    if (await battery.isIgnoring()) {
+      if (manual && mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.notificationsReady)),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.batteryOptTitle),
+        content: Text(l10n.batteryOptBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.batteryOptLater),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.batteryOptAllow),
+          ),
+        ],
+      ),
+    );
+    if (open ?? false) await battery.request();
   }
 
   @override
@@ -69,6 +144,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       appBar: AppBar(
         title: Text(l10n.printersTitle),
         actions: [
+          IconButton(
+            tooltip: l10n.batteryOptMenu,
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () => _runNotificationOnboarding(manual: true),
+          ),
           IconButton(
             tooltip: l10n.changeServer,
             icon: const Icon(Icons.settings),

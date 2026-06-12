@@ -607,6 +607,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'API key rejected — check the key and its scope (can_read_status required)'**
   String get errApiKeyRejected;
+
+  /// No description provided for @notifOngoingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% · ETA {eta}'**
+  String notifOngoingBody(int percent, String eta);
+
+  /// No description provided for @notifMorePrints.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String notifMorePrints(int count);
+
+  /// No description provided for @printFinishedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print finished'**
+  String get printFinishedTitle;
+
+  /// No description provided for @printFinishedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is done'**
+  String printFinishedBody(String name);
+
+  /// No description provided for @printFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print failed'**
+  String get printFailedTitle;
+
+  /// No description provided for @printFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} failed'**
+  String printFailedBody(String name);
+
+  /// No description provided for @batteryOptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reliable background notifications'**
+  String get batteryOptTitle;
+
+  /// No description provided for @batteryOptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.'**
+  String get batteryOptBody;
+
+  /// No description provided for @batteryOptAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get batteryOptAllow;
+
+  /// No description provided for @batteryOptLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get batteryOptLater;
+
+  /// No description provided for @batteryOptMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Background notifications'**
+  String get batteryOptMenu;
+
+  /// No description provided for @notificationsReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are all set'**
+  String get notificationsReady;
+
+  /// No description provided for @notificationsBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off — enable them in system settings'**
+  String get notificationsBlocked;
 }
 
 class _AppLocalizationsDelegate

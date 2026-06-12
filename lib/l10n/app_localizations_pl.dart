@@ -298,4 +298,53 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get errApiKeyRejected =>
       'Klucz API odrzucony — sprawdź klucz i jego scope (wymagany can_read_status)';
+
+  @override
+  String notifOngoingBody(int percent, String eta) {
+    return '$percent% · ETA $eta';
+  }
+
+  @override
+  String notifMorePrints(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get printFinishedTitle => 'Wydruk zakończony';
+
+  @override
+  String printFinishedBody(String name) {
+    return '$name gotowe';
+  }
+
+  @override
+  String get printFailedTitle => 'Wydruk nieudany';
+
+  @override
+  String printFailedBody(String name) {
+    return '$name — błąd';
+  }
+
+  @override
+  String get batteryOptTitle => 'Niezawodne powiadomienia w tle';
+
+  @override
+  String get batteryOptBody =>
+      'Aby powiadomienia o wydruku działały, gdy aplikacja jest w tle, zezwól BambuBuddy na pracę bez ograniczeń baterii. Na telefonach Samsung to konieczne.';
+
+  @override
+  String get batteryOptAllow => 'Otwórz ustawienia';
+
+  @override
+  String get batteryOptLater => 'Później';
+
+  @override
+  String get batteryOptMenu => 'Powiadomienia w tle';
+
+  @override
+  String get notificationsReady => 'Powiadomienia są skonfigurowane';
+
+  @override
+  String get notificationsBlocked =>
+      'Powiadomienia są wyłączone — włącz je w ustawieniach systemu';
 }

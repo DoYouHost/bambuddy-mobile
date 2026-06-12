@@ -6,12 +6,18 @@ import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
+import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'data/printers_repository.dart';
 
 /// Nadpisywany w main() po SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
+  (ref) => throw UnimplementedError('Nadpisz w ProviderScope'),
+);
+
+/// Nadpisywany w main() zainicjalizowaną instancją (init wymaga pluginu).
+final notificationServiceProvider = Provider<NotificationService>(
   (ref) => throw UnimplementedError('Nadpisz w ProviderScope'),
 );
 

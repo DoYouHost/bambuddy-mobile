@@ -103,5 +103,24 @@
   "errMalformedResponse": "Malformed server response",
   "errInvalidCredentials": "Invalid username or password",
   "errTwoFactorUnsupported": "Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).",
-  "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)"
+  "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
+
+  "notifOngoingBody": "{percent}% · ETA {eta}",
+  "@notifOngoingBody": { "placeholders": { "percent": { "type": "int" }, "eta": { "type": "String" } } },
+  "notifMorePrints": "+{count}",
+  "@notifMorePrints": { "placeholders": { "count": { "type": "int" } } },
+  "printFinishedTitle": "Print finished",
+  "printFinishedBody": "{name} is done",
+  "@printFinishedBody": { "placeholders": { "name": { "type": "String" } } },
+  "printFailedTitle": "Print failed",
+  "printFailedBody": "{name} failed",
+  "@printFailedBody": { "placeholders": { "name": { "type": "String" } } },
+
+  "batteryOptTitle": "Reliable background notifications",
+  "batteryOptBody": "To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.",
+  "batteryOptAllow": "Open settings",
+  "batteryOptLater": "Later",
+  "batteryOptMenu": "Background notifications",
+  "notificationsReady": "Notifications are all set",
+  "notificationsBlocked": "Notifications are off — enable them in system settings"
 }

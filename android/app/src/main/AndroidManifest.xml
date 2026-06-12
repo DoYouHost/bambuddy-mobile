@@ -1,5 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Wiszące powiadomienie o wydruku + alerty w tle (Android 13+ wymaga
+         uprawnienia runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Foreground service trzyma proces przy życiu w tle, by WebSocket dalej
+         dostawał statusy i aktualizował powiadomienie podczas wydruku. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- Prośba o zwolnienie z optymalizacji baterii: na Samsungu kluczowe dla
+         przeżywalności w tle i odblokowuje start foreground service z tła. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- Self-hosted serwery bambuddy w LAN zwykle nie mają TLS; dostęp zdalny
          powinien iść przez HTTPS na reverse proxy (patrz README). -->
     <application
@@ -29,6 +39,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Foreground service flutter_local_notifications — niesie wiszące
+             powiadomienie o wydruku i podtrzymuje proces (typ dataSync wymagany
+             od Androida 14). stopWithTask=false: przeżywa zniknięcie aktywności,
+             choć po zmieceniu z listy ostatnich silnik Fluttera i tak się odpina. -->
+        <service
+            android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

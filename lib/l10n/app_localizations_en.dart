@@ -296,4 +296,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errApiKeyRejected =>
       'API key rejected — check the key and its scope (can_read_status required)';
+
+  @override
+  String notifOngoingBody(int percent, String eta) {
+    return '$percent% · ETA $eta';
+  }
+
+  @override
+  String notifMorePrints(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get printFinishedTitle => 'Print finished';
+
+  @override
+  String printFinishedBody(String name) {
+    return '$name is done';
+  }
+
+  @override
+  String get printFailedTitle => 'Print failed';
+
+  @override
+  String printFailedBody(String name) {
+    return '$name failed';
+  }
+
+  @override
+  String get batteryOptTitle => 'Reliable background notifications';
+
+  @override
+  String get batteryOptBody =>
+      'To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.';
+
+  @override
+  String get batteryOptAllow => 'Open settings';
+
+  @override
+  String get batteryOptLater => 'Later';
+
+  @override
+  String get batteryOptMenu => 'Background notifications';
+
+  @override
+  String get notificationsReady => 'Notifications are all set';
+
+  @override
+  String get notificationsBlocked =>
+      'Notifications are off — enable them in system settings';
 }

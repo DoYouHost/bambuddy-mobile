@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -13,6 +14,32 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Onboarding powiadomień w initState czyta te providery; w teście są nieaktywne.
+class _NoopNotifications implements NotificationService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<bool> requestPermission() async => false;
+  @override
+  Future<void> showOngoing({
+    required String title,
+    required String body,
+    required int progress,
+  }) async {}
+  @override
+  Future<void> clearOngoing() async {}
+  @override
+  Future<void> showAlert({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {}
+}
+
+late SharedPreferences _prefs;
 
 class _FakeDashboardNotifier extends DashboardNotifier {
   _FakeDashboardNotifier(this._fixed);
@@ -45,6 +72,8 @@ Widget _app(DashboardState state) => ProviderScope(
         dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
+        sharedPreferencesProvider.overrideWithValue(_prefs),
+        notificationServiceProvider.overrideWithValue(_NoopNotifications()),
         wsConnectionStateProvider.overrideWith(
           (ref) => Stream.value(WsConnectionState.connected),
         ),
@@ -58,6 +87,11 @@ Widget _app(DashboardState state) => ProviderScope(
     );
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   testWidgets(
       'pad pollingu pokazuje baner NAD ostatnimi danymi, nie zamiast nich',
       (tester) async {
