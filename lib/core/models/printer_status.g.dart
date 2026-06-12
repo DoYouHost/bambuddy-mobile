@@ -19,4 +19,6 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       layerNum: _toIntOrNull(json['layer_num']),
       totalLayers: _toIntOrNull(json['total_layers']),
       temperatures: _toTemperaturesOrNull(json['temperatures']),
+      coverUrl: json['cover_url'] as String?,
+      stgCurName: json['stg_cur_name'] as String?,
     );

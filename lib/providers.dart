@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/api/api_client.dart';
+import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/settings/server_profile.dart';
@@ -74,4 +75,17 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też
+/// podgląd kamery). Przebudowywany wraz z klientem przy zmianie profilu.
+final cameraTokenServiceProvider = Provider<CameraTokenService>(
+  (ref) => CameraTokenService(ref.watch(apiClientProvider).dio),
+);
+
+/// Token kamery dla widżetów (okładka). Cache trzyma serwis; ten future
+/// udostępnia bieżący token do budowy URL-a obrazka. Invalidacja:
+/// `ref.invalidate(cameraTokenProvider)` po 401 z chronionego zasobu.
+final cameraTokenProvider = FutureProvider<String>(
+  (ref) => ref.watch(cameraTokenServiceProvider).token(),
 );

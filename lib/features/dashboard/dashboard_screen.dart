@@ -48,14 +48,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onPressed: () => _confirmChangeServer(context, ref, l10n),
           ),
         ],
-        bottom: profile == null
+        // Tylko przyjazna etykieta profilu (jeśli ustawiona) — bez adresu URL.
+        bottom: profile?.label == null
             ? null
             : PreferredSize(
                 preferredSize: const Size.fromHeight(18),
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    profile.label ?? profile.baseUrl,
+                    profile!.label!,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

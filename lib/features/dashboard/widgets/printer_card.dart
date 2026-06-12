@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/printer_status.dart';
 import '../../../data/printers_repository.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../providers.dart';
 
 class PrinterCard extends StatelessWidget {
   const PrinterCard({super.key, required this.item});
@@ -80,16 +82,17 @@ class _PrintPanel extends StatelessWidget {
     final progress = status.progress;
     final name = status.currentPrint ?? status.gcodeFile;
 
+    final remaining = status.remainingTime;
     final meta = <Widget>[
-      if (status.remainingTime != null)
+      if (remaining != null && remaining > 0)
         _MetaItem(
           icon: Icons.schedule,
-          text: l10n.remaining(_durationText(l10n, status.remainingTime!)),
+          text: l10n.remaining(_durationText(l10n, remaining)),
         ),
-      if (status.remainingTime != null)
+      if (remaining != null && remaining > 0)
         _MetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(_etaTime(status.remainingTime!)),
+          text: l10n.eta(_etaTime(remaining)),
         ),
       if (status.layerNum != null && status.totalLayers != null)
         _MetaItem(
@@ -97,6 +100,44 @@ class _PrintPanel extends StatelessWidget {
           text: '${status.layerNum}/${status.totalLayers}',
         ),
     ];
+
+    // Faza przygotowania (nagrzewanie, auto bed leveling): pokaż nazwę
+    // etapu i nieoznaczony pasek zamiast mylącego 0%.
+    final stage = status.stgCurName?.trim();
+    final showStage = status.isPreparing && stage != null && stage.isNotEmpty;
+
+    // Rząd 1: nazwa pliku + (w przygotowaniu) nazwa etapu.
+    final nameBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (name != null)
+          Text(
+            name,
+            style: theme.textTheme.bodyMedium,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        if (showStage) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.autorenew, size: 14, color: scheme.primary),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  stage,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: scheme.primary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -107,28 +148,35 @@ class _PrintPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (name != null)
-            Text(
-              name,
-              style: theme.textTheme.bodyMedium,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          const SizedBox(height: 8),
+          // Rząd 1: miniatura + nazwa pliku.
+          Row(
+            children: [
+              if (status.coverUrl != null) ...[
+                _CoverThumbnail(coverUrl: status.coverUrl!),
+                const SizedBox(width: 12),
+              ],
+              Expanded(child: nameBlock),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Rząd 2: pasek postępu + reszta — pełna szerokość, od lewej krawędzi.
           Row(
             children: [
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: progress == null
+                    // Faza przygotowania → nieoznaczony pasek (bez 0%).
+                    value: showStage
                         ? null
-                        : (progress / 100).clamp(0.0, 1.0),
+                        : (progress == null
+                            ? null
+                            : (progress / 100).clamp(0.0, 1.0)),
                     minHeight: 6,
                   ),
                 ),
               ),
-              if (progress != null) ...[
+              if (progress != null && !showStage) ...[
                 const SizedBox(width: 10),
                 Text(
                   '${progress.toStringAsFixed(0)}%',
@@ -166,6 +214,57 @@ class _MetaItem extends StatelessWidget {
         Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
       ],
     );
+  }
+}
+
+/// Miniatura okładki bieżącego wydruku. Pobiera obrazek z `cover_url`
+/// dołączając token strumienia kamery (`?token=`). Placeholder zamiast
+/// błędu — nigdy nie wywraca karty.
+///
+/// M2: proaktywne odświeżanie tokenu i reaktywna invalidacja po 401
+/// (`ref.invalidate(cameraTokenProvider)`) wejdą razem z podglądem kamery.
+class _CoverThumbnail extends ConsumerWidget {
+  const _CoverThumbnail({required this.coverUrl});
+
+  final String coverUrl;
+
+  static const _size = 64.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
+          width: _size,
+          height: _size,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: scheme.onSurfaceVariant, size: 22),
+        );
+
+    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
+    if (baseUrl == null) return placeholder();
+
+    return ref.watch(cameraTokenProvider).when(
+          loading: placeholder,
+          error: (_, _) => placeholder(Icons.broken_image_outlined),
+          data: (token) => ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              '$baseUrl$coverUrl?token=$token',
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              errorBuilder: (_, _, _) =>
+                  placeholder(Icons.broken_image_outlined),
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : placeholder(),
+            ),
+          ),
+        );
   }
 }
 

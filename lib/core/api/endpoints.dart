@@ -13,4 +13,8 @@ abstract final class Endpoints {
   static const printers = '$apiPrefix/printers/';
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
+
+  /// Mint tokenu strumienia kamery (ważny ~60 min). Wymagany jako `?token=`
+  /// dla okładki wydruku (`cover_url`) i — od M2 — dla podglądu kamery.
+  static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';
 }

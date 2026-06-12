@@ -1,11 +1,30 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+
+class _FakeProfileNotifier extends ServerProfileNotifier {
+  @override
+  ServerProfile? build() => const ServerProfile(
+        baseUrl: 'http://s.local:8000',
+        authMode: AuthMode.none,
+      );
+}
+
+Widget _cardWithProviders(PrinterWithStatus item) => ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+      ],
+      child: plApp(Scaffold(body: PrinterCard(item: item))),
+    );
 
 void main() {
   testWidgets('karta renderuje nazwę, postęp i temperatury z fixture\'a',
@@ -82,5 +101,48 @@ void main() {
     expect(find.text('A1 mini'), findsOneWidget);
     expect(find.text('status niedostępny'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  group('_CoverThumbnail', () {
+    testWidgets(
+        'drukarka z coverUrl: pokazuje Image gdy token dostępny',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C Warsztat'),
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          progress: 43,
+          remainingTime: 137,
+          coverUrl: '/api/v1/printers/1/cover',
+        ),
+      );
+
+      await tester.pumpWidget(_cardWithProviders(item));
+      // Czekamy aż FutureProvider się rozwiąże.
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Image), findsOneWidget);
+    });
+
+    testWidgets(
+        'drukarka z coverUrl: null — brak Image w drzewie',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 2, name: 'A1 mini'),
+        status: const PrinterStatus(
+          id: 2,
+          connected: true,
+          progress: 60,
+          remainingTime: 90,
+          // coverUrl pominięty → null
+        ),
+      );
+
+      await tester.pumpWidget(_cardWithProviders(item));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Image), findsNothing);
+    });
   });
 }

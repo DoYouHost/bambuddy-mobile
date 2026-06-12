@@ -21,6 +21,8 @@ class PrinterStatus {
     this.layerNum,
     this.totalLayers,
     this.temperatures,
+    this.coverUrl,
+    this.stgCurName,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -55,7 +57,37 @@ class PrinterStatus {
   @JsonKey(fromJson: _toTemperaturesOrNull)
   final Map<String, double>? temperatures;
 
-  bool get isPrinting => (progress ?? 0) > 0 && (remainingTime ?? 0) > 0;
+  /// Ścieżka do okładki bieżącego wydruku (np. `/api/v1/printers/1/cover`).
+  /// Wymaga tokenu strumienia kamery jako `?token=` przy pobieraniu.
+  final String? coverUrl;
+
+  /// Nazwa bieżącego etapu z serwera (np. „Auto bed leveling", „Heating");
+  /// null/pusta poza fazą przygotowania. Przychodzi po angielsku.
+  final String? stgCurName;
+
+  /// Czy trwa zadanie wydruku — w tym fazy przygotowania (nagrzewanie,
+  /// auto bed leveling, pauza), gdzie `progress`/`remainingTime` bywają
+  /// zerowe, a serwer i tak raportuje aktywny stan. Fallback na dane
+  /// postępu, gdy serwer nie poda stanu.
+  bool get isPrinting {
+    switch (state?.toUpperCase()) {
+      case 'RUNNING':
+      case 'PREPARE':
+      case 'PAUSE':
+      case 'PAUSED':
+        return true;
+      case 'IDLE':
+      case 'FINISH':
+      case 'FINISHED':
+      case 'FAILED':
+        return false;
+    }
+    return (progress ?? 0) > 0 && (remainingTime ?? 0) > 0;
+  }
+
+  /// Faza przygotowania: aktywny wydruk, ale jeszcze bez realnego postępu —
+  /// wtedy w UI pokazujemy nazwę etapu zamiast paska 0%.
+  bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 }
 
 double? _toDoubleOrNull(dynamic value) => switch (value) {

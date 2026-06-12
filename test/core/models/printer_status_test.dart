@@ -58,6 +58,27 @@ void main() {
       expect(status.temperatures, isNull);
       expect(status.isPrinting, isFalse);
     });
+
+    test('faza przygotowania (RUNNING, progress 0) liczy się jako wydruk', () {
+      const status = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        progress: 0,
+        remainingTime: 0,
+        stgCurName: 'Auto bed leveling',
+      );
+
+      expect(status.isPrinting, isTrue,
+          reason: 'nagrzewanie/leveling to etap wydruku');
+      expect(status.isPreparing, isTrue);
+    });
+
+    test('FAILED nie jest wydrukiem mimo dodatniego progresu', () {
+      const status =
+          PrinterStatus(id: 1, state: 'FAILED', progress: 61, remainingTime: 88);
+
+      expect(status.isPrinting, isFalse);
+    });
   });
 
   group('Printer.fromJson', () {
