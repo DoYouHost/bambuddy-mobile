@@ -6,6 +6,7 @@ import '../../../data/printers_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../controls_providers.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({super.key, required this.item});
@@ -88,7 +89,13 @@ class _PrinterCardState extends State<PrinterCard> {
               const SizedBox(height: 10),
               _TempGrid(readings: readings),
             ],
-            if (status != null) _ControlsRow(status: status),
+            if (status != null) ...[
+              _ControlsActions(
+                printerId: widget.item.printer.id,
+                status: status,
+              ),
+              _ControlsRow(status: status),
+            ],
             if (hasDetails) ...[
               const SizedBox(height: 6),
               _DetailsToggle(
@@ -720,8 +727,302 @@ class _TempGrid extends StatelessWidget {
   }
 }
 
-/// Pasek read-only chipów ze stanem sterowania (wentylatory, prędkość,
-/// światło komory). Wysyłanie komend wejdzie w M4 — tu tylko odczyt.
+/// Interaktywny pasek sterowania (M4): pauza/wznów/stop (stop zawsze za
+/// dialogiem potwierdzenia), światło komory i prędkość. Stan optymistyczny +
+/// rollback trzyma [controlsProvider]; tu tylko render, wysłanie akcji i
+/// SnackBar z wynikiem. Chowa się gdy drukarka odłączona.
+class _ControlsActions extends ConsumerWidget {
+  const _ControlsActions({required this.printerId, required this.status});
+
+  final int printerId;
+  final PrinterStatus status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final connected = status.connected ?? false;
+    if (!connected) return const SizedBox.shrink();
+
+    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    if (forbidden) {
+      // Klucz API bez `can_control_printer` — zamiast martwych przycisków
+      // pokazujemy czytelny powód.
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          children: [
+            Icon(Icons.lock_outline,
+                size: 16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                l10n.ctrlForbidden,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final pending =
+        ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
+    final light = pending.light ?? status.chamberLight ?? false;
+    final speedLevel = pending.speedLevel ?? status.speedLevel;
+
+    final printing = status.isPrinting;
+    final paused = status.isPaused;
+    final activePrint = printing && !paused;
+
+    final buttons = <Widget>[
+      if (activePrint)
+        _LifecycleButton(
+          icon: Icons.pause,
+          label: l10n.ctrlPause,
+          busy: pending.isBusy(ControlAction.pause),
+          onPressed: () => _run(context, ref, ControlAction.pause),
+        ),
+      if (paused)
+        _LifecycleButton(
+          icon: Icons.play_arrow,
+          label: l10n.ctrlResume,
+          busy: pending.isBusy(ControlAction.resume),
+          onPressed: () => _run(context, ref, ControlAction.resume),
+        ),
+      if (printing)
+        _LifecycleButton(
+          icon: Icons.stop,
+          label: l10n.ctrlStop,
+          danger: true,
+          busy: pending.isBusy(ControlAction.stop),
+          onPressed: () => _confirmStop(context, ref),
+        ),
+      _LightToggle(
+        on: light,
+        busy: pending.isBusy(ControlAction.light),
+        onPressed: () => _toggleLight(context, ref, on: !light),
+      ),
+      if (printing)
+        _SpeedControl(
+          level: speedLevel,
+          busy: pending.isBusy(ControlAction.speed),
+          onSelected: (mode) => _setSpeed(context, ref, mode),
+        ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
+    );
+  }
+
+  Future<void> _run(
+      BuildContext context, WidgetRef ref, ControlAction action) async {
+    final notifier = ref.read(controlsProvider.notifier);
+    final result = switch (action) {
+      ControlAction.pause => await notifier.pause(printerId),
+      ControlAction.resume => await notifier.resume(printerId),
+      ControlAction.stop => await notifier.stop(printerId),
+      _ => ControlResult.ok,
+    };
+    if (context.mounted) _showResult(context, result);
+  }
+
+  Future<void> _toggleLight(BuildContext context, WidgetRef ref,
+      {required bool on}) async {
+    final result =
+        await ref.read(controlsProvider.notifier).setLight(printerId, on: on);
+    if (context.mounted) _showResult(context, result);
+  }
+
+  Future<void> _setSpeed(
+      BuildContext context, WidgetRef ref, int mode) async {
+    final result =
+        await ref.read(controlsProvider.notifier).setSpeed(printerId, mode);
+    if (context.mounted) _showResult(context, result);
+  }
+
+  /// Stop ZAWSZE za potwierdzeniem — to deliverable, nie szlif: łatwo ubić
+  /// wielogodzinny wydruk jednym tapnięciem.
+  Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.ctrlStopConfirmTitle),
+        content: Text(l10n.ctrlStopConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.ctrlStop),
+          ),
+        ],
+      ),
+    );
+    if ((confirmed ?? false) && context.mounted) {
+      await _run(context, ref, ControlAction.stop);
+    }
+  }
+
+  void _showResult(BuildContext context, ControlResult result) {
+    final l10n = AppLocalizations.of(context);
+    final msg = switch (result) {
+      ControlResult.ok => null,
+      ControlResult.forbidden => l10n.ctrlForbidden,
+      ControlResult.error => l10n.ctrlFailed,
+    };
+    if (msg == null) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+const _btnSpinner = SizedBox(
+  width: 16,
+  height: 16,
+  child: CircularProgressIndicator(strokeWidth: 2),
+);
+
+/// Przycisk akcji cyklu życia wydruku (pauza/wznów/stop). W locie pokazuje
+/// spinner i jest zablokowany; `danger` koloruje stop na czerwono.
+class _LifecycleButton extends StatelessWidget {
+  const _LifecycleButton({
+    required this.icon,
+    required this.label,
+    required this.busy,
+    required this.onPressed,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool busy;
+  final VoidCallback onPressed;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fg = danger ? scheme.error : null;
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      icon: busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
+      label: Text(label, style: fg == null ? null : TextStyle(color: fg)),
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        side: danger
+            ? BorderSide(color: scheme.error.withValues(alpha: 0.5))
+            : null,
+      ),
+    );
+  }
+}
+
+/// Przełącznik światła komory. Pokazuje aktualny (optymistyczny) stan;
+/// żółta żarówka = włączone.
+class _LightToggle extends StatelessWidget {
+  const _LightToggle({
+    required this.on,
+    required this.busy,
+    required this.onPressed,
+  });
+
+  final bool on;
+  final bool busy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    const amber = Color(0xFFFFC107);
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      icon: busy
+          ? _btnSpinner
+          : Icon(on ? Icons.lightbulb : Icons.lightbulb_outline,
+              size: 18, color: on ? amber : null),
+      label: Text(on ? l10n.ctrlLightOn : l10n.ctrlLightOff),
+      style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+    );
+  }
+}
+
+/// Wybór prędkości druku (1–4). Tapnięcie otwiera menu z czterema poziomami;
+/// bieżący jest odhaczony. W locie zablokowany ze spinnerem.
+class _SpeedControl extends StatelessWidget {
+  const _SpeedControl({
+    required this.level,
+    required this.busy,
+    required this.onSelected,
+  });
+
+  final int? level;
+  final bool busy;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final label = _speedName(l10n, level) ?? l10n.ctrlSpeed;
+
+    return PopupMenuButton<int>(
+      enabled: !busy,
+      tooltip: l10n.ctrlSpeed,
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        for (var m = 1; m <= 4; m++)
+          CheckedPopupMenuItem<int>(
+            value: m,
+            checked: level == m,
+            child: Text(_speedName(l10n, m)!),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: scheme.outline),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            busy
+                ? _btnSpinner
+                : Icon(Icons.speed, size: 18, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Text(label, style: theme.textTheme.labelLarge),
+            const SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down,
+                size: 18, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String? _speedName(AppLocalizations l10n, int? level) => switch (level) {
+      1 => l10n.speedSilent,
+      2 => l10n.speedStandard,
+      3 => l10n.speedSport,
+      4 => l10n.speedLudicrous,
+      _ => null,
+    };
+
+/// Pasek read-only chipów ze stanem czujników (wentylatory, nawiew komory).
+/// Sterowalne wartości (światło, prędkość) są w [_ControlsActions].
 /// Renderuje się tylko gdy serwer poda którąkolwiek wartość.
 class _ControlsRow extends StatelessWidget {
   const _ControlsRow({required this.status});
@@ -760,23 +1061,6 @@ class _ControlsRow extends StatelessWidget {
           value: '${status.bigFan2Speed}%',
           valueAlternatives: const ['100%'],
           color: fanColor(status.bigFan2Speed!),
-        ),
-      if (status.speedPercent != null)
-        _ControlChip(
-          icon: Icons.speed,
-          label: l10n.ctrlSpeed,
-          value: '${status.speedPercent}%',
-          valueAlternatives: const ['166%'],
-        ),
-      if (status.chamberLight != null)
-        _ControlChip(
-          icon: status.chamberLight!
-              ? Icons.lightbulb
-              : Icons.lightbulb_outline,
-          label: l10n.ctrlLight,
-          value: status.chamberLight! ? l10n.ctrlLightOn : l10n.ctrlLightOff,
-          valueAlternatives: [l10n.ctrlLightOn, l10n.ctrlLightOff],
-          color: status.chamberLight! ? const Color(0xFFFFC107) : null,
         ),
       if (status.airductIsHeating != null)
         _ControlChip(

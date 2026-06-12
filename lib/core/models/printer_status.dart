@@ -183,6 +183,13 @@ class PrinterStatus {
   /// wtedy w UI pokazujemy nazwę etapu zamiast paska 0%.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 
+  /// Wydruk wstrzymany (pauza). Sterowanie pokazuje wtedy „Wznów" zamiast
+  /// „Pauza". Stan z serwera, więc bywa po angielsku w różnych wariantach.
+  bool get isPaused => switch (state?.toUpperCase()) {
+        'PAUSE' || 'PAUSED' => true,
+        _ => false,
+      };
+
   /// Szpule zewnętrzne uporządkowane po id rosnąco (254, 255, …).
   List<AmsTray> get externalSpools {
     final list = [...?vtTray];

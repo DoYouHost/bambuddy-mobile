@@ -9,6 +9,7 @@ import 'core/auth/credentials_store.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
+import 'data/printer_commands_repository.dart';
 import 'data/printers_repository.dart';
 
 /// Nadpisywany w main() po SharedPreferences.getInstance().
@@ -81,6 +82,12 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Komendy sterujące (M4). Współdzieli uwierzytelnione Dio z resztą —
+/// przebudowywany przy zmianie profilu wraz z [apiClientProvider].
+final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
+  (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

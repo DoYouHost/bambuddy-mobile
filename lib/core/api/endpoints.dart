@@ -26,4 +26,24 @@ abstract final class Endpoints {
   /// Pojedyncza klatka JPEG (fallback/odświeżenie). Również `?token=`.
   static String cameraSnapshot(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/snapshot';
+
+  // --- Sterowanie (M4) ---
+  // Wszystkie to POST; wymagają uprawnienia `can_control_printer` na kluczu
+  // API (brak → 403). Body puste — parametry idą w query (patrz niżej).
+
+  static String printPause(int printerId) =>
+      '$apiPrefix/printers/$printerId/print/pause';
+  static String printResume(int printerId) =>
+      '$apiPrefix/printers/$printerId/print/resume';
+  static String printStop(int printerId) =>
+      '$apiPrefix/printers/$printerId/print/stop';
+
+  /// Światło komory. Query: `on=true|false`.
+  static String chamberLight(int printerId) =>
+      '$apiPrefix/printers/$printerId/chamber-light';
+
+  /// Prędkość druku. Query: `mode=1..4` (1 Silent, 2 Standard, 3 Sport,
+  /// 4 Ludicrous) — zgodne z [PrinterStatus.speedLevel].
+  static String printSpeed(int printerId) =>
+      '$apiPrefix/printers/$printerId/print-speed';
 }

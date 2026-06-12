@@ -284,6 +284,72 @@ abstract class AppLocalizations {
   /// **'Heating'**
   String get ctrlAirductHeating;
 
+  /// No description provided for @ctrlPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get ctrlPause;
+
+  /// No description provided for @ctrlResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get ctrlResume;
+
+  /// No description provided for @ctrlStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get ctrlStop;
+
+  /// No description provided for @ctrlStopConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop print?'**
+  String get ctrlStopConfirmTitle;
+
+  /// No description provided for @ctrlStopConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cancels the current print. It cannot be resumed.'**
+  String get ctrlStopConfirmBody;
+
+  /// No description provided for @ctrlForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'This API key can\'t control the printer'**
+  String get ctrlForbidden;
+
+  /// No description provided for @ctrlFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the command'**
+  String get ctrlFailed;
+
+  /// No description provided for @speedSilent.
+  ///
+  /// In en, this message translates to:
+  /// **'Silent'**
+  String get speedSilent;
+
+  /// No description provided for @speedStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get speedStandard;
+
+  /// No description provided for @speedSport.
+  ///
+  /// In en, this message translates to:
+  /// **'Sport'**
+  String get speedSport;
+
+  /// No description provided for @speedLudicrous.
+  ///
+  /// In en, this message translates to:
+  /// **'Ludicrous'**
+  String get speedLudicrous;
+
   /// No description provided for @detailsShow.
   ///
   /// In en, this message translates to:
@@ -565,6 +631,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not authorized'**
   String get errUnauthorized;
+
+  /// No description provided for @errForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed — your API key lacks permission for this'**
+  String get errForbidden;
 
   /// No description provided for @errBadResponse.
   ///

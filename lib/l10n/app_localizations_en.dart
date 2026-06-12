@@ -116,6 +116,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlAirductHeating => 'Heating';
 
   @override
+  String get ctrlPause => 'Pause';
+
+  @override
+  String get ctrlResume => 'Resume';
+
+  @override
+  String get ctrlStop => 'Stop';
+
+  @override
+  String get ctrlStopConfirmTitle => 'Stop print?';
+
+  @override
+  String get ctrlStopConfirmBody =>
+      'This cancels the current print. It cannot be resumed.';
+
+  @override
+  String get ctrlForbidden => 'This API key can\'t control the printer';
+
+  @override
+  String get ctrlFailed => 'Couldn\'t send the command';
+
+  @override
+  String get speedSilent => 'Silent';
+
+  @override
+  String get speedStandard => 'Standard';
+
+  @override
+  String get speedSport => 'Sport';
+
+  @override
+  String get speedLudicrous => 'Ludicrous';
+
+  @override
   String get detailsShow => 'Details';
 
   @override
@@ -270,6 +304,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errUnauthorized => 'Not authorized';
+
+  @override
+  String get errForbidden =>
+      'Not allowed — your API key lacks permission for this';
 
   @override
   String errBadResponse(int code) {

@@ -19,13 +19,19 @@ class _FakeProfileNotifier extends ServerProfileNotifier {
       );
 }
 
-Widget _cardWithProviders(PrinterWithStatus item) => ProviderScope(
+/// Owija drzewo w ProviderScope — karta zawiera teraz interaktywny pasek
+/// sterowania (`_ControlsActions`, ConsumerWidget), więc każdy render karty
+/// ze statusem potrzebuje scope'a. Profil = bez auth, token kamery zaślepiony.
+Widget _scope(Widget child) => ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
       ],
-      child: plApp(Scaffold(body: PrinterCard(item: item))),
+      child: plApp(child),
     );
+
+Widget _cardWithProviders(PrinterWithStatus item) =>
+    _scope(Scaffold(body: PrinterCard(item: item)));
 
 void main() {
   testWidgets('karta renderuje nazwę, postęp i temperatury z fixture\'a',
@@ -36,7 +42,7 @@ void main() {
           readFixture('printer_status_printing.json') as Map<String, dynamic>),
     );
 
-    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     expect(find.text('X1C Warsztat'), findsOneWidget);
     expect(find.text('RUNNING'), findsOneWidget);
@@ -60,14 +66,19 @@ void main() {
           readFixture('printer_status_printing.json') as Map<String, dynamic>),
     );
 
-    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     expect(find.text('53%'), findsOneWidget); // wentylator części
     expect(find.text('73%'), findsOneWidget); // pomocniczy
     expect(find.text('60%'), findsOneWidget); // komory
-    expect(find.text('100%'), findsOneWidget); // prędkość (poziom 2)
+    // Prędkość i światło są teraz interaktywne: poziom 2 → „Standard",
+    // światło włączone → „Wł." na przełączniku.
+    expect(find.text('Standard'), findsOneWidget); // prędkość (poziom 2)
     expect(find.text('Wł.'), findsOneWidget); // światło komory włączone
     expect(find.text('Chłodzenie'), findsOneWidget); // nawiew (tryb 0)
+    // Wydruk trwa (RUNNING) → dostępne pauza i stop.
+    expect(find.text('Pauza'), findsOneWidget);
+    expect(find.text('Zatrzymaj'), findsOneWidget);
   });
 
   testWidgets('pasek kontrolek nie renderuje się bez danych sterowania',
@@ -77,7 +88,7 @@ void main() {
       status: const PrinterStatus(id: 9, connected: true, state: 'IDLE'),
     );
 
-    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     // Brak pól wentylatorów/prędkości/światła → żadnych chipów „%".
     expect(find.textContaining('%'), findsNothing);
@@ -104,7 +115,7 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     // Aktualna i cel jako osobne teksty (aktualna duża, cel mniejszy).
     expect(find.text('Stół'), findsOneWidget);
@@ -153,7 +164,7 @@ void main() {
 
     testWidgets('szczegóły domyślnie zwinięte, rozwijają się po tapnięciu',
         (tester) async {
-      await tester.pumpWidget(plApp(Scaffold(
+      await tester.pumpWidget(_scope(Scaffold(
         body: SingleChildScrollView(child: PrinterCard(item: realItem())),
       )));
 
@@ -185,7 +196,7 @@ void main() {
         status: const PrinterStatus(id: 9, connected: true, state: 'IDLE'),
       );
 
-      await tester.pumpWidget(plApp(Scaffold(body: PrinterCard(item: item))));
+      await tester.pumpWidget(_cardWithProviders(item));
 
       expect(find.text('Szczegóły'), findsNothing);
     });

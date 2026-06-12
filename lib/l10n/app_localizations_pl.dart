@@ -118,6 +118,40 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlAirductHeating => 'Grzanie';
 
   @override
+  String get ctrlPause => 'Pauza';
+
+  @override
+  String get ctrlResume => 'Wznów';
+
+  @override
+  String get ctrlStop => 'Zatrzymaj';
+
+  @override
+  String get ctrlStopConfirmTitle => 'Zatrzymać wydruk?';
+
+  @override
+  String get ctrlStopConfirmBody =>
+      'To anuluje bieżący wydruk. Nie da się go wznowić.';
+
+  @override
+  String get ctrlForbidden => 'Ten klucz API nie może sterować drukarką';
+
+  @override
+  String get ctrlFailed => 'Nie udało się wysłać polecenia';
+
+  @override
+  String get speedSilent => 'Cichy';
+
+  @override
+  String get speedStandard => 'Standard';
+
+  @override
+  String get speedSport => 'Sport';
+
+  @override
+  String get speedLudicrous => 'Ekstremalny';
+
+  @override
   String get detailsShow => 'Szczegóły';
 
   @override
@@ -272,6 +306,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get errUnauthorized => 'Brak autoryzacji';
+
+  @override
+  String get errForbidden =>
+      'Brak uprawnień — Twój klucz API nie ma do tego dostępu';
 
   @override
   String errBadResponse(int code) {

@@ -6,6 +6,11 @@ import 'package:dio/dio.dart';
 enum AppErrorCode {
   serverUnreachable,
   unauthorized,
+
+  /// 403 — uwierzytelnienie OK, ale brak uprawnień do tej akcji (np. klucz API
+  /// bez `can_control_printer`). W przeciwieństwie do [unauthorized] NIE
+  /// oznacza wygaśnięcia sesji — nie wylogowujemy, tylko blokujemy akcję.
+  forbidden,
   badResponse,
   badCertificate,
   connectionError,
@@ -65,8 +70,11 @@ AppApiException mapDioException(DioException e) {
           detail: e.message);
     case DioExceptionType.badResponse:
       final code = e.response?.statusCode;
-      if (code == 401 || code == 403) {
+      if (code == 401) {
         return const AuthException(AppErrorCode.unauthorized);
+      }
+      if (code == 403) {
+        return const AuthException(AppErrorCode.forbidden);
       }
       return ApiException(AppErrorCode.badResponse, statusCode: code);
     case DioExceptionType.badCertificate:
