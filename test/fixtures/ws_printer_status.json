@@ -1,0 +1,209 @@
+{
+  "type": "printer_status",
+  "printer_id": 1,
+  "data": {
+    "connected": true,
+    "state": "RUNNING",
+    "current_print": "P1S%20Riser%20-%20Full%20Print(4)_Drawer_fronts",
+    "subtask_name": "P1S%20Riser%20-%20Full%20Print(4)_Drawer_fronts",
+    "gcode_file": "/data/Metadata/plate_4.gcode",
+    "progress": 0.0,
+    "remaining_time": 532,
+    "layer_num": 0,
+    "total_layers": 824,
+    "temperatures": {
+      "bed": 70.0,
+      "bed_target": 70.0,
+      "nozzle_2": 140.0,
+      "nozzle_2_target": 140.0,
+      "chamber": 33.0,
+      "chamber_target": 0.0,
+      "nozzle_2_heating": false,
+      "nozzle": 140.0,
+      "nozzle_target": 140.0,
+      "nozzle_heating": false,
+      "bed_heating": false,
+      "chamber_heating": false
+    },
+    "hms_errors": [
+      {
+        "code": "0x20070",
+        "attr": 83887616,
+        "module": 5,
+        "severity": 6
+      }
+    ],
+    "ams": [
+      {
+        "id": 0,
+        "humidity": 28,
+        "temp": "31.0",
+        "is_ams_ht": false,
+        "tray": [
+          {
+            "id": 0,
+            "tray_color": "FFFFFFFF",
+            "tray_type": "PETG",
+            "tray_sub_brands": "",
+            "tray_id_name": "",
+            "tray_info_idx": "GFG02",
+            "remain": -1,
+            "k": null,
+            "cali_idx": -1,
+            "tag_uid": null,
+            "tray_uuid": null,
+            "nozzle_temp_min": "220",
+            "nozzle_temp_max": "260",
+            "drying_temp": "0",
+            "drying_time": "0",
+            "state": 11
+          },
+          {
+            "id": 1,
+            "tray_color": "FFD00BFF",
+            "tray_type": "PETG",
+            "tray_sub_brands": "",
+            "tray_id_name": "",
+            "tray_info_idx": "GFG02",
+            "remain": -1,
+            "k": null,
+            "cali_idx": -1,
+            "tag_uid": null,
+            "tray_uuid": null,
+            "nozzle_temp_min": "220",
+            "nozzle_temp_max": "260",
+            "drying_temp": "0",
+            "drying_time": "0",
+            "state": 11
+          },
+          {
+            "id": 2,
+            "tray_color": "F55A74FF",
+            "tray_type": "PETG",
+            "tray_sub_brands": "",
+            "tray_id_name": "",
+            "tray_info_idx": "GFG02",
+            "remain": -1,
+            "k": null,
+            "cali_idx": -1,
+            "tag_uid": null,
+            "tray_uuid": null,
+            "nozzle_temp_min": "220",
+            "nozzle_temp_max": "260",
+            "drying_temp": "0",
+            "drying_time": "0",
+            "state": 27
+          },
+          {
+            "id": 3,
+            "tray_color": "000000FF",
+            "tray_type": "PLA",
+            "tray_sub_brands": "PLA Basic",
+            "tray_id_name": "A00-K0",
+            "tray_info_idx": "GFA00",
+            "remain": 66,
+            "k": null,
+            "cali_idx": -1,
+            "tag_uid": null,
+            "tray_uuid": null,
+            "nozzle_temp_min": "190",
+            "nozzle_temp_max": "230",
+            "drying_temp": "55",
+            "drying_time": "8",
+            "state": 11
+          }
+        ],
+        "serial_number": "REDACTED",
+        "sw_ver": "REDACTED",
+        "dry_time": 0,
+        "dry_status": 0,
+        "dry_sub_status": 4,
+        "dry_sf_reason": [
+          1
+        ],
+        "module_type": "n3f"
+      }
+    ],
+    "vt_tray": [
+      {
+        "id": 254,
+        "tray_color": "0ACC38FF",
+        "tray_type": "TPU",
+        "tray_sub_brands": "",
+        "tray_id_name": "",
+        "tray_info_idx": "GFU01",
+        "remain": 0,
+        "k": null,
+        "cali_idx": -1,
+        "tag_uid": null,
+        "tray_uuid": null,
+        "nozzle_temp_min": "200",
+        "nozzle_temp_max": "250"
+      },
+      {
+        "id": 255,
+        "tray_color": "91202BFF",
+        "tray_type": "PLA",
+        "tray_sub_brands": "",
+        "tray_id_name": "",
+        "tray_info_idx": "GFA00",
+        "remain": 0,
+        "k": null,
+        "cali_idx": -1,
+        "tag_uid": null,
+        "tray_uuid": null,
+        "nozzle_temp_min": "190",
+        "nozzle_temp_max": "230"
+      }
+    ],
+    "ams_status_main": 3,
+    "ams_status_sub": 0,
+    "tray_now": 2,
+    "ams_extruder_map": {
+      "0": 1
+    },
+    "wifi_signal": -59,
+    "wired_network": false,
+    "door_open": false,
+    "stg_cur": 54,
+    "stg_cur_name": "Waiting for heatbed temperature",
+    "printable_objects_count": 10,
+    "cooling_fan_speed": 0,
+    "big_fan1_speed": 40,
+    "big_fan2_speed": 67,
+    "heatbreak_fan_speed": 93,
+    "chamber_light": true,
+    "active_extruder": 1,
+    "speed_level": 2,
+    "nozzle_rack": [
+      {
+        "id": 0,
+        "nozzle_type": "HH01",
+        "nozzle_diameter": "0.6",
+        "wear": 0.0,
+        "stat": 0,
+        "max_temp": 0,
+        "serial_number": "N/A",
+        "filament_color": "00000000",
+        "filament_id": ""
+      },
+      {
+        "id": 1,
+        "nozzle_type": "HH01",
+        "nozzle_diameter": "0.6",
+        "wear": 0.0,
+        "stat": 0,
+        "max_temp": 0,
+        "serial_number": "N/A",
+        "filament_color": "00000000",
+        "filament_id": ""
+      }
+    ],
+    "supports_drying": true,
+    "current_plate_id": 4,
+    "awaiting_plate_clear": false,
+    "cover_url": "/api/v1/printers/1/cover",
+    "name": "X2D-3DP",
+    "model": "X2D"
+  }
+}

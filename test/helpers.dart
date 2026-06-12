@@ -16,8 +16,11 @@ Widget plApp(Widget child) => MaterialApp(
 
 /// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —
 /// tak uruchamia testy `flutter test`).
-dynamic readFixture(String name) =>
-    jsonDecode(File('test/fixtures/$name').readAsStringSync());
+dynamic readFixture(String name) => jsonDecode(readFixtureString(name));
+
+/// Surowa zawartość fixture'a (do parserów przyjmujących tekst, np. ramki WS).
+String readFixtureString(String name) =>
+    File('test/fixtures/$name').readAsStringSync();
 
 /// CredentialsStore w pamięci — testy rdzenia nie dotykają pluginu.
 class InMemoryCredentialsStore implements CredentialsStore {
