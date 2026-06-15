@@ -29,7 +29,8 @@ class _PrinterCardState extends State<PrinterCard> {
     final status = widget.item.status;
     final connected = status?.connected ?? false;
     final printing = status?.isPrinting ?? false;
-    final readings = _buildReadings(status?.temperatures);
+    final readings =
+        _buildReadings(status?.temperatures, status?.airductIsHeating);
     final hasDetails = status?.hasDetails ?? false;
 
     return Card(
@@ -1062,20 +1063,8 @@ class _ControlsRow extends StatelessWidget {
           valueAlternatives: const ['100%'],
           color: fanColor(status.bigFan2Speed!),
         ),
-      if (status.airductIsHeating != null)
-        _ControlChip(
-          icon: status.airductIsHeating!
-              ? Icons.local_fire_department
-              : Icons.ac_unit,
-          label: l10n.ctrlAirduct,
-          value: status.airductIsHeating!
-              ? l10n.ctrlAirductHeating
-              : l10n.ctrlAirductCooling,
-          valueAlternatives: [l10n.ctrlAirductCooling, l10n.ctrlAirductHeating],
-          color: status.airductIsHeating!
-              ? const Color(0xFFFF8A50)
-              : const Color(0xFF4FC3F7),
-        ),
+      // Nawiew komory (grzanie/chłodzenie) przeniesiony do kafelka temperatury
+      // komory — patrz _AirductBadge w _TempTile.
     ];
 
     if (chips.isEmpty) return const SizedBox.shrink();
@@ -1197,12 +1186,13 @@ class _TempTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Ikona w lewym górnym rogu + etykieta czujnika.
+          // Ikona w lewym górnym rogu + etykieta czujnika; dla komory po prawej
+          // wskaźnik nawiewu (grzanie/chłodzenie) zamiast osobnego chipa.
           Row(
             children: [
               Icon(reading.icon, size: 16, color: iconColor),
               const SizedBox(width: 6),
-              Flexible(
+              Expanded(
                 child: Text(
                   reading.label(l10n),
                   style: theme.textTheme.labelMedium
@@ -1210,6 +1200,8 @@ class _TempTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (reading.airductIsHeating != null)
+                _AirductBadge(heating: reading.airductIsHeating!),
             ],
           ),
           const SizedBox(height: 8),
@@ -1239,6 +1231,37 @@ class _TempTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Wskaźnik nawiewu komory wpięty w kafelek temperatury komory: ikona +
+/// „Grzanie"/„Chłodzenie". Zastępuje dawny osobny chip, żeby nie rozbijać
+/// informacji o komorze na dwa miejsca.
+class _AirductBadge extends StatelessWidget {
+  const _AirductBadge({required this.heating});
+
+  final bool heating;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final color =
+        heating ? const Color(0xFFFF8A50) : const Color(0xFF4FC3F7);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          heating ? Icons.local_fire_department : Icons.ac_unit,
+          size: 13,
+          color: color,
+        ),
+        const SizedBox(width: 3),
+        Text(
+          heating ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+        ),
+      ],
     );
   }
 }
@@ -1294,6 +1317,7 @@ class _TempReading {
     required this.actual,
     required this.target,
     this.index,
+    this.airductIsHeating,
   });
 
   final _TempKind kind;
@@ -1301,6 +1325,10 @@ class _TempReading {
   final int? index; // numer dyszy (np. 2) lub null
   final double? actual;
   final double? target;
+
+  /// Tryb nawiewu komory (grzanie/chłodzenie); ustawiany TYLKO dla kafelka
+  /// komory, gdzie pokazujemy go zamiast osobnego chipa. null = nieznany/n.d.
+  final bool? airductIsHeating;
 
   String label(AppLocalizations l10n) => switch (kind) {
         _TempKind.nozzle =>
@@ -1320,7 +1348,10 @@ class _TempReading {
 
 /// Grupuje surowe klucze temperatur w pary aktualna/docelowa i porządkuje
 /// znane czujniki (dysza, stół, komora) przed nieznanymi.
-List<_TempReading> _buildReadings(Map<String, double>? temps) {
+List<_TempReading> _buildReadings(
+  Map<String, double>? temps,
+  bool? airductIsHeating,
+) {
   if (temps == null || temps.isEmpty) return const [];
 
   final actuals = <String, double>{};
@@ -1350,11 +1381,16 @@ List<_TempReading> _buildReadings(Map<String, double>? temps) {
 
   return [
     for (final base in bases)
-      _readingFor(base, actuals[base], targets[base]),
+      _readingFor(base, actuals[base], targets[base], airductIsHeating),
   ];
 }
 
-_TempReading _readingFor(String base, double? actual, double? target) {
+_TempReading _readingFor(
+  String base,
+  double? actual,
+  double? target,
+  bool? airductIsHeating,
+) {
   final numbered = RegExp(r'^([a-z]+)_(\d+)$').firstMatch(base);
   final stem = numbered?.group(1) ?? base;
   final index = numbered == null ? null : int.tryParse(numbered.group(2)!);
@@ -1372,6 +1408,8 @@ _TempReading _readingFor(String base, double? actual, double? target) {
     index: kind == _TempKind.nozzle ? index : null,
     actual: actual,
     target: target,
+    // Nawiew dotyczy tylko komory.
+    airductIsHeating: kind == _TempKind.chamber ? airductIsHeating : null,
   );
 }
 
