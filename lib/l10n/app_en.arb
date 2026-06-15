@@ -51,6 +51,42 @@
   "speedSport": "Sport",
   "speedLudicrous": "Ludicrous",
 
+  "queueEmpty": "The queue is empty",
+  "queueDeleteTitle": "Remove from queue?",
+  "queueDeleteBody": "This removes the item from the print queue.",
+  "queueDeleteConfirm": "Remove",
+  "queueStart": "Start now",
+  "queueStartNext": "Start next",
+  "queueCancel": "Cancel",
+  "queueNoFreePrinters": "No free printers right now",
+  "queuePrintStarted": "Print started",
+  "queueStatusPending": "Waiting",
+  "queueStatusScheduled": "Scheduled",
+  "queueStatusPrinting": "Printing",
+  "queueStatusPaused": "Paused",
+
+  "archiveSearchHint": "Search archive",
+  "archiveEmpty": "No archived prints",
+  "archiveSearchFailed": "Couldn't search for \"{query}\". Try a different term.",
+  "@archiveSearchFailed": {
+    "placeholders": {
+      "query": { "type": "String" }
+    }
+  },
+  "archiveReprint": "Reprint",
+  "archiveAddToQueue": "Add to queue",
+  "archiveReprintConfirmTitle": "Start reprint?",
+  "archiveReprintConfirmBody": "This sends the file to {printer} and starts printing.",
+  "@archiveReprintConfirmBody": {
+    "placeholders": {
+      "printer": { "type": "String" }
+    }
+  },
+  "archiveReprintStarted": "Reprint started",
+  "archiveAddedToQueue": "Added to queue",
+  "pickPrinterTitle": "Choose a printer",
+  "noPrintersAvailable": "No printers available",
+
   "detailsShow": "Details",
   "detailsHide": "Hide details",
   "cameraTooltip": "Camera",
@@ -141,5 +177,12 @@
   "bgMonitoringToggle": "Background monitoring",
   "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
   "bgMonitoringOn": "Background monitoring on",
-  "bgMonitoringOff": "Background monitoring off"
+  "bgMonitoringOff": "Background monitoring off",
+
+  "navDashboard": "Dashboard",
+  "@navDashboard": { "description": "Bottom nav tab: Dashboard" },
+  "navQueue": "Queue",
+  "@navQueue": { "description": "Bottom nav tab: Queue" },
+  "navArchive": "Archive",
+  "@navArchive": { "description": "Bottom nav tab: Archive" }
 }

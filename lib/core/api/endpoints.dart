@@ -1,6 +1,6 @@
 /// Wszystkie używane ścieżki API bambuddy w jednym miejscu.
 ///
-/// Kontrakt: bambuddy v0.2.4.6 (`/api/v1`). Przy aktualizacji serwera
+/// Kontrakt: bambuddy v0.2.4.4 (`/api/v1`). Przy aktualizacji serwera
 /// porównać z jego `/openapi.json` zanim coś się tu zmieni.
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
@@ -46,4 +46,26 @@ abstract final class Endpoints {
   /// 4 Ludicrous) — zgodne z [PrinterStatus.speedLevel].
   static String printSpeed(int printerId) =>
       '$apiPrefix/printers/$printerId/print-speed';
+
+  // --- Kolejka + archiwum (M5) ---
+
+  // Trailing slash wymagany: serwer (FastAPI) ma trasę pod `/queue/`,
+  // a `/queue` (bez slasha) zwraca 404 dla uwierzytelnionego żądania.
+  static const queue = '$apiPrefix/queue/';
+  static const queueReorder = '$apiPrefix/queue/reorder';
+  static String queueItem(int itemId) => '$apiPrefix/queue/$itemId';
+  static String queueItemStart(int itemId) => '$apiPrefix/queue/$itemId/start';
+  static String queueItemCancel(int itemId) =>
+      '$apiPrefix/queue/$itemId/cancel';
+
+  // Trailing slash wymagany: analogicznie do `/queue/`.
+  static const archives = '$apiPrefix/archives/';
+  static const archivesSearch = '$apiPrefix/archives/search';
+  static String archiveReprint(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/reprint';
+
+  /// Miniatura uwierzytelniana przez `?token=` (token kamery), NIE nagłówkiem
+  /// — patrz okładka w printer_card.
+  static String archiveThumbnail(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/thumbnail';
 }

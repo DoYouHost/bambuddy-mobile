@@ -350,6 +350,150 @@ abstract class AppLocalizations {
   /// **'Ludicrous'**
   String get speedLudicrous;
 
+  /// No description provided for @queueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The queue is empty'**
+  String get queueEmpty;
+
+  /// No description provided for @queueDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue?'**
+  String get queueDeleteTitle;
+
+  /// No description provided for @queueDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the item from the print queue.'**
+  String get queueDeleteBody;
+
+  /// No description provided for @queueDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get queueDeleteConfirm;
+
+  /// No description provided for @queueStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start now'**
+  String get queueStart;
+
+  /// No description provided for @queueStartNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Start next'**
+  String get queueStartNext;
+
+  /// No description provided for @queueCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get queueCancel;
+
+  /// No description provided for @queueNoFreePrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No free printers right now'**
+  String get queueNoFreePrinters;
+
+  /// No description provided for @queuePrintStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Print started'**
+  String get queuePrintStarted;
+
+  /// No description provided for @queueStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get queueStatusPending;
+
+  /// No description provided for @queueStatusScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get queueStatusScheduled;
+
+  /// No description provided for @queueStatusPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get queueStatusPrinting;
+
+  /// No description provided for @queueStatusPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get queueStatusPaused;
+
+  /// No description provided for @archiveSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search archive'**
+  String get archiveSearchHint;
+
+  /// No description provided for @archiveEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived prints'**
+  String get archiveEmpty;
+
+  /// No description provided for @archiveSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search for \"{query}\". Try a different term.'**
+  String archiveSearchFailed(String query);
+
+  /// No description provided for @archiveReprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint'**
+  String get archiveReprint;
+
+  /// No description provided for @archiveAddToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to queue'**
+  String get archiveAddToQueue;
+
+  /// No description provided for @archiveReprintConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reprint?'**
+  String get archiveReprintConfirmTitle;
+
+  /// No description provided for @archiveReprintConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This sends the file to {printer} and starts printing.'**
+  String archiveReprintConfirmBody(String printer);
+
+  /// No description provided for @archiveReprintStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint started'**
+  String get archiveReprintStarted;
+
+  /// No description provided for @archiveAddedToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to queue'**
+  String get archiveAddedToQueue;
+
+  /// No description provided for @pickPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a printer'**
+  String get pickPrinterTitle;
+
+  /// No description provided for @noPrintersAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers available'**
+  String get noPrintersAvailable;
+
   /// No description provided for @detailsShow.
   ///
   /// In en, this message translates to:
@@ -793,6 +937,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Background monitoring off'**
   String get bgMonitoringOff;
+
+  /// Bottom nav tab: Dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get navDashboard;
+
+  /// Bottom nav tab: Queue
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get navQueue;
+
+  /// Bottom nav tab: Archive
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get navArchive;
 }
 
 class _AppLocalizationsDelegate

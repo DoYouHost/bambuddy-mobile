@@ -46,6 +46,32 @@
   "speedSport": "Sport",
   "speedLudicrous": "Ekstremalny",
 
+  "queueEmpty": "Kolejka jest pusta",
+  "queueDeleteTitle": "Usunąć z kolejki?",
+  "queueDeleteBody": "Element zostanie usunięty z kolejki wydruku.",
+  "queueDeleteConfirm": "Usuń",
+  "queueStart": "Uruchom teraz",
+  "queueStartNext": "Uruchom następny",
+  "queueCancel": "Anuluj",
+  "queueNoFreePrinters": "Brak wolnych drukarek",
+  "queuePrintStarted": "Wydruk uruchomiony",
+  "queueStatusPending": "Oczekuje",
+  "queueStatusScheduled": "Zaplanowany",
+  "queueStatusPrinting": "Drukuje",
+  "queueStatusPaused": "Wstrzymany",
+
+  "archiveSearchHint": "Szukaj w archiwum",
+  "archiveEmpty": "Brak zarchiwizowanych wydruków",
+  "archiveSearchFailed": "Nie udało się wyszukać „{query}”. Spróbuj innej frazy.",
+  "archiveReprint": "Drukuj ponownie",
+  "archiveAddToQueue": "Dodaj do kolejki",
+  "archiveReprintConfirmTitle": "Uruchomić ponowny wydruk?",
+  "archiveReprintConfirmBody": "Plik zostanie wysłany na {printer} i wydruk ruszy.",
+  "archiveReprintStarted": "Wydruk uruchomiony",
+  "archiveAddedToQueue": "Dodano do kolejki",
+  "pickPrinterTitle": "Wybierz drukarkę",
+  "noPrintersAvailable": "Brak dostępnych drukarek",
+
   "detailsShow": "Szczegóły",
   "detailsHide": "Ukryj szczegóły",
   "cameraTooltip": "Kamera",
@@ -125,5 +151,9 @@
   "bgMonitoringToggle": "Monitorowanie w tle",
   "bgMonitoringSubtitle": "Śledź wydruki, gdy aplikacja jest zamknięta. Pokazuje stałe powiadomienie.",
   "bgMonitoringOn": "Monitorowanie w tle włączone",
-  "bgMonitoringOff": "Monitorowanie w tle wyłączone"
+  "bgMonitoringOff": "Monitorowanie w tle wyłączone",
+
+  "navDashboard": "Pulpit",
+  "navQueue": "Kolejka",
+  "navArchive": "Archiwum"
 }

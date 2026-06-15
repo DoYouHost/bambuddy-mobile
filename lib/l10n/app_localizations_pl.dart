@@ -152,6 +152,82 @@ class AppLocalizationsPl extends AppLocalizations {
   String get speedLudicrous => 'Ekstremalny';
 
   @override
+  String get queueEmpty => 'Kolejka jest pusta';
+
+  @override
+  String get queueDeleteTitle => 'Usunąć z kolejki?';
+
+  @override
+  String get queueDeleteBody => 'Element zostanie usunięty z kolejki wydruku.';
+
+  @override
+  String get queueDeleteConfirm => 'Usuń';
+
+  @override
+  String get queueStart => 'Uruchom teraz';
+
+  @override
+  String get queueStartNext => 'Uruchom następny';
+
+  @override
+  String get queueCancel => 'Anuluj';
+
+  @override
+  String get queueNoFreePrinters => 'Brak wolnych drukarek';
+
+  @override
+  String get queuePrintStarted => 'Wydruk uruchomiony';
+
+  @override
+  String get queueStatusPending => 'Oczekuje';
+
+  @override
+  String get queueStatusScheduled => 'Zaplanowany';
+
+  @override
+  String get queueStatusPrinting => 'Drukuje';
+
+  @override
+  String get queueStatusPaused => 'Wstrzymany';
+
+  @override
+  String get archiveSearchHint => 'Szukaj w archiwum';
+
+  @override
+  String get archiveEmpty => 'Brak zarchiwizowanych wydruków';
+
+  @override
+  String archiveSearchFailed(String query) {
+    return 'Nie udało się wyszukać „$query”. Spróbuj innej frazy.';
+  }
+
+  @override
+  String get archiveReprint => 'Drukuj ponownie';
+
+  @override
+  String get archiveAddToQueue => 'Dodaj do kolejki';
+
+  @override
+  String get archiveReprintConfirmTitle => 'Uruchomić ponowny wydruk?';
+
+  @override
+  String archiveReprintConfirmBody(String printer) {
+    return 'Plik zostanie wysłany na $printer i wydruk ruszy.';
+  }
+
+  @override
+  String get archiveReprintStarted => 'Wydruk uruchomiony';
+
+  @override
+  String get archiveAddedToQueue => 'Dodano do kolejki';
+
+  @override
+  String get pickPrinterTitle => 'Wybierz drukarkę';
+
+  @override
+  String get noPrintersAvailable => 'Brak dostępnych drukarek';
+
+  @override
   String get detailsShow => 'Szczegóły';
 
   @override
@@ -404,4 +480,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get bgMonitoringOff => 'Monitorowanie w tle wyłączone';
+
+  @override
+  String get navDashboard => 'Pulpit';
+
+  @override
+  String get navQueue => 'Kolejka';
+
+  @override
+  String get navArchive => 'Archiwum';
 }

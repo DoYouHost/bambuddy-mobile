@@ -10,8 +10,10 @@ import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
+import 'data/archive_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/printers_repository.dart';
+import 'data/queue_repository.dart';
 
 /// Nadpisywany w main() po SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -109,6 +111,16 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
 /// przebudowywany przy zmianie profilu wraz z [apiClientProvider].
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Kolejka wydruków (M5). Współdzieli uwierzytelnione Dio.
+final queueRepositoryProvider = Provider<QueueRepository>(
+  (ref) => QueueRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Archiwum wydruków (M5). Współdzieli uwierzytelnione Dio.
+final archiveRepositoryProvider = Provider<ArchiveRepository>(
+  (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

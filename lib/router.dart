@@ -1,13 +1,21 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
+import 'features/shell/root_scaffold.dart';
 import 'providers.dart';
 
-/// Płaskie trasy v1 (docelowo dojdą /printer/:id, /queue, /archive,
-/// /settings). Router jest odtwarzany przy zmianie istnienia profilu —
-/// przy dwóch trasach utrata stosu nawigacji nie boli.
+/// Klucze nawigatorów dla każdej gałęzi powłoki.
+final _dashboardNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
+final _queueNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'queue');
+final _archiveNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'archive');
+
+/// Router aplikacji z powłoką dolnej belki nawigacyjnej (Material 3).
+/// Trasa /setup pozostaje poza powłoką — wyświetlana bez NavigationBar.
 final routerProvider = Provider<GoRouter>((ref) {
   final hasProfile =
       ref.watch(serverProfileProvider.select((p) => p != null));
@@ -20,8 +28,40 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      // Ekran konfiguracji serwera — poza powłoką, bez belki nawigacyjnej.
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
-      GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+
+      // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            RootScaffold(navigationShell: navigationShell),
+        branches: [
+          // Zakładka 0: Dashboard
+          StatefulShellBranch(
+            navigatorKey: _dashboardNavigatorKey,
+            routes: [
+              GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+            ],
+          ),
+          // Zakładka 1: Kolejka
+          StatefulShellBranch(
+            navigatorKey: _queueNavigatorKey,
+            routes: [
+              GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
+            ],
+          ),
+          // Zakładka 2: Archiwum
+          StatefulShellBranch(
+            navigatorKey: _archiveNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/archive',
+                builder: (_, _) => const ArchiveScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
     ],
   );
 });

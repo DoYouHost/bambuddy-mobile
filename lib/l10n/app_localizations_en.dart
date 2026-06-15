@@ -150,6 +150,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speedLudicrous => 'Ludicrous';
 
   @override
+  String get queueEmpty => 'The queue is empty';
+
+  @override
+  String get queueDeleteTitle => 'Remove from queue?';
+
+  @override
+  String get queueDeleteBody => 'This removes the item from the print queue.';
+
+  @override
+  String get queueDeleteConfirm => 'Remove';
+
+  @override
+  String get queueStart => 'Start now';
+
+  @override
+  String get queueStartNext => 'Start next';
+
+  @override
+  String get queueCancel => 'Cancel';
+
+  @override
+  String get queueNoFreePrinters => 'No free printers right now';
+
+  @override
+  String get queuePrintStarted => 'Print started';
+
+  @override
+  String get queueStatusPending => 'Waiting';
+
+  @override
+  String get queueStatusScheduled => 'Scheduled';
+
+  @override
+  String get queueStatusPrinting => 'Printing';
+
+  @override
+  String get queueStatusPaused => 'Paused';
+
+  @override
+  String get archiveSearchHint => 'Search archive';
+
+  @override
+  String get archiveEmpty => 'No archived prints';
+
+  @override
+  String archiveSearchFailed(String query) {
+    return 'Couldn\'t search for \"$query\". Try a different term.';
+  }
+
+  @override
+  String get archiveReprint => 'Reprint';
+
+  @override
+  String get archiveAddToQueue => 'Add to queue';
+
+  @override
+  String get archiveReprintConfirmTitle => 'Start reprint?';
+
+  @override
+  String archiveReprintConfirmBody(String printer) {
+    return 'This sends the file to $printer and starts printing.';
+  }
+
+  @override
+  String get archiveReprintStarted => 'Reprint started';
+
+  @override
+  String get archiveAddedToQueue => 'Added to queue';
+
+  @override
+  String get pickPrinterTitle => 'Choose a printer';
+
+  @override
+  String get noPrintersAvailable => 'No printers available';
+
+  @override
   String get detailsShow => 'Details';
 
   @override
@@ -402,4 +478,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bgMonitoringOff => 'Background monitoring off';
+
+  @override
+  String get navDashboard => 'Dashboard';
+
+  @override
+  String get navQueue => 'Queue';
+
+  @override
+  String get navArchive => 'Archive';
 }
