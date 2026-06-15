@@ -1,4 +1,4 @@
-package io.github.kcholody.bambuddy_mobile
+package page.codeberg.morganmlgman.bambuddy_mobile
 
 import android.content.Context
 import android.content.Intent
@@ -17,7 +17,7 @@ import io.flutter.plugin.common.MethodChannel
  * zabójcą (na Samsungu krytyczne).
  */
 class MainActivity : FlutterActivity() {
-    private val channelName = "io.github.kcholody.bambuddy/battery"
+    private val channelName = "page.codeberg.morganmlgman.bambuddy/battery"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

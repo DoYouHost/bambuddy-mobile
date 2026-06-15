@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 /// zabójcą — bez niego monitorowanie w tle bywa krótkotrwałe.
 class BatteryOptimization {
   static const MethodChannel _channel =
-      MethodChannel('io.github.kcholody.bambuddy/battery');
+      MethodChannel('page.codeberg.morganmlgman.bambuddy/battery');
 
   /// Czy apka jest już zwolniona z optymalizacji. Poza Androidem (testy/desktop)
   /// zwraca `true`, żeby nie pokazywać prośby tam, gdzie nie ma sensu.
