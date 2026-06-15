@@ -5,6 +5,7 @@ import '../../core/api/ws_client.dart';
 import '../../core/auth/credentials_store.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/settings/server_profile.dart';
+import '../../data/printers_repository.dart';
 import '../../providers.dart';
 
 /// Buduje URL WS z baseUrl profilu: http→ws, https→wss, ścieżka `…/api/v1/ws`.
@@ -58,9 +59,12 @@ final wsClientProvider = Provider<WsClient>((ref) {
   return client;
 });
 
-/// Najnowszy status per drukarka z WS (`Map<printerId, PrinterStatus>`).
-/// Dashboard nakłada to na listę z pollingu — WS jest źródłem świeżości,
-/// REST źródłem składu drukarek (WS nie wysyła listy, tylko statusy).
+/// Najnowszy status per drukarka (`Map<printerId, PrinterStatus>`) — jedno
+/// wspólne źródło prawdy dla UI i [PrintMonitor]. Zasilane z DWÓCH torów:
+/// strumienia WS (świeżość w czasie rzeczywistym) oraz pollingu REST
+/// (fallback gdy WS padnie, backfill po wznowieniu). Polling wpina wyniki
+/// przez [PrinterStatusesNotifier.ingestPoll]; składem drukarek (rosterem)
+/// nadal zarządza `dashboardProvider` — WS listy nie wysyła.
 final printerStatusesProvider =
     NotifierProvider<PrinterStatusesNotifier, Map<int, PrinterStatus>>(
   PrinterStatusesNotifier.new,
@@ -74,11 +78,34 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
     final client = ref.watch(wsClientProvider);
     final sub = client.statuses.listen((status) {
-      state = {...state, status.id: status};
+      // Scalamy na poprzednim stanie, by ramka WS nie skasowała pól, których
+      // WS nie niesie (np. tryb komory `airduct_mode` z REST) — patrz mergedWith.
+      state = {...state, status.id: status.mergedWith(state[status.id])};
     });
     ref.onDispose(sub.cancel);
     client.start();
     return const {};
+  }
+
+  /// Scala statusy z pollingu REST do tej samej mapy co WS — by `PrintMonitor`
+  /// i UI miały jedno źródło prawdy niezależnie od tego, czy WS żyje. Wpisy
+  /// `null` (status endpoint padł) pomijamy, żeby nie skasować świeższego
+  /// statusu z WS. Last-write-wins jest bezpieczny: poll zwraca BIEŻĄCY stan
+  /// serwera (nie stary job), więc nie generuje fałszywych zboczy w monitorze,
+  /// a alerty mają stałe id per drukarka, więc duplikat z dwóch torów się
+  /// nadpisuje, nie dubluje.
+  void ingestPoll(List<PrinterWithStatus> polled) {
+    final next = {...state};
+    var changed = false;
+    for (final p in polled) {
+      final s = p.status;
+      if (s == null) continue;
+      // Scalamy na bieżącym stanie (mógł pochodzić z WS), by poll nie skasował
+      // pól, których REST nie niesie (model/vt_tray/cover_url…) — patrz mergedWith.
+      next[p.printer.id] = s.mergedWith(next[p.printer.id]);
+      changed = true;
+    }
+    if (changed) state = next;
   }
 
   /// Wołane przez lifecycle: tło → zamknij socket.

@@ -134,5 +134,12 @@
   "batteryOptLater": "Later",
   "batteryOptMenu": "Background notifications",
   "notificationsReady": "Notifications are all set",
-  "notificationsBlocked": "Notifications are off — enable them in system settings"
+  "notificationsBlocked": "Notifications are off — enable them in system settings",
+
+  "bgServiceTitle": "BambuBuddy",
+  "bgServiceText": "Monitoring printers",
+  "bgMonitoringToggle": "Background monitoring",
+  "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",
+  "bgMonitoringOn": "Background monitoring on",
+  "bgMonitoringOff": "Background monitoring off"
 }

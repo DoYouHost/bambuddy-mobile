@@ -6,6 +6,7 @@ import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
+import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
@@ -24,6 +25,26 @@ final notificationServiceProvider = Provider<NotificationService>(
 
 final credentialsStoreProvider =
     Provider<CredentialsStore>((ref) => SecureCredentialsStore());
+
+/// Mechanizm monitoringu w tle. Dziś zawsze foreground service; furtka na push
+/// = podmiana implementacji tutaj (patrz [BackgroundMonitor]).
+final backgroundMonitorProvider =
+    Provider<BackgroundMonitor>((ref) => ForegroundServiceMonitor());
+
+/// Czy monitoring w tle jest włączony (przełącznik użytkownika, domyślnie tak).
+final bgMonitoringEnabledProvider =
+    NotifierProvider<BgMonitoringNotifier, bool>(BgMonitoringNotifier.new);
+
+class BgMonitoringNotifier extends Notifier<bool> {
+  @override
+  bool build() =>
+      ref.watch(settingsRepositoryProvider).loadBgMonitoringEnabled();
+
+  Future<void> set(bool enabled) async {
+    await ref.read(settingsRepositoryProvider).saveBgMonitoringEnabled(enabled);
+    state = enabled;
+  }
+}
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(sharedPreferencesProvider)),

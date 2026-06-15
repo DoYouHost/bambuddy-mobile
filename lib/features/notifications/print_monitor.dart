@@ -1,13 +1,10 @@
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/widgets.dart' show Locale;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
-import '../../providers.dart';
-import '../dashboard/ws_providers.dart';
 
 /// Bazowe id alertów; do każdego dodajemy `printer_id`, by alerty różnych
 /// drukarek się nie nadpisywały (id ongoing = 1 jest zarezerwowane).
@@ -52,7 +49,7 @@ class PrintMonitor {
     this._notifications, {
     AppLocalizations Function()? l10n,
     DateTime Function()? clock,
-  })  : _l10n = l10n ?? _defaultL10n,
+  })  : _l10n = l10n ?? systemAppLocalizations,
         _now = clock ?? DateTime.now;
 
   final NotificationService _notifications;
@@ -168,22 +165,11 @@ class PrintMonitor {
 }
 
 /// Locale systemu zawężone do wspieranych (en/pl) — `lookupAppLocalizations`
-/// rzuca na nieobsługiwanym języku, a monitor działa poza drzewem widgetów.
-AppLocalizations _defaultL10n() {
+/// rzuca na nieobsługiwanym języku, a monitor (oraz isolate tła) działa poza
+/// drzewem widgetów, więc nie ma `BuildContext` do zwykłego `AppLocalizations.of`.
+AppLocalizations systemAppLocalizations() {
   final lang = PlatformDispatcher.instance.locale.languageCode;
   final locale = lang == 'pl' ? const Locale('pl') : const Locale('en');
   return lookupAppLocalizations(locale);
 }
 
-/// Żyje przez całą sesję (watchowany w korzeniu aplikacji), żeby łapać start
-/// wydruku niezależnie od tego, który ekran jest zamontowany. Subskrypcja
-/// `printerStatusesProvider` zarazem podtrzymuje klienta WS.
-final printMonitorProvider = Provider<PrintMonitor>((ref) {
-  final monitor = PrintMonitor(ref.watch(notificationServiceProvider));
-  ref.listen<Map<int, PrinterStatus>>(
-    printerStatusesProvider,
-    (_, next) => monitor.update(next),
-    fireImmediately: true,
-  );
-  return monitor;
-});

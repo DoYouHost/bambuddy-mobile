@@ -30,23 +30,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Cykl życia WS: w tle wstrzymujemy socket TYLKO gdy nic się nie drukuje
-    // (oszczędność baterii). Gdy wydruk trwa, zostawiamy WS żywy — foreground
-    // service (wiszące powiadomienie) trzyma proces, więc dalej dostajemy ramki
-    // i odpalamy alert „skończone/błąd". Przy powrocie: backfill REST, potem
-    // ewentualny reconnect WS (resume jest no-opem, gdy socket nie był wstrzymany).
+    // Cykl życia (Model A: serwis tła przejmuje na czas tła).
+    // - Tło: jeśli monitoring w tle włączony, startujemy foreground service —
+    //   jego osobny isolate jest JEDYNYM właścicielem powiadomień i ma własny
+    //   WS (łapie też START wydruku w tle). UI wycisza się całkowicie: zwalnia
+    //   socket i zatrzymuje polling (FGS trzyma proces, więc timer dalej by
+    //   tykał i bił po serwerze bez potrzeby).
+    // - Powrót: zatrzymujemy serwis, backfill REST, reconnect WS UI.
     _lifecycle = AppLifecycleListener(
       onPause: () {
-        final printing = ref
-            .read(printerStatusesProvider)
-            .values
-            .any((s) => s.isPrinting);
-        if (!printing) {
-          ref.read(printerStatusesProvider.notifier).suspend();
+        if (ref.read(bgMonitoringEnabledProvider)) {
+          ref.read(backgroundMonitorProvider).start();
         }
+        ref.read(printerStatusesProvider.notifier).suspend();
+        ref.read(dashboardProvider.notifier).pausePolling();
       },
       onResume: () {
-        ref.read(dashboardProvider.notifier).refresh();
+        ref.read(backgroundMonitorProvider).stop();
+        ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
       },
     );
@@ -114,6 +115,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (open ?? false) await battery.request();
   }
 
+  /// Menu powiadomień: przełącznik monitoringu w tle + ponowny onboarding
+  /// (uprawnienie/bateria). Otwierane spod ikony dzwonka.
+  void _openNotificationMenu(BuildContext context, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Consumer(
+              builder: (ctx, ref, _) {
+                final enabled = ref.watch(bgMonitoringEnabledProvider);
+                return SwitchListTile(
+                  secondary: const Icon(Icons.sync),
+                  title: Text(l10n.bgMonitoringToggle),
+                  subtitle: Text(l10n.bgMonitoringSubtitle),
+                  value: enabled,
+                  onChanged: (v) => _setBgMonitoring(sheetCtx, ref, l10n, v),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.battery_saver),
+              title: Text(l10n.batteryOptMenu),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                _runNotificationOnboarding(manual: true);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setBgMonitoring(
+    BuildContext sheetCtx,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    bool enabled,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(bgMonitoringEnabledProvider.notifier).set(enabled);
+    // Wyłączenie ma działać od razu, gdyby serwis akurat chodził; włączenie
+    // zadziała przy najbliższym przejściu w tło (na pierwszym planie FGS nie
+    // jest nam potrzebny).
+    if (!enabled) await ref.read(backgroundMonitorProvider).stop();
+    if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _lifecycle.dispose();
@@ -137,7 +193,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final state = ref.watch(dashboardProvider);
     final profile = ref.watch(serverProfileProvider);
-    final wsStatuses = ref.watch(printerStatusesProvider);
+    final statuses = ref.watch(printerStatusesProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
 
     return Scaffold(
@@ -147,7 +203,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           IconButton(
             tooltip: l10n.batteryOptMenu,
             icon: const Icon(Icons.notifications_active_outlined),
-            onPressed: () => _runNotificationOnboarding(manual: true),
+            onPressed: () => _openNotificationMenu(context, l10n),
           ),
           IconButton(
             tooltip: l10n.changeServer,
@@ -180,7 +236,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               message: l10n.wsReconnecting,
               tone: BannerTone.info,
             ),
-          Expanded(child: _body(context, state, wsStatuses, l10n)),
+          Expanded(child: _body(context, state, statuses, l10n)),
         ],
       ),
     );
@@ -194,7 +250,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _body(
     BuildContext context,
     DashboardState state,
-    Map<int, PrinterStatus> wsStatuses,
+    Map<int, PrinterStatus> statuses,
     AppLocalizations l10n,
   ) {
     if (state.loading) {
@@ -225,14 +281,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    // Nakładamy świeży status z WS na listę z pollingu (REST daje skład
-    // drukarek, WS — aktualność). Brak wpisu WS → zostaje status z pollingu.
+    // Skład drukarek bierzemy z pollingu (roster), a status nakładamy ze
+    // wspólnej mapy statusów (WS + poll scalone w printerStatusesProvider).
+    // Brak wpisu w mapie → zostaje status z samej listy.
     final printers = [
       for (final p in state.printers!)
-        wsStatuses.containsKey(p.printer.id)
+        statuses.containsKey(p.printer.id)
             ? PrinterWithStatus(
                 printer: p.printer,
-                status: wsStatuses[p.printer.id],
+                status: statuses[p.printer.id],
               )
             : p,
     ];

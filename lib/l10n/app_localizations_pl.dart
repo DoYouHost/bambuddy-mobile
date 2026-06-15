@@ -385,4 +385,23 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get notificationsBlocked =>
       'Powiadomienia są wyłączone — włącz je w ustawieniach systemu';
+
+  @override
+  String get bgServiceTitle => 'BambuBuddy';
+
+  @override
+  String get bgServiceText => 'Monitoruję drukarki';
+
+  @override
+  String get bgMonitoringToggle => 'Monitorowanie w tle';
+
+  @override
+  String get bgMonitoringSubtitle =>
+      'Śledź wydruki, gdy aplikacja jest zamknięta. Pokazuje stałe powiadomienie.';
+
+  @override
+  String get bgMonitoringOn => 'Monitorowanie w tle włączone';
+
+  @override
+  String get bgMonitoringOff => 'Monitorowanie w tle wyłączone';
 }

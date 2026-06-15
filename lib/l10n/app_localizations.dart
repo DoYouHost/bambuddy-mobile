@@ -757,6 +757,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications are off — enable them in system settings'**
   String get notificationsBlocked;
+
+  /// No description provided for @bgServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BambuBuddy'**
+  String get bgServiceTitle;
+
+  /// No description provided for @bgServiceText.
+  ///
+  /// In en, this message translates to:
+  /// **'Monitoring printers'**
+  String get bgServiceText;
+
+  /// No description provided for @bgMonitoringToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background monitoring'**
+  String get bgMonitoringToggle;
+
+  /// No description provided for @bgMonitoringSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep watching prints while the app is closed. Shows a persistent notification.'**
+  String get bgMonitoringSubtitle;
+
+  /// No description provided for @bgMonitoringOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Background monitoring on'**
+  String get bgMonitoringOn;
+
+  /// No description provided for @bgMonitoringOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Background monitoring off'**
+  String get bgMonitoringOff;
 }
 
 class _AppLocalizationsDelegate

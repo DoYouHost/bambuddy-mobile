@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'features/notifications/print_monitor.dart';
 import 'l10n/app_localizations.dart';
 import 'router.dart';
 
@@ -10,9 +9,8 @@ class BambuBuddyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Monitor powiadomień żyje przez całą sesję (niezależnie od zamontowanego
-    // ekranu), żeby łapać start/koniec wydruku i prowadzić wiszące powiadomienie.
-    ref.watch(printMonitorProvider);
+    // Powiadomieniami zajmuje się WYŁĄCZNIE isolate tła (foreground service);
+    // na pierwszym planie status pokazuje sam UI, więc nie ma tu monitora.
     return MaterialApp.router(
       title: 'BambuBuddy',
       theme: _theme(Brightness.light),

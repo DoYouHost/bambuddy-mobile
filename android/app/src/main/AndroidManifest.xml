@@ -7,6 +7,9 @@
          dostawał statusy i aktualizował powiadomienie podczas wydruku. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- flutter_foreground_task trzyma wakelock, by isolate tła (WebSocket) nie
+         usnął razem z CPU podczas Doze. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Prośba o zwolnienie z optymalizacji baterii: na Samsungu kluczowe dla
          przeżywalności w tle i odblokowuje start foreground service z tła. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
@@ -39,12 +42,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Foreground service flutter_local_notifications — niesie wiszące
-             powiadomienie o wydruku i podtrzymuje proces (typ dataSync wymagany
-             od Androida 14). stopWithTask=false: przeżywa zniknięcie aktywności,
-             choć po zmieceniu z listy ostatnich silnik Fluttera i tak się odpina. -->
+        <!-- Foreground service flutter_foreground_task — hostuje osobny isolate
+             Dart, który w tle trzyma WebSocket i wystawia powiadomienia o
+             wydruku. NIE zmieniać nazwy serwisu (wymóg pluginu). Typ dataSync
+             wymagany od Androida 14. stopWithTask=false: serwis (a z nim
+             monitoring WS) przeżywa zmiecenie aplikacji z listy ostatnich. -->
         <service
-            android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />

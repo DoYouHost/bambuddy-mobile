@@ -118,5 +118,12 @@
   "batteryOptLater": "Później",
   "batteryOptMenu": "Powiadomienia w tle",
   "notificationsReady": "Powiadomienia są skonfigurowane",
-  "notificationsBlocked": "Powiadomienia są wyłączone — włącz je w ustawieniach systemu"
+  "notificationsBlocked": "Powiadomienia są wyłączone — włącz je w ustawieniach systemu",
+
+  "bgServiceTitle": "BambuBuddy",
+  "bgServiceText": "Monitoruję drukarki",
+  "bgMonitoringToggle": "Monitorowanie w tle",
+  "bgMonitoringSubtitle": "Śledź wydruki, gdy aplikacja jest zamknięta. Pokazuje stałe powiadomienie.",
+  "bgMonitoringOn": "Monitorowanie w tle włączone",
+  "bgMonitoringOff": "Monitorowanie w tle wyłączone"
 }

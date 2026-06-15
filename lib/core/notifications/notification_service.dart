@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Kontrakt powiadomień widziany przez [PrintMonitor]. Wydzielony, by w testach
@@ -12,16 +11,16 @@ abstract class NotificationService {
   Future<bool> requestPermission();
 
   /// Pokazuje/aktualizuje JEDNO wiszące powiadomienie wydruku z paskiem
-  /// postępu. Próbuje wystartować foreground service (podtrzymuje proces w
-  /// tle); gdy system zabroni startu z tła — degraduje do zwykłego, wciąż
-  /// wiszącego powiadomienia (awansuje do FGS przy najbliższej okazji).
+  /// postępu (zwykła notyfikacja). Podtrzymywaniem procesu w tle zajmuje się
+  /// foreground service z `flutter_foreground_task` (osobny isolate), nie ten
+  /// serwis — tu zostaje tylko warstwa „pokaż powiadomienie".
   Future<void> showOngoing({
     required String title,
     required String body,
     required int progress,
   });
 
-  /// Zdejmuje wiszące powiadomienie i zatrzymuje foreground service.
+  /// Zdejmuje wiszące powiadomienie.
   Future<void> clearOngoing();
 
   /// Jednorazowy alert (zakończenie/błąd) — przeżywa tło, bo plugin sam budzi
@@ -41,16 +40,12 @@ class LocalNotificationService implements NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  /// Stałe id wiszącego powiadomienia — startForegroundService wołane wielokrotnie
-  /// z tym samym id aktualizuje istniejące powiadomienie. Nie może być 0.
+  /// Stałe id wiszącego powiadomienia — `show` z tym samym id aktualizuje
+  /// istniejące powiadomienie zamiast tworzyć nowe. Nie może być 0.
   static const int _ongoingId = 1;
 
   static const String _ongoingChannelId = 'ongoing_print';
   static const String _alertsChannelId = 'print_alerts';
-
-  /// Czy foreground service faktycznie ruszył — decyduje, czy [clearOngoing]
-  /// woła stopForegroundService, czy zwykłe cancel (gdy zdegradowaliśmy).
-  bool _fgsActive = false;
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<
@@ -108,37 +103,16 @@ class LocalNotificationService implements NotificationService {
       progress: clamped,
     );
 
-    try {
-      await _android?.startForegroundService(
-        _ongoingId,
-        title,
-        body,
-        notificationDetails: details,
-        foregroundServiceTypes: const {
-          AndroidServiceForegroundType.foregroundServiceTypeDataSync,
-        },
-      );
-      _fgsActive = true;
-    } catch (e) {
-      // Start FGS z tła bywa zabroniony (Android 12+) — wtedy bez zwolnienia
-      // z optymalizacji baterii. Powiadomienie i tak pokazujemy zwykłą drogą.
-      _fgsActive = false;
-      debugPrint('startForegroundService blocked, falling back to show(): $e');
-      await _plugin.show(
-        _ongoingId,
-        title,
-        body,
-        NotificationDetails(android: details),
-      );
-    }
+    await _plugin.show(
+      _ongoingId,
+      title,
+      body,
+      NotificationDetails(android: details),
+    );
   }
 
   @override
   Future<void> clearOngoing() async {
-    if (_fgsActive) {
-      await _android?.stopForegroundService();
-      _fgsActive = false;
-    }
     await _plugin.cancel(_ongoingId);
   }
 

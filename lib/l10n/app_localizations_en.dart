@@ -383,4 +383,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationsBlocked =>
       'Notifications are off — enable them in system settings';
+
+  @override
+  String get bgServiceTitle => 'BambuBuddy';
+
+  @override
+  String get bgServiceText => 'Monitoring printers';
+
+  @override
+  String get bgMonitoringToggle => 'Background monitoring';
+
+  @override
+  String get bgMonitoringSubtitle =>
+      'Keep watching prints while the app is closed. Shows a persistent notification.';
+
+  @override
+  String get bgMonitoringOn => 'Background monitoring on';
+
+  @override
+  String get bgMonitoringOff => 'Background monitoring off';
 }

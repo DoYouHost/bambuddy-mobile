@@ -248,6 +248,51 @@ void main() {
     });
   });
 
+  group('PrinterStatus.mergedWith', () {
+    test('ramka WS (bez airduct) dziedziczy tryb komory z poprzedniego pollu', () {
+      // Poll dał tryb komory (REST), ale następna ramka WS go nie niesie.
+      const fromPoll = PrinterStatus(id: 1, state: 'RUNNING', airductMode: 1);
+      const fromWs = PrinterStatus(id: 1, state: 'RUNNING', progress: 50);
+
+      final merged = fromWs.mergedWith(fromPoll);
+      expect(merged.airductMode, 1); // przeniesione → chip nie miga
+      expect(merged.progress, 50); // żywe pole bierze świeżą wartość z WS
+    });
+
+    test('poll (bez pól WS) dziedziczy model/cover/szpulę z poprzedniej ramki WS',
+        () {
+      const fromWs = PrinterStatus(
+        id: 1,
+        model: 'X2D',
+        coverUrl: 'http://c/cover.png',
+        doorOpen: true,
+        wifiSignal: -55,
+      );
+      const fromPoll = PrinterStatus(id: 1, state: 'RUNNING', airductMode: 0);
+
+      final merged = fromPoll.mergedWith(fromWs);
+      expect(merged.model, 'X2D');
+      expect(merged.coverUrl, 'http://c/cover.png');
+      expect(merged.doorOpen, isTrue);
+      expect(merged.wifiSignal, -55);
+      expect(merged.airductMode, 0); // świeże z pollu zostaje
+    });
+
+    test('świeża wartość ma pierwszeństwo nad poprzednią (nie nadpisuje nullem)',
+        () {
+      const prev = PrinterStatus(id: 1, airductMode: 1, model: 'X2D');
+      const fresh = PrinterStatus(id: 1, airductMode: 0, model: 'P1S');
+      final merged = fresh.mergedWith(prev);
+      expect(merged.airductMode, 0);
+      expect(merged.model, 'P1S');
+    });
+
+    test('previous == null → zwraca siebie', () {
+      const s = PrinterStatus(id: 1, state: 'IDLE');
+      expect(identical(s.mergedWith(null), s), isTrue);
+    });
+  });
+
   group('Printer.fromJson', () {
     test('parsuje listę drukarek, ignorując nieznane pola', () {
       final raw = readFixture('printers_list.json') as List<dynamic>;

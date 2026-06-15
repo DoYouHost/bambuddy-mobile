@@ -89,11 +89,31 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
 
   Future<void> refresh() => _poll(_generation);
 
+  /// Wstrzymuje polling REST, gdy apka idzie w tło z aktywnym monitoringiem —
+  /// foreground service (osobny isolate) przejmuje świeżość, a isolate UI musi
+  /// zamilknąć, bo FGS trzyma proces żywym i timer dalej by tykał, karmiąc
+  /// `printerStatusesProvider` → drugie, zdublowane powiadomienie.
+  void pausePolling() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Wznawia polling po powrocie z tła (rearm + natychmiastowy backfill).
+  void resumePolling() {
+    _arm(connected: _wsConnectedNow(), generation: _generation);
+    _poll(_generation);
+  }
+
   Future<void> _poll(int generation) async {
     final repo = ref.read(printersRepositoryProvider);
     try {
       final data = await repo.fetchAll();
       if (generation != _generation) return; // wynik z poprzedniego życia
+      // Wpięcie do wspólnej mapy statusów: polling karmi ten sam provider co
+      // WS, więc PrintMonitor łapie zmiany także na fallbacku REST (a nie tylko
+      // z żywego socketa). Robione przed `state`, by UI i monitor widziały to
+      // samo w tym samym ticku.
+      ref.read(printerStatusesProvider.notifier).ingestPoll(data);
       state = DashboardState(printers: data);
     } on AuthException {
       if (generation != _generation) return;

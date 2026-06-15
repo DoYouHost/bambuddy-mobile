@@ -142,6 +142,49 @@ class PrinterStatus {
   /// Czy drzwiczki/pokrywa są otwarte (jeśli drukarka to raportuje).
   final bool? doorOpen;
 
+  /// Scala świeżą ramkę na poprzednim stanie tej samej drukarki. WS i REST
+  /// niosą ROZŁĄCZNE podzbiory pól (WS nie ma `airduct_mode`; REST nie ma
+  /// `model`/`vt_tray`/`cover_url`/`stg_cur_name`/`door_open`/`wifi_signal`/
+  /// `tray_now`/`active_extruder`/`ams_extruder_map`). Nadpisanie całym obiektem
+  /// kasowałoby pola, których nowe źródło nie zna — stąd miganie chipów co 60 s
+  /// (poll ustawia, kolejna ramka WS kasuje). Dla tych „rozłącznych" pól
+  /// dziedziczymy ostatnią znaną wartość, gdy nowa jest null. Pola żywe (stan,
+  /// postęp, temperatury, ETA, wentylatory…) zawsze biorą świeżą wartość — oba
+  /// źródła je wysyłają, więc nie ma czego (ani po co) dziedziczyć.
+  PrinterStatus mergedWith(PrinterStatus? previous) {
+    if (previous == null) return this;
+    return PrinterStatus(
+      id: id,
+      name: name,
+      connected: connected,
+      state: state,
+      currentPrint: currentPrint,
+      gcodeFile: gcodeFile,
+      progress: progress,
+      remainingTime: remainingTime,
+      layerNum: layerNum,
+      totalLayers: totalLayers,
+      temperatures: temperatures,
+      coverUrl: coverUrl ?? previous.coverUrl,
+      stgCurName: stgCurName ?? previous.stgCurName,
+      coolingFanSpeed: coolingFanSpeed,
+      bigFan1Speed: bigFan1Speed,
+      bigFan2Speed: bigFan2Speed,
+      heatbreakFanSpeed: heatbreakFanSpeed,
+      speedLevel: speedLevel,
+      chamberLight: chamberLight,
+      airductMode: airductMode ?? previous.airductMode,
+      ams: ams,
+      vtTray: vtTray ?? previous.vtTray,
+      trayNow: trayNow ?? previous.trayNow,
+      activeExtruder: activeExtruder ?? previous.activeExtruder,
+      amsExtruderMap: amsExtruderMap ?? previous.amsExtruderMap,
+      model: model ?? previous.model,
+      wifiSignal: wifiSignal ?? previous.wifiSignal,
+      doorOpen: doorOpen ?? previous.doorOpen,
+    );
+  }
+
   /// true = grzanie, false = chłodzenie, null = brak/nieznany tryb.
   bool? get airductIsHeating => switch (airductMode) {
         0 => false,
