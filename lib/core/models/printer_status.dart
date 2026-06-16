@@ -142,39 +142,45 @@ class PrinterStatus {
   /// Czy drzwiczki/pokrywa są otwarte (jeśli drukarka to raportuje).
   final bool? doorOpen;
 
-  /// Scala świeżą ramkę na poprzednim stanie tej samej drukarki. WS i REST
-  /// niosą ROZŁĄCZNE podzbiory pól (WS nie ma `airduct_mode`; REST nie ma
-  /// `model`/`vt_tray`/`cover_url`/`stg_cur_name`/`door_open`/`wifi_signal`/
-  /// `tray_now`/`active_extruder`/`ams_extruder_map`). Nadpisanie całym obiektem
-  /// kasowałoby pola, których nowe źródło nie zna — stąd miganie chipów co 60 s
-  /// (poll ustawia, kolejna ramka WS kasuje). Dla tych „rozłącznych" pól
-  /// dziedziczymy ostatnią znaną wartość, gdy nowa jest null. Pola żywe (stan,
-  /// postęp, temperatury, ETA, wentylatory…) zawsze biorą świeżą wartość — oba
-  /// źródła je wysyłają, więc nie ma czego (ani po co) dziedziczyć.
+  /// Scala świeżą ramkę na poprzednim stanie tej samej drukarki. Reguła:
+  /// **nigdy nie zeruj znanej wartości** — każde pole, którego nowa ramka nie
+  /// niesie (`null`), dziedziczy ostatnią znaną. Powód: ani REST, ani WS nie
+  /// gwarantują kompletnego snapshotu — WS i REST niosą rozłączne podzbiory
+  /// (WS nie ma `airduct_mode`; REST nie ma `model`/`vt_tray`/`cover_url`/
+  /// `stg_cur_name`/…), a do tego pojedynczy poll bootującej się drukarki bywa
+  /// częściowy/zaszumiony. Bezwarunkowe nadpisanie „żywych" pól (postęp, temp,
+  /// wentylatory) gasiło je wtedy na chwilę do `—`, by następny poll je
+  /// przywrócił — stąd miganie wartości co 5 s na fallbacku REST (zanim WS
+  /// nawiąże połączenie). Wartość, która realnie się zmienia, i tak przychodzi
+  /// nie-null (np. `connected:false`, fan `0`), więc się propaguje; dziedziczenie
+  /// łapie tylko brak pola, nie jego zmianę.
+  ///
+  /// `temperatures` scalamy PER-KLUCZ (nakładka): brak jednego czujnika w ramce
+  /// nie wygasza jego kafelka, a obecne czujniki dostają świeże odczyty.
   PrinterStatus mergedWith(PrinterStatus? previous) {
     if (previous == null) return this;
     return PrinterStatus(
       id: id,
-      name: name,
-      connected: connected,
-      state: state,
-      currentPrint: currentPrint,
-      gcodeFile: gcodeFile,
-      progress: progress,
-      remainingTime: remainingTime,
-      layerNum: layerNum,
-      totalLayers: totalLayers,
-      temperatures: temperatures,
+      name: name ?? previous.name,
+      connected: connected ?? previous.connected,
+      state: state ?? previous.state,
+      currentPrint: currentPrint ?? previous.currentPrint,
+      gcodeFile: gcodeFile ?? previous.gcodeFile,
+      progress: progress ?? previous.progress,
+      remainingTime: remainingTime ?? previous.remainingTime,
+      layerNum: layerNum ?? previous.layerNum,
+      totalLayers: totalLayers ?? previous.totalLayers,
+      temperatures: _mergeTemps(previous.temperatures),
       coverUrl: coverUrl ?? previous.coverUrl,
       stgCurName: stgCurName ?? previous.stgCurName,
-      coolingFanSpeed: coolingFanSpeed,
-      bigFan1Speed: bigFan1Speed,
-      bigFan2Speed: bigFan2Speed,
-      heatbreakFanSpeed: heatbreakFanSpeed,
-      speedLevel: speedLevel,
-      chamberLight: chamberLight,
+      coolingFanSpeed: coolingFanSpeed ?? previous.coolingFanSpeed,
+      bigFan1Speed: bigFan1Speed ?? previous.bigFan1Speed,
+      bigFan2Speed: bigFan2Speed ?? previous.bigFan2Speed,
+      heatbreakFanSpeed: heatbreakFanSpeed ?? previous.heatbreakFanSpeed,
+      speedLevel: speedLevel ?? previous.speedLevel,
+      chamberLight: chamberLight ?? previous.chamberLight,
       airductMode: airductMode ?? previous.airductMode,
-      ams: ams,
+      ams: ams ?? previous.ams,
       vtTray: vtTray ?? previous.vtTray,
       trayNow: trayNow ?? previous.trayNow,
       activeExtruder: activeExtruder ?? previous.activeExtruder,
@@ -183,6 +189,15 @@ class PrinterStatus {
       wifiSignal: wifiSignal ?? previous.wifiSignal,
       doorOpen: doorOpen ?? previous.doorOpen,
     );
+  }
+
+  /// Nakładka odczytów temperatur na poprzednie: świeże klucze nadpisują,
+  /// brakujące zostają z ostatniej znanej wartości (czujnik nieobecny w danej
+  /// ramce nie gaśnie do `—`).
+  Map<String, double>? _mergeTemps(Map<String, double>? previous) {
+    if (temperatures == null) return previous;
+    if (previous == null) return temperatures;
+    return {...previous, ...temperatures!};
   }
 
   /// true = grzanie, false = chłodzenie, null = brak/nieznany tryb.

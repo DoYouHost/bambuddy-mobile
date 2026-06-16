@@ -291,6 +291,42 @@ void main() {
       const s = PrinterStatus(id: 1, state: 'IDLE');
       expect(identical(s.mergedWith(null), s), isTrue);
     });
+
+    test('częściowy poll (żywe pola null) dziedziczy ostatnią znaną wartość', () {
+      // Bootująca się drukarka: poprzedni snapshot miał komplet, następny gubi
+      // postęp/temperatury/wentylator — nie wolno ich wygasić do `—`.
+      const prev = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        progress: 40,
+        remainingTime: 88,
+        coolingFanSpeed: 60,
+        temperatures: {'nozzle': 210.0},
+      );
+      const partial = PrinterStatus(id: 1, state: 'RUNNING');
+
+      final merged = partial.mergedWith(prev);
+      expect(merged.progress, 40);
+      expect(merged.remainingTime, 88);
+      expect(merged.coolingFanSpeed, 60);
+      expect(merged.temperatures, {'nozzle': 210.0});
+    });
+
+    test('temperatury scalają się per-klucz (brak czujnika nie gasi kafelka)', () {
+      const prev =
+          PrinterStatus(id: 1, temperatures: {'nozzle': 200.0, 'bed': 60.0});
+      // Następna ramka niesie tylko świeżą dyszę — stół musi zostać.
+      const fresh = PrinterStatus(id: 1, temperatures: {'nozzle': 205.0});
+
+      final merged = fresh.mergedWith(prev);
+      expect(merged.temperatures, {'nozzle': 205.0, 'bed': 60.0});
+    });
+
+    test('connected:false propaguje się mimo reguły dziedziczenia', () {
+      const prev = PrinterStatus(id: 1, connected: true);
+      const fresh = PrinterStatus(id: 1, connected: false);
+      expect(fresh.mergedWith(prev).connected, isFalse);
+    });
   });
 
   group('Printer.fromJson', () {
