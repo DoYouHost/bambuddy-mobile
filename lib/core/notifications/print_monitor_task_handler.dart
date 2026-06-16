@@ -28,6 +28,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   WsClient? _ws;
   StreamSubscription<PrinterStatus>? _sub;
   PrintMonitor? _monitor;
+  _FgsNotificationService? _fgs;
   final Map<int, PrinterStatus> _statuses = {};
 
   @override
@@ -40,7 +41,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     final l10n = systemAppLocalizations();
     final alerts = LocalNotificationService()..init();
-    _monitor = PrintMonitor(_FgsNotificationService(alerts, l10n));
+    final fgs = _FgsNotificationService(alerts, l10n);
+    _fgs = fgs;
+    _monitor = PrintMonitor(fgs);
 
     final creds = SecureCredentialsStore();
     final ws = WsClient(
@@ -60,6 +63,16 @@ class PrintMonitorTaskHandler extends TaskHandler {
   @override
   void onRepeatEvent(DateTime timestamp) {}
 
+  /// Android 14+ pozwala zsunąć powiadomienie foreground service'u
+  /// („usuń wszystkie"), co NIE zatrzymuje serwisu — zostałby działający, ale
+  /// niewidoczny. Ponawiamy je z ostatnią treścią, by trzymać niezmiennik
+  /// „serwis żyje ⇔ powiadomienie widoczne".
+  @override
+  void onNotificationDismissed() {
+    final fgs = _fgs;
+    if (fgs != null) unawaited(fgs.repost());
+  }
+
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
     await _sub?.cancel();
@@ -72,10 +85,18 @@ class PrintMonitorTaskHandler extends TaskHandler {
 /// mnożymy notyfikacji), a głośne alerty „skończone/błąd" puszcza zwykłym
 /// kanałem przez [LocalNotificationService].
 class _FgsNotificationService implements NotificationService {
-  _FgsNotificationService(this._alerts, this._l10n);
+  _FgsNotificationService(this._alerts, AppLocalizations l10n)
+      : _l10n = l10n,
+        _title = l10n.bgServiceTitle,
+        _text = l10n.bgServiceText;
 
   final NotificationService _alerts;
   final AppLocalizations _l10n;
+
+  // Ostatnio pokazana treść wiszącego powiadomienia — by odtworzyć je 1:1 po
+  // zsunięciu przez użytkownika ([repost]).
+  String _title;
+  String _text;
 
   @override
   Future<void> init() => _alerts.init();
@@ -89,6 +110,8 @@ class _FgsNotificationService implements NotificationService {
     required String body,
     required int progress,
   }) async {
+    _title = title;
+    _text = body;
     await FlutterForegroundTask.updateService(
       notificationTitle: title,
       notificationText: body,
@@ -98,11 +121,20 @@ class _FgsNotificationService implements NotificationService {
   @override
   Future<void> clearOngoing() async {
     // Nic nie drukuje → powiadomienie FGS wraca do neutralnego „monitoruję".
+    _title = _l10n.bgServiceTitle;
+    _text = _l10n.bgServiceText;
     await FlutterForegroundTask.updateService(
-      notificationTitle: _l10n.bgServiceTitle,
-      notificationText: _l10n.bgServiceText,
+      notificationTitle: _title,
+      notificationText: _text,
     );
   }
+
+  /// Ponawia wiszące powiadomienie z ostatnią treścią — po zsunięciu przez
+  /// użytkownika (FGS na Androidzie 14+ jest usuwalny, a serwis dalej żyje).
+  Future<void> repost() => FlutterForegroundTask.updateService(
+        notificationTitle: _title,
+        notificationText: _text,
+      );
 
   @override
   Future<void> showAlert({
