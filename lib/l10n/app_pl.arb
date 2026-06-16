@@ -91,6 +91,7 @@
   "doorClosed": "Drzwiczki zamknięte",
 
   "statusUnavailable": "status niedostępny",
+  "statusOffline": "OFFLINE",
   "online": "online",
   "offline": "offline",
   "remaining": "pozostało {time}",

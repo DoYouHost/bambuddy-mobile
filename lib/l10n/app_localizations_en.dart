@@ -282,6 +282,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusUnavailable => 'status unavailable';
 
   @override
+  String get statusOffline => 'OFFLINE';
+
+  @override
   String get online => 'online';
 
   @override

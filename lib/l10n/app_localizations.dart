@@ -602,6 +602,12 @@ abstract class AppLocalizations {
   /// **'status unavailable'**
   String get statusUnavailable;
 
+  /// No description provided for @statusOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'OFFLINE'**
+  String get statusOffline;
+
   /// No description provided for @online.
   ///
   /// In en, this message translates to:

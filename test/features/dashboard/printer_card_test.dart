@@ -134,7 +134,7 @@ void main() {
     expect(find.text('12°'), findsOneWidget);
   });
 
-  testWidgets('karta bez statusu pokazuje „status niedostępny"',
+  testWidgets('karta bez statusu zwija się do nagłówka z etykietą OFFLINE',
       (tester) async {
     const item = PrinterWithStatus(
       printer: Printer(id: 2, name: 'A1 mini'),
@@ -143,8 +143,32 @@ void main() {
     await tester.pumpWidget(plApp(const Scaffold(body: PrinterCard(item: item))));
 
     expect(find.text('A1 mini'), findsOneWidget);
-    expect(find.text('status niedostępny'), findsOneWidget);
+    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('status niedostępny'), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  testWidgets('drukarka rozłączona (connected:false) zwija sekcję i pokazuje OFFLINE',
+      (tester) async {
+    // Mimo nieaktualnych temperatur i stanu RUNNING z ostatniej znanej ramki
+    // (sticky merge), rozłączona drukarka nie pokazuje już kafelków ani sterowania.
+    const item = PrinterWithStatus(
+      printer: Printer(id: 3, name: 'X1C Hala'),
+      status: PrinterStatus(
+        id: 3,
+        connected: false,
+        state: 'RUNNING',
+        temperatures: {'nozzle': 210.0, 'bed': 60.0},
+      ),
+    );
+
+    await tester.pumpWidget(plApp(const Scaffold(body: PrinterCard(item: item))));
+
+    expect(find.text('X1C Hala'), findsOneWidget);
+    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('RUNNING'), findsNothing);
+    expect(find.text('210°'), findsNothing);
+    expect(find.textContaining('Szczegóły'), findsNothing);
   });
 
   group('rozwijane szczegóły (AMS)', () {

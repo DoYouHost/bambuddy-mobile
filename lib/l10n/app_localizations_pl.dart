@@ -284,6 +284,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statusUnavailable => 'status niedostępny';
 
   @override
+  String get statusOffline => 'OFFLINE';
+
+  @override
   String get online => 'online';
 
   @override

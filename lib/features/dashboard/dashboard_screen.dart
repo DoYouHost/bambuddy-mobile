@@ -384,7 +384,10 @@ class _SummaryHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    final active = printers.where((p) => p.status?.isPrinting ?? false).toList()
+    final active = printers
+        .where((p) =>
+            (p.status?.connected ?? false) && (p.status?.isPrinting ?? false))
+        .toList()
       ..sort((a, b) => (a.status!.remainingTime ?? 1 << 30)
           .compareTo(b.status!.remainingTime ?? 1 << 30));
 

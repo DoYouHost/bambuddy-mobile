@@ -107,6 +107,7 @@
   "doorClosed": "Door closed",
 
   "statusUnavailable": "status unavailable",
+  "statusOffline": "OFFLINE",
   "online": "online",
   "offline": "offline",
   "remaining": "{time} left",

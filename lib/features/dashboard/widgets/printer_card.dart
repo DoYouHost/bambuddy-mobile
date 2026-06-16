@@ -28,6 +28,38 @@ class _PrinterCardState extends State<PrinterCard> {
     final l10n = AppLocalizations.of(context);
     final status = widget.item.status;
     final connected = status?.connected ?? false;
+
+    // Drukarka niedostępna (brak statusu lub rozłączona): karta zwija się do
+    // samego nagłówka z etykietą OFFLINE. Nie pokazujemy nieaktualnych
+    // temperatur, sterowania ani szczegółów — byłyby mylące przy wyłączonej
+    // maszynie. Stan rozwinięcia (_expanded) zostaje i wróci, gdy ożyje.
+    if (!connected) {
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(Icons.print, color: theme.disabledColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.item.printer.name,
+                  style: theme.textTheme.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              _StateChip(
+                label: l10n.statusOffline,
+                connected: false,
+                offline: true,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final printing = status?.isPrinting ?? false;
     final readings =
         _buildReadings(status?.temperatures, status?.airductIsHeating);
@@ -1285,23 +1317,38 @@ class _StateChip extends StatelessWidget {
     required this.label,
     required this.connected,
     this.active = false,
+    this.offline = false,
   });
 
   final String label;
   final bool connected;
   final bool active;
 
+  /// Wariant OFFLINE: delikatne czerwone tło + żywszy czerwony outline,
+  /// żeby rozłączona drukarka rzucała się w oczy mimo zwiniętej karty.
+  final bool offline;
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Chip(
       visualDensity: VisualDensity.compact,
-      backgroundColor: active
-          ? scheme.primaryContainer
-          : (connected
-              ? scheme.secondaryContainer
-              : scheme.surfaceContainerHighest),
-      label: Text(label, style: Theme.of(context).textTheme.bodySmall),
+      backgroundColor: offline
+          ? scheme.error.withValues(alpha: 0.12)
+          : (active
+              ? scheme.primaryContainer
+              : (connected
+                  ? scheme.secondaryContainer
+                  : scheme.surfaceContainerHighest)),
+      side: offline
+          ? BorderSide(color: scheme.error, width: 1.5)
+          : BorderSide.none,
+      label: Text(
+        label,
+        style: theme.textTheme.bodySmall
+            ?.copyWith(color: offline ? scheme.error : null),
+      ),
     );
   }
 }
