@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,6 +27,51 @@ class _PrinterCardState extends State<PrinterCard> {
   /// więc przeżywa odświeżenia z pollingu/WS (karta ma klucz po id drukarki).
   bool _expanded = false;
 
+  /// Czy POKAZUJEMY kartę jako OFFLINE. To NIE jest 1:1 `connected` z bambuddy —
+  /// przejście online→offline jest debouncowane ([_offlineGrace]), żeby karta
+  /// nie migała zwiń/rozwiń, gdy `connected` mrugnie (np. REST jeszcze raportuje
+  /// online, gdy WS już nie — typowe tuż po odcięciu zasilania gniazdkiem).
+  /// Powrót online jest natychmiastowy.
+  late bool _offline;
+  Timer? _offlineGrace;
+
+  /// Jak długo bambuddy musi UTRZYMAĆ offline, zanim zwiniemy kartę. Każde
+  /// świeże `connected:true` w tym oknie kasuje licznik — więc zwija się dopiero,
+  /// gdy serwer naprawdę przestanie raportować drukarkę online.
+  static const _offlineGracePeriod = Duration(seconds: 15);
+
+  @override
+  void initState() {
+    super.initState();
+    // Stan początkowy bez łaski: drukarka offline od startu zwija się od razu
+    // (debounce dotyczy tylko ŻYWEGO przejścia online→offline).
+    _offline = !(widget.item.status?.connected ?? false);
+  }
+
+  @override
+  void didUpdateWidget(PrinterCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final connected = widget.item.status?.connected ?? false;
+    if (connected) {
+      // Powrót/utrzymanie online: natychmiast rozwiń i skasuj licznik.
+      _offlineGrace?.cancel();
+      _offlineGrace = null;
+      if (_offline) setState(() => _offline = false);
+    } else if (!_offline && _offlineGrace == null) {
+      // Świeżo zniknęła — odlicz, zamiast zwijać od razu (anty-miganie).
+      _offlineGrace = Timer(_offlineGracePeriod, () {
+        _offlineGrace = null;
+        if (mounted) setState(() => _offline = true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _offlineGrace?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -36,7 +83,9 @@ class _PrinterCardState extends State<PrinterCard> {
     // samego nagłówka z etykietą OFFLINE. Nie pokazujemy nieaktualnych
     // temperatur, sterowania ani szczegółów — byłyby mylące przy wyłączonej
     // maszynie. Stan rozwinięcia (_expanded) zostaje i wróci, gdy ożyje.
-    if (!connected) {
+    // Używamy debouncowanego [_offline], nie surowego `connected`, by karta nie
+    // migała, gdy bambuddy chwilowo mrugnie stanem (patrz didUpdateWidget).
+    if (_offline) {
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Padding(

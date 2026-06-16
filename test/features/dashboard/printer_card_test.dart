@@ -96,6 +96,25 @@ Widget _scope(Widget child) => ProviderScope(
 Widget _cardWithProviders(PrinterWithStatus item) =>
     _scope(Scaffold(body: PrinterCard(item: item)));
 
+/// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
+/// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
+Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+      ],
+      child: plApp(
+        Scaffold(
+          body: ValueListenableBuilder<PrinterWithStatus>(
+            valueListenable: item,
+            builder: (_, it, _) =>
+                PrinterCard(key: const ValueKey('card'), item: it),
+          ),
+        ),
+      ),
+    );
+
 void main() {
   testWidgets('karta renderuje nazwę, postęp i temperatury z fixture\'a',
       (tester) async {
@@ -419,6 +438,50 @@ void main() {
       await tester.pump();
       // Włączenie nie wymaga potwierdzenia → akcja on od razu.
       expect(stub.calls.single.action, SmartPlugAction.on);
+    });
+  });
+
+  group('debounce OFFLINE (anty-miganie po odcięciu zasilania)', () {
+    final connected = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C'),
+      status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+    );
+    final off = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C'),
+      status: const PrinterStatus(id: 1, connected: false, state: 'IDLE'),
+    );
+
+    testWidgets('rozłączenie zwija kartę dopiero po okresie łaski',
+        (tester) async {
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item));
+      expect(find.text('OFFLINE'), findsNothing);
+
+      item.value = off;
+      await tester.pump(); // didUpdateWidget → start licznika, jeszcze nie zwija
+      expect(find.text('OFFLINE'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 16)); // po okresie łaski
+      expect(find.text('OFFLINE'), findsOneWidget);
+    });
+
+    testWidgets('mignięcie connected w oknie łaski NIE zwija karty',
+        (tester) async {
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item));
+
+      item.value = off;
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5)); // w trakcie łaski
+      item.value = connected; // bambuddy znów raportuje online → reset
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 16));
+
+      expect(find.text('OFFLINE'), findsNothing); // nigdy nie zwinięte
     });
   });
 
