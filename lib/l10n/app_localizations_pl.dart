@@ -152,6 +152,37 @@ class AppLocalizationsPl extends AppLocalizations {
   String get speedLudicrous => 'Ekstremalny';
 
   @override
+  String get smartPlugOn => 'Wł.';
+
+  @override
+  String get smartPlugOff => 'Wył.';
+
+  @override
+  String get smartPlugUnreachable => 'Niedostępne';
+
+  @override
+  String get smartPlugCantPowerOff =>
+      'Nie można odciąć zasilania w trakcie druku';
+
+  @override
+  String get smartPlugOffConfirmTitle => 'Odciąć zasilanie?';
+
+  @override
+  String get smartPlugOffConfirmBody =>
+      'Drukarka natychmiast straci zasilanie.';
+
+  @override
+  String get smartPlugTurnOff => 'Wyłącz';
+
+  @override
+  String powerWatts(int watts) {
+    return '$watts W';
+  }
+
+  @override
+  String get totalPowerTooltip => 'Łączny pobór mocy ze wszystkich gniazdek';
+
+  @override
   String get queueEmpty => 'Kolejka jest pusta';
 
   @override

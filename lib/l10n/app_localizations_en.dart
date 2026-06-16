@@ -150,6 +150,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speedLudicrous => 'Ludicrous';
 
   @override
+  String get smartPlugOn => 'On';
+
+  @override
+  String get smartPlugOff => 'Off';
+
+  @override
+  String get smartPlugUnreachable => 'Unreachable';
+
+  @override
+  String get smartPlugCantPowerOff =>
+      'Can\'t cut power while the printer is printing';
+
+  @override
+  String get smartPlugOffConfirmTitle => 'Cut power?';
+
+  @override
+  String get smartPlugOffConfirmBody => 'The printer loses power immediately.';
+
+  @override
+  String get smartPlugTurnOff => 'Turn off';
+
+  @override
+  String powerWatts(int watts) {
+    return '$watts W';
+  }
+
+  @override
+  String get totalPowerTooltip => 'Total power draw across all plugs';
+
+  @override
   String get queueEmpty => 'The queue is empty';
 
   @override

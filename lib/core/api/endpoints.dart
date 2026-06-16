@@ -68,4 +68,20 @@ abstract final class Endpoints {
   /// — patrz okładka w printer_card.
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
+
+  // --- Smart gniazdka (M7) ---
+
+  /// Lista wszystkich gniazdek (SmartPlugResponse[]). Każdy wpis niesie
+  /// `printer_id` — stąd mapowanie gniazdko↔drukarka bez N zapytań.
+  /// Trailing slash wymagany (FastAPI), analogicznie do `/printers/`.
+  static const smartPlugs = '$apiPrefix/smart-plugs/';
+
+  /// Żywy status gniazdka (SmartPlugStatus): stan on/off + pomiar mocy/energii.
+  static String smartPlugStatus(int plugId) =>
+      '$apiPrefix/smart-plugs/$plugId/status';
+
+  /// Sterowanie gniazdkiem. Body JSON `{"action":"on"|"off"|"toggle"}`.
+  /// Wymaga uprawnienia sterowania na kluczu API (brak → 403).
+  static String smartPlugControl(int plugId) =>
+      '$apiPrefix/smart-plugs/$plugId/control';
 }

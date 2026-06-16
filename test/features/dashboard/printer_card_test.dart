@@ -1,8 +1,13 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart'
+    show ControlResult;
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
+import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +24,63 @@ class _FakeProfileNotifier extends ServerProfileNotifier {
       );
 }
 
+/// Inert gniazdka: testy karty nie sprawdzają smart gniazdek, więc nie pollujemy
+/// serwera ani nie zbrojnimy timera (analogicznie do inertnego WS w testach).
+class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
+  @override
+  SmartPlugsState build() => const SmartPlugsState();
+}
+
+/// Gniazdka ze stałym stanem; rejestruje wywołania [control] (bez sieci/timera),
+/// by testy mogły sprawdzić blokadę „odciąć zasilanie w druku" i potwierdzenie.
+class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
+  _StubSmartPlugsNotifier(this._fixed);
+
+  final SmartPlugsState _fixed;
+  final List<({int id, SmartPlugAction action})> calls = [];
+
+  @override
+  SmartPlugsState build() => _fixed;
+
+  @override
+  Future<ControlResult> control(int plugId, SmartPlugAction action) async {
+    calls.add((id: plugId, action: action));
+    return ControlResult.ok;
+  }
+}
+
+/// Drukarka 1 z przypisanym, załączonym gniazdkiem „Szafa" (42 W).
+SmartPlugsState _plugState() => SmartPlugsState(
+      plugs: const [
+        SmartPlug(
+          id: 10,
+          name: 'Szafa',
+          printerId: 1,
+          enabled: true,
+          showOnPrinterCard: true,
+        ),
+      ],
+      statuses: {
+        10: SmartPlugStatus(
+          state: 'ON',
+          reachable: true,
+          energy: const SmartPlugEnergy(power: 42),
+        ),
+      },
+    );
+
+Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
+    ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        smartPlugsProvider.overrideWith(() => stub),
+      ],
+      child: plApp(
+        Scaffold(body: SingleChildScrollView(child: PrinterCard(item: item))),
+      ),
+    );
+
 /// Owija drzewo w ProviderScope — karta zawiera teraz interaktywny pasek
 /// sterowania (`_ControlsActions`, ConsumerWidget), więc każdy render karty
 /// ze statusem potrzebuje scope'a. Profil = bez auth, token kamery zaślepiony.
@@ -26,6 +88,7 @@ Widget _scope(Widget child) => ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(child),
     );
@@ -140,7 +203,7 @@ void main() {
       printer: Printer(id: 2, name: 'A1 mini'),
     );
 
-    await tester.pumpWidget(plApp(const Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     expect(find.text('A1 mini'), findsOneWidget);
     expect(find.text('OFFLINE'), findsOneWidget);
@@ -162,7 +225,7 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(plApp(const Scaffold(body: PrinterCard(item: item))));
+    await tester.pumpWidget(_cardWithProviders(item));
 
     expect(find.text('X1C Hala'), findsOneWidget);
     expect(find.text('OFFLINE'), findsOneWidget);
@@ -255,6 +318,107 @@ void main() {
       await tester.pumpWidget(_cardWithProviders(item));
 
       expect(find.byIcon(Icons.videocam_outlined), findsNothing);
+    });
+  });
+
+  group('smart gniazdko', () {
+    testWidgets('załączone gniazdko: ikona wtyczki, moc w tooltipie, bez nazwy',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
+
+      await tester
+          .pumpWidget(_cardWithPlugs(item, _StubSmartPlugsNotifier(_plugState())));
+
+      // Sam symbol wtyczki; moc i nazwa nie zaśmiecają nagłówka.
+      expect(find.byIcon(Icons.power), findsOneWidget);
+      expect(find.byTooltip('42 W'), findsOneWidget); // moc w tooltipie
+      expect(find.text('42 W'), findsNothing); // nie jako widoczny tekst
+      expect(find.text('Szafa'), findsNothing);
+      expect(find.byType(Switch), findsNothing);
+    });
+
+    testWidgets('w trakcie druku nie można odciąć zasilania (SnackBar, brak akcji)',
+        (tester) async {
+      final stub = _StubSmartPlugsNotifier(_plugState());
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'RUNNING',
+          progress: 50,
+          remainingTime: 60,
+        ),
+      );
+
+      await tester.pumpWidget(_cardWithPlugs(item, stub));
+      await tester.ensureVisible(find.byIcon(Icons.power));
+      await tester.tap(find.byIcon(Icons.power));
+      await tester.pump();
+
+      expect(find.text('Nie można odciąć zasilania w trakcie druku'),
+          findsOneWidget);
+      expect(stub.calls, isEmpty); // zasilanie NIE odcięte
+    });
+
+    testWidgets('poza drukiem wyłączenie wymaga potwierdzenia, potem wysyła off',
+        (tester) async {
+      final stub = _StubSmartPlugsNotifier(_plugState());
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
+
+      await tester.pumpWidget(_cardWithPlugs(item, stub));
+      await tester.ensureVisible(find.byIcon(Icons.power));
+      await tester.tap(find.byIcon(Icons.power));
+      await tester.pumpAndSettle();
+
+      // Dialog potwierdzenia — bez niego nic nie wysyłamy.
+      expect(find.text('Odciąć zasilanie?'), findsOneWidget);
+      expect(stub.calls, isEmpty);
+
+      await tester.tap(find.text('Wyłącz'));
+      await tester.pump();
+
+      expect(stub.calls, hasLength(1));
+      expect(stub.calls.single.id, 10);
+      expect(stub.calls.single.action, SmartPlugAction.off);
+    });
+
+    testWidgets('gniazdko offline (rozłączona drukarka) pozostaje sterowalne',
+        (tester) async {
+      // Karta zwija się do OFFLINE, ale chip gniazdka zostaje — to jedyny
+      // sposób, by ZAŁĄCZYĆ zasilanie i obudzić maszynę.
+      final stub = _StubSmartPlugsNotifier(
+        SmartPlugsState(
+          plugs: const [
+            SmartPlug(id: 10, name: 'Szafa', printerId: 2, enabled: true),
+          ],
+          statuses: {10: SmartPlugStatus(state: 'OFF', reachable: true)},
+        ),
+      );
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 2, name: 'A1 mini'),
+        status: const PrinterStatus(id: 2, connected: false),
+      );
+
+      await tester.pumpWidget(_cardWithPlugs(item, stub));
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      // Gniazdko wyłączone → przekreślona wtyczka, przycisk aktywny (sterowalny).
+      final btn = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.power_off),
+      );
+      expect(btn.onPressed, isNotNull);
+
+      await tester.tap(find.byIcon(Icons.power_off));
+      await tester.pump();
+      // Włączenie nie wymaga potwierdzenia → akcja on od razu.
+      expect(stub.calls.single.action, SmartPlugAction.on);
     });
   });
 

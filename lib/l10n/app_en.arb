@@ -51,6 +51,28 @@
   "speedSport": "Sport",
   "speedLudicrous": "Ludicrous",
 
+  "smartPlugOn": "On",
+  "@smartPlugOn": { "description": "Smart plug powered on" },
+  "smartPlugOff": "Off",
+  "@smartPlugOff": { "description": "Smart plug powered off" },
+  "smartPlugUnreachable": "Unreachable",
+  "@smartPlugUnreachable": { "description": "Smart plug does not respond" },
+  "smartPlugCantPowerOff": "Can't cut power while the printer is printing",
+  "@smartPlugCantPowerOff": { "description": "Why the off switch is blocked during a print" },
+  "smartPlugOffConfirmTitle": "Cut power?",
+  "@smartPlugOffConfirmTitle": { "description": "Confirm turning the plug off" },
+  "smartPlugOffConfirmBody": "The printer loses power immediately.",
+  "@smartPlugOffConfirmBody": { "description": "Confirm body when turning a plug off" },
+  "smartPlugTurnOff": "Turn off",
+  "@smartPlugTurnOff": { "description": "Confirm button: turn the plug off" },
+  "powerWatts": "{watts} W",
+  "@powerWatts": {
+    "description": "Power draw in watts",
+    "placeholders": { "watts": { "type": "int" } }
+  },
+  "totalPowerTooltip": "Total power draw across all plugs",
+  "@totalPowerTooltip": { "description": "Dashboard header power sum tooltip" },
+
   "queueEmpty": "The queue is empty",
   "queueDeleteTitle": "Remove from queue?",
   "queueDeleteBody": "This removes the item from the print queue.",

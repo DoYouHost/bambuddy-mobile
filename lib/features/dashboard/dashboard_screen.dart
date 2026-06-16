@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import 'providers.dart';
+import 'smart_plugs_providers.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
@@ -44,11 +45,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
+        ref.read(smartPlugsProvider.notifier).pausePolling();
       },
       onResume: () {
         ref.read(backgroundMonitorProvider).stop();
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
+        ref.read(smartPlugsProvider.notifier).resumePolling();
       },
     );
     // Po pierwszym renderze: jednorazowy onboarding powiadomień (uprawnienie +
@@ -374,16 +377,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
 /// Podsumowanie u góry listy: ile drukarek pracuje i która zwolni się
 /// najwcześniej (najmniej pozostałego czasu).
-class _SummaryHeader extends StatelessWidget {
+class _SummaryHeader extends ConsumerWidget {
   const _SummaryHeader({required this.printers});
 
   final List<PrinterWithStatus> printers;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
+    // Suma mocy całej farmy ze smart gniazdek (osobny tor pollingu).
+    final hasPlugs = ref.watch(smartPlugsProvider.select((s) => s.hasAnyPlug));
+    final totalPowerW =
+        ref.watch(smartPlugsProvider.select((s) => s.totalPowerW));
     final active = printers
         .where((p) =>
             (p.status?.connected ?? false) && (p.status?.isPrinting ?? false))
@@ -434,6 +441,28 @@ class _SummaryHeader extends StatelessWidget {
                   ),
                 ]),
                 overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+          if (hasPlugs) ...[
+            // Gdy jest „następna wolna" drukarka, jej Flexible zjada miejsce —
+            // wtedy bez Spacera; inaczej dosuwamy moc do prawej krawędzi.
+            if (next == null) const Spacer() else const SizedBox(width: 12),
+            Tooltip(
+              message: l10n.totalPowerTooltip,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bolt, size: 16, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 2),
+                  Text(
+                    l10n.powerWatts(totalPowerW.round()),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

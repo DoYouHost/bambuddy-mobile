@@ -350,6 +350,60 @@ abstract class AppLocalizations {
   /// **'Ludicrous'**
   String get speedLudicrous;
 
+  /// Smart plug powered on
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get smartPlugOn;
+
+  /// Smart plug powered off
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get smartPlugOff;
+
+  /// Smart plug does not respond
+  ///
+  /// In en, this message translates to:
+  /// **'Unreachable'**
+  String get smartPlugUnreachable;
+
+  /// Why the off switch is blocked during a print
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t cut power while the printer is printing'**
+  String get smartPlugCantPowerOff;
+
+  /// Confirm turning the plug off
+  ///
+  /// In en, this message translates to:
+  /// **'Cut power?'**
+  String get smartPlugOffConfirmTitle;
+
+  /// Confirm body when turning a plug off
+  ///
+  /// In en, this message translates to:
+  /// **'The printer loses power immediately.'**
+  String get smartPlugOffConfirmBody;
+
+  /// Confirm button: turn the plug off
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get smartPlugTurnOff;
+
+  /// Power draw in watts
+  ///
+  /// In en, this message translates to:
+  /// **'{watts} W'**
+  String powerWatts(int watts);
+
+  /// Dashboard header power sum tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Total power draw across all plugs'**
+  String get totalPowerTooltip;
+
   /// No description provided for @queueEmpty.
   ///
   /// In en, this message translates to:

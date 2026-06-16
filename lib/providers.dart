@@ -14,6 +14,7 @@ import 'data/archive_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/smart_plugs_repository.dart';
 
 /// Nadpisywany w main() po SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -121,6 +122,11 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 /// Archiwum wydruków (M5). Współdzieli uwierzytelnione Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Smart gniazdka (M7). Współdzieli uwierzytelnione Dio.
+final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
+  (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

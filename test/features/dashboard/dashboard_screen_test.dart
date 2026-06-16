@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/connection_banner.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -67,11 +68,19 @@ class _InertStatusesNotifier extends PrinterStatusesNotifier {
   Map<int, PrinterStatus> build() => const {};
 }
 
+/// Inert gniazdka: bez pollingu serwera (nagłówek liczy sumę mocy z tego
+/// providera, ale testy nie sprawdzają gniazdek).
+class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
+  @override
+  SmartPlugsState build() => const SmartPlugsState();
+}
+
 Widget _app(DashboardState state) => ProviderScope(
       overrides: [
         dashboardProvider.overrideWith(() => _FakeDashboardNotifier(state)),
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
+        smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
         sharedPreferencesProvider.overrideWithValue(_prefs),
         notificationServiceProvider.overrideWithValue(_NoopNotifications()),
         wsConnectionStateProvider.overrideWith(

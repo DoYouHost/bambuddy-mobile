@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/printer_status.dart';
+import '../../../core/models/smart_plug.dart';
 import '../../../data/printers_repository.dart';
+import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
 import '../controls_providers.dart';
+import '../smart_plugs_providers.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({super.key, required this.item});
@@ -49,6 +52,14 @@ class _PrinterCardState extends State<PrinterCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              // Gniazdko zostaje sterowalne nawet przy OFFLINE — to jedyny
+              // sposób, by zdalnie ZAŁĄCZYĆ zasilanie i obudzić drukarkę. Sam
+              // się chowa, gdy do drukarki nie przypisano (widocznego) gniazdka.
+              _SmartPlugButton(
+                printerId: widget.item.printer.id,
+                printing: false,
+              ),
+              const SizedBox(width: 4),
               _StateChip(
                 label: l10n.statusOffline,
                 connected: false,
@@ -104,6 +115,11 @@ class _PrinterCardState extends State<PrinterCard> {
                       ),
                     ),
                   ),
+                _SmartPlugButton(
+                  printerId: widget.item.printer.id,
+                  printing: printing,
+                ),
+                const SizedBox(width: 4),
                 _StateChip(
                   label: status == null
                       ? l10n.statusUnavailable
@@ -917,6 +933,127 @@ class _ControlsActions extends ConsumerWidget {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+/// Sterowanie smart gniazdkiem przypisanym do drukarki (M7) — kwadratowy
+/// przycisk-ikona w nagłówku karty, w jednej linii z nazwą drukarki. Sam symbol
+/// wtyczki niesie stan: `power` = załączone, `power_off` (przekreślona) =
+/// wyłączone; pobór mocy i stan są w tooltipie. Tapnięcie przełącza. Sam się
+/// chowa, gdy do drukarki nie przypisano (widocznego) gniazdka. Reguła
+/// kluczowa: **w trakcie druku nie da się ODCIĄĆ zasilania** (próba OFF
+/// tłumaczy się SnackBarem); załączyć zawsze wolno. Stan optymistyczny +
+/// rollback trzyma [smartPlugsProvider].
+class _SmartPlugButton extends ConsumerWidget {
+  const _SmartPlugButton({required this.printerId, required this.printing});
+
+  final int printerId;
+  final bool printing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plug = ref.watch(
+      smartPlugsProvider.select((s) => s.plugForPrinterCard(printerId)),
+    );
+    if (plug == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    final state = ref.watch(smartPlugsProvider);
+    final status = state.statusFor(plug.id);
+    final on = state.effectiveOn(plug) ?? false;
+    final busy = state.isBusy(plug.id);
+    final forbidden = state.forbidden;
+    final reachable = status?.isReachable ?? true;
+    final power = status?.powerW;
+
+    final canControl = !busy && !forbidden && reachable;
+
+    // Tooltip niesie stan + pobór mocy (przycisk to sam symbol): nieosiągalne →
+    // „Niedostępne"; załączone z pomiarem → „X W"; inaczej surowy stan Wł./Wył.
+    final tip = !reachable
+        ? l10n.smartPlugUnreachable
+        : (on && power != null
+            ? l10n.powerWatts(power.round())
+            : (on ? l10n.smartPlugOn : l10n.smartPlugOff));
+
+    final fg = !reachable
+        ? scheme.error
+        : (on ? scheme.primary : scheme.onSurfaceVariant);
+
+    return IconButton(
+      tooltip: tip,
+      visualDensity: VisualDensity.compact,
+      onPressed: canControl ? () => _onToggle(context, ref, plug, !on) : null,
+      icon: Icon(on ? Icons.power : Icons.power_off),
+      style: IconButton.styleFrom(
+        foregroundColor: fg,
+        // Kwadrat (lekko zaokrąglony) z obrysem — odróżnia toggle zasilania od
+        // okrągłego przycisku kamery obok.
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        side: BorderSide(
+          color: on ? scheme.primary : scheme.outlineVariant,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onToggle(
+    BuildContext context,
+    WidgetRef ref,
+    SmartPlug plug,
+    bool want,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Wyłączenie = odcięcie zasilania. W trakcie druku zablokowane; poza
+    // drukiem za potwierdzeniem (łatwo ubić maszynę jednym tapnięciem).
+    if (!want) {
+      if (printing) {
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(l10n.smartPlugCantPowerOff)));
+        return;
+      }
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.smartPlugOffConfirmTitle),
+          content: Text(l10n.smartPlugOffConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.smartPlugTurnOff),
+            ),
+          ],
+        ),
+      );
+      if (!(confirmed ?? false) || !context.mounted) return;
+    }
+
+    final result = await ref
+        .read(smartPlugsProvider.notifier)
+        .control(plug.id, want ? SmartPlugAction.on : SmartPlugAction.off);
+    if (!context.mounted) return;
+    final msg = switch (result) {
+      ControlResult.ok => null,
+      ControlResult.forbidden => l10n.ctrlForbidden,
+      ControlResult.error => l10n.ctrlFailed,
+    };
+    if (msg != null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 }
 
