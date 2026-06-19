@@ -920,6 +920,366 @@ abstract class AppLocalizations {
   /// **'{name} failed'**
   String printFailedBody(String name);
 
+  /// No description provided for @notifStartedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print started'**
+  String get notifStartedTitle;
+
+  /// No description provided for @notifStartedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} started printing'**
+  String notifStartedBody(String name);
+
+  /// No description provided for @notifFirstLayerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First layer done'**
+  String get notifFirstLayerTitle;
+
+  /// No description provided for @notifFirstLayerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} finished its first layer'**
+  String notifFirstLayerBody(String name);
+
+  /// No description provided for @notifMilestoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% printed'**
+  String notifMilestoneTitle(int percent);
+
+  /// No description provided for @notifMilestoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is {percent}% done'**
+  String notifMilestoneBody(String name, int percent);
+
+  /// No description provided for @notifPlateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate not empty'**
+  String get notifPlateTitle;
+
+  /// No description provided for @notifPlateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} needs the plate cleared before the next job'**
+  String notifPlateBody(String printer);
+
+  /// No description provided for @notifOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer offline'**
+  String get notifOfflineTitle;
+
+  /// No description provided for @notifOfflineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} lost connection'**
+  String notifOfflineBody(String printer);
+
+  /// No description provided for @notifErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer error'**
+  String get notifErrorTitle;
+
+  /// No description provided for @notifErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer}: {detail}'**
+  String notifErrorBody(String printer, String detail);
+
+  /// No description provided for @notifLowFilamentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low filament'**
+  String get notifLowFilamentTitle;
+
+  /// No description provided for @notifLowFilamentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} has {percent}% filament left'**
+  String notifLowFilamentBody(String printer, int percent);
+
+  /// No description provided for @notifHumidityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS humidity high'**
+  String get notifHumidityTitle;
+
+  /// No description provided for @notifHumidityHtTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS-HT humidity high'**
+  String get notifHumidityHtTitle;
+
+  /// No description provided for @notifHumidityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} AMS humidity is {value}%'**
+  String notifHumidityBody(String printer, int value);
+
+  /// No description provided for @notifBedCooledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed cooled'**
+  String get notifBedCooledTitle;
+
+  /// No description provided for @notifBedCooledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} bed cooled to {temp}°C'**
+  String notifBedCooledBody(String printer, int temp);
+
+  /// No description provided for @notifSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifSettingsTitle;
+
+  /// No description provided for @notifSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which events trigger a notification. Changes apply the next time background monitoring starts.'**
+  String get notifSettingsHint;
+
+  /// No description provided for @notifEventsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get notifEventsHeader;
+
+  /// No description provided for @notifThresholdsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Thresholds'**
+  String get notifThresholdsHeader;
+
+  /// No description provided for @notifEvtStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Print started'**
+  String get notifEvtStarted;
+
+  /// No description provided for @notifEvtStartedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a print begins'**
+  String get notifEvtStartedDesc;
+
+  /// No description provided for @notifEvtFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Print finished'**
+  String get notifEvtFinished;
+
+  /// No description provided for @notifEvtFinishedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a print completes successfully'**
+  String get notifEvtFinishedDesc;
+
+  /// No description provided for @notifEvtFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Print failed'**
+  String get notifEvtFailed;
+
+  /// No description provided for @notifEvtFailedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a print fails'**
+  String get notifEvtFailedDesc;
+
+  /// No description provided for @notifEvtFirstLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'First layer done'**
+  String get notifEvtFirstLayer;
+
+  /// No description provided for @notifEvtFirstLayerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When the first layer finishes'**
+  String get notifEvtFirstLayerDesc;
+
+  /// No description provided for @notifEvtMilestones.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress milestones'**
+  String get notifEvtMilestones;
+
+  /// No description provided for @notifEvtMilestonesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'At 25%, 50% and 75%'**
+  String get notifEvtMilestonesDesc;
+
+  /// No description provided for @notifEvtPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate not empty'**
+  String get notifEvtPlate;
+
+  /// No description provided for @notifEvtPlateDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When the plate must be cleared before the next job'**
+  String get notifEvtPlateDesc;
+
+  /// No description provided for @notifEvtOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer offline'**
+  String get notifEvtOffline;
+
+  /// No description provided for @notifEvtOfflineDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a printer loses connection'**
+  String get notifEvtOfflineDesc;
+
+  /// No description provided for @notifEvtError.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer error (HMS)'**
+  String get notifEvtError;
+
+  /// No description provided for @notifEvtErrorDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When the printer reports an HMS error'**
+  String get notifEvtErrorDesc;
+
+  /// No description provided for @notifEvtLowFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Low filament'**
+  String get notifEvtLowFilament;
+
+  /// No description provided for @notifEvtLowFilamentDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When remaining filament drops below the threshold'**
+  String get notifEvtLowFilamentDesc;
+
+  /// No description provided for @notifEvtHumidity.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS humidity high'**
+  String get notifEvtHumidity;
+
+  /// No description provided for @notifEvtHumidityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When AMS humidity rises above the threshold'**
+  String get notifEvtHumidityDesc;
+
+  /// No description provided for @notifEvtBedCooled.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed cooled'**
+  String get notifEvtBedCooled;
+
+  /// No description provided for @notifEvtBedCooledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When the bed cools down after a print'**
+  String get notifEvtBedCooledDesc;
+
+  /// No description provided for @notifBedCooledThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed cooled below {temp}°C'**
+  String notifBedCooledThreshold(int temp);
+
+  /// No description provided for @notifHumidityThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS humidity above {value}%'**
+  String notifHumidityThreshold(int value);
+
+  /// No description provided for @notifLowFilamentThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Low filament below {percent}%'**
+  String notifLowFilamentThreshold(int percent);
+
+  /// No description provided for @notifEventsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification events'**
+  String get notifEventsMenu;
+
+  /// No description provided for @hmsSeverityFatal.
+  ///
+  /// In en, this message translates to:
+  /// **'Fatal'**
+  String get hmsSeverityFatal;
+
+  /// No description provided for @hmsSeveritySerious.
+  ///
+  /// In en, this message translates to:
+  /// **'Serious'**
+  String get hmsSeveritySerious;
+
+  /// No description provided for @hmsSeverityCommon.
+  ///
+  /// In en, this message translates to:
+  /// **'Common'**
+  String get hmsSeverityCommon;
+
+  /// No description provided for @hmsSeverityInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get hmsSeverityInfo;
+
+  /// No description provided for @hmsModuleMainboard.
+  ///
+  /// In en, this message translates to:
+  /// **'mainboard'**
+  String get hmsModuleMainboard;
+
+  /// No description provided for @hmsModuleAms.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS'**
+  String get hmsModuleAms;
+
+  /// No description provided for @hmsModuleToolhead.
+  ///
+  /// In en, this message translates to:
+  /// **'toolhead'**
+  String get hmsModuleToolhead;
+
+  /// No description provided for @hmsModuleXcam.
+  ///
+  /// In en, this message translates to:
+  /// **'camera'**
+  String get hmsModuleXcam;
+
+  /// No description provided for @hmsModuleMc.
+  ///
+  /// In en, this message translates to:
+  /// **'motion controller'**
+  String get hmsModuleMc;
+
+  /// No description provided for @hmsErrorsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Active errors'**
+  String get hmsErrorsHeader;
+
+  /// No description provided for @hmsViewInWiki.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Bambu wiki'**
+  String get hmsViewInWiki;
+
   /// No description provided for @batteryOptTitle.
   ///
   /// In en, this message translates to:

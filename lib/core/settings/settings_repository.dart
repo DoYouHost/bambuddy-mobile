@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../notifications/notification_prefs.dart';
 import 'server_profile.dart';
 
 /// Persystencja profilu serwera w SharedPreferences.
@@ -11,6 +12,7 @@ class SettingsRepository {
 
   static const _profileKey = 'server_profile';
   static const _bgMonitoringKey = 'bg_monitoring_enabled';
+  static const _notifPrefsKey = 'notification_prefs';
 
   final SharedPreferences _prefs;
 
@@ -38,4 +40,13 @@ class SettingsRepository {
 
   Future<void> saveBgMonitoringEnabled(bool enabled) =>
       _prefs.setBool(_bgMonitoringKey, enabled);
+
+  /// Preferencje powiadomień (które zdarzenia, jakie progi). Trzymane jako jeden
+  /// string JSON, by isolate tła odczytał je tak samo jak UI. Brak/uszkodzenie
+  /// → wartości domyślne.
+  NotificationPrefs loadNotificationPrefs() =>
+      NotificationPrefs.decode(_prefs.getString(_notifPrefsKey));
+
+  Future<void> saveNotificationPrefs(NotificationPrefs prefs) =>
+      _prefs.setString(_notifPrefsKey, prefs.encode());
 }

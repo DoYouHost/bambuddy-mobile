@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/notifications/notification_settings_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
@@ -30,6 +31,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // Ekran konfiguracji serwera — poza powłoką, bez belki nawigacyjnej.
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
+
+      // Ustawienia powiadomień — pełny ekran poza powłoką (push z dashboardu).
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (_, _) => const NotificationSettingsScreen(),
+      ),
 
       // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.
       StatefulShellRoute.indexedStack(

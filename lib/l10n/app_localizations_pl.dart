@@ -474,6 +474,215 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get notifStartedTitle => 'Wydruk rozpoczęty';
+
+  @override
+  String notifStartedBody(String name) {
+    return '$name rozpoczął drukowanie';
+  }
+
+  @override
+  String get notifFirstLayerTitle => 'Pierwsza warstwa gotowa';
+
+  @override
+  String notifFirstLayerBody(String name) {
+    return '$name ukończył pierwszą warstwę';
+  }
+
+  @override
+  String notifMilestoneTitle(int percent) {
+    return 'Wydrukowano $percent%';
+  }
+
+  @override
+  String notifMilestoneBody(String name, int percent) {
+    return '$name — postęp $percent%';
+  }
+
+  @override
+  String get notifPlateTitle => 'Płyta niepusta';
+
+  @override
+  String notifPlateBody(String printer) {
+    return '$printer wymaga zdjęcia wydruku przed kolejnym zadaniem';
+  }
+
+  @override
+  String get notifOfflineTitle => 'Drukarka offline';
+
+  @override
+  String notifOfflineBody(String printer) {
+    return '$printer utraciła połączenie';
+  }
+
+  @override
+  String get notifErrorTitle => 'Błąd drukarki';
+
+  @override
+  String notifErrorBody(String printer, String detail) {
+    return '$printer: $detail';
+  }
+
+  @override
+  String get notifLowFilamentTitle => 'Niski filament';
+
+  @override
+  String notifLowFilamentBody(String printer, int percent) {
+    return '$printer — pozostało $percent% filamentu';
+  }
+
+  @override
+  String get notifHumidityTitle => 'Wysoka wilgotność AMS';
+
+  @override
+  String get notifHumidityHtTitle => 'Wysoka wilgotność AMS-HT';
+
+  @override
+  String notifHumidityBody(String printer, int value) {
+    return '$printer — wilgotność AMS $value%';
+  }
+
+  @override
+  String get notifBedCooledTitle => 'Stół wystygł';
+
+  @override
+  String notifBedCooledBody(String printer, int temp) {
+    return '$printer — stół wystygł do $temp°C';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Powiadomienia';
+
+  @override
+  String get notifSettingsHint =>
+      'Wybierz, które zdarzenia mają wywoływać powiadomienie. Zmiany działają od następnego uruchomienia monitoringu w tle.';
+
+  @override
+  String get notifEventsHeader => 'Zdarzenia';
+
+  @override
+  String get notifThresholdsHeader => 'Progi';
+
+  @override
+  String get notifEvtStarted => 'Wydruk rozpoczęty';
+
+  @override
+  String get notifEvtStartedDesc => 'Gdy rozpoczyna się wydruk';
+
+  @override
+  String get notifEvtFinished => 'Wydruk zakończony';
+
+  @override
+  String get notifEvtFinishedDesc => 'Gdy wydruk zakończy się sukcesem';
+
+  @override
+  String get notifEvtFailed => 'Wydruk nieudany';
+
+  @override
+  String get notifEvtFailedDesc => 'Gdy wydruk się nie powiedzie';
+
+  @override
+  String get notifEvtFirstLayer => 'Pierwsza warstwa gotowa';
+
+  @override
+  String get notifEvtFirstLayerDesc => 'Gdy ukończy się pierwsza warstwa';
+
+  @override
+  String get notifEvtMilestones => 'Kamienie milowe postępu';
+
+  @override
+  String get notifEvtMilestonesDesc => 'Przy 25%, 50% i 75%';
+
+  @override
+  String get notifEvtPlate => 'Płyta niepusta';
+
+  @override
+  String get notifEvtPlateDesc =>
+      'Gdy trzeba zdjąć wydruk przed kolejnym zadaniem';
+
+  @override
+  String get notifEvtOffline => 'Drukarka offline';
+
+  @override
+  String get notifEvtOfflineDesc => 'Gdy drukarka traci połączenie';
+
+  @override
+  String get notifEvtError => 'Błąd drukarki (HMS)';
+
+  @override
+  String get notifEvtErrorDesc => 'Gdy drukarka zgłosi błąd HMS';
+
+  @override
+  String get notifEvtLowFilament => 'Niski filament';
+
+  @override
+  String get notifEvtLowFilamentDesc =>
+      'Gdy pozostały filament spadnie poniżej progu';
+
+  @override
+  String get notifEvtHumidity => 'Wysoka wilgotność AMS';
+
+  @override
+  String get notifEvtHumidityDesc => 'Gdy wilgotność AMS przekroczy próg';
+
+  @override
+  String get notifEvtBedCooled => 'Stół wystygł';
+
+  @override
+  String get notifEvtBedCooledDesc => 'Gdy stół wystygnie po wydruku';
+
+  @override
+  String notifBedCooledThreshold(int temp) {
+    return 'Stół wystygł poniżej $temp°C';
+  }
+
+  @override
+  String notifHumidityThreshold(int value) {
+    return 'Wilgotność AMS powyżej $value%';
+  }
+
+  @override
+  String notifLowFilamentThreshold(int percent) {
+    return 'Niski filament poniżej $percent%';
+  }
+
+  @override
+  String get notifEventsMenu => 'Zdarzenia powiadomień';
+
+  @override
+  String get hmsSeverityFatal => 'Krytyczny';
+
+  @override
+  String get hmsSeveritySerious => 'Poważny';
+
+  @override
+  String get hmsSeverityCommon => 'Zwykły';
+
+  @override
+  String get hmsSeverityInfo => 'Informacja';
+
+  @override
+  String get hmsModuleMainboard => 'płyta główna';
+
+  @override
+  String get hmsModuleAms => 'AMS';
+
+  @override
+  String get hmsModuleToolhead => 'głowica';
+
+  @override
+  String get hmsModuleXcam => 'kamera';
+
+  @override
+  String get hmsModuleMc => 'sterownik ruchu';
+
+  @override
+  String get hmsErrorsHeader => 'Aktywne błędy';
+
+  @override
+  String get hmsViewInWiki => 'Otwórz w wiki Bambu';
+
+  @override
   String get batteryOptTitle => 'Niezawodne powiadomienia w tle';
 
   @override

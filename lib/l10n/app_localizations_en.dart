@@ -471,6 +471,216 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifStartedTitle => 'Print started';
+
+  @override
+  String notifStartedBody(String name) {
+    return '$name started printing';
+  }
+
+  @override
+  String get notifFirstLayerTitle => 'First layer done';
+
+  @override
+  String notifFirstLayerBody(String name) {
+    return '$name finished its first layer';
+  }
+
+  @override
+  String notifMilestoneTitle(int percent) {
+    return '$percent% printed';
+  }
+
+  @override
+  String notifMilestoneBody(String name, int percent) {
+    return '$name is $percent% done';
+  }
+
+  @override
+  String get notifPlateTitle => 'Plate not empty';
+
+  @override
+  String notifPlateBody(String printer) {
+    return '$printer needs the plate cleared before the next job';
+  }
+
+  @override
+  String get notifOfflineTitle => 'Printer offline';
+
+  @override
+  String notifOfflineBody(String printer) {
+    return '$printer lost connection';
+  }
+
+  @override
+  String get notifErrorTitle => 'Printer error';
+
+  @override
+  String notifErrorBody(String printer, String detail) {
+    return '$printer: $detail';
+  }
+
+  @override
+  String get notifLowFilamentTitle => 'Low filament';
+
+  @override
+  String notifLowFilamentBody(String printer, int percent) {
+    return '$printer has $percent% filament left';
+  }
+
+  @override
+  String get notifHumidityTitle => 'AMS humidity high';
+
+  @override
+  String get notifHumidityHtTitle => 'AMS-HT humidity high';
+
+  @override
+  String notifHumidityBody(String printer, int value) {
+    return '$printer AMS humidity is $value%';
+  }
+
+  @override
+  String get notifBedCooledTitle => 'Bed cooled';
+
+  @override
+  String notifBedCooledBody(String printer, int temp) {
+    return '$printer bed cooled to $temp°C';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Notifications';
+
+  @override
+  String get notifSettingsHint =>
+      'Choose which events trigger a notification. Changes apply the next time background monitoring starts.';
+
+  @override
+  String get notifEventsHeader => 'Events';
+
+  @override
+  String get notifThresholdsHeader => 'Thresholds';
+
+  @override
+  String get notifEvtStarted => 'Print started';
+
+  @override
+  String get notifEvtStartedDesc => 'When a print begins';
+
+  @override
+  String get notifEvtFinished => 'Print finished';
+
+  @override
+  String get notifEvtFinishedDesc => 'When a print completes successfully';
+
+  @override
+  String get notifEvtFailed => 'Print failed';
+
+  @override
+  String get notifEvtFailedDesc => 'When a print fails';
+
+  @override
+  String get notifEvtFirstLayer => 'First layer done';
+
+  @override
+  String get notifEvtFirstLayerDesc => 'When the first layer finishes';
+
+  @override
+  String get notifEvtMilestones => 'Progress milestones';
+
+  @override
+  String get notifEvtMilestonesDesc => 'At 25%, 50% and 75%';
+
+  @override
+  String get notifEvtPlate => 'Plate not empty';
+
+  @override
+  String get notifEvtPlateDesc =>
+      'When the plate must be cleared before the next job';
+
+  @override
+  String get notifEvtOffline => 'Printer offline';
+
+  @override
+  String get notifEvtOfflineDesc => 'When a printer loses connection';
+
+  @override
+  String get notifEvtError => 'Printer error (HMS)';
+
+  @override
+  String get notifEvtErrorDesc => 'When the printer reports an HMS error';
+
+  @override
+  String get notifEvtLowFilament => 'Low filament';
+
+  @override
+  String get notifEvtLowFilamentDesc =>
+      'When remaining filament drops below the threshold';
+
+  @override
+  String get notifEvtHumidity => 'AMS humidity high';
+
+  @override
+  String get notifEvtHumidityDesc =>
+      'When AMS humidity rises above the threshold';
+
+  @override
+  String get notifEvtBedCooled => 'Bed cooled';
+
+  @override
+  String get notifEvtBedCooledDesc => 'When the bed cools down after a print';
+
+  @override
+  String notifBedCooledThreshold(int temp) {
+    return 'Bed cooled below $temp°C';
+  }
+
+  @override
+  String notifHumidityThreshold(int value) {
+    return 'AMS humidity above $value%';
+  }
+
+  @override
+  String notifLowFilamentThreshold(int percent) {
+    return 'Low filament below $percent%';
+  }
+
+  @override
+  String get notifEventsMenu => 'Notification events';
+
+  @override
+  String get hmsSeverityFatal => 'Fatal';
+
+  @override
+  String get hmsSeveritySerious => 'Serious';
+
+  @override
+  String get hmsSeverityCommon => 'Common';
+
+  @override
+  String get hmsSeverityInfo => 'Info';
+
+  @override
+  String get hmsModuleMainboard => 'mainboard';
+
+  @override
+  String get hmsModuleAms => 'AMS';
+
+  @override
+  String get hmsModuleToolhead => 'toolhead';
+
+  @override
+  String get hmsModuleXcam => 'camera';
+
+  @override
+  String get hmsModuleMc => 'motion controller';
+
+  @override
+  String get hmsErrorsHeader => 'Active errors';
+
+  @override
+  String get hmsViewInWiki => 'Open in Bambu wiki';
+
+  @override
   String get batteryOptTitle => 'Reliable background notifications';
 
   @override

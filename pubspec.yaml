@@ -24,6 +24,7 @@ dependencies:
   flutter_mjpeg: ^2.0.4
   flutter_local_notifications: ^18.0.1
   flutter_foreground_task: ^9.2.2
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +40,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/hms/
 
 flutter_launcher_icons:
   android: true

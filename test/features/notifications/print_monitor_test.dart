@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -53,6 +56,13 @@ PrinterStatus _status({
   int? remaining,
   String? job,
   String? name,
+  bool? connected,
+  int? layerNum,
+  bool? awaitingPlateClear,
+  List<HmsError>? hms,
+  List<AmsUnit>? ams,
+  List<AmsTray>? vtTray,
+  Map<String, double>? temps,
 }) =>
     PrinterStatus(
       id: id,
@@ -61,7 +71,53 @@ PrinterStatus _status({
       progress: progress,
       remainingTime: remaining,
       currentPrint: job,
+      connected: connected,
+      layerNum: layerNum,
+      awaitingPlateClear: awaitingPlateClear,
+      hmsErrors: hms,
+      ams: ams,
+      vtTray: vtTray,
+      temperatures: temps,
     );
+
+/// Slot AMS z pozostałą ilością i typem (niepusty), do testów niskiego filamentu.
+AmsTray _tray({int id = 0, int? remain, String type = 'PLA'}) =>
+    AmsTray(id: id, remain: remain, trayType: type, trayColor: 'FFFFFFFF');
+
+/// Timer, którym steruje test — [fire] symuluje upływ łaski offline.
+class _FakeTimer implements Timer {
+  _FakeTimer(this._callback);
+  final void Function() _callback;
+  bool _cancelled = false;
+
+  @override
+  void cancel() => _cancelled = true;
+
+  @override
+  bool get isActive => !_cancelled;
+
+  @override
+  int get tick => 0;
+
+  void fire() {
+    if (!_cancelled) _callback();
+  }
+}
+
+/// Wszystkie zdarzenia włączone — do testów pojedynczych detekcji.
+const _allOn = NotificationPrefs(enabled: {
+  NotifEvent.printStarted,
+  NotifEvent.printFinished,
+  NotifEvent.printFailed,
+  NotifEvent.firstLayer,
+  NotifEvent.milestones,
+  NotifEvent.plateNotEmpty,
+  NotifEvent.printerOffline,
+  NotifEvent.printerError,
+  NotifEvent.lowFilament,
+  NotifEvent.amsHumidity,
+  NotifEvent.bedCooled,
+});
 
 void main() {
   // lookupAppLocalizations w monitorze wymaga zainicjowanego bindingu.
@@ -147,5 +203,210 @@ void main() {
     expect(fake.clearCount, 0);
     m.update({1: _status(state: 'IDLE', progress: 0, remaining: 0)});
     expect(fake.clearCount, 1);
+  });
+
+  // --- Nowe zdarzenia (wszystkie włączone) ---
+
+  PrintMonitor monitorAll(
+    _FakeNotifications fake, {
+    TimerFactory? timer,
+  }) =>
+      PrintMonitor(
+        fake,
+        prefs: _allOn,
+        l10n: () => lookupAppLocalizations(const Locale('en')),
+        clock: () => DateTime(2026, 6, 12, 20, 0),
+        timerFactory: timer,
+      );
+
+  // Ostatni alert o danym id (alerty tego samego typu współdzielą id per drukarka
+  // — na urządzeniu nowy zastępuje stary; tu fake zapisuje wszystkie).
+  Map<String, Object?>? alertById(_FakeNotifications fake, int id) {
+    Map<String, Object?>? found;
+    for (final a in fake.alerts) {
+      if (a['id'] == id) found = a;
+    }
+    return found;
+  }
+
+  test('start wydruku odpala alert „rozpoczęto" (gdy włączony)', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'IDLE')});
+    expect(alertById(fake, 3001), isNull);
+    m.update({1: _status(state: 'RUNNING', job: 'cube.3mf')});
+    expect(alertById(fake, 3001)?['title'], 'Print started');
+  });
+
+  test('pierwsza warstwa: alert raz, gdy layer_num osiąga 1', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 0)});
+    expect(alertById(fake, 4001), isNull);
+    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 1)});
+    expect(alertById(fake, 4001), isNotNull);
+    fake.alerts.clear();
+    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 2)});
+    expect(alertById(fake, 4001), isNull); // bez powtórki
+  });
+
+  test('kamienie milowe: 25/50/75 raz każdy', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 10)});
+    expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
+    expect(alertById(fake, 5001)?['title'], '25% printed');
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 55)});
+    expect(alertById(fake, 5001)?['title'], '50% printed');
+    fake.alerts.clear();
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60)});
+    expect(fake.alerts, isEmpty); // nic nowego nie przekroczono
+  });
+
+  test('płyta niepusta: alert na zboczu false→true, bez powtórki', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'IDLE', awaitingPlateClear: false)});
+    expect(alertById(fake, 6001), isNull);
+    m.update({1: _status(state: 'IDLE', awaitingPlateClear: true)});
+    expect(alertById(fake, 6001), isNotNull);
+    fake.alerts.clear();
+    m.update({1: _status(state: 'IDLE', awaitingPlateClear: true)});
+    expect(alertById(fake, 6001), isNull);
+  });
+
+  test('offline: alert dopiero po upływie łaski; powrót online ją kasuje', () {
+    final fake = _FakeNotifications();
+    final timers = <_FakeTimer>[];
+    final m = monitorAll(fake, timer: (d, cb) {
+      final t = _FakeTimer(cb);
+      timers.add(t);
+      return t;
+    });
+
+    m.update({1: _status(state: 'IDLE', connected: true)});
+    m.update({1: _status(state: 'IDLE', connected: false)});
+    expect(alertById(fake, 7001), isNull); // jeszcze nie — czeka na grace
+    expect(timers, hasLength(1));
+    timers.single.fire();
+    expect(alertById(fake, 7001)?['title'], 'Printer offline');
+
+    // Drugi epizod: offline, ale powrót online przed upływem łaski → brak alertu.
+    final fake2 = _FakeNotifications();
+    final timers2 = <_FakeTimer>[];
+    final m2 = monitorAll(fake2, timer: (d, cb) {
+      final t = _FakeTimer(cb);
+      timers2.add(t);
+      return t;
+    });
+    m2.update({1: _status(state: 'IDLE', connected: true)});
+    m2.update({1: _status(state: 'IDLE', connected: false)});
+    m2.update({1: _status(state: 'IDLE', connected: true)});
+    timers2.single.fire(); // anulowany — bez efektu
+    expect(alertById(fake2, 7001), isNull);
+  });
+
+  test('błąd HMS: nowy kod alarmuje, powtórka nie; wyczyszczenie resetuje', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    // severity 2 = serious → wpis wart pokazania.
+    const err = HmsError(code: 'A', severity: 2);
+    m.update({1: _status(state: 'RUNNING')}); // priming — bez błędów
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+    expect(alertById(fake, 8001), isNotNull);
+    fake.alerts.clear();
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+    expect(alertById(fake, 8001), isNull); // ten sam kod
+    m.update({1: _status(state: 'RUNNING', hms: const [])}); // wyczyszczone
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+    expect(alertById(fake, 8001), isNotNull); // pojawił się ponownie
+  });
+
+  test('błąd HMS: wpis wewnętrzny (nieznany severity, brak opisu) jest pomijany',
+      () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'RUNNING')});
+    // Realny szum z X2D: severity 6, nieznany kod, brak wiadomości.
+    m.update({
+      1: _status(state: 'RUNNING', hms: [
+        const HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 6),
+      ]),
+    });
+    expect(alertById(fake, 8001), isNull); // nie alarmujemy
+  });
+
+  test('niski filament: histereza per slot', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    final unitFull = [AmsUnit(id: 0, trays: [_tray(remain: 50)])];
+    final unitLow = [AmsUnit(id: 0, trays: [_tray(remain: 5)])];
+    m.update({1: _status(state: 'RUNNING', ams: unitFull)});
+    expect(alertById(fake, 9001), isNull);
+    m.update({1: _status(state: 'RUNNING', ams: unitLow)});
+    expect(alertById(fake, 9001), isNotNull);
+    fake.alerts.clear();
+    m.update({1: _status(state: 'RUNNING', ams: unitLow)});
+    expect(alertById(fake, 9001), isNull); // nadal nisko — bez spamu
+    m.update({1: _status(state: 'RUNNING', ams: unitFull)}); // reset
+    m.update({1: _status(state: 'RUNNING', ams: unitLow)});
+    expect(alertById(fake, 9001), isNotNull); // ponownie spadło
+  });
+
+  test('wysoka wilgotność AMS: zbocze powyżej progu', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'IDLE', ams: [const AmsUnit(id: 0, humidity: 40)])});
+    expect(alertById(fake, 10001), isNull);
+    m.update({1: _status(state: 'IDLE', ams: [const AmsUnit(id: 0, humidity: 70)])});
+    expect(alertById(fake, 10001), isNotNull);
+  });
+
+  test('stół wystygł: tylko po zakończonym wydruku i poniżej progu', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    // Stół zimny bez wcześniejszego druku → bez alertu.
+    m.update({1: _status(state: 'IDLE', temps: {'bed': 25})});
+    expect(alertById(fake, 11001), isNull);
+    // Wydruk i jego koniec uzbrajają oczekiwanie na wystygnięcie.
+    m.update({1: _status(state: 'RUNNING', job: 'x', temps: {'bed': 60})});
+    m.update({1: _status(state: 'FINISH', job: 'x', temps: {'bed': 60})});
+    expect(alertById(fake, 11001), isNull); // jeszcze gorący
+    m.update({1: _status(state: 'FINISH', job: 'x', temps: {'bed': 30})});
+    expect(alertById(fake, 11001)?['title'], 'Bed cooled');
+  });
+
+  test('priming: pierwsza ramka w toku NIE odpala zaszłych zdarzeń', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    // Świeży monitor (jak po restarcie isolate'u tła) dostaje drukarkę już w
+    // 38% druku, po pierwszej warstwie, z istniejącym błędem HMS i niskim
+    // filamentem — żadne z tych zdarzeń nie powinno wystrzelić.
+    m.update({
+      1: _status(
+        state: 'RUNNING',
+        progress: 38,
+        layerNum: 20,
+        hms: [const HmsError(code: '0x20070')],
+        ams: [
+          AmsUnit(id: 0, humidity: 80, trays: [_tray(remain: 3)]),
+        ],
+      ),
+    });
+    expect(fake.alerts, isEmpty); // tylko wiszący postęp, zero alertów
+    expect(fake.ongoingCount, 1);
+
+    // Ale prawdziwe zbocze po primingu już działa: 50% przekroczone.
+    m.update({1: _status(state: 'RUNNING', progress: 55, layerNum: 30)});
+    expect(alertById(fake, 5001)?['title'], '50% printed');
+  });
+
+  test('gating: domyślne prefs nie puszczają „rozpoczęto" ani milestones', () {
+    final fake = _FakeNotifications();
+    final m = monitor(fake); // domyślne prefs
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
+    expect(alertById(fake, 3001), isNull); // started OFF
+    expect(alertById(fake, 5001), isNull); // milestones OFF
   });
 }

@@ -140,6 +140,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.tune),
+              title: Text(l10n.notifEventsMenu),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                context.push('/settings/notifications');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.battery_saver),
               title: Text(l10n.batteryOptMenu),
               onTap: () {

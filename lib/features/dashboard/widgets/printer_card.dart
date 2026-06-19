@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
+import '../../../core/notifications/hms_catalog.dart';
 import '../../../data/printers_repository.dart';
 import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';
@@ -34,6 +36,14 @@ class _PrinterCardState extends State<PrinterCard> {
   /// Powrót online jest natychmiastowy.
   late bool _offline;
   Timer? _offlineGrace;
+
+  /// Błędy HMS warte pokazania — odsiewa wpisy wewnętrzne/nieprzetłumaczalne
+  /// (parytet z bambuddy). Opis bierzemy z katalogu, by znane kody przeszły.
+  List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
+        for (final e in status?.hmsErrors ?? const <HmsError>[])
+          if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e)))
+            e,
+      ];
 
   /// Jak długo bambuddy musi UTRZYMAĆ offline, zanim zwiniemy kartę. Każde
   /// świeże `connected:true` w tym oknie kasuje licznik — więc zwija się dopiero,
@@ -124,6 +134,7 @@ class _PrinterCardState extends State<PrinterCard> {
     final readings =
         _buildReadings(status?.temperatures, status?.airductIsHeating);
     final hasDetails = status?.hasDetails ?? false;
+    final hmsErrors = _displayableHmsErrors(status);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -179,6 +190,10 @@ class _PrinterCardState extends State<PrinterCard> {
                 ),
               ],
             ),
+            if (hmsErrors.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _HmsErrorsPanel(errors: hmsErrors),
+            ],
             if (printing) ...[
               const SizedBox(height: 10),
               _PrintPanel(status: status!),
@@ -211,6 +226,108 @@ class _PrinterCardState extends State<PrinterCard> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Panel aktywnych błędów HMS: czerwona ramka, każdy błąd z czytelnym opisem
+/// (z katalogu Bambu lub fallback „poziom · moduł"), kanonicznym kodem i —
+/// gdy da się złożyć pełny kod — odnośnikiem do wiki Bambu.
+class _HmsErrorsPanel extends StatelessWidget {
+  const _HmsErrorsPanel({required this.errors});
+
+  final List<HmsError> errors;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: scheme.error.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
+              const SizedBox(width: 6),
+              Text(
+                l10n.hmsErrorsHeader,
+                style: theme.textTheme.labelLarge?.copyWith(color: scheme.error),
+              ),
+            ],
+          ),
+          for (final e in errors) _HmsErrorRow(error: e),
+        ],
+      ),
+    );
+  }
+}
+
+class _HmsErrorRow extends StatelessWidget {
+  const _HmsErrorRow({required this.error});
+
+  final HmsError error;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final label = hmsLabel(
+      error,
+      description: HmsCatalog.instance.describe(error),
+      l10n: l10n,
+    );
+    final url = hmsWikiUrl(error);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (label != null) ...[
+            Text(label, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 2),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  error.displayCode,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.hintColor),
+                ),
+              ),
+              if (url != null)
+                InkWell(
+                  onTap: () => unawaited(launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  )),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.hmsViewInWiki,
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: theme.colorScheme.primary),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.open_in_new,
+                          size: 14, color: theme.colorScheme.primary),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

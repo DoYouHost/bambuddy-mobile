@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders;
 import '../../features/notifications/print_monitor.dart';
+import 'hms_catalog.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/ws_client.dart';
 import '../auth/credentials_store.dart';
@@ -43,7 +44,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final alerts = LocalNotificationService()..init();
     final fgs = _FgsNotificationService(alerts, l10n);
     _fgs = fgs;
-    _monitor = PrintMonitor(fgs);
+    // Katalog opisów HMS wczytujemy raz (asset działa też w isolacie tła).
+    final catalog = HmsCatalog();
+    await catalog.load(systemLocale());
+    // Preferencje zdarzeń czytamy raz przy starcie serwisu; zmiana w UI
+    // obowiązuje od następnego wejścia w tło (wtedy serwis startuje na nowo).
+    final notifPrefs = SettingsRepository(prefs).loadNotificationPrefs();
+    _monitor = PrintMonitor(fgs, prefs: notifPrefs, hmsDescribe: catalog.describe);
 
     final creds = SecureCredentialsStore();
     final ws = WsClient(

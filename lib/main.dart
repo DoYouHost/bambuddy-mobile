@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
+import 'features/notifications/print_monitor.dart' show systemLocale;
 import 'providers.dart';
 
 Future<void> main() async {
@@ -12,6 +14,8 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final notifications = LocalNotificationService();
   await notifications.init();
+  // Katalog opisów HMS dla UI (karta drukarki). Isolate tła ładuje własny.
+  await HmsCatalog.instance.load(systemLocale());
 
   // Port komunikacji UI↔isolate tła + opcje foreground service'u. Sam serwis
   // startuje dopiero, gdy apka idzie w tło (patrz dashboard_screen).

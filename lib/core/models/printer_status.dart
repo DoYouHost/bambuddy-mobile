@@ -38,6 +38,8 @@ class PrinterStatus {
     this.model,
     this.wifiSignal,
     this.doorOpen,
+    this.awaitingPlateClear,
+    this.hmsErrors,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -142,6 +144,16 @@ class PrinterStatus {
   /// Czy drzwiczki/pokrywa są otwarte (jeśli drukarka to raportuje).
   final bool? doorOpen;
 
+  /// Czy maszyna czeka na zdjęcie wydruku z płyty przed kolejnym zadaniem
+  /// (klucz `awaiting_plate_clear`). Źródło zdarzenia „płyta niepusta".
+  final bool? awaitingPlateClear;
+
+  /// Aktywne błędy HMS drukarki (`hms_errors`). Lista bywa pusta = brak błędów;
+  /// kształt elementu różni się między wersjami serwera, więc parsujemy
+  /// defensywnie (patrz [HmsError]).
+  @JsonKey(fromJson: _toHmsListOrNull)
+  final List<HmsError>? hmsErrors;
+
   /// Scala świeżą ramkę na poprzednim stanie tej samej drukarki. Reguła:
   /// **nigdy nie zeruj znanej wartości** — każde pole, którego nowa ramka nie
   /// niesie (`null`), dziedziczy ostatnią znaną. Powód: ani REST, ani WS nie
@@ -188,6 +200,8 @@ class PrinterStatus {
       model: model ?? previous.model,
       wifiSignal: wifiSignal ?? previous.wifiSignal,
       doorOpen: doorOpen ?? previous.doorOpen,
+      awaitingPlateClear: awaitingPlateClear ?? previous.awaitingPlateClear,
+      hmsErrors: hmsErrors ?? previous.hmsErrors,
     );
   }
 
@@ -322,13 +336,17 @@ class PrinterStatus {
 /// Pojedyncza jednostka AMS: wilgotność, temperatura i sloty (tace).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class AmsUnit {
-  const AmsUnit({this.id, this.humidity, this.temp, this.trays});
+  const AmsUnit({this.id, this.humidity, this.temp, this.trays, this.isAmsHt});
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
       _$AmsUnitFromJson(json);
 
   @JsonKey(fromJson: _toIntOrNull)
   final int? id;
+
+  /// Czy to moduł AMS-HT (high-temperature) — rozróżniany w treści powiadomień
+  /// o wilgotności/temperaturze. Klucz serwera `is_ams_ht`.
+  final bool? isAmsHt;
 
   /// Wilgotność wewnątrz AMS w procentach (jeśli moduł ją mierzy).
   @JsonKey(fromJson: _toIntOrNull)
@@ -389,6 +407,91 @@ class AmsTray {
     final type = trayType?.trim();
     return (type == null || type.isEmpty) ? null : type;
   }
+}
+
+/// Pojedynczy błąd HMS drukarki z `hms_errors`. Serwer raportuje go w dwóch
+/// kształtach zależnie od wersji: `{code, attr, module, severity}` albo
+/// `{code, message}` — dlatego wszystko nullable, a `code` normalizujemy do
+/// stringa (bywa hex-stringiem albo liczbą).
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class HmsError {
+  const HmsError({
+    this.code,
+    this.message,
+    this.severity,
+    this.attr,
+    this.module,
+  });
+
+  factory HmsError.fromJson(Map<String, dynamic> json) =>
+      _$HmsErrorFromJson(json);
+
+  @JsonKey(fromJson: _toCodeStringOrNull)
+  final String? code;
+
+  final String? message;
+
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? severity;
+
+  /// Atrybut HMS (górne 32 bity pełnego kodu). Z firmware Bambu.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? attr;
+
+  /// Numer modułu/podsystemu (np. 5=płyta główna, 7=AMS) — patrz `hmsModuleKey`.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? module;
+
+  /// Numeryczna wartość `code` (firmware podaje hex-stringiem „0x20070"
+  /// albo liczbą); null gdy `code` jest już w formie kanonicznej z separatorami.
+  int? get _codeInt {
+    final c = code?.trim();
+    if (c == null || c.isEmpty) return null;
+    if (c.contains('_') || c.contains('-')) return null;
+    final hex = c.toLowerCase().startsWith('0x') ? c.substring(2) : c;
+    return int.tryParse(hex, radix: 16);
+  }
+
+  /// Pełny 16-hex kod HMS (`attr`+`code`) używany przez katalog Bambu, np.
+  /// `0500060000020070`. null gdy brak `attr` lub `code` nie jest liczbą.
+  String? get ecode {
+    final a = attr;
+    final c = _codeInt;
+    if (a == null || c == null) return null;
+    return (a.toRadixString(16).padLeft(8, '0') +
+            c.toRadixString(16).padLeft(8, '0'))
+        .toUpperCase();
+  }
+
+  /// Czytelny kanoniczny kod z myślnikami: `0500-0600-0002-0070`. Fallback na
+  /// surowy `code` (po normalizacji separatorów), gdy nie da się złożyć pełnego.
+  String get displayCode {
+    final e = ecode;
+    if (e != null && e.length == 16) {
+      return '${e.substring(0, 4)}-${e.substring(4, 8)}'
+          '-${e.substring(8, 12)}-${e.substring(12, 16)}';
+    }
+    final c = code?.trim();
+    if (c == null || c.isEmpty) return '?';
+    return c.replaceAll('_', '-').replaceAll(' ', '-').toUpperCase();
+  }
+}
+
+/// Kod HMS przychodzi raz jako string (`"0x20070"`, `"0500_0100"`), raz jako
+/// liczba — sprowadzamy do stringa, by dało się dedupować zbiorami.
+String? _toCodeStringOrNull(dynamic value) => switch (value) {
+      String s when s.trim().isNotEmpty => s.trim(),
+      num n => n.toString(),
+      _ => null,
+    };
+
+/// Lista błędów HMS — elementy nie-mapowe pomijamy (parsowanie defensywne).
+List<HmsError>? _toHmsListOrNull(dynamic value) {
+  if (value is! List) return null;
+  return [
+    for (final e in value)
+      if (e is Map) HmsError.fromJson(Map<String, dynamic>.from(e)),
+  ];
 }
 
 double? _toDoubleOrNull(dynamic value) => switch (value) {

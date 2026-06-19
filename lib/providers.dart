@@ -7,6 +7,7 @@ import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/notifications/background_monitor.dart';
+import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
@@ -47,6 +48,36 @@ class BgMonitoringNotifier extends Notifier<bool> {
     await ref.read(settingsRepositoryProvider).saveBgMonitoringEnabled(enabled);
     state = enabled;
   }
+}
+
+/// Preferencje powiadomień (które zdarzenia, jakie progi). Persystencja przez
+/// [SettingsRepository]; isolate tła czyta te same prefs niezależnie przy starcie.
+final notificationPrefsProvider =
+    NotifierProvider<NotificationPrefsNotifier, NotificationPrefs>(
+  NotificationPrefsNotifier.new,
+);
+
+class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
+  @override
+  NotificationPrefs build() =>
+      ref.watch(settingsRepositoryProvider).loadNotificationPrefs();
+
+  Future<void> _save(NotificationPrefs prefs) async {
+    await ref.read(settingsRepositoryProvider).saveNotificationPrefs(prefs);
+    state = prefs;
+  }
+
+  Future<void> setEvent(NotifEvent event, bool on) =>
+      _save(state.withEvent(event, on));
+
+  Future<void> setBedCooledTemp(int value) =>
+      _save(state.copyWith(bedCooledTemp: value));
+
+  Future<void> setAmsHumidityThreshold(int value) =>
+      _save(state.copyWith(amsHumidityThreshold: value));
+
+  Future<void> setLowFilamentThreshold(int value) =>
+      _save(state.copyWith(lowFilamentThreshold: value));
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(

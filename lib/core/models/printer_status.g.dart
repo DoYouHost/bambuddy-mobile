@@ -36,6 +36,8 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       model: json['model'] as String?,
       wifiSignal: _toIntOrNull(json['wifi_signal']),
       doorOpen: json['door_open'] as bool?,
+      awaitingPlateClear: json['awaiting_plate_clear'] as bool?,
+      hmsErrors: _toHmsListOrNull(json['hms_errors']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
@@ -43,6 +45,7 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
   humidity: _toIntOrNull(json['humidity']),
   temp: _toDoubleOrNull(json['temp']),
   trays: _toTrayListOrNull(json['tray']),
+  isAmsHt: json['is_ams_ht'] as bool?,
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
@@ -51,4 +54,12 @@ AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
   trayType: json['tray_type'] as String?,
   traySubBrands: json['tray_sub_brands'] as String?,
   remain: _toIntOrNull(json['remain']),
+);
+
+HmsError _$HmsErrorFromJson(Map<String, dynamic> json) => HmsError(
+  code: _toCodeStringOrNull(json['code']),
+  message: json['message'] as String?,
+  severity: _toIntOrNull(json['severity']),
+  attr: _toIntOrNull(json['attr']),
+  module: _toIntOrNull(json['module']),
 );
