@@ -743,6 +743,92 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navMaintenance => 'Maintenance';
 
   @override
+  String get navFilaments => 'Filaments';
+
+  @override
+  String get inventoryEmpty => 'No spools in inventory';
+
+  @override
+  String get inventoryNoMatches => 'No filaments match your search';
+
+  @override
+  String get inventorySearchHint => 'Search material, brand, color…';
+
+  @override
+  String get inventoryShowArchived => 'Show archived';
+
+  @override
+  String get inventoryArchived => 'Archived';
+
+  @override
+  String get inventoryLowStock => 'Low';
+
+  @override
+  String inventorySpoolCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String inventoryRemaining(String grams) {
+    return '$grams g left';
+  }
+
+  @override
+  String inventoryOfTotal(int total) {
+    return 'of $total g';
+  }
+
+  @override
+  String inventoryLoadedIn(String slot) {
+    return 'Loaded in $slot';
+  }
+
+  @override
+  String get inventoryNotLoaded => 'Not loaded in any AMS slot';
+
+  @override
+  String get inventoryLocation => 'Location';
+
+  @override
+  String get inventoryNozzleTemp => 'Nozzle temp';
+
+  @override
+  String inventoryCostPerKg(String cost) {
+    return '$cost/kg';
+  }
+
+  @override
+  String get inventoryNote => 'Note';
+
+  @override
+  String get inventoryTag => 'Tag';
+
+  @override
+  String get inventoryUsageHistory => 'Usage history';
+
+  @override
+  String get inventoryUsageEmpty => 'No usage recorded yet';
+
+  @override
+  String inventoryUsageWeight(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String get inventoryKProfiles => 'Calibration (K)';
+
+  @override
+  String inventoryKProfileLine(String nozzle, String k) {
+    return '$nozzle mm · K $k';
+  }
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

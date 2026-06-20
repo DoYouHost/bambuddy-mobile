@@ -1394,6 +1394,138 @@ abstract class AppLocalizations {
   /// **'Maintenance'**
   String get navMaintenance;
 
+  /// Bottom nav tab: Filaments inventory
+  ///
+  /// In en, this message translates to:
+  /// **'Filaments'**
+  String get navFilaments;
+
+  /// No description provided for @inventoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No spools in inventory'**
+  String get inventoryEmpty;
+
+  /// No description provided for @inventoryNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No filaments match your search'**
+  String get inventoryNoMatches;
+
+  /// No description provided for @inventorySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search material, brand, color…'**
+  String get inventorySearchHint;
+
+  /// No description provided for @inventoryShowArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Show archived'**
+  String get inventoryShowArchived;
+
+  /// No description provided for @inventoryArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get inventoryArchived;
+
+  /// No description provided for @inventoryLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get inventoryLowStock;
+
+  /// No description provided for @inventorySpoolCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{spool} other{spools}}'**
+  String inventorySpoolCount(int count);
+
+  /// No description provided for @inventoryRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{grams} g left'**
+  String inventoryRemaining(String grams);
+
+  /// No description provided for @inventoryOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'of {total} g'**
+  String inventoryOfTotal(int total);
+
+  /// No description provided for @inventoryLoadedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded in {slot}'**
+  String inventoryLoadedIn(String slot);
+
+  /// No description provided for @inventoryNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded in any AMS slot'**
+  String get inventoryNotLoaded;
+
+  /// No description provided for @inventoryLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get inventoryLocation;
+
+  /// No description provided for @inventoryNozzleTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle temp'**
+  String get inventoryNozzleTemp;
+
+  /// No description provided for @inventoryCostPerKg.
+  ///
+  /// In en, this message translates to:
+  /// **'{cost}/kg'**
+  String inventoryCostPerKg(String cost);
+
+  /// No description provided for @inventoryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get inventoryNote;
+
+  /// No description provided for @inventoryTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get inventoryTag;
+
+  /// No description provided for @inventoryUsageHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage history'**
+  String get inventoryUsageHistory;
+
+  /// No description provided for @inventoryUsageEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No usage recorded yet'**
+  String get inventoryUsageEmpty;
+
+  /// No description provided for @inventoryUsageWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'{grams} g'**
+  String inventoryUsageWeight(String grams);
+
+  /// No description provided for @inventoryKProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibration (K)'**
+  String get inventoryKProfiles;
+
+  /// No description provided for @inventoryKProfileLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{nozzle} mm · K {k}'**
+  String inventoryKProfileLine(String nozzle, String k);
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

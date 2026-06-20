@@ -45,6 +45,11 @@ class RootScaffold extends StatelessWidget {
             selectedIcon: const Icon(Icons.build),
             label: l10n.navMaintenance,
           ),
+          NavigationDestination(
+            icon: const Icon(Icons.bookmark_outline),
+            selectedIcon: const Icon(Icons.bookmark),
+            label: l10n.navFilaments,
+          ),
         ],
       ),
     );

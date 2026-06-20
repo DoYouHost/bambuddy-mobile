@@ -14,6 +14,8 @@ import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/firmware_repository.dart';
+import 'data/inventory_repository.dart';
+import 'data/inventory_source.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
@@ -192,6 +194,44 @@ final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
 /// Firmware drukarek. Współdzieli uwierzytelnione Dio.
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(
   (ref) => FirmwareRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Wybrany backend magazynu filamentów (natywny domyślnie). Przełącznik
+/// użytkownika; Spoolman to drop-in — patrz [SpoolInventorySource].
+final inventoryBackendProvider =
+    NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
+  InventoryBackendNotifier.new,
+);
+
+class InventoryBackendNotifier extends Notifier<InventoryBackend> {
+  @override
+  InventoryBackend build() {
+    final raw = ref.watch(settingsRepositoryProvider).loadInventoryBackend();
+    return InventoryBackend.values.firstWhere(
+      (b) => b.name == raw,
+      orElse: () => InventoryBackend.native,
+    );
+  }
+
+  Future<void> set(InventoryBackend backend) async {
+    await ref.read(settingsRepositoryProvider).saveInventoryBackend(backend.name);
+    state = backend;
+  }
+}
+
+/// Źródło danych magazynu zależne od wybranego backendu. Współdzieli
+/// uwierzytelnione Dio; przebudowywane przy zmianie profilu lub backendu.
+final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
+  final dio = ref.watch(apiClientProvider).dio;
+  return switch (ref.watch(inventoryBackendProvider)) {
+    InventoryBackend.native => NativeInventorySource(dio),
+    InventoryBackend.spoolman => SpoolmanInventorySource(dio),
+  };
+});
+
+/// Magazyn filamentów. Fasada nad wybranym źródłem.
+final inventoryRepositoryProvider = Provider<InventoryRepository>(
+  (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

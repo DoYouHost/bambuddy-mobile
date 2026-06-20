@@ -745,6 +745,93 @@ class AppLocalizationsPl extends AppLocalizations {
   String get navMaintenance => 'Konserwacja';
 
   @override
+  String get navFilaments => 'Filamenty';
+
+  @override
+  String get inventoryEmpty => 'Brak szpul w magazynie';
+
+  @override
+  String get inventoryNoMatches => 'Brak filamentów pasujących do wyszukiwania';
+
+  @override
+  String get inventorySearchHint => 'Szukaj: materiał, marka, kolor…';
+
+  @override
+  String get inventoryShowArchived => 'Pokaż zarchiwizowane';
+
+  @override
+  String get inventoryArchived => 'Zarchiwizowana';
+
+  @override
+  String get inventoryLowStock => 'Mało';
+
+  @override
+  String inventorySpoolCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      few: '$count szpule',
+      one: '$count szpula',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inventoryRemaining(String grams) {
+    return 'zostało $grams g';
+  }
+
+  @override
+  String inventoryOfTotal(int total) {
+    return 'z $total g';
+  }
+
+  @override
+  String inventoryLoadedIn(String slot) {
+    return 'Załadowana w $slot';
+  }
+
+  @override
+  String get inventoryNotLoaded => 'Nie załadowana w żadnym slocie AMS';
+
+  @override
+  String get inventoryLocation => 'Lokalizacja';
+
+  @override
+  String get inventoryNozzleTemp => 'Temp. dyszy';
+
+  @override
+  String inventoryCostPerKg(String cost) {
+    return '$cost/kg';
+  }
+
+  @override
+  String get inventoryNote => 'Notatka';
+
+  @override
+  String get inventoryTag => 'Tag';
+
+  @override
+  String get inventoryUsageHistory => 'Historia zużycia';
+
+  @override
+  String get inventoryUsageEmpty => 'Brak zapisanego zużycia';
+
+  @override
+  String inventoryUsageWeight(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String get inventoryKProfiles => 'Kalibracja (K)';
+
+  @override
+  String inventoryKProfileLine(String nozzle, String k) {
+    return '$nozzle mm · K $k';
+  }
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

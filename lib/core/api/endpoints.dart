@@ -104,6 +104,34 @@ abstract final class Endpoints {
   static String maintenanceHistory(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/history';
 
+  // --- Filamenty: magazyn szpul (inventory) ---
+  //
+  // Dwa backendy za wspólnym interfejsem (patrz [SpoolInventorySource]):
+  // natywny `/inventory/*` (domyślny) i Spoolman `/spoolman/inventory/*`.
+  // Trailing slash NIE jest tu wymagany — trasy są pod pełną ścieżką bez slasha.
+
+  /// Lista szpul. Query: `include_archived=true|false`.
+  static const inventorySpools = '$apiPrefix/inventory/spools';
+  static String inventorySpool(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId';
+
+  /// Historia zużycia szpuli (`SpoolUsageHistoryResponse[]`).
+  static String inventorySpoolUsage(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/usage';
+
+  /// Przypisania szpul do slotów AMS (`SpoolAssignmentResponse[]`).
+  static const inventoryAssignments = '$apiPrefix/inventory/assignments';
+
+  // Backend Spoolman (drop-in — inny kształt danych).
+  static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
+  static String spoolmanSpool(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId';
+  static const spoolmanAssignments =
+      '$apiPrefix/spoolman/inventory/slot-assignments/all';
+
+  // Katalog filamentów (definicje/profile — `FilamentResponse[]`).
+  static const filamentCatalog = '$apiPrefix/filament-catalog/';
+
   // --- Firmware ---
 
   /// Firmware całej farmy jednym zapytaniem (`FirmwareUpdatesResponse`:

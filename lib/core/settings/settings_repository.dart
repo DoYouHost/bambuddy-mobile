@@ -14,6 +14,7 @@ class SettingsRepository {
   static const _bgMonitoringKey = 'bg_monitoring_enabled';
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
+  static const _inventoryBackendKey = 'inventory_backend';
 
   final SharedPreferences _prefs;
 
@@ -65,4 +66,12 @@ class SettingsRepository {
         _maintNotifiedKey,
         [for (final id in ids) id.toString()],
       );
+
+  /// Backend magazynu filamentów: `native` (domyślny) lub `spoolman`. Zapisany
+  /// jako nazwa enuma; nieznana/uszkodzona wartość → natywny.
+  String loadInventoryBackend() =>
+      _prefs.getString(_inventoryBackendKey) ?? 'native';
+
+  Future<void> saveInventoryBackend(String backend) =>
+      _prefs.setString(_inventoryBackendKey, backend);
 }

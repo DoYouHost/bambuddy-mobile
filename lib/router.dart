@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/queue/queue_screen.dart';
@@ -16,6 +17,7 @@ final _dashboardNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'dashboar
 final _queueNavigatorKey       = GlobalKey<NavigatorState>(debugLabel: 'queue');
 final _archiveNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'archive');
 final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'maintenance');
+final _inventoryNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'inventory');
 
 /// Router aplikacji z powłoką dolnej belki nawigacyjnej (Material 3).
 /// Trasa /setup pozostaje poza powłoką — wyświetlana bez NavigationBar.
@@ -76,6 +78,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/maintenance',
                 builder: (_, _) => const MaintenanceScreen(),
+              ),
+            ],
+          ),
+          // Zakładka 4: Filamenty (magazyn szpul)
+          StatefulShellBranch(
+            navigatorKey: _inventoryNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/inventory',
+                builder: (_, _) => const InventoryScreen(),
               ),
             ],
           ),
