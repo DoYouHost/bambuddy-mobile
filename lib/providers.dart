@@ -6,6 +6,7 @@ import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
+import 'core/auth/token_refresher.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
@@ -93,6 +94,27 @@ final authServiceProvider = Provider<AuthService>(
     credentials: ref.watch(credentialsStoreProvider),
   ),
 );
+
+/// Proaktywna odnowa JWT dla aktywnego profilu: planuje cichy re-login tuż
+/// przed wygaśnięciem tokenu, żeby REST i handshake WS nie trafiały na 401
+/// (które dopiero reaktywnie ponawiamy). Tylko dla [AuthMode.jwt] — klucz API
+/// jest stały, a serwer bez auth nie wygasa; w tych trybach provider daje `null`.
+///
+/// Sam się NIE uruchamia — to leniwy provider; UI utrzymuje go żywym i steruje
+/// nim wg cyklu życia (w tle przejmuje isolate foreground service'u, patrz
+/// [PrintMonitorTaskHandler]). Przebudowywany przy zmianie profilu.
+final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
+  final profile = ref.watch(serverProfileProvider);
+  if (profile == null || profile.authMode != AuthMode.jwt) return null;
+  final creds = ref.watch(credentialsStoreProvider);
+  final auth = ref.watch(authServiceProvider);
+  final refresher = ProactiveTokenRefresher(
+    readJwt: creds.readJwt,
+    refresh: () => auth.silentReLogin(profile.baseUrl),
+  );
+  ref.onDispose(refresher.stop);
+  return refresher;
+});
 
 /// Aktywny profil serwera; `null` = nieskonfigurowany (router → /setup).
 final serverProfileProvider =

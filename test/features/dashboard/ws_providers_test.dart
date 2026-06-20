@@ -86,4 +86,18 @@ void main() {
     expect(map[1]!.state, 'RUNNING');
     expect(map[2]!.state, 'IDLE');
   });
+
+  test('ingestPoll: drukarka usunięta z rostera znika z mapy', () {
+    final c = _container();
+    c.read(printerStatusesProvider.notifier).ingestPoll([
+      _pws(1, state: 'RUNNING'),
+      _pws(2, state: 'IDLE'),
+    ]);
+    expect(c.read(printerStatusesProvider).keys, unorderedEquals([1, 2]));
+
+    // Kolejny poll bez drukarki 2 (skasowana na serwerze) — znika z mapy,
+    // nie zostaje na zawsze.
+    c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1, state: 'RUNNING')]);
+    expect(c.read(printerStatusesProvider).keys, [1]);
+  });
 }

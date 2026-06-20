@@ -11,9 +11,13 @@ import 'background_api.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
 import '../../l10n/app_localizations.dart';
+import '../api/api_client.dart';
 import '../api/ws_client.dart';
+import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
+import '../auth/token_refresher.dart';
 import '../models/printer_status.dart';
+import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import 'notification_service.dart';
 
@@ -40,6 +44,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   _FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
+  ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
 
   @override
@@ -84,6 +89,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
       _monitor?.update(Map.of(_statuses));
     });
     ws.start();
+
+    // Foreground service bywa żywy dłużej niż ważność JWT (np. wielogodzinny
+    // wydruk) — proaktywnie odnawiamy token, żeby handshake WS nie padał na 401.
+    _setUpTokenRefresh(profile, creds);
+  }
+
+  /// Uruchamia proaktywną odnowę JWT w isolacie tła (tylko tryb [AuthMode.jwt]).
+  void _setUpTokenRefresh(ServerProfile profile, CredentialsStore creds) {
+    if (profile.authMode != AuthMode.jwt) return;
+    final auth = AuthService(bareDio: createBareDio(), credentials: creds);
+    final refresher = ProactiveTokenRefresher(
+      readJwt: creds.readJwt,
+      refresh: () => auth.silentReLogin(profile.baseUrl),
+    );
+    _tokenRefresher = refresher;
+    refresher.start();
   }
 
   /// Buduje [MaintenanceMonitor] na uwierzytelnionym Dio (jeśli zdarzenie
@@ -131,6 +152,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
     _maintenanceTimer?.cancel();
+    _tokenRefresher?.stop();
     await _sub?.cancel();
     await _ws?.dispose();
   }

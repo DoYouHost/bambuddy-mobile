@@ -46,12 +46,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
         ref.read(smartPlugsProvider.notifier).pausePolling();
+        // Odnowę tokenu w tle przejmuje isolate FGS — UI milczy.
+        ref.read(tokenRefresherProvider)?.stop();
       },
       onResume: () {
         ref.read(backgroundMonitorProvider).stop();
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
         ref.read(smartPlugsProvider.notifier).resumePolling();
+        ref.read(tokenRefresherProvider)?.start();
       },
     );
     // Po pierwszym renderze: jednorazowy onboarding powiadomień (uprawnienie +
@@ -206,6 +209,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
+
+    // Utrzymujemy proaktywną odnowę JWT żywą, dopóki dashboard jest na ekranie,
+    // i uruchamiamy ją (idempotentnie). Cykl życia ją wstrzymuje/wznawia.
+    ref.watch(tokenRefresherProvider)?.start();
 
     return Scaffold(
       appBar: AppBar(

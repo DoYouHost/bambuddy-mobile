@@ -155,11 +155,17 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     if (generation != _generation) return;
 
     // Status odpytujemy dla włączonych gniazdek (moc do sumy całej farmy),
-    // równolegle. Nieosiągalne zwracają null → pomijamy w mapie.
+    // równolegle. Nieosiągalne zwracają null → pomijamy w mapie. [fetchStatus]
+    // rethrowuje AuthException (per-endpoint 401/403, gdy lista przeszła) — łapiemy
+    // ją tu, bo dashboardProvider i tak odeśle do /setup; bez tego byłby to
+    // nieobsłużony async error w ticku Timera.
     final enabled = plugs.where((p) => p.enabled ?? true).toList();
-    final results = await Future.wait(
-      enabled.map((p) => repo.fetchStatus(p.id)),
-    );
+    final List<SmartPlugStatus?> results;
+    try {
+      results = await Future.wait(enabled.map((p) => repo.fetchStatus(p.id)));
+    } on AppApiException {
+      return;
+    }
     if (generation != _generation) return;
 
     final statuses = <int, SmartPlugStatus>{};

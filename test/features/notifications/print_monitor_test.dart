@@ -230,6 +230,13 @@ void main() {
     return found;
   }
 
+  // Alerty błędów HMS: id jest teraz unikalne per (drukarka, kod), więc szukamy
+  // ich po tytule, nie po stałym id. Każdy ma własne id, więc kilka równoczesnych
+  // błędów daje kilka osobnych powiadomień (różne id).
+  final errorTitle = lookupAppLocalizations(const Locale('en')).notifErrorTitle;
+  List<Map<String, Object?>> errorAlerts(_FakeNotifications fake) =>
+      [for (final a in fake.alerts) if (a['title'] == errorTitle) a];
+
   test('start wydruku odpala alert „rozpoczęto" (gdy włączony)', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
@@ -315,13 +322,26 @@ void main() {
     const err = HmsError(code: 'A', severity: 2);
     m.update({1: _status(state: 'RUNNING')}); // priming — bez błędów
     m.update({1: _status(state: 'RUNNING', hms: [err])});
-    expect(alertById(fake, 8001), isNotNull);
+    expect(errorAlerts(fake), hasLength(1));
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', hms: [err])});
-    expect(alertById(fake, 8001), isNull); // ten sam kod
+    expect(errorAlerts(fake), isEmpty); // ten sam kod
     m.update({1: _status(state: 'RUNNING', hms: const [])}); // wyczyszczone
     m.update({1: _status(state: 'RUNNING', hms: [err])});
-    expect(alertById(fake, 8001), isNotNull); // pojawił się ponownie
+    expect(errorAlerts(fake), hasLength(1)); // pojawił się ponownie
+  });
+
+  test('błąd HMS: kilka nowych kodów w jednej ramce → osobne alerty (różne id)',
+      () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    const a = HmsError(code: 'A', severity: 2);
+    const b = HmsError(code: 'B', severity: 3);
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({1: _status(state: 'RUNNING', hms: [a, b])});
+    final alerts = errorAlerts(fake);
+    expect(alerts, hasLength(2)); // oba kody, żaden się nie zgubił
+    expect(alerts.map((e) => e['id']).toSet(), hasLength(2)); // różne id
   });
 
   test('błąd HMS: wpis wewnętrzny (nieznany severity, brak opisu) jest pomijany',
@@ -335,7 +355,7 @@ void main() {
         const HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 6),
       ]),
     });
-    expect(alertById(fake, 8001), isNull); // nie alarmujemy
+    expect(errorAlerts(fake), isEmpty); // nie alarmujemy
   });
 
   test('niski filament: histereza per slot', () {

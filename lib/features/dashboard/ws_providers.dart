@@ -95,8 +95,12 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// a alerty mają stałe id per drukarka, więc duplikat z dwóch torów się
   /// nadpisuje, nie dubluje.
   void ingestPoll(List<PrinterWithStatus> polled) {
-    final next = {...state};
-    var changed = false;
+    // Poll niesie pełny roster, więc to autorytatywne źródło składu — przycinamy
+    // statusy drukarek, które zniknęły z listy (inaczej rosłyby bez końca; WS
+    // sam nie raportuje usunięć). Wpisy z null-statusem zostają w rosterze.
+    final rosterIds = {for (final p in polled) p.printer.id};
+    final next = {...state}..removeWhere((id, _) => !rosterIds.contains(id));
+    var changed = next.length != state.length;
     for (final p in polled) {
       final s = p.status;
       if (s == null) continue;

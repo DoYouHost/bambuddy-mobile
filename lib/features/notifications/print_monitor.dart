@@ -283,14 +283,15 @@ class PrintMonitor {
       ..clear()
       ..addAll(current);
     if (fresh.isEmpty || !_on(NotifEvent.printerError)) return;
-    // Alarmujemy tylko o błędach wartych pokazania (parytet z bambuddy —
-    // wewnętrzne/nieprzetłumaczalne wpisy pomijamy).
+    // Alarmujemy o KAŻDYM nowym błędzie wartym pokazania (parytet z bambuddy —
+    // wewnętrzne/nieprzetłumaczalne wpisy pomijamy). Drukarka może zgłosić kilka
+    // kodów naraz; każdy ma własne id powiadomienia, więc się nie nadpisują.
+    // Dedup po `knownHmsCodes` wyżej gwarantuje jeden alert na kod.
     for (final e in errors) {
       if (e.code != null &&
           fresh.contains(e.code) &&
           hmsIsDisplayable(e, description: _hmsDescribe?.call(e))) {
         _alertError(id, status, e);
-        return;
       }
     }
   }
@@ -457,11 +458,19 @@ class PrintMonitor {
     final l = _l10n();
     final detail = hmsHumanText(err, description: _hmsDescribe?.call(err), l10n: l);
     _notifications.showAlert(
-      id: _errorAlertBase + id,
+      id: _errorAlertId(id, err),
       title: l.notifErrorTitle,
       body: l.notifErrorBody(_printerLabel(status, l), detail),
       payload: 'printer:$id',
     );
+  }
+
+  /// Id alertu błędu HMS — unikalne per (drukarka, kod), by równoczesne błędy
+  /// jednej drukarki się nie nadpisywały (a ten sam kod ponownie trafił w to
+  /// samo powiadomienie). Osobne, wysokie pasmo — nie koliduje z bazami 1k–13k.
+  int _errorAlertId(int id, HmsError err) {
+    final code = err.ecode ?? err.code ?? err.displayCode;
+    return _errorAlertBase * 1000 + (Object.hash(id, code) & 0xfffff);
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {
