@@ -650,6 +650,18 @@ abstract class AppLocalizations {
   /// **'Door closed'**
   String get doorClosed;
 
+  /// No description provided for @firmwareUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware up to date'**
+  String get firmwareUpToDate;
+
+  /// No description provided for @firmwareUpdateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware update available: {version}'**
+  String firmwareUpdateAvailable(String version);
+
   /// No description provided for @statusUnavailable.
   ///
   /// In en, this message translates to:

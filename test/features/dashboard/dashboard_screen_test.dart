@@ -17,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers.dart';
+
 /// Onboarding powiadomień w initState czyta te providery; w teście są nieaktywne.
 class _NoopNotifications implements NotificationService {
   @override
@@ -82,6 +84,7 @@ Widget _app(DashboardState state) => ProviderScope(
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+        inertFirmwareOverride,
         sharedPreferencesProvider.overrideWithValue(_prefs),
         notificationServiceProvider.overrideWithValue(_NoopNotifications()),
         wsConnectionStateProvider.overrideWith(

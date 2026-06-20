@@ -103,4 +103,32 @@ abstract final class Endpoints {
   /// Historia wykonania czynności (`MaintenanceHistoryResponse[]`).
   static String maintenanceHistory(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/history';
+
+  // --- Firmware ---
+
+  /// Firmware całej farmy jednym zapytaniem (`FirmwareUpdatesResponse`:
+  /// `{updates:[FirmwareUpdateInfo], updates_available:int}`).
+  static const firmwareUpdates = '$apiPrefix/firmware/updates';
+
+  /// Firmware jednej drukarki (`FirmwareUpdateInfo`).
+  static String firmwareUpdate(int printerId) =>
+      '$apiPrefix/firmware/updates/$printerId';
+
+  /// Najnowsze firmware per model (`LatestFirmwareInfo[]`).
+  static const firmwareLatest = '$apiPrefix/firmware/latest';
+
+  // Poniższe na PRZYSZŁOŚĆ — wykonywanie aktualizacji (nieużywane jeszcze w UI).
+
+  /// Sonda przed wgraniem firmware (`FirmwareUploadPrepareResponse`).
+  static String firmwarePrepare(int printerId) =>
+      '$apiPrefix/firmware/updates/$printerId/prepare';
+
+  /// Start wgrywania firmware (`FirmwareUploadStartResponse`). Query: `version`.
+  /// Wymaga uprawnienia sterowania na kluczu API (brak → 403).
+  static String firmwareUpload(int printerId) =>
+      '$apiPrefix/firmware/updates/$printerId/upload';
+
+  /// Postęp wgrywania firmware (`FirmwareUploadStatusResponse`).
+  static String firmwareUploadStatus(int printerId) =>
+      '$apiPrefix/firmware/updates/$printerId/upload/status';
 }

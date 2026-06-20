@@ -312,6 +312,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get doorClosed => 'Drzwiczki zamknięte';
 
   @override
+  String get firmwareUpToDate => 'Oprogramowanie aktualne';
+
+  @override
+  String firmwareUpdateAvailable(String version) {
+    return 'Dostępna aktualizacja oprogramowania: $version';
+  }
+
+  @override
   String get statusUnavailable => 'status niedostępny';
 
   @override

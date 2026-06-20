@@ -13,6 +13,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
 import '../controls_providers.dart';
+import '../firmware_providers.dart';
 import '../smart_plugs_providers.dart';
 
 class PrinterCard extends StatefulWidget {
@@ -153,10 +154,17 @@ class _PrinterCardState extends State<PrinterCard> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    widget.item.printer.name,
-                    style: theme.textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.item.printer.name,
+                        style: theme.textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      _FirmwareLine(printerId: widget.item.printer.id),
+                    ],
                   ),
                 ),
                 // Podgląd kamery — tylko gdy drukarka jest połączona (offline
@@ -704,6 +712,65 @@ class _InfoRow extends StatelessWidget {
     ];
     if (items.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 14, runSpacing: 4, children: items);
+  }
+}
+
+/// Wersja firmware tuż pod nazwą drukarki (widoczna bez rozwijania szczegółów,
+/// tylko gdy drukarka online). Gdy dostępna aktualizacja — wyróżniona kolorem
+/// (tertiary), pogrubiona, z ikoną aktualizacji i wersją docelową
+/// (`bieżąca → najnowsza`); gdy aktualne — neutralnie. Tooltip wyjaśnia stan i
+/// niesie notatki wydania, gdy serwer je poda. Sam się chowa, gdy brak danych
+/// firmware. Wykonanie aktualizacji dojdzie tu w przyszłości (repo już gotowe).
+class _FirmwareLine extends ConsumerWidget {
+  const _FirmwareLine({required this.printerId});
+
+  final int printerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(printerFirmwareProvider(printerId));
+    if (info == null || !info.hasVersion) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final update =
+        info.updateAvailable && (info.latestVersion?.isNotEmpty ?? false);
+    final color = update ? scheme.tertiary : scheme.onSurfaceVariant;
+    final text = update
+        ? '${info.currentVersion} → ${info.latestVersion}'
+        : info.currentVersion!;
+    final tooltip = update
+        ? l10n.firmwareUpdateAvailable(info.latestVersion!)
+        : l10n.firmwareUpToDate;
+    final notes = info.releaseNotes?.trim();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Tooltip(
+        message: update && notes != null && notes.isNotEmpty
+            ? '$tooltip\n\n$notes'
+            : tooltip,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(update ? Icons.system_update : Icons.memory,
+                size: 13, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: update ? FontWeight.w600 : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -309,6 +309,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doorClosed => 'Door closed';
 
   @override
+  String get firmwareUpToDate => 'Firmware up to date';
+
+  @override
+  String firmwareUpdateAvailable(String version) {
+    return 'Firmware update available: $version';
+  }
+
+  @override
   String get statusUnavailable => 'status unavailable';
 
   @override

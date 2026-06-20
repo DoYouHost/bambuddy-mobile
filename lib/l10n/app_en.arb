@@ -127,6 +127,9 @@
   "wifiTooltip": "Wi-Fi signal",
   "doorOpen": "Door open",
   "doorClosed": "Door closed",
+  "firmwareUpToDate": "Firmware up to date",
+  "firmwareUpdateAvailable": "Firmware update available: {version}",
+  "@firmwareUpdateAvailable": { "placeholders": { "version": { "type": "String" } } },
 
   "statusUnavailable": "status unavailable",
   "statusOffline": "OFFLINE",

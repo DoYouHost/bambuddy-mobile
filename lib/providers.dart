@@ -13,6 +13,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'data/archive_repository.dart';
+import 'data/firmware_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
@@ -186,6 +187,11 @@ final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
 /// Konserwacja drukarek (M7). Współdzieli uwierzytelnione Dio.
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
   (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Firmware drukarek. Współdzieli uwierzytelnione Dio.
+final firmwareRepositoryProvider = Provider<FirmwareRepository>(
+  (ref) => FirmwareRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

@@ -1,6 +1,8 @@
+import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
+import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart'
@@ -74,6 +76,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        inertFirmwareOverride,
         smartPlugsProvider.overrideWith(() => stub),
       ],
       child: plApp(
@@ -88,6 +91,7 @@ Widget _scope(Widget child) => ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        inertFirmwareOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(child),
@@ -102,6 +106,7 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        inertFirmwareOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(
@@ -525,6 +530,85 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(Image), findsNothing);
+    });
+  });
+
+  group('firmware pod nazwą drukarki', () {
+    Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
+          overrides: [
+            serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+            cameraTokenProvider.overrideWith((ref) async => 'tok'),
+            smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+            printerFirmwareProvider(1).overrideWithValue(info),
+          ],
+          child: plApp(
+            Scaffold(
+              body: SingleChildScrollView(
+                child: PrinterCard(
+                  item: const PrinterWithStatus(
+                    printer: Printer(id: 1, name: 'X2D'),
+                    status: PrinterStatus(id: 1, connected: true),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('dostępna aktualizacja: „bieżąca → najnowsza" + ikona update',
+        (tester) async {
+      await tester.pumpWidget(cardWithFirmware(const FirmwareUpdateInfo(
+        printerId: 1,
+        currentVersion: '01.02.03',
+        latestVersion: '01.02.05',
+        updateAvailable: true,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('01.02.03 → 01.02.05'), findsOneWidget);
+      expect(find.byIcon(Icons.system_update), findsOneWidget);
+    });
+
+    testWidgets('aktualne: sama wersja, bez ikony aktualizacji',
+        (tester) async {
+      await tester.pumpWidget(cardWithFirmware(const FirmwareUpdateInfo(
+        printerId: 1,
+        currentVersion: '01.02.03',
+        latestVersion: '01.02.03',
+        updateAvailable: false,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('01.02.03'), findsOneWidget);
+      expect(find.byIcon(Icons.memory), findsOneWidget);
+      expect(find.byIcon(Icons.system_update), findsNothing);
+    });
+
+    testWidgets('brak danych firmware: brak linii (nie wywraca karty)',
+        (tester) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+          inertFirmwareOverride, // zwraca null
+        ],
+        child: plApp(
+          const Scaffold(
+            body: PrinterCard(
+              item: PrinterWithStatus(
+                printer: Printer(id: 1, name: 'X2D'),
+                status: PrinterStatus(id: 1, connected: true),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('X2D'), findsOneWidget); // karta żyje
+      expect(find.byIcon(Icons.system_update), findsNothing);
+      expect(find.byIcon(Icons.memory), findsNothing);
     });
   });
 }

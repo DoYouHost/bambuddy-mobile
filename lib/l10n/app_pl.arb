@@ -102,6 +102,8 @@
   "wifiTooltip": "Sygnał Wi-Fi",
   "doorOpen": "Drzwiczki otwarte",
   "doorClosed": "Drzwiczki zamknięte",
+  "firmwareUpToDate": "Oprogramowanie aktualne",
+  "firmwareUpdateAvailable": "Dostępna aktualizacja oprogramowania: {version}",
 
   "statusUnavailable": "status niedostępny",
   "statusOffline": "OFFLINE",
