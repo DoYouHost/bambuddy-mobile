@@ -3,15 +3,23 @@ import 'dart:async';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/maintenance_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders;
+import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
+import 'background_api.dart';
 import 'hms_catalog.dart';
+import 'notification_prefs.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/ws_client.dart';
 import '../auth/credentials_store.dart';
 import '../models/printer_status.dart';
 import '../settings/settings_repository.dart';
 import 'notification_service.dart';
+
+/// Co ile odpytujemy REST o stan konserwacji. Godziny narastają tylko podczas
+/// druku, więc rzadki tick wystarcza — i tak nie obciąża serwera.
+const Duration _maintenanceCheckInterval = Duration(minutes: 30);
 
 /// Punkt wejścia isolate'u tła. MUSI być top-level i oznaczony
 /// `@pragma('vm:entry-point')` — flutter_foreground_task uruchamia go w osobnym
@@ -30,6 +38,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
   StreamSubscription<PrinterStatus>? _sub;
   PrintMonitor? _monitor;
   _FgsNotificationService? _fgs;
+  MaintenanceMonitor? _maintenance;
+  Timer? _maintenanceTimer;
   final Map<int, PrinterStatus> _statuses = {};
 
   @override
@@ -50,7 +60,18 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Preferencje zdarzeń czytamy raz przy starcie serwisu; zmiana w UI
     // obowiązuje od następnego wejścia w tło (wtedy serwis startuje na nowo).
     final notifPrefs = SettingsRepository(prefs).loadNotificationPrefs();
-    _monitor = PrintMonitor(fgs, prefs: notifPrefs, hmsDescribe: catalog.describe);
+
+    // Konserwacja: REST-owy monitor (jeśli włączony) + przypomnienie po wydruku.
+    // Budujemy go PRZED [PrintMonitor], by wpiąć callback `onPrintEnded`.
+    await _setUpMaintenance(prefs, notifPrefs);
+
+    _monitor = PrintMonitor(
+      fgs,
+      prefs: notifPrefs,
+      hmsDescribe: catalog.describe,
+      onPrintEnded: (printerId) =>
+          unawaited(_maintenance?.remindOnPrintEnd(printerId) ?? Future.value()),
+    );
 
     final creds = SecureCredentialsStore();
     final ws = WsClient(
@@ -63,6 +84,33 @@ class PrintMonitorTaskHandler extends TaskHandler {
       _monitor?.update(Map.of(_statuses));
     });
     ws.start();
+  }
+
+  /// Buduje [MaintenanceMonitor] na uwierzytelnionym Dio (jeśli zdarzenie
+  /// `maintenanceDue` jest włączone) i uruchamia periodyczne sprawdzanie REST.
+  /// Dedup-zbiór trzymamy w SharedPreferences (re-arm po wykonaniu).
+  Future<void> _setUpMaintenance(
+    SharedPreferences prefs,
+    NotificationPrefs notifPrefs,
+  ) async {
+    if (!notifPrefs.isOn(NotifEvent.maintenanceDue)) return;
+    final api = await buildBackgroundApiClient(prefs);
+    if (api == null) return;
+
+    final settings = SettingsRepository(prefs);
+    final maintenance = MaintenanceMonitor(
+      _fgs!,
+      repo: MaintenanceRepository(api.dio),
+      prefs: notifPrefs,
+      initialNotified: settings.loadNotifiedMaintenanceDueIds(),
+      persist: settings.saveNotifiedMaintenanceDueIds,
+    );
+    _maintenance = maintenance;
+    unawaited(maintenance.check()); // pierwsze sprawdzenie zaraz po starcie
+    _maintenanceTimer = Timer.periodic(
+      _maintenanceCheckInterval,
+      (_) => unawaited(maintenance.check()),
+    );
   }
 
   // Sterujemy zdarzeniami przez strumień WS, nie cyklicznym tickiem — ale
@@ -82,6 +130,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    _maintenanceTimer?.cancel();
     await _sub?.cancel();
     await _ws?.dispose();
   }
@@ -149,6 +198,13 @@ class _FgsNotificationService implements NotificationService {
     required String title,
     required String body,
     String? payload,
+    List<NotificationAction>? actions,
   }) =>
-      _alerts.showAlert(id: id, title: title, body: body, payload: payload);
+      _alerts.showAlert(
+        id: id,
+        title: title,
+        body: body,
+        payload: payload,
+        actions: actions,
+      );
 }

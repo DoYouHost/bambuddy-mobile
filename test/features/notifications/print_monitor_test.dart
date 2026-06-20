@@ -44,6 +44,7 @@ class _FakeNotifications implements NotificationService {
     required String title,
     required String body,
     String? payload,
+    List<NotificationAction>? actions,
   }) async {
     alerts.add({'id': id, 'title': title, 'body': body, 'payload': payload});
   }

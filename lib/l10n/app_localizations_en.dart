@@ -730,4 +730,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navArchive => 'Archive';
+
+  @override
+  String get navMaintenance => 'Maintenance';
+
+  @override
+  String get maintenanceEmpty => 'No maintenance data';
+
+  @override
+  String maintenanceTotalHours(int hours) {
+    return '$hours h total';
+  }
+
+  @override
+  String maintenanceDueBadge(int count) {
+    return '$count due';
+  }
+
+  @override
+  String maintenanceWarningBadge(int count) {
+    return '$count soon';
+  }
+
+  @override
+  String maintenanceDueIn(int hours) {
+    return 'Due in $hours h';
+  }
+
+  @override
+  String maintenanceOverdueBy(int hours) {
+    return 'Overdue by $hours h';
+  }
+
+  @override
+  String get maintenancePerform => 'Mark done';
+
+  @override
+  String get maintenancePerformConfirm =>
+      'Reset the counter for this maintenance task?';
+
+  @override
+  String get maintenanceNotesHint => 'Notes (optional)';
+
+  @override
+  String get maintenanceHistory => 'History';
+
+  @override
+  String get maintenanceHistoryEmpty => 'No history yet';
+
+  @override
+  String get maintenanceDone => 'Maintenance marked as done';
+
+  @override
+  String get maintenanceFailed => 'Could not update maintenance';
+
+  @override
+  String get notifEvtMaintenance => 'Maintenance due';
+
+  @override
+  String get notifEvtMaintenanceDesc =>
+      'When a maintenance task becomes overdue';
+
+  @override
+  String get maintenanceNotifTitle => 'Maintenance due';
+
+  @override
+  String maintenanceNotifBody(String printer, String task) {
+    return '$printer: $task';
+  }
+
+  @override
+  String get maintenanceReminderTitle => 'Maintenance reminder';
+
+  @override
+  String maintenanceReminderBody(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'tasks',
+      one: 'task',
+    );
+    return '$printer has $count overdue maintenance $_temp0';
+  }
+
+  @override
+  String get maintenanceNotifAction => 'Mark done';
 }

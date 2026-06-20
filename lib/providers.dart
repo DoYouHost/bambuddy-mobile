@@ -13,6 +13,7 @@ import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/printer_commands_repository.dart';
+import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -158,6 +159,11 @@ final archiveRepositoryProvider = Provider<ArchiveRepository>(
 /// Smart gniazdka (M7). Współdzieli uwierzytelnione Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Konserwacja drukarek (M7). Współdzieli uwierzytelnione Dio.
+final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
+  (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też

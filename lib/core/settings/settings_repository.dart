@@ -13,6 +13,7 @@ class SettingsRepository {
   static const _profileKey = 'server_profile';
   static const _bgMonitoringKey = 'bg_monitoring_enabled';
   static const _notifPrefsKey = 'notification_prefs';
+  static const _maintNotifiedKey = 'maintenance_notified_due_ids';
 
   final SharedPreferences _prefs;
 
@@ -49,4 +50,19 @@ class SettingsRepository {
 
   Future<void> saveNotificationPrefs(NotificationPrefs prefs) =>
       _prefs.setString(_notifPrefsKey, prefs.encode());
+
+  /// Zbiór id czynności konserwacji, dla których już puszczono powiadomienie
+  /// „przeterminowane". Dedup periodycznego monitora w tle: przeżywa restart
+  /// isolate'u (brak ponownego spamu), a po wykonaniu konserwacji pozycja
+  /// przestaje być due i jest stąd usuwana (re-arm). Uszkodzony wpis → pusty zbiór.
+  Set<int> loadNotifiedMaintenanceDueIds() {
+    final raw = _prefs.getStringList(_maintNotifiedKey);
+    if (raw == null) return <int>{};
+    return {for (final s in raw) int.tryParse(s) ?? -1}..remove(-1);
+  }
+
+  Future<void> saveNotifiedMaintenanceDueIds(Set<int> ids) => _prefs.setStringList(
+        _maintNotifiedKey,
+        [for (final id in ids) id.toString()],
+      );
 }

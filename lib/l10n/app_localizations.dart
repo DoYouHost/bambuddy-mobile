@@ -1375,6 +1375,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Archive'**
   String get navArchive;
+
+  /// Bottom nav tab: Maintenance
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get navMaintenance;
+
+  /// No description provided for @maintenanceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No maintenance data'**
+  String get maintenanceEmpty;
+
+  /// No description provided for @maintenanceTotalHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h total'**
+  String maintenanceTotalHours(int hours);
+
+  /// No description provided for @maintenanceDueBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} due'**
+  String maintenanceDueBadge(int count);
+
+  /// No description provided for @maintenanceWarningBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} soon'**
+  String maintenanceWarningBadge(int count);
+
+  /// No description provided for @maintenanceDueIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Due in {hours} h'**
+  String maintenanceDueIn(int hours);
+
+  /// No description provided for @maintenanceOverdueBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue by {hours} h'**
+  String maintenanceOverdueBy(int hours);
+
+  /// No description provided for @maintenancePerform.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark done'**
+  String get maintenancePerform;
+
+  /// No description provided for @maintenancePerformConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the counter for this maintenance task?'**
+  String get maintenancePerformConfirm;
+
+  /// No description provided for @maintenanceNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get maintenanceNotesHint;
+
+  /// No description provided for @maintenanceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get maintenanceHistory;
+
+  /// No description provided for @maintenanceHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No history yet'**
+  String get maintenanceHistoryEmpty;
+
+  /// No description provided for @maintenanceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance marked as done'**
+  String get maintenanceDone;
+
+  /// No description provided for @maintenanceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update maintenance'**
+  String get maintenanceFailed;
+
+  /// No description provided for @notifEvtMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance due'**
+  String get notifEvtMaintenance;
+
+  /// No description provided for @notifEvtMaintenanceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a maintenance task becomes overdue'**
+  String get notifEvtMaintenanceDesc;
+
+  /// No description provided for @maintenanceNotifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance due'**
+  String get maintenanceNotifTitle;
+
+  /// No description provided for @maintenanceNotifBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer}: {task}'**
+  String maintenanceNotifBody(String printer, String task);
+
+  /// No description provided for @maintenanceReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance reminder'**
+  String get maintenanceReminderTitle;
+
+  /// No description provided for @maintenanceReminderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} has {count} overdue maintenance {count, plural, one{task} other{tasks}}'**
+  String maintenanceReminderBody(String printer, int count);
+
+  /// No description provided for @maintenanceNotifAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark done'**
+  String get maintenanceNotifAction;
 }
 
 class _AppLocalizationsDelegate

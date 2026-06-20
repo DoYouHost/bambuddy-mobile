@@ -732,4 +732,91 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get navArchive => 'Archiwum';
+
+  @override
+  String get navMaintenance => 'Konserwacja';
+
+  @override
+  String get maintenanceEmpty => 'Brak danych o konserwacji';
+
+  @override
+  String maintenanceTotalHours(int hours) {
+    return '$hours h łącznie';
+  }
+
+  @override
+  String maintenanceDueBadge(int count) {
+    return '$count zaległe';
+  }
+
+  @override
+  String maintenanceWarningBadge(int count) {
+    return '$count wkrótce';
+  }
+
+  @override
+  String maintenanceDueIn(int hours) {
+    return 'Za $hours h';
+  }
+
+  @override
+  String maintenanceOverdueBy(int hours) {
+    return 'Przeterminowane o $hours h';
+  }
+
+  @override
+  String get maintenancePerform => 'Oznacz wykonane';
+
+  @override
+  String get maintenancePerformConfirm =>
+      'Zresetować licznik dla tej czynności konserwacji?';
+
+  @override
+  String get maintenanceNotesHint => 'Notatka (opcjonalnie)';
+
+  @override
+  String get maintenanceHistory => 'Historia';
+
+  @override
+  String get maintenanceHistoryEmpty => 'Brak historii';
+
+  @override
+  String get maintenanceDone => 'Konserwacja oznaczona jako wykonana';
+
+  @override
+  String get maintenanceFailed => 'Nie udało się zaktualizować konserwacji';
+
+  @override
+  String get notifEvtMaintenance => 'Konserwacja zaległa';
+
+  @override
+  String get notifEvtMaintenanceDesc =>
+      'Gdy czynność konserwacji staje się przeterminowana';
+
+  @override
+  String get maintenanceNotifTitle => 'Konserwacja zaległa';
+
+  @override
+  String maintenanceNotifBody(String printer, String task) {
+    return '$printer: $task';
+  }
+
+  @override
+  String get maintenanceReminderTitle => 'Przypomnienie o konserwacji';
+
+  @override
+  String maintenanceReminderBody(String printer, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'zaległych czynności',
+      many: 'zaległych czynności',
+      few: 'zaległe czynności',
+      one: 'zaległą czynność',
+    );
+    return '$printer ma $count $_temp0 konserwacji';
+  }
+
+  @override
+  String get maintenanceNotifAction => 'Oznacz wykonane';
 }

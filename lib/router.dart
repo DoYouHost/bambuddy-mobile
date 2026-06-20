@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/maintenance/maintenance_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
@@ -11,9 +12,10 @@ import 'features/shell/root_scaffold.dart';
 import 'providers.dart';
 
 /// Klucze nawigatorów dla każdej gałęzi powłoki.
-final _dashboardNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
-final _queueNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'queue');
-final _archiveNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'archive');
+final _dashboardNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
+final _queueNavigatorKey       = GlobalKey<NavigatorState>(debugLabel: 'queue');
+final _archiveNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'archive');
+final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'maintenance');
 
 /// Router aplikacji z powłoką dolnej belki nawigacyjnej (Material 3).
 /// Trasa /setup pozostaje poza powłoką — wyświetlana bez NavigationBar.
@@ -64,6 +66,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/archive',
                 builder: (_, _) => const ArchiveScreen(),
+              ),
+            ],
+          ),
+          // Zakładka 3: Konserwacja
+          StatefulShellBranch(
+            navigatorKey: _maintenanceNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/maintenance',
+                builder: (_, _) => const MaintenanceScreen(),
               ),
             ],
           ),

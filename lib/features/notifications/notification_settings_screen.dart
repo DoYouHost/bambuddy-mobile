@@ -80,6 +80,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         _EventRow(NotifEvent.lowFilament, l.notifEvtLowFilament, l.notifEvtLowFilamentDesc),
         _EventRow(NotifEvent.amsHumidity, l.notifEvtHumidity, l.notifEvtHumidityDesc),
         _EventRow(NotifEvent.bedCooled, l.notifEvtBedCooled, l.notifEvtBedCooledDesc),
+        _EventRow(NotifEvent.maintenanceDue, l.notifEvtMaintenance, l.notifEvtMaintenanceDesc),
       ];
 }
 

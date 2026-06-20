@@ -1,0 +1,55 @@
+[
+  {
+    "printer_id": 1,
+    "printer_name": "X2D-3DP",
+    "printer_model": "X2D",
+    "total_print_hours": 278.28,
+    "due_count": 1,
+    "warning_count": 1,
+    "maintenance_items": [
+      {
+        "id": 10,
+        "printer_id": 1,
+        "printer_name": "X2D-3DP",
+        "printer_model": "X2D",
+        "maintenance_type_id": 2,
+        "maintenance_type_name": "Lubricate Steel Rods",
+        "maintenance_type_icon": "Droplet",
+        "maintenance_type_wiki_url": null,
+        "enabled": true,
+        "interval_hours": 50.0,
+        "interval_type": "hours",
+        "current_hours": 278.28,
+        "hours_since_maintenance": 60.0,
+        "hours_until_due": -10.0,
+        "days_since_maintenance": null,
+        "days_until_due": null,
+        "is_due": true,
+        "is_warning": false,
+        "last_performed_at": "2026-06-08T09:46:06.762764Z"
+      },
+      {
+        "id": 11,
+        "printer_id": 1,
+        "printer_name": "X2D-3DP",
+        "printer_model": "X2D",
+        "maintenance_type_id": 3,
+        "maintenance_type_name": "Clean Nozzle/Hotend",
+        "maintenance_type_icon": "Flame",
+        "maintenance_type_wiki_url": null,
+        "enabled": true,
+        "interval_hours": 100.0,
+        "interval_type": "hours",
+        "current_hours": 278.28,
+        "hours_since_maintenance": 90.0,
+        "hours_until_due": 10.0,
+        "days_since_maintenance": null,
+        "days_until_due": null,
+        "is_due": false,
+        "is_warning": true,
+        "last_performed_at": null
+      }
+    ]
+  },
+  "totally-not-a-printer-entry"
+]

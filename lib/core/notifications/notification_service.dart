@@ -1,5 +1,16 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'background_api.dart';
+
+/// Przycisk akcji powiadomienia (np. „Oznacz wykonane" przy konserwacji).
+/// Niezależny od pluginu, by fake w testach mógł go asertować.
+class NotificationAction {
+  const NotificationAction({required this.id, required this.title});
+
+  final String id;
+  final String title;
+}
+
 /// Kontrakt powiadomień widziany przez [PrintMonitor]. Wydzielony, by w testach
 /// wstrzyknąć fake i sprawdzić same przejścia (bez pluginu/Androida).
 ///
@@ -24,12 +35,14 @@ abstract class NotificationService {
   Future<void> clearOngoing();
 
   /// Jednorazowy alert (zakończenie/błąd) — przeżywa tło, bo plugin sam budzi
-  /// apkę po tapnięciu.
+  /// apkę po tapnięciu. Opcjonalne [actions] dokładają przyciski akcji
+  /// (obsługiwane w tle bez otwierania apki).
   Future<void> showAlert({
     required int id,
     required String title,
     required String body,
     String? payload,
+    List<NotificationAction>? actions,
   });
 }
 
@@ -56,7 +69,14 @@ class LocalNotificationService implements NotificationService {
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
-    await _plugin.initialize(settings);
+    await _plugin.initialize(
+      settings,
+      // Tapnięcie akcji „Oznacz wykonane" przy konserwacji: foreground i tło
+      // (apka zamknięta) trafiają do tego samego handlera.
+      onDidReceiveNotificationResponse: handleMaintenanceAction,
+      onDidReceiveBackgroundNotificationResponse:
+          maintenanceNotificationBackgroundHandler,
+    );
 
     final android = _android;
     if (android == null) return;
@@ -122,14 +142,27 @@ class LocalNotificationService implements NotificationService {
     required String title,
     required String body,
     String? payload,
+    List<NotificationAction>? actions,
   }) async {
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _alertsChannelId,
         'Print alerts',
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.status,
+        actions: [
+          if (actions != null)
+            for (final a in actions)
+              AndroidNotificationAction(
+                a.id,
+                a.title,
+                // Akcja obsługiwana w tle (reset licznika) — bez otwierania UI;
+                // notyfikacja znika po tapnięciu.
+                showsUserInterface: false,
+                cancelNotification: true,
+              ),
+        ],
       ),
     );
     await _plugin.show(id, title, body, details, payload: payload);

@@ -232,5 +232,28 @@
 
   "navDashboard": "Pulpit",
   "navQueue": "Kolejka",
-  "navArchive": "Archiwum"
+  "navArchive": "Archiwum",
+  "navMaintenance": "Konserwacja",
+
+  "maintenanceEmpty": "Brak danych o konserwacji",
+  "maintenanceTotalHours": "{hours} h łącznie",
+  "maintenanceDueBadge": "{count} zaległe",
+  "maintenanceWarningBadge": "{count} wkrótce",
+  "maintenanceDueIn": "Za {hours} h",
+  "maintenanceOverdueBy": "Przeterminowane o {hours} h",
+  "maintenancePerform": "Oznacz wykonane",
+  "maintenancePerformConfirm": "Zresetować licznik dla tej czynności konserwacji?",
+  "maintenanceNotesHint": "Notatka (opcjonalnie)",
+  "maintenanceHistory": "Historia",
+  "maintenanceHistoryEmpty": "Brak historii",
+  "maintenanceDone": "Konserwacja oznaczona jako wykonana",
+  "maintenanceFailed": "Nie udało się zaktualizować konserwacji",
+
+  "notifEvtMaintenance": "Konserwacja zaległa",
+  "notifEvtMaintenanceDesc": "Gdy czynność konserwacji staje się przeterminowana",
+  "maintenanceNotifTitle": "Konserwacja zaległa",
+  "maintenanceNotifBody": "{printer}: {task}",
+  "maintenanceReminderTitle": "Przypomnienie o konserwacji",
+  "maintenanceReminderBody": "{printer} ma {count} {count, plural, one{zaległą czynność} few{zaległe czynności} many{zaległych czynności} other{zaległych czynności}} konserwacji",
+  "maintenanceNotifAction": "Oznacz wykonane"
 }

@@ -16,6 +16,10 @@ enum NotifEvent {
   lowFilament,
   amsHumidity,
   bedCooled,
+
+  /// Czynność konserwacji stała się przeterminowana (`is_due`). Źródło: REST
+  /// `/maintenance/overview` (NIE ramki WS) — sprawdzane periodycznie w tle.
+  maintenanceDue,
 }
 
 /// Wybór użytkownika: które zdarzenia mają puszczać powiadomienie i z jakimi
@@ -54,6 +58,7 @@ class NotificationPrefs {
     NotifEvent.printFailed,
     NotifEvent.plateNotEmpty,
     NotifEvent.printerError,
+    NotifEvent.maintenanceDue,
   };
 
   static const NotificationPrefs defaults =

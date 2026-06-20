@@ -84,4 +84,23 @@ abstract final class Endpoints {
   /// Wymaga uprawnienia sterowania na kluczu API (brak → 403).
   static String smartPlugControl(int plugId) =>
       '$apiPrefix/smart-plugs/$plugId/control';
+
+  // --- Konserwacja (M7) ---
+
+  /// Przegląd konserwacji wszystkich aktywnych drukarek
+  /// (`PrinterMaintenanceOverview[]`).
+  static const maintenanceOverview = '$apiPrefix/maintenance/overview';
+
+  /// Przegląd konserwacji jednej drukarki (`PrinterMaintenanceOverview`).
+  static String maintenancePrinter(int printerId) =>
+      '$apiPrefix/maintenance/printers/$printerId';
+
+  /// Oznaczenie czynności jako wykonanej (reset licznika). Body
+  /// `{"notes": string?}`. Wymaga uprawnienia sterowania (brak → 403).
+  static String maintenancePerform(int itemId) =>
+      '$apiPrefix/maintenance/items/$itemId/perform';
+
+  /// Historia wykonania czynności (`MaintenanceHistoryResponse[]`).
+  static String maintenanceHistory(int itemId) =>
+      '$apiPrefix/maintenance/items/$itemId/history';
 }

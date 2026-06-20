@@ -92,6 +92,7 @@ class PrintMonitor {
     DateTime Function()? clock,
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
+    this._onPrintEnded,
   })  : _l10n = l10n ?? systemAppLocalizations,
         _now = clock ?? DateTime.now,
         _timer = timerFactory ?? Timer.new,
@@ -103,6 +104,10 @@ class PrintMonitor {
   final AppLocalizations Function() _l10n;
   final DateTime Function() _now;
   final TimerFactory _timer;
+
+  /// Callback wołany po zakończeniu wydruku (sukces/błąd) — wpina przypomnienie
+  /// o przeterminowanej konserwacji ([MaintenanceMonitor.remindOnPrintEnd]).
+  final void Function(int printerId)? _onPrintEnded;
 
   /// Opcjonalny resolver opisu kodu HMS (katalog Bambu). null → fallback do
   /// formatu „poziom · moduł (kod)".
@@ -193,9 +198,12 @@ class PrintMonitor {
         case 'FINISHED':
           memo.awaitingBedCool = true;
           if (_on(NotifEvent.printFinished)) _alertFinished(id, status);
+          // Przypomnienie o konserwacji NIEZALEŻNE od prefs zakończenia wydruku.
+          _onPrintEnded?.call(id);
         case 'FAILED':
           memo.awaitingBedCool = true;
           if (_on(NotifEvent.printFailed)) _alertFailed(id, status);
+          _onPrintEnded?.call(id);
         // Inny/nieznany stan końcowy → bez fałszywego alertu.
       }
     }
