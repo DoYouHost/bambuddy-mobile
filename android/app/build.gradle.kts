@@ -48,6 +48,15 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            // Flutter enables R8 for release; add our keep rules so ML Kit
+            // (mobile_scanner's barcode backend) survives shrinking/obfuscation.
+            // Without this the QR scanner crashes on start (black preview).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
