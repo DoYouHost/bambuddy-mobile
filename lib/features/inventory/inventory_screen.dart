@@ -19,7 +19,7 @@ class InventoryScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
-    final showArchived = ref.watch(inventoryShowArchivedProvider);
+    final filters = ref.watch(inventoryFiltersProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navFilaments)),
@@ -35,17 +35,15 @@ class InventoryScreen extends ConsumerWidget {
           retryLabel: l10n.retry,
         ),
         data: (inv) {
-          final spools = _filter(inv.spools, query, showArchived);
+          final spools = _filter(inv.spools, query, filters);
           return Column(
             children: [
               _SearchBar(
                 query: query,
-                showArchived: showArchived,
+                filterCount: filters.activeCount,
                 onQuery: (v) =>
                     ref.read(inventoryQueryProvider.notifier).state = v,
-                onToggleArchived: (v) => ref
-                    .read(inventoryShowArchivedProvider.notifier)
-                    .state = v,
+                onOpenFilters: () => _openFilters(context, inv.spools),
               ),
               Expanded(
                 child: RefreshIndicator(
@@ -85,15 +83,50 @@ class InventoryScreen extends ConsumerWidget {
     );
   }
 
-  /// Filtr po stronie klienta: zarchiwizowane chowamy, dopóki przełącznik wyłączony;
-  /// szukanie po materiale/marce/kolorze/lokalizacji (case-insensitive).
-  List<Spool> _filter(List<Spool> spools, String query, bool showArchived) {
+  /// Filtr po stronie klienta: status (aktywne/zarchiwizowane), zapas, materiał,
+  /// marka, lokalizacja oraz szukanie po materiale/marce/kolorze/lokalizacji
+  /// (case-insensitive). Puste zbiory w [filters] = brak ograniczenia.
+  List<Spool> _filter(List<Spool> spools, String query, InventoryFilters filters) {
     final q = query.trim().toLowerCase();
     return [
       for (final s in spools)
-        if (showArchived || !s.isArchived)
-          if (q.isEmpty || _matches(s, q)) s,
+        if (filters.showArchived ? s.isArchived : !s.isArchived)
+          if (!filters.lowStockOnly || s.isLowStock)
+            if (filters.materials.isEmpty ||
+                filters.materials.contains(s.material))
+              if (filters.brands.isEmpty ||
+                  (s.brand != null && filters.brands.contains(s.brand)))
+                if (filters.locations.isEmpty ||
+                    (s.storageLocation != null &&
+                        filters.locations.contains(s.storageLocation)))
+                  if (q.isEmpty || _matches(s, q)) s,
     ];
+  }
+
+  /// Otwiera arkusz filtrów. Opcje (materiały/marki/lokalizacje) liczymy z pełnej
+  /// listy szpul, żeby pokazać tylko realnie występujące wartości.
+  void _openFilters(BuildContext context, List<Spool> all) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _FilterSheet(
+        materials: _distinct(all.map((s) => s.material)),
+        brands: _distinct(all.map((s) => s.brand)),
+        locations: _distinct(all.map((s) => s.storageLocation)),
+      ),
+    );
+  }
+
+  /// Posortowane, niepuste, unikalne wartości pola — do listy opcji filtra.
+  List<String> _distinct(Iterable<String?> values) {
+    final set = <String>{
+      for (final v in values)
+        if (v != null && v.trim().isNotEmpty) v,
+    };
+    final list = set.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
   }
 
   bool _matches(Spool s, String q) {
@@ -114,48 +147,260 @@ class InventoryScreen extends ConsumerWidget {
 class _SearchBar extends StatelessWidget {
   const _SearchBar({
     required this.query,
-    required this.showArchived,
+    required this.filterCount,
     required this.onQuery,
-    required this.onToggleArchived,
+    required this.onOpenFilters,
   });
 
   final String query;
-  final bool showArchived;
+  final int filterCount;
   final ValueChanged<String> onQuery;
-  final ValueChanged<bool> onToggleArchived;
+  final VoidCallback onOpenFilters;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: const Icon(Icons.search),
-                hintText: l10n.inventorySearchHint,
-                border: const OutlineInputBorder(),
-                suffixIcon: query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => onQuery(''),
-                      ),
+      // Wspólna wysokość obu elementów, żeby pole i przycisk się równały.
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: l10n.inventorySearchHint,
+                  border: const OutlineInputBorder(),
+                  suffixIcon: query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () => onQuery(''),
+                        ),
+                ),
+                onChanged: onQuery,
               ),
-              onChanged: onQuery,
+            ),
+            const SizedBox(width: 8),
+            _FilterButton(count: filterCount, onTap: onOpenFilters),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kwadratowy przycisk otwierający arkusz filtrów; plakietka pokazuje liczbę
+/// aktywnych filtrów. Wyrównany rozmiarem do pola wyszukiwania (48×48).
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final active = count > 0;
+    return Tooltip(
+      message: AppLocalizations.of(context).inventoryFilters,
+      child: Badge(
+        isLabelVisible: active,
+        label: Text('$count'),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Material(
+            color: active
+                ? scheme.secondaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: onTap,
+              child: Icon(
+                Icons.tune,
+                color: active
+                    ? scheme.onSecondaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: Text(l10n.inventoryShowArchived),
-            selected: showArchived,
-            onSelected: onToggleArchived,
+        ),
+      ),
+    );
+  }
+}
+
+/// Arkusz filtrów magazynu: status, zapas, materiał, marka, lokalizacja.
+/// Zmiany zapisujemy od razu w [inventoryFiltersProvider] — lista pod spodem
+/// odświeża się na żywo. Opcje przekazane z widoku (realnie występujące wartości).
+class _FilterSheet extends ConsumerWidget {
+  const _FilterSheet({
+    required this.materials,
+    required this.brands,
+    required this.locations,
+  });
+
+  final List<String> materials;
+  final List<String> brands;
+  final List<String> locations;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final filters = ref.watch(inventoryFiltersProvider);
+    final notifier = ref.read(inventoryFiltersProvider.notifier);
+
+    Set<String> toggled(Set<String> set, String value) {
+      final next = {...set};
+      if (!next.remove(value)) next.add(value);
+      return next;
+    }
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.35,
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Row(
+            children: [
+              Text(l10n.inventoryFilters, style: theme.textTheme.titleLarge),
+              const Spacer(),
+              if (filters.activeCount > 0)
+                TextButton(
+                  onPressed: () =>
+                      notifier.state = const InventoryFilters(),
+                  child: Text(l10n.inventoryFiltersClear),
+                ),
+            ],
           ),
+          const SizedBox(height: 8),
+
+          _FilterGroup(label: l10n.inventoryFilterStatus),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                value: false,
+                label: Text(l10n.inventoryStatusActive),
+                icon: const Icon(Icons.inventory_2_outlined),
+              ),
+              ButtonSegment(
+                value: true,
+                label: Text(l10n.inventoryStatusArchived),
+                icon: const Icon(Icons.archive_outlined),
+              ),
+            ],
+            selected: {filters.showArchived},
+            onSelectionChanged: (s) =>
+                notifier.state = filters.copyWith(showArchived: s.first),
+          ),
+          const SizedBox(height: 16),
+
+          _FilterGroup(label: l10n.inventoryFilterStock),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(value: false, label: Text(l10n.inventoryStockAll)),
+              ButtonSegment(
+                value: true,
+                label: Text(l10n.inventoryStockLow),
+                icon: const Icon(Icons.warning_amber_outlined),
+              ),
+            ],
+            selected: {filters.lowStockOnly},
+            onSelectionChanged: (s) =>
+                notifier.state = filters.copyWith(lowStockOnly: s.first),
+          ),
+
+          if (materials.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _FilterGroup(label: l10n.inventoryFilterMaterial),
+            _ChipWrap(
+              options: materials,
+              selected: filters.materials,
+              onToggle: (v) => notifier.state =
+                  filters.copyWith(materials: toggled(filters.materials, v)),
+            ),
+          ],
+          if (brands.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _FilterGroup(label: l10n.inventoryFilterBrand),
+            _ChipWrap(
+              options: brands,
+              selected: filters.brands,
+              onToggle: (v) => notifier.state =
+                  filters.copyWith(brands: toggled(filters.brands, v)),
+            ),
+          ],
+          if (locations.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _FilterGroup(label: l10n.inventoryLocation),
+            _ChipWrap(
+              options: locations,
+              selected: filters.locations,
+              onToggle: (v) => notifier.state =
+                  filters.copyWith(locations: toggled(filters.locations, v)),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _FilterGroup extends StatelessWidget {
+  const _FilterGroup({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}
+
+class _ChipWrap extends StatelessWidget {
+  const _ChipWrap({
+    required this.options,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final List<String> options;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        for (final o in options)
+          FilterChip(
+            label: Text(o),
+            selected: selected.contains(o),
+            onSelected: (_) => onToggle(o),
+          ),
+      ],
     );
   }
 }
@@ -182,6 +427,13 @@ class _SpoolTile extends StatelessWidget {
       leading: SpoolSwatch(rgba: spool.rgba),
       title: Row(
         children: [
+          _Badge(
+            label: spool.material,
+            color: spool.isArchived
+                ? theme.disabledColor
+                : theme.colorScheme.secondary,
+          ),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               spool.displayName,

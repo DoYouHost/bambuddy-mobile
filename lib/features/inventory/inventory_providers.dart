@@ -49,8 +49,12 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     }
 
     spools.sort((a, b) {
-      // Aktywne przed zarchiwizowanymi, potem alfabetycznie po nazwie.
+      // Kolejność: aktywne przed zarchiwizowanymi; wśród aktywnych — załadowane
+      // (w AMS lub zewnętrznie) przed luźnymi; na końcu alfabetycznie po nazwie.
       if (a.isArchived != b.isArchived) return a.isArchived ? 1 : -1;
+      final aLoaded = bySpool.containsKey(a.id);
+      final bLoaded = bySpool.containsKey(b.id);
+      if (aLoaded != bLoaded) return aLoaded ? -1 : 1;
       return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
     });
     return InventoryState(spools: spools, assignmentBySpool: bySpool);
@@ -68,9 +72,51 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 /// klienta w widoku.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 
-/// Czy pokazywać szpule zarchiwizowane (domyślnie nie).
-final inventoryShowArchivedProvider =
-    StateProvider.autoDispose<bool>((_) => false);
+/// Zestaw filtrów magazynu (poza wyszukiwaniem) — dobierany w arkuszu filtrów.
+/// Wszystko stosowane po stronie klienta na pełnej liście szpul. Domyślnie:
+/// tylko aktywne, bez ograniczeń. Puste zbiory = „wszystkie".
+class InventoryFilters {
+  const InventoryFilters({
+    this.showArchived = false,
+    this.lowStockOnly = false,
+    this.materials = const {},
+    this.brands = const {},
+    this.locations = const {},
+  });
+
+  /// false → tylko aktywne (domyślnie); true → tylko zarchiwizowane.
+  final bool showArchived;
+  final bool lowStockOnly;
+  final Set<String> materials;
+  final Set<String> brands;
+  final Set<String> locations;
+
+  /// Liczba niedomyślnych filtrów — na plakietkę przy przycisku filtrów.
+  int get activeCount =>
+      (showArchived ? 1 : 0) +
+      (lowStockOnly ? 1 : 0) +
+      (materials.isNotEmpty ? 1 : 0) +
+      (brands.isNotEmpty ? 1 : 0) +
+      (locations.isNotEmpty ? 1 : 0);
+
+  InventoryFilters copyWith({
+    bool? showArchived,
+    bool? lowStockOnly,
+    Set<String>? materials,
+    Set<String>? brands,
+    Set<String>? locations,
+  }) =>
+      InventoryFilters(
+        showArchived: showArchived ?? this.showArchived,
+        lowStockOnly: lowStockOnly ?? this.lowStockOnly,
+        materials: materials ?? this.materials,
+        brands: brands ?? this.brands,
+        locations: locations ?? this.locations,
+      );
+}
+
+final inventoryFiltersProvider =
+    StateProvider.autoDispose<InventoryFilters>((_) => const InventoryFilters());
 
 /// Historia zużycia szpuli — ładowana na żądanie w szczegółach (family po id).
 final spoolUsageProvider = FutureProvider.autoDispose

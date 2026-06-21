@@ -112,13 +112,13 @@ void main() {
       expect(a.slotLabel, 'AMS A');
     });
 
-    test('szpula zewnętrzna: 255 → lewy (ekstruder 1), 254 → prawy (0)', () {
-      // Kontrakt odwrotny do MQTT vtTray — zweryfikowany fizycznie na X2D:
-      // ams_id 255 to LEWY ekstruder, 254 to PRAWY.
-      expect(assign(255).isExternalSpool, isTrue);
-      expect(assign(255).extruder, 1);
-      expect(assign(254).isExternalSpool, isTrue);
-      expect(assign(254).extruder, 0);
+    test('szpula zewnętrzna: ams=255, rozróżnia tray_id (0→lewy, 1→prawy)', () {
+      // Zweryfikowane na żywo na X2D z surowych przypisań: OBIE szpule zewnętrzne
+      // mają ams_id=255, ekstruder rozróżnia tray_id. TPU tray=0 = lewy (1),
+      // PLA tray=1 = prawy (0). Konwencja jak printer_status: 1=lewy, 0=prawy.
+      expect(assign(255, trayId: 0).isExternalSpool, isTrue);
+      expect(assign(255, trayId: 0).extruder, 1);
+      expect(assign(255, trayId: 1).extruder, 0);
     });
   });
 }

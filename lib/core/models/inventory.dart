@@ -183,21 +183,26 @@ class SpoolAssignment {
   final String? printerName;
   final String? amsLabel;
 
-  /// Szpula zewnętrzna (na uchwycie zewn.), NIE w jednostce AMS — serwer używa
-  /// dla niej id 254/255, tak samo jak na dashboardzie (patrz `printer_status`
-  /// `externalSpools`). Wtedy „slotem" jest ekstruder, nie „AMS·tray".
+  /// Szpula zewnętrzna (na uchwycie zewn.), NIE w jednostce AMS — backend
+  /// inventory oznacza ją `ams_id` 254/255. Wtedy „slotem" jest ekstruder
+  /// (dla drukarek dwugłowicowych), nie „AMS·tray".
   bool get isExternalSpool => amsId >= 254;
 
-  /// Ekstruder karmiony przez szpulę zewnętrzną: 255 → 1 (lewy), 254 → 0 (prawy).
-  /// UWAGA: backend inventory numeruje sloty zewnętrzne ODWROTNIE niż strumień
-  /// MQTT `vtTray` (gdzie 254 = lewy — patrz `printer_status.extruderForExternal`).
-  /// Zweryfikowane fizycznie na X2D: szpula z `ams_id=255` siedzi w LEWYM
-  /// ekstruderze (dashboard pokazuje ją na „L"). null dla zwykłego slotu AMS.
-  int? get extruder => switch (amsId) {
-        255 => 1,
-        254 => 0,
-        _ => null,
-      };
+  /// Ekstruder karmiony przez szpulę zewnętrzną (X2D/H2D). UWAGA: w backendzie
+  /// inventory OBIE szpule zewnętrzne mają `ams_id=255` — rozróżnia je dopiero
+  /// `tray_id`. Zweryfikowane na żywo na X2D z surowych przypisań:
+  /// TPU `ams=255, tray=0` siedzi fizycznie w LEWYM, PLA `ams=255, tray=1`
+  /// w PRAWYM. (To inna reprezentacja niż MQTT `vtTray` 254/255 z dashboardu —
+  /// nie mylić.) Konwencja zwracana jak w `printer_status`: 1 = lewy, 0 = prawy;
+  /// null dla zwykłego slotu AMS lub nieoczekiwanego `tray_id`.
+  int? get extruder {
+    if (!isExternalSpool) return null;
+    return switch (trayId) {
+      0 => 1, // tray 0 → lewy ekstruder
+      1 => 0, // tray 1 → prawy ekstruder
+      _ => null,
+    };
+  }
 
   /// Etykieta slotu AMS do UI: `ams_label` z serwera albo `AMS{ams}·{tray+1}`.
   /// Dla szpuli zewnętrznej label budujemy w UI (potrzebny l10n) — patrz

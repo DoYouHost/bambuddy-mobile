@@ -1436,6 +1436,66 @@ abstract class AppLocalizations {
   /// **'Low'**
   String get inventoryLowStock;
 
+  /// No description provided for @inventoryFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get inventoryFilters;
+
+  /// No description provided for @inventoryFilterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get inventoryFilterStatus;
+
+  /// No description provided for @inventoryStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get inventoryStatusActive;
+
+  /// No description provided for @inventoryStatusArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get inventoryStatusArchived;
+
+  /// No description provided for @inventoryFilterStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get inventoryFilterStock;
+
+  /// No description provided for @inventoryStockAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get inventoryStockAll;
+
+  /// No description provided for @inventoryStockLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get inventoryStockLow;
+
+  /// No description provided for @inventoryFilterMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get inventoryFilterMaterial;
+
+  /// No description provided for @inventoryFilterBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get inventoryFilterBrand;
+
+  /// No description provided for @inventoryFiltersClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get inventoryFiltersClear;
+
   /// No description provided for @inventorySpoolCount.
   ///
   /// In en, this message translates to:

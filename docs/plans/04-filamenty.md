@@ -72,25 +72,38 @@ abstract class SpoolInventorySource {
 
 ## Fazy
 
-### Faza 0 — fundament
-- `endpoints.dart`: `inventorySpools`, `inventorySpool(id)`, `inventoryAssignments`
-  (+ spoolmanowe odpowiedniki), `inventorySpoolUsage(id)`, później reszta.
-- Modele: domenowy `Spool` + `SpoolAssignment` (json_serializable, defensywne);
-  gettery `remainingWeight/remainingPct/isLowStock`. DTO-mappery per backend.
-- `SpoolInventorySource` + `NativeInventorySource` + `SpoolmanInventorySource`;
+> **Status (2026-06-21):** Faza 0 i Faza 1 zrobione + zweryfikowane na żywo
+> (AVD pixel35, realny serwer). Niezacommitowane (working tree). Następna: Faza 2.
+
+### ✅ Faza 0 — fundament (ZROBIONE)
+- [x] `endpoints.dart`: `inventorySpools`, `inventorySpool(id)`, `inventoryAssignments`
+  (+ spoolmanowe odpowiedniki), `inventorySpoolUsage(id)`, `filamentCatalog`.
+- [x] Modele: domenowy `Spool` + `SpoolAssignment` + `SpoolUsageEntry` +
+  `SpoolKProfile`; gettery `remainingWeight/remainingFraction/isLowStock/isArchived`.
+  Mappery per backend (`fromNative`/`fromSpoolman`). **Uwaga:** pisane RĘCZNIE
+  i defensywnie, nie przez `json_serializable` (dwa luźne backendy → tolerancyjne
+  parsowanie kluczy).
+- [x] `SpoolInventorySource` + `NativeInventorySource` + `SpoolmanInventorySource`;
   `InventoryRepository` (cienka fasada).
-- Providery + override w testach (inertne, jak `_InertSmartPlugsNotifier`).
+- [x] Providery: `inventoryBackendProvider` (SharedPreferences, default `native`),
+  `inventorySourceProvider`, `inventoryRepositoryProvider`, `inventoryProvider`
+  (szpule + przypisania), `inventoryQueryProvider`, `inventoryFiltersProvider`,
+  `spoolUsageProvider`. Testy modeli (`test/core/models/inventory_test.dart`).
 
-### Faza 1 — widok szpul (read-only) ← DOWOZIMY NAJPIERW
-- **5. zakładka** dolnej belki „Filamenty" (`StatefulShellRoute`, `root_scaffold`).
-- Lista: swatch `rgba` + materiał/marka, pasek pozostałej wagi + chip low-stock,
-  lokalizacja. Filtr/szukaj (materiał/marka/kolor), przełącznik „zarchiwizowane".
-  Pull-to-refresh.
-- Sheet szczegółów: pełne dane, historia zużycia (`/spools/{id}/usage`), slot AMS
-  (z assignments), k-profiles.
-- Lokalizacja stringów (`app_en.arb`/`app_pl.arb`), nawigacja, ikona zakładki.
+### ✅ Faza 1 — widok szpul (read-only) (ZROBIONE)
+- [x] **5. zakładka** dolnej belki „Filamenty" (`StatefulShellRoute`, `root_scaffold`).
+- [x] Lista: swatch `rgba` + materiał/marka, pasek pozostałej wagi + chip low-stock,
+  lokalizacja, etykieta slotu AMS/ekstrudera. Pull-to-refresh.
+- [x] Szukanie (materiał/marka/kolor/lokalizacja) + **arkusz filtrów** (kompaktowy
+  przycisk z plakietką liczby filtrów): Status (Aktywne/Archiwum), Zapas
+  (Wszystkie/Mało), Materiał, Marka, Lokalizacja — wszystko po stronie klienta.
+- [x] Sheet szczegółów: pełne dane, historia zużycia (`/spools/{id}/usage`), slot
+  AMS / ekstruder (z assignments), k-profiles.
+- [x] Lokalizacja stringów (`app_en.arb`/`app_pl.arb` + gen-l10n), nawigacja, ikona.
+- [x] **Ponad plan:** plakietki rodzaju filamentu (PLA/PETG/TPU…) na liście;
+  sortowanie szpul załadowanych (AMS/external) na górę.
 
-### Faza 2 — zarządzanie (później)
+### Faza 2 — zarządzanie (DO ZROBIENIA)
 - Szpula: dodaj/edytuj/usuń/archiwizuj/przywróć, reset zużycia, korekta wagi,
   próg low-stock, lokalizacja, link tagu NFC.
 - Przypisz/odepnij szpulę do slotu AMS (`POST/DELETE /inventory/assignments`) →
@@ -102,7 +115,12 @@ abstract class SpoolInventorySource {
   opcjonalnie.
 
 ## Do zweryfikowania na żywo (verify-on-phone-before-commit)
-- Format `rgba` (hex8? `rgba(...)`?) — do swatcha.
-- Jakie uprawnienie klucza API wymagają zapisy (403) — istotne dla Fazy 2.
-- Czy assignment realnie mapuje się na `tray_uuid`/sloty z dashboardu (M3).
-- Który backend zwraca dane na serwerze usera (autodetekt vs ustawienie).
+- [x] Format `rgba` — hex8 `RRGGBBAA` (`#RRGGBB` też obsłużone). Swatch OK.
+- [x] Czy assignment realnie mapuje się na sloty/ekstrudery z dashboardu (M3) —
+  TAK. Szpule zewnętrzne mają **obie `ams_id=255`**, ekstruder rozróżnia `tray_id`
+  (0 → lewy, 1 → prawy). Zweryfikowane fizycznie na X2D. (To inna reprezentacja
+  niż MQTT `vtTray` 254/255 z dashboardu — patrz `SpoolAssignment.extruder`.)
+- [x] Który backend na serwerze usera — **natywny** (`/inventory/*`).
+- [ ] Jakie uprawnienie klucza API wymagają zapisy (403) — DO SPRAWDZENIA w Fazie 2.
+- Inne ustalenia: nazwy wydruków w historii zużycia są URL-encoded (`%20`) i tak
+  ZOSTAJĄ (taka jest nazwa pliku na serwerze); `cost_per_kg` jako `N.NN/kg`.

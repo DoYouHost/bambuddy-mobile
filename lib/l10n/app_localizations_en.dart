@@ -764,6 +764,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryLowStock => 'Low';
 
   @override
+  String get inventoryFilters => 'Filters';
+
+  @override
+  String get inventoryFilterStatus => 'Status';
+
+  @override
+  String get inventoryStatusActive => 'Active';
+
+  @override
+  String get inventoryStatusArchived => 'Archived';
+
+  @override
+  String get inventoryFilterStock => 'Stock';
+
+  @override
+  String get inventoryStockAll => 'All';
+
+  @override
+  String get inventoryStockLow => 'Low stock';
+
+  @override
+  String get inventoryFilterMaterial => 'Material';
+
+  @override
+  String get inventoryFilterBrand => 'Brand';
+
+  @override
+  String get inventoryFiltersClear => 'Clear all';
+
+  @override
   String inventorySpoolCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
