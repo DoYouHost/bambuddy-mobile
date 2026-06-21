@@ -246,15 +246,19 @@ void main() {
     expect(alertById(fake, 3001)?['title'], 'Print started');
   });
 
-  test('pierwsza warstwa: alert raz, gdy layer_num osiąga 1', () {
+  test('pierwsza warstwa GOTOWA: alert raz, dopiero gdy layer_num osiąga 2', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 0)});
     expect(alertById(fake, 4001), isNull);
+    // Warstwa 1 dopiero ROZPOCZĘTA — jeszcze nie ukończona, brak alertu.
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 1)});
+    expect(alertById(fake, 4001), isNull);
+    // Warstwa 2 → warstwa 1 ukończona (parytet z bambuddy layer_num ≥ 2).
+    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 2)});
     expect(alertById(fake, 4001), isNotNull);
     fake.alerts.clear();
-    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 2)});
+    m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 3)});
     expect(alertById(fake, 4001), isNull); // bez powtórki
   });
 
@@ -272,16 +276,35 @@ void main() {
     expect(fake.alerts, isEmpty); // nic nowego nie przekroczono
   });
 
-  test('płyta niepusta: alert na zboczu false→true, bez powtórki', () {
+  test('płyta niepusta: alert z ramki WS plate_not_empty, nie ze statusu', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
-    m.update({1: _status(state: 'IDLE', awaitingPlateClear: false)});
+    // Koniec druku podnosi awaiting_plate_clear w statusie — to NIE może
+    // odpalić alertu (to bramka kolejki, nie detekcja obiektów na stole).
+    m.update({1: _status(state: 'RUNNING', job: 'x')});
+    m.update({1: _status(state: 'FINISH', awaitingPlateClear: true)});
     expect(alertById(fake, 6001), isNull);
-    m.update({1: _status(state: 'IDLE', awaitingPlateClear: true)});
+    // Dopiero osobna ramka WS odpala alert (z nazwą drukarki z ramki).
+    m.onPlateNotEmpty(1, 'X1C');
+    final alert = alertById(fake, 6001);
+    expect(alert, isNotNull);
+    expect(alert!['body'], contains('X1C'));
+  });
+
+  test('płyta niepusta: respektuje wyłączone zdarzenie w prefs', () {
+    final fake = _FakeNotifications();
+    final m = monitor(fake); // domyślne prefs: plateNotEmpty wł., ale…
+    final off = PrintMonitor(
+      fake,
+      prefs: const NotificationPrefs(enabled: {}),
+      l10n: () => lookupAppLocalizations(const Locale('en')),
+      clock: () => DateTime(2026, 6, 12, 20, 0),
+    );
+    off.onPlateNotEmpty(1, 'X1C');
+    expect(alertById(fake, 6001), isNull);
+    // sanity: domyślny monitor (plate wł.) odpala
+    m.onPlateNotEmpty(1, 'X1C');
     expect(alertById(fake, 6001), isNotNull);
-    fake.alerts.clear();
-    m.update({1: _status(state: 'IDLE', awaitingPlateClear: true)});
-    expect(alertById(fake, 6001), isNull);
   });
 
   test('offline: alert dopiero po upływie łaski; powrót online ją kasuje', () {

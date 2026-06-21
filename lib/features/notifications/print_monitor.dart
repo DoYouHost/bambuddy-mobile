@@ -47,7 +47,6 @@ class _PrinterMemo {
   final Set<int> lowFilamentTrays = {}; // zatrzaśnięte id slotów poniżej progu
   final Set<int> humidUnits = {}; // zatrzaśnięte id jednostek AMS powyżej progu
   bool awaitingBedCool = false;
-  bool plateAwaiting = false; // ostatni awaiting_plate_clear
 
   /// Reset stanu związanego z pojedynczym wydrukiem (na starcie nowego).
   void resetForNewPrint() {
@@ -143,6 +142,16 @@ class PrintMonitor {
     _updateOngoing(statuses);
   }
 
+  /// Zdarzenie „płyta niepusta" z osobnej ramki WS `plate_not_empty` (kamera
+  /// wykryła obiekty na stole na starcie druku → bambuddy wstrzymał wydruk).
+  /// To jedyne poprawne źródło tego alertu — patrz komentarz przy kroku 5)
+  /// w [_processPrinter]. Nazwa drukarki pochodzi z ramki (status może tu nie
+  /// być znany), z fallbackiem na tytuł listy.
+  void onPlateNotEmpty(int printerId, String? printerName) {
+    if (!_on(NotifEvent.plateNotEmpty)) return;
+    _alertPlate(printerId, printerName);
+  }
+
   /// Stan bazowy z pierwszej obserwowanej ramki — zapisujemy „co już jest", by
   /// kolejne ramki wykrywały tylko PRAWDZIWE zbocza. Świadomie NIE odpalamy
   /// niczego: wydruk w toku, gotowa pierwsza warstwa, istniejący błąd HMS czy
@@ -151,14 +160,16 @@ class PrintMonitor {
   /// oznacza świeżo zakończonego druku).
   void _prime(_PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
-    if ((status.layerNum ?? 0) >= 1) memo.firstLayerSent = true;
+    // „Pierwsza warstwa GOTOWA" = drukarka jest już na warstwie ≥ 2 (parytet z
+    // bambuddy: `on_first_layer_complete` strzela przy layer_num ≥ 2). Jeśli
+    // primujemy już po jej ukończeniu, tylko zapamiętujemy fakt — bez alertu.
+    if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
     if (status.progress != null) {
       final pct = status.progress!.round();
       for (final m in _milestones) {
         if (pct >= m) memo.milestonesSent.add(m);
       }
     }
-    memo.plateAwaiting = status.awaitingPlateClear ?? false;
     if (status.connected != null) memo.connected = status.connected;
     final errors = status.hmsErrors;
     if (errors != null) {
@@ -209,10 +220,13 @@ class PrintMonitor {
     }
     memo.printing = isPrinting;
 
-    // 3) Pierwsza warstwa (raz na wydruk).
+    // 3) Pierwsza warstwa GOTOWA (raz na wydruk). bambuddy ogłasza ukończenie
+    // pierwszej warstwy dopiero, gdy drukarka wejdzie na warstwę 2 (layer_num
+    // ≥ 2). Strzelanie przy layer_num ≥ 1 było przedwczesne — to dopiero
+    // ROZPOCZĘCIE pierwszej warstwy.
     if (isPrinting &&
         !memo.firstLayerSent &&
-        (status.layerNum ?? 0) >= 1 &&
+        (status.layerNum ?? 0) >= 2 &&
         _on(NotifEvent.firstLayer)) {
       memo.firstLayerSent = true;
       _alertFirstLayer(id, status);
@@ -229,12 +243,10 @@ class PrintMonitor {
       }
     }
 
-    // 5) Płyta niepusta (zbocze false/null → true).
-    final awaiting = status.awaitingPlateClear ?? false;
-    if (awaiting && !memo.plateAwaiting && _on(NotifEvent.plateNotEmpty)) {
-      _alertPlate(id, status);
-    }
-    memo.plateAwaiting = awaiting;
+    // 5) „Płyta niepusta" NIE jest tu wykrywana ze statusu — pole
+    // `awaiting_plate_clear` to bramka kolejki, którą bambuddy podnosi przy
+    // KAŻDYM końcu druku, więc strzelała razem z „wydruk zakończony". Prawdziwe
+    // zdarzenie przychodzi osobną ramką WS `plate_not_empty` → [onPlateNotEmpty].
 
     // 6) Offline z opóźnieniem (connected true → false).
     _processOffline(id, status, memo);
@@ -434,12 +446,14 @@ class PrintMonitor {
     );
   }
 
-  void _alertPlate(int id, PrinterStatus status) {
+  void _alertPlate(int id, String? printerName) {
     final l = _l10n();
+    final name =
+        (printerName?.trim().isNotEmpty ?? false) ? printerName!.trim() : null;
     _notifications.showAlert(
       id: _plateAlertBase + id,
       title: l.notifPlateTitle,
-      body: l.notifPlateBody(_printerLabel(status, l)),
+      body: l.notifPlateBody(name ?? l.printersTitle),
       payload: 'printer:$id',
     );
   }

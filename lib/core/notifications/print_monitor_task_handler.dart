@@ -13,6 +13,7 @@ import 'notification_prefs.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
 import '../api/ws_client.dart';
+import '../api/ws_messages.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
@@ -40,6 +41,7 @@ void startCallback() {
 class PrintMonitorTaskHandler extends TaskHandler {
   WsClient? _ws;
   StreamSubscription<PrinterStatus>? _sub;
+  StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
   _FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
@@ -87,6 +89,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _sub = ws.statuses.listen((status) {
       _statuses[status.id] = status;
       _monitor?.update(Map.of(_statuses));
+    });
+    // Zdarzenie „płyta niepusta" przychodzi osobną ramką (nie statusem) —
+    // prawdziwy trigger, w odróżnieniu od `awaiting_plate_clear` w statusie.
+    _plateSub = ws.plateAlerts.listen((e) {
+      _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
     ws.start();
 
@@ -154,6 +161,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _maintenanceTimer?.cancel();
     _tokenRefresher?.stop();
     await _sub?.cancel();
+    await _plateSub?.cancel();
     await _ws?.dispose();
   }
 }

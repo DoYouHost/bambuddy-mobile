@@ -55,6 +55,26 @@ void main() {
       expect(parseWsMessage('{"type":"pong"}'), isA<WsPong>());
     });
 
+    test('plate_not_empty → WsPlateNotEmpty z id/nazwą/wiadomością', () {
+      final raw = jsonEncode({
+        'type': 'plate_not_empty',
+        'printer_id': 3,
+        'printer_name': 'X1C',
+        'message': 'Objects detected on build plate! Print paused.',
+      });
+      final msg = parseWsMessage(raw);
+      expect(msg, isA<WsPlateNotEmpty>());
+      final plate = msg! as WsPlateNotEmpty;
+      expect(plate.printerId, 3);
+      expect(plate.printerName, 'X1C');
+      expect(plate.message, contains('Print paused'));
+    });
+
+    test('plate_not_empty bez printer_id → WsUnknown', () {
+      final msg = parseWsMessage('{"type":"plate_not_empty","message":"x"}');
+      expect(msg, isA<WsUnknown>());
+    });
+
     test('nieznany typ zachowuje się jako WsUnknown z type', () {
       final msg = parseWsMessage('{"type":"spoolbuddy_update","x":1}');
       expect(msg, isA<WsUnknown>());

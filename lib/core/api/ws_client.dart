@@ -122,6 +122,7 @@ class WsClient {
 
   final _stateController = StreamController<WsConnectionState>.broadcast();
   final _statusController = StreamController<PrinterStatus>.broadcast();
+  final _plateController = StreamController<WsPlateNotEmpty>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -141,6 +142,10 @@ class WsClient {
   WsConnectionState get state => _state;
   Stream<WsConnectionState> get connectionStates => _stateController.stream;
   Stream<PrinterStatus> get statuses => _statusController.stream;
+
+  /// Zdarzenia „płyta niepusta" (wstrzymany druk) — osobny strumień od
+  /// [statuses], bo to ramka eventowa, nie pełny stan drukarki.
+  Stream<WsPlateNotEmpty> get plateAlerts => _plateController.stream;
 
   /// Rozpoczyna łączenie (idempotentne). Po [suspend] wznawiaj przez [resume].
   void start() {
@@ -174,6 +179,7 @@ class WsClient {
     _teardownConnection();
     await _stateController.close();
     await _statusController.close();
+    await _plateController.close();
   }
 
   Future<void> _openConnection() async {
@@ -227,6 +233,8 @@ class WsClient {
     final msg = parseWsMessage(data);
     if (msg is WsPrinterStatus && !_statusController.isClosed) {
       _statusController.add(msg.status);
+    } else if (msg is WsPlateNotEmpty && !_plateController.isClosed) {
+      _plateController.add(msg);
     }
     // WsPong/WsUnknown/null: watchdog już zresetowany — nic więcej.
   }

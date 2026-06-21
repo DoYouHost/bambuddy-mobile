@@ -22,6 +22,21 @@ class WsPrinterStatus extends WsMessage {
   final PrinterStatus status;
 }
 
+/// Ramka `plate_not_empty` — detekcja kamerą wykryła obiekty na stole na
+/// starcie wydruku i bambuddy **wstrzymał** druk (analogicznie do push-a
+/// `on_plate_not_empty` w backendzie). To JEDYNE prawdziwe źródło zdarzenia
+/// „płyta niepusta" — pole `awaiting_plate_clear` ze statusu to tylko bramka
+/// kolejki podnoszona przy KAŻDYM końcu druku, więc nie nadaje się na trigger.
+///
+/// Serwer wysyła `{"type":"plate_not_empty","printer_id":N,"printer_name":…,
+/// "message":…}`.
+class WsPlateNotEmpty extends WsMessage {
+  const WsPlateNotEmpty(this.printerId, this.printerName, this.message);
+  final int printerId;
+  final String? printerName;
+  final String? message;
+}
+
 /// Odpowiedź serwera na nasz heartbeat (`{"type":"pong"}`). Sam fakt
 /// nadejścia JAKIEJKOLWIEK ramki resetuje watchdog; ten typ wyróżniamy,
 /// by menedżer mógł odróżnić ruch sterujący od danych.
@@ -64,6 +79,14 @@ WsMessage? parseWsMessage(String raw) {
       // to ono wygra — payload jest źródłem prawdy.
       final merged = <String, dynamic>{'id': printerId, ...data};
       return WsPrinterStatus(PrinterStatus.fromJson(merged));
+    case 'plate_not_empty':
+      final printerId = _toIntOrNull(decoded['printer_id']);
+      if (printerId == null) return WsUnknown(type); // bez id nie wiadomo czyja
+      return WsPlateNotEmpty(
+        printerId,
+        decoded['printer_name']?.toString(),
+        decoded['message']?.toString(),
+      );
     case 'pong':
       return const WsPong();
     default:
