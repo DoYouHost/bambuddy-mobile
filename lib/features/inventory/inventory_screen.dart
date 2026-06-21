@@ -127,10 +127,11 @@ class InventoryScreen extends ConsumerWidget {
     ];
   }
 
-  /// Skanuje kod QR szpuli i otwiera ją w trybie edycji. Skaner zwraca id
-  /// (parsowane z URL `?spool=`); szukamy szpuli na wczytanej liście (jest z
-  /// `include_archived`, więc każda powinna tam być). Świeżo dodaną na serwerze
-  /// próbujemy dociągnąć jednym odświeżeniem; gdy nadal brak — meldujemy.
+  /// Skanuje kod QR szpuli i otwiera jej kartę szczegółów (NIE tryb edycji).
+  /// Skaner zwraca id (parsowane z URL `?spool=`); szukamy szpuli na wczytanej
+  /// liście (jest z `include_archived`, więc każda powinna tam być). Świeżo
+  /// dodaną na serwerze próbujemy dociągnąć jednym odświeżeniem; gdy nadal
+  /// brak — meldujemy.
   Future<void> _scanSpool(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -151,7 +152,15 @@ class InventoryScreen extends ConsumerWidget {
       );
       return;
     }
-    openSpoolForm(context, existing: spool);
+    final assignment = ref.read(inventoryProvider).valueOrNull?.assignmentFor(
+      spool.id,
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
+    );
   }
 
   Spool? _findSpool(WidgetRef ref, int id) {
