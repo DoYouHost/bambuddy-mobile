@@ -1035,6 +1035,35 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryActionFailed => 'Operacja nie powiodła się';
 
   @override
+  String get inventoryUnassign => 'Odepnij';
+
+  @override
+  String get inventoryAssignTitle => 'Przypisz szpulę';
+
+  @override
+  String get inventoryAssignCurrent => 'Obecnie w tym slocie';
+
+  @override
+  String get inventoryAssignPick => 'Wybierz szpulę';
+
+  @override
+  String get inventoryReassignTitle => 'Przenieść szpulę?';
+
+  @override
+  String inventoryReassignMessage(String slot) {
+    return 'Ta szpula jest teraz w $slot. Zostanie stamtąd odpięta i przypisana do tego slotu.';
+  }
+
+  @override
+  String get inventoryReassignAction => 'Przenieś';
+
+  @override
+  String get inventorySpoolAssigned => 'Szpula przypisana';
+
+  @override
+  String get inventorySpoolUnassigned => 'Szpula odpięta';
+
+  @override
   String get inventoryScanSpool => 'Skanuj QR';
 
   @override

@@ -23,6 +23,12 @@ abstract class SpoolInventorySource {
   /// Przypisania szpul do slotów AMS (do pokazania, gdzie szpula siedzi).
   Future<List<SpoolAssignment>> fetchAssignments();
 
+  /// Przypisuje szpulę do slotu (drukarka/jednostka AMS/taca).
+  Future<void> assignSpool(SpoolAssignmentDraft draft);
+
+  /// Odpina szpulę z danego slotu.
+  Future<void> unassignSpool(int printerId, int amsId, int trayId);
+
   /// Historia zużycia jednej szpuli (ładowana na żądanie w szczegółach).
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId);
 
@@ -93,6 +99,29 @@ class NativeInventorySource implements SpoolInventorySource {
       final res =
           await _dio.get<List<dynamic>>(Endpoints.inventoryAssignments);
       return _parseList(res.data ?? const [], SpoolAssignment.fromNative);
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
+  @override
+  Future<void> assignSpool(SpoolAssignmentDraft draft) async {
+    try {
+      await _dio.post<dynamic>(
+        Endpoints.inventoryAssignments,
+        data: draft.toNativeJson(),
+      );
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
+  @override
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) async {
+    try {
+      await _dio.delete<dynamic>(
+        Endpoints.inventoryAssignment(printerId, amsId, trayId),
+      );
     } on DioException catch (e) {
       throw mapDioException(e);
     }
@@ -233,6 +262,17 @@ class SpoolmanInventorySource implements SpoolInventorySource {
       throw mapDioException(e);
     }
   }
+
+  // Spoolman zarządza przypisaniami slotów po swojej stronie — backend nie
+  // wystawia tu zapisu. Domyślny backend usera to natywny; gdyby ktoś przełączył
+  // na Spoolman, UI dostaje czytelny komunikat zamiast cichej awarii.
+  @override
+  Future<void> assignSpool(SpoolAssignmentDraft draft) async =>
+      throw UnsupportedError('Spoolman backend does not support slot assignment');
+
+  @override
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) async =>
+      throw UnsupportedError('Spoolman backend does not support slot assignment');
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];

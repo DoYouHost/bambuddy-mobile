@@ -351,6 +351,30 @@ class SpoolAssignment {
       amsLabel ?? 'AMS$amsId · ${trayId + 1}';
 }
 
+/// Żądanie przypisania szpuli do slotu (`SpoolAssignmentCreate`). Klucz fizyczny
+/// to trójka (drukarka, jednostka AMS, taca); dla szpuli zewnętrznej `amsId=255`,
+/// a `trayId` rozróżnia ekstruder (0=lewy, 1=prawy — patrz [SpoolAssignment]).
+class SpoolAssignmentDraft {
+  const SpoolAssignmentDraft({
+    required this.spoolId,
+    required this.printerId,
+    required this.amsId,
+    required this.trayId,
+  });
+
+  final int spoolId;
+  final int printerId;
+  final int amsId;
+  final int trayId;
+
+  Map<String, dynamic> toNativeJson() => {
+        'spool_id': spoolId,
+        'printer_id': printerId,
+        'ams_id': amsId,
+        'tray_id': trayId,
+      };
+}
+
 /// Wpis historii zużycia szpuli (`SpoolUsageHistoryResponse`).
 class SpoolUsageEntry {
   const SpoolUsageEntry({

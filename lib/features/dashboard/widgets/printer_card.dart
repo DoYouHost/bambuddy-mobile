@@ -4,14 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/api/api_exceptions.dart';
+import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_catalog.dart';
 import '../../../data/printers_repository.dart';
 import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../../inventory/inventory_providers.dart';
+import '../../inventory/inventory_screen.dart'
+    show SpoolSwatch, assignmentSlotLabel;
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
 import '../smart_plugs_providers.dart';
@@ -386,13 +392,13 @@ class _DetailsToggle extends StatelessWidget {
 
 /// Rozwinięta sekcja szczegółów: jednostki AMS z kolorowymi slotami,
 /// szpula zewnętrzna oraz metadane łączności (model, Wi-Fi, drzwiczki).
-class _DetailsPanel extends StatelessWidget {
+class _DetailsPanel extends ConsumerWidget {
   const _DetailsPanel({required this.status});
 
   final PrinterStatus status;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final ams = status.ams ?? const [];
     final spools = status.externalSpools;
@@ -401,6 +407,12 @@ class _DetailsPanel extends StatelessWidget {
     final active = status.activeTray;
     final dual = status.isDualExtruder;
     final activeExtruder = status.activeExtruder;
+    // Szpule z magazynu przypisane do slotów tej drukarki — by pokazać dokładną
+    // pozostałą wagę (drukarka podaje tylko %, a dla szpuli zewn. nawet tego nie).
+    final assigned = ref.watch(assignedSpoolsProvider(status.id));
+
+    final printerId = status.id;
+    final printerName = status.name;
 
     final sections = <Widget>[
       for (var i = 0; i < ams.length; i++)
@@ -411,6 +423,9 @@ class _DetailsPanel extends StatelessWidget {
           // Na dwudyszowej pokazujemy, który ekstruder karmi ta jednostka.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
           activeExtruder: activeExtruder,
+          assigned: assigned,
+          printerId: printerId,
+          printerName: printerName,
         ),
       if (spools.isNotEmpty)
         _TraySection(
@@ -421,6 +436,18 @@ class _DetailsPanel extends StatelessWidget {
           extruderOf:
               dual ? (i) => status.extruderForExternal(spools[i].id) : (_) => null,
           activeExtruder: activeExtruder,
+          // Szpula zewnętrzna karmiąca dany ekstruder (gdy dwudyszowa); na
+          // jednodyszowej traktujemy ją jako „lewą" (ekstruder 1) — patrz resolver.
+          assignedOf: (i) =>
+              assigned.forExtruder(dual ? status.extruderForExternal(spools[i].id) : 1),
+          // tray_id przypisania zewn.: ekstruder 1 (lewy)→0, 0 (prawy)→1;
+          // jednodyszowa → 0. amsId=255 (konwencja inventory).
+          trayIdOf: (i) {
+            if (!dual) return 0;
+            return status.extruderForExternal(spools[i].id) == 1 ? 0 : 1;
+          },
+          printerId: printerId,
+          printerName: printerName,
         ),
     ];
 
@@ -449,6 +476,9 @@ class _AmsUnitView extends StatelessWidget {
     required this.active,
     required this.extruder,
     required this.activeExtruder,
+    required this.assigned,
+    required this.printerId,
+    required this.printerName,
   });
 
   final AmsUnit unit;
@@ -456,6 +486,9 @@ class _AmsUnitView extends StatelessWidget {
   final AmsTray? active;
   final int? extruder;
   final int? activeExtruder;
+  final AssignedSpools assigned;
+  final int printerId;
+  final String? printerName;
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +534,19 @@ class _AmsUnitView extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final t in trays)
-              _TrayChip(tray: t, active: identical(t, active)),
+              _TrayChip(
+                tray: t,
+                active: identical(t, active),
+                assignedSpool:
+                    assigned.forAmsSlot(unit.id ?? unitIndex, t.id ?? 0),
+                slot: _SlotRef(
+                  printerId: printerId,
+                  printerName: printerName,
+                  amsId: unit.id ?? unitIndex,
+                  trayId: t.id ?? 0,
+                  label: '${l10n.amsUnit(unitIndex + 1)} · ${(t.id ?? 0) + 1}',
+                ),
+              ),
           ],
         ),
         if (trays.isEmpty)
@@ -520,6 +565,10 @@ class _TraySection extends StatelessWidget {
     required this.active,
     required this.extruderOf,
     required this.activeExtruder,
+    required this.assignedOf,
+    required this.trayIdOf,
+    required this.printerId,
+    required this.printerName,
   });
 
   final String title;
@@ -527,10 +576,15 @@ class _TraySection extends StatelessWidget {
   final AmsTray? active;
   final int? Function(int index) extruderOf;
   final int? activeExtruder;
+  final Spool? Function(int index) assignedOf;
+  final int Function(int index) trayIdOf;
+  final int printerId;
+  final String? printerName;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -549,6 +603,18 @@ class _TraySection extends StatelessWidget {
                 // Szpula zewnętrzna: drukarka nie mierzy zapełnienia (brak RFID
                 // jak w oryginalnych filamentach Bambu w AMS) — nie pokazujemy %.
                 allowRemain: false,
+                assignedSpool: assignedOf(i),
+                slot: _SlotRef(
+                  printerId: printerId,
+                  printerName: printerName,
+                  amsId: 255,
+                  trayId: trayIdOf(i),
+                  label: switch (extruderOf(i)) {
+                    1 => l10n.extruderLeft,
+                    0 => l10n.extruderRight,
+                    _ => title,
+                  },
+                ),
               ),
           ],
         ),
@@ -566,6 +632,8 @@ class _TrayChip extends StatelessWidget {
     this.extruder,
     this.activeExtruder,
     this.allowRemain = true,
+    this.assignedSpool,
+    this.slot,
   });
 
   final AmsTray tray;
@@ -576,6 +644,14 @@ class _TrayChip extends StatelessWidget {
   /// Czy w ogóle pokazywać % zapełnienia (tylko AMS — szpula zewnętrzna nie ma
   /// wiarygodnego pomiaru).
   final bool allowRemain;
+
+  /// Szpula z magazynu przypisana do tego slotu — daje dokładną pozostałą wagę
+  /// w gramach (uzupełnia/zastępuje zgrubne % drukarki). Null = nic nie przypisano.
+  final Spool? assignedSpool;
+
+  /// Identyfikacja slotu (drukarka/AMS/taca) — gdy podana, tap czipa otwiera
+  /// arkusz przypisania szpuli do TEGO slotu. Null → chip nieklikalny.
+  final _SlotRef? slot;
 
   @override
   Widget build(BuildContext context) {
@@ -590,8 +666,19 @@ class _TrayChip extends StatelessWidget {
         : (tray.materialLabel ?? l10n.traySlotEmpty);
     final remain = tray.remain;
     final showRemain = allowRemain && !empty && remain != null && remain >= 0;
+    // Dokładne gramy z przypisanej szpuli (tylko dla zajętego slotu).
+    final spool = empty ? null : assignedSpool;
+    final grams = spool == null
+        ? null
+        : l10n.inventoryUsageWeight(spool.remainingWeight.toStringAsFixed(0));
 
-    return Container(
+    final text = [
+      label,
+      if (showRemain) '$remain%',
+      ?grams,
+    ].join(' · ');
+
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
@@ -613,7 +700,7 @@ class _TrayChip extends StatelessWidget {
           _ColorDot(color: dotColor),
           const SizedBox(width: 6),
           Text(
-            showRemain ? '$label · $remain%' : label,
+            text,
             style: theme.textTheme.labelMedium?.copyWith(
               color: empty ? scheme.onSurfaceVariant : scheme.onSurface,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
@@ -622,6 +709,231 @@ class _TrayChip extends StatelessWidget {
         ],
       ),
     );
+
+    final slot = this.slot;
+    final tappable = slot == null
+        ? chip
+        : InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => _AssignSlotSheet(slot: slot),
+            ),
+            child: chip,
+          );
+
+    // Nazwa przypisanej szpuli w tooltipie (chip pokazuje tylko materiał + gramy).
+    return spool == null
+        ? tappable
+        : Tooltip(message: spool.displayName, child: tappable);
+  }
+}
+
+/// Identyfikacja fizycznego slotu na potrzeby przypisania szpuli z czipa.
+class _SlotRef {
+  const _SlotRef({
+    required this.printerId,
+    required this.printerName,
+    required this.amsId,
+    required this.trayId,
+    required this.label,
+  });
+
+  final int printerId;
+  final String? printerName;
+  final int amsId;
+  final int trayId;
+
+  /// Czytelna etykieta slotu (np. „AMS 1 · 2" albo „Lewy ekstruder").
+  final String label;
+}
+
+/// Arkusz „przypisz szpulę do tego slotu" otwierany z czipa AMS/szpuli. Slot jest
+/// znany z kontekstu czipa, więc user wybiera TYLKO szpulę. Pokazuje obecnie
+/// przypisaną (z opcją odpięcia) i listę aktywnych szpul z magazynu.
+class _AssignSlotSheet extends ConsumerWidget {
+  const _AssignSlotSheet({required this.slot});
+
+  final _SlotRef slot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final inv = ref.watch(inventoryProvider).valueOrNull;
+    final spools = inv?.spools ?? const <Spool>[];
+
+    // Szpula obecnie przypisana DOKŁADNIE do tego slotu (jeśli jest).
+    Spool? current;
+    for (final s in spools) {
+      final a = inv?.assignmentFor(s.id);
+      if (a != null &&
+          a.printerId == slot.printerId &&
+          a.amsId == slot.amsId &&
+          a.trayId == slot.trayId) {
+        current = s;
+        break;
+      }
+    }
+
+    // Do wyboru: aktywne szpule (bez zarchiwizowanych), bez tej już w slocie.
+    // Sortowanie: najpierw szpule nieprzypisane do żadnego slotu, w obrębie grup
+    // od najmniejszej pozostałej ilości filamentu (łatwiej dobić niedobitki).
+    bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
+    final options = [
+      for (final s in spools)
+        if (!s.isArchived && s.id != current?.id) s,
+    ]..sort((a, b) {
+        final ga = assignedElsewhere(a) ? 1 : 0;
+        final gb = assignedElsewhere(b) ? 1 : 0;
+        if (ga != gb) return ga - gb;
+        return a.remainingWeight.compareTo(b.remainingWeight);
+      });
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            [?slot.printerName, slot.label].join(' · '),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+
+          if (current != null) ...[
+            Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: SpoolSwatch(rgba: current.rgba),
+              title: Text(current.displayName),
+              subtitle: current.remainingFraction != null
+                  ? Text(l10n.inventoryRemaining(
+                      current.remainingWeight.toStringAsFixed(0)))
+                  : null,
+              trailing: TextButton.icon(
+                onPressed: () => _unassign(context, ref, l10n),
+                icon: const Icon(Icons.link_off, size: 18),
+                label: Text(l10n.inventoryUnassign),
+              ),
+            ),
+            const Divider(height: 24),
+          ],
+
+          Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 4),
+          if (options.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(l10n.inventoryEmpty,
+                  style: theme.textTheme.bodyMedium),
+            )
+          else
+            for (final s in options)
+              Builder(builder: (context) {
+                // Gdzie szpula siedzi teraz (jeśli w innym slocie) — przy wyborze
+                // zostanie stamtąd przeniesiona (po potwierdzeniu).
+                final from = inv?.assignmentFor(s.id);
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: SpoolSwatch(rgba: s.rgba),
+                  title: Text(s.displayName),
+                  subtitle: Text([
+                    if (s.remainingFraction != null)
+                      l10n.inventoryRemaining(
+                          s.remainingWeight.toStringAsFixed(0)),
+                    '#${s.id}',
+                    if (from != null)
+                      [?from.printerName, assignmentSlotLabel(l10n, from)]
+                          .join(' '),
+                  ].join(' · ')),
+                  trailing: from != null
+                      ? const Icon(Icons.swap_horiz, size: 20)
+                      : null,
+                  onTap: () => _assign(context, ref, l10n, s, from: from),
+                );
+              }),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _assign(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, Spool spool,
+      {SpoolAssignment? from}) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Szpula już w innym slocie → potwierdź przeniesienie (odepnij stamtąd).
+    if (from != null) {
+      final fromLabel =
+          [?from.printerName, assignmentSlotLabel(l10n, from)].join(' · ');
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.inventoryReassignTitle),
+          content: Text(l10n.inventoryReassignMessage(fromLabel)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.inventoryReassignAction),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+    }
+
+    Navigator.of(context).pop();
+    try {
+      await ref.read(inventoryProvider.notifier).assignSpool(
+            SpoolAssignmentDraft(
+              spoolId: spool.id,
+              printerId: slot.printerId,
+              amsId: slot.amsId,
+              trayId: slot.trayId,
+            ),
+            from: from,
+          );
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.inventorySpoolAssigned)));
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    } on Object {
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.inventoryActionFailed)));
+    }
+  }
+
+  Future<void> _unassign(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    try {
+      await ref
+          .read(inventoryProvider.notifier)
+          .unassignSpool(slot.printerId, slot.amsId, slot.trayId);
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.inventorySpoolUnassigned)));
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    } on Object {
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.inventoryActionFailed)));
+    }
   }
 }
 

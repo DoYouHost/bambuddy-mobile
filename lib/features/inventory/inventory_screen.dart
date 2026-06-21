@@ -722,7 +722,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // Akcje zarządzania (Faza 2).
-          _SpoolActions(spool: spool),
+          _SpoolActions(spool: spool, assignment: assignment),
           const SizedBox(height: 16),
 
           // Waga / pozostało.
@@ -938,9 +938,10 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
 /// mutację na [inventoryProvider] (która sama przeładowuje listę) i melduje
 /// wynik snackbarem. Destrukcyjne (usuń, reset) potwierdzamy dialogiem.
 class _SpoolActions extends ConsumerWidget {
-  const _SpoolActions({required this.spool});
+  const _SpoolActions({required this.spool, this.assignment});
 
   final Spool spool;
+  final SpoolAssignment? assignment;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -958,6 +959,23 @@ class _SpoolActions extends ConsumerWidget {
           icon: const Icon(Icons.edit_outlined, size: 18),
           label: Text(l10n.inventoryEdit),
         ),
+        // Odpięcie szpuli ze slotu (przypisanie robi się z czipa na dashboardzie).
+        if (!spool.isArchived && assignment != null)
+          OutlinedButton.icon(
+            onPressed: () => _run(
+              context,
+              ref,
+              l10n,
+              ref.read(inventoryProvider.notifier).unassignSpool(
+                    assignment!.printerId,
+                    assignment!.amsId,
+                    assignment!.trayId,
+                  ),
+              l10n.inventorySpoolUnassigned,
+            ),
+            icon: const Icon(Icons.link_off, size: 18),
+            label: Text(l10n.inventoryUnassign),
+          ),
         if (spool.weightUsed > 0)
           OutlinedButton.icon(
             onPressed: () => _resetUsage(context, ref, l10n),

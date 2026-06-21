@@ -1032,6 +1032,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryActionFailed => 'Action failed';
 
   @override
+  String get inventoryUnassign => 'Unassign';
+
+  @override
+  String get inventoryAssignTitle => 'Assign spool';
+
+  @override
+  String get inventoryAssignCurrent => 'Currently in this slot';
+
+  @override
+  String get inventoryAssignPick => 'Pick a spool';
+
+  @override
+  String get inventoryReassignTitle => 'Move spool?';
+
+  @override
+  String inventoryReassignMessage(String slot) {
+    return 'This spool is currently in $slot. It will be removed from there and assigned to this slot.';
+  }
+
+  @override
+  String get inventoryReassignAction => 'Move';
+
+  @override
+  String get inventorySpoolAssigned => 'Spool assigned';
+
+  @override
+  String get inventorySpoolUnassigned => 'Spool unassigned';
+
+  @override
   String get inventoryScanSpool => 'Scan QR';
 
   @override

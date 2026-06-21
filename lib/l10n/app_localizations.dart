@@ -1922,6 +1922,60 @@ abstract class AppLocalizations {
   /// **'Action failed'**
   String get inventoryActionFailed;
 
+  /// No description provided for @inventoryUnassign.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassign'**
+  String get inventoryUnassign;
+
+  /// No description provided for @inventoryAssignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign spool'**
+  String get inventoryAssignTitle;
+
+  /// No description provided for @inventoryAssignCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently in this slot'**
+  String get inventoryAssignCurrent;
+
+  /// No description provided for @inventoryAssignPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a spool'**
+  String get inventoryAssignPick;
+
+  /// No description provided for @inventoryReassignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move spool?'**
+  String get inventoryReassignTitle;
+
+  /// No description provided for @inventoryReassignMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This spool is currently in {slot}. It will be removed from there and assigned to this slot.'**
+  String inventoryReassignMessage(String slot);
+
+  /// No description provided for @inventoryReassignAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get inventoryReassignAction;
+
+  /// No description provided for @inventorySpoolAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool assigned'**
+  String get inventorySpoolAssigned;
+
+  /// No description provided for @inventorySpoolUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool unassigned'**
+  String get inventorySpoolUnassigned;
+
   /// No description provided for @inventoryScanSpool.
   ///
   /// In en, this message translates to:

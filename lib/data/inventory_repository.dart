@@ -17,6 +17,12 @@ class InventoryRepository {
   Future<List<SpoolAssignment>> fetchAssignments() =>
       _source.fetchAssignments();
 
+  Future<void> assignSpool(SpoolAssignmentDraft draft) =>
+      _source.assignSpool(draft);
+
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) =>
+      _source.unassignSpool(printerId, amsId, trayId);
+
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) =>
       _source.fetchUsage(spoolId);
 

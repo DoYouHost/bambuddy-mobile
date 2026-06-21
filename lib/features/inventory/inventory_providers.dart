@@ -99,7 +99,80 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 
   Future<void> resetUsage(int spoolId) =>
       _mutate((repo) async => repo.resetUsage(spoolId).then((_) => null));
+
+  /// Przypisuje szpulę do slotu, pilnując że szpula siedzi w DOKŁADNIE jednym
+  /// slocie: jeśli była już gdzie indziej, [from] wskazuje stary slot i najpierw
+  /// ją stamtąd odpinamy (przeniesienie). [from] == ten sam slot → samo przypisanie.
+  Future<void> assignSpool(SpoolAssignmentDraft draft,
+          {SpoolAssignment? from}) =>
+      _mutate((repo) async {
+        if (from != null &&
+            !(from.printerId == draft.printerId &&
+                from.amsId == draft.amsId &&
+                from.trayId == draft.trayId)) {
+          await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
+        }
+        await repo.assignSpool(draft);
+        return null;
+      });
+
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) => _mutate(
+      (repo) async =>
+          repo.unassignSpool(printerId, amsId, trayId).then((_) => null));
 }
+
+/// Rozwiązuje, która szpula z magazynu siedzi w danym slocie konkretnej
+/// drukarki — do wzbogacenia czipów AMS na dashboardzie (dokładna pozostała
+/// waga + nazwa). Budowane z [InventoryState]; matchowanie zależy od kształtu
+/// przypisań (patrz [[inventory-filaments]]).
+class AssignedSpools {
+  const AssignedSpools(this.printerId, this._byKey, this._byExtruder);
+
+  /// Pusty resolver (magazyn nieziaładowany / błąd) — nie wzbogaca niczego.
+  static const empty = AssignedSpools(-1, {}, {});
+
+  final int printerId;
+
+  /// Klucz `amsId * 1000 + trayId` → szpula (sloty jednostek AMS).
+  final Map<int, Spool> _byKey;
+
+  /// Ekstruder (1=lewy, 0=prawy) → szpula zewnętrzna.
+  final Map<int, Spool> _byExtruder;
+
+  /// Szpula w slocie jednostki AMS (`amsId` = id jednostki, `trayId` = numer
+  /// tacy w jednostce). Null, gdy nic nie przypisano.
+  Spool? forAmsSlot(int amsId, int trayId) => _byKey[amsId * 1000 + trayId];
+
+  /// Szpula zewnętrzna karmiąca dany ekstruder (1=lewy, 0=prawy).
+  Spool? forExtruder(int? extruder) =>
+      extruder == null ? null : _byExtruder[extruder];
+
+  bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
+}
+
+/// Resolver przypisań dla jednej drukarki (po `printerId`). Czyta `inventoryProvider`
+/// (współdzieli ten sam fetch co zakładka Filamentów); degraduje się do pustego,
+/// gdy magazyn jeszcze się nie załadował lub padł — dashboard działa bez niego.
+final assignedSpoolsProvider =
+    Provider.autoDispose.family<AssignedSpools, int>((ref, printerId) {
+  final inv = ref.watch(inventoryProvider).valueOrNull;
+  if (inv == null) return AssignedSpools.empty;
+  final spoolById = {for (final s in inv.spools) s.id: s};
+  final byKey = <int, Spool>{};
+  final byExtruder = <int, Spool>{};
+  for (final a in inv.assignmentBySpool.values) {
+    if (a.printerId != printerId) continue;
+    final spool = spoolById[a.spoolId];
+    if (spool == null) continue;
+    if (a.isExternalSpool) {
+      final ext = a.extruder;
+      if (ext != null) byExtruder[ext] = spool;
+    } else {
+      byKey[a.amsId * 1000 + a.trayId] = spool;
+    }
+  }
+  return AssignedSpools(printerId, byKey, byExtruder);
+});
 
 /// Tekst wyszukiwania (materiał/marka/kolor/lokalizacja). Filtrowanie po stronie
 /// klienta w widoku.

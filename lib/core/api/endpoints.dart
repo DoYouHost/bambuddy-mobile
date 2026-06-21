@@ -139,6 +139,11 @@ abstract final class Endpoints {
   /// `POST` — przypisanie szpuli (body `SpoolAssignmentCreate`).
   static const inventoryAssignments = '$apiPrefix/inventory/assignments';
 
+  /// Odpięcie szpuli ze slotu (`DELETE`) — klucz to trójka (drukarka, jednostka
+  /// AMS, taca). Szpula zewnętrzna: `amsId=255`, `trayId` 0=lewy/1=prawy.
+  static String inventoryAssignment(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/inventory/assignments/$printerId/$amsId/$trayId';
+
   // --- Dane referencyjne formularza szpuli (Faza 2) ---
 
   /// Katalog wag rdzeni szpul (`CatalogEntryResponse[]`: id/name/weight/
