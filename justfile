@@ -36,6 +36,7 @@ _bump ver:
 release ver:
     git tag v{{ver}}
     git push origin HEAD v{{ver}}
+    sleep 2
     tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}"
     tea releases assets create --remote origin v{{ver}} {{apk}}
 
