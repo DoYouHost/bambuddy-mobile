@@ -1904,6 +1904,54 @@ abstract class AppLocalizations {
   /// **'Action failed'**
   String get inventoryActionFailed;
 
+  /// No description provided for @inventoryScanSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get inventoryScanSpool;
+
+  /// No description provided for @inventoryScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan spool QR'**
+  String get inventoryScanTitle;
+
+  /// No description provided for @inventoryScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the spool\'s QR code'**
+  String get inventoryScanHint;
+
+  /// No description provided for @inventoryScanPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access needed'**
+  String get inventoryScanPermissionTitle;
+
+  /// No description provided for @inventoryScanPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera access to scan spool QR codes.'**
+  String get inventoryScanPermissionBody;
+
+  /// No description provided for @inventoryScanOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get inventoryScanOpenSettings;
+
+  /// No description provided for @inventoryScanInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized QR code'**
+  String get inventoryScanInvalid;
+
+  /// No description provided for @inventoryScanNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool #{id} not found'**
+  String inventoryScanNotFound(int id);
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

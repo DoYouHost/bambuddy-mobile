@@ -1026,6 +1026,33 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryActionFailed => 'Operacja nie powiodła się';
 
   @override
+  String get inventoryScanSpool => 'Skanuj QR';
+
+  @override
+  String get inventoryScanTitle => 'Skanuj kod QR szpuli';
+
+  @override
+  String get inventoryScanHint => 'Skieruj aparat na kod QR szpuli';
+
+  @override
+  String get inventoryScanPermissionTitle => 'Potrzebny dostęp do aparatu';
+
+  @override
+  String get inventoryScanPermissionBody =>
+      'Zezwól na dostęp do aparatu, aby skanować kody QR szpul.';
+
+  @override
+  String get inventoryScanOpenSettings => 'Otwórz ustawienia';
+
+  @override
+  String get inventoryScanInvalid => 'Nierozpoznany kod QR';
+
+  @override
+  String inventoryScanNotFound(int id) {
+    return 'Nie znaleziono szpuli #$id';
+  }
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

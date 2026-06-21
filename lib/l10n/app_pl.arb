@@ -333,6 +333,16 @@
   "inventorySaveFailed": "Nie udało się zapisać szpuli",
   "inventoryActionFailed": "Operacja nie powiodła się",
 
+  "inventoryScanSpool": "Skanuj QR",
+  "inventoryScanTitle": "Skanuj kod QR szpuli",
+  "inventoryScanHint": "Skieruj aparat na kod QR szpuli",
+  "inventoryScanPermissionTitle": "Potrzebny dostęp do aparatu",
+  "inventoryScanPermissionBody": "Zezwól na dostęp do aparatu, aby skanować kody QR szpul.",
+  "inventoryScanOpenSettings": "Otwórz ustawienia",
+  "inventoryScanInvalid": "Nierozpoznany kod QR",
+  "inventoryScanNotFound": "Nie znaleziono szpuli #{id}",
+  "@inventoryScanNotFound": { "placeholders": { "id": { "type": "int" } } },
+
   "maintenanceEmpty": "Brak danych o konserwacji",
   "maintenanceTotalHours": "{hours} h łącznie",
   "maintenanceDueBadge": "{count} zaległe",

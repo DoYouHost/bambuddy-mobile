@@ -387,6 +387,16 @@
   "inventorySaveFailed": "Could not save spool",
   "inventoryActionFailed": "Action failed",
 
+  "inventoryScanSpool": "Scan QR",
+  "inventoryScanTitle": "Scan spool QR",
+  "inventoryScanHint": "Point the camera at the spool's QR code",
+  "inventoryScanPermissionTitle": "Camera access needed",
+  "inventoryScanPermissionBody": "Allow camera access to scan spool QR codes.",
+  "inventoryScanOpenSettings": "Open settings",
+  "inventoryScanInvalid": "Unrecognized QR code",
+  "inventoryScanNotFound": "Spool #{id} not found",
+  "@inventoryScanNotFound": { "placeholders": { "id": { "type": "int" } } },
+
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",
   "@maintenanceTotalHours": { "placeholders": { "hours": { "type": "int" } } },

@@ -7,6 +7,7 @@ import '../../core/models/inventory_reference.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import 'inventory_providers.dart';
+import 'spool_scanner_screen.dart';
 
 /// Zakładka „Filamenty" (Faza 1, read-only): magazyn szpul z wyszukiwaniem,
 /// przełącznikiem zarchiwizowanych i szczegółami (historia zużycia, slot AMS,
@@ -24,10 +25,24 @@ class InventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navFilaments)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => openSpoolForm(context),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.inventoryAddSpool),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'scanSpool',
+            onPressed: () => _scanSpool(context, ref),
+            tooltip: l10n.inventoryScanSpool,
+            child: const Icon(Icons.qr_code_scanner),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'addSpool',
+            onPressed: () => openSpoolForm(context),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.inventoryAddSpool),
+          ),
+        ],
       ),
       body: async.when(
         skipLoadingOnReload: true,
@@ -107,6 +122,41 @@ class InventoryScreen extends ConsumerWidget {
                         filters.locations.contains(s.storageLocation)))
                   if (q.isEmpty || _matches(s, q)) s,
     ];
+  }
+
+  /// Skanuje kod QR szpuli i otwiera ją w trybie edycji. Skaner zwraca id
+  /// (parsowane z URL `?spool=`); szukamy szpuli na wczytanej liście (jest z
+  /// `include_archived`, więc każda powinna tam być). Świeżo dodaną na serwerze
+  /// próbujemy dociągnąć jednym odświeżeniem; gdy nadal brak — meldujemy.
+  Future<void> _scanSpool(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final id = await Navigator.of(context, rootNavigator: true).push<int>(
+      MaterialPageRoute(builder: (_) => const SpoolScannerScreen()),
+    );
+    if (id == null || !context.mounted) return;
+
+    var spool = _findSpool(ref, id);
+    if (spool == null) {
+      await ref.read(inventoryProvider.notifier).refresh();
+      spool = _findSpool(ref, id);
+    }
+    if (!context.mounted) return;
+    if (spool == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
+      );
+      return;
+    }
+    openSpoolForm(context, existing: spool);
+  }
+
+  Spool? _findSpool(WidgetRef ref, int id) {
+    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
+    for (final s in spools) {
+      if (s.id == id) return s;
+    }
+    return null;
   }
 
   /// Otwiera arkusz filtrów. Opcje (materiały/marki/lokalizacje) liczymy z pełnej

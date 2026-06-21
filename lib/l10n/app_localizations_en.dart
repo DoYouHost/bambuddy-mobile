@@ -1023,6 +1023,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryActionFailed => 'Action failed';
 
   @override
+  String get inventoryScanSpool => 'Scan QR';
+
+  @override
+  String get inventoryScanTitle => 'Scan spool QR';
+
+  @override
+  String get inventoryScanHint => 'Point the camera at the spool\'s QR code';
+
+  @override
+  String get inventoryScanPermissionTitle => 'Camera access needed';
+
+  @override
+  String get inventoryScanPermissionBody =>
+      'Allow camera access to scan spool QR codes.';
+
+  @override
+  String get inventoryScanOpenSettings => 'Open settings';
+
+  @override
+  String get inventoryScanInvalid => 'Unrecognized QR code';
+
+  @override
+  String inventoryScanNotFound(int id) {
+    return 'Spool #$id not found';
+  }
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

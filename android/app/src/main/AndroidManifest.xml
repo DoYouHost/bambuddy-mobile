@@ -13,6 +13,10 @@
     <!-- Prośba o zwolnienie z optymalizacji baterii: na Samsungu kluczowe dla
          przeżywalności w tle i odblokowuje start foreground service z tła. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- Skaner kodów QR szpul (mobile_scanner) — aparat tylko na żądanie,
+         uprawnienie runtime proszone przy otwarciu skanera. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- Self-hosted serwery bambuddy w LAN zwykle nie mają TLS; dostęp zdalny
          powinien iść przez HTTPS na reverse proxy (patrz README). -->
     <application

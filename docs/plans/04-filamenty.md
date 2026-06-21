@@ -72,8 +72,10 @@ abstract class SpoolInventorySource {
 
 ## Fazy
 
-> **Status (2026-06-21):** Faza 0 i Faza 1 zrobione + zweryfikowane na żywo
-> (AVD pixel35, realny serwer). Niezacommitowane (working tree). Następna: Faza 2.
+> **Status (2026-06-21):** Faza 0, Faza 1 i **Faza 2 — CRUD szpul** zrobione +
+> zweryfikowane na żywo (AVD pixel35, realny serwer). Niezacommitowane (working
+> tree). Pozostało w Fazie 2: przypisania AMS, katalog filamentów (+ świadomie
+> odłożone Slicer Preset i PA Profile — patrz niżej).
 
 ### ✅ Faza 0 — fundament (ZROBIONE)
 - [x] `endpoints.dart`: `inventorySpools`, `inventorySpool(id)`, `inventoryAssignments`
@@ -103,16 +105,53 @@ abstract class SpoolInventorySource {
 - [x] **Ponad plan:** plakietki rodzaju filamentu (PLA/PETG/TPU…) na liście;
   sortowanie szpul załadowanych (AMS/external) na górę.
 
-### Faza 2 — zarządzanie (DO ZROBIENIA)
-- Szpula: dodaj/edytuj/usuń/archiwizuj/przywróć, reset zużycia, korekta wagi,
-  próg low-stock, lokalizacja, link tagu NFC.
-- Przypisz/odepnij szpulę do slotu AMS (`POST/DELETE /inventory/assignments`) →
+### Faza 2 — zarządzanie
+
+#### ✅ CRUD szpul (ZROBIONE, zweryfikowane na żywo)
+- [x] Szpula: dodaj/edytuj/usuń/archiwizuj/przywróć, reset zużycia, korekta wagi
+  (pole „Pozostała waga" steruje `weight_used = etykieta − pozostało`), próg
+  low-stock, lokalizacja, kategoria. Write-endpointy `/inventory/spools*` (POST/
+  PATCH/DELETE + `/archive`/`/restore`/`/reset-usage`) + spoolmanowe odpowiedniki.
+- [x] Mutacje na `inventoryProvider` przeładowują listę; akcje (edytuj/reset/
+  archiwizuj/przywróć/usuń) w sheecie szczegółów + FAB „Dodaj szpulę".
+  Destrukcyjne (usuń, reset) z dialogiem potwierdzenia.
+- [x] **Formularz `_SpoolFormSheet` w układzie bambuddy „Add Spool"** — sekcje
+  FILAMENT / KOLOR / DODATKOWE: dropdowny Materiał/Marka/Wariant (opcje scalane
+  z `/filament-catalog` + istniejących szpul + stałe popularne), **picker
+  kolorów** z `/inventory/colors` (siatka „Popularne kolory" `is_default` +
+  szukajka, wybór wypełnia hex/nazwę/gradient/efekt), **katalog wag rdzeni** z
+  `/inventory/catalog` (Empty Spool Weight → `core_weight`+`core_weight_catalog_id`),
+  Zmierzona waga (`last_scale_weight`), Dodatkowe kolory (`extra_colors`),
+  Efekt (`effect_type`).
+- [x] Nowe modele `inventory_reference.dart` (`CoreWeightEntry`/`ColorEntry`/
+  `FilamentPreset`) + providery referencyjne (`coreWeightsProvider`/
+  `colorCatalogProvider`/`filamentPresetsProvider`/`materialOptionsProvider`/
+  `brandOptionsProvider`/`subtypeOptionsProvider`). Dane referencyjne degradują
+  się do pustych list (formularz dopuszcza wpis ręczny; Spoolman zwraca puste).
+- [x] ID szpuli jako `#id` (tekst pomocniczy w wierszu listy).
+- [x] **HACZYK 422:** `SpoolCreate.rgba` = `^[0-9A-Fa-f]{8}$` (8 hex, bez `#`) →
+  `normalizeRgba` (`#RRGGBB`→`RRGGBBAA`, dokłada `FF`); `low_stock_threshold_pct`
+  klamrowany 1..99. Body POST może być podzbiorem pól (reszta = defaulty serwera).
+
+#### Przypisania AMS (DO ZROBIENIA)
+- Przypisz/odepnij szpulę do slotu AMS (`POST /inventory/assignments` body
+  `SpoolAssignmentCreate {spool_id,printer_id,ams_id,tray_id}`,
+  `DELETE /inventory/assignments/{printer_id}/{ams_id}/{tray_id}`) →
   integracja: czipy AMS na dashboardzie (M3) pokazują nazwę/kolor + dokładną
   pozostałą wagę przypisanej szpuli; wzbogacony próg `lowFilament`
   ([[configurable-notifications]]).
+
+#### Katalog filamentów + reszta (DO ZROBIENIA)
 - Katalog filamentów: CRUD + `calculate-cost` + `seed-defaults`.
 - „Zsynchronizuj wagi z AMS" (`sync-ams-weights`). Lista zakupów / sync kolorów —
-  opcjonalnie.
+  opcjonalnie. Link tagu NFC (`PATCH /spools/{id}/link-tag`).
+
+#### Świadomie ODŁOŻONE (wymagają cloud/printer — osobna faza)
+- **Slicer Preset** (`GET /slicer/presets` → `UnifiedPresetsResponse`) — złożona
+  integracja cloud, prefill materiału/marki/temp/koloru z presetu.
+- **Zakładka PA Profile** — k-profile per drukarka (`PUT /inventory/spools/{id}/
+  k-profiles` body `SpoolKProfileBase[]`); zwykle synchronizowane z drukarki, nie
+  wpisywane ręcznie, a przy nowej szpuli brak `id`.
 
 ## Do zweryfikowania na żywo (verify-on-phone-before-commit)
 - [x] Format `rgba` — hex8 `RRGGBBAA` (`#RRGGBB` też obsłużone). Swatch OK.
@@ -121,6 +160,8 @@ abstract class SpoolInventorySource {
   (0 → lewy, 1 → prawy). Zweryfikowane fizycznie na X2D. (To inna reprezentacja
   niż MQTT `vtTray` 254/255 z dashboardu — patrz `SpoolAssignment.extruder`.)
 - [x] Który backend na serwerze usera — **natywny** (`/inventory/*`).
-- [ ] Jakie uprawnienie klucza API wymagają zapisy (403) — DO SPRAWDZENIA w Fazie 2.
+- [x] Zapisy (create/update/delete/archive/restore/reset-usage) przechodzą na
+  bieżącym kluczu API — **brak 403**. Jedyny napotkany błąd to **422** (walidacja
+  `rgba`/`low_stock`, nie uprawnienia). `X-API-Key` dokładany przez `AuthInterceptor`.
 - Inne ustalenia: nazwy wydruków w historii zużycia są URL-encoded (`%20`) i tak
   ZOSTAJĄ (taka jest nazwa pliku na serwerze); `cost_per_kg` jako `N.NN/kg`.
