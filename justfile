@@ -34,15 +34,16 @@ _bump ver:
 # create Codeberg release and upload APK (assumes APK already built)
 # usage: just release 1.0.0
 release ver:
-    git tag v{{ver}}
     #!/usr/bin/env bash
-    set -e
-    git push origin HEAD v{{ver}}
-    for i in 1 2 3; do
-    sleep 5
-    tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}" && break || echo "Retry $i/3..."
-    done
+    set -euo pipefail
+    # Push the bump commit first; let Codeberg create the tag together with the
+    # release in one server-side call. This avoids the race where we push a tag
+    # and immediately reference it before Codeberg has indexed it.
+    git push origin HEAD:master
+    tea releases create --remote origin --target master --tag v{{ver}} --title "v{{ver}}"
     tea releases assets create --remote origin v{{ver}} {{apk}}
+    # Sync the server-created tag back to the local repo.
+    git fetch --tags origin
 
 # bump version, test, build and release — full pipeline
 # usage: just ship 1.0.0
