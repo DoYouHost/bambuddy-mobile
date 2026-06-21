@@ -35,9 +35,14 @@ _bump ver:
 # usage: just release 1.0.0
 release ver:
     git tag v{{ver}}
+    #!/usr/bin/env bash
+    set -e
     git push origin HEAD v{{ver}}
-    sleep 2
-    tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}"
+    for i in 1 2 3; do
+        sleep 5
+        tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}" && break
+        echo "Retry $i/3 – waiting for Codeberg to index tag..."
+    done
     tea releases assets create --remote origin v{{ver}} {{apk}}
 
 # bump version, test, build and release — full pipeline
