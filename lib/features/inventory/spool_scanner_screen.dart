@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -46,9 +48,13 @@ class SpoolScannerScreen extends StatefulWidget {
   State<SpoolScannerScreen> createState() => _SpoolScannerScreenState();
 }
 
-class _SpoolScannerScreenState extends State<SpoolScannerScreen>
-    with WidgetsBindingObserver {
+class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
+  // `autoStart: false` + jawny `start()` w initState — wzorzec z oficjalnego
+  // przykładu pakietu. NIE zarządzamy cyklem życia ręcznym observerem:
+  // start/stop ścigałyby się z prośbą o uprawnienie (dialog usypia aplikację)
+  // i zostawiały odpiętą teksturę → czarny podgląd na realnym urządzeniu.
   final MobileScannerController _controller = MobileScannerController(
+    autoStart: false,
     detectionSpeed: DetectionSpeed.noDuplicates,
     formats: const [BarcodeFormat.qrCode],
   );
@@ -60,29 +66,13 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    unawaited(_controller.start());
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
+    unawaited(_controller.dispose());
     super.dispose();
-  }
-
-  /// Wstrzymuje strumień aparatu, gdy aplikacja schodzi w tło, i wznawia po
-  /// powrocie — bez tego CameraX trzyma uchwyt mimo niewidocznego ekranu.
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _controller.start();
-      case AppLifecycleState.inactive:
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-        _controller.stop();
-    }
   }
 
   void _onDetect(BarcodeCapture capture) {
