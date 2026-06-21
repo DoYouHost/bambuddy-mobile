@@ -1201,4 +1201,235 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get maintenanceNotifAction => 'Oznacz wykonane';
+
+  @override
+  String get navMenu => 'Menu';
+
+  @override
+  String get menuStatistics => 'Statystyki';
+
+  @override
+  String get statsTitle => 'Statystyki';
+
+  @override
+  String get statsRangeAllTime => 'Cały okres';
+
+  @override
+  String get statsRangeLast7Days => 'Ostatnie 7 dni';
+
+  @override
+  String get statsRangeLast30Days => 'Ostatnie 30 dni';
+
+  @override
+  String get statsRangeLast90Days => 'Ostatnie 90 dni';
+
+  @override
+  String get statsRangeThisYear => 'Ten rok';
+
+  @override
+  String get statsRangeCustom => 'Własny zakres';
+
+  @override
+  String get statsEmpty => 'Brak wydruków w tym okresie';
+
+  @override
+  String get statsLoadFailed => 'Nie udało się wczytać statystyk';
+
+  @override
+  String get statsOverview => 'Przegląd';
+
+  @override
+  String get statsTotalPrints => 'Wydruki łącznie';
+
+  @override
+  String get statsPrintTime => 'Czas druku';
+
+  @override
+  String get statsFilamentUsed => 'Zużyty filament';
+
+  @override
+  String get statsFilamentCost => 'Koszt filamentu';
+
+  @override
+  String get statsEnergyUsed => 'Zużyta energia';
+
+  @override
+  String get statsEnergyCost => 'Koszt energii';
+
+  @override
+  String get statsTotalCost => 'Koszt łącznie';
+
+  @override
+  String get statsEnergyWarmingUp => 'Dane o energii dopiero się zbierają';
+
+  @override
+  String get statsSuccessRate => 'Skuteczność';
+
+  @override
+  String statsSuccessful(int count) {
+    return 'Udane: $count';
+  }
+
+  @override
+  String statsFailed(int count) {
+    return 'Nieudane: $count';
+  }
+
+  @override
+  String get statsTimeAccuracy => 'Dokładność czasu';
+
+  @override
+  String get statsTimeAccuracyHint => '100% = idealny szacunek';
+
+  @override
+  String get statsByMaterial => 'Wydruki wg materiału';
+
+  @override
+  String get statsByPrinter => 'Wydruki wg drukarki';
+
+  @override
+  String get statsTimeAccuracyByPrinter => 'Dokładność czasu wg drukarki';
+
+  @override
+  String statsPrintsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wydruku',
+      many: '$count wydruków',
+      few: '$count wydruki',
+      one: '$count wydruk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String statsHours(String hours) {
+    return '$hours h';
+  }
+
+  @override
+  String statsPrinterFallback(String id) {
+    return 'Drukarka #$id';
+  }
+
+  @override
+  String get statsMetricWeight => 'Waga';
+
+  @override
+  String get statsMetricPrints => 'Wydruki';
+
+  @override
+  String get statsMetricTime => 'Czas';
+
+  @override
+  String get statsFailureAnalysis => 'Analiza niepowodzeń';
+
+  @override
+  String get statsFailureRate => 'Odsetek niepowodzeń';
+
+  @override
+  String statsFailurePeriod(int days) {
+    return 'Ostatnie $days dni';
+  }
+
+  @override
+  String statsFailedOfTotal(int failed, int total) {
+    return '$failed / $total wydruków nieudanych';
+  }
+
+  @override
+  String get statsTopFailureReasons => 'Najczęstsze powody';
+
+  @override
+  String get statsNoFailures => 'Brak niepowodzeń w tym okresie';
+
+  @override
+  String get statsPrintActivity => 'Aktywność wydruków';
+
+  @override
+  String get statsHeatmapLess => 'Mniej';
+
+  @override
+  String get statsHeatmapMore => 'Więcej';
+
+  @override
+  String get statsRecords => 'Rekordy';
+
+  @override
+  String get statsLongestPrint => 'Najdłuższy wydruk';
+
+  @override
+  String get statsHeaviestPrint => 'Najcięższy wydruk';
+
+  @override
+  String get statsMostExpensive => 'Najdroższy';
+
+  @override
+  String get statsBusiestDay => 'Najbardziej zajęty dzień';
+
+  @override
+  String get statsSuccessStreak => 'Seria sukcesów';
+
+  @override
+  String statsConsecutive(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count z rzędu',
+      one: '$count z rzędu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get statsFilamentTrends => 'Trendy filamentu';
+
+  @override
+  String get statsPeriodFilament => 'Filament w okresie';
+
+  @override
+  String get statsPeriodCost => 'Koszt w okresie';
+
+  @override
+  String get statsAvgPerPrint => 'Średnio na wydruk';
+
+  @override
+  String get statsUsageOverTime => 'Zużycie w czasie';
+
+  @override
+  String get statsByMaterialTitle => 'Wg materiału';
+
+  @override
+  String get statsSuccessByMaterial => 'Skuteczność wg materiału';
+
+  @override
+  String get statsColorDistribution => 'Rozkład kolorów';
+
+  @override
+  String statsColorsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count koloru',
+      many: '$count kolorów',
+      few: '$count kolory',
+      one: '$count kolor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String statsMoreCount(int count) {
+    return '+$count więcej';
+  }
+
+  @override
+  String get statsPrintDuration => 'Czas trwania wydruku';
+
+  @override
+  String get statsPrintHabits => 'Nawyki drukowania';
+
+  @override
+  String get statsPrintTimeOfDay => 'Pora dnia wydruku';
 }

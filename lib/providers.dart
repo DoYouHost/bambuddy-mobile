@@ -21,6 +21,7 @@ import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/smart_plugs_repository.dart';
+import 'data/stats_repository.dart';
 
 /// Nadpisywany w main() po SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -184,6 +185,11 @@ final archiveRepositoryProvider = Provider<ArchiveRepository>(
 /// Smart gniazdka (M7). Współdzieli uwierzytelnione Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Statystyki archiwum. Współdzieli uwierzytelnione Dio.
+final statsRepositoryProvider = Provider<StatsRepository>(
+  (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Konserwacja drukarek (M7). Współdzieli uwierzytelnione Dio.

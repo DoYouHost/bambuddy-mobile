@@ -1,0 +1,234 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../l10n/app_localizations.dart';
+import 'stats_computed.dart';
+
+/// Metryka wybierana w przełącznikach „Waga / Wydruki / Czas".
+enum StatMetric { weight, prints, time }
+
+extension StatMetricValue on StatMetric {
+  /// Wyciąga wartość metryki z kubełka [b].
+  num of(StatBucket b) => switch (this) {
+        StatMetric.weight => b.grams,
+        StatMetric.prints => b.prints,
+        StatMetric.time => b.seconds,
+      };
+
+  String label(AppLocalizations l) => switch (this) {
+        StatMetric.weight => l.statsMetricWeight,
+        StatMetric.prints => l.statsMetricPrints,
+        StatMetric.time => l.statsMetricTime,
+      };
+
+  /// Sformatowana wartość metryki do podpisu wiersza.
+  String format(num v) => switch (this) {
+        StatMetric.weight => fmtGrams(v.toDouble()),
+        StatMetric.prints => '${v.round()}',
+        StatMetric.time => fmtDuration(v.round()),
+      };
+}
+
+/// Karta sekcji ze stałym nagłówkiem — wspólna otoczka wszystkich widżetów.
+class SectionCard extends StatelessWidget {
+  const SectionCard({super.key, required this.title, required this.child, this.trailing});
+
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ?trailing,
+              ],
+            ),
+            const SizedBox(height: 14),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Przełącznik metryki (Waga / Wydruki / Czas) jako kompaktowy SegmentedButton.
+class MetricToggle extends StatelessWidget {
+  const MetricToggle({super.key, required this.value, required this.onChanged});
+
+  final StatMetric value;
+  final ValueChanged<StatMetric> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SegmentedButton<StatMetric>(
+      showSelectedIcon: false,
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      segments: [
+        for (final m in StatMetric.values)
+          ButtonSegment(value: m, label: Text(m.label(l10n))),
+      ],
+      selected: {value},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
+  }
+}
+
+/// Pierścieniowy wskaźnik procentowy (0–100) z etykietą w środku.
+class RingGauge extends StatelessWidget {
+  const RingGauge({
+    super.key,
+    required this.percent,
+    required this.color,
+    required this.label,
+  });
+
+  final double percent;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 110,
+      height: 110,
+      child: CustomPaint(
+        painter: _RingPainter(
+          percent: percent.clamp(0, 100).toDouble(),
+          color: color,
+          track: theme.colorScheme.surfaceContainerHighest,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter({required this.percent, required this.color, required this.track});
+
+  final double percent;
+  final Color color;
+  final Color track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 10.0;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - stroke) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = track,
+    );
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      percent / 100 * 2 * math.pi,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.percent != percent || old.color != color || old.track != track;
+}
+
+/// Pozioma legenda kolor–tekst (kropka + etykieta).
+class LegendDot extends StatelessWidget {
+  const LegendDot({super.key, required this.color, required this.text});
+
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}
+
+/// Etykiety kubełków histogramu czasu trwania (górne granice — wspólne PL/EN).
+const durationBucketLabels = <String>[
+  '<30min', '<1h', '<2h', '<4h', '<8h', '<12h', '<24h', '24h+',
+];
+
+/// Liczba do max 2 miejsc po przecinku, bez zbędnych zer.
+String fmtNum(num v) {
+  final d = v.toDouble();
+  if (d == d.roundToDouble()) return d.toStringAsFixed(0);
+  return d.toStringAsFixed(2);
+}
+
+/// Filament: gramy poniżej 1 kg, w przeciwnym razie kilogramy.
+String fmtGrams(double g) =>
+    g >= 1000 ? '${(g / 1000).toStringAsFixed(2)} kg' : '${g.toStringAsFixed(0)} g';
+
+/// Czas trwania z sekund: „9h 31m", „45m", „30s".
+String fmtDuration(int seconds) {
+  if (seconds <= 0) return '0m';
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  if (h > 0) return m > 0 ? '${h}h ${m}m' : '${h}h';
+  if (m > 0) return '${m}m';
+  return '${seconds}s';
+}
+
+/// Parsuje `#RRGGBB`/`RRGGBB` na [Color]; null gdy niepoprawny.
+Color? colorFromHex(String? hex) {
+  if (hex == null) return null;
+  var h = hex.trim();
+  if (h.startsWith('#')) h = h.substring(1);
+  if (h.length != 6) return null;
+  final v = int.tryParse(h, radix: 16);
+  if (v == null) return null;
+  return Color(0xFF000000 | v);
+}

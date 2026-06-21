@@ -10,6 +10,7 @@ import 'features/notifications/notification_settings_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
+import 'features/stats/statistics_screen.dart';
 import 'providers.dart';
 
 /// Klucze nawigatorów dla każdej gałęzi powłoki.
@@ -40,6 +41,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
+      ),
+
+      // Statystyki archiwum — pełny ekran poza powłoką (push z szuflady).
+      GoRoute(
+        path: '/stats',
+        builder: (_, _) => const StatisticsScreen(),
       ),
 
       // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.

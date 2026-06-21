@@ -61,6 +61,19 @@ abstract final class Endpoints {
   // Trailing slash wymagany: analogicznie do `/queue/`.
   static const archives = '$apiPrefix/archives/';
   static const archivesSearch = '$apiPrefix/archives/search';
+
+  /// Statystyki zbiorcze archiwum. Query (wszystkie opcjonalne):
+  /// `date_from`/`date_to` (YYYY-MM-DD, włącznie), `created_by_id`
+  /// (filtr po autorze; `-1` = bez użytkownika).
+  static const archivesStats = '$apiPrefix/archives/stats';
+
+  /// Lekka lista wydruków (ArchiveSlim[]) do liczenia bogatych statystyk po
+  /// stronie klienta. Query: `date_from`/`date_to`/`created_by_id`/`limit`/`offset`.
+  static const archivesSlim = '$apiPrefix/archives/slim';
+
+  /// Analiza niepowodzeń. Query: `days` lub `date_from`/`date_to`,
+  /// `printer_id`/`project_id`/`created_by_id`.
+  static const archivesFailures = '$apiPrefix/archives/analysis/failures';
   static String archiveReprint(int archiveId) =>
       '$apiPrefix/archives/$archiveId/reprint';
 

@@ -1196,4 +1196,225 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maintenanceNotifAction => 'Mark done';
+
+  @override
+  String get navMenu => 'Menu';
+
+  @override
+  String get menuStatistics => 'Statistics';
+
+  @override
+  String get statsTitle => 'Statistics';
+
+  @override
+  String get statsRangeAllTime => 'All time';
+
+  @override
+  String get statsRangeLast7Days => 'Last 7 days';
+
+  @override
+  String get statsRangeLast30Days => 'Last 30 days';
+
+  @override
+  String get statsRangeLast90Days => 'Last 90 days';
+
+  @override
+  String get statsRangeThisYear => 'This year';
+
+  @override
+  String get statsRangeCustom => 'Custom range';
+
+  @override
+  String get statsEmpty => 'No prints in this period';
+
+  @override
+  String get statsLoadFailed => 'Could not load statistics';
+
+  @override
+  String get statsOverview => 'Overview';
+
+  @override
+  String get statsTotalPrints => 'Total prints';
+
+  @override
+  String get statsPrintTime => 'Print time';
+
+  @override
+  String get statsFilamentUsed => 'Filament used';
+
+  @override
+  String get statsFilamentCost => 'Filament cost';
+
+  @override
+  String get statsEnergyUsed => 'Energy used';
+
+  @override
+  String get statsEnergyCost => 'Energy cost';
+
+  @override
+  String get statsTotalCost => 'Total cost';
+
+  @override
+  String get statsEnergyWarmingUp => 'Energy data is still warming up';
+
+  @override
+  String get statsSuccessRate => 'Success rate';
+
+  @override
+  String statsSuccessful(int count) {
+    return 'Successful: $count';
+  }
+
+  @override
+  String statsFailed(int count) {
+    return 'Failed: $count';
+  }
+
+  @override
+  String get statsTimeAccuracy => 'Time accuracy';
+
+  @override
+  String get statsTimeAccuracyHint => '100% = perfect estimate';
+
+  @override
+  String get statsByMaterial => 'Prints by material';
+
+  @override
+  String get statsByPrinter => 'Prints by printer';
+
+  @override
+  String get statsTimeAccuracyByPrinter => 'Time accuracy by printer';
+
+  @override
+  String statsPrintsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints',
+      one: '$count print',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String statsHours(String hours) {
+    return '$hours h';
+  }
+
+  @override
+  String statsPrinterFallback(String id) {
+    return 'Printer #$id';
+  }
+
+  @override
+  String get statsMetricWeight => 'Weight';
+
+  @override
+  String get statsMetricPrints => 'Prints';
+
+  @override
+  String get statsMetricTime => 'Time';
+
+  @override
+  String get statsFailureAnalysis => 'Failure analysis';
+
+  @override
+  String get statsFailureRate => 'Failure rate';
+
+  @override
+  String statsFailurePeriod(int days) {
+    return 'Last $days days';
+  }
+
+  @override
+  String statsFailedOfTotal(int failed, int total) {
+    return '$failed / $total prints failed';
+  }
+
+  @override
+  String get statsTopFailureReasons => 'Top failure reasons';
+
+  @override
+  String get statsNoFailures => 'No failures in this period';
+
+  @override
+  String get statsPrintActivity => 'Print activity';
+
+  @override
+  String get statsHeatmapLess => 'Less';
+
+  @override
+  String get statsHeatmapMore => 'More';
+
+  @override
+  String get statsRecords => 'Records';
+
+  @override
+  String get statsLongestPrint => 'Longest print';
+
+  @override
+  String get statsHeaviestPrint => 'Heaviest print';
+
+  @override
+  String get statsMostExpensive => 'Most expensive';
+
+  @override
+  String get statsBusiestDay => 'Busiest day';
+
+  @override
+  String get statsSuccessStreak => 'Success streak';
+
+  @override
+  String statsConsecutive(int count) {
+    return '$count consecutive';
+  }
+
+  @override
+  String get statsFilamentTrends => 'Filament trends';
+
+  @override
+  String get statsPeriodFilament => 'Period filament';
+
+  @override
+  String get statsPeriodCost => 'Period cost';
+
+  @override
+  String get statsAvgPerPrint => 'Avg per print';
+
+  @override
+  String get statsUsageOverTime => 'Usage over time';
+
+  @override
+  String get statsByMaterialTitle => 'By material';
+
+  @override
+  String get statsSuccessByMaterial => 'Success by material';
+
+  @override
+  String get statsColorDistribution => 'Color distribution';
+
+  @override
+  String statsColorsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'colors',
+      one: 'color',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String statsMoreCount(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String get statsPrintDuration => 'Print duration';
+
+  @override
+  String get statsPrintHabits => 'Print habits';
+
+  @override
+  String get statsPrintTimeOfDay => 'Print time of day';
 }

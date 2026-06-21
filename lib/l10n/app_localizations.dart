@@ -2197,6 +2197,384 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark done'**
   String get maintenanceNotifAction;
+
+  /// No description provided for @navMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get navMenu;
+
+  /// No description provided for @menuStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get menuStatistics;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get statsTitle;
+
+  /// No description provided for @statsRangeAllTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get statsRangeAllTime;
+
+  /// No description provided for @statsRangeLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get statsRangeLast7Days;
+
+  /// No description provided for @statsRangeLast30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get statsRangeLast30Days;
+
+  /// No description provided for @statsRangeLast90Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 90 days'**
+  String get statsRangeLast90Days;
+
+  /// No description provided for @statsRangeThisYear.
+  ///
+  /// In en, this message translates to:
+  /// **'This year'**
+  String get statsRangeThisYear;
+
+  /// No description provided for @statsRangeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom range'**
+  String get statsRangeCustom;
+
+  /// No description provided for @statsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No prints in this period'**
+  String get statsEmpty;
+
+  /// No description provided for @statsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load statistics'**
+  String get statsLoadFailed;
+
+  /// No description provided for @statsOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get statsOverview;
+
+  /// No description provided for @statsTotalPrints.
+  ///
+  /// In en, this message translates to:
+  /// **'Total prints'**
+  String get statsTotalPrints;
+
+  /// No description provided for @statsPrintTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Print time'**
+  String get statsPrintTime;
+
+  /// No description provided for @statsFilamentUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get statsFilamentUsed;
+
+  /// No description provided for @statsFilamentCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament cost'**
+  String get statsFilamentCost;
+
+  /// No description provided for @statsEnergyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy used'**
+  String get statsEnergyUsed;
+
+  /// No description provided for @statsEnergyCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy cost'**
+  String get statsEnergyCost;
+
+  /// No description provided for @statsTotalCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Total cost'**
+  String get statsTotalCost;
+
+  /// No description provided for @statsEnergyWarmingUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy data is still warming up'**
+  String get statsEnergyWarmingUp;
+
+  /// No description provided for @statsSuccessRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Success rate'**
+  String get statsSuccessRate;
+
+  /// No description provided for @statsSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Successful: {count}'**
+  String statsSuccessful(int count);
+
+  /// No description provided for @statsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {count}'**
+  String statsFailed(int count);
+
+  /// No description provided for @statsTimeAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Time accuracy'**
+  String get statsTimeAccuracy;
+
+  /// No description provided for @statsTimeAccuracyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'100% = perfect estimate'**
+  String get statsTimeAccuracyHint;
+
+  /// No description provided for @statsByMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints by material'**
+  String get statsByMaterial;
+
+  /// No description provided for @statsByPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints by printer'**
+  String get statsByPrinter;
+
+  /// No description provided for @statsTimeAccuracyByPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Time accuracy by printer'**
+  String get statsTimeAccuracyByPrinter;
+
+  /// No description provided for @statsPrintsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} print} other{{count} prints}}'**
+  String statsPrintsCount(int count);
+
+  /// No description provided for @statsHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String statsHours(String hours);
+
+  /// No description provided for @statsPrinterFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer #{id}'**
+  String statsPrinterFallback(String id);
+
+  /// No description provided for @statsMetricWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get statsMetricWeight;
+
+  /// No description provided for @statsMetricPrints.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints'**
+  String get statsMetricPrints;
+
+  /// No description provided for @statsMetricTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get statsMetricTime;
+
+  /// No description provided for @statsFailureAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure analysis'**
+  String get statsFailureAnalysis;
+
+  /// No description provided for @statsFailureRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure rate'**
+  String get statsFailureRate;
+
+  /// No description provided for @statsFailurePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {days} days'**
+  String statsFailurePeriod(int days);
+
+  /// No description provided for @statsFailedOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{failed} / {total} prints failed'**
+  String statsFailedOfTotal(int failed, int total);
+
+  /// No description provided for @statsTopFailureReasons.
+  ///
+  /// In en, this message translates to:
+  /// **'Top failure reasons'**
+  String get statsTopFailureReasons;
+
+  /// No description provided for @statsNoFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'No failures in this period'**
+  String get statsNoFailures;
+
+  /// No description provided for @statsPrintActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Print activity'**
+  String get statsPrintActivity;
+
+  /// No description provided for @statsHeatmapLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get statsHeatmapLess;
+
+  /// No description provided for @statsHeatmapMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get statsHeatmapMore;
+
+  /// No description provided for @statsRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Records'**
+  String get statsRecords;
+
+  /// No description provided for @statsLongestPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest print'**
+  String get statsLongestPrint;
+
+  /// No description provided for @statsHeaviestPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Heaviest print'**
+  String get statsHeaviestPrint;
+
+  /// No description provided for @statsMostExpensive.
+  ///
+  /// In en, this message translates to:
+  /// **'Most expensive'**
+  String get statsMostExpensive;
+
+  /// No description provided for @statsBusiestDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Busiest day'**
+  String get statsBusiestDay;
+
+  /// No description provided for @statsSuccessStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Success streak'**
+  String get statsSuccessStreak;
+
+  /// No description provided for @statsConsecutive.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} consecutive'**
+  String statsConsecutive(int count);
+
+  /// No description provided for @statsFilamentTrends.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament trends'**
+  String get statsFilamentTrends;
+
+  /// No description provided for @statsPeriodFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Period filament'**
+  String get statsPeriodFilament;
+
+  /// No description provided for @statsPeriodCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Period cost'**
+  String get statsPeriodCost;
+
+  /// No description provided for @statsAvgPerPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg per print'**
+  String get statsAvgPerPrint;
+
+  /// No description provided for @statsUsageOverTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage over time'**
+  String get statsUsageOverTime;
+
+  /// No description provided for @statsByMaterialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'By material'**
+  String get statsByMaterialTitle;
+
+  /// No description provided for @statsSuccessByMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Success by material'**
+  String get statsSuccessByMaterial;
+
+  /// No description provided for @statsColorDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Color distribution'**
+  String get statsColorDistribution;
+
+  /// No description provided for @statsColorsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{color} other{colors}}'**
+  String statsColorsCount(int count);
+
+  /// No description provided for @statsMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String statsMoreCount(int count);
+
+  /// No description provided for @statsPrintDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Print duration'**
+  String get statsPrintDuration;
+
+  /// No description provided for @statsPrintHabits.
+  ///
+  /// In en, this message translates to:
+  /// **'Print habits'**
+  String get statsPrintHabits;
+
+  /// No description provided for @statsPrintTimeOfDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Print time of day'**
+  String get statsPrintTimeOfDay;
 }
 
 class _AppLocalizationsDelegate

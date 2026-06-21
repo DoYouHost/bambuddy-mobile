@@ -215,6 +215,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.watch(tokenRefresherProvider)?.start();
 
     return Scaffold(
+      drawer: _AppDrawer(profileLabel: profile?.label),
       appBar: AppBar(
         title: Text(l10n.printersTitle),
         actions: [
@@ -222,11 +223,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             tooltip: l10n.batteryOptMenu,
             icon: const Icon(Icons.notifications_active_outlined),
             onPressed: () => _openNotificationMenu(context, l10n),
-          ),
-          IconButton(
-            tooltip: l10n.changeServer,
-            icon: const Icon(Icons.settings),
-            onPressed: () => _confirmChangeServer(context, ref, l10n),
           ),
         ],
         // Tylko przyjazna etykieta profilu (jeśli ustawiona) — bez adresu URL.
@@ -364,7 +360,75 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ],
     );
   }
+}
 
+/// Szuflada nawigacyjna z ekranami „app-level" (drugorzędnymi względem zakładek
+/// dolnej belki): Statystyki, Powiadomienia, zmiana serwera. Hamburger pokazuje
+/// się automatycznie w AppBarze Dashboardu, bo Scaffold ma ustawioną `drawer`.
+class _AppDrawer extends ConsumerWidget {
+  const _AppDrawer({this.profileLabel});
+
+  final String? profileLabel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DrawerHeader(
+              decoration:
+                  BoxDecoration(color: theme.colorScheme.primaryContainer),
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('BamBuddy', style: theme.textTheme.titleLarge),
+                    if (profileLabel != null)
+                      Text(profileLabel!, style: theme.textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: Text(l10n.menuStatistics),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/stats');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tune),
+              title: Text(l10n.notifEventsMenu),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/settings/notifications');
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: Text(l10n.changeServer),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmChangeServer(context, ref, l10n);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Powtórka potwierdzenia zmiany serwera — wyczyszczenie profilu odsyła do
+  /// `/setup` przez router. Trzymane przy szufladzie, by nie zależeć od metod
+  /// stanu Dashboardu.
   Future<void> _confirmChangeServer(
       BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
