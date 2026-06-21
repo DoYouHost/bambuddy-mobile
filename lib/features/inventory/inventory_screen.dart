@@ -487,6 +487,14 @@ class _SpoolTile extends StatelessWidget {
           Row(
             children: [
               Text(
+                '#${spool.id}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
                 l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0)),
                 style: theme.textTheme.bodySmall,
               ),
