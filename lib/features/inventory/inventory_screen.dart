@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -1265,10 +1266,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   child: _field('colorName', l10n.inventoryFieldColorName),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _field('rgba', l10n.inventoryFieldColorHex,
-                      hint: 'RRGGBB'),
-                ),
+                Expanded(child: _hexColorPickerField(l10n)),
               ],
             ),
             _field('extraColors', l10n.inventoryFieldExtraColors,
@@ -1422,6 +1420,87 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         onChanged: (v) => setState(() => _effectType = v),
       ),
     );
+  }
+
+  /// Pole koloru: zamiast ręcznego wpisywania hexa otwiera color picker
+  /// (koło HSV + pasek hex). Po wyborze wpisuje hex `RRGGBBAA` do kontrolera
+  /// `rgba` (alfa zachowana z poprzedniej wartości, domyślnie `FF`).
+  Widget _hexColorPickerField(AppLocalizations l10n) {
+    final hex = _c['rgba']!.text.trim();
+    final color = parseSpoolColor(hex);
+    return InkWell(
+      borderRadius: BorderRadius.circular(4),
+      onTap: () => _openColorPicker(l10n),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: l10n.inventoryFieldColorHex,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          suffixIcon: const Icon(Icons.colorize),
+        ),
+        child: Row(
+          children: [
+            SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                hex.isEmpty ? l10n.inventoryColorNone : hex.toUpperCase(),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: color == null
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : null,
+                    ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dialog z color pickerem. Startuje od bieżącego koloru (lub białego),
+  /// a po zatwierdzeniu zapisuje wybrany hex `RRGGBBAA` do pola `rgba`.
+  /// Zachowuje istniejący bajt alfa (zwykle `FF`) — picker edytuje tylko RGB,
+  /// więc nie gubimy alfy szpuli (gdyby kiedyś była inna niż pełna).
+  Future<void> _openColorPicker(AppLocalizations l10n) async {
+    final rawCurrent = _c['rgba']!.text.trim().replaceFirst('#', '');
+    final alphaHex =
+        rawCurrent.length == 8 ? rawCurrent.substring(6, 8).toUpperCase() : 'FF';
+    var picked = parseSpoolColor(_c['rgba']!.text) ?? const Color(0xFFFFFFFF);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.inventoryColorPickTitle),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: picked,
+            onColorChanged: (c) => picked = c,
+            enableAlpha: false,
+            hexInputBar: true,
+            labelTypes: const [],
+            portraitOnly: true,
+            pickerAreaHeightPercent: 0.7,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.inventoryColorSelect),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() {
+        _c['rgba']!.text = colorToHex(picked, enableAlpha: false) + alphaHex;
+      });
+    }
   }
 
   Widget _field(

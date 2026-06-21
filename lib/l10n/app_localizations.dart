@@ -1826,6 +1826,24 @@ abstract class AppLocalizations {
   /// **'Search colors…'**
   String get inventoryColorSearchHint;
 
+  /// No description provided for @inventoryColorPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a color'**
+  String get inventoryColorPickTitle;
+
+  /// No description provided for @inventoryColorSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get inventoryColorSelect;
+
+  /// No description provided for @inventoryColorNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No color'**
+  String get inventoryColorNone;
+
   /// No description provided for @inventoryLowStockHint.
   ///
   /// In en, this message translates to:

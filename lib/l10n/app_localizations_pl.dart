@@ -982,6 +982,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryColorSearchHint => 'Szukaj kolorów…';
 
   @override
+  String get inventoryColorPickTitle => 'Wybierz kolor';
+
+  @override
+  String get inventoryColorSelect => 'Wybierz';
+
+  @override
+  String get inventoryColorNone => 'Brak koloru';
+
+  @override
   String get inventoryLowStockHint => 'Puste = próg globalny';
 
   @override

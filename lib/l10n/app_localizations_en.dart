@@ -979,6 +979,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryColorSearchHint => 'Search colors…';
 
   @override
+  String get inventoryColorPickTitle => 'Pick a color';
+
+  @override
+  String get inventoryColorSelect => 'Select';
+
+  @override
+  String get inventoryColorNone => 'No color';
+
+  @override
   String get inventoryLowStockHint => 'Leave blank to use the global threshold';
 
   @override
