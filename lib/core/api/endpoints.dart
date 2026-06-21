@@ -110,22 +110,61 @@ abstract final class Endpoints {
   // natywny `/inventory/*` (domyślny) i Spoolman `/spoolman/inventory/*`.
   // Trailing slash NIE jest tu wymagany — trasy są pod pełną ścieżką bez slasha.
 
-  /// Lista szpul. Query: `include_archived=true|false`.
+  /// Lista szpul. Query: `include_archived=true|false`. Również `POST` —
+  /// utworzenie szpuli (body `SpoolCreate`, zwraca `SpoolResponse`).
   static const inventorySpools = '$apiPrefix/inventory/spools';
+
+  /// Pojedyncza szpula: `GET` (szczegóły), `PATCH` (edycja, body `SpoolUpdate`),
+  /// `DELETE` (trwałe usunięcie). Zapisy wymagają uprawnienia na kluczu (→ 403).
   static String inventorySpool(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId';
+
+  /// Archiwizacja szpuli (`POST`, bez body). Odwrotność: [inventorySpoolRestore].
+  static String inventorySpoolArchive(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/archive';
+
+  /// Przywrócenie zarchiwizowanej szpuli (`POST`, bez body).
+  static String inventorySpoolRestore(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/restore';
+
+  /// Reset zużycia szpuli do zera (`POST`, bez body).
+  static String inventorySpoolResetUsage(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/reset-usage';
 
   /// Historia zużycia szpuli (`SpoolUsageHistoryResponse[]`).
   static String inventorySpoolUsage(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/usage';
 
-  /// Przypisania szpul do slotów AMS (`SpoolAssignmentResponse[]`).
+  /// Przypisania szpul do slotów AMS (`SpoolAssignmentResponse[]`). Również
+  /// `POST` — przypisanie szpuli (body `SpoolAssignmentCreate`).
   static const inventoryAssignments = '$apiPrefix/inventory/assignments';
+
+  // --- Dane referencyjne formularza szpuli (Faza 2) ---
+
+  /// Katalog wag rdzeni szpul (`CatalogEntryResponse[]`: id/name/weight/
+  /// is_default) — do pola „Empty Spool Weight".
+  static const inventoryCatalog = '$apiPrefix/inventory/catalog';
+
+  /// Baza kolorów filamentów (`ColorEntryResponse[]`: manufacturer/color_name/
+  /// hex_color/material/extra_colors/effect_type/is_default) — picker kolorów.
+  /// Źródło dropdownów materiału/marki to istniejący [filamentCatalog].
+  static const inventoryColors = '$apiPrefix/inventory/colors';
+
+  /// Profile kalibracji K szpuli (`SpoolKProfileResponse[]`). `PUT` zastępuje
+  /// całą listę (body `SpoolKProfileBase[]`). Zakładka PA Profile.
+  static String inventorySpoolKProfiles(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/k-profiles';
 
   // Backend Spoolman (drop-in — inny kształt danych).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
+  static String spoolmanSpoolArchive(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/archive';
+  static String spoolmanSpoolRestore(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/restore';
+  static String spoolmanSpoolResetUsage(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-usage';
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
 

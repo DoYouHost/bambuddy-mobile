@@ -859,6 +859,170 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get inventoryAddSpool => 'Add spool';
+
+  @override
+  String get inventoryNewSpool => 'New spool';
+
+  @override
+  String get inventoryEditSpool => 'Edit spool';
+
+  @override
+  String get inventorySave => 'Save';
+
+  @override
+  String get inventoryEdit => 'Edit';
+
+  @override
+  String get inventoryDelete => 'Delete';
+
+  @override
+  String get inventoryArchive => 'Archive';
+
+  @override
+  String get inventoryRestore => 'Restore';
+
+  @override
+  String get inventoryResetUsage => 'Reset usage';
+
+  @override
+  String get inventoryFieldMaterial => 'Material';
+
+  @override
+  String get inventoryFieldBrand => 'Brand';
+
+  @override
+  String get inventoryFieldSubtype => 'Variant';
+
+  @override
+  String get inventoryFieldColorName => 'Color name';
+
+  @override
+  String get inventoryFieldColorHex => 'Color (hex)';
+
+  @override
+  String get inventoryFieldLabelWeight => 'Spool weight (g)';
+
+  @override
+  String get inventoryFieldWeightUsed => 'Used (g)';
+
+  @override
+  String get inventoryFieldCostPerKg => 'Cost per kg';
+
+  @override
+  String get inventoryFieldLowStock => 'Low-stock threshold (%)';
+
+  @override
+  String get inventoryFieldLocation => 'Storage location';
+
+  @override
+  String get inventoryFieldNozzleMin => 'Nozzle min (°C)';
+
+  @override
+  String get inventoryFieldNozzleMax => 'Nozzle max (°C)';
+
+  @override
+  String get inventoryFieldNote => 'Note';
+
+  @override
+  String get inventoryFieldRequired => 'Required';
+
+  @override
+  String get inventoryFieldInvalidNumber => 'Enter a number';
+
+  @override
+  String get inventorySectionBasics => 'Basics';
+
+  @override
+  String get inventorySectionWeight => 'Weight & cost';
+
+  @override
+  String get inventorySectionDetails => 'Details';
+
+  @override
+  String get inventorySectionFilament => 'Filament';
+
+  @override
+  String get inventorySectionColor => 'Color';
+
+  @override
+  String get inventorySectionAdditional => 'Additional';
+
+  @override
+  String get inventoryFieldEmptySpoolWeight => 'Empty spool weight (g)';
+
+  @override
+  String get inventoryFieldRemainingWeight => 'Remaining weight (g)';
+
+  @override
+  String get inventoryFieldMeasuredWeight => 'Measured weight (g)';
+
+  @override
+  String get inventoryFieldCategory => 'Category';
+
+  @override
+  String get inventoryFieldExtraColors => 'Extra colors';
+
+  @override
+  String get inventoryExtraColorsHint => '2–8 hex stops, comma-separated';
+
+  @override
+  String get inventoryFieldEffect => 'Effect';
+
+  @override
+  String get inventoryEffectNone => 'None';
+
+  @override
+  String get inventoryColorCommon => 'Common colors';
+
+  @override
+  String get inventoryColorSearchHint => 'Search colors…';
+
+  @override
+  String get inventoryLowStockHint => 'Leave blank to use the global threshold';
+
+  @override
+  String inventoryRemainingOfLabel(int total) {
+    return 'of $total g';
+  }
+
+  @override
+  String get inventoryDeleteTitle => 'Delete spool?';
+
+  @override
+  String inventoryDeleteConfirm(String name) {
+    return 'Permanently delete $name? This cannot be undone.';
+  }
+
+  @override
+  String get inventoryResetUsageConfirm =>
+      'Reset usage to zero? The spool will count as full again.';
+
+  @override
+  String get inventorySpoolCreated => 'Spool added';
+
+  @override
+  String get inventorySpoolUpdated => 'Spool updated';
+
+  @override
+  String get inventorySpoolDeleted => 'Spool deleted';
+
+  @override
+  String get inventorySpoolArchived => 'Spool archived';
+
+  @override
+  String get inventorySpoolRestored => 'Spool restored';
+
+  @override
+  String get inventoryUsageReset => 'Usage reset';
+
+  @override
+  String get inventorySaveFailed => 'Could not save spool';
+
+  @override
+  String get inventoryActionFailed => 'Action failed';
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

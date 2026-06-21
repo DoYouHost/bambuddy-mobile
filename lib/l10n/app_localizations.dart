@@ -1586,6 +1586,324 @@ abstract class AppLocalizations {
   /// **'{nozzle} mm · K {k}'**
   String inventoryKProfileLine(String nozzle, String k);
 
+  /// No description provided for @inventoryAddSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'Add spool'**
+  String get inventoryAddSpool;
+
+  /// No description provided for @inventoryNewSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'New spool'**
+  String get inventoryNewSpool;
+
+  /// No description provided for @inventoryEditSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit spool'**
+  String get inventoryEditSpool;
+
+  /// No description provided for @inventorySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get inventorySave;
+
+  /// No description provided for @inventoryEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get inventoryEdit;
+
+  /// No description provided for @inventoryDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get inventoryDelete;
+
+  /// No description provided for @inventoryArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get inventoryArchive;
+
+  /// No description provided for @inventoryRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get inventoryRestore;
+
+  /// No description provided for @inventoryResetUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset usage'**
+  String get inventoryResetUsage;
+
+  /// No description provided for @inventoryFieldMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get inventoryFieldMaterial;
+
+  /// No description provided for @inventoryFieldBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get inventoryFieldBrand;
+
+  /// No description provided for @inventoryFieldSubtype.
+  ///
+  /// In en, this message translates to:
+  /// **'Variant'**
+  String get inventoryFieldSubtype;
+
+  /// No description provided for @inventoryFieldColorName.
+  ///
+  /// In en, this message translates to:
+  /// **'Color name'**
+  String get inventoryFieldColorName;
+
+  /// No description provided for @inventoryFieldColorHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Color (hex)'**
+  String get inventoryFieldColorHex;
+
+  /// No description provided for @inventoryFieldLabelWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool weight (g)'**
+  String get inventoryFieldLabelWeight;
+
+  /// No description provided for @inventoryFieldWeightUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used (g)'**
+  String get inventoryFieldWeightUsed;
+
+  /// No description provided for @inventoryFieldCostPerKg.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost per kg'**
+  String get inventoryFieldCostPerKg;
+
+  /// No description provided for @inventoryFieldLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Low-stock threshold (%)'**
+  String get inventoryFieldLowStock;
+
+  /// No description provided for @inventoryFieldLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
+  String get inventoryFieldLocation;
+
+  /// No description provided for @inventoryFieldNozzleMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle min (°C)'**
+  String get inventoryFieldNozzleMin;
+
+  /// No description provided for @inventoryFieldNozzleMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle max (°C)'**
+  String get inventoryFieldNozzleMax;
+
+  /// No description provided for @inventoryFieldNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get inventoryFieldNote;
+
+  /// No description provided for @inventoryFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get inventoryFieldRequired;
+
+  /// No description provided for @inventoryFieldInvalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number'**
+  String get inventoryFieldInvalidNumber;
+
+  /// No description provided for @inventorySectionBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Basics'**
+  String get inventorySectionBasics;
+
+  /// No description provided for @inventorySectionWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight & cost'**
+  String get inventorySectionWeight;
+
+  /// No description provided for @inventorySectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get inventorySectionDetails;
+
+  /// No description provided for @inventorySectionFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get inventorySectionFilament;
+
+  /// No description provided for @inventorySectionColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get inventorySectionColor;
+
+  /// No description provided for @inventorySectionAdditional.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional'**
+  String get inventorySectionAdditional;
+
+  /// No description provided for @inventoryFieldEmptySpoolWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty spool weight (g)'**
+  String get inventoryFieldEmptySpoolWeight;
+
+  /// No description provided for @inventoryFieldRemainingWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining weight (g)'**
+  String get inventoryFieldRemainingWeight;
+
+  /// No description provided for @inventoryFieldMeasuredWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured weight (g)'**
+  String get inventoryFieldMeasuredWeight;
+
+  /// No description provided for @inventoryFieldCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get inventoryFieldCategory;
+
+  /// No description provided for @inventoryFieldExtraColors.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra colors'**
+  String get inventoryFieldExtraColors;
+
+  /// No description provided for @inventoryExtraColorsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'2–8 hex stops, comma-separated'**
+  String get inventoryExtraColorsHint;
+
+  /// No description provided for @inventoryFieldEffect.
+  ///
+  /// In en, this message translates to:
+  /// **'Effect'**
+  String get inventoryFieldEffect;
+
+  /// No description provided for @inventoryEffectNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get inventoryEffectNone;
+
+  /// No description provided for @inventoryColorCommon.
+  ///
+  /// In en, this message translates to:
+  /// **'Common colors'**
+  String get inventoryColorCommon;
+
+  /// No description provided for @inventoryColorSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search colors…'**
+  String get inventoryColorSearchHint;
+
+  /// No description provided for @inventoryLowStockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to use the global threshold'**
+  String get inventoryLowStockHint;
+
+  /// No description provided for @inventoryRemainingOfLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'of {total} g'**
+  String inventoryRemainingOfLabel(int total);
+
+  /// No description provided for @inventoryDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete spool?'**
+  String get inventoryDeleteTitle;
+
+  /// No description provided for @inventoryDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete {name}? This cannot be undone.'**
+  String inventoryDeleteConfirm(String name);
+
+  /// No description provided for @inventoryResetUsageConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset usage to zero? The spool will count as full again.'**
+  String get inventoryResetUsageConfirm;
+
+  /// No description provided for @inventorySpoolCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool added'**
+  String get inventorySpoolCreated;
+
+  /// No description provided for @inventorySpoolUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool updated'**
+  String get inventorySpoolUpdated;
+
+  /// No description provided for @inventorySpoolDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool deleted'**
+  String get inventorySpoolDeleted;
+
+  /// No description provided for @inventorySpoolArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool archived'**
+  String get inventorySpoolArchived;
+
+  /// No description provided for @inventorySpoolRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool restored'**
+  String get inventorySpoolRestored;
+
+  /// No description provided for @inventoryUsageReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage reset'**
+  String get inventoryUsageReset;
+
+  /// No description provided for @inventorySaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save spool'**
+  String get inventorySaveFailed;
+
+  /// No description provided for @inventoryActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Action failed'**
+  String get inventoryActionFailed;
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_reference.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import 'inventory_providers.dart';
@@ -23,6 +24,11 @@ class InventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navFilaments)),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => openSpoolForm(context),
+        icon: const Icon(Icons.add),
+        label: Text(l10n.inventoryAddSpool),
+      ),
       body: async.when(
         skipLoadingOnReload: true,
         skipLoadingOnRefresh: true,
@@ -555,6 +561,20 @@ class SpoolSwatch extends StatelessWidget {
   }
 }
 
+/// Normalizuje hex koloru do formatu wymaganego przez serwer: `RRGGBBAA`
+/// (8 znaków, bez `#`). Akceptuje wejście z `#`, 6-cyfrowe (dokłada `FF` alfa)
+/// i 8-cyfrowe. Zwraca null dla pustego/nieprawidłowego — wtedy pole pomijamy,
+/// żeby nie dostać 422 (`SpoolCreate.rgba` ma wzorzec `^[0-9A-Fa-f]{8}$`).
+String? normalizeRgba(String? raw) {
+  if (raw == null) return null;
+  var h = raw.trim();
+  if (h.startsWith('#')) h = h.substring(1);
+  if (h.isEmpty) return null;
+  if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(h)) return '${h.toUpperCase()}FF';
+  if (RegExp(r'^[0-9A-Fa-f]{8}$').hasMatch(h)) return h.toUpperCase();
+  return null;
+}
+
 /// Parsuje kolor szpuli z `RRGGBBAA` / `RRGGBB` (z opcjonalnym `#`).
 Color? parseSpoolColor(String? raw) {
   if (raw == null) return null;
@@ -640,6 +660,10 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+
+          // Akcje zarządzania (Faza 2).
+          _SpoolActions(spool: spool),
           const SizedBox(height: 16),
 
           // Waga / pozostało.
@@ -834,6 +858,682 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton.tonal(onPressed: onRetry, child: Text(retryLabel)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Otwiera arkusz tworzenia/edycji szpuli. [existing] != null → tryb edycji.
+void openSpoolForm(BuildContext context, {Spool? existing}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => _SpoolFormSheet(existing: existing),
+  );
+}
+
+/// Wiersz akcji w szczegółach szpuli: edycja, reset zużycia, archiwizacja/
+/// przywrócenie i usunięcie. Każda akcja najpierw zamyka arkusz, potem woła
+/// mutację na [inventoryProvider] (która sama przeładowuje listę) i melduje
+/// wynik snackbarem. Destrukcyjne (usuń, reset) potwierdzamy dialogiem.
+class _SpoolActions extends ConsumerWidget {
+  const _SpoolActions({required this.spool});
+
+  final Spool spool;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        FilledButton.tonalIcon(
+          onPressed: () {
+            Navigator.of(context).pop();
+            openSpoolForm(context, existing: spool);
+          },
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          label: Text(l10n.inventoryEdit),
+        ),
+        if (spool.weightUsed > 0)
+          OutlinedButton.icon(
+            onPressed: () => _resetUsage(context, ref, l10n),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: Text(l10n.inventoryResetUsage),
+          ),
+        if (spool.isArchived)
+          OutlinedButton.icon(
+            onPressed: () => _run(context, ref, l10n,
+                ref.read(inventoryProvider.notifier).restoreSpool(spool.id),
+                l10n.inventorySpoolRestored),
+            icon: const Icon(Icons.unarchive_outlined, size: 18),
+            label: Text(l10n.inventoryRestore),
+          )
+        else
+          OutlinedButton.icon(
+            onPressed: () => _run(context, ref, l10n,
+                ref.read(inventoryProvider.notifier).archiveSpool(spool.id),
+                l10n.inventorySpoolArchived),
+            icon: const Icon(Icons.archive_outlined, size: 18),
+            label: Text(l10n.inventoryArchive),
+          ),
+        TextButton.icon(
+          onPressed: () => _delete(context, ref, l10n),
+          icon: Icon(Icons.delete_outline, size: 18, color: scheme.error),
+          label: Text(l10n.inventoryDelete,
+              style: TextStyle(color: scheme.error)),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _resetUsage(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    final ok = await _confirm(context, l10n.inventoryResetUsage,
+        l10n.inventoryResetUsageConfirm, l10n.inventoryResetUsage);
+    if (!ok || !context.mounted) return;
+    await _run(context, ref, l10n,
+        ref.read(inventoryProvider.notifier).resetUsage(spool.id),
+        l10n.inventoryUsageReset);
+  }
+
+  Future<void> _delete(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    final ok = await _confirm(context, l10n.inventoryDeleteTitle,
+        l10n.inventoryDeleteConfirm(spool.displayName), l10n.inventoryDelete,
+        destructive: true);
+    if (!ok || !context.mounted) return;
+    await _run(context, ref, l10n,
+        ref.read(inventoryProvider.notifier).deleteSpool(spool.id),
+        l10n.inventorySpoolDeleted);
+  }
+
+  /// Zamyka arkusz, czeka na [action] i melduje wynik na nadrzędnym
+  /// ScaffoldMessengerze (przechwyconym przed pop, bo kontekst arkusza ginie).
+  Future<void> _run(BuildContext context, WidgetRef ref, AppLocalizations l10n,
+      Future<void> action, String successMsg) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    try {
+      await action;
+      messenger.showSnackBar(SnackBar(content: Text(successMsg)));
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    } on Object {
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.inventoryActionFailed)));
+    }
+  }
+}
+
+/// Prosty dialog potwierdzenia. Zwraca true gdy użytkownik zatwierdził.
+Future<bool> _confirm(BuildContext context, String title, String message,
+    String confirmLabel,
+    {bool destructive = false}) async {
+  final l10n = AppLocalizations.of(context);
+  final scheme = Theme.of(context).colorScheme;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          style: destructive
+              ? FilledButton.styleFrom(backgroundColor: scheme.error)
+              : null,
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
+}
+
+/// Arkusz tworzenia/edycji szpuli. Pola tekstowe + walidacja; zapis przez
+/// [inventoryProvider] (create gdy [existing] == null, inaczej update). Liczbowe
+/// pola puste → null (serwer użyje domyślnych). Kolor podglądamy na żywo.
+class _SpoolFormSheet extends ConsumerStatefulWidget {
+  const _SpoolFormSheet({this.existing});
+
+  final Spool? existing;
+
+  @override
+  ConsumerState<_SpoolFormSheet> createState() => _SpoolFormSheetState();
+}
+
+/// Stałe efekty filamentu do dropdownu (None + popularne).
+const _effectOptions = [
+  'Silk', 'Matte', 'Glow', 'Sparkle', 'Marble', 'Metal', 'Dual', 'Gradient',
+];
+
+class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final Map<String, TextEditingController> _c;
+  int? _coreWeightCatalogId;
+  String? _effectType;
+  String _colorQuery = '';
+  bool _materialMissing = false;
+  bool _saving = false;
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = widget.existing;
+    String n(num? v) => v == null ? '' : v.toString();
+    // Pozostała waga = etykieta − zużyte. Dla nowej szpuli domyślnie pełna 1000 g.
+    final remaining = s == null ? '1000' : n(s.remainingWeight.round());
+    _c = {
+      'material': TextEditingController(text: s?.material ?? ''),
+      'brand': TextEditingController(text: s?.brand ?? ''),
+      'subtype': TextEditingController(text: s?.subtype ?? ''),
+      'colorName': TextEditingController(text: s?.colorName ?? ''),
+      'rgba': TextEditingController(text: s?.rgba ?? ''),
+      'extraColors': TextEditingController(text: s?.extraColors ?? ''),
+      'labelWeight':
+          TextEditingController(text: s == null ? '1000' : n(s.labelWeight)),
+      'remaining': TextEditingController(text: remaining),
+      'measured': TextEditingController(text: n(s?.lastScaleWeight)),
+      'coreWeight': TextEditingController(text: n(s?.coreWeight ?? 250)),
+      'costPerKg': TextEditingController(text: n(s?.costPerKg)),
+      'category': TextEditingController(text: s?.category ?? ''),
+      'lowStock': TextEditingController(text: n(s?.lowStockThresholdPct)),
+      'location': TextEditingController(text: s?.storageLocation ?? ''),
+      'note': TextEditingController(text: s?.note ?? ''),
+    };
+    _coreWeightCatalogId = s?.coreWeightCatalogId;
+    _effectType = s?.effectType;
+    // Podgląd swatcha odświeża się przy zmianie hexa.
+    _c['rgba']!.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    for (final c in _c.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  String? _trim(String key) {
+    final v = _c[key]!.text.trim();
+    return v.isEmpty ? null : v;
+  }
+
+  /// Ustawia kolor z bazy (hex + nazwa + ewentualne gradient/efekt).
+  void _applyColor(ColorEntry e) {
+    setState(() {
+      _c['rgba']!.text = e.hexColor;
+      _c['colorName']!.text = e.colorName;
+      _c['extraColors']!.text = e.extraColors ?? '';
+      _effectType = e.effectType;
+    });
+  }
+
+  Future<void> _save() async {
+    final material = _c['material']!.text.trim();
+    final formOk = _formKey.currentState!.validate();
+    if (material.isEmpty) {
+      setState(() => _materialMissing = true);
+    }
+    if (!formOk || material.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    // Serwer wymaga progu low-stock w zakresie 1..99 (poza nim → 422).
+    final lowStock = int.tryParse(_c['lowStock']!.text.trim())?.clamp(1, 99);
+    final label = int.tryParse(_c['labelWeight']!.text.trim());
+    final remaining = double.tryParse(_c['remaining']!.text.trim());
+    // Pozostała waga steruje zużyciem: weight_used = etykieta − pozostało.
+    double? used;
+    if (remaining != null && label != null) {
+      used = (label - remaining).clamp(0, label).toDouble();
+    } else if (_isEdit && remaining == null) {
+      used = widget.existing!.weightUsed;
+    }
+    final draft = SpoolDraft(
+      material: material,
+      brand: _trim('brand'),
+      subtype: _trim('subtype'),
+      colorName: _trim('colorName'),
+      rgba: normalizeRgba(_c['rgba']!.text),
+      extraColors: _trim('extraColors'),
+      effectType: _effectType,
+      labelWeight: label,
+      weightUsed: used,
+      coreWeight: int.tryParse(_c['coreWeight']!.text.trim()),
+      coreWeightCatalogId: _coreWeightCatalogId,
+      lastScaleWeight: int.tryParse(_c['measured']!.text.trim()),
+      costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
+      category: _trim('category'),
+      lowStockThresholdPct: lowStock,
+      storageLocation: _trim('location'),
+      note: _trim('note'),
+    );
+    setState(() => _saving = true);
+    final notifier = ref.read(inventoryProvider.notifier);
+    try {
+      if (_isEdit) {
+        await notifier.updateSpool(widget.existing!.id, draft);
+      } else {
+        await notifier.createSpool(draft);
+      }
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+            _isEdit ? l10n.inventorySpoolUpdated : l10n.inventorySpoolCreated),
+      ));
+    } on AppApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.inventorySaveFailed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final materials = ref.watch(materialOptionsProvider);
+    final brands = ref.watch(brandOptionsProvider);
+    final subtypes = ref.watch(subtypeOptionsProvider);
+    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final labelInt = int.tryParse(_c['labelWeight']!.text.trim());
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (context, controller) => Form(
+        key: _formKey,
+        child: ListView(
+          controller: controller,
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          children: [
+            Row(
+              children: [
+                SpoolSwatch(rgba: _c['rgba']!.text, size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // --- FILAMENT ---
+            _FormSection(label: l10n.inventorySectionFilament),
+            _combo('material', l10n.inventoryFieldMaterial, materials,
+                required: true, errorText: _materialMissing ? l10n.inventoryFieldRequired : null),
+            _combo('brand', l10n.inventoryFieldBrand, brands),
+            _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
+            _field('labelWeight', l10n.inventoryFieldLabelWeight,
+                number: true, onChanged: (_) => setState(() {})),
+
+            const SizedBox(height: 8),
+
+            // --- COLOR ---
+            _FormSection(label: l10n.inventorySectionColor),
+            _ColorPicker(
+              rgba: _c['rgba']!.text,
+              query: _colorQuery,
+              onQuery: (v) => setState(() => _colorQuery = v),
+              onPick: _applyColor,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _field('colorName', l10n.inventoryFieldColorName),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _field('rgba', l10n.inventoryFieldColorHex,
+                      hint: 'RRGGBB'),
+                ),
+              ],
+            ),
+            _field('extraColors', l10n.inventoryFieldExtraColors,
+                hint: l10n.inventoryExtraColorsHint),
+            _effectDropdown(l10n),
+
+            const SizedBox(height: 8),
+
+            // --- ADDITIONAL ---
+            _FormSection(label: l10n.inventorySectionAdditional),
+            _emptySpoolField(l10n, cores),
+            _field('remaining', l10n.inventoryFieldRemainingWeight,
+                number: true,
+                suffixText:
+                    labelInt != null ? l10n.inventoryRemainingOfLabel(labelInt) : null),
+            _field('measured', l10n.inventoryFieldMeasuredWeight, number: true),
+            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            _field('category', l10n.inventoryFieldCategory),
+            _field('lowStock', l10n.inventoryFieldLowStock,
+                number: true, hint: l10n.inventoryLowStockHint),
+            _field('location', l10n.inventoryFieldLocation),
+            _field('note', l10n.inventoryFieldNote, maxLines: 3),
+
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.inventorySave),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Edytowalny combo (dropdown z filtrowaniem + wpis własny) dla materiału/
+  /// marki/wariantu. Wartość trzyma kontroler — wpis spoza listy zostaje.
+  Widget _combo(String key, String label, List<String> options,
+      {bool required = false, String? errorText}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: DropdownMenu<String>(
+        controller: _c[key],
+        label: Text(required ? '$label *' : label),
+        expandedInsets: EdgeInsets.zero,
+        enableFilter: true,
+        requestFocusOnTap: true,
+        menuHeight: 320,
+        errorText: errorText,
+        onSelected: (v) {
+          if (required && v != null && v.isNotEmpty) {
+            setState(() => _materialMissing = false);
+          }
+        },
+        dropdownMenuEntries: [
+          for (final o in options) DropdownMenuEntry(value: o, label: o),
+        ],
+      ),
+    );
+  }
+
+  /// Pole „Empty Spool Weight": dropdown z katalogu rdzeni (ustawia wagę + id)
+  /// obok edytowalnej wagi w gramach. Gdy katalog pusty — sama waga.
+  Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
+    final weightField = SizedBox(
+      width: cores.isEmpty ? null : 110,
+      child: TextFormField(
+        controller: _c['coreWeight'],
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'g',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        onChanged: (_) => setState(() => _coreWeightCatalogId = null),
+      ),
+    );
+    if (cores.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: l10n.inventoryFieldEmptySpoolWeight,
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          child: weightField,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<int?>(
+              initialValue: _coreWeightCatalogId,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: l10n.inventoryFieldEmptySpoolWeight,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                for (final c in cores)
+                  DropdownMenuItem(
+                    value: c.id,
+                    child: Text(c.label, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (id) {
+                final entry = cores.where((c) => c.id == id).firstOrNull;
+                setState(() {
+                  _coreWeightCatalogId = id;
+                  if (entry != null) {
+                    _c['coreWeight']!.text = entry.weight.toString();
+                  }
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          weightField,
+        ],
+      ),
+    );
+  }
+
+  Widget _effectDropdown(AppLocalizations l10n) {
+    final options = <String>{..._effectOptions, ?_effectType};
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: DropdownButtonFormField<String?>(
+        initialValue: _effectType,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.inventoryFieldEffect,
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        items: [
+          DropdownMenuItem(value: null, child: Text(l10n.inventoryEffectNone)),
+          for (final e in options) DropdownMenuItem(value: e, child: Text(e)),
+        ],
+        onChanged: (v) => setState(() => _effectType = v),
+      ),
+    );
+  }
+
+  Widget _field(
+    String key,
+    String label, {
+    bool number = false,
+    String? hint,
+    String? suffixText,
+    int maxLines = 1,
+    ValueChanged<String>? onChanged,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: _c[key],
+        keyboardType: number
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+        maxLines: maxLines,
+        textCapitalization:
+            number ? TextCapitalization.none : TextCapitalization.sentences,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          suffixText: suffixText,
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        validator: (v) {
+          final text = (v ?? '').trim();
+          if (number && text.isNotEmpty && double.tryParse(text) == null) {
+            return l10n.inventoryFieldInvalidNumber;
+          }
+          return null;
+        },
+      ),
+    );
+  }
+}
+
+/// Picker kolorów: duży podgląd + popularne swatche z bazy + wyszukiwarka.
+/// Tap koloru wypełnia hex/nazwę/gradient/efekt w formularzu (przez [onPick]).
+class _ColorPicker extends ConsumerWidget {
+  const _ColorPicker({
+    required this.rgba,
+    required this.query,
+    required this.onQuery,
+    required this.onPick,
+  });
+
+  final String rgba;
+  final String query;
+  final ValueChanged<String> onQuery;
+  final ValueChanged<ColorEntry> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
+    final preview = parseSpoolColor(rgba);
+
+    final q = query.trim().toLowerCase();
+    final List<ColorEntry> shown;
+    if (q.isEmpty) {
+      shown = colors.where((c) => c.isDefault).take(18).toList();
+    } else {
+      shown = colors
+          .where((c) =>
+              c.colorName.toLowerCase().contains(q) ||
+              c.manufacturer.toLowerCase().contains(q) ||
+              (c.material?.toLowerCase().contains(q) ?? false))
+          .take(24)
+          .toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Duży podgląd aktualnego koloru.
+        Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: preview ?? theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (colors.isNotEmpty) ...[
+          TextField(
+            decoration: InputDecoration(
+              isDense: true,
+              prefixIcon: const Icon(Icons.search, size: 20),
+              hintText: l10n.inventoryColorSearchHint,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: onQuery,
+          ),
+          const SizedBox(height: 8),
+          if (q.isEmpty)
+            Text(l10n.inventoryColorCommon,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in shown)
+                _ColorChip(entry: c, onTap: () => onPick(c)),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _ColorChip extends StatelessWidget {
+  const _ColorChip({required this.entry, required this.onTap});
+
+  final ColorEntry entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = parseSpoolColor(entry.hexColor);
+    return Tooltip(
+      message: entry.colorName,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color ?? scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: color == null
+              ? Icon(Icons.question_mark, size: 16, color: scheme.onSurfaceVariant)
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _FormSection extends StatelessWidget {
+  const _FormSection({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Text(
+        label.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.primary,
+          letterSpacing: 0.8,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

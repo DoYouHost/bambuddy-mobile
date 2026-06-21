@@ -16,9 +16,14 @@ class Spool {
     this.subtype,
     this.colorName,
     this.rgba,
+    this.extraColors,
+    this.effectType,
     this.brand,
     this.labelWeight = 0,
     this.weightUsed = 0,
+    this.coreWeight = 250,
+    this.coreWeightCatalogId,
+    this.lastScaleWeight,
     this.costPerKg,
     this.lowStockThresholdPct,
     this.storageLocation,
@@ -41,9 +46,14 @@ class Spool {
         subtype: _str(json['subtype']),
         colorName: _str(json['color_name']),
         rgba: _str(json['rgba']),
+        extraColors: _str(json['extra_colors']),
+        effectType: _str(json['effect_type']),
         brand: _str(json['brand']),
         labelWeight: _toInt(json['label_weight']) ?? 0,
         weightUsed: _toDouble(json['weight_used']) ?? 0,
+        coreWeight: _toInt(json['core_weight']) ?? 250,
+        coreWeightCatalogId: _toInt(json['core_weight_catalog_id']),
+        lastScaleWeight: _toInt(json['last_scale_weight']),
         costPerKg: _toDouble(json['cost_per_kg']),
         lowStockThresholdPct: _toInt(json['low_stock_threshold_pct']),
         storageLocation: _str(json['storage_location']),
@@ -95,6 +105,12 @@ class Spool {
 
   /// Surowy zapis koloru do swatcha (np. hex8 `RRGGBBAA` lub `#RRGGBB`).
   final String? rgba;
+
+  /// Dodatkowe przystanki koloru (gradient), CSV hexów — filamenty wielokolorowe.
+  final String? extraColors;
+
+  /// Efekt wizualny filamentu (np. silk/glow) — `effect_type`.
+  final String? effectType;
   final String? brand;
 
   /// Waga pełnej szpuli wg etykiety [g] (netto filamentu, bez rdzenia).
@@ -102,6 +118,15 @@ class Spool {
 
   /// Zużyty filament [g].
   final double weightUsed;
+
+  /// Waga pustej szpuli/rdzenia [g] (`core_weight`).
+  final int coreWeight;
+
+  /// Id wpisu katalogu wag rdzeni, jeśli wybrany z listy (`core_weight_catalog_id`).
+  final int? coreWeightCatalogId;
+
+  /// Ostatni odczyt wagi z wagi kuchennej [g] brutto (`last_scale_weight`).
+  final int? lastScaleWeight;
   final double? costPerKg;
   final int? lowStockThresholdPct;
   final String? storageLocation;
@@ -142,6 +167,121 @@ class Spool {
     final parts = <String>[?brand, material, ?subtype];
     return parts.join(' ');
   }
+}
+
+/// Edytowalny zestaw pól szpuli do zapisu (create/update) — neutralny wobec
+/// backendu. UI wypełnia draft, a źródło tłumaczy go na właściwy kształt body
+/// (`SpoolCreate`/`SpoolUpdate` natywnie, `SpoolmanInventory*` dla Spoolmana).
+/// Pola, których dany backend nie zna (próg low-stock, kategoria, temp. dyszy),
+/// po prostu nie trafiają do jego JSON-a.
+class SpoolDraft {
+  const SpoolDraft({
+    required this.material,
+    this.subtype,
+    this.brand,
+    this.colorName,
+    this.rgba,
+    this.extraColors,
+    this.effectType,
+    this.labelWeight,
+    this.weightUsed,
+    this.coreWeight,
+    this.coreWeightCatalogId,
+    this.lastScaleWeight,
+    this.costPerKg,
+    this.lowStockThresholdPct,
+    this.storageLocation,
+    this.category,
+    this.nozzleTempMin,
+    this.nozzleTempMax,
+    this.note,
+  });
+
+  /// Draft z istniejącej szpuli — do wypełnienia formularza edycji.
+  factory SpoolDraft.fromSpool(Spool s) => SpoolDraft(
+        material: s.material,
+        subtype: s.subtype,
+        brand: s.brand,
+        colorName: s.colorName,
+        rgba: s.rgba,
+        extraColors: s.extraColors,
+        effectType: s.effectType,
+        labelWeight: s.labelWeight,
+        weightUsed: s.weightUsed,
+        coreWeight: s.coreWeight,
+        coreWeightCatalogId: s.coreWeightCatalogId,
+        lastScaleWeight: s.lastScaleWeight,
+        costPerKg: s.costPerKg,
+        lowStockThresholdPct: s.lowStockThresholdPct,
+        storageLocation: s.storageLocation,
+        category: s.category,
+        nozzleTempMin: s.nozzleTempMin,
+        nozzleTempMax: s.nozzleTempMax,
+        note: s.note,
+      );
+
+  final String material;
+  final String? subtype;
+  final String? brand;
+  final String? colorName;
+  final String? rgba;
+  final String? extraColors;
+  final String? effectType;
+  final int? labelWeight;
+  final double? weightUsed;
+  final int? coreWeight;
+  final int? coreWeightCatalogId;
+  final int? lastScaleWeight;
+  final double? costPerKg;
+  final int? lowStockThresholdPct;
+  final String? storageLocation;
+  final String? category;
+  final int? nozzleTempMin;
+  final int? nozzleTempMax;
+  final String? note;
+
+  /// Body dla natywnego `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` mają ten
+  /// sam zestaw pól; serwer ignoruje brakujące). Pomijamy null, by przy edycji
+  /// (PATCH) nie zerować pól, których formularz nie dotknął.
+  Map<String, dynamic> toNativeJson() => {
+        'material': material,
+        if (subtype != null) 'subtype': subtype,
+        if (brand != null) 'brand': brand,
+        if (colorName != null) 'color_name': colorName,
+        if (rgba != null) 'rgba': rgba,
+        if (extraColors != null) 'extra_colors': extraColors,
+        if (effectType != null) 'effect_type': effectType,
+        if (labelWeight != null) 'label_weight': labelWeight,
+        if (weightUsed != null) 'weight_used': weightUsed,
+        if (coreWeight != null) 'core_weight': coreWeight,
+        if (coreWeightCatalogId != null)
+          'core_weight_catalog_id': coreWeightCatalogId,
+        if (lastScaleWeight != null) 'last_scale_weight': lastScaleWeight,
+        if (costPerKg != null) 'cost_per_kg': costPerKg,
+        if (lowStockThresholdPct != null)
+          'low_stock_threshold_pct': lowStockThresholdPct,
+        if (storageLocation != null) 'storage_location': storageLocation,
+        if (category != null) 'category': category,
+        if (nozzleTempMin != null) 'nozzle_temp_min': nozzleTempMin,
+        if (nozzleTempMax != null) 'nozzle_temp_max': nozzleTempMax,
+        if (note != null) 'note': note,
+      };
+
+  /// Body dla Spoolmana (`SpoolmanInventoryCreate`/`Update`) — węższy zestaw
+  /// pól; te nieobsługiwane przez Spoolman pomijamy.
+  Map<String, dynamic> toSpoolmanJson() => {
+        if (material.isNotEmpty) 'material': material,
+        if (subtype != null) 'subtype': subtype,
+        if (brand != null) 'brand': brand,
+        if (colorName != null) 'color_name': colorName,
+        if (rgba != null) 'rgba': rgba,
+        if (labelWeight != null) 'label_weight': labelWeight,
+        if (weightUsed != null) 'weight_used': weightUsed,
+        if (coreWeight != null) 'core_weight': coreWeight,
+        if (costPerKg != null) 'cost_per_kg': costPerKg,
+        if (storageLocation != null) 'storage_location': storageLocation,
+        if (note != null) 'note': note,
+      };
 }
 
 /// Przypisanie szpuli do slotu AMS — znormalizowane z natywnego

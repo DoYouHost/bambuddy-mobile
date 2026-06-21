@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_reference.dart';
+import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
 /// Migawka magazynu dla ekranu: wszystkie szpule (z zarchiwizowanymi) plus mapa
@@ -66,6 +68,37 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }
+
+  /// Wykonuje mutację, po czym przeładowuje listę (źródło prawdy = serwer —
+  /// bez optymistycznych podmian, bo zapisy są rzadkie, a dane wyliczane).
+  /// Wyjątek propagujemy do wywołującego (UI pokazuje snackbar), ale i tak
+  /// odświeżamy stan. Zwraca utworzoną/zmienioną szpulę (lub null).
+  Future<Spool?> _mutate(Future<Spool?> Function(InventoryRepository) action) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    try {
+      return await action(repo);
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+  }
+
+  Future<Spool?> createSpool(SpoolDraft draft) =>
+      _mutate((repo) => repo.createSpool(draft));
+
+  Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) =>
+      _mutate((repo) => repo.updateSpool(spoolId, draft));
+
+  Future<void> deleteSpool(int spoolId) =>
+      _mutate((repo) async => repo.deleteSpool(spoolId).then((_) => null));
+
+  Future<void> archiveSpool(int spoolId) =>
+      _mutate((repo) async => repo.archiveSpool(spoolId).then((_) => null));
+
+  Future<void> restoreSpool(int spoolId) =>
+      _mutate((repo) async => repo.restoreSpool(spoolId).then((_) => null));
+
+  Future<void> resetUsage(int spoolId) =>
+      _mutate((repo) async => repo.resetUsage(spoolId).then((_) => null));
 }
 
 /// Tekst wyszukiwania (materiał/marka/kolor/lokalizacja). Filtrowanie po stronie
@@ -123,3 +156,86 @@ final spoolUsageProvider = FutureProvider.autoDispose
     .family<List<SpoolUsageEntry>, int>(
   (ref, spoolId) => ref.watch(inventoryRepositoryProvider).fetchUsage(spoolId),
 );
+
+/// Dane referencyjne formularza szpuli (Faza 2). Ładowane przy otwarciu
+/// formularza; degradują się do pustej listy (formularz dopuszcza wpis ręczny),
+/// więc błąd nie blokuje dodania szpuli. Trzymane chwilę po zamknięciu
+/// (`keepAlive`), by ponowne otwarcie nie pobierało od nowa.
+final coreWeightsProvider =
+    FutureProvider.autoDispose<List<CoreWeightEntry>>((ref) async {
+  ref.keepAlive();
+  try {
+    return await ref.watch(inventoryRepositoryProvider).fetchCoreWeights();
+  } on Object {
+    return const [];
+  }
+});
+
+final colorCatalogProvider =
+    FutureProvider.autoDispose<List<ColorEntry>>((ref) async {
+  ref.keepAlive();
+  try {
+    return await ref.watch(inventoryRepositoryProvider).fetchColors();
+  } on Object {
+    return const [];
+  }
+});
+
+final filamentPresetsProvider =
+    FutureProvider.autoDispose<List<FilamentPreset>>((ref) async {
+  ref.keepAlive();
+  try {
+    return await ref.watch(inventoryRepositoryProvider).fetchFilamentPresets();
+  } on Object {
+    return const [];
+  }
+});
+
+/// Opcje dropdownu materiału: stałe popularne + materiały z profili katalogu i
+/// istniejących szpul (zachowane wartości użytkownika). Posortowane, unikalne.
+const _commonMaterials = [
+  'PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', 'PET', 'PP',
+];
+
+/// Popularne podtypy/warianty filamentu (pole „Subtype" w bambuddy).
+const _commonSubtypes = [
+  'Basic', 'Matte', 'Silk', 'Tough', 'Translucent', 'Glow', 'Marble',
+  'Metal', 'Wood', 'CF', 'GF', 'Sparkle', 'Gradient',
+];
+
+final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final presets = ref.watch(filamentPresetsProvider).valueOrNull ?? const [];
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final set = <String>{
+    ..._commonMaterials,
+    for (final p in presets)
+      if (p.type.trim().isNotEmpty) p.type.trim(),
+    for (final s in spools) s.material,
+  };
+  final list = set.toList()..sort();
+  return list;
+});
+
+final brandOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final presets = ref.watch(filamentPresetsProvider).valueOrNull ?? const [];
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final set = <String>{
+    for (final p in presets)
+      if (p.brand != null && p.brand!.trim().isNotEmpty) p.brand!.trim(),
+    for (final s in spools)
+      if (s.brand != null && s.brand!.trim().isNotEmpty) s.brand!.trim(),
+  };
+  final list = set.toList()..sort();
+  return list;
+});
+
+final subtypeOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final set = <String>{
+    ..._commonSubtypes,
+    for (final s in spools)
+      if (s.subtype != null && s.subtype!.trim().isNotEmpty) s.subtype!.trim(),
+  };
+  final list = set.toList()..sort();
+  return list;
+});

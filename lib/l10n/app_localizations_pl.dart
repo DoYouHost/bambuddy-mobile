@@ -862,6 +862,170 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get inventoryAddSpool => 'Dodaj szpulę';
+
+  @override
+  String get inventoryNewSpool => 'Nowa szpula';
+
+  @override
+  String get inventoryEditSpool => 'Edytuj szpulę';
+
+  @override
+  String get inventorySave => 'Zapisz';
+
+  @override
+  String get inventoryEdit => 'Edytuj';
+
+  @override
+  String get inventoryDelete => 'Usuń';
+
+  @override
+  String get inventoryArchive => 'Archiwizuj';
+
+  @override
+  String get inventoryRestore => 'Przywróć';
+
+  @override
+  String get inventoryResetUsage => 'Resetuj zużycie';
+
+  @override
+  String get inventoryFieldMaterial => 'Materiał';
+
+  @override
+  String get inventoryFieldBrand => 'Marka';
+
+  @override
+  String get inventoryFieldSubtype => 'Wariant';
+
+  @override
+  String get inventoryFieldColorName => 'Nazwa koloru';
+
+  @override
+  String get inventoryFieldColorHex => 'Kolor (hex)';
+
+  @override
+  String get inventoryFieldLabelWeight => 'Waga szpuli (g)';
+
+  @override
+  String get inventoryFieldWeightUsed => 'Zużyto (g)';
+
+  @override
+  String get inventoryFieldCostPerKg => 'Cena za kg';
+
+  @override
+  String get inventoryFieldLowStock => 'Próg niskiego zapasu (%)';
+
+  @override
+  String get inventoryFieldLocation => 'Miejsce przechowywania';
+
+  @override
+  String get inventoryFieldNozzleMin => 'Dysza min (°C)';
+
+  @override
+  String get inventoryFieldNozzleMax => 'Dysza maks (°C)';
+
+  @override
+  String get inventoryFieldNote => 'Notatka';
+
+  @override
+  String get inventoryFieldRequired => 'Wymagane';
+
+  @override
+  String get inventoryFieldInvalidNumber => 'Podaj liczbę';
+
+  @override
+  String get inventorySectionBasics => 'Podstawy';
+
+  @override
+  String get inventorySectionWeight => 'Waga i koszt';
+
+  @override
+  String get inventorySectionDetails => 'Szczegóły';
+
+  @override
+  String get inventorySectionFilament => 'Filament';
+
+  @override
+  String get inventorySectionColor => 'Kolor';
+
+  @override
+  String get inventorySectionAdditional => 'Dodatkowe';
+
+  @override
+  String get inventoryFieldEmptySpoolWeight => 'Waga pustej szpuli (g)';
+
+  @override
+  String get inventoryFieldRemainingWeight => 'Pozostała waga (g)';
+
+  @override
+  String get inventoryFieldMeasuredWeight => 'Zmierzona waga (g)';
+
+  @override
+  String get inventoryFieldCategory => 'Kategoria';
+
+  @override
+  String get inventoryFieldExtraColors => 'Dodatkowe kolory';
+
+  @override
+  String get inventoryExtraColorsHint => '2–8 hexów koloru, po przecinku';
+
+  @override
+  String get inventoryFieldEffect => 'Efekt';
+
+  @override
+  String get inventoryEffectNone => 'Brak';
+
+  @override
+  String get inventoryColorCommon => 'Popularne kolory';
+
+  @override
+  String get inventoryColorSearchHint => 'Szukaj kolorów…';
+
+  @override
+  String get inventoryLowStockHint => 'Puste = próg globalny';
+
+  @override
+  String inventoryRemainingOfLabel(int total) {
+    return 'z $total g';
+  }
+
+  @override
+  String get inventoryDeleteTitle => 'Usunąć szpulę?';
+
+  @override
+  String inventoryDeleteConfirm(String name) {
+    return 'Trwale usunąć $name? Tej operacji nie można cofnąć.';
+  }
+
+  @override
+  String get inventoryResetUsageConfirm =>
+      'Wyzerować zużycie? Szpula znów będzie liczona jako pełna.';
+
+  @override
+  String get inventorySpoolCreated => 'Dodano szpulę';
+
+  @override
+  String get inventorySpoolUpdated => 'Zaktualizowano szpulę';
+
+  @override
+  String get inventorySpoolDeleted => 'Usunięto szpulę';
+
+  @override
+  String get inventorySpoolArchived => 'Zarchiwizowano szpulę';
+
+  @override
+  String get inventorySpoolRestored => 'Przywrócono szpulę';
+
+  @override
+  String get inventoryUsageReset => 'Wyzerowano zużycie';
+
+  @override
+  String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
+
+  @override
+  String get inventoryActionFailed => 'Operacja nie powiodła się';
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

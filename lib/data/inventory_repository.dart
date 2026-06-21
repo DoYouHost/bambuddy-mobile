@@ -1,4 +1,5 @@
 import '../core/models/inventory.dart';
+import '../core/models/inventory_reference.dart';
 import 'inventory_source.dart';
 
 /// Fasada magazynu filamentów nad wybranym [SpoolInventorySource]. Cienka
@@ -18,4 +19,24 @@ class InventoryRepository {
 
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) =>
       _source.fetchUsage(spoolId);
+
+  Future<Spool> createSpool(SpoolDraft draft) => _source.createSpool(draft);
+
+  Future<Spool> updateSpool(int spoolId, SpoolDraft draft) =>
+      _source.updateSpool(spoolId, draft);
+
+  Future<void> deleteSpool(int spoolId) => _source.deleteSpool(spoolId);
+
+  Future<void> archiveSpool(int spoolId) => _source.archiveSpool(spoolId);
+
+  Future<void> restoreSpool(int spoolId) => _source.restoreSpool(spoolId);
+
+  Future<void> resetUsage(int spoolId) => _source.resetUsage(spoolId);
+
+  Future<List<CoreWeightEntry>> fetchCoreWeights() => _source.fetchCoreWeights();
+
+  Future<List<ColorEntry>> fetchColors() => _source.fetchColors();
+
+  Future<List<FilamentPreset>> fetchFilamentPresets() =>
+      _source.fetchFilamentPresets();
 }
