@@ -35,15 +35,8 @@ _bump ver:
 release ver:
     git tag v{{ver}}
     git push origin HEAD v{{ver}}
-    tea releases create \
-        --login codeberg.org \
-        --repo {{repo}} \
-        --tag v{{ver}} \
-        --title "v{{ver}}"
-    tea releases assets create \
-        --login codeberg.org \
-        --repo {{repo}} \
-        v{{ver}} {{apk}}
+    tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}"
+    tea releases assets create --remote origin v{{ver}} {{apk}}
 
 # bump version, test, build and release — full pipeline
 # usage: just ship 1.0.0
