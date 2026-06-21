@@ -1035,6 +1035,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryUnassign => 'Unassign';
 
   @override
+  String get inventoryAssign => 'Assign to slot';
+
+  @override
+  String get inventoryAssignPrinter => 'Printer';
+
+  @override
+  String get inventoryAssignNoPrinters => 'No printers available';
+
+  @override
+  String get inventorySlotAms => 'AMS slot';
+
+  @override
+  String get inventoryAssignUnit => 'AMS unit';
+
+  @override
+  String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignExtruder => 'Extruder';
+
+  @override
+  String get inventoryAssignExternalHint =>
+      'Assigns to the external spool holder';
+
+  @override
+  String get inventoryAssignConfirm => 'Assign';
+
+  @override
   String get inventoryAssignTitle => 'Assign spool';
 
   @override

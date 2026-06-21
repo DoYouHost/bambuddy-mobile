@@ -1038,6 +1038,34 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryUnassign => 'Odepnij';
 
   @override
+  String get inventoryAssign => 'Przypisz do slotu';
+
+  @override
+  String get inventoryAssignPrinter => 'Drukarka';
+
+  @override
+  String get inventoryAssignNoPrinters => 'Brak dostępnych drukarek';
+
+  @override
+  String get inventorySlotAms => 'Slot AMS';
+
+  @override
+  String get inventoryAssignUnit => 'Jednostka AMS';
+
+  @override
+  String get inventoryAssignSlot => 'Slot';
+
+  @override
+  String get inventoryAssignExtruder => 'Ekstruder';
+
+  @override
+  String get inventoryAssignExternalHint =>
+      'Przypisze do zewnętrznego uchwytu szpuli';
+
+  @override
+  String get inventoryAssignConfirm => 'Przypisz';
+
+  @override
   String get inventoryAssignTitle => 'Przypisz szpulę';
 
   @override

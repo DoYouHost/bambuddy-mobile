@@ -7,6 +7,8 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../dashboard/providers.dart';
+import '../dashboard/ws_providers.dart';
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
@@ -933,6 +935,238 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
   );
 }
 
+/// Otwiera arkusz przypisania szpuli do slotu AMS / ekstrudera zewnętrznego —
+/// odwrotny przepływ do czipa na dashboardzie: tu szpula jest znana, a wybiera
+/// się slot. Dostępny, gdy szpula nie jest jeszcze nigdzie przypisana.
+void _openAssignSheet(BuildContext context, Spool spool) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => _AssignSheet(spool: spool),
+  );
+}
+
+/// Wybór drukarki i slotu, do którego przypisujemy [spool]. Listę drukarek
+/// bierzemy z rostera dashboardu; układ slotów (jednostki AMS, dwudyszowość)
+/// dociągamy z żywego statusu, gdy dostępny — przy drukarce offline schodzimy
+/// do ręcznego wyboru numerów (przypisanie to operacja na bazie, działa też
+/// przy wyłączonej maszynie). Konwencja szpuli zewnętrznej: `ams_id=255`,
+/// `tray_id` 0=lewy, 1=prawy ([[inventory-filaments]]).
+class _AssignSheet extends ConsumerStatefulWidget {
+  const _AssignSheet({required this.spool});
+
+  final Spool spool;
+
+  @override
+  ConsumerState<_AssignSheet> createState() => _AssignSheetState();
+}
+
+class _AssignSheetState extends ConsumerState<_AssignSheet> {
+  int? _printerId;
+  bool _external = false;
+  int _amsUnit = 0;
+  int _amsSlot = 0;
+  int _externalTray = 0; // 0 = lewy, 1 = prawy
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final roster = ref.watch(dashboardProvider).printers ?? const [];
+
+    // Domyślna drukarka: pierwsza z rostera (raz, póki nic nie wybrano).
+    if (_printerId == null && roster.isNotEmpty) {
+      _printerId = roster.first.printer.id;
+    }
+
+    final status = _printerId == null
+        ? null
+        : ref.watch(printerStatusesProvider)[_printerId];
+    final dual = status?.isDualExtruder ?? false;
+    // Jednostki AMS wykryte na żywo (ich id) — gdy brak, dajemy 0..3.
+    final unitIds = (status?.ams ?? const [])
+        .map((u) => u.id ?? 0)
+        .toSet()
+        .toList()
+      ..sort();
+    final unitOptions = unitIds.isNotEmpty ? unitIds : const [0, 1, 2, 3];
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.55,
+      maxChildSize: 0.9,
+      minChildSize: 0.3,
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(widget.spool.displayName,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 16),
+
+          if (roster.isEmpty)
+            Text(l10n.inventoryAssignNoPrinters)
+          else ...[
+            Text(l10n.inventoryAssignPrinter,
+                style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<int>(
+              initialValue: _printerId,
+              decoration: const InputDecoration(
+                  border: OutlineInputBorder(), isDense: true),
+              items: [
+                for (final p in roster)
+                  DropdownMenuItem(
+                      value: p.printer.id, child: Text(p.printer.name)),
+              ],
+              onChanged: (v) => setState(() => _printerId = v),
+            ),
+            const SizedBox(height: 16),
+
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(value: false, label: Text(l10n.inventorySlotAms)),
+                ButtonSegment(
+                    value: true, label: Text(l10n.externalSpool)),
+              ],
+              selected: {_external},
+              onSelectionChanged: (s) => setState(() => _external = s.first),
+            ),
+            const SizedBox(height: 16),
+
+            if (_external) ...[
+              if (dual) ...[
+                Text(l10n.inventoryAssignExtruder,
+                    style: theme.textTheme.labelLarge),
+                const SizedBox(height: 6),
+                SegmentedButton<int>(
+                  segments: [
+                    ButtonSegment(value: 0, label: Text(l10n.extruderLeft)),
+                    ButtonSegment(value: 1, label: Text(l10n.extruderRight)),
+                  ],
+                  selected: {_externalTray},
+                  onSelectionChanged: (s) =>
+                      setState(() => _externalTray = s.first),
+                ),
+              ] else
+                Text(l10n.inventoryAssignExternalHint,
+                    style: theme.textTheme.bodyMedium),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: _NumberDropdown(
+                      label: l10n.inventoryAssignUnit,
+                      value: unitOptions.contains(_amsUnit)
+                          ? _amsUnit
+                          : unitOptions.first,
+                      // Wyświetlamy 1-based, wartość to id jednostki.
+                      items: {for (final u in unitOptions) u: '${u + 1}'},
+                      onChanged: (v) => setState(() => _amsUnit = v),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _NumberDropdown(
+                      label: l10n.inventoryAssignSlot,
+                      value: _amsSlot,
+                      items: {for (var s = 0; s < 4; s++) s: '${s + 1}'},
+                      onChanged: (v) => setState(() => _amsSlot = v),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
+
+            FilledButton.icon(
+              onPressed: _saving || _printerId == null ? null : _assign,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.add_link, size: 18),
+              label: Text(l10n.inventoryAssignConfirm),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _assign() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final printerId = _printerId;
+    if (printerId == null) return;
+    final draft = SpoolAssignmentDraft(
+      spoolId: widget.spool.id,
+      printerId: printerId,
+      amsId: _external ? 255 : _amsUnit,
+      trayId: _external ? _externalTray : _amsSlot,
+    );
+    setState(() => _saving = true);
+    try {
+      await ref.read(inventoryProvider.notifier).assignSpool(draft);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.inventorySpoolAssigned)));
+    } on AppApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    } on Object {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.inventoryActionFailed)));
+    }
+  }
+}
+
+/// Dropdown liczbowy (etykieta nad polem) — int z mapą wyświetlanych etykiet.
+class _NumberDropdown extends StatelessWidget {
+  const _NumberDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final Map<int, String> items;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<int>(
+          initialValue: value,
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(), isDense: true),
+          items: [
+            for (final e in items.entries)
+              DropdownMenuItem(value: e.key, child: Text(e.value)),
+          ],
+          onChanged: (v) => v == null ? null : onChanged(v),
+        ),
+      ],
+    );
+  }
+}
+
 /// Wiersz akcji w szczegółach szpuli: edycja, reset zużycia, archiwizacja/
 /// przywrócenie i usunięcie. Każda akcja najpierw zamyka arkusz, potem woła
 /// mutację na [inventoryProvider] (która sama przeładowuje listę) i melduje
@@ -959,23 +1193,34 @@ class _SpoolActions extends ConsumerWidget {
           icon: const Icon(Icons.edit_outlined, size: 18),
           label: Text(l10n.inventoryEdit),
         ),
-        // Odpięcie szpuli ze slotu (przypisanie robi się z czipa na dashboardzie).
-        if (!spool.isArchived && assignment != null)
-          OutlinedButton.icon(
-            onPressed: () => _run(
-              context,
-              ref,
-              l10n,
-              ref.read(inventoryProvider.notifier).unassignSpool(
-                    assignment!.printerId,
-                    assignment!.amsId,
-                    assignment!.trayId,
-                  ),
-              l10n.inventorySpoolUnassigned,
+        // Przypisanie/odpięcie slotu. Przypisać można też z czipa AMS na
+        // dashboardzie — tu wybiera się slot dla konkretnej szpuli.
+        if (!spool.isArchived)
+          if (assignment != null)
+            OutlinedButton.icon(
+              onPressed: () => _run(
+                context,
+                ref,
+                l10n,
+                ref.read(inventoryProvider.notifier).unassignSpool(
+                      assignment!.printerId,
+                      assignment!.amsId,
+                      assignment!.trayId,
+                    ),
+                l10n.inventorySpoolUnassigned,
+              ),
+              icon: const Icon(Icons.link_off, size: 18),
+              label: Text(l10n.inventoryUnassign),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _openAssignSheet(context, spool);
+              },
+              icon: const Icon(Icons.add_link, size: 18),
+              label: Text(l10n.inventoryAssign),
             ),
-            icon: const Icon(Icons.link_off, size: 18),
-            label: Text(l10n.inventoryUnassign),
-          ),
         if (spool.weightUsed > 0)
           OutlinedButton.icon(
             onPressed: () => _resetUsage(context, ref, l10n),

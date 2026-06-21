@@ -1928,6 +1928,60 @@ abstract class AppLocalizations {
   /// **'Unassign'**
   String get inventoryUnassign;
 
+  /// No description provided for @inventoryAssign.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign to slot'**
+  String get inventoryAssign;
+
+  /// No description provided for @inventoryAssignPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get inventoryAssignPrinter;
+
+  /// No description provided for @inventoryAssignNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers available'**
+  String get inventoryAssignNoPrinters;
+
+  /// No description provided for @inventorySlotAms.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS slot'**
+  String get inventorySlotAms;
+
+  /// No description provided for @inventoryAssignUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS unit'**
+  String get inventoryAssignUnit;
+
+  /// No description provided for @inventoryAssignSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot'**
+  String get inventoryAssignSlot;
+
+  /// No description provided for @inventoryAssignExtruder.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruder'**
+  String get inventoryAssignExtruder;
+
+  /// No description provided for @inventoryAssignExternalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigns to the external spool holder'**
+  String get inventoryAssignExternalHint;
+
+  /// No description provided for @inventoryAssignConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get inventoryAssignConfirm;
+
   /// No description provided for @inventoryAssignTitle.
   ///
   /// In en, this message translates to:
