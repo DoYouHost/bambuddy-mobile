@@ -22,6 +22,7 @@ clean:
 _bump ver:
     #!/usr/bin/env bash
     set -e
+    git pull --rebase origin master
     major=$(echo "{{ver}}" | cut -d. -f1)
     minor=$(echo "{{ver}}" | cut -d. -f2)
     patch=$(echo "{{ver}}" | cut -d. -f3)
