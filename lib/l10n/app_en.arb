@@ -281,8 +281,8 @@
   "bgMonitoringOn": "Background monitoring on",
   "bgMonitoringOff": "Background monitoring off",
 
-  "navDashboard": "Dashboard",
-  "@navDashboard": { "description": "Bottom nav tab: Dashboard" },
+  "navDashboard": "Printers",
+  "@navDashboard": { "description": "Bottom nav tab: printers overview" },
   "navQueue": "Queue",
   "@navQueue": { "description": "Bottom nav tab: Queue" },
   "navArchive": "Archive",

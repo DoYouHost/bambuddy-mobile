@@ -1370,10 +1370,10 @@ abstract class AppLocalizations {
   /// **'Background monitoring off'**
   String get bgMonitoringOff;
 
-  /// Bottom nav tab: Dashboard
+  /// Bottom nav tab: printers overview
   ///
   /// In en, this message translates to:
-  /// **'Dashboard'**
+  /// **'Printers'**
   String get navDashboard;
 
   /// Bottom nav tab: Queue

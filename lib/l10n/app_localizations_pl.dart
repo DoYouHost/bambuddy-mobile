@@ -733,7 +733,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bgMonitoringOff => 'Monitorowanie w tle wyłączone';
 
   @override
-  String get navDashboard => 'Pulpit';
+  String get navDashboard => 'Drukarki';
 
   @override
   String get navQueue => 'Kolejka';

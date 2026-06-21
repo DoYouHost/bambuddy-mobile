@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -13,6 +14,7 @@ class RootScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       // Każda gałąź ma swój własny Scaffold z AppBar — ciało powłoki
       // to bezpośrednio widget gałęzi, bez dodatkowego opakowania.
@@ -26,8 +28,9 @@ class RootScaffold extends StatelessWidget {
         ),
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.dashboard_outlined),
-            selectedIcon: const Icon(Icons.dashboard),
+            icon: _svgIcon('assets/icons/printer_3d.svg', scheme.onSurfaceVariant),
+            selectedIcon:
+                _svgIcon('assets/icons/printer_3d.svg', scheme.onSecondaryContainer),
             label: l10n.navDashboard,
           ),
           NavigationDestination(
@@ -46,12 +49,24 @@ class RootScaffold extends StatelessWidget {
             label: l10n.navMaintenance,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.bookmark_outline),
-            selectedIcon: const Icon(Icons.bookmark),
+            icon: _svgIcon(
+                'assets/icons/filament_spool.svg', scheme.onSurfaceVariant),
+            selectedIcon: _svgIcon(
+                'assets/icons/filament_spool.svg', scheme.onSecondaryContainer),
             label: l10n.navFilaments,
           ),
         ],
       ),
     );
   }
+
+  /// Ikona z własnego assetu SVG (Material nie ma sensownych glifów drukarki 3D
+  /// ani szpuli). [color] dobierany pod stan zaznaczenia belki, by zachować się
+  /// jak zwykła ikona Material (zaznaczona vs nie).
+  Widget _svgIcon(String asset, Color color) => SvgPicture.asset(
+        asset,
+        width: 24,
+        height: 24,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      );
 }

@@ -25,6 +25,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   flutter_foreground_task: ^9.2.2
   url_launcher: ^6.3.0
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
@@ -42,6 +43,7 @@ flutter:
   generate: true
   assets:
     - assets/hms/
+    - assets/icons/
 
 flutter_launcher_icons:
   android: true

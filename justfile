@@ -17,6 +17,10 @@ build:
 clean:
     flutter clean
 
+# test, build and create a Codeberg release with APK attached
+# usage: just ship 1.0.0
+ship ver: test release ver
+
 # build and create a Codeberg release with APK attached
 # usage: just release 1.0.0
 release ver: build

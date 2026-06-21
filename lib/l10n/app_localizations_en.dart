@@ -731,7 +731,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bgMonitoringOff => 'Background monitoring off';
 
   @override
-  String get navDashboard => 'Dashboard';
+  String get navDashboard => 'Printers';
 
   @override
   String get navQueue => 'Queue';
