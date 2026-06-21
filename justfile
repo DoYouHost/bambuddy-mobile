@@ -40,8 +40,7 @@ release ver:
     git push origin HEAD v{{ver}}
     for i in 1 2 3; do
     sleep 5
-    tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}" && break
-    echo "Retry $i/3 – waiting for Codeberg to index tag..."
+    tea releases create --remote origin --tag v{{ver}} --title "v{{ver}}" && break || echo "Retry $i/3..."
     done
     tea releases assets create --remote origin v{{ver}} {{apk}}
 
