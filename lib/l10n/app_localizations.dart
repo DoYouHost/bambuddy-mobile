@@ -227,7 +227,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlFanPart.
   ///
   /// In en, this message translates to:
-  /// **'Part fan'**
+  /// **'Hotend fan'**
   String get ctrlFanPart;
 
   /// No description provided for @ctrlFanAux.
@@ -241,6 +241,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chamber fan'**
   String get ctrlFanChamber;
+
+  /// No description provided for @ctrlFanPartShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotend'**
+  String get ctrlFanPartShort;
+
+  /// No description provided for @ctrlFanAuxShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Aux'**
+  String get ctrlFanAuxShort;
+
+  /// No description provided for @ctrlFanChamberShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber'**
+  String get ctrlFanChamberShort;
 
   /// No description provided for @ctrlSpeed.
   ///
@@ -2575,6 +2593,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Print time of day'**
   String get statsPrintTimeOfDay;
+
+  /// No description provided for @aboutMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutMenu;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Native Android client for bambuddy — a self-hosted Bambu Lab printer manager.'**
+  String get aboutTagline;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String aboutVersion(String version);
+
+  /// No description provided for @aboutLicenseHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get aboutLicenseHeader;
+
+  /// No description provided for @aboutLicenseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'BamBuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.'**
+  String get aboutLicenseBody;
+
+  /// No description provided for @aboutViewLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the AGPL-3.0 license'**
+  String get aboutViewLicense;
+
+  /// No description provided for @aboutSourceHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get aboutSourceHeader;
+
+  /// No description provided for @aboutSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The full source is available on Codeberg.'**
+  String get aboutSourceBody;
+
+  /// No description provided for @aboutSourceLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source repository'**
+  String get aboutSourceLink;
+
+  /// No description provided for @aboutThirdParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get aboutThirdParty;
+
+  /// No description provided for @aboutThirdPartySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses of the bundled libraries'**
+  String get aboutThirdPartySubtitle;
+
+  /// No description provided for @aboutOpenLinkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link'**
+  String get aboutOpenLinkError;
 }
 
 class _AppLocalizationsDelegate

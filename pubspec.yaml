@@ -29,6 +29,7 @@ dependencies:
   mobile_scanner: ^7.2.0
   flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +48,7 @@ flutter:
   assets:
     - assets/hms/
     - assets/icons/
+    - assets/icon/icon.png
 
 flutter_launcher_icons:
   android: true

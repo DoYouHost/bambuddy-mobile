@@ -146,7 +146,7 @@ Nakład w „sesjach" = jeden ~3-godzinny blok wieczorny/weekendowy.
 - Ryzyko: najbardziej androidowy milestone (manifest, kanały, uprawnienia, OEM-owe zabijanie baterii — udokumentować „wyłącz optymalizację baterii dla ntfy"); format payloadu ntfy z bambuddy może wymagać zgadywania — fallback jest siatką bezpieczeństwa.
 
 ### M7 — Szlif + release (4–6 sesji)
-- Profile wielu serwerów (nice-to-have ląduje tu, nie wcześniej); proaktywne odnowienie tokenu WS; dark theme; ekran About z notą AGPL + linkiem do źródeł + licencjami zależności (`showLicensePage`); ikona; podpisany build release; metadane przyjazne F-Droid; README z notą zgodności wersji serwera.
+- ~~Profile wielu serwerów~~ — **ODRZUCONE (świadoma decyzja, 2026-06-22): wspieramy dokładnie jeden serwer.** Proaktywne odnowienie tokenu WS; dark theme; ekran About z notą AGPL + linkiem do źródeł + licencjami zależności (`showLicensePage`); ikona; podpisany build release; metadane przyjazne F-Droid; README z notą zgodności wersji serwera.
 - Ryzyko: zarządzanie kluczem podpisu (ZRÓB BACKUP); scope creep — v1 kończy się tutaj.
 
 **Suma: ~32–48 sesji ≈ 4–6 miesięcy po godzinach.** Nauka jest z przodu: M0–M2 będą wolne, M4–M5 szybkie — warto to sobie powiedzieć zawczasu.

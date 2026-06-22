@@ -88,13 +88,22 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get ctrlFanPart => 'Wentylator części';
+  String get ctrlFanPart => 'Wentylator hotendu';
 
   @override
   String get ctrlFanAux => 'Wentylator pomocniczy';
 
   @override
   String get ctrlFanChamber => 'Wentylator komory';
+
+  @override
+  String get ctrlFanPartShort => 'Hotend';
+
+  @override
+  String get ctrlFanAuxShort => 'Pomoc.';
+
+  @override
+  String get ctrlFanChamberShort => 'Komora';
 
   @override
   String get ctrlSpeed => 'Prędkość';
@@ -1432,4 +1441,47 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get statsPrintTimeOfDay => 'Pora dnia wydruku';
+
+  @override
+  String get aboutMenu => 'O aplikacji';
+
+  @override
+  String get aboutTitle => 'O aplikacji';
+
+  @override
+  String get aboutTagline =>
+      'Natywny klient Android dla bambuddy — self-hostowanego menedżera drukarek Bambu Lab.';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Wersja $version';
+  }
+
+  @override
+  String get aboutLicenseHeader => 'Licencja';
+
+  @override
+  String get aboutLicenseBody =>
+      'BamBuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.';
+
+  @override
+  String get aboutViewLicense => 'Przeczytaj licencję AGPL-3.0';
+
+  @override
+  String get aboutSourceHeader => 'Kod źródłowy';
+
+  @override
+  String get aboutSourceBody => 'Pełne źródła są dostępne na Codeberg.';
+
+  @override
+  String get aboutSourceLink => 'Otwórz repozytorium źródeł';
+
+  @override
+  String get aboutThirdParty => 'Licencje open-source';
+
+  @override
+  String get aboutThirdPartySubtitle => 'Licencje dołączonych bibliotek';
+
+  @override
+  String get aboutOpenLinkError => 'Nie udało się otworzyć linku';
 }

@@ -420,6 +420,14 @@ class _AppDrawer extends ConsumerWidget {
                 _confirmChangeServer(context, ref, l10n);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: Text(l10n.aboutMenu),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/about');
+              },
+            ),
           ],
         ),
       ),

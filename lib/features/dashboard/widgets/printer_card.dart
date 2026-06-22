@@ -224,7 +224,7 @@ class _PrinterCardState extends State<PrinterCard> {
               _ControlsRow(status: status),
             ],
             if (hasDetails) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               _DetailsToggle(
                 expanded: _expanded,
                 onTap: () => setState(() => _expanded = !_expanded),
@@ -453,12 +453,18 @@ class _DetailsPanel extends ConsumerWidget {
 
     final info = _InfoRow(status: status);
 
+    // Jednolity odstęp 10 px nad pierwszą sekcją (od paska „Szczegóły") i
+    // między kolejnymi sekcjami — rytm spójny z resztą karty.
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      padding: const EdgeInsets.only(top: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final s in sections) ...[s, const SizedBox(height: 10)],
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            sections[i],
+          ],
+          const SizedBox(height: 10),
           info,
         ],
       ),
@@ -494,64 +500,80 @@ class _AmsUnitView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
+    final scheme = theme.colorScheme;
+    final color = scheme.onSurfaceVariant;
     final trays = unit.trays ?? const [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              l10n.amsUnit(unitIndex + 1),
-              style: theme.textTheme.labelLarge,
-            ),
-            if (extruder != null) ...[
+    // Jednostkę AMS wyróżniamy jako wydzieloną „kartę": tło niżej niż chipy
+    // slotów (surfaceContainerHigh), więc sloty wizualnie wystają ponad blok,
+    // a sam AMS czyta się jako spójna grupa odrębna od szpul zewnętrznych.
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dns_outlined, size: 16, color: scheme.primary),
               const SizedBox(width: 6),
-              _ExtruderBadge(
-                extruder: extruder!,
-                active: extruder == activeExtruder,
+              Text(
+                l10n.amsUnit(unitIndex + 1),
+                style: theme.textTheme.labelLarge,
               ),
-            ],
-            const Spacer(),
-            if (unit.humidity != null)
-              _MetaItem(
-                icon: Icons.water_drop_outlined,
-                text: '${unit.humidity}%',
-              ),
-            if (unit.humidity != null && unit.temp != null)
-              const SizedBox(width: 12),
-            if (unit.temp != null)
-              _MetaItem(
-                icon: Icons.thermostat,
-                text: '${unit.temp!.toStringAsFixed(0)}°',
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final t in trays)
-              _TrayChip(
-                tray: t,
-                active: identical(t, active),
-                assignedSpool:
-                    assigned.forAmsSlot(unit.id ?? unitIndex, t.id ?? 0),
-                slot: _SlotRef(
-                  printerId: printerId,
-                  printerName: printerName,
-                  amsId: unit.id ?? unitIndex,
-                  trayId: t.id ?? 0,
-                  label: '${l10n.amsUnit(unitIndex + 1)} · ${(t.id ?? 0) + 1}',
+              if (extruder != null) ...[
+                const SizedBox(width: 6),
+                _ExtruderBadge(
+                  extruder: extruder!,
+                  active: extruder == activeExtruder,
                 ),
-              ),
-          ],
-        ),
-        if (trays.isEmpty)
-          Text('—', style: theme.textTheme.bodySmall?.copyWith(color: color)),
-      ],
+              ],
+              const Spacer(),
+              if (unit.humidity != null)
+                _MetaItem(
+                  icon: Icons.water_drop_outlined,
+                  text: '${unit.humidity}%',
+                ),
+              if (unit.humidity != null && unit.temp != null)
+                const SizedBox(width: 12),
+              if (unit.temp != null)
+                _MetaItem(
+                  icon: Icons.thermostat,
+                  text: '${unit.temp!.toStringAsFixed(0)}°',
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final t in trays)
+                _TrayChip(
+                  tray: t,
+                  active: identical(t, active),
+                  assignedSpool:
+                      assigned.forAmsSlot(unit.id ?? unitIndex, t.id ?? 0),
+                  slot: _SlotRef(
+                    printerId: printerId,
+                    printerName: printerName,
+                    amsId: unit.id ?? unitIndex,
+                    trayId: t.id ?? 0,
+                    label:
+                        '${l10n.amsUnit(unitIndex + 1)} · ${(t.id ?? 0) + 1}',
+                  ),
+                ),
+            ],
+          ),
+          if (trays.isEmpty)
+            Text('—',
+                style: theme.textTheme.bodySmall?.copyWith(color: color)),
+        ],
+      ),
     );
   }
 }
@@ -1000,7 +1022,8 @@ class _ColorDot extends StatelessWidget {
   }
 }
 
-/// Wiersz metadanych łączności: model, sygnał Wi-Fi, stan drzwiczek.
+/// Wiersz metadanych łączności: sygnał Wi-Fi, stan drzwiczek. Model drukarki
+/// celowo pominięty — nazwa drukarki w nagłówku już wystarcza za identyfikację.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.status});
 
@@ -1009,21 +1032,95 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final dbm = status.wifiSignal;
+    final doorOpen = status.doorOpen;
+
     final items = <Widget>[
-      if (status.model != null)
-        _MetaItem(icon: Icons.precision_manufacturing, text: status.model!),
-      if (status.wifiSignal != null)
-        _MetaItem(icon: Icons.wifi, text: '${status.wifiSignal} dBm'),
-      if (status.doorOpen != null)
-        _MetaItem(
-          icon: status.doorOpen!
-              ? Icons.meeting_room
-              : Icons.meeting_room_outlined,
-          text: status.doorOpen! ? l10n.doorOpen : l10n.doorClosed,
+      if (dbm != null)
+        _InfoChip(
+          icon: _wifiIcon(dbm),
+          text: '$dbm dBm',
+          color: _wifiColor(scheme, dbm),
+        ),
+      if (doorOpen != null)
+        _InfoChip(
+          icon: doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
+          text: doorOpen ? l10n.doorOpen : l10n.doorClosed,
+          // Otwarte drzwiczki wyróżniamy ostrzegawczo; zamknięte neutralnie.
+          color: doorOpen ? const Color(0xFFFFB300) : scheme.onSurfaceVariant,
         ),
     ];
     if (items.isEmpty) return const SizedBox.shrink();
-    return Wrap(spacing: 14, runSpacing: 4, children: items);
+
+    // Rozłożone na całą szerokość (jak chipy wentylatorów) — wyraźne, czytelne
+    // pola zamiast drobnego szarego tekstu.
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(child: items[i]),
+        ],
+      ],
+    );
+  }
+
+  /// Ikona Wi-Fi wg siły sygnału (dBm): im bliżej 0, tym lepiej.
+  IconData _wifiIcon(int dbm) {
+    if (dbm >= -55) return Icons.network_wifi;
+    if (dbm >= -65) return Icons.network_wifi_3_bar;
+    if (dbm >= -75) return Icons.network_wifi_2_bar;
+    return Icons.network_wifi_1_bar;
+  }
+
+  /// Kolor wg jakości sygnału: dobry → zielony, średni → bursztyn, słaby → błąd.
+  Color _wifiColor(ColorScheme scheme, int dbm) {
+    if (dbm >= -60) return const Color(0xFF66BB6A);
+    if (dbm >= -72) return const Color(0xFFFFB300);
+    return scheme.error;
+  }
+}
+
+/// Czytelna „pigułka" metadanej: kolorowa ikona + tekst na tle kontenera,
+/// rozciągana na równą część szerokości wiersza.
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.text, this.color});
+
+  final IconData icon;
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = color ?? scheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16, color: accent),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1408,7 +1505,7 @@ class _ControlsActions extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
+      child: _ControlsGrid(buttons: buttons),
     );
   }
 
@@ -1608,6 +1705,43 @@ const _btnSpinner = SizedBox(
   child: CircularProgressIndicator(strokeWidth: 2),
 );
 
+/// Układa przyciski sterowania w siatkę 2-kolumnową, w kolejności z [buttons]
+/// (pauza/wznów, zatrzymaj, oświetlenie, prędkość). Każda komórka rozciąga się
+/// na równą szerokość; samotny przycisk (np. tylko światło w bezczynności)
+/// zajmuje pełną szerokość wiersza.
+class _ControlsGrid extends StatelessWidget {
+  const _ControlsGrid({required this.buttons});
+
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) {
+    const gap = 8.0;
+    final rows = <Widget>[];
+    for (var i = 0; i < buttons.length; i += 2) {
+      final end = i + 2 > buttons.length ? buttons.length : i + 2;
+      final pair = buttons.sublist(i, end);
+      rows.add(Row(
+        children: [
+          for (var j = 0; j < pair.length; j++) ...[
+            if (j > 0) const SizedBox(width: gap),
+            Expanded(child: pair[j]),
+          ],
+        ],
+      ));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: gap),
+          rows[i],
+        ],
+      ],
+    );
+  }
+}
+
 /// Przycisk akcji cyklu życia wydruku (pauza/wznów/stop). W locie pokazuje
 /// spinner i jest zablokowany; `danger` koloruje stop na czerwono.
 class _LifecycleButton extends StatelessWidget {
@@ -1712,6 +1846,7 @@ class _SpeedControl extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             busy
                 ? _btnSpinner
@@ -1757,22 +1892,25 @@ class _ControlsRow extends StatelessWidget {
         _ControlChip(
           icon: Icons.air,
           label: l10n.ctrlFanPart,
+          caption: l10n.ctrlFanPartShort,
           value: '${status.coolingFanSpeed}%',
           valueAlternatives: const ['100%'],
           color: fanColor(status.coolingFanSpeed!),
         ),
       if (status.bigFan1Speed != null)
         _ControlChip(
-          icon: Icons.cyclone,
+          icon: Icons.air,
           label: l10n.ctrlFanAux,
+          caption: l10n.ctrlFanAuxShort,
           value: '${status.bigFan1Speed}%',
           valueAlternatives: const ['100%'],
           color: fanColor(status.bigFan1Speed!),
         ),
       if (status.bigFan2Speed != null)
         _ControlChip(
-          icon: Icons.wind_power,
+          icon: Icons.air,
           label: l10n.ctrlFanChamber,
+          caption: l10n.ctrlFanChamberShort,
           value: '${status.bigFan2Speed}%',
           valueAlternatives: const ['100%'],
           color: fanColor(status.bigFan2Speed!),
@@ -1783,9 +1921,18 @@ class _ControlsRow extends StatelessWidget {
 
     if (chips.isEmpty) return const SizedBox.shrink();
 
+    // Chipy rozłożone równomiernie na całej szerokości karty — każdy w
+    // `Expanded`, więc dzielą wiersz na równe części niezależnie od liczby.
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Wrap(spacing: 8, runSpacing: 8, children: chips),
+      child: Row(
+        children: [
+          for (var i = 0; i < chips.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: chips[i]),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1797,18 +1944,26 @@ class _ControlsRow extends StatelessWidget {
   }
 }
 
-/// Pojedynczy chip sterowania: ikona + etykieta (mała) + wartość.
+/// Pojedynczy chip sterowania: ikona + krótki podpis + wartość. [label] to
+/// pełna nazwa w tooltipie, [caption] to widoczny skrót (np. „Komora"), żeby
+/// sama ikona nie musiała tłumaczyć, którego wentylatora dotyczy odczyt.
 class _ControlChip extends StatelessWidget {
   const _ControlChip({
     required this.icon,
     required this.label,
     required this.value,
+    this.caption,
     this.valueAlternatives = const [],
     this.color,
   });
 
   final IconData icon;
   final String label;
+
+  /// Widoczny skrót obok ikony (opcjonalny). Gdy null — chip pokazuje samą
+  /// ikonę i wartość (jak dawniej).
+  final String? caption;
+
   final String value;
 
   /// Wszystkie wartości, jakie ten chip może pokazać. Slot wartości
@@ -1859,9 +2014,22 @@ class _ControlChip extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 14, color: accent),
             const SizedBox(width: 6),
+            if (caption != null) ...[
+              Flexible(
+                child: Text(
+                  caption!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             SizedBox(
               width: slotWidth.ceilToDouble(),
               child: Text(value, style: valueStyle, maxLines: 1),

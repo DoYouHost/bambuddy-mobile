@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/inventory/inventory_screen.dart';
@@ -47,6 +48,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/stats',
         builder: (_, _) => const StatisticsScreen(),
+      ),
+
+      // O aplikacji + licencje — pełny ekran poza powłoką (push z szuflady).
+      GoRoute(
+        path: '/about',
+        builder: (_, _) => const AboutScreen(),
       ),
 
       // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.

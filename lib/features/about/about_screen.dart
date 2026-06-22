@@ -1,0 +1,162 @@
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../l10n/app_localizations.dart';
+
+/// Publiczny adres źródeł — apka jest AGPL-3.0, więc link do kodu jest
+/// wymogiem licencyjnym (zob. plan 02 §higiena licencyjna).
+const String _sourceUrl = 'https://codeberg.org/MorganMLGman/bambuddy-mobile';
+const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
+
+/// Ekran „O aplikacji": nazwa/wersja, nota licencyjna AGPL-3.0, link do źródeł
+/// oraz wejście do `showLicensePage` z licencjami zależności. Pełny ekran poza
+/// powłoką (push z szuflady Dashboardu).
+class AboutScreen extends StatelessWidget {
+  const AboutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.aboutTitle)),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/icon/icon.png',
+                    width: 88,
+                    height: 88,
+                    errorBuilder: (_, _, _) =>
+                        const Icon(Icons.print, size: 88),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('BamBuddy', style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                const _VersionLabel(),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.aboutTagline,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: theme.hintColor),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 24),
+
+          _SectionHeader(l10n.aboutLicenseHeader),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(l10n.aboutLicenseBody, style: theme.textTheme.bodyMedium),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(l10n.aboutViewLicense),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _open(context, _licenseUrl, l10n),
+          ),
+
+          const Divider(height: 24),
+
+          _SectionHeader(l10n.aboutSourceHeader),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(l10n.aboutSourceBody, style: theme.textTheme.bodyMedium),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: Text(l10n.aboutSourceLink),
+            subtitle: const Text('codeberg.org/MorganMLGman/bambuddy-mobile'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _open(context, _sourceUrl, l10n),
+          ),
+
+          const Divider(height: 24),
+
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: Text(l10n.aboutThirdParty),
+            subtitle: Text(l10n.aboutThirdPartySubtitle),
+            onTap: () => _showLicenses(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _open(
+      BuildContext context, String url, AppLocalizations l10n) async {
+    final ok = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.aboutOpenLinkError)));
+    }
+  }
+
+  Future<void> _showLicenses(BuildContext context) async {
+    final info = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
+    showLicensePage(
+      context: context,
+      applicationName: 'BamBuddy',
+      applicationVersion: '${info.version}+${info.buildNumber}',
+      applicationLegalese: '© MorganMLGman · AGPL-3.0',
+    );
+  }
+}
+
+/// Wersja czytana z metadanych pakietu (pubspec → buildName+buildNumber).
+class _VersionLabel extends StatelessWidget {
+  const _VersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snap) {
+        final v = snap.hasData
+            ? '${snap.data!.version}+${snap.data!.buildNumber}'
+            : '…';
+        return Text(
+          l10n.aboutVersion(v),
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+        );
+      },
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Text(
+        label,
+        style: theme.textTheme.titleSmall
+            ?.copyWith(color: theme.colorScheme.primary),
+      ),
+    );
+  }
+}

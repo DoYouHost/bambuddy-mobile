@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,11 +13,62 @@ import 'queue_providers.dart';
 
 /// Ekran kolejki wydruków (M5): przeciąganie (reorder), swipe-to-delete za
 /// potwierdzeniem, akcje start/anuluj. Pokazuje tylko elementy aktywne.
-class QueueScreen extends ConsumerWidget {
+///
+/// Kolejka nie ma WS, a stan zmienia się też poza apką (np. wydruk wystartowany
+/// z drukarki/innego klienta), więc gdy ekran żyje na pierwszym planie dociągamy
+/// świeżą listę cyklicznie. Timer milknie w tle (jak polling Dashboardu), bo to
+/// niepotrzebne bicie po serwerze — powrót i tak robi świeży fetch.
+class QueueScreen extends ConsumerStatefulWidget {
   const QueueScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QueueScreen> createState() => _QueueScreenState();
+}
+
+class _QueueScreenState extends ConsumerState<QueueScreen> {
+  /// Częstotliwość auto-odświeżania na pierwszym planie. Rzadziej niż roster
+  /// Dashboardu (5 s) — kolejka zmienia się wolniej, a fetch jest cięższy.
+  static const _refreshInterval = Duration(seconds: 10);
+
+  Timer? _timer;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+    _lifecycle = AppLifecycleListener(
+      onPause: _stopTimer,
+      onResume: () {
+        // Powrót na pierwszy plan: natychmiast dociągnij i wznów cykl.
+        unawaited(ref.read(queueProvider.notifier).refresh());
+        _startTimer();
+      },
+    );
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      _refreshInterval,
+      (_) => unawaited(ref.read(queueProvider.notifier).refresh()),
+    );
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(queueProvider);
 

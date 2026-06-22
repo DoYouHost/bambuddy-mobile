@@ -24,9 +24,12 @@
   "tempBed": "Stół",
   "tempChamber": "Komora",
   "tempNozzleNumbered": "Dysza {n}",
-  "ctrlFanPart": "Wentylator części",
+  "ctrlFanPart": "Wentylator hotendu",
   "ctrlFanAux": "Wentylator pomocniczy",
   "ctrlFanChamber": "Wentylator komory",
+  "ctrlFanPartShort": "Hotend",
+  "ctrlFanAuxShort": "Pomoc.",
+  "ctrlFanChamberShort": "Komora",
   "ctrlSpeed": "Prędkość",
   "ctrlLight": "Światło komory",
   "ctrlLightOn": "Wł.",
@@ -466,5 +469,20 @@
 
   "statsPrintDuration": "Czas trwania wydruku",
   "statsPrintHabits": "Nawyki drukowania",
-  "statsPrintTimeOfDay": "Pora dnia wydruku"
+  "statsPrintTimeOfDay": "Pora dnia wydruku",
+
+  "aboutMenu": "O aplikacji",
+  "aboutTitle": "O aplikacji",
+  "aboutTagline": "Natywny klient Android dla bambuddy — self-hostowanego menedżera drukarek Bambu Lab.",
+  "aboutVersion": "Wersja {version}",
+  "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
+  "aboutLicenseHeader": "Licencja",
+  "aboutLicenseBody": "BamBuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.",
+  "aboutViewLicense": "Przeczytaj licencję AGPL-3.0",
+  "aboutSourceHeader": "Kod źródłowy",
+  "aboutSourceBody": "Pełne źródła są dostępne na Codeberg.",
+  "aboutSourceLink": "Otwórz repozytorium źródeł",
+  "aboutThirdParty": "Licencje open-source",
+  "aboutThirdPartySubtitle": "Licencje dołączonych bibliotek",
+  "aboutOpenLinkError": "Nie udało się otworzyć linku"
 }
