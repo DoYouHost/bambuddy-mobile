@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Wiszące powiadomienie o wydruku + alerty w tle (Android 13+ wymaga
          uprawnienia runtime). -->
@@ -69,6 +70,23 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/bambuddy_widget_info" />
         </receiver>
+
+        <!-- WorkManager wchodzi tranzytywnie przez androidx.glance (zależność
+             home_widget). Używamy RemoteViews, NIE Glance, więc WorkManager nie
+             jest potrzebny — a jego auto-inicjalizacja przez androidx.startup
+             wywala CAŁĄ apkę na starcie w release (R8): „Unable to get provider
+             androidx.startup.InitializationProvider … Failed to create
+             WorkDatabase". Usuwamy auto-init WorkManagera (resztę startup zostawiamy). -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
