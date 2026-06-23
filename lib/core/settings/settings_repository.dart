@@ -14,6 +14,7 @@ class SettingsRepository {
   static const _bgMonitoringKey = 'bg_monitoring_enabled';
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
+  static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
 
   final SharedPreferences _prefs;
@@ -66,6 +67,15 @@ class SettingsRepository {
         _maintNotifiedKey,
         [for (final id in ids) id.toString()],
       );
+
+  /// Czy stan konserwacji zmienił się poza UI (akcja „oznacz wykonane" z
+  /// powiadomienia, obsłużona w isolacie tła) i wymaga odświeżenia ekranu.
+  /// Sygnał między isolatem callbacku a UI — UI musi `reload()` prefów przed
+  /// odczytem, bo zapis poszedł z innego isolate'u.
+  bool maintenanceDirty() => _prefs.getBool(_maintDirtyKey) ?? false;
+
+  Future<void> setMaintenanceDirty(bool dirty) =>
+      dirty ? _prefs.setBool(_maintDirtyKey, true) : _prefs.remove(_maintDirtyKey);
 
   /// Backend magazynu filamentów: `native` (domyślny) lub `spoolman`. Zapisany
   /// jako nazwa enuma; nieznana/uszkodzona wartość → natywny.

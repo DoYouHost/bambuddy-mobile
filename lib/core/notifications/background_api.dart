@@ -66,9 +66,11 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
     final api = await buildBackgroundApiClient(prefs);
     if (api == null) return;
     final repo = MaintenanceRepository(api.dio);
+    var anyPerformed = false;
     for (final id in itemIds) {
       try {
         await repo.perform(id);
+        anyPerformed = true;
       } on Object {
         // Pojedyncza porażka nie blokuje pozostałych.
       }
@@ -77,6 +79,9 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
     final notified = settings.loadNotifiedMaintenanceDueIds()
       ..removeAll(itemIds);
     await settings.saveNotifiedMaintenanceDueIds(notified);
+    // Sygnał dla UI: stan serwera się zmienił poza nim. Ekran konserwacji
+    // dociągnie świeże dane przy powrocie do apki zamiast czekać na pull-to-refresh.
+    if (anyPerformed) await settings.setMaintenanceDirty(true);
 
     final id = response.id;
     if (id != null) {

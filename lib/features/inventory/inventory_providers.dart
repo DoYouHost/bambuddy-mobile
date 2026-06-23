@@ -52,11 +52,17 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
 
     spools.sort((a, b) {
       // Kolejność: aktywne przed zarchiwizowanymi; wśród aktywnych — załadowane
-      // (w AMS lub zewnętrznie) przed luźnymi; na końcu alfabetycznie po nazwie.
+      // (w AMS lub zewnętrznie) przed luźnymi.
       if (a.isArchived != b.isArchived) return a.isArchived ? 1 : -1;
       final aLoaded = bySpool.containsKey(a.id);
       final bLoaded = bySpool.containsKey(b.id);
       if (aLoaded != bLoaded) return aLoaded ? -1 : 1;
+      // Wśród przypisanych: najpierw szpule z najmniejszą pozostałą masą, by te
+      // bliskie końca rzucały się w oczy. Luźne — alfabetycznie po nazwie.
+      if (aLoaded && bLoaded) {
+        final byRemaining = a.remainingWeight.compareTo(b.remainingWeight);
+        if (byRemaining != 0) return byRemaining;
+      }
       return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
     });
     return InventoryState(spools: spools, assignmentBySpool: bySpool);

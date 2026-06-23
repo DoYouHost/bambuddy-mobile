@@ -58,6 +58,16 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <!-- flutter_local_notifications: odbiornik tapnięć przycisków akcji
+             powiadomień (np. „Oznacz wykonane" przy konserwacji). Wymagany przez
+             plugin, by akcje z showsUserInterface=false były obsłużone w tle
+             (osobny silnik Dart) bez otwierania apki. Bez tej deklaracji Android
+             gubi broadcast akcji — handler nigdy nie odpala, powiadomienie się
+             nie zamyka ani nie resetuje licznika. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
+
         <!-- Widget ekranu głównego: status wybranej drukarki + skrót do skanera
              szpuli. Aktualizowany przez apkę (home_widget), nie cyklicznie. -->
         <receiver

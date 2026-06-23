@@ -5,17 +5,56 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../../providers.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
 /// Ekran konserwacji drukarek (M7): przegląd stanu wszystkich drukarek
 /// pogrupowany po drukarce, oznaczanie czynności jako wykonanej (reset licznika)
 /// i historia. Tylko podgląd + wykonanie — zarządzanie typami zostaje na serwerze.
-class MaintenanceScreen extends ConsumerWidget {
+class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MaintenanceScreen> createState() => _MaintenanceScreenState();
+}
+
+class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Pierwszy build i tak dociąga aktualny stan z serwera — zdejmij ewentualny
+    // marker z akcji w tle, by nie odpalić zbędnego odświeżenia przy powrocie.
+    ref.read(settingsRepositoryProvider).setMaintenanceDirty(false);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshIfDirty();
+  }
+
+  /// Po powrocie do apki: jeśli „oznacz wykonane" z powiadomienia zresetowało
+  /// licznik w isolacie tła, dociągnij świeży stan. `reload()` jest konieczny —
+  /// zapis poszedł z innego isolate'u, więc cache prefów w UI go nie widzi.
+  Future<void> _refreshIfDirty() async {
+    await ref.read(sharedPreferencesProvider).reload();
+    final settings = ref.read(settingsRepositoryProvider);
+    if (!settings.maintenanceDirty()) return;
+    await settings.setMaintenanceDirty(false);
+    if (!mounted) return;
+    await ref.read(maintenanceOverviewProvider.notifier).refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(maintenanceOverviewProvider);
 
@@ -118,6 +157,11 @@ class _CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tekst dobrany do jasności tła — `colorScheme.error` w ciemnym motywie to
+    // jasny łosoś, na którym biały tekst znika; czarny daje czytelny kontrast.
+    final onColor = ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -126,8 +170,8 @@ class _CountBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: onColor, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -171,7 +215,8 @@ class _MaintenanceTile extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(dueText,
-                style: theme.textTheme.bodySmall?.copyWith(color: accent)),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: accent, fontWeight: FontWeight.w600)),
           ],
         ),
         trailing: TextButton(

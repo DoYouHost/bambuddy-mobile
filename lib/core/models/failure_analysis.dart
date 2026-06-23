@@ -41,6 +41,46 @@ class FailureAnalysis {
   final Map<String, int> failuresByHour;
 
   bool get isEmpty => failedPrints == 0 && totalPrints == 0;
+
+  /// Serializacja do cache — klucze zgodne z [fromJson], więc round-trip.
+  Map<String, dynamic> toJson() => {
+        'period_days': periodDays,
+        'total_prints': totalPrints,
+        'failed_prints': failedPrints,
+        'failure_rate': failureRate,
+        'failures_by_reason': failuresByReason,
+        'failures_by_filament': failuresByFilament,
+        'failures_by_printer': failuresByPrinter,
+        'failures_by_hour': failuresByHour,
+      };
+
+  /// Scala dwa rozłączne (czasowo) agregaty w jeden. Liczniki są addytywne
+  /// (archiwum jest append-only, okresy nie nachodzą na siebie); `failureRate`
+  /// przeliczamy z sum, bo średnia z procentów byłaby błędna. Używane przy
+  /// przyrostowym dociąganiu („cache + nowy okres") dla zakresu „cały okres".
+  FailureAnalysis merge(FailureAnalysis other) {
+    final total = totalPrints + other.totalPrints;
+    final failed = failedPrints + other.failedPrints;
+    return FailureAnalysis(
+      // Nieużywane w UI; suma to najmniej mylące przybliżenie łącznego okresu.
+      periodDays: periodDays + other.periodDays,
+      totalPrints: total,
+      failedPrints: failed,
+      failureRate: total == 0 ? 0 : failed * 100 / total,
+      failuresByReason: _mergeCounts(failuresByReason, other.failuresByReason),
+      failuresByFilament:
+          _mergeCounts(failuresByFilament, other.failuresByFilament),
+      failuresByPrinter:
+          _mergeCounts(failuresByPrinter, other.failuresByPrinter),
+      failuresByHour: _mergeCounts(failuresByHour, other.failuresByHour),
+    );
+  }
+}
+
+Map<String, int> _mergeCounts(Map<String, int> a, Map<String, int> b) {
+  final out = Map<String, int>.from(a);
+  b.forEach((k, v) => out[k] = (out[k] ?? 0) + v);
+  return out;
 }
 
 int _int(Object? v) {

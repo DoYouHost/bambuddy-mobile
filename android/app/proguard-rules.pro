@@ -14,3 +14,10 @@
 
 # mobile_scanner plugin itself.
 -keep class dev.steenbakker.mobile_scanner.** { *; }
+
+# flutter_local_notifications: ActionBroadcastReceiver obsługuje tapnięcia
+# przycisków akcji w tle i (de)serializuje dane akcji przez Gson (refleksja).
+# R8 z obfuskacją rozjeżdża te modele → akcja „Oznacz wykonane" milczy w
+# release (działa w debug, gdzie R8 nie biegnie). Trzymamy klasy pluginu.
+-keep class com.dexterous.** { *; }
+-dontwarn com.dexterous.**

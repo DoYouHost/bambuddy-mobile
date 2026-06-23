@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/archive_slim.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/models/failure_analysis.dart';
+import '../../data/failure_analysis_cache.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'stats_computed.dart';
@@ -138,15 +139,101 @@ final statsComputedProvider =
       .whenData((items) => StatsComputed.from(items));
 });
 
-/// Analiza niepowodzeń dla aktywnego filtra. Dla „całego okresu" zamiast braku
-/// dat (serwer domyśla się wtedy 30 dni) wysyłamy datę od dawnej przeszłości,
-/// żeby objąć całe archiwum — inaczej widżet pokazywałby tylko ostatni miesiąc.
+/// Trwały cache analizy niepowodzeń (na dysku, SharedPreferences).
+final failureAnalysisCacheProvider = Provider<FailureAnalysisCache>(
+  (ref) => FailureAnalysisCache(ref.watch(sharedPreferencesProvider)),
+);
+
+/// Analiza niepowodzeń dla aktywnego filtra — z cache i przyrostowym
+/// dociąganiem. Po wejściu na ekran natychmiast pokazuje ostatni zapis z cache,
+/// a w tle dociąga brakujący okres i podmienia stan:
+/// - „cały okres": bankuje pełne dni (archiwum jest append-only) i osobno
+///   dolicza dzisiejszy, niekompletny dzień — serwer liczy tylko wąskie okno
+///   zamiast całego archiwum przy każdym wejściu;
+/// - pozostałe zakresy: pełny refetch (stale-while-revalidate), bo dolna
+///   granica okna przesuwa się w czasie i czysty przyrost nie jest poprawny.
+///
+/// Dla „całego okresu" zamiast braku dat (serwer domyśla się wtedy 30 dni)
+/// kotwiczymy `from` w dawnej przeszłości, by objąć całe archiwum.
 final failureAnalysisProvider =
-    FutureProvider.autoDispose<FailureAnalysis>((ref) async {
-  ref.watch(serverProfileProvider);
-  final filter = ref.watch(statsFilterProvider);
-  var (from, to) = StatsNotifier._resolveDates(filter);
-  from ??= DateTime(2000);
-  to ??= DateTime.now();
-  return ref.read(statsRepositoryProvider).fetchFailures(from: from, to: to);
-});
+    AutoDisposeAsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
+  FailureAnalysisNotifier.new,
+);
+
+class FailureAnalysisNotifier
+    extends AutoDisposeAsyncNotifier<FailureAnalysis> {
+  var _disposed = false;
+
+  @override
+  Future<FailureAnalysis> build() async {
+    ref.watch(serverProfileProvider);
+    final filter = ref.watch(statsFilterProvider);
+    ref.onDispose(() => _disposed = true);
+
+    final cached = ref.read(failureAnalysisCacheProvider).load(filter);
+    if (cached != null) {
+      // Pokaż cache od razu; dociągnij świeże w tle i podmień.
+      _refreshInBackground(filter, cached);
+      return cached.analysis;
+    }
+    // Brak cache (np. pierwsze uruchomienie) — pełna ścieżka.
+    return _fetch(filter, base: null);
+  }
+
+  void _refreshInBackground(StatsFilter filter, FailureCacheEntry base) {
+    Future(() async {
+      try {
+        final fresh = await _fetch(filter, base: base);
+        if (!_disposed) state = AsyncData(fresh);
+      } on Object {
+        // Cicho — na ekranie zostaje pokazany cache.
+      }
+    });
+  }
+
+  /// Liczy świeży wynik i aktualizuje cache. Dla „całego okresu" doklejamy tylko
+  /// brakujący okres do [base]; inaczej pełne pobranie całego zakresu.
+  Future<FailureAnalysis> _fetch(
+    StatsFilter filter, {
+    required FailureCacheEntry? base,
+  }) async {
+    final repo = ref.read(statsRepositoryProvider);
+    final cache = ref.read(failureAnalysisCacheProvider);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (filter.range != StatsRange.allTime) {
+      var (from, to) = StatsNotifier._resolveDates(filter);
+      from ??= DateTime(2000);
+      to ??= today;
+      final full = await repo.fetchFailures(from: from, to: to);
+      await cache.save(filter,
+          FailureCacheEntry(analysis: full, coveredThrough: null, fetchedAt: now));
+      return full;
+    }
+
+    // „Cały okres" przyrostowo. Cache trzyma agregat PEŁNYCH dni
+    // [2000..coveredThrough] BEZ dzisiejszego (niekompletnego) dnia — ten
+    // zawsze dociągamy świeżo, by nie zamrozić częściowych danych w cache.
+    final yesterday = DateTime(today.year, today.month, today.day - 1);
+    var banked = base?.analysis ?? const FailureAnalysis();
+    final coveredThrough = base?.coveredThrough;
+    final bankStart = coveredThrough == null
+        ? DateTime(2000)
+        : DateTime(coveredThrough.year, coveredThrough.month,
+            coveredThrough.day + 1);
+    // Dobankuj dni, które domknęły się od ostatniego razu (zwykle 0–1 dnia).
+    if (!bankStart.isAfter(yesterday)) {
+      final bank = await repo.fetchFailures(from: bankStart, to: yesterday);
+      banked = banked.merge(bank);
+      await cache.save(
+        filter,
+        FailureCacheEntry(
+            analysis: banked, coveredThrough: yesterday, fetchedAt: now),
+      );
+    }
+    // Dzisiejszy, niekompletny dzień — osobno, poza cache.
+    final todayPart = await repo.fetchFailures(from: today, to: today);
+    return banked.merge(todayPart);
+  }
+}
