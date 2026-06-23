@@ -3,4 +3,51 @@
     <string name="widget_name">BambuBuddy</string>
     <string name="widget_description">Printer status with a filament scan shortcut</string>
     <string name="widget_scan">Scan filament</string>
+
+    <!-- Idle/offline quips: recognizable pop-culture lines (films, memes, games)
+         mapped onto 3D-printing reality. SEPARATE set from Polish (humour does not
+         translate) — see values-pl. Keep PEGI 16. -->
+    <string-array name="widget_idle_quips">
+        <!-- Movies -->
+        <item>I\'ll be back. After this print. Maybe.</item>
+        <item>Hasta la vista, print errors.</item>
+        <item>One does not simply level a bed.</item>
+        <item>All g-code and no printing makes Bambu a dull boy.</item>
+        <item>I find your lack of filament disturbing.</item>
+        <item>Do or do not. There is no warp.</item>
+        <item>It\'s a trap! The bed was never leveled.</item>
+        <item>Houston, we have nothing. The plate is empty.</item>
+        <item>You\'re gonna need a bigger build plate.</item>
+        <item>Why so serious? The plate is empty, relax.</item>
+        <item>If you slice it, it will warp.</item>
+        <item>Are you not entertained? No? Fine, I\'m idle.</item>
+        <item>King of the world! Ruler of an empty plate.</item>
+        <item>Frankly, my dear, I don\'t give a clog.</item>
+        <item>Life is like a box of filament: you never know what\'ll warp.</item>
+        <item>The first rule of Print Club: we don\'t print right now.</item>
+        <item>Freedom! Zero layers, total freedom.</item>
+        <!-- Games and memes -->
+        <item>There is no spool.</item>
+        <item>I know g-code. I just won\'t run it.</item>
+        <item>The print is a lie.</item>
+        <item>I used to print like you, then I took a clog to the nozzle.</item>
+        <item>Idle. Idle never changes.</item>
+        <item>Would you kindly slice a model?</item>
+        <item>Press F to pay respects to the last failed print.</item>
+        <item>This is fine. The bed is cold and empty.</item>
+        <item>Task failed successfully: no print started.</item>
+        <item>It ain\'t printing, but it\'s honest idling.</item>
+        <item>I am once again asking you to slice a model.</item>
+        <item>All your bed are belong to dust.</item>
+        <item>Wind\'s howling. Bed\'s cold.</item>
+        <!-- TV and music -->
+        <item>Winter is coming. Your print is not.</item>
+        <item>You know nothing, Jon Slow.</item>
+        <item>I am the one who clogs.</item>
+        <item>Say my filament.</item>
+        <item>Never gonna print you up, never gonna let you cool down.</item>
+        <item>Beam me up, nothing\'s printing down here.</item>
+        <item>Resistance is futile. So is printing today.</item>
+        <item>Live long and procrastinate.</item>
+    </string-array>
 </resources>

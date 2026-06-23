@@ -74,6 +74,15 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
             setViewVisibility(R.id.widget_file_row, visIf(printName.isNotEmpty()))
             setTextViewText(R.id.widget_print_name, printName)
 
+            // Zamiast podglądu: żartobliwy tekst, gdy drukarka idle/offline.
+            val showQuip = statusKey == "idle" || statusKey == "offline"
+            if (showQuip) {
+                setTextViewText(R.id.widget_quip, randomQuip(context))
+                setViewVisibility(R.id.widget_quip, View.VISIBLE)
+            } else {
+                setViewVisibility(R.id.widget_quip, View.GONE)
+            }
+
             // Meta: ETA + warstwy, każdy człon osobno, cały wiersz gdy oba puste.
             setTextOrGone(R.id.widget_eta, eta)
             setViewVisibility(R.id.widget_eta_icon, visIf(eta.isNotEmpty()))
@@ -158,6 +167,15 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
         val x = (src.width - w) / 2
         val y = (src.height - h) / 2
         return android.graphics.Bitmap.createBitmap(src, x, y, w, h)
+    }
+
+    /** Losowy żart z zasobów (zestaw zależny od języka launchera — PL/EN osobno).
+     *  Indeks po 15-min oknie: stabilny przy odświeżeniach, rotuje w czasie. */
+    private fun randomQuip(context: Context): String {
+        val quips = context.resources.getStringArray(R.array.widget_idle_quips)
+        if (quips.isEmpty()) return ""
+        val bucket = System.currentTimeMillis() / (15 * 60 * 1000)
+        return quips[(bucket % quips.size).toInt()]
     }
 
     private fun chipRes(key: String): Int = when (key) {

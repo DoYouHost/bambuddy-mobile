@@ -3,4 +3,63 @@
     <string name="widget_name">BambuBuddy</string>
     <string name="widget_description">Status drukarki ze skrótem do skanera filamentu</string>
     <string name="widget_scan">Skanuj filament</string>
+
+    <!-- Żartobliwe teksty (Walaszek - Kapitan Bomba / polskie komedie) 
+         OSOBNY zestaw niż angielski — nie tłumaczyć! -->
+    <string-array name="widget_idle_quips">
+        <!-- Klasyki Walaszka (głównie Kapitan Bomba) i memy -->
+        <item>Może i nie drukuję najszybciej, ale za to nie najlepiej! Klasyka.</item>
+        <item>Gratis to uczciwa cena, więc stół stoi i oszczędza prąd.</item>
+        <item>Dysza zimna, stół czysty. Panie, tu nie ma co poziomować, tu trzeba lać plastik!</item>
+        <item>Zrobiłem poziomowanie stołu na pięć dych, a skasowałem stówę. Elegancko.</item>
+        <item>Filament nawinięty, ale chęci brak. Jak u Torpedy przed solówką.</item>
+        <item>Gwiezdna Flota nie drukuje na pusty żołądek. Idę na kebsa z ostrym.</item>
+        <item>Wyluzuj, Torpeda. Zrobimy ten wydruk jutro rano.</item>
+        <item>Kto panu tak ten slicer poustawiał? Przecież to się rozjedzie od samego patrzenia.</item>
+        <item>Drukarka stoi jak RKS w obronie. Bez ruchu, ale z fasonem.</item>
+        <item>Nie po to bozia dała mi procesor, żebym bez przerwy harował.</item>
+        <item>Temperatura stołu: pokojowa. Nastrój: wysoce leniwy. Klasyka.</item>
+        <item>Trzeba anulować ten g-code, bo na rano idę do roboty w hucie.</item>
+        <item>Drukarka w trybie: Średnio? Super! Czyli pełne obijanie się.</item>
+        <item>Laserowe poziomowanie stołu? Panie, ja to robię lidarem na oko, a oko mam rzetelne.</item>
+        <item>Drukuję rzetelnie, aczkolwiek tanio. Czyli w ogóle nie zaczynam.</item>
+        <item>Ooo, zero błędów w logach? Rzadkość... Podwójna rzadkość.</item>
+        <item>Wypoziomowane na słowo honoru. Może i krzywo, ale za to stabilnie.</item>
+        <item>Drukarka odpaliła protokół: Fajrant. I co mi zrobisz?</item>
+        <item>Stoisz tu i patrzysz na ten pusty stół, a życie i robota w hucie uciekają.</item>
+        <item>Zrobione na odczepnego, czyli idealnie według surowych standardów Gwiezdnej Floty.</item>
+        <item>Marik1234 nadaje: Drukarka nie działa, bo mi się tanie filamenty poplątały.</item>
+        <item>Sułtan Kosmitów osobiście podpisał dekret o zakazie drukowania w dni parzyste.</item>
+        <item>Jedna warstwa, dwie warstwy... eee tam, nieważne. Idę na kebsa z baraniną.</item>
+        <item>Może i drukuję powoli, ale za to niespasowanie elementów jest ogromne.</item>
+        <item>Wyłączyłem grzanie komory, bo prąd drogi. Gratis to uczciwa cena.</item>
+        <item>Tu nie ma co diagnozować. To trzeba walnąć z kopa i samo ruszy.</item>
+        <item>Tyle modeli na karcie SD, a mi się nawet osi Z podnieść nie chce.</item>
+        <item>Spokojnie, zaraz się rozkręci... Albo i nie. Szczerze? Prędzej nie.</item>
+        <item>Niewiarygodne! Maszyna stoi, nic nie robi, a diody RGB świecą jak w remizie.</item>
+        <item>Nie pukaj w obudowę, bo Bambu dostanie błędu krytycznego z samego wrażenia.</item>
+        <item>Panie, na tym stole to nawet Domino by nie wygrał, taki krzywy. Ale i tak nie drukujemy.</item>
+        <item>Kurde faja, znowu zapomniałem włączyć grzania stołu.</item>
+        <item>Trzeba to zrobić rzetelnie, czyli tak, żeby się trzymało na słowo honoru i lakier do włosów.</item>
+        <item>W hucie mówili, że Bambu drukuje samo z siebie. Kłamali, trzeba palcem kliknąć.</item>
+        <item>Jeden rabin powie: podnieś temperaturę, a drugi powie: zostaw, tak jest taniej.</item>
+        <item>A ten wydruk to komu potrzebny? A dlaczego?</item>
+
+        <!-- Klasyki polskiego kina (Chłopaki nie płaczą, Kiler, itd.) -->
+        <item>A historii tego g-code\'u i tak byś nie zrozumiał.</item>
+        <item>Musisz sobie zadać jedno ważne, ale to bardzo ważne pytanie: co chcę drukować? A potem zacząć to drukować.</item>
+        <item>Mają rozmach, skubańcy. Taki stół, a całkowicie pusty!</item>
+        <item>Memory, find, STL. I wszystko jasne.</item>
+        <item>Bambu, ty mi zaimponowałeś w tej chwili tą przerwą.</item>
+        <item>I wylądował... i cały misterny wydruk w łeb!</item>
+        <item>To jest filament z miasta, nie dla psa kiełbasa, dla pana to!</item>
+        <item>Pytasz, dziku, czy stół jest wypoziomowany?</item>
+        <item>Czego brakuje na moim stole? Wydruku, panie prezesie.</item>
+        <item>Bambu, ty wiesz jaki ty masz potencjał? Szkoda, że filamentu nie masz.</item>
+        <item>Znaczy... panie prezesie... bo tu się pierwsza warstwa odkleiła...</item>
+        <item>Panie, kto panu to tak pociął w tym programie? To się nie miało prawa udać.</item>
+        <item>Chłopaki nie płaczą, chłopaki po prostu anulują nieudany wydruk.</item>
+        <item>Czekałem na ten wydruk całe życie... i chyba poczekam drugie tyle.</item>
+        <item>Psikuta bez S. Czyli wydruk bez supportów. Leży i kwiczy.</item>
+    </string-array>
 </resources>

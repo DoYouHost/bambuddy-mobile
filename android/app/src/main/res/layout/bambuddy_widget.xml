@@ -126,6 +126,25 @@
             android:text="" />
     </LinearLayout>
 
+    <!-- Żartobliwy tekst zamiast podglądu, gdy drukarka idle/offline. Zajmuje ten
+         sam centralny pas (weight=1) co wiersz pliku — naraz widoczny jest tylko
+         jeden (drugi GONE), więc waga działa poprawnie. -->
+    <TextView
+        android:id="@+id/widget_quip"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:gravity="center"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:textColor="@color/widget_text_secondary"
+        android:textStyle="italic"
+        android:textSize="15sp"
+        android:visibility="gone"
+        android:text="" />
+
     <!-- Wiersz 3: ETA (czas + godzina końca) + warstwy. Człony ukrywane osobno.
          Przyklejony do paska postępu (mały odstęp). -->
     <LinearLayout
