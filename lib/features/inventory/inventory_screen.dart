@@ -12,6 +12,50 @@ import '../dashboard/ws_providers.dart';
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
+/// Skanuje kod QR szpuli i otwiera jej kartę szczegółów (NIE tryb edycji).
+/// Skaner zwraca id (parsowane z URL `?spool=`); szukamy szpuli na wczytanej
+/// liście (jest z `include_archived`, więc każda powinna tam być). Świeżo
+/// dodaną na serwerze próbujemy dociągnąć jednym odświeżeniem; gdy nadal
+/// brak — meldujemy. Współdzielone przez FAB Filamentów oraz widget ekranu
+/// głównego (przycisk skanera), stąd funkcja top-level (a nie metoda ekranu).
+Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final id = await Navigator.of(context, rootNavigator: true).push<int>(
+    MaterialPageRoute(builder: (_) => const SpoolScannerScreen()),
+  );
+  if (id == null || !context.mounted) return;
+
+  Spool? findSpool() {
+    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
+    for (final s in spools) {
+      if (s.id == id) return s;
+    }
+    return null;
+  }
+
+  var spool = findSpool();
+  if (spool == null) {
+    await ref.read(inventoryProvider.notifier).refresh();
+    spool = findSpool();
+  }
+  if (!context.mounted) return;
+  if (spool == null) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
+    );
+    return;
+  }
+  final assignment =
+      ref.read(inventoryProvider).valueOrNull?.assignmentFor(spool.id);
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
+  );
+}
+
 /// Zakładka „Filamenty" (Faza 1, read-only): magazyn szpul z wyszukiwaniem,
 /// przełącznikiem zarchiwizowanych i szczegółami (historia zużycia, slot AMS,
 /// kalibracja). Dane przez [inventoryProvider] z backendu wybranego w ustawieniach
@@ -128,48 +172,9 @@ class InventoryScreen extends ConsumerWidget {
   }
 
   /// Skanuje kod QR szpuli i otwiera jej kartę szczegółów (NIE tryb edycji).
-  /// Skaner zwraca id (parsowane z URL `?spool=`); szukamy szpuli na wczytanej
-  /// liście (jest z `include_archived`, więc każda powinna tam być). Świeżo
-  /// dodaną na serwerze próbujemy dociągnąć jednym odświeżeniem; gdy nadal
-  /// brak — meldujemy.
-  Future<void> _scanSpool(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final id = await Navigator.of(context, rootNavigator: true).push<int>(
-      MaterialPageRoute(builder: (_) => const SpoolScannerScreen()),
-    );
-    if (id == null || !context.mounted) return;
-
-    var spool = _findSpool(ref, id);
-    if (spool == null) {
-      await ref.read(inventoryProvider.notifier).refresh();
-      spool = _findSpool(ref, id);
-    }
-    if (!context.mounted) return;
-    if (spool == null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-      );
-      return;
-    }
-    final assignment = ref.read(inventoryProvider).valueOrNull?.assignmentFor(
-      spool.id,
-    );
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
-    );
-  }
-
-  Spool? _findSpool(WidgetRef ref, int id) {
-    final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
-    for (final s in spools) {
-      if (s.id == id) return s;
-    }
-    return null;
-  }
+  /// Deleguje do [scanSpoolFlow], współdzielonego z widgetem ekranu głównego.
+  Future<void> _scanSpool(BuildContext context, WidgetRef ref) =>
+      scanSpoolFlow(context, ref);
 
   /// Otwiera arkusz filtrów. Opcje (materiały/marki/lokalizacje) liczymy z pełnej
   /// listy szpul, żeby pokazać tylko realnie występujące wartości.
@@ -720,7 +725,24 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(spool.displayName, style: theme.textTheme.titleLarge),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Expanded(
+                          child: Text(spool.displayName,
+                              style: theme.textTheme.titleLarge),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '#${spool.id}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                     if (spool.colorName != null)
                       Text(spool.colorName!,
                           style: theme.textTheme.bodyMedium?.copyWith(

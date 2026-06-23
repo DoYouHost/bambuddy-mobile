@@ -341,6 +341,27 @@ class AppLocalizationsPl extends AppLocalizations {
   String get offline => 'offline';
 
   @override
+  String get widgetNoPrinter => 'Brak drukarki';
+
+  @override
+  String get widgetStatusPrinting => 'Drukuje';
+
+  @override
+  String get widgetStatusPaused => 'Wstrzymano';
+
+  @override
+  String get widgetStatusFinished => 'Zakończono';
+
+  @override
+  String get widgetStatusFailed => 'Błąd';
+
+  @override
+  String get widgetStatusIdle => 'Bezczynna';
+
+  @override
+  String get widgetStatusOffline => 'Offline';
+
+  @override
   String remaining(String time) {
     return 'pozostało $time';
   }
@@ -850,6 +871,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryTag => 'Tag';
+
+  @override
+  String get inventoryId => 'ID filamentu';
 
   @override
   String get inventoryUsageHistory => 'Historia zużycia';

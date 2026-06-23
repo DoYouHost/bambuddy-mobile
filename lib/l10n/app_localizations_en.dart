@@ -338,6 +338,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offline => 'offline';
 
   @override
+  String get widgetNoPrinter => 'No printer';
+
+  @override
+  String get widgetStatusPrinting => 'Printing';
+
+  @override
+  String get widgetStatusPaused => 'Paused';
+
+  @override
+  String get widgetStatusFinished => 'Finished';
+
+  @override
+  String get widgetStatusFailed => 'Failed';
+
+  @override
+  String get widgetStatusIdle => 'Idle';
+
+  @override
+  String get widgetStatusOffline => 'Offline';
+
+  @override
   String remaining(String time) {
     return '$time left';
   }
@@ -847,6 +868,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryTag => 'Tag';
+
+  @override
+  String get inventoryId => 'Filament ID';
 
   @override
   String get inventoryUsageHistory => 'Usage history';

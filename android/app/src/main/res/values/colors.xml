@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#1A2233</color>
+
+    <!-- Kolory widgetu ekranu głównego (ciemna karta jak motyw apki). -->
+    <color name="widget_background">#1A2233</color>
+    <color name="widget_text_primary">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#B0BEC5</color>
+    <color name="widget_accent">#4CAF50</color>
+    <color name="widget_progress_track">#33FFFFFF</color>
+
+    <!-- Kropka statusu — klucze zgodne z HomeWidgetPublisher (Dart). -->
+    <color name="widget_status_printing">#4CAF50</color>
+    <color name="widget_status_paused">#FFB300</color>
+    <color name="widget_status_finished">#42A5F5</color>
+    <color name="widget_status_failed">#EF5350</color>
+    <color name="widget_status_idle">#90A4AE</color>
+    <color name="widget_status_offline">#757575</color>
+    <color name="widget_status_error">#EF5350</color>
 </resources>

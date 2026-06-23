@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget bambuddy (zmienny rozmiar, min 2x2). Układ wierszowy:
+       1. kropka + nazwa drukarki + status (+ skaner)
+       2. miniatura okładki + nazwa wydruku
+       3. ETA (czas + godzina) + warstwy
+       4. pasek postępu (pełna szerokość) + procent
+     Miniatura (wiersz 2) pokazywana tylko, gdy widget dość szeroki — patrz
+     BambuddyWidgetProvider. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="16dp">
+
+    <!-- Wiersz 1: kropka statusu + nazwa drukarki + status + przycisk skanera. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/widget_status_dot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/widget_status_dot"
+            android:contentDescription="@null" />
+
+        <!-- Nazwa + status w kontenerze z wagą: oddają całą szerokość STAŁEMU
+             przyciskowi skanera (nigdy go nie przycinają). Wewnątrz nazwa zwija
+             się wielokropkiem, status idzie zaraz za nią. -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_printer_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_primary"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:letterSpacing="0.01"
+                android:text="BambuBuddy" />
+
+            <TextView
+                android:id="@+id/widget_status_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_accent"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:letterSpacing="0.02"
+                android:text="" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/widget_scan_button"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="10dp"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/widget_scan_button_bg"
+            android:src="@drawable/widget_ic_scan"
+            android:contentDescription="@string/widget_scan" />
+    </LinearLayout>
+
+    <!-- Wiersz 2: miniatura okładki + nazwa wydruku. Cały wiersz GONE bez druku. -->
+    <LinearLayout
+        android:id="@+id/widget_file_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/widget_thumbnail"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="12dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/widget_print_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="13sp"
+            android:text="" />
+    </LinearLayout>
+
+    <!-- Wypełniacz: cała wolna przestrzeń idzie TUTAJ, dosuwając grupę
+         meta+postęp do dołu. RemoteViews nie ma <Space>/<View> → pusty TextView. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="" />
+
+    <!-- Wiersz 3: ETA (czas + godzina końca) + warstwy. Człony ukrywane osobno.
+         Przyklejony do paska postępu (mały odstęp). -->
+    <LinearLayout
+        android:id="@+id/widget_meta_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/widget_eta_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/widget_ic_clock"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/widget_eta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="13sp"
+            android:text="" />
+
+        <ImageView
+            android:id="@+id/widget_layers_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/widget_ic_layers"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/widget_layers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="13sp"
+            android:text="" />
+    </LinearLayout>
+
+    <!-- Wiersz 4: pasek postępu (pełna szerokość) + procent. Dosunięty do dołu. -->
+    <LinearLayout
+        android:id="@+id/widget_progress_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ProgressBar
+            android:id="@+id/widget_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="8dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_progress" />
+
+        <TextView
+            android:id="@+id/widget_progress_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:minWidth="36dp"
+            android:gravity="end"
+            android:textColor="@color/widget_text_primary"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:text="0%" />
+    </LinearLayout>
+</LinearLayout>

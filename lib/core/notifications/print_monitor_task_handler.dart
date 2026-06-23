@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,7 @@ import 'hms_catalog.dart';
 import 'notification_prefs.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
+import '../api/camera_token.dart';
 import '../api/ws_client.dart';
 import '../api/ws_messages.dart';
 import '../auth/auth_service.dart';
@@ -20,6 +22,8 @@ import '../auth/token_refresher.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import '../widget/home_widget_publisher.dart';
+import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
 
 /// Co ile odpytujemy REST o stan konserwacji. Godziny narastają tylko podczas
@@ -48,6 +52,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Timer? _maintenanceTimer;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
+  // Katalog HMS + tor pobierania okładki dla widgetu (osobny od UI isolate'u).
+  HmsCatalog? _hmsCatalog;
+  CameraTokenService? _cameraToken;
+  Dio? _coverDio;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -64,6 +72,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Katalog opisów HMS wczytujemy raz (asset działa też w isolacie tła).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
+    _hmsCatalog = catalog;
+    // Tor pobierania okładki wydruku dla widgetu: token kamery mintowany
+    // uwierzytelnionym Dio, sam obraz ściągany gołym Dio z `?token=`.
+    final coverApi = await buildBackgroundApiClient(prefs);
+    _cameraToken =
+        coverApi != null ? CameraTokenService(coverApi.dio) : null;
+    _coverDio = createBareDio();
     // Preferencje zdarzeń czytamy raz przy starcie serwisu; zmiana w UI
     // obowiązuje od następnego wejścia w tło (wtedy serwis startuje na nowo).
     final notifPrefs = SettingsRepository(prefs).loadNotificationPrefs();
@@ -89,6 +104,16 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _sub = ws.statuses.listen((status) {
       _statuses[status.id] = status;
       _monitor?.update(Map.of(_statuses));
+      // Karmimy też natywny widget ekranu głównego — isolate tła bywa jedynym
+      // żywym torem statusu, gdy apka jest zamknięta. Błąd nie wywraca strumienia.
+      unawaited(
+        HomeWidgetPublisher.publish(
+          Map.of(_statuses),
+          l10n,
+          describeHms: _hmsCatalog?.describe,
+          fetchCover: (picked) => _fetchCover(profile.baseUrl, picked),
+        ).catchError((_) {}),
+      );
     });
     // Zdarzenie „płyta niepusta" przychodzi osobną ramką (nie statusem) —
     // prawdziwy trigger, w odróżnieniu od `awaiting_plate_clear` w statusie.
@@ -138,6 +163,24 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _maintenanceTimer = Timer.periodic(
       _maintenanceCheckInterval,
       (_) => unawaited(maintenance.check()),
+    );
+  }
+
+  /// Pobiera okładkę bieżącego wydruku do pliku dla widgetu (auth tokenem
+  /// kamery, cache po `cover_url` w [WidgetCoverCache]). `null` gdy brak toru.
+  Future<String?> _fetchCover(String baseUrl, PrinterStatus picked) {
+    final cover = picked.coverUrl;
+    final tokenSvc = _cameraToken;
+    final dio = _coverDio;
+    if (cover == null || tokenSvc == null || dio == null) {
+      return Future.value(null);
+    }
+    return WidgetCoverCache.fetch(
+      baseUrl: baseUrl,
+      coverPath: cover,
+      dio: dio,
+      token: ({bool forceRefresh = false}) =>
+          tokenSvc.token(forceRefresh: forceRefresh),
     );
   }
 

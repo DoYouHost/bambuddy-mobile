@@ -30,6 +30,8 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   fl_chart: ^1.2.0
   package_info_plus: ^8.0.0
+  home_widget: ^0.7.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

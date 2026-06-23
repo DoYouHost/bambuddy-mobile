@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
 import '../../core/auth/credentials_store.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../core/settings/server_profile.dart';
+import '../../core/widget/home_widget_publisher.dart';
+import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
 import '../../providers.dart';
+import '../notifications/print_monitor.dart' show systemAppLocalizations;
 
 /// Buduje URL WS z baseUrl profilu: http→ws, https→wss, ścieżka `…/api/v1/ws`.
 Uri wsUrlFor(String baseUrl) {
@@ -81,10 +87,41 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       // Scalamy na poprzednim stanie, by ramka WS nie skasowała pól, których
       // WS nie niesie (np. tryb komory `airduct_mode` z REST) — patrz mergedWith.
       state = {...state, status.id: status.mergedWith(state[status.id])};
+      _publishWidget();
     });
     ref.onDispose(sub.cancel);
     client.start();
     return const {};
+  }
+
+  /// Odświeża natywny widget ekranu głównego stanem wybranej drukarki. Wołane
+  /// po każdej zmianie [state] (WS i poll). Lokalizacja z systemu — apka i tak
+  /// idzie za ustawieniem systemu. Błąd publikacji nie może wywrócić strumienia.
+  void _publishWidget() {
+    unawaited(
+      HomeWidgetPublisher.publish(
+        state,
+        systemAppLocalizations(),
+        describeHms: HmsCatalog.instance.describe,
+        fetchCover: _fetchCover,
+      ).catchError((_) {}),
+    );
+  }
+
+  /// Pobiera okładkę bieżącego wydruku do pliku (auth tokenem kamery). Goły Dio
+  /// + token z [cameraTokenServiceProvider]; cache po `cover_url` w [WidgetCoverCache].
+  Future<String?> _fetchCover(PrinterStatus picked) {
+    final profile = ref.read(serverProfileProvider);
+    final cover = picked.coverUrl;
+    if (profile == null || cover == null) return Future.value(null);
+    final tokenSvc = ref.read(cameraTokenServiceProvider);
+    return WidgetCoverCache.fetch(
+      baseUrl: profile.baseUrl,
+      coverPath: cover,
+      dio: ref.read(bareDioProvider),
+      token: ({bool forceRefresh = false}) =>
+          tokenSvc.token(forceRefresh: forceRefresh),
+    );
   }
 
   /// Scala statusy z pollingu REST do tej samej mapy co WS — by `PrintMonitor`
@@ -109,7 +146,10 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       next[p.printer.id] = s.mergedWith(next[p.printer.id]);
       changed = true;
     }
-    if (changed) state = next;
+    if (changed) {
+      state = next;
+      _publishWidget();
+    }
   }
 
   /// Wołane przez lifecycle: tło → zamknij socket.

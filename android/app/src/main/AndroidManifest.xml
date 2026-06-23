@@ -57,6 +57,19 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <!-- Widget ekranu głównego: status wybranej drukarki + skrót do skanera
+             szpuli. Aktualizowany przez apkę (home_widget), nie cyklicznie. -->
+        <receiver
+            android:name=".BambuddyWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bambuddy_widget_info" />
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

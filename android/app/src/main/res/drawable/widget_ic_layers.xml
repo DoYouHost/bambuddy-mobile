@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikona warstw dla wiersza meta (przygaszona). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="14dp"
+    android:height="14dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="@color/widget_text_secondary">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,16.78L4.21,11L3,11.91L12,18.62L21,11.91L19.78,11L12,16.78M12,14.5L19.78,8.71L21,7.79L12,1.08L3,7.79L4.21,8.71L12,14.5M12,3.6L17.74,7.97L12,12.34L6.26,7.97L12,3.6Z" />
+</vector>

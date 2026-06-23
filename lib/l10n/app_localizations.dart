@@ -704,6 +704,48 @@ abstract class AppLocalizations {
   /// **'offline'**
   String get offline;
 
+  /// No description provided for @widgetNoPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer'**
+  String get widgetNoPrinter;
+
+  /// No description provided for @widgetStatusPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get widgetStatusPrinting;
+
+  /// No description provided for @widgetStatusPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get widgetStatusPaused;
+
+  /// No description provided for @widgetStatusFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get widgetStatusFinished;
+
+  /// No description provided for @widgetStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get widgetStatusFailed;
+
+  /// No description provided for @widgetStatusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get widgetStatusIdle;
+
+  /// No description provided for @widgetStatusOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get widgetStatusOffline;
+
   /// No description provided for @remaining.
   ///
   /// In en, this message translates to:
@@ -1573,6 +1615,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tag'**
   String get inventoryTag;
+
+  /// No description provided for @inventoryId.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament ID'**
+  String get inventoryId;
 
   /// No description provided for @inventoryUsageHistory.
   ///

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">BambuBuddy</string>
+    <string name="widget_description">Printer status with a filament scan shortcut</string>
+    <string name="widget_scan">Scan filament</string>
+</resources>

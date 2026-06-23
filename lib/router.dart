@@ -14,6 +14,10 @@ import 'features/shell/root_scaffold.dart';
 import 'features/stats/statistics_screen.dart';
 import 'providers.dart';
 
+/// Klucz głównego nawigatora — pozwala pchać ekrany (np. skaner szpuli
+/// wyzwolony z widgetu ekranu głównego) spoza drzewa widgetów.
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 /// Klucze nawigatorów dla każdej gałęzi powłoki.
 final _dashboardNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final _queueNavigatorKey       = GlobalKey<NavigatorState>(debugLabel: 'queue');
@@ -27,6 +31,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final hasProfile =
       ref.watch(serverProfileProvider.select((p) => p != null));
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: hasProfile ? '/' : '/setup',
     redirect: (context, state) {
       if (!hasProfile && state.matchedLocation != '/setup') {
