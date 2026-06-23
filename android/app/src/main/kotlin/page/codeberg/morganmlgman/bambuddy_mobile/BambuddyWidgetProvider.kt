@@ -60,13 +60,15 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
         val printing = widgetData.getBoolean("printing", false)
 
         val statusColor = ContextCompat.getColor(context, statusColorRes(statusKey))
-        val wide = isWide(appWidgetManager, widgetId)
 
         val views = RemoteViews(context.packageName, R.layout.bambuddy_widget).apply {
             setTextViewText(R.id.widget_printer_name, printerName)
             setTextViewText(R.id.widget_status_label, statusLabel)
             setTextColor(R.id.widget_status_label, statusColor)
             setInt(R.id.widget_status_dot, "setColorFilter", statusColor)
+            setInt(R.id.widget_accent_line, "setBackgroundColor", statusColor)
+            // Chip statusu: tło (obrys + lekkie wypełnienie) w kolorze statusu.
+            setInt(R.id.widget_status_label, "setBackgroundResource", chipRes(statusKey))
 
             // Wiersz 2 (miniatura + nazwa wydruku) tylko podczas druku.
             setViewVisibility(R.id.widget_file_row, visIf(printName.isNotEmpty()))
@@ -88,8 +90,10 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
                 setViewVisibility(R.id.widget_progress_row, View.GONE)
             }
 
-            // Miniatura: tylko gdy widget dość szeroki i mamy plik okładki.
-            val bitmap = if (wide && coverPath.isNotEmpty()) decodeCover(coverPath) else null
+            // Miniatura: zawsze gdy mamy plik okładki. Rozmiar dobiera sam layout
+            // (wiersz z weight=1 + miniatura match_parent/adjustViewBounds), więc
+            // dopasowuje się do każdego rozmiaru/DPI bez liczenia w kodzie.
+            val bitmap = if (coverPath.isNotEmpty()) decodeCover(coverPath) else null
             if (bitmap != null) {
                 setImageViewBitmap(R.id.widget_thumbnail, bitmap)
                 setViewVisibility(R.id.widget_thumbnail, View.VISIBLE)
@@ -126,15 +130,9 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
 
     private fun visIf(show: Boolean) = if (show) View.VISIBLE else View.GONE
 
-    /** Miniaturę (mały kwadrat po lewej) pokazujemy, gdy widget jest dość szeroki
-     *  — 2x2 (≈150dp) jest za wąski na okładkę + tekst, 4x2 (≈360dp) już mieści. */
-    private fun isWide(appWidgetManager: AppWidgetManager, widgetId: Int): Boolean {
-        val options = appWidgetManager.getAppWidgetOptions(widgetId)
-        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
-        return minWidth >= 250
-    }
-
-    /** Dekoduje okładkę z pliku, downsamplując do ~512 px (limit transakcji RemoteViews). */
+    /** Dekoduje okładkę z pliku, downsamplując do ~512 px (limit transakcji RemoteViews).
+     *  Przycina centralne ~83% (zoom 120%), bo render okładki ma puste marginesy wokół
+     *  modelu — dzięki temu podgląd wypełnia kafel bez zmiany jego rozmiaru. */
     private fun decodeCover(path: String): android.graphics.Bitmap? {
         val file = File(path)
         if (!file.exists()) return null
@@ -144,10 +142,32 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
             var sample = 1
             val widest = maxOf(bounds.outWidth, bounds.outHeight)
             while (widest / sample > 512) sample *= 2
-            BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+            val full = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+                ?: return null
+            zoomCrop(full, COVER_ZOOM)
         } catch (e: Exception) {
             null
         }
+    }
+
+    /** Powiększa zawartość bitmapy o [zoom], przycinając centralny prostokąt. */
+    private fun zoomCrop(src: android.graphics.Bitmap, zoom: Float): android.graphics.Bitmap {
+        if (zoom <= 1f) return src
+        val w = (src.width / zoom).toInt().coerceIn(1, src.width)
+        val h = (src.height / zoom).toInt().coerceIn(1, src.height)
+        val x = (src.width - w) / 2
+        val y = (src.height - h) / 2
+        return android.graphics.Bitmap.createBitmap(src, x, y, w, h)
+    }
+
+    private fun chipRes(key: String): Int = when (key) {
+        "printing" -> R.drawable.widget_chip_printing
+        "paused" -> R.drawable.widget_chip_paused
+        "finished" -> R.drawable.widget_chip_finished
+        "failed" -> R.drawable.widget_chip_failed
+        "error" -> R.drawable.widget_chip_failed
+        "idle" -> R.drawable.widget_chip_idle
+        else -> R.drawable.widget_chip_offline
     }
 
     private fun statusColorRes(key: String): Int = when (key) {
@@ -158,5 +178,10 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
         "error" -> R.color.widget_status_error
         "idle" -> R.color.widget_status_idle
         else -> R.color.widget_status_offline
+    }
+
+    companion object {
+        /** Powiększenie podglądu okładki (przycięcie pustych marginesów renderu). */
+        private const val COVER_ZOOM = 1.2f
     }
 }

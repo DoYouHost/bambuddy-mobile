@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chip statusu (finished): lekkie wypełnienie + obrys w kolorze statusu. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#2642A5F5" />
+    <stroke android:width="2dp" android:color="#FF42A5F5" />
+    <corners android:radius="12dp" />
+</shape>

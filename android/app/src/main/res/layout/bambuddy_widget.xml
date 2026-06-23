@@ -29,42 +29,40 @@
             android:src="@drawable/widget_status_dot"
             android:contentDescription="@null" />
 
-        <!-- Nazwa + status w kontenerze z wagą: oddają całą szerokość STAŁEMU
-             przyciskowi skanera (nigdy go nie przycinają). Wewnątrz nazwa zwija
-             się wielokropkiem, status idzie zaraz za nią. -->
-        <LinearLayout
+        <!-- Nazwa (z wagą, zwija się wielokropkiem) + chip statusu. Chip to
+             zwykłe TŁO TextView (background) — renderuje się zawsze i otacza
+             tekst z paddingiem. Kolor (obrys+wypełnienie) ustawiany w kodzie
+             przez setBackgroundResource per status (widget_chip_*). -->
+        <TextView
+            android:id="@+id/widget_printer_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/widget_text_primary"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:letterSpacing="0.01"
+            android:text="BambuBuddy" />
 
-            <TextView
-                android:id="@+id/widget_printer_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_text_primary"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:letterSpacing="0.01"
-                android:text="BambuBuddy" />
-
-            <TextView
-                android:id="@+id/widget_status_label"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_accent"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:letterSpacing="0.02"
-                android:text="" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_status_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/widget_chip_offline"
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/widget_text_primary"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:letterSpacing="0.02"
+            android:text="" />
 
         <ImageButton
             android:id="@+id/widget_scan_button"
@@ -78,43 +76,55 @@
             android:contentDescription="@string/widget_scan" />
     </LinearLayout>
 
-    <!-- Wiersz 2: miniatura okładki + nazwa wydruku. Cały wiersz GONE bez druku. -->
+    <!-- Linia-akcent pod nagłówkiem, barwiona kolorem statusu w kodzie
+         (setBackgroundColor). Wizualnie oddziela nagłówek i komunikuje stan.
+         ImageView, bo RemoteViews nie obsługuje <View>/<Space>. -->
+    <ImageView
+        android:id="@+id/widget_accent_line"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="10dp"
+        android:scaleType="fitXY"
+        android:contentDescription="@null" />
+
+    <!-- Wiersz 2: miniatura okładki + nazwa wydruku. Cały wiersz GONE bez druku.
+         Bierze CAŁĄ wolną przestrzeń (weight=1) — nagłówek, meta i pasek postępu
+         (wrap_content) rezerwują swoje miejsce pierwsze, więc nigdy nie znikają.
+         Miniatura wypełnia wysokość wiersza (match_parent + adjustViewBounds),
+         skalując się do proporcji okładki — w pełni dynamicznie, bez liczenia dp
+         w kodzie, więc dopasuje się do każdego rozmiaru/DPI/launchera. -->
     <LinearLayout
         android:id="@+id/widget_file_row"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center">
 
         <ImageView
             android:id="@+id/widget_thumbnail"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
             android:layout_marginEnd="12dp"
-            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
+            android:maxWidth="200dp"
+            android:scaleType="fitCenter"
             android:visibility="gone"
             android:contentDescription="@null" />
 
         <TextView
             android:id="@+id/widget_print_name"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="2"
+            android:maxLines="4"
             android:ellipsize="end"
+            android:gravity="center"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:text="" />
     </LinearLayout>
-
-    <!-- Wypełniacz: cała wolna przestrzeń idzie TUTAJ, dosuwając grupę
-         meta+postęp do dołu. RemoteViews nie ma <Space>/<View> → pusty TextView. -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="" />
 
     <!-- Wiersz 3: ETA (czas + godzina końca) + warstwy. Człony ukrywane osobno.
          Przyklejony do paska postępu (mały odstęp). -->

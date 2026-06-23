@@ -4,6 +4,12 @@
 
     <!-- Kolory widgetu ekranu głównego (ciemna karta jak motyw apki). -->
     <color name="widget_background">#1A2233</color>
+    <!-- Diagonalny gradient tła karty: jaśniejszy lewy-górny → ciemniejszy prawy-dolny. -->
+    <color name="widget_bg_top">#3A4D74</color>
+    <color name="widget_bg_bottom">#0E1320</color>
+    <color name="widget_bg_stroke">#33FFFFFF</color>
+    <color name="widget_bg_glow">#9A6AAEEA</color>
+    <color name="widget_accent_light">#80D88A</color>
     <color name="widget_text_primary">#FFFFFFFF</color>
     <color name="widget_text_secondary">#B0BEC5</color>
     <color name="widget_accent">#4CAF50</color>
