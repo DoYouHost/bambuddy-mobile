@@ -103,11 +103,18 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
             // (wiersz z weight=1 + miniatura match_parent/adjustViewBounds), więc
             // dopasowuje się do każdego rozmiaru/DPI bez liczenia w kodzie.
             val bitmap = if (coverPath.isNotEmpty()) decodeCover(coverPath) else null
-            if (bitmap != null) {
-                setImageViewBitmap(R.id.widget_thumbnail, bitmap)
-                setViewVisibility(R.id.widget_thumbnail, View.VISIBLE)
-            } else {
-                setViewVisibility(R.id.widget_thumbnail, View.GONE)
+            when {
+                bitmap != null -> {
+                    setImageViewBitmap(R.id.widget_thumbnail, bitmap)
+                    setViewVisibility(R.id.widget_thumbnail, View.VISIBLE)
+                }
+                // Druk bez okładki (np. kalibracja) — placeholder zamiast pustki.
+                printing -> {
+                    setImageViewResource(
+                        R.id.widget_thumbnail, R.drawable.widget_cover_placeholder)
+                    setViewVisibility(R.id.widget_thumbnail, View.VISIBLE)
+                }
+                else -> setViewVisibility(R.id.widget_thumbnail, View.GONE)
             }
 
             // Tap na kartę → otwórz apkę (dashboard).

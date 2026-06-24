@@ -171,6 +171,18 @@ class PrinterStatus {
   /// nie wygasza jego kafelka, a obecne czujniki dostają świeże odczyty.
   PrinterStatus mergedWith(PrinterStatus? previous) {
     if (previous == null) return this;
+    // Wyjątek od reguły dziedziczenia: okładka jest związana z KONKRETNYM
+    // plikiem. Gdy ramka niesie inny `gcode_file`/`current_print` niż poprzednia
+    // (nowy wydruk albo wejście w fazę kalibracji „auto_cali_for_user_param.
+    // gcode"), okładka poprzedniego wydruku przestaje obowiązywać — NIE wolno jej
+    // dziedziczyć, inaczej karta i widget przez chwilę pokazują podgląd
+    // poprzedniego modelu (cali nie ma własnej okładki, więc ramka niesie tu
+    // null). Dziedziczenie zostaje, gdy plik się nie zmienił — bo REST nie niesie
+    // `cover_url` i bez tego okładka migałaby co poll.
+    final job = gcodeFile ?? currentPrint;
+    final prevJob = previous.gcodeFile ?? previous.currentPrint;
+    final jobChanged = job != null && prevJob != null && job != prevJob;
+    final inheritedCover = jobChanged ? null : previous.coverUrl;
     return PrinterStatus(
       id: id,
       name: name ?? previous.name,
@@ -183,7 +195,7 @@ class PrinterStatus {
       layerNum: layerNum ?? previous.layerNum,
       totalLayers: totalLayers ?? previous.totalLayers,
       temperatures: _mergeTemps(previous.temperatures),
-      coverUrl: coverUrl ?? previous.coverUrl,
+      coverUrl: coverUrl ?? inheritedCover,
       stgCurName: stgCurName ?? previous.stgCurName,
       coolingFanSpeed: coolingFanSpeed ?? previous.coolingFanSpeed,
       bigFan1Speed: bigFan1Speed ?? previous.bigFan1Speed,
@@ -254,6 +266,16 @@ class PrinterStatus {
   /// Faza przygotowania: aktywny wydruk, ale jeszcze bez realnego postępu —
   /// wtedy w UI pokazujemy nazwę etapu zamiast paska 0%.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
+
+  /// Czy „wydruk" to wbudowana kalibracja drukarki (np. plik
+  /// `auto_cali_for_user_param.gcode`). Taki przebieg nie ma własnej okładki,
+  /// więc UI nie pokazuje miniatury — inaczej wisiałby tu podgląd POPRZEDNIEGO
+  /// modelu (okładka dziedziczona zanim ramka go wyzeruje — patrz [mergedWith]).
+  bool get isCalibration {
+    final file = (gcodeFile ?? currentPrint)?.toLowerCase();
+    if (file == null || file.isEmpty) return false;
+    return file.contains('auto_cali') || file.contains('_cali_for_');
+  }
 
   /// Wydruk wstrzymany (pauza). Sterowanie pokazuje wtedy „Wznów" zamiast
   /// „Pauza". Stan z serwera, więc bywa po angielsku w różnych wariantach.

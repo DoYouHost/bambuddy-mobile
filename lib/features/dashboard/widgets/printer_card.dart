@@ -1275,10 +1275,12 @@ class _PrintPanel extends StatelessWidget {
           // Rząd 1: miniatura + nazwa pliku.
           Row(
             children: [
-              if (status.coverUrl != null) ...[
-                _CoverThumbnail(coverUrl: status.coverUrl!),
-                const SizedBox(width: 12),
-              ],
+              // Miniatura zawsze podczas druku; bez okładki (lub w kalibracji,
+              // która nie ma własnej) — placeholder zamiast pustki.
+              _CoverThumbnail(
+                coverUrl: status.isCalibration ? null : status.coverUrl,
+              ),
+              const SizedBox(width: 12),
               Expanded(child: nameBlock),
             ],
           ),
@@ -1350,40 +1352,44 @@ class _MetaItem extends StatelessWidget {
 class _CoverThumbnail extends ConsumerWidget {
   const _CoverThumbnail({required this.coverUrl});
 
-  final String coverUrl;
+  /// `null`/pusty → od razu placeholder (np. kalibracja bez własnej okładki).
+  final String? coverUrl;
 
   static const _size = 64.0;
 
+  /// Grafika placeholdera (dysza nad stołem, zaokrąglone przezroczyste rogi) —
+  /// pokazywana zamiast okładki, gdy brak podglądu lub trwa kalibracja.
+  static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-
-    Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
+    Widget placeholder() => Image.asset(
+          _placeholderAsset,
+          key: const ValueKey('cover_placeholder'),
           width: _size,
           height: _size,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: scheme.onSurfaceVariant, size: 22),
+          fit: BoxFit.cover,
         );
+
+    final url = coverUrl;
+    if (url == null || url.isEmpty) return placeholder();
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (baseUrl == null) return placeholder();
 
     return ref.watch(cameraTokenProvider).when(
           loading: placeholder,
-          error: (_, _) => placeholder(Icons.broken_image_outlined),
+          error: (_, _) => placeholder(),
           data: (token) => ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
-              '$baseUrl$coverUrl?token=$token',
+              '$baseUrl$url?token=$token',
+              key: const ValueKey('cover_network'),
               width: _size,
               height: _size,
               fit: BoxFit.cover,
               gaplessPlayback: true,
-              errorBuilder: (_, _, _) =>
-                  placeholder(Icons.broken_image_outlined),
+              errorBuilder: (_, _, _) => placeholder(),
               loadingBuilder: (_, child, progress) =>
                   progress == null ? child : placeholder(),
             ),

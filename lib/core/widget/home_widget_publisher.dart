@@ -80,8 +80,13 @@ class HomeWidgetPublisher {
       await HomeWidget.saveWidgetData<bool>('printing', printing);
 
       // Okładkę ściągamy tylko podczas druku i tylko gdy serwer poda `cover_url`.
+      // Pomijamy ją w fazie kalibracji (`auto_cali_*`) — taki przebieg nie ma
+      // własnej okładki, więc inaczej widget pokazałby podgląd poprzedniego druku.
       var coverPath = '';
-      if (printing && picked.coverUrl != null && fetchCover != null) {
+      if (printing &&
+          picked.coverUrl != null &&
+          !picked.isCalibration &&
+          fetchCover != null) {
         coverPath = await fetchCover(picked) ?? '';
       }
       await HomeWidget.saveWidgetData<String>('cover_path', coverPath);

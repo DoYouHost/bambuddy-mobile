@@ -509,11 +509,12 @@ void main() {
       // Czekamy aż FutureProvider się rozwiąże.
       await tester.pumpAndSettle();
 
-      expect(find.byType(Image), findsOneWidget);
+      // Próbujemy załadować okładkę (obraz sieciowy), a nie placeholder.
+      expect(find.byKey(const ValueKey('cover_network')), findsOneWidget);
     });
 
     testWidgets(
-        'drukarka z coverUrl: null — brak Image w drzewie',
+        'drukarka bez coverUrl: pokazuje placeholder, bez obrazu sieciowego',
         (tester) async {
       final item = PrinterWithStatus(
         printer: const Printer(id: 2, name: 'A1 mini'),
@@ -529,7 +530,32 @@ void main() {
       await tester.pumpWidget(_cardWithProviders(item));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Image), findsNothing);
+      expect(find.byKey(const ValueKey('cover_placeholder')), findsOneWidget);
+      expect(find.byKey(const ValueKey('cover_network')), findsNothing);
+    });
+
+    testWidgets(
+        'kalibracja: placeholder zamiast (przeterminowanej) okładki',
+        (tester) async {
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 3, name: 'X2D'),
+        status: const PrinterStatus(
+          id: 3,
+          connected: true,
+          state: 'RUNNING',
+          progress: 14,
+          remainingTime: 39,
+          gcodeFile: 'auto_cali_for_user_param.gcode',
+          // okładka poprzedniego druku nie może się pokazać
+          coverUrl: '/api/v1/printers/3/cover',
+        ),
+      );
+
+      await tester.pumpWidget(_cardWithProviders(item));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('cover_placeholder')), findsOneWidget);
+      expect(find.byKey(const ValueKey('cover_network')), findsNothing);
     });
   });
 

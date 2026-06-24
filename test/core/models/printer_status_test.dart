@@ -327,6 +327,54 @@ void main() {
       const fresh = PrinterStatus(id: 1, connected: false);
       expect(fresh.mergedWith(prev).connected, isFalse);
     });
+
+    test('zmiana pliku (wejście w kalibrację) NIE dziedziczy starej okładki', () {
+      // Drukował model z okładką, teraz wchodzi w kalibrację bez własnej okładki
+      // — podgląd poprzedniego modelu nie może się przenieść.
+      const prev = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        gcodeFile: 'benchy.gcode',
+        coverUrl: 'http://c/cover.png',
+      );
+      const cali = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        gcodeFile: 'auto_cali_for_user_param.gcode',
+      );
+      expect(cali.mergedWith(prev).coverUrl, isNull);
+    });
+
+    test('ten sam plik bez cover_url (poll REST) dalej dziedziczy okładkę', () {
+      const prev = PrinterStatus(
+        id: 1,
+        gcodeFile: 'benchy.gcode',
+        coverUrl: 'http://c/cover.png',
+      );
+      const poll = PrinterStatus(id: 1, gcodeFile: 'benchy.gcode', progress: 30);
+      expect(poll.mergedWith(prev).coverUrl, 'http://c/cover.png');
+    });
+  });
+
+  group('PrinterStatus.isCalibration', () {
+    test('plik auto_cali_for_user_param liczy się jako kalibracja', () {
+      const s = PrinterStatus(
+        id: 1,
+        state: 'RUNNING',
+        gcodeFile: 'auto_cali_for_user_param.gcode',
+      );
+      expect(s.isCalibration, isTrue);
+    });
+
+    test('zwykły wydruk nie jest kalibracją', () {
+      const s = PrinterStatus(id: 1, state: 'RUNNING', gcodeFile: 'benchy.gcode');
+      expect(s.isCalibration, isFalse);
+    });
+
+    test('brak nazwy pliku → nie kalibracja', () {
+      const s = PrinterStatus(id: 1, state: 'IDLE');
+      expect(s.isCalibration, isFalse);
+    });
   });
 
   group('Printer.fromJson', () {
