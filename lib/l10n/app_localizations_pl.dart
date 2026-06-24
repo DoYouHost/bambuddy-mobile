@@ -257,6 +257,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveAddToQueue => 'Dodaj do kolejki';
 
   @override
+  String get gcodeViewerTitle => 'Podgląd G-code';
+
+  @override
+  String get gcodeViewerOpen => 'Podgląd G-code';
+
+  @override
+  String get gcodeViewerError => 'Nie udało się załadować podglądu G-code.';
+
+  @override
   String get archiveReprintConfirmTitle => 'Uruchomić ponowny wydruk?';
 
   @override

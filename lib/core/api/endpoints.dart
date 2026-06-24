@@ -5,6 +5,12 @@
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
+  /// Strona przeglądarki G-code (PrettyGCode) serwowana POZA `/api/v1`.
+  /// Trailing slash wymagany — `/gcode-viewer` (bez slasha) celowo spada do
+  /// SPA. Sterowanie przez query: `?archive=<id>` lub `?library_file=<id>`
+  /// (+ opcjonalnie `&plate=<N>`); auth czyta z `localStorage.auth_token`.
+  static const gcodeViewer = '/gcode-viewer/';
+
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 

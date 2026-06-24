@@ -548,6 +548,24 @@ abstract class AppLocalizations {
   /// **'Add to queue'**
   String get archiveAddToQueue;
 
+  /// No description provided for @gcodeViewerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'G-code preview'**
+  String get gcodeViewerTitle;
+
+  /// No description provided for @gcodeViewerOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview G-code'**
+  String get gcodeViewerOpen;
+
+  /// No description provided for @gcodeViewerError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the G-code preview.'**
+  String get gcodeViewerError;
+
   /// No description provided for @archiveReprintConfirmTitle.
   ///
   /// In en, this message translates to:

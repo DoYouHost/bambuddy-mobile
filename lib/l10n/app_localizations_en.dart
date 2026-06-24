@@ -254,6 +254,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddToQueue => 'Add to queue';
 
   @override
+  String get gcodeViewerTitle => 'G-code preview';
+
+  @override
+  String get gcodeViewerOpen => 'Preview G-code';
+
+  @override
+  String get gcodeViewerError => 'Couldn\'t load the G-code preview.';
+
+  @override
   String get archiveReprintConfirmTitle => 'Start reprint?';
 
   @override

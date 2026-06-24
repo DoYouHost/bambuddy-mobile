@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
@@ -125,8 +126,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         archive: archive,
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
+        onPreviewGcode: () => _previewGcode(archive),
       ),
     );
+  }
+
+  /// Podgląd G-code: zamyka sheet i otwiera pełnoekranową przeglądarkę 3D.
+  void _previewGcode(Archive archive) {
+    Navigator.pop(context); // zamknij bottom sheet
+    final name = Uri.encodeQueryComponent(archive.displayName);
+    context.push('/gcode-viewer?archive=${archive.id}&name=$name');
   }
 
   /// Re-print: wybór drukarki → potwierdzenie → POST reprint. Uruchamia
@@ -291,11 +300,13 @@ class _ArchiveSheet extends StatelessWidget {
     required this.archive,
     required this.onReprint,
     required this.onAddToQueue,
+    required this.onPreviewGcode,
   });
 
   final Archive archive;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
+  final VoidCallback onPreviewGcode;
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +362,15 @@ class _ArchiveSheet extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                icon: const Icon(Icons.view_in_ar_outlined),
+                label: Text(l10n.gcodeViewerOpen),
+                onPressed: onPreviewGcode,
+              ),
             ),
           ],
         ),

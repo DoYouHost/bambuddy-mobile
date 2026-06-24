@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
@@ -197,6 +198,9 @@ class _QueueList extends ConsumerWidget {
           child: ReorderableListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 6),
             physics: const AlwaysScrollableScrollPhysics(),
+            // Bez domyślnego przeciągania na long-press — kolejność zmienia się
+            // wyłącznie przez jawny uchwyt po lewej stronie kafelka.
+            buildDefaultDragHandles: false,
             itemCount: reorderable.length,
             onReorderItem: (oldIndex, newIndex) async {
               final messenger = ScaffoldMessenger.of(context);
@@ -208,6 +212,7 @@ class _QueueList extends ConsumerWidget {
             itemBuilder: (context, i) => _QueueCard(
               key: ValueKey(reorderable[i].id),
               item: reorderable[i],
+              dragIndex: i,
             ),
           ),
         ),
@@ -217,7 +222,12 @@ class _QueueList extends ConsumerWidget {
 }
 
 class _QueueCard extends ConsumerWidget {
-  const _QueueCard({super.key, required this.item, this.pinned = false});
+  const _QueueCard({
+    super.key,
+    required this.item,
+    this.pinned = false,
+    this.dragIndex,
+  });
 
   final QueueItem item;
 
@@ -225,10 +235,15 @@ class _QueueCard extends ConsumerWidget {
   /// swipe-to-delete (nie wrapujemy w Dismissible).
   final bool pinned;
 
+  /// Indeks w liście reorderowalnej; gdy podany, po lewej pokazujemy jawny
+  /// uchwyt przeciągania (`ReorderableDragStartListener`). Null dla przypiętych.
+  final int? dragIndex;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final idx = dragIndex;
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -240,8 +255,24 @@ class _QueueCard extends ConsumerWidget {
             )
           : null,
       child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
-        leading: PrintThumbnail(archiveId: item.archiveId),
+        contentPadding: EdgeInsets.fromLTRB(idx == null ? 12 : 0, 6, 4, 6),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (idx != null)
+              ReorderableDragStartListener(
+                index: idx,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    Icons.drag_indicator,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            PrintThumbnail(archiveId: item.archiveId),
+          ],
+        ),
         title: Text(
           item.archiveName ?? '#${item.id}',
           maxLines: 2,
@@ -394,10 +425,15 @@ class _QueueActions extends ConsumerWidget {
     // Drukujący element nie ma sensu „startować"; każdy aktywny można anulować.
     final canStart = item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
+    final canPreview = item.archiveId != null || item.libraryFileId != null;
 
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
       onSelected: (value) async {
+        if (value == 'preview') {
+          _previewGcode(context);
+          return;
+        }
         final messenger = ScaffoldMessenger.of(context);
         final notifier = ref.read(queueProvider.notifier);
         final result = switch (value) {
@@ -417,6 +453,15 @@ class _QueueActions extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
+        if (canPreview)
+          PopupMenuItem(
+            value: 'preview',
+            child: ListTile(
+              leading: const Icon(Icons.view_in_ar_outlined),
+              title: Text(l10n.gcodeViewerOpen),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         PopupMenuItem(
           value: 'cancel',
           child: ListTile(
@@ -427,6 +472,18 @@ class _QueueActions extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  /// Otwiera pełnoekranowy podgląd G-code dla źródła elementu (archiwum lub
+  /// plik z biblioteki). Tytuł paska = nazwa wydruku, gdy znana.
+  void _previewGcode(BuildContext context) {
+    final name = item.archiveName == null
+        ? ''
+        : '&name=${Uri.encodeQueryComponent(item.archiveName!)}';
+    final source = item.archiveId != null
+        ? 'archive=${item.archiveId}'
+        : 'library_file=${item.libraryFileId}';
+    context.push('/gcode-viewer?$source$name');
   }
 }
 

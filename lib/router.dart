@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
@@ -59,6 +60,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/about',
         builder: (_, _) => const AboutScreen(),
+      ),
+
+      // Przeglądarka G-code (WebView) — pełny ekran poza powłoką. Źródło w
+      // query: `archive` lub `library_file` (+ opcjonalnie `plate`); `name`
+      // ustawia tytuł paska.
+      GoRoute(
+        path: '/gcode-viewer',
+        builder: (_, state) {
+          final q = state.uri.queryParameters;
+          return GcodeViewerScreen(
+            archiveId: int.tryParse(q['archive'] ?? ''),
+            libraryFileId: int.tryParse(q['library_file'] ?? ''),
+            plate: int.tryParse(q['plate'] ?? ''),
+            title: q['name'],
+          );
+        },
       ),
 
       // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.

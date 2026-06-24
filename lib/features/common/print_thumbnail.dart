@@ -8,12 +8,24 @@ import '../../providers.dart';
 /// `?token=` (token kamery) — nagłówek auth NIE działa dla tego zasobu,
 /// zweryfikowane na żywo. Wzorzec identyczny jak okładka w printer_card.
 /// Placeholder zamiast błędu — nigdy nie wywraca karty.
+///
+/// Renderowane miniatury mają sporo pustego marginesu wokół modelu, więc
+/// skalujemy zawartość ([zoom], domyślnie 140%) wewnątrz przycięcia, by
+/// „dokadrować" wydruk i wypełnić kafelek.
 class PrintThumbnail extends ConsumerWidget {
-  const PrintThumbnail({super.key, required this.archiveId, this.size = 52});
+  const PrintThumbnail({
+    super.key,
+    required this.archiveId,
+    this.size = 52,
+    this.zoom = 1.4,
+  });
 
   /// Id archiwum; gdy null → placeholder (np. element kolejki bez archiwum).
   final int? archiveId;
   final double size;
+
+  /// Współczynnik powiększenia zawartości miniatury (crop pustego marginesu).
+  final double zoom;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,16 +51,19 @@ class PrintThumbnail extends ConsumerWidget {
           error: (_, _) => placeholder(Icons.broken_image_outlined),
           data: (token) => ClipRRect(
             borderRadius: radius,
-            child: Image.network(
-              '$baseUrl${Endpoints.archiveThumbnail(id)}?token=$token',
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              errorBuilder: (_, _, _) =>
-                  placeholder(Icons.broken_image_outlined),
-              loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : placeholder(),
+            child: Transform.scale(
+              scale: zoom,
+              child: Image.network(
+                '$baseUrl${Endpoints.archiveThumbnail(id)}?token=$token',
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) =>
+                    placeholder(Icons.broken_image_outlined),
+                loadingBuilder: (_, child, progress) =>
+                    progress == null ? child : placeholder(),
+              ),
             ),
           ),
         );

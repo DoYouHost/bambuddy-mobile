@@ -106,6 +106,9 @@
   },
   "archiveReprint": "Reprint",
   "archiveAddToQueue": "Add to queue",
+  "gcodeViewerTitle": "G-code preview",
+  "gcodeViewerOpen": "Preview G-code",
+  "gcodeViewerError": "Couldn't load the G-code preview.",
   "archiveReprintConfirmTitle": "Start reprint?",
   "archiveReprintConfirmBody": "This sends the file to {printer} and starts printing.",
   "@archiveReprintConfirmBody": {
