@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
 import '../../core/models/printer_status.dart';
@@ -374,62 +375,168 @@ class _AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DrawerHeader(
-              decoration:
-                  BoxDecoration(color: theme.colorScheme.primaryContainer),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('BamBuddy', style: theme.textTheme.titleLarge),
-                    if (profileLabel != null)
-                      Text(profileLabel!, style: theme.textTheme.bodyMedium),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Brandowany nagłówek: ikona aplikacji w uniesionym kafelku + nazwa
+          // + profil, na gradiencie z miękką poświatą w narożniku (zamiast
+          // pustego prostokąta DrawerHeader).
+          ClipRect(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.alphaBlend(
+                      scheme.primary.withValues(alpha: 0.18),
+                      scheme.primaryContainer,
+                    ),
+                    scheme.primaryContainer.withValues(alpha: 0.45),
                   ],
                 ),
               ),
+              child: Stack(
+                children: [
+                  // Poświata — okrąg primary rozmyty w prawym górnym rogu.
+                  Positioned(
+                    top: -48,
+                    right: -36,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: scheme.primary.withValues(alpha: 0.22),
+                      ),
+                    ),
+                  ),
+                  SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.22),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.30),
+                                width: 1,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: Image.asset(
+                                'assets/icon/icon.png',
+                                width: 52,
+                                height: 52,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'BamBuddy',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.2,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                _ProfileChip(label: profileLabel),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.bar_chart),
-              title: Text(l10n.menuStatistics),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/stats');
-              },
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _DrawerTile(
+                  icon: Icons.bar_chart_rounded,
+                  label: l10n.menuStatistics,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/stats');
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.tune_rounded,
+                  label: l10n.notifEventsMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/settings/notifications');
+                  },
+                ),
+                const Divider(indent: 16, endIndent: 16, height: 16),
+                _DrawerTile(
+                  icon: Icons.swap_horiz_rounded,
+                  label: l10n.changeServer,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmChangeServer(context, ref, l10n);
+                  },
+                ),
+                _DrawerTile(
+                  icon: Icons.info_outline_rounded,
+                  label: l10n.aboutMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/about');
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.tune),
-              title: Text(l10n.notifEventsMenu),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/settings/notifications');
-              },
+          ),
+          // Stopka z wersją — czytana z metadanych pakietu (jak na ekranie „O…").
+          const Divider(height: 1),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: Row(
+                children: [
+                  Icon(Icons.print_rounded,
+                      size: 14, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snap) => Text(
+                      snap.hasData
+                          ? 'BamBuddy v${snap.data!.version}+${snap.data!.buildNumber}'
+                          : 'BamBuddy',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: Text(l10n.changeServer),
-              onTap: () {
-                Navigator.pop(context);
-                _confirmChangeServer(context, ref, l10n);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(l10n.aboutMenu),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/about');
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -459,6 +566,107 @@ class _AppDrawer extends ConsumerWidget {
     if (confirmed ?? false) {
       await ref.read(serverProfileProvider.notifier).clear();
     }
+  }
+}
+
+/// Etykieta profilu (adres serwera) jako delikatny „chip" pod nazwą aplikacji.
+/// Gdy brak profilu — chowamy się, by nie zostawiać pustego miejsca.
+class _ProfileChip extends StatelessWidget {
+  const _ProfileChip({required this.label});
+
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    if (label == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.onPrimaryContainer.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.dns_rounded,
+              size: 13,
+              color: scheme.onPrimaryContainer.withValues(alpha: 0.75)),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pozycja szuflady w stylu M3 — zaokrąglony „pigułkowy" kształt z ripple,
+/// tintowany kafelek ikony i chevron sugerujący nawigację. Opcjonalny `tint`
+/// pozwala wyróżnić pozycję (np. zmiana serwera). Wydzielone, by lista była
+/// zwięzła.
+class _DrawerTile extends StatelessWidget {
+  const _DrawerTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 21, color: scheme.primary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: scheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
