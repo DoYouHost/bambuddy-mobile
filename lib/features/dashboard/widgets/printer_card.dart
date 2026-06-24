@@ -1588,10 +1588,11 @@ class _ControlsActions extends ConsumerWidget {
 /// przycisk-ikona w nagłówku karty, w jednej linii z nazwą drukarki. Sam symbol
 /// wtyczki niesie stan: `power` = załączone, `power_off` (przekreślona) =
 /// wyłączone; pobór mocy i stan są w tooltipie. Tapnięcie przełącza. Sam się
-/// chowa, gdy do drukarki nie przypisano (widocznego) gniazdka. Reguła
-/// kluczowa: **w trakcie druku nie da się ODCIĄĆ zasilania** (próba OFF
-/// tłumaczy się SnackBarem); załączyć zawsze wolno. Stan optymistyczny +
-/// rollback trzyma [smartPlugsProvider].
+/// chowa, gdy do drukarki nie przypisano (widocznego) gniazdka. Reguły
+/// kluczowe: **w trakcie druku przycisk jest wyszarzony** (żadnej zmiany
+/// zasilania pracującej maszyny) oraz **każda zmiana (ON/OFF) wymaga
+/// potwierdzenia** w dialogu. Stan optymistyczny + rollback trzyma
+/// [smartPlugsProvider].
 class _SmartPlugButton extends ConsumerWidget {
   const _SmartPlugButton({required this.printerId, required this.printing});
 
@@ -1616,15 +1617,19 @@ class _SmartPlugButton extends ConsumerWidget {
     final reachable = status?.isReachable ?? true;
     final power = status?.powerW;
 
-    final canControl = !busy && !forbidden && reachable;
+    // W trakcie druku przycisk jest całkowicie wyszarzony — nie zmieniamy
+    // zasilania pracującej maszyny (ani ON, ani OFF).
+    final canControl = !busy && !forbidden && reachable && !printing;
 
     // Tooltip niesie stan + pobór mocy (przycisk to sam symbol): nieosiągalne →
     // „Niedostępne"; załączone z pomiarem → „X W"; inaczej surowy stan Wł./Wył.
-    final tip = !reachable
-        ? l10n.smartPlugUnreachable
-        : (on && power != null
-            ? l10n.powerWatts(power.round())
-            : (on ? l10n.smartPlugOn : l10n.smartPlugOff));
+    final tip = printing
+        ? l10n.smartPlugCantPowerOff
+        : !reachable
+            ? l10n.smartPlugUnreachable
+            : (on && power != null
+                ? l10n.powerWatts(power.round())
+                : (on ? l10n.smartPlugOn : l10n.smartPlugOff));
 
     final fg = !reachable
         ? scheme.error
@@ -1654,39 +1659,34 @@ class _SmartPlugButton extends ConsumerWidget {
     bool want,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
 
-    // Wyłączenie = odcięcie zasilania. W trakcie druku zablokowane; poza
-    // drukiem za potwierdzeniem (łatwo ubić maszynę jednym tapnięciem).
-    if (!want) {
-      if (printing) {
-        messenger
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(l10n.smartPlugCantPowerOff)));
-        return;
-      }
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.smartPlugOffConfirmTitle),
-          content: Text(l10n.smartPlugOffConfirmBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.smartPlugTurnOff),
-            ),
-          ],
-        ),
-      );
-      if (!(confirmed ?? false) || !context.mounted) return;
-    }
+    // Każda zmiana zasilania wymaga potwierdzenia — łatwo ubić maszynę jednym
+    // tapnięciem. OFF (odcięcie) wyróżniamy kolorem błędu; ON jest neutralny.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+            want ? l10n.smartPlugOnConfirmTitle : l10n.smartPlugOffConfirmTitle),
+        content: Text(
+            want ? l10n.smartPlugOnConfirmBody : l10n.smartPlugOffConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: want
+                ? null
+                : FilledButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.error,
+                  ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !context.mounted) return;
 
     final result = await ref
         .read(smartPlugsProvider.notifier)
@@ -1698,7 +1698,7 @@ class _SmartPlugButton extends ConsumerWidget {
       ControlResult.error => l10n.ctrlFailed,
     };
     if (msg != null) {
-      messenger
+      ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(SnackBar(content: Text(msg)));
     }

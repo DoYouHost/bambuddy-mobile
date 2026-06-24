@@ -410,6 +410,24 @@ abstract class AppLocalizations {
   /// **'Turn off'**
   String get smartPlugTurnOff;
 
+  /// Confirm turning the plug on
+  ///
+  /// In en, this message translates to:
+  /// **'Power on?'**
+  String get smartPlugOnConfirmTitle;
+
+  /// Confirm body when turning a plug on
+  ///
+  /// In en, this message translates to:
+  /// **'The printer will be powered on.'**
+  String get smartPlugOnConfirmBody;
+
+  /// Confirm button: turn the plug on
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get smartPlugTurnOn;
+
   /// Power draw in watts
   ///
   /// In en, this message translates to:

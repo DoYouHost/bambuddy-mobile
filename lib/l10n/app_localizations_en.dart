@@ -181,6 +181,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartPlugTurnOff => 'Turn off';
 
   @override
+  String get smartPlugOnConfirmTitle => 'Power on?';
+
+  @override
+  String get smartPlugOnConfirmBody => 'The printer will be powered on.';
+
+  @override
+  String get smartPlugTurnOn => 'Turn on';
+
+  @override
   String powerWatts(int watts) {
     return '$watts W';
   }

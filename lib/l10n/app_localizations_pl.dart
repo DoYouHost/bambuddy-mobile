@@ -184,6 +184,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smartPlugTurnOff => 'Wyłącz';
 
   @override
+  String get smartPlugOnConfirmTitle => 'Załączyć zasilanie?';
+
+  @override
+  String get smartPlugOnConfirmBody => 'Drukarka zostanie zasilona.';
+
+  @override
+  String get smartPlugTurnOn => 'Włącz';
+
+  @override
   String powerWatts(int watts) {
     return '$watts W';
   }

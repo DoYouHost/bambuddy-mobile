@@ -68,6 +68,12 @@
   "@smartPlugOffConfirmBody": { "description": "Confirm body when turning a plug off" },
   "smartPlugTurnOff": "Turn off",
   "@smartPlugTurnOff": { "description": "Confirm button: turn the plug off" },
+  "smartPlugOnConfirmTitle": "Power on?",
+  "@smartPlugOnConfirmTitle": { "description": "Confirm turning the plug on" },
+  "smartPlugOnConfirmBody": "The printer will be powered on.",
+  "@smartPlugOnConfirmBody": { "description": "Confirm body when turning a plug on" },
+  "smartPlugTurnOn": "Turn on",
+  "@smartPlugTurnOn": { "description": "Confirm button: turn the plug on" },
   "powerWatts": "{watts} W",
   "@powerWatts": {
     "description": "Power draw in watts",

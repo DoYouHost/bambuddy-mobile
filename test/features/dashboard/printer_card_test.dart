@@ -364,7 +364,7 @@ void main() {
       expect(find.byType(Switch), findsNothing);
     });
 
-    testWidgets('w trakcie druku nie można odciąć zasilania (SnackBar, brak akcji)',
+    testWidgets('w trakcie druku przycisk jest wyszarzony (brak akcji)',
         (tester) async {
       final stub = _StubSmartPlugsNotifier(_plugState());
       final item = PrinterWithStatus(
@@ -379,13 +379,18 @@ void main() {
       );
 
       await tester.pumpWidget(_cardWithPlugs(item, stub));
+
+      // Przycisk zasilania wyłączony (onPressed == null) — nie da się nim ruszyć.
+      final btn = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.power),
+      );
+      expect(btn.onPressed, isNull);
+
       await tester.ensureVisible(find.byIcon(Icons.power));
-      await tester.tap(find.byIcon(Icons.power));
+      await tester.tap(find.byIcon(Icons.power), warnIfMissed: false);
       await tester.pump();
 
-      expect(find.text('Nie można odciąć zasilania w trakcie druku'),
-          findsOneWidget);
-      expect(stub.calls, isEmpty); // zasilanie NIE odcięte
+      expect(stub.calls, isEmpty); // zasilanie NIE zmienione
     });
 
     testWidgets('poza drukiem wyłączenie wymaga potwierdzenia, potem wysyła off',
@@ -440,8 +445,14 @@ void main() {
       expect(btn.onPressed, isNotNull);
 
       await tester.tap(find.byIcon(Icons.power_off));
+      await tester.pumpAndSettle();
+
+      // Załączenie też wymaga potwierdzenia — bez niego nic nie wysyłamy.
+      expect(find.text('Załączyć zasilanie?'), findsOneWidget);
+      expect(stub.calls, isEmpty);
+
+      await tester.tap(find.text('Włącz'));
       await tester.pump();
-      // Włączenie nie wymaga potwierdzenia → akcja on od razu.
       expect(stub.calls.single.action, SmartPlugAction.on);
     });
   });
