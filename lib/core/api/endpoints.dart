@@ -290,4 +290,43 @@ abstract final class Endpoints {
   /// Trwałe usunięcie pliku z kosza (`DELETE`).
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
+
+  // --- MakerWorld + Bambu Cloud ---
+
+  /// Stan integracji MakerWorld (`GET`): `{has_cloud_token, can_download}`.
+  /// `can_download=false` → brak/nieważny token chmury Bambu, pobieranie
+  /// niedostępne (użytkownik musi się zalogować — patrz [cloudLogin]).
+  static const makerworldStatus = '$apiPrefix/makerworld/status';
+
+  /// Rozwiązanie dowolnego URL-a modelu MakerWorld (`POST`, body `{url}`)
+  /// → `MakerWorldResolvedModel` (design + lista instancji/płyt). Nie wymaga
+  /// tokenu chmury — działa także wylogowanym.
+  static const makerworldResolve = '$apiPrefix/makerworld/resolve';
+
+  /// Import (pobranie) instancji do biblioteki (`POST`, body
+  /// `{model_id, profile_id?, folder_id?}`) → `MakerWorldImportResponse`.
+  /// Wymaga ważnego tokenu chmury Bambu (inaczej błąd).
+  static const makerworldImport = '$apiPrefix/makerworld/import';
+
+  /// Ostatnie importy z MakerWorld (`GET`, query `limit`).
+  static const makerworldRecentImports =
+      '$apiPrefix/makerworld/recent-imports';
+
+  /// Proxy miniatury MakerWorld (`GET`, query `url=<URL okładki>`). Publiczny
+  /// — bez auth; używany bezpośrednio przez `Image.network`.
+  static const makerworldThumbnail = '$apiPrefix/makerworld/thumbnail';
+
+  /// Stan logowania do chmury Bambu (`GET`): `{is_authenticated, email?, region?}`.
+  static const cloudStatus = '$apiPrefix/cloud/status';
+
+  /// Logowanie do chmury Bambu (`POST`, body `{email, password, region}`)
+  /// → `CloudLoginResponse`. `needs_verification=true` → dosyłamy kod przez
+  /// [cloudVerify].
+  static const cloudLogin = '$apiPrefix/cloud/login';
+
+  /// Weryfikacja kodu 2FA/OTP (`POST`, body `{email, code, tfa_key?, region}`).
+  static const cloudVerify = '$apiPrefix/cloud/verify';
+
+  /// Wylogowanie z chmury Bambu (`POST`, bez body).
+  static const cloudLogout = '$apiPrefix/cloud/logout';
 }

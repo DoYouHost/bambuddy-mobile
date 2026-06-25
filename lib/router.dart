@@ -10,7 +10,9 @@ import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
+import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/settings/cloud_account_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
@@ -69,6 +71,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const TrashScreen(),
           ),
         ],
+      ),
+
+      // MakerWorld — import modeli; pełny ekran poza powłoką (push z szuflady).
+      GoRoute(
+        path: '/makerworld',
+        builder: (_, _) => const MakerWorldScreen(),
+      ),
+
+      // Konto chmury Bambu (logowanie do pobierania z MakerWorld) — w
+      // ustawieniach; pełny ekran poza powłoką (push z szuflady lub z importu).
+      GoRoute(
+        path: '/settings/cloud',
+        builder: (_, _) => const CloudAccountScreen(),
       ),
 
       // O aplikacji + licencje — pełny ekran poza powłoką (push z szuflady).

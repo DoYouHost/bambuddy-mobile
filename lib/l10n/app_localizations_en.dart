@@ -1729,4 +1729,131 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fmDeletedForever => 'Permanently deleted';
+
+  @override
+  String get makerworldMenu => 'MakerWorld';
+
+  @override
+  String get makerworldTitle => 'MakerWorld';
+
+  @override
+  String get mwIntro =>
+      'Paste a MakerWorld model URL to import and print it directly from Bambuddy.';
+
+  @override
+  String get mwUrlHint =>
+      'https://makerworld.com/en/models/… or any MakerWorld link';
+
+  @override
+  String get mwResolve => 'Resolve';
+
+  @override
+  String get mwEnterUrl => 'Enter a MakerWorld URL';
+
+  @override
+  String get mwUntitledModel => 'Untitled model';
+
+  @override
+  String mwPlatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plates',
+      one: '1 plate',
+      zero: 'No plates',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mwNoPlates => 'No plates found for this model.';
+
+  @override
+  String get mwImport => 'Import';
+
+  @override
+  String mwShowAllPlates(int count) {
+    return 'Show all $count plates';
+  }
+
+  @override
+  String get mwShowLess => 'Show less';
+
+  @override
+  String get mwInLibrary => 'In library';
+
+  @override
+  String get mwImported => 'Imported to your library';
+
+  @override
+  String get mwAlreadyInLibrary => 'Already in your library';
+
+  @override
+  String get mwViewInFiles => 'View in File Manager';
+
+  @override
+  String get mwRecentImports => 'Recent imports';
+
+  @override
+  String get mwNoRecent => 'No recent imports yet';
+
+  @override
+  String get mwOpenOnMakerworld => 'Open on MakerWorld';
+
+  @override
+  String get mwLoginRequired =>
+      'Sign in to your Bambu Cloud account to download MakerWorld models.';
+
+  @override
+  String get cloudAccountMenu => 'Bambu Cloud account';
+
+  @override
+  String get cloudAccountTitle => 'Bambu Cloud';
+
+  @override
+  String get cloudCredsNote =>
+      'Sign in with your Bambu Lab account. These credentials are used only to download models from MakerWorld.';
+
+  @override
+  String get cloudEmail => 'Email';
+
+  @override
+  String get cloudPassword => 'Password';
+
+  @override
+  String get cloudRegionGlobal => 'Global';
+
+  @override
+  String get cloudRegionChina => 'China';
+
+  @override
+  String get cloudSignIn => 'Sign in';
+
+  @override
+  String get cloudSignOut => 'Sign out';
+
+  @override
+  String get cloudSignedIn => 'Signed in';
+
+  @override
+  String get cloudSignedInOk => 'Signed in to Bambu Cloud';
+
+  @override
+  String get cloudSignInFailed => 'Sign-in failed';
+
+  @override
+  String get cloudFillCredentials => 'Enter your email and password';
+
+  @override
+  String get cloudVerify => 'Verify';
+
+  @override
+  String get cloudVerificationCode => 'Verification code';
+
+  @override
+  String get cloudVerificationPrompt =>
+      'Enter the verification code to finish signing in.';
+
+  @override
+  String get cloudEnterCode => 'Enter the verification code';
 }

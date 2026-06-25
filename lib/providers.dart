@@ -12,8 +12,12 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
+import 'core/models/cloud_auth.dart';
+import 'core/models/makerworld.dart';
 import 'data/archive_repository.dart';
+import 'data/cloud_repository.dart';
 import 'data/firmware_repository.dart';
+import 'data/makerworld_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
@@ -206,6 +210,33 @@ final firmwareRepositoryProvider = Provider<FirmwareRepository>(
 /// Menedżer plików / biblioteka. Współdzieli uwierzytelnione Dio.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Integracja MakerWorld (import modeli). Współdzieli uwierzytelnione Dio.
+final makerworldRepositoryProvider = Provider<MakerWorldRepository>(
+  (ref) => MakerWorldRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Logowanie do chmury Bambu (warunek pobierania). Współdzieli uwierzytelnione Dio.
+final cloudRepositoryProvider = Provider<CloudRepository>(
+  (ref) => CloudRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Stan logowania do chmury Bambu. Invalidowany po zalogowaniu/wylogowaniu.
+final cloudAuthStatusProvider = FutureProvider.autoDispose<CloudAuthStatus>(
+  (ref) => ref.watch(cloudRepositoryProvider).status(),
+);
+
+/// Stan integracji MakerWorld (czy można pobierać). Bramkuje przyciski importu;
+/// invalidowany po zmianie logowania do chmury.
+final makerworldStatusProvider = FutureProvider.autoDispose<MakerWorldStatus>(
+  (ref) => ref.watch(makerworldRepositoryProvider).status(),
+);
+
+/// Ostatnie importy z MakerWorld. Invalidowany po udanym imporcie.
+final makerworldRecentImportsProvider =
+    FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
+  (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
 );
 
 /// Wybrany backend magazynu filamentów (natywny domyślnie). Przełącznik

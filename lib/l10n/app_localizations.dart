@@ -3097,6 +3097,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Permanently deleted'**
   String get fmDeletedForever;
+
+  /// Drawer entry: MakerWorld import
+  ///
+  /// In en, this message translates to:
+  /// **'MakerWorld'**
+  String get makerworldMenu;
+
+  /// No description provided for @makerworldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'MakerWorld'**
+  String get makerworldTitle;
+
+  /// No description provided for @mwIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a MakerWorld model URL to import and print it directly from Bambuddy.'**
+  String get mwIntro;
+
+  /// No description provided for @mwUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://makerworld.com/en/models/… or any MakerWorld link'**
+  String get mwUrlHint;
+
+  /// No description provided for @mwResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get mwResolve;
+
+  /// No description provided for @mwEnterUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a MakerWorld URL'**
+  String get mwEnterUrl;
+
+  /// No description provided for @mwUntitledModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled model'**
+  String get mwUntitledModel;
+
+  /// No description provided for @mwPlatesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No plates} =1{1 plate} other{{count} plates}}'**
+  String mwPlatesCount(int count);
+
+  /// No description provided for @mwNoPlates.
+  ///
+  /// In en, this message translates to:
+  /// **'No plates found for this model.'**
+  String get mwNoPlates;
+
+  /// No description provided for @mwImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get mwImport;
+
+  /// No description provided for @mwShowAllPlates.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count} plates'**
+  String mwShowAllPlates(int count);
+
+  /// No description provided for @mwShowLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get mwShowLess;
+
+  /// No description provided for @mwInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'In library'**
+  String get mwInLibrary;
+
+  /// No description provided for @mwImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported to your library'**
+  String get mwImported;
+
+  /// No description provided for @mwAlreadyInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your library'**
+  String get mwAlreadyInLibrary;
+
+  /// No description provided for @mwViewInFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'View in File Manager'**
+  String get mwViewInFiles;
+
+  /// No description provided for @mwRecentImports.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent imports'**
+  String get mwRecentImports;
+
+  /// No description provided for @mwNoRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent imports yet'**
+  String get mwNoRecent;
+
+  /// No description provided for @mwOpenOnMakerworld.
+  ///
+  /// In en, this message translates to:
+  /// **'Open on MakerWorld'**
+  String get mwOpenOnMakerworld;
+
+  /// No description provided for @mwLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your Bambu Cloud account to download MakerWorld models.'**
+  String get mwLoginRequired;
+
+  /// Drawer entry: Bambu Cloud login/account
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud account'**
+  String get cloudAccountMenu;
+
+  /// No description provided for @cloudAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get cloudAccountTitle;
+
+  /// No description provided for @cloudCredsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your Bambu Lab account. These credentials are used only to download models from MakerWorld.'**
+  String get cloudCredsNote;
+
+  /// No description provided for @cloudEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get cloudEmail;
+
+  /// No description provided for @cloudPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get cloudPassword;
+
+  /// No description provided for @cloudRegionGlobal.
+  ///
+  /// In en, this message translates to:
+  /// **'Global'**
+  String get cloudRegionGlobal;
+
+  /// No description provided for @cloudRegionChina.
+  ///
+  /// In en, this message translates to:
+  /// **'China'**
+  String get cloudRegionChina;
+
+  /// No description provided for @cloudSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get cloudSignIn;
+
+  /// No description provided for @cloudSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get cloudSignOut;
+
+  /// No description provided for @cloudSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get cloudSignedIn;
+
+  /// No description provided for @cloudSignedInOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in to Bambu Cloud'**
+  String get cloudSignedInOk;
+
+  /// No description provided for @cloudSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in failed'**
+  String get cloudSignInFailed;
+
+  /// No description provided for @cloudFillCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and password'**
+  String get cloudFillCredentials;
+
+  /// No description provided for @cloudVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get cloudVerify;
+
+  /// No description provided for @cloudVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get cloudVerificationCode;
+
+  /// No description provided for @cloudVerificationPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the verification code to finish signing in.'**
+  String get cloudVerificationPrompt;
+
+  /// No description provided for @cloudEnterCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the verification code'**
+  String get cloudEnterCode;
 }
 
 class _AppLocalizationsDelegate

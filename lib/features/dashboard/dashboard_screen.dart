@@ -484,6 +484,14 @@ class _AppDrawer extends ConsumerWidget {
                   },
                 ),
                 _DrawerTile(
+                  icon: Icons.travel_explore_rounded,
+                  label: l10n.makerworldMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/makerworld');
+                  },
+                ),
+                _DrawerTile(
                   icon: Icons.bar_chart_rounded,
                   label: l10n.menuStatistics,
                   onTap: () {
@@ -500,6 +508,14 @@ class _AppDrawer extends ConsumerWidget {
                   },
                 ),
                 const Divider(indent: 16, endIndent: 16, height: 16),
+                _DrawerTile(
+                  icon: Icons.cloud_outlined,
+                  label: l10n.cloudAccountMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/settings/cloud');
+                  },
+                ),
                 _DrawerTile(
                   icon: Icons.swap_horiz_rounded,
                   label: l10n.changeServer,

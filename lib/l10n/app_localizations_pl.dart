@@ -1752,4 +1752,133 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get fmDeletedForever => 'Usunięto trwale';
+
+  @override
+  String get makerworldMenu => 'MakerWorld';
+
+  @override
+  String get makerworldTitle => 'MakerWorld';
+
+  @override
+  String get mwIntro =>
+      'Wklej link do modelu z MakerWorld, aby zaimportować go i drukować bezpośrednio z Bambuddy.';
+
+  @override
+  String get mwUrlHint =>
+      'https://makerworld.com/pl/models/… lub dowolny link MakerWorld';
+
+  @override
+  String get mwResolve => 'Rozwiąż';
+
+  @override
+  String get mwEnterUrl => 'Wpisz link do MakerWorld';
+
+  @override
+  String get mwUntitledModel => 'Model bez nazwy';
+
+  @override
+  String mwPlatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count płyty',
+      many: '$count płyt',
+      few: '$count płyty',
+      one: '1 płyta',
+      zero: 'Brak płyt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get mwNoPlates => 'Nie znaleziono płyt dla tego modelu.';
+
+  @override
+  String get mwImport => 'Importuj';
+
+  @override
+  String mwShowAllPlates(int count) {
+    return 'Pokaż wszystkie ($count)';
+  }
+
+  @override
+  String get mwShowLess => 'Pokaż mniej';
+
+  @override
+  String get mwInLibrary => 'W bibliotece';
+
+  @override
+  String get mwImported => 'Zaimportowano do biblioteki';
+
+  @override
+  String get mwAlreadyInLibrary => 'Już jest w bibliotece';
+
+  @override
+  String get mwViewInFiles => 'Pokaż w menedżerze plików';
+
+  @override
+  String get mwRecentImports => 'Ostatnie importy';
+
+  @override
+  String get mwNoRecent => 'Brak ostatnich importów';
+
+  @override
+  String get mwOpenOnMakerworld => 'Otwórz w MakerWorld';
+
+  @override
+  String get mwLoginRequired =>
+      'Zaloguj się do konta Bambu Cloud, aby pobierać modele z MakerWorld.';
+
+  @override
+  String get cloudAccountMenu => 'Konto Bambu Cloud';
+
+  @override
+  String get cloudAccountTitle => 'Bambu Cloud';
+
+  @override
+  String get cloudCredsNote =>
+      'Zaloguj się kontem Bambu Lab. Dane logowania służą wyłącznie do pobierania modeli z MakerWorld.';
+
+  @override
+  String get cloudEmail => 'E-mail';
+
+  @override
+  String get cloudPassword => 'Hasło';
+
+  @override
+  String get cloudRegionGlobal => 'Globalny';
+
+  @override
+  String get cloudRegionChina => 'Chiny';
+
+  @override
+  String get cloudSignIn => 'Zaloguj';
+
+  @override
+  String get cloudSignOut => 'Wyloguj';
+
+  @override
+  String get cloudSignedIn => 'Zalogowano';
+
+  @override
+  String get cloudSignedInOk => 'Zalogowano do Bambu Cloud';
+
+  @override
+  String get cloudSignInFailed => 'Logowanie nie powiodło się';
+
+  @override
+  String get cloudFillCredentials => 'Podaj e-mail i hasło';
+
+  @override
+  String get cloudVerify => 'Zweryfikuj';
+
+  @override
+  String get cloudVerificationCode => 'Kod weryfikacyjny';
+
+  @override
+  String get cloudVerificationPrompt =>
+      'Wpisz kod weryfikacyjny, aby dokończyć logowanie.';
+
+  @override
+  String get cloudEnterCode => 'Wpisz kod weryfikacyjny';
 }
