@@ -85,6 +85,7 @@ Widget _app(DashboardState state) => ProviderScope(
         printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
         inertFirmwareOverride,
+        inertTotalPrintHoursOverride,
         sharedPreferencesProvider.overrideWithValue(_prefs),
         notificationServiceProvider.overrideWithValue(_NoopNotifications()),
         wsConnectionStateProvider.overrideWith(

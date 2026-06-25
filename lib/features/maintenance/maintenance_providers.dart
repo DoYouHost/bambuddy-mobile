@@ -51,6 +51,20 @@ class MaintenanceOverviewNotifier
   }
 }
 
+/// Łączny czas druku (godziny) danej drukarki z przeglądu konserwacji. Dane są
+/// historyczne (serwer liczy je niezależnie od WS), więc dostępne także gdy
+/// drukarka OFFLINE — dzięki temu karta dashboardu może je pokazać po zwinięciu.
+/// Null = brak danych/jeszcze nieładowane (UI chowa wtedy wiersz).
+final printerTotalPrintHoursProvider =
+    Provider.autoDispose.family<double?, int>((ref, printerId) {
+  final overview = ref.watch(maintenanceOverviewProvider).valueOrNull;
+  if (overview == null) return null;
+  for (final p in overview) {
+    if (p.printerId == printerId) return p.totalPrintHours;
+  }
+  return null;
+});
+
 /// Historia wykonania czynności — ładowana na żądanie (bottom-sheet). Autodispose
 /// + family po `itemId`, bo otwieramy ją punktowo dla wybranej pozycji.
 final maintenanceHistoryProvider = FutureProvider.autoDispose

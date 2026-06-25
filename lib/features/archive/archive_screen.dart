@@ -366,7 +366,7 @@ class _ArchiveSheet extends StatelessWidget {
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              child: TextButton.icon(
+              child: OutlinedButton.icon(
                 icon: const Icon(Icons.view_in_ar_outlined),
                 label: Text(l10n.gcodeViewerOpen),
                 onPressed: onPreviewGcode,

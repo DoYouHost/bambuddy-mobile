@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
+import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +12,12 @@ import 'package:flutter/material.dart';
 /// (inaczej fetch zostawia wiszący timer Dio i wywraca test).
 final inertFirmwareOverride =
     printerFirmwareProvider.overrideWith((ref, id) => null);
+
+/// Inertny łączny czas druku dla testów widgetów: karta drukarki czyta go z
+/// przeglądu konserwacji przy renderze. Zwracamy null, by nie odpytywać sieci
+/// (analogicznie do [inertFirmwareOverride]).
+final inertTotalPrintHoursOverride =
+    printerTotalPrintHoursProvider.overrideWith((ref, id) => null);
 
 /// Owija widżet w MaterialApp z polską lokalizacją — testy asertują
 /// polskie stringi, więc wymuszamy locale `pl`.

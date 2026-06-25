@@ -18,6 +18,7 @@ import '../../camera/camera_view.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel;
+import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
 import '../smart_plugs_providers.dart';
@@ -107,30 +108,39 @@ class _PrinterCardState extends State<PrinterCard> {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.print, color: theme.disabledColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  widget.item.printer.name,
-                  style: theme.textTheme.titleMedium,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Row(
+                children: [
+                  Icon(Icons.print, color: theme.disabledColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.item.printer.name,
+                      style: theme.textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // Gniazdko zostaje sterowalne nawet przy OFFLINE — to jedyny
+                  // sposób, by zdalnie ZAŁĄCZYĆ zasilanie i obudzić drukarkę. Sam
+                  // się chowa, gdy do drukarki nie przypisano (widocznego) gniazdka.
+                  _SmartPlugButton(
+                    printerId: widget.item.printer.id,
+                    printing: false,
+                  ),
+                  const SizedBox(width: 4),
+                  _StateChip(
+                    label: l10n.statusOffline,
+                    connected: false,
+                    offline: true,
+                  ),
+                ],
               ),
-              // Gniazdko zostaje sterowalne nawet przy OFFLINE — to jedyny
-              // sposób, by zdalnie ZAŁĄCZYĆ zasilanie i obudzić drukarkę. Sam
-              // się chowa, gdy do drukarki nie przypisano (widocznego) gniazdka.
-              _SmartPlugButton(
-                printerId: widget.item.printer.id,
-                printing: false,
-              ),
-              const SizedBox(width: 4),
-              _StateChip(
-                label: l10n.statusOffline,
-                connected: false,
-                offline: true,
-              ),
+              // Łączny czas druku pochodzi z serwera (konserwacja), więc znamy
+              // go także po zwinięciu karty OFFLINE — pokazujemy zamiast pustki.
+              _TotalPrintTimeLine(printerId: widget.item.printer.id),
             ],
           ),
         ),
@@ -170,6 +180,7 @@ class _PrinterCardState extends State<PrinterCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       _FirmwareLine(printerId: widget.item.printer.id),
+                      _TotalPrintTimeLine(printerId: widget.item.printer.id),
                     ],
                   ),
                 ),
@@ -1178,6 +1189,42 @@ class _FirmwareLine extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Łączny czas druku drukarki (godziny, z przeglądu konserwacji) tuż pod nazwą.
+/// Dane są historyczne i niezależne od WS, więc pokazujemy je także gdy drukarka
+/// OFFLINE. Sam się chowa, gdy serwer nie poda danych konserwacji.
+class _TotalPrintTimeLine extends ConsumerWidget {
+  const _TotalPrintTimeLine({required this.printerId});
+
+  final int printerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hours = ref.watch(printerTotalPrintHoursProvider(printerId));
+    if (hours == null || hours <= 0) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.history, size: 13, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              l10n.maintenanceTotalHours(hours.round()),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
       ),
     );
   }
