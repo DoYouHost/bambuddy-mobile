@@ -75,7 +75,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 ),
                 IconButton(
                   tooltip: l10n.fmTrash,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.recycling),
                   onPressed: () => context.push('/files/trash'),
                 ),
               ],
