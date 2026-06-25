@@ -13,7 +13,9 @@ val keyProperties = Properties().apply {
 
 android {
     namespace = "page.codeberg.morganmlgman.bambuddy_mobile"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker (via flutter_plugin_android_lifecycle) wymaga compileSdk >= 36;
+    // przypięte na sztywno, bo domyślne flutter.compileSdkVersion jest niższe.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

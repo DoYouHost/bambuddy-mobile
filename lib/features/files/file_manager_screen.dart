@@ -1,0 +1,971 @@
+import 'dart:async';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/api/api_exceptions.dart';
+import '../../core/models/library_file.dart';
+import '../../core/models/library_folder.dart';
+import '../../core/models/printer.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
+import '../../providers.dart';
+import '../archive/archive_providers.dart';
+import 'file_manager_providers.dart';
+import 'library_thumbnail.dart';
+
+/// Menedżer plików (biblioteka): nawigacja po folderach, miniatury, akcje na
+/// plikach (druk, kolejka, zmiana nazwy, przeniesienie, usunięcie), CRUD
+/// folderów, upload i kosz. Wzorzec UI spójny z ekranem archiwum.
+class FileManagerScreen extends ConsumerStatefulWidget {
+  const FileManagerScreen({super.key});
+
+  @override
+  ConsumerState<FileManagerScreen> createState() => _FileManagerScreenState();
+}
+
+class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+  ScaffoldMessengerState get _messenger => ScaffoldMessenger.of(context);
+
+  void _onSearchChanged(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      ref.read(fileManagerProvider.notifier).setQuery(q.trim());
+    });
+  }
+
+  void _snack(String msg) =>
+      _messenger.showSnackBar(SnackBar(content: Text(msg)));
+
+  String _errText(AppApiException e) =>
+      e is AuthException && e.code == AppErrorCode.forbidden
+          ? _l10n.ctrlForbidden
+          : _l10n.ctrlFailed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _l10n;
+    final async = ref.watch(fileManagerProvider);
+    final state = async.valueOrNull;
+    final selectionMode = state?.selectionMode ?? false;
+
+    return Scaffold(
+      appBar: selectionMode
+          ? _selectionAppBar(state!)
+          : AppBar(
+              title: Text(l10n.fileManagerTitle),
+              actions: [
+                IconButton(
+                  tooltip: l10n.fmSortBy,
+                  icon: const Icon(Icons.sort),
+                  onPressed: state == null ? null : () => _openSortSheet(state),
+                ),
+                IconButton(
+                  tooltip: l10n.fmTrash,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => context.push('/files/trash'),
+                ),
+              ],
+            ),
+      floatingActionButton: selectionMode
+          ? null
+          : FloatingActionButton(
+              onPressed: state == null ? null : () => _openCreateSheet(state),
+              child: const Icon(Icons.add),
+            ),
+      body: async.when(
+        skipLoadingOnReload: true,
+        skipLoadingOnRefresh: true,
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => _ErrorView(
+          message: err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
+          retryLabel: l10n.retry,
+          onRetry: () => ref.invalidate(fileManagerProvider),
+        ),
+        data: (s) => Column(
+          children: [
+            const _StatsBar(),
+            _Breadcrumb(
+              state: s,
+              onOpen: (id) => ref.read(fileManagerProvider.notifier).openFolder(id),
+            ),
+            _FilterRow(
+              state: s,
+              controller: _searchController,
+              onSearch: _onSearchChanged,
+            ),
+            Expanded(child: _body(s)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _body(FileManagerState s) {
+    final l10n = _l10n;
+    // Wyszukiwanie jest globalne (cała biblioteka) — w jego trybie nie pokazujemy
+    // podfolderów bieżącego katalogu, tylko pasujące pliki z całej biblioteki.
+    final folders = s.isSearching ? const [] : s.subfolders;
+    final files = s.visibleFiles;
+    final notifier = ref.read(fileManagerProvider.notifier);
+
+    // Trwa pobieranie indeksu do wyszukiwania, a nie ma jeszcze wyników.
+    if (s.searching && files.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: notifier.refresh,
+      child: (folders.isEmpty && files.isEmpty)
+          ? _EmptyView(
+              message: s.isSearching || s.typeFilter != null
+                  ? l10n.fmNoMatches
+                  : l10n.fmEmpty,
+            )
+          : ListView(
+              padding: const EdgeInsets.only(bottom: 88),
+              children: [
+                for (final f in folders)
+                  _FolderTile(
+                    folder: f,
+                    onOpen: () => notifier.openFolder(f.id),
+                    onRename: () => _renameFolder(f),
+                    onDelete: () => _deleteFolder(f),
+                  ),
+                for (final f in files)
+                  _FileTile(
+                    file: f,
+                    selected: s.selected.contains(f.id),
+                    selectionMode: s.selectionMode,
+                    // W wynikach wyszukiwania pokazujemy, w którym folderze
+                    // plik leży (root, gdy bez folderu).
+                    folderLabel: s.isSearching
+                        ? (s.folderName(f.folderId) ?? l10n.fmRoot)
+                        : null,
+                    onTap: () {
+                      if (s.selectionMode) {
+                        notifier.toggleSelect(f.id);
+                      } else {
+                        _openFileSheet(f);
+                      }
+                    },
+                    onLongPress: () => notifier.toggleSelect(f.id),
+                  ),
+              ],
+            ),
+    );
+  }
+
+  // --- AppBar trybu zaznaczania ---
+
+  AppBar _selectionAppBar(FileManagerState s) {
+    final l10n = _l10n;
+    final notifier = ref.read(fileManagerProvider.notifier);
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: notifier.clearSelection,
+      ),
+      title: Text(l10n.fmSelectedCount(s.selected.length)),
+      actions: [
+        IconButton(
+          tooltip: l10n.fmAddToQueue,
+          icon: const Icon(Icons.playlist_add),
+          onPressed: s.selected.isEmpty ? null : () => _addSelectedToQueue(s),
+        ),
+        IconButton(
+          tooltip: l10n.fmDelete,
+          icon: const Icon(Icons.delete_outline),
+          onPressed: s.selected.isEmpty ? null : () => _deleteSelected(s),
+        ),
+      ],
+    );
+  }
+
+  // --- Tworzenie: bottom sheet (folder / upload) ---
+
+  void _openCreateSheet(FileManagerState s) {
+    final l10n = _l10n;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.create_new_folder_outlined),
+              title: Text(l10n.fmNewFolder),
+              onTap: () {
+                Navigator.pop(ctx);
+                _createFolder(s);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.upload_file_outlined),
+              title: Text(l10n.fmUpload),
+              onTap: () {
+                Navigator.pop(ctx);
+                _uploadFile(s);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openSortSheet(FileManagerState s) {
+    final l10n = _l10n;
+    final notifier = ref.read(fileManagerProvider.notifier);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final entry in <(FileSort, String)>[
+              (FileSort.dateDesc, l10n.fmSortDateNewest),
+              (FileSort.dateAsc, l10n.fmSortDateOldest),
+              (FileSort.nameAsc, l10n.fmSortNameAZ),
+              (FileSort.nameDesc, l10n.fmSortNameZA),
+              (FileSort.sizeDesc, l10n.fmSortSizeLargest),
+              (FileSort.sizeAsc, l10n.fmSortSizeSmallest),
+            ])
+              ListTile(
+                leading: Icon(s.sort == entry.$1
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked),
+                title: Text(entry.$2),
+                onTap: () {
+                  notifier.setSort(entry.$1);
+                  Navigator.pop(ctx);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Akcje na pliku: bottom sheet ---
+
+  void _openFileSheet(LibraryFile file) {
+    final l10n = _l10n;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  LibraryThumbnail(
+                    fileId: file.id,
+                    hasThumbnail: file.thumbnailPath != null,
+                    size: 56,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(file.displayName,
+                        style: Theme.of(ctx).textTheme.titleMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (file.isPrintable)
+              ListTile(
+                leading: const Icon(Icons.print_outlined),
+                title: Text(l10n.fmPrint),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _printFile(file);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.playlist_add),
+              title: Text(l10n.fmAddToQueue),
+              onTap: () {
+                Navigator.pop(ctx);
+                _addToQueue(file);
+              },
+            ),
+            if (!file.isExternal) ...[
+              ListTile(
+                leading: const Icon(Icons.drive_file_rename_outline),
+                title: Text(l10n.fmRename),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _renameFile(file);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.drive_file_move_outline),
+                title: Text(l10n.fmMoveTo),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _moveFile(file);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: Text(l10n.fmDelete),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _deleteFile(file);
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Implementacje akcji ---
+
+  Future<void> _createFolder(FileManagerState s) async {
+    final name = await _promptName(
+      title: _l10n.fmNewFolder,
+      label: _l10n.fmFolderName,
+    );
+    if (name == null || name.isEmpty) return;
+    try {
+      await ref
+          .read(libraryRepositoryProvider)
+          .createFolder(name, parentId: s.currentFolderId);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmFolderCreated);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _renameFolder(LibraryFolder folder) async {
+    final name = await _promptName(
+      title: _l10n.fmRenameFolder,
+      label: _l10n.fmFolderName,
+      initial: folder.name,
+    );
+    if (name == null || name.isEmpty || name == folder.name) return;
+    try {
+      await ref.read(libraryRepositoryProvider).renameFolder(folder.id, name);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmRenamed);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _deleteFolder(LibraryFolder folder) async {
+    final ok = await _confirm(
+      title: _l10n.fmDeleteFolder,
+      body: _l10n.fmDeleteFolderConfirm(folder.name),
+      danger: true,
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(libraryRepositoryProvider).deleteFolder(folder.id);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmDeleted);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _renameFile(LibraryFile file) async {
+    final name = await _promptName(
+      title: _l10n.fmRenameFile,
+      label: _l10n.fmFileName,
+      initial: file.filename,
+    );
+    if (name == null || name.isEmpty || name == file.filename) return;
+    try {
+      await ref.read(libraryRepositoryProvider).renameFile(file.id, name);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmRenamed);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _moveFile(LibraryFile file) async {
+    final state = ref.read(fileManagerProvider).valueOrNull;
+    if (state == null) return;
+    final target = await _pickFolder(state, excludeFolderId: null);
+    if (target == null) return; // anulowano
+    try {
+      await ref
+          .read(libraryRepositoryProvider)
+          .moveFiles([file.id], folderId: target.moveTargetId);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmMoved);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _deleteFile(LibraryFile file) async {
+    final ok = await _confirm(
+      title: _l10n.fmDeleteFile,
+      body: _l10n.fmDeleteFileConfirm(file.displayName),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(libraryRepositoryProvider).deleteFile(file.id);
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmDeleted);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _deleteSelected(FileManagerState s) async {
+    final ids = s.selected.toList();
+    final ok = await _confirm(
+      title: _l10n.fmDelete,
+      body: _l10n.fmDeleteSelectedConfirm(ids.length),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(libraryRepositoryProvider).bulkDelete(fileIds: ids);
+      ref.read(fileManagerProvider.notifier).clearSelection();
+      await ref.read(fileManagerProvider.notifier).refresh();
+      _snack(_l10n.fmDeleted);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _addSelectedToQueue(FileManagerState s) async {
+    final ids = s.selected.toList();
+    try {
+      await ref.read(libraryRepositoryProvider).addToQueue(ids);
+      ref.read(fileManagerProvider.notifier).clearSelection();
+      _snack(_l10n.fmAddedToQueue);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _addToQueue(LibraryFile file) async {
+    try {
+      await ref.read(libraryRepositoryProvider).addToQueue([file.id]);
+      _snack(_l10n.fmAddedToQueue);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _printFile(LibraryFile file) async {
+    final l10n = _l10n;
+    final printer = await _pickPrinter();
+    if (printer == null || !mounted) return;
+    final ok = await _confirm(
+      title: l10n.fmPrint,
+      body: l10n.fmPrintConfirmBody(file.displayName, printer.name),
+    );
+    if (ok != true) return;
+    try {
+      await ref
+          .read(libraryRepositoryProvider)
+          .printFile(file.id, printerId: printer.id);
+      _snack(l10n.fmPrintStarted);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  Future<void> _uploadFile(FileManagerState s) async {
+    final l10n = _l10n;
+    final FilePickerResult? picked;
+    try {
+      picked = await FilePicker.platform.pickFiles(withReadStream: false);
+    } on Exception {
+      _snack(l10n.fmUploadFailed);
+      return;
+    }
+    final path = picked?.files.single.path;
+    final name = picked?.files.single.name;
+    if (path == null || name == null) return; // anulowano
+
+    _snack(l10n.fmUploading);
+    try {
+      await ref.read(libraryRepositoryProvider).uploadFile(
+            filePath: path,
+            filename: name,
+            folderId: s.currentFolderId,
+          );
+      await ref.read(fileManagerProvider.notifier).refresh();
+      ref.invalidate(libraryStatsProvider);
+      _snack(l10n.fmUploaded(name));
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+    }
+  }
+
+  // --- Pomocnicze dialogi ---
+
+  Future<String?> _promptName({
+    required String title,
+    required String label,
+    String? initial,
+  }) {
+    final controller = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: label),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(_l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(_l10n.fmSave),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _confirm({
+    required String title,
+    required String body,
+    bool danger = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_l10n.cancel),
+          ),
+          FilledButton(
+            style: danger
+                ? FilledButton.styleFrom(backgroundColor: scheme.error)
+                : null,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_l10n.fmDelete),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Wybór folderu docelowego (przeniesienie). Zawiera „All Files" (root).
+  /// [excludeFolderId] pomija folder i jego poddrzewo (przeniesienie folderu).
+  Future<LibraryFolder?> _pickFolder(
+    FileManagerState s, {
+    int? excludeFolderId,
+  }) {
+    final l10n = _l10n;
+    final folders = [...s.allFolders]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return showModalBottomSheet<LibraryFolder>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(l10n.fmMoveTo,
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home_outlined),
+              title: Text(l10n.fmRoot),
+              onTap: () =>
+                  Navigator.pop(ctx, const LibraryFolder(id: -1, name: '')),
+            ),
+            for (final f in folders)
+              if (f.id != excludeFolderId && !f.isExternal)
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(f.name),
+                  onTap: () => Navigator.pop(ctx, f),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Wybór drukarki (jak w archiwum): jedna → bez pytania, zero → komunikat.
+  Future<Printer?> _pickPrinter() async {
+    final l10n = _l10n;
+    final List<Printer> printers;
+    try {
+      printers = await ref.read(printersForPickerProvider.future);
+    } on AppApiException catch (e) {
+      _snack(_errText(e));
+      return null;
+    }
+    if (!mounted) return null;
+    if (printers.isEmpty) {
+      _snack(l10n.noPrintersAvailable);
+      return null;
+    }
+    if (printers.length == 1) return printers.first;
+    return showModalBottomSheet<Printer>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(l10n.pickPrinterTitle,
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            for (final p in printers)
+              ListTile(
+                leading: const Icon(Icons.print_outlined),
+                title: Text(p.name),
+                subtitle: p.model == null ? null : Text(p.model!),
+                onTap: () => Navigator.pop(ctx, p),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Helper: na wybór roota z [_pickFolder] zwracamy sentinel id=-1; tłumaczymy
+/// to na `folderId=null` w wywołaniu move.
+extension on LibraryFolder {
+  int? get moveTargetId => id == -1 ? null : id;
+}
+
+// --- Widżety pomocnicze ---
+
+class _StatsBar extends ConsumerWidget {
+  const _StatsBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final stats = ref.watch(libraryStatsProvider).valueOrNull;
+    if (stats == null) return const SizedBox.shrink();
+    final parts = <String>[
+      if (stats.totalFiles != null) l10n.fmStatsFiles(stats.totalFiles!),
+      if (stats.totalFolders != null) l10n.fmStatsFolders(stats.totalFolders!),
+      if (stats.totalSizeBytes != null) formatBytes(stats.totalSizeBytes!),
+      if (stats.freeBytes != null) l10n.fmStatsFree(formatBytes(stats.freeBytes!)),
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHigh,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Text(parts.join('  ·  '),
+          style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
+    );
+  }
+}
+
+class _Breadcrumb extends StatelessWidget {
+  const _Breadcrumb({required this.state, required this.onOpen});
+
+  final FileManagerState state;
+  final void Function(int? folderId) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final crumbs = state.breadcrumb;
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        children: [
+          TextButton.icon(
+            icon: const Icon(Icons.home_outlined, size: 18),
+            label: Text(l10n.fmRoot),
+            onPressed: crumbs.isEmpty ? null : () => onOpen(null),
+          ),
+          for (var i = 0; i < crumbs.length; i++) ...[
+            Icon(Icons.chevron_right,
+                size: 18, color: theme.colorScheme.onSurfaceVariant),
+            TextButton(
+              onPressed: i == crumbs.length - 1
+                  ? null
+                  : () => onOpen(crumbs[i].id),
+              child: Text(crumbs[i].name),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterRow extends ConsumerWidget {
+  const _FilterRow({
+    required this.state,
+    required this.controller,
+    required this.onSearch,
+  });
+
+  final FileManagerState state;
+  final TextEditingController controller;
+  final ValueChanged<String> onSearch;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final types = state.availableTypes;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: SearchBar(
+              controller: controller,
+              hintText: l10n.fmSearchHint,
+              leading: const Icon(Icons.search),
+              padding: const WidgetStatePropertyAll(
+                  EdgeInsets.symmetric(horizontal: 12)),
+              onChanged: onSearch,
+            ),
+          ),
+          if (types.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            PopupMenuButton<String?>(
+              tooltip: l10n.fmFilterType,
+              icon: Icon(state.typeFilter == null
+                  ? Icons.filter_list
+                  : Icons.filter_list_alt),
+              onSelected: (v) =>
+                  ref.read(fileManagerProvider.notifier).setType(v),
+              itemBuilder: (ctx) => [
+                CheckedPopupMenuItem<String?>(
+                  value: null,
+                  checked: state.typeFilter == null,
+                  child: Text(l10n.fmAllTypes),
+                ),
+                for (final t in types)
+                  CheckedPopupMenuItem<String?>(
+                    value: t,
+                    checked: state.typeFilter == t,
+                    child: Text(t.toUpperCase()),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FolderTile extends StatelessWidget {
+  const _FolderTile({
+    required this.folder,
+    required this.onOpen,
+    required this.onRename,
+    required this.onDelete,
+  });
+
+  final LibraryFolder folder;
+  final VoidCallback onOpen;
+  final VoidCallback onRename;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: ListTile(
+        leading: Icon(
+          folder.isExternal ? Icons.folder_special_outlined : Icons.folder,
+          color: theme.colorScheme.primary,
+        ),
+        title: Text(folder.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(l10n.fmFolderItems(folder.fileCount)),
+        trailing: folder.isExternal
+            ? null
+            : PopupMenuButton<String>(
+                onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(value: 'rename', child: Text(l10n.fmRename)),
+                  PopupMenuItem(value: 'delete', child: Text(l10n.fmDelete)),
+                ],
+              ),
+        onTap: onOpen,
+      ),
+    );
+  }
+}
+
+class _FileTile extends StatelessWidget {
+  const _FileTile({
+    required this.file,
+    required this.selected,
+    required this.selectionMode,
+    required this.onTap,
+    required this.onLongPress,
+    this.folderLabel,
+  });
+
+  final LibraryFile file;
+  final bool selected;
+  final bool selectionMode;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  /// Etykieta folderu (pokazywana w wynikach wyszukiwania globalnego).
+  final String? folderLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final meta = <String>[
+      ?folderLabel,
+      file.fileType.toUpperCase(),
+      formatBytes(file.fileSize),
+      if (file.slicedForModel != null) file.slicedForModel!,
+      if (file.createdByUsername != null) file.createdByUsername!,
+    ];
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      color: selected ? theme.colorScheme.secondaryContainer : null,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+        leading: selectionMode
+            ? Icon(
+                selected ? Icons.check_circle : Icons.circle_outlined,
+                color: selected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              )
+            : LibraryThumbnail(
+                fileId: file.id,
+                hasThumbnail: file.thumbnailPath != null,
+                size: 52,
+              ),
+        title: Text(file.displayName,
+            maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(meta.join(' · '),
+              style: theme.textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ),
+        trailing: selectionMode ? null : const Icon(Icons.more_vert, size: 20),
+        onTap: onTap,
+        onLongPress: onLongPress,
+      ),
+    );
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(48),
+          child: Column(
+            children: [
+              Icon(Icons.folder_open_outlined,
+                  size: 48, color: Theme.of(context).disabledColor),
+              const SizedBox(height: 12),
+              Text(message, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({
+    required this.message,
+    required this.onRetry,
+    required this.retryLabel,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final String retryLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 48),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Format rozmiaru w bajtach na czytelny tekst (B/KB/MB/GB).
+String formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  var size = bytes / 1024;
+  var i = 0;
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024;
+    i++;
+  }
+  return '${size.toStringAsFixed(size >= 10 ? 0 : 1)} ${units[i]}';
+}

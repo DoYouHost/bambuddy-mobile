@@ -222,4 +222,72 @@ abstract final class Endpoints {
   /// Postęp wgrywania firmware (`FirmwareUploadStatusResponse`).
   static String firmwareUploadStatus(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId/upload/status';
+
+  // --- Menedżer plików / biblioteka (library) ---
+  //
+  // Pliki druku (3mf/gcode/stl…) zorganizowane w drzewo folderów. Auth
+  // nagłówkiem (X-API-Key / Bearer) — poza miniaturą, która (jak archiwum)
+  // idzie przez `?token=` token kamery.
+
+  /// Lista plików. Query (wszystkie opcjonalne): `folder_id` (null = poziom
+  /// root przy `include_root=true`), `project_id`, `include_root` (domyślnie
+  /// true). Zwraca `FileListResponse[]`. Również `POST` — upload pliku
+  /// (multipart, query `folder_id` + `generate_stl_thumbnails`).
+  static const libraryFiles = '$apiPrefix/library/files';
+
+  /// Pojedynczy plik: `GET` (szczegóły), `PUT` (edycja `FileUpdate`:
+  /// filename/folder_id/notes), `DELETE` (do kosza).
+  static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
+
+  /// Pobranie pliku (`GET`, strumień bajtów). Auth nagłówkiem.
+  static String libraryFileDownload(int fileId) =>
+      '$apiPrefix/library/files/$fileId/download';
+
+  /// Miniatura pliku — uwierzytelniana przez `?token=` (token kamery), NIE
+  /// nagłówkiem, analogicznie do [archiveThumbnail].
+  static String libraryFileThumbnail(int fileId) =>
+      '$apiPrefix/library/files/$fileId/thumbnail';
+
+  /// Wysłanie pliku do druku na drukarce. Query `printer_id`; body opcjonalne
+  /// (`FilePrintRequest`). Tylko pliki skrojone (.gcode/.gcode.3mf).
+  static String libraryFilePrint(int fileId) =>
+      '$apiPrefix/library/files/$fileId/print';
+
+  /// Przeniesienie plików do folderu (`POST`, body `FileMoveRequest`:
+  /// `{file_ids, folder_id}`; `folder_id=null` = root).
+  static const libraryFilesMove = '$apiPrefix/library/files/move';
+
+  /// Dodanie plików do kolejki (`POST`, body `AddToQueueRequest`:
+  /// `{file_ids}`).
+  static const libraryFilesAddToQueue = '$apiPrefix/library/files/add-to-queue';
+
+  /// Zbiorcze usunięcie do kosza (`POST`, body `BulkDeleteRequest`:
+  /// `{file_ids, folder_ids}`).
+  static const libraryBulkDelete = '$apiPrefix/library/bulk-delete';
+
+  /// Drzewo folderów (`FolderTreeItem[]`, zagnieżdżone przez `children`).
+  /// Również `POST` — utworzenie folderu (`FolderCreate`: name/parent_id…).
+  static const libraryFolders = '$apiPrefix/library/folders';
+
+  /// Pojedynczy folder: `PUT` (edycja `FolderUpdate`: name/parent_id),
+  /// `DELETE` (usunięcie folderu wraz z zawartością).
+  static String libraryFolder(int folderId) =>
+      '$apiPrefix/library/folders/$folderId';
+
+  /// Statystyki biblioteki (liczba plików/folderów, rozmiar, wolne miejsce).
+  static const libraryStats = '$apiPrefix/library/stats';
+
+  // --- Kosz biblioteki (library-trash) ---
+
+  /// Lista plików w koszu (`TrashListResponse`: items/total/retention_days).
+  /// Również `DELETE` — opróżnienie kosza (`EmptyTrashResponse`).
+  static const libraryTrash = '$apiPrefix/library/trash';
+
+  /// Przywrócenie pliku z kosza (`POST`, bez body).
+  static String libraryTrashRestore(int fileId) =>
+      '$apiPrefix/library/trash/$fileId/restore';
+
+  /// Trwałe usunięcie pliku z kosza (`DELETE`).
+  static String libraryTrashItem(int fileId) =>
+      '$apiPrefix/library/trash/$fileId';
 }

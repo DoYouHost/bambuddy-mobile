@@ -1511,4 +1511,222 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutOpenLinkError => 'Could not open the link';
+
+  @override
+  String get fileManagerMenu => 'File Manager';
+
+  @override
+  String get fileManagerTitle => 'File Manager';
+
+  @override
+  String get fmRoot => 'All Files';
+
+  @override
+  String get fmSearchHint => 'Search files…';
+
+  @override
+  String get fmEmpty => 'This folder is empty';
+
+  @override
+  String get fmNoMatches => 'No files match your filters';
+
+  @override
+  String get fmSortBy => 'Sort by';
+
+  @override
+  String get fmSortDateNewest => 'Newest first';
+
+  @override
+  String get fmSortDateOldest => 'Oldest first';
+
+  @override
+  String get fmSortNameAZ => 'Name A–Z';
+
+  @override
+  String get fmSortNameZA => 'Name Z–A';
+
+  @override
+  String get fmSortSizeLargest => 'Largest first';
+
+  @override
+  String get fmSortSizeSmallest => 'Smallest first';
+
+  @override
+  String get fmFilterType => 'File type';
+
+  @override
+  String get fmAllTypes => 'All types';
+
+  @override
+  String get fmNewFolder => 'New folder';
+
+  @override
+  String get fmFolderName => 'Folder name';
+
+  @override
+  String get fmFileName => 'File name';
+
+  @override
+  String get fmSave => 'Save';
+
+  @override
+  String get fmRename => 'Rename';
+
+  @override
+  String get fmRenameFolder => 'Rename folder';
+
+  @override
+  String get fmRenameFile => 'Rename file';
+
+  @override
+  String get fmRenamed => 'Renamed';
+
+  @override
+  String get fmFolderCreated => 'Folder created';
+
+  @override
+  String get fmDelete => 'Delete';
+
+  @override
+  String get fmDeleted => 'Moved to trash';
+
+  @override
+  String get fmDeleteFile => 'Delete file';
+
+  @override
+  String fmDeleteFileConfirm(String name) {
+    return 'Move \"$name\" to trash?';
+  }
+
+  @override
+  String get fmDeleteFolder => 'Delete folder';
+
+  @override
+  String fmDeleteFolderConfirm(String name) {
+    return 'Delete folder \"$name\" and all its contents?';
+  }
+
+  @override
+  String fmDeleteSelectedConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return 'Move $count $_temp0 to trash?';
+  }
+
+  @override
+  String get fmMoveTo => 'Move to…';
+
+  @override
+  String get fmMoved => 'Moved';
+
+  @override
+  String fmFolderItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'items',
+      one: 'item',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get fmPrint => 'Print';
+
+  @override
+  String fmPrintConfirmBody(String name, String printer) {
+    return 'Send \"$name\" to $printer and start printing?';
+  }
+
+  @override
+  String get fmPrintStarted => 'Sent to printer';
+
+  @override
+  String get fmAddToQueue => 'Add to queue';
+
+  @override
+  String get fmAddedToQueue => 'Added to queue';
+
+  @override
+  String get fmUpload => 'Upload file';
+
+  @override
+  String get fmUploading => 'Uploading…';
+
+  @override
+  String fmUploaded(String name) {
+    return 'Uploaded $name';
+  }
+
+  @override
+  String get fmUploadFailed => 'Upload failed';
+
+  @override
+  String fmSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String fmStatsFiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String fmStatsFolders(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'folders',
+      one: 'folder',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String fmStatsFree(String size) {
+    return '$size free';
+  }
+
+  @override
+  String get fmTrash => 'Trash';
+
+  @override
+  String get fmTrashTitle => 'Trash';
+
+  @override
+  String get fmTrashEmpty => 'Trash is empty';
+
+  @override
+  String get fmRestore => 'Restore';
+
+  @override
+  String get fmRestored => 'Restored';
+
+  @override
+  String get fmEmptyTrash => 'Empty trash';
+
+  @override
+  String get fmEmptyTrashConfirm =>
+      'Permanently delete all files in trash? This cannot be undone.';
+
+  @override
+  String get fmHardDelete => 'Delete permanently';
+
+  @override
+  String fmHardDeleteConfirm(String name) {
+    return 'Permanently delete \"$name\"? This cannot be undone.';
+  }
+
+  @override
+  String get fmDeletedForever => 'Permanently deleted';
 }

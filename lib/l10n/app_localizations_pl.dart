@@ -1526,4 +1526,230 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get aboutOpenLinkError => 'Nie udało się otworzyć linku';
+
+  @override
+  String get fileManagerMenu => 'Menedżer plików';
+
+  @override
+  String get fileManagerTitle => 'Menedżer plików';
+
+  @override
+  String get fmRoot => 'Wszystkie pliki';
+
+  @override
+  String get fmSearchHint => 'Szukaj plików…';
+
+  @override
+  String get fmEmpty => 'Ten folder jest pusty';
+
+  @override
+  String get fmNoMatches => 'Brak plików pasujących do filtrów';
+
+  @override
+  String get fmSortBy => 'Sortuj według';
+
+  @override
+  String get fmSortDateNewest => 'Najnowsze';
+
+  @override
+  String get fmSortDateOldest => 'Najstarsze';
+
+  @override
+  String get fmSortNameAZ => 'Nazwa A–Z';
+
+  @override
+  String get fmSortNameZA => 'Nazwa Z–A';
+
+  @override
+  String get fmSortSizeLargest => 'Największe';
+
+  @override
+  String get fmSortSizeSmallest => 'Najmniejsze';
+
+  @override
+  String get fmFilterType => 'Typ pliku';
+
+  @override
+  String get fmAllTypes => 'Wszystkie typy';
+
+  @override
+  String get fmNewFolder => 'Nowy folder';
+
+  @override
+  String get fmFolderName => 'Nazwa folderu';
+
+  @override
+  String get fmFileName => 'Nazwa pliku';
+
+  @override
+  String get fmSave => 'Zapisz';
+
+  @override
+  String get fmRename => 'Zmień nazwę';
+
+  @override
+  String get fmRenameFolder => 'Zmień nazwę folderu';
+
+  @override
+  String get fmRenameFile => 'Zmień nazwę pliku';
+
+  @override
+  String get fmRenamed => 'Zmieniono nazwę';
+
+  @override
+  String get fmFolderCreated => 'Utworzono folder';
+
+  @override
+  String get fmDelete => 'Usuń';
+
+  @override
+  String get fmDeleted => 'Przeniesiono do kosza';
+
+  @override
+  String get fmDeleteFile => 'Usuń plik';
+
+  @override
+  String fmDeleteFileConfirm(String name) {
+    return 'Przenieść „$name” do kosza?';
+  }
+
+  @override
+  String get fmDeleteFolder => 'Usuń folder';
+
+  @override
+  String fmDeleteFolderConfirm(String name) {
+    return 'Usunąć folder „$name” wraz z całą zawartością?';
+  }
+
+  @override
+  String fmDeleteSelectedConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pliku',
+      many: 'plików',
+      few: 'pliki',
+      one: 'plik',
+    );
+    return 'Przenieść $count $_temp0 do kosza?';
+  }
+
+  @override
+  String get fmMoveTo => 'Przenieś do…';
+
+  @override
+  String get fmMoved => 'Przeniesiono';
+
+  @override
+  String fmFolderItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'elementu',
+      many: 'elementów',
+      few: 'elementy',
+      one: 'element',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get fmPrint => 'Drukuj';
+
+  @override
+  String fmPrintConfirmBody(String name, String printer) {
+    return 'Wysłać „$name” na $printer i rozpocząć druk?';
+  }
+
+  @override
+  String get fmPrintStarted => 'Wysłano na drukarkę';
+
+  @override
+  String get fmAddToQueue => 'Dodaj do kolejki';
+
+  @override
+  String get fmAddedToQueue => 'Dodano do kolejki';
+
+  @override
+  String get fmUpload => 'Wgraj plik';
+
+  @override
+  String get fmUploading => 'Wgrywanie…';
+
+  @override
+  String fmUploaded(String name) {
+    return 'Wgrano $name';
+  }
+
+  @override
+  String get fmUploadFailed => 'Nie udało się wgrać pliku';
+
+  @override
+  String fmSelectedCount(int count) {
+    return 'Zaznaczono: $count';
+  }
+
+  @override
+  String fmStatsFiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pliku',
+      many: 'plików',
+      few: 'pliki',
+      one: 'plik',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String fmStatsFolders(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'folderu',
+      many: 'folderów',
+      few: 'foldery',
+      one: 'folder',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String fmStatsFree(String size) {
+    return '$size wolnego';
+  }
+
+  @override
+  String get fmTrash => 'Kosz';
+
+  @override
+  String get fmTrashTitle => 'Kosz';
+
+  @override
+  String get fmTrashEmpty => 'Kosz jest pusty';
+
+  @override
+  String get fmRestore => 'Przywróć';
+
+  @override
+  String get fmRestored => 'Przywrócono';
+
+  @override
+  String get fmEmptyTrash => 'Opróżnij kosz';
+
+  @override
+  String get fmEmptyTrashConfirm =>
+      'Trwale usunąć wszystkie pliki z kosza? Tej operacji nie można cofnąć.';
+
+  @override
+  String get fmHardDelete => 'Usuń trwale';
+
+  @override
+  String fmHardDeleteConfirm(String name) {
+    return 'Trwale usunąć „$name”? Tej operacji nie można cofnąć.';
+  }
+
+  @override
+  String get fmDeletedForever => 'Usunięto trwale';
 }

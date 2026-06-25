@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/files/file_manager_screen.dart';
+import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
@@ -54,6 +56,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/stats',
         builder: (_, _) => const StatisticsScreen(),
+      ),
+
+      // Menedżer plików (biblioteka) — pełny ekran poza powłoką (push
+      // z szuflady). Kosz jako podtrasa.
+      GoRoute(
+        path: '/files',
+        builder: (_, _) => const FileManagerScreen(),
+        routes: [
+          GoRoute(
+            path: 'trash',
+            builder: (_, _) => const TrashScreen(),
+          ),
+        ],
       ),
 
       // O aplikacji + licencje — pełny ekran poza powłoką (push z szuflady).

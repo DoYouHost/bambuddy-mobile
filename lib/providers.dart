@@ -16,6 +16,7 @@ import 'data/archive_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
+import 'data/library_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
@@ -200,6 +201,11 @@ final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
 /// Firmware drukarek. Współdzieli uwierzytelnione Dio.
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(
   (ref) => FirmwareRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Menedżer plików / biblioteka. Współdzieli uwierzytelnione Dio.
+final libraryRepositoryProvider = Provider<LibraryRepository>(
+  (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Wybrany backend magazynu filamentów (natywny domyślnie). Przełącznik

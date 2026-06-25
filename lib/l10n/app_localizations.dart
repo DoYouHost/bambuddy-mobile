@@ -2755,6 +2755,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open the link'**
   String get aboutOpenLinkError;
+
+  /// Drawer entry: File Manager
+  ///
+  /// In en, this message translates to:
+  /// **'File Manager'**
+  String get fileManagerMenu;
+
+  /// No description provided for @fileManagerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File Manager'**
+  String get fileManagerTitle;
+
+  /// No description provided for @fmRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'All Files'**
+  String get fmRoot;
+
+  /// No description provided for @fmSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search files…'**
+  String get fmSearchHint;
+
+  /// No description provided for @fmEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is empty'**
+  String get fmEmpty;
+
+  /// No description provided for @fmNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No files match your filters'**
+  String get fmNoMatches;
+
+  /// No description provided for @fmSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get fmSortBy;
+
+  /// No description provided for @fmSortDateNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get fmSortDateNewest;
+
+  /// No description provided for @fmSortDateOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get fmSortDateOldest;
+
+  /// No description provided for @fmSortNameAZ.
+  ///
+  /// In en, this message translates to:
+  /// **'Name A–Z'**
+  String get fmSortNameAZ;
+
+  /// No description provided for @fmSortNameZA.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get fmSortNameZA;
+
+  /// No description provided for @fmSortSizeLargest.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest first'**
+  String get fmSortSizeLargest;
+
+  /// No description provided for @fmSortSizeSmallest.
+  ///
+  /// In en, this message translates to:
+  /// **'Smallest first'**
+  String get fmSortSizeSmallest;
+
+  /// No description provided for @fmFilterType.
+  ///
+  /// In en, this message translates to:
+  /// **'File type'**
+  String get fmFilterType;
+
+  /// No description provided for @fmAllTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get fmAllTypes;
+
+  /// No description provided for @fmNewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder'**
+  String get fmNewFolder;
+
+  /// No description provided for @fmFolderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get fmFolderName;
+
+  /// No description provided for @fmFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'File name'**
+  String get fmFileName;
+
+  /// No description provided for @fmSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get fmSave;
+
+  /// No description provided for @fmRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get fmRename;
+
+  /// No description provided for @fmRenameFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename folder'**
+  String get fmRenameFolder;
+
+  /// No description provided for @fmRenameFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename file'**
+  String get fmRenameFile;
+
+  /// No description provided for @fmRenamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed'**
+  String get fmRenamed;
+
+  /// No description provided for @fmFolderCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder created'**
+  String get fmFolderCreated;
+
+  /// No description provided for @fmDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get fmDelete;
+
+  /// No description provided for @fmDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to trash'**
+  String get fmDeleted;
+
+  /// No description provided for @fmDeleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file'**
+  String get fmDeleteFile;
+
+  /// No description provided for @fmDeleteFileConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move \"{name}\" to trash?'**
+  String fmDeleteFileConfirm(String name);
+
+  /// No description provided for @fmDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete folder'**
+  String get fmDeleteFolder;
+
+  /// No description provided for @fmDeleteFolderConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete folder \"{name}\" and all its contents?'**
+  String fmDeleteFolderConfirm(String name);
+
+  /// No description provided for @fmDeleteSelectedConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {count} {count, plural, one{file} other{files}} to trash?'**
+  String fmDeleteSelectedConfirm(int count);
+
+  /// No description provided for @fmMoveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to…'**
+  String get fmMoveTo;
+
+  /// No description provided for @fmMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved'**
+  String get fmMoved;
+
+  /// No description provided for @fmFolderItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{item} other{items}}'**
+  String fmFolderItems(int count);
+
+  /// No description provided for @fmPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get fmPrint;
+
+  /// No description provided for @fmPrintConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send \"{name}\" to {printer} and start printing?'**
+  String fmPrintConfirmBody(String name, String printer);
+
+  /// No description provided for @fmPrintStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to printer'**
+  String get fmPrintStarted;
+
+  /// No description provided for @fmAddToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to queue'**
+  String get fmAddToQueue;
+
+  /// No description provided for @fmAddedToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to queue'**
+  String get fmAddedToQueue;
+
+  /// No description provided for @fmUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload file'**
+  String get fmUpload;
+
+  /// No description provided for @fmUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get fmUploading;
+
+  /// No description provided for @fmUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded {name}'**
+  String fmUploaded(String name);
+
+  /// No description provided for @fmUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed'**
+  String get fmUploadFailed;
+
+  /// No description provided for @fmSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String fmSelectedCount(int count);
+
+  /// No description provided for @fmStatsFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{file} other{files}}'**
+  String fmStatsFiles(int count);
+
+  /// No description provided for @fmStatsFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{folder} other{folders}}'**
+  String fmStatsFolders(int count);
+
+  /// No description provided for @fmStatsFree.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} free'**
+  String fmStatsFree(String size);
+
+  /// No description provided for @fmTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get fmTrash;
+
+  /// No description provided for @fmTrashTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get fmTrashTitle;
+
+  /// No description provided for @fmTrashEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash is empty'**
+  String get fmTrashEmpty;
+
+  /// No description provided for @fmRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get fmRestore;
+
+  /// No description provided for @fmRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored'**
+  String get fmRestored;
+
+  /// No description provided for @fmEmptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash'**
+  String get fmEmptyTrash;
+
+  /// No description provided for @fmEmptyTrashConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete all files in trash? This cannot be undone.'**
+  String get fmEmptyTrashConfirm;
+
+  /// No description provided for @fmHardDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get fmHardDelete;
+
+  /// No description provided for @fmHardDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete \"{name}\"? This cannot be undone.'**
+  String fmHardDeleteConfirm(String name);
+
+  /// No description provided for @fmDeletedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deleted'**
+  String get fmDeletedForever;
 }
 
 class _AppLocalizationsDelegate

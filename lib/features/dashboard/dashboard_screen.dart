@@ -476,6 +476,14 @@ class _AppDrawer extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 _DrawerTile(
+                  icon: Icons.folder_outlined,
+                  label: l10n.fileManagerMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/files');
+                  },
+                ),
+                _DrawerTile(
                   icon: Icons.bar_chart_rounded,
                   label: l10n.menuStatistics,
                   onTap: () {
