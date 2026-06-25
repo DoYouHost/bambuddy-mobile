@@ -139,18 +139,42 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   }
 }
 
-/// Wolne drukarki do startu z kolejki: podłączone i nie zajęte wydrukiem
-/// (ani drukowaniem, ani pauzą). Pobiera drukarki + statusy świeżo przy każdym
-/// wywołaniu (autoDispose), bo „wolność" zmienia się w czasie.
-final freePrintersProvider = FutureProvider.autoDispose<List<Printer>>(
+/// Kandydat na docelową drukarkę przy „uruchom następny". Niesie samą drukarkę
+/// oraz to, czy jest aktualnie online i czy ma przypisane smart gniazdko —
+/// żeby UI mógł oznaczyć drukarki OFFLINE (bambuddy je obudzi przed startem).
+typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
+
+/// Drukarki, na których można uruchomić następny wydruk. Wyłączamy tylko te
+/// FAKTYCZNIE zajęte (drukowanie/pauza) — drukarki OFFLINE zostają na liście,
+/// bo bambuddy włączy je przed startem (własnym smart gniazdkiem albo inaczej).
+/// Pobiera drukarki + statusy + mapę gniazdek świeżo przy każdym wywołaniu
+/// (autoDispose), bo dostępność zmienia się w czasie.
+final availablePrintersProvider =
+    FutureProvider.autoDispose<List<PrinterCandidate>>(
   (ref) async {
     final all = await ref.watch(printersRepositoryProvider).fetchAll();
+
+    // Przypisania gniazdek są opcjonalnym wzbogaceniem — ich brak/awaria nie
+    // może blokować wyboru drukarki, więc błąd traktujemy jak „brak gniazdek".
+    Set<int> printersWithPlug = const {};
+    try {
+      final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
+      printersWithPlug = {
+        for (final plug in plugs)
+          if ((plug.enabled ?? true) && plug.printerId != null) plug.printerId!,
+      };
+    } on AppApiException {
+      // zostawiamy pusty zbiór — brak oznaczeń gniazdek
+    }
+
     return [
       for (final p in all)
-        if ((p.status?.connected ?? false) &&
-            !(p.status?.isPrinting ?? false) &&
-            !(p.status?.isPaused ?? false))
-          p.printer,
+        if (!(p.status?.isPrinting ?? false) && !(p.status?.isPaused ?? false))
+          (
+            printer: p.printer,
+            online: p.status?.connected ?? false,
+            hasPlug: printersWithPlug.contains(p.printer.id),
+          ),
     ];
   },
 );

@@ -112,9 +112,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     );
   }
 
-  /// „Uruchom następny": bierze pierwszy oczekujący wydruk, pyta o wolną
-  /// drukarkę i startuje go na niej (przypisanie + start). Uruchamia fizyczny
-  /// wydruk.
+  /// „Uruchom następny": bierze pierwszy oczekujący wydruk, pyta o drukarkę
+  /// i startuje go na niej (przypisanie + start). Uruchamia fizyczny wydruk.
+  /// Drukarki OFFLINE też można wybrać — bambuddy włączy je przed startem
+  /// (smart gniazdkiem albo inaczej); oznaczamy je w wyborze.
   Future<void> _startNext(
     BuildContext context,
     WidgetRef ref,
@@ -122,15 +123,17 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     AppLocalizations l10n,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    final List<Printer> free;
+    final List<PrinterCandidate> candidates;
     try {
-      free = await ref.read(freePrintersProvider.future);
+      candidates = await ref.read(availablePrintersProvider.future);
     } on AppApiException {
       messenger.showSnackBar(SnackBar(content: Text(l10n.ctrlFailed)));
       return;
     }
     if (!context.mounted) return;
-    if (free.isEmpty) {
+    if (candidates.isEmpty) {
+      // Pusto tylko gdy WSZYSTKIE drukarki są zajęte wydrukiem — offline nadal
+      // są wybieralne, więc ten przypadek to realnie „brak wolnych".
       messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
       return;
     }
@@ -147,12 +150,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
               child: Text(l10n.pickPrinterTitle,
                   style: Theme.of(ctx).textTheme.titleMedium),
             ),
-            for (final p in free)
-              ListTile(
-                leading: const Icon(Icons.print_outlined),
-                title: Text(p.name),
-                subtitle: p.model == null ? null : Text(p.model!),
-                onTap: () => Navigator.pop(ctx, p),
+            for (final c in candidates)
+              _PrinterCandidateTile(
+                candidate: c,
+                onTap: () => Navigator.pop(ctx, c.printer),
               ),
           ],
         ),
@@ -167,6 +168,42 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     } else {
       _snackForResult(messenger, l10n, result);
     }
+  }
+}
+
+/// Pozycja drukarki w arkuszu wyboru „uruchom następny": nazwa, status
+/// (online/offline) i ikona gniazdka, gdy drukarka ma przypisane smart
+/// gniazdko (bambuddy włączy je przed startem). Bez tekstu objaśniającego.
+class _PrinterCandidateTile extends StatelessWidget {
+  const _PrinterCandidateTile({required this.candidate, required this.onTap});
+
+  final PrinterCandidate candidate;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final p = candidate.printer;
+    final offline = !candidate.online;
+
+    return ListTile(
+      leading: Icon(
+        offline ? Icons.print_disabled_outlined : Icons.print_outlined,
+        color: offline ? theme.disabledColor : null,
+      ),
+      title: Text(p.name),
+      subtitle: Text(
+        offline ? l10n.offline : l10n.online,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: offline ? theme.disabledColor : theme.colorScheme.primary,
+        ),
+      ),
+      trailing: candidate.hasPlug
+          ? Icon(Icons.power, color: theme.colorScheme.tertiary, size: 20)
+          : null,
+      onTap: onTap,
+    );
   }
 }
 
