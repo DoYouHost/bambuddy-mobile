@@ -27,6 +27,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   final _scrollController = ScrollController();
   Timer? _debounce;
 
+  /// Purge-stats choice from the delete dialog, carried from `confirmDismiss`
+  /// to `onDismissed` (only one swipe is in flight at a time).
+  bool _pendingPurge = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,9 +108,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                               child: Center(child: CircularProgressIndicator()),
                             );
                           }
-                          return _ArchiveCard(
-                            archive: s.items[i],
-                            onTap: () => _openSheet(s.items[i]),
+                          final archive = s.items[i];
+                          return _deletable(
+                            archive,
+                            _ArchiveCard(
+                              archive: archive,
+                              onTap: () => _openSheet(archive),
+                            ),
                           );
                         },
                       ),
@@ -127,8 +135,65 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
+        onDelete: () => _deleteFromSheet(archive),
       ),
     );
+  }
+
+  /// Swipe-to-delete wrapper. Confirmation (with the purge-stats choice) runs
+  /// in `confirmDismiss`; the actual delete runs in `onDismissed` so the
+  /// notifier's optimistic removal stays in sync with the dismiss animation.
+  Widget _deletable(Archive archive, Widget child) {
+    final theme = Theme.of(context);
+    return Dismissible(
+      key: ValueKey('archive_dismiss_${archive.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.delete_outline,
+            color: theme.colorScheme.onErrorContainer),
+      ),
+      confirmDismiss: (_) async {
+        final purge = await _askDelete(archive);
+        if (purge == null) return false;
+        _pendingPurge = purge;
+        return true;
+      },
+      onDismissed: (_) => _deleteArchive(archive, _pendingPurge),
+      child: child,
+    );
+  }
+
+  /// Delete from the bottom sheet: close it, confirm, then delete.
+  Future<void> _deleteFromSheet(Archive archive) async {
+    Navigator.pop(context);
+    final purge = await _askDelete(archive);
+    if (purge == null || !mounted) return;
+    await _deleteArchive(archive, purge);
+  }
+
+  /// Confirmation dialog. Returns `null` on cancel, otherwise whether the print
+  /// should also be purged from statistics (`purge_stats`).
+  Future<bool?> _askDelete(Archive archive) => showDialog<bool>(
+        context: context,
+        builder: (_) => _DeleteArchiveDialog(archiveName: archive.displayName),
+      );
+
+  Future<void> _deleteArchive(Archive archive, bool purgeStats) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(archiveProvider.notifier)
+        .delete(archive.id, purgeStats: purgeStats);
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
+    ));
   }
 
   /// G-code preview: closes sheet and opens full-screen 3D viewer.
@@ -301,12 +366,14 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
+    required this.onDelete,
   });
 
   final Archive archive;
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -372,9 +439,74 @@ class _ArchiveSheet extends StatelessWidget {
                 onPressed: onPreviewGcode,
               ),
             ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline),
+                label: Text(l10n.archiveDelete),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                onPressed: onDelete,
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Delete-confirmation dialog with a "remove from statistics" choice.
+/// Returns `null` (cancel) or the `purge_stats` flag via `Navigator.pop`.
+class _DeleteArchiveDialog extends StatefulWidget {
+  const _DeleteArchiveDialog({required this.archiveName});
+
+  final String archiveName;
+
+  @override
+  State<_DeleteArchiveDialog> createState() => _DeleteArchiveDialogState();
+}
+
+class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
+  bool _purgeStats = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return AlertDialog(
+      title: Text(l10n.archiveDeleteTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.archiveDeleteBody(widget.archiveName)),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _purgeStats,
+            onChanged: (v) => setState(() => _purgeStats = v ?? false),
+            title: Text(l10n.archiveDeletePurgeStats),
+            subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: theme.colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(context, _purgeStats),
+          child: Text(l10n.archiveDelete),
+        ),
+      ],
     );
   }
 }

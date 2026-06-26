@@ -127,6 +127,26 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
       ));
     }
   }
+
+  /// Optimistic delete (swipe / sheet). [purgeStats] also removes the print
+  /// from aggregate statistics. Error → restore the item, returns false.
+  Future<bool> delete(int archiveId, {required bool purgeStats}) async {
+    final current = state.valueOrNull;
+    if (current == null) return false;
+
+    state = AsyncValue.data(current.copyWith(
+      items: current.items.where((a) => a.id != archiveId).toList(),
+    ));
+    try {
+      await ref
+          .read(archiveRepositoryProvider)
+          .delete(archiveId, purgeStats: purgeStats);
+      return true;
+    } on AppApiException {
+      state = AsyncValue.data(current); // rollback
+      return false;
+    }
+  }
 }
 
 /// Lightweight printer list for picker (reprint / add to queue). Config only,

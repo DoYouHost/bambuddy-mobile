@@ -90,4 +90,18 @@ class ArchiveRepository {
       throw mapDioException(e);
     }
   }
+
+  /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
+  /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
+  /// from aggregate statistics.
+  Future<void> delete(int archiveId, {bool purgeStats = false}) async {
+    try {
+      await _dio.delete<dynamic>(
+        Endpoints.archive(archiveId),
+        queryParameters: {'purge_stats': purgeStats},
+      );
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
 }

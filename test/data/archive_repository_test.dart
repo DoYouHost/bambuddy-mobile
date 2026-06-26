@@ -49,4 +49,25 @@ void main() {
 
     await repo.reprint(82, printerId: 1);
   });
+
+  test('delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
+      () async {
+    adapter.onDelete(
+      '/api/v1/archives/82',
+      (server) => server.reply(200, null),
+      queryParameters: {'purge_stats': false},
+    );
+
+    await repo.delete(82);
+  });
+
+  test('delete: purgeStats=true ustawia purge_stats=true w query', () async {
+    adapter.onDelete(
+      '/api/v1/archives/82',
+      (server) => server.reply(200, null),
+      queryParameters: {'purge_stats': true},
+    );
+
+    await repo.delete(82, purgeStats: true);
+  });
 }

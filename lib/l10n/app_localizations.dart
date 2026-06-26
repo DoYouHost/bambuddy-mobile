@@ -590,6 +590,48 @@ abstract class AppLocalizations {
   /// **'Added to queue'**
   String get archiveAddedToQueue;
 
+  /// No description provided for @archiveDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get archiveDelete;
+
+  /// No description provided for @archiveDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete print?'**
+  String get archiveDeleteTitle;
+
+  /// No description provided for @archiveDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{name}\" from the archive.'**
+  String archiveDeleteBody(String name);
+
+  /// No description provided for @archiveDeletePurgeStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Also remove from statistics'**
+  String get archiveDeletePurgeStats;
+
+  /// No description provided for @archiveDeletePurgeStatsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Otherwise the print is kept in your statistics totals.'**
+  String get archiveDeletePurgeStatsHint;
+
+  /// No description provided for @archiveDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Print deleted'**
+  String get archiveDeleted;
+
+  /// No description provided for @archiveDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the print'**
+  String get archiveDeleteFailed;
+
   /// No description provided for @pickPrinterTitle.
   ///
   /// In en, this message translates to:

@@ -280,6 +280,30 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveAddedToQueue => 'Dodano do kolejki';
 
   @override
+  String get archiveDelete => 'Usuń';
+
+  @override
+  String get archiveDeleteTitle => 'Usunąć wydruk?';
+
+  @override
+  String archiveDeleteBody(String name) {
+    return 'Usuń „$name” z archiwum.';
+  }
+
+  @override
+  String get archiveDeletePurgeStats => 'Usuń też ze statystyk';
+
+  @override
+  String get archiveDeletePurgeStatsHint =>
+      'W przeciwnym razie wydruk pozostanie w podsumowaniach statystyk.';
+
+  @override
+  String get archiveDeleted => 'Wydruk usunięty';
+
+  @override
+  String get archiveDeleteFailed => 'Nie udało się usunąć wydruku';
+
+  @override
   String get pickPrinterTitle => 'Wybierz drukarkę';
 
   @override

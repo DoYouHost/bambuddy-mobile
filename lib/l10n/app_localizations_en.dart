@@ -277,6 +277,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddedToQueue => 'Added to queue';
 
   @override
+  String get archiveDelete => 'Delete';
+
+  @override
+  String get archiveDeleteTitle => 'Delete print?';
+
+  @override
+  String archiveDeleteBody(String name) {
+    return 'Remove \"$name\" from the archive.';
+  }
+
+  @override
+  String get archiveDeletePurgeStats => 'Also remove from statistics';
+
+  @override
+  String get archiveDeletePurgeStatsHint =>
+      'Otherwise the print is kept in your statistics totals.';
+
+  @override
+  String get archiveDeleted => 'Print deleted';
+
+  @override
+  String get archiveDeleteFailed => 'Couldn\'t delete the print';
+
+  @override
   String get pickPrinterTitle => 'Choose a printer';
 
   @override

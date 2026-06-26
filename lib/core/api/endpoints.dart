@@ -83,6 +83,10 @@ abstract final class Endpoints {
   static String archiveReprint(int archiveId) =>
       '$apiPrefix/archives/$archiveId/reprint';
 
+  /// Delete an archive (`DELETE`). Soft by default (keeps aggregate stats);
+  /// query `purge_stats=true` hard-deletes, removing the print from statistics.
+  static String archive(int archiveId) => '$apiPrefix/archives/$archiveId';
+
   /// Thumbnail authenticated via `?token=` (camera token), NOT via header
   /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>

@@ -91,6 +91,13 @@
   "archiveReprintConfirmBody": "Plik zostanie wysłany na {printer} i wydruk ruszy.",
   "archiveReprintStarted": "Wydruk uruchomiony",
   "archiveAddedToQueue": "Dodano do kolejki",
+  "archiveDelete": "Usuń",
+  "archiveDeleteTitle": "Usunąć wydruk?",
+  "archiveDeleteBody": "Usuń „{name}” z archiwum.",
+  "archiveDeletePurgeStats": "Usuń też ze statystyk",
+  "archiveDeletePurgeStatsHint": "W przeciwnym razie wydruk pozostanie w podsumowaniach statystyk.",
+  "archiveDeleted": "Wydruk usunięty",
+  "archiveDeleteFailed": "Nie udało się usunąć wydruku",
   "pickPrinterTitle": "Wybierz drukarkę",
   "noPrintersAvailable": "Brak dostępnych drukarek",
 
