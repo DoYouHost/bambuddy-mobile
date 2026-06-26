@@ -56,6 +56,20 @@ bool hmsIsDisplayable(HmsError e, {String? description}) {
   return s != null && s >= 1 && s <= 4;
 }
 
+/// Whether an HMS error should fire a NOTIFICATION — stricter than
+/// [hmsIsDisplayable]. Parity with bambuddy's notification path, which pushes an
+/// error ONLY when it resolves to a known description ("Only notify for errors
+/// with known descriptions — printers send many undocumented/phantom codes that
+/// aren't real errors"). One physical fault (filament runout, open door) makes
+/// the firmware emit several codes at once, most of them undocumented; gating on
+/// a real description collapses that to the one meaningful alert. The card stays
+/// on the looser [hmsIsDisplayable] so it can still list raw codes with a wiki
+/// link.
+bool hmsIsNotifiable(HmsError e, {String? description}) {
+  if (e.message?.trim().isNotEmpty ?? false) return true;
+  return description?.trim().isNotEmpty ?? false;
+}
+
 /// Human-readable error label WITHOUT the code: server message → catalog description →
 /// "severity · module". null if nothing is known (only code remains).
 /// Used by the printer card, which shows the code separately (with wiki link).

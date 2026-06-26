@@ -211,14 +211,21 @@ void main() {
   PrintMonitor monitorAll(
     _FakeNotifications fake, {
     TimerFactory? timer,
+    DateTime Function()? clock,
+    String? Function(HmsError)? hmsDescribe,
   }) =>
       PrintMonitor(
         fake,
         prefs: _allOn,
         l10n: () => lookupAppLocalizations(const Locale('en')),
-        clock: () => DateTime(2026, 6, 12, 20, 0),
+        clock: clock ?? () => DateTime(2026, 6, 12, 20, 0),
         timerFactory: timer,
+        hmsDescribe: hmsDescribe,
       );
+
+  // HMS notifications now require a known description (parity with bambuddy) —
+  // treat every code as documented unless a test says otherwise.
+  String? describeAll(HmsError e) => 'desc';
 
   // Ostatni alert o danym id (alerty tego samego typu współdzielą id per drukarka
   // — na urządzeniu nowy zastępuje stary; tu fake zapisuje wszystkie).
@@ -338,10 +345,11 @@ void main() {
     expect(alertById(fake2, 7001), isNull);
   });
 
-  test('błąd HMS: nowy kod alarmuje, powtórka nie; wyczyszczenie resetuje', () {
+  test('błąd HMS: nowy kod alarmuje, powtórka nie; po łasce pojawia się ponownie',
+      () {
     final fake = _FakeNotifications();
-    final m = monitorAll(fake);
-    // severity 2 = serious → wpis wart pokazania.
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
     const err = HmsError(code: 'A', severity: 2);
     m.update({1: _status(state: 'RUNNING')}); // priming — bez błędów
     m.update({1: _status(state: 'RUNNING', hms: [err])});
@@ -349,15 +357,22 @@ void main() {
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', hms: [err])});
     expect(errorAlerts(fake), isEmpty); // ten sam kod
-    m.update({1: _status(state: 'RUNNING', hms: const [])}); // wyczyszczone
+    // Krótka przerwa (< łaska) i powrót → wciąż ten sam błąd, bez ponownego alertu.
+    m.update({1: _status(state: 'RUNNING', hms: const [])});
+    t = t.add(const Duration(seconds: 5));
     m.update({1: _status(state: 'RUNNING', hms: [err])});
-    expect(errorAlerts(fake), hasLength(1)); // pojawił się ponownie
+    expect(errorAlerts(fake), isEmpty);
+    // Dłuższa nieobecność (> łaska) → kod zapomniany, nowe wystąpienie alarmuje.
+    m.update({1: _status(state: 'RUNNING', hms: const [])});
+    t = t.add(const Duration(seconds: 31));
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+    expect(errorAlerts(fake), hasLength(1));
   });
 
   test('błąd HMS: kilka nowych kodów w jednej ramce → osobne alerty (różne id)',
       () {
     final fake = _FakeNotifications();
-    final m = monitorAll(fake);
+    final m = monitorAll(fake, hmsDescribe: describeAll);
     const a = HmsError(code: 'A', severity: 2);
     const b = HmsError(code: 'B', severity: 3);
     m.update({1: _status(state: 'RUNNING')}); // priming
@@ -367,18 +382,43 @@ void main() {
     expect(alerts.map((e) => e['id']).toSet(), hasLength(2)); // różne id
   });
 
-  test('błąd HMS: wpis wewnętrzny (nieznany severity, brak opisu) jest pomijany',
-      () {
+  test('błąd HMS: kod bez znanego opisu jest pomijany (parytet z bambuddy)', () {
     final fake = _FakeNotifications();
+    // Brak resolvera opisu → kod nieudokumentowany; tak samo X2D szum sev 6.
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING')});
-    // Realny szum z X2D: severity 6, nieznany kod, brak wiadomości.
     m.update({
       1: _status(state: 'RUNNING', hms: [
+        const HmsError(code: 'A', severity: 2), // udokumentowany severity, brak opisu
         const HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 6),
       ]),
     });
-    expect(errorAlerts(fake), isEmpty); // nie alarmujemy
+    expect(errorAlerts(fake), isEmpty); // nic bez opisu nie alarmuje
+  });
+
+  test('błąd HMS: opis serwerowy wystarcza nawet bez katalogu', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake); // bez resolvera katalogu
+    m.update({1: _status(state: 'RUNNING')});
+    m.update({
+      1: _status(state: 'RUNNING', hms: [
+        const HmsError(code: 'A', severity: 2, message: 'Filament runout'),
+      ]),
+    });
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
+  test('błąd HMS: echo anulowania (0500_400E) nie alarmuje', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake, hmsDescribe: describeAll);
+    m.update({1: _status(state: 'RUNNING')});
+    // ecode = attr(0x05000000) + code(0x400E) → short 0500_400E.
+    m.update({
+      1: _status(state: 'RUNNING', hms: [
+        const HmsError(code: '0x400E', attr: 0x05000000, module: 5, severity: 2),
+      ]),
+    });
+    expect(errorAlerts(fake), isEmpty);
   });
 
   test('niski filament: histereza per slot', () {

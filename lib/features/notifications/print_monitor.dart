@@ -30,6 +30,22 @@ const List<int> _milestones = [25, 50, 75];
 /// (similar to OFFLINE card collapse in printer_card.dart).
 const Duration _offlineGrace = Duration(seconds: 15);
 
+/// How long an HMS code is remembered after it last appeared. A code that drops
+/// out of `hms_errors` for less than this is treated as the SAME ongoing fault
+/// and won't re-alert when it flickers back — some codes (e.g. chamber-temp
+/// regulation) toggle on/off every few seconds around a threshold. Parity with
+/// bambuddy's `_HMS_CLEAR_GRACE_SECONDS = 30`.
+const Duration _hmsClearGrace = Duration(seconds: 30);
+
+/// Short HMS codes (`MMMM_EEEE`) the firmware echoes during normal user-cancel
+/// sequences — not faults. bambuddy drops these so they don't surface as alerts
+/// or "X problem" badges. Kept here as a safety net (older servers / the
+/// print_error path may still forward them).
+const Set<String> _hmsUserActionCodes = {
+  '0300_400C', // "The task was canceled."
+  '0500_400E', // "Printing was cancelled."
+};
+
 /// Timer factory — injectable so tests can control time instead of waiting 15s.
 typedef TimerFactory = Timer Function(Duration, void Function());
 
@@ -41,7 +57,11 @@ class _PrinterMemo {
   bool? connected;
   bool offlineNotified = false;
   Timer? offlineTimer;
-  final Set<String> knownHmsCodes = {};
+
+  /// HMS code → last time it was seen in a frame. A code is forgotten once it
+  /// has been absent for [_hmsClearGrace], so a genuinely new occurrence can
+  /// re-alert while brief flaps/gaps stay silent.
+  final Map<String, DateTime> hmsLastSeen = {};
   final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
   bool awaitingBedCool = false;
@@ -167,10 +187,11 @@ class PrintMonitor {
     if (status.connected != null) memo.connected = status.connected;
     final errors = status.hmsErrors;
     if (errors != null) {
-      memo.knownHmsCodes.addAll({
-        for (final e in errors)
-          if (e.code != null) e.code!,
-      });
+      final now = _now();
+      for (final e in errors) {
+        final key = _hmsKey(e);
+        if (key != null) memo.hmsLastSeen[key] = now;
+      }
     }
     _trayRemains(status).forEach((key, remain) {
       if (remain < _prefs.lowFilamentThreshold) memo.lowFilamentTrays.add(key);
@@ -279,26 +300,42 @@ class PrintMonitor {
   void _processHms(int id, PrinterStatus status, _PrinterMemo memo) {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
-    final current = {
-      for (final e in errors)
-        if (e.code != null) e.code!,
-    };
-    final fresh = current.difference(memo.knownHmsCodes);
-    memo.knownHmsCodes
-      ..clear()
-      ..addAll(current);
-    if (fresh.isEmpty || !_on(NotifEvent.printerError)) return;
-    // Alert on EACH new error worth showing (parity with bambuddy — skip
-    // internal/untranslatable entries). Printer may report multiple codes at once;
-    // each has own notification ID so they don't overwrite. Dedup by `knownHmsCodes`
-    // above guarantees one alert per code.
+    final now = _now();
+    // Forget codes absent past the grace window — only those can re-alert. Run
+    // before refreshing so codes present this frame (still within grace) survive.
+    memo.hmsLastSeen
+        .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
+
+    final notify = _on(NotifEvent.printerError);
     for (final e in errors) {
-      if (e.code != null &&
-          fresh.contains(e.code) &&
-          hmsIsDisplayable(e, description: _hmsDescribe?.call(e))) {
-        _alertError(id, status, e);
-      }
+      final key = _hmsKey(e);
+      if (key == null) continue;
+      final isNew = !memo.hmsLastSeen.containsKey(key);
+      memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
+      if (!isNew || !notify) continue;
+      if (_hmsSuppressed(e)) continue;
+      // Notify only on a real, documented fault (parity with bambuddy) — drops
+      // the undocumented/phantom codes the firmware emits alongside one event.
+      if (!hmsIsNotifiable(e, description: _hmsDescribe?.call(e))) continue;
+      _alertError(id, status, e);
     }
+  }
+
+  /// Stable dedup key for an HMS error: full 16-hex `ecode` when available,
+  /// else the raw `code`. null when neither identifies the error.
+  String? _hmsKey(HmsError e) {
+    final ec = e.ecode;
+    if (ec != null) return ec;
+    final c = e.code?.trim();
+    return (c != null && c.isNotEmpty) ? c : null;
+  }
+
+  /// Whether this is a user-action echo (cancel) that must never alert.
+  bool _hmsSuppressed(HmsError e) {
+    final ec = e.ecode;
+    if (ec == null || ec.length != 16) return false;
+    final short = '${ec.substring(0, 4)}_${ec.substring(12, 16)}';
+    return _hmsUserActionCodes.contains(short);
   }
 
   void _processLowFilament(int id, PrinterStatus status, _PrinterMemo memo) {

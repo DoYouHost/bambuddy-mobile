@@ -83,6 +83,23 @@ void main() {
     });
   });
 
+  group('hmsIsNotifiable', () {
+    test('znany severity bez opisu → NIE powiadamiamy (parytet z bambuddy)', () {
+      expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 1)), isFalse);
+      expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 4)), isFalse);
+    });
+
+    test('opis z katalogu → powiadamiamy', () {
+      const e = HmsError(code: 'x', severity: 6);
+      expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
+    });
+
+    test('wiadomość z serwera → powiadamiamy', () {
+      const e = HmsError(code: 'x', message: 'Filament runout');
+      expect(hmsIsNotifiable(e), isTrue);
+    });
+  });
+
   group('hmsWikiUrl', () {
     test('buduje link z podkreśleniami dla pełnego kodu', () {
       const e = HmsError(code: '0x20070', attr: 83887616);
