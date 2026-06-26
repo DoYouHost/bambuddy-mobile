@@ -1424,6 +1424,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     return v.isEmpty ? null : v;
   }
 
+  /// Zmierzona waga to brutto (filament + pusta szpula/rdzeń). Po wpisaniu
+  /// odczytu z wagi przelicza pozostały filament: pozostało = zmierzone −
+  /// waga pustej szpuli. Dzięki temu zapis (weight_used = etykieta − pozostało)
+  /// faktycznie zmienia stan szpuli — bez tego sam odczyt nie aktualizował nic.
+  void _applyScaleWeight(String raw) {
+    final measured = double.tryParse(raw.trim());
+    if (measured == null) return;
+    final core = double.tryParse(_c['coreWeight']!.text.trim()) ?? 0;
+    final remaining = (measured - core).clamp(0, double.infinity);
+    _c['remaining']!.text = remaining.round().toString();
+    setState(() {});
+  }
+
   /// Ustawia kolor z bazy (hex + nazwa + ewentualne gradient/efekt).
   void _applyColor(ColorEntry e) {
     setState(() {
@@ -1576,7 +1589,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 number: true,
                 suffixText:
                     labelInt != null ? l10n.inventoryRemainingOfLabel(labelInt) : null),
-            _field('measured', l10n.inventoryFieldMeasuredWeight, number: true),
+            _field('measured', l10n.inventoryFieldMeasuredWeight,
+                number: true, onChanged: _applyScaleWeight),
             _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
             _field('category', l10n.inventoryFieldCategory),
             _field('lowStock', l10n.inventoryFieldLowStock,
