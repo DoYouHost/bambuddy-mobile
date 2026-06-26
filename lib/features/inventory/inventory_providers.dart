@@ -5,10 +5,10 @@ import '../../core/models/inventory_reference.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
 
-/// Migawka magazynu dla ekranu: wszystkie szpule (z zarchiwizowanymi) plus mapa
-/// `spoolId → przypisanie do slotu AMS`. Filtrowanie (szukaj / pokaż
-/// zarchiwizowane) robimy po stronie klienta na tej liście — dane zmieniają się
-/// wolno, więc jeden fetch wystarcza, a przełączniki działają natychmiast.
+/// Inventory snapshot for the screen: all spools (including archived) plus a map
+/// `spoolId → assignment to AMS slot`. Filtering (search / show archived) is done
+/// client-side on this list — data changes infrequently, so a single fetch suffices
+/// and toggles respond instantly.
 class InventoryState {
   const InventoryState({
     this.spools = const [],
@@ -26,9 +26,9 @@ final inventoryProvider =
   InventoryNotifier.new,
 );
 
-/// Pobiera szpule i przypisania jednym przebiegiem. Przypisania degradują się do
-/// pustej mapy, gdy endpoint padnie/jest niedostępny — lista szpul ważniejsza
-/// niż info, w którym slocie siedzą. Przebudowa przy zmianie profilu/backendu.
+/// Fetches spools and assignments in one pass. Assignments degrade to an empty map
+/// if the endpoint fails/is unavailable — the spool list is more important than
+/// knowing which slot they occupy. Rebuilds on profile/backend change.
 class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
@@ -41,24 +41,23 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     final repo = ref.read(inventoryRepositoryProvider);
     final spools = await repo.fetchSpools(includeArchived: true);
 
-    // Przypisania są dodatkiem — ich brak nie może wywrócić ekranu.
     var bySpool = <int, SpoolAssignment>{};
     try {
       final assignments = await repo.fetchAssignments();
       bySpool = {for (final a in assignments) a.spoolId: a};
     } on Object {
+      // Assignments are a bonus — their absence must not break the screen.
       bySpool = const {};
     }
 
     spools.sort((a, b) {
-      // Kolejność: aktywne przed zarchiwizowanymi; wśród aktywnych — załadowane
-      // (w AMS lub zewnętrznie) przed luźnymi.
+      // Active before archived; among active, assigned (in AMS or external) before loose.
       if (a.isArchived != b.isArchived) return a.isArchived ? 1 : -1;
       final aLoaded = bySpool.containsKey(a.id);
       final bLoaded = bySpool.containsKey(b.id);
       if (aLoaded != bLoaded) return aLoaded ? -1 : 1;
-      // Wśród przypisanych: najpierw szpule z najmniejszą pozostałą masą, by te
-      // bliskie końca rzucały się w oczy. Luźne — alfabetycznie po nazwie.
+      // Among assigned: lowest remaining weight first to highlight near-empty ones.
+      // Loose spools alphabetically by name.
       if (aLoaded && bLoaded) {
         final byRemaining = a.remainingWeight.compareTo(b.remainingWeight);
         if (byRemaining != 0) return byRemaining;
@@ -68,17 +67,16 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     return InventoryState(spools: spools, assignmentBySpool: bySpool);
   }
 
-  /// Pull-to-refresh. Zachowuje poprzednie dane pod spodem (bez mrugania
-  /// spinnerem), wzorzec jak konserwacja.
+  /// Pull-to-refresh. Keeps previous data underneath (no spinner flicker), same pattern as maintenance.
   Future<void> refresh() async {
     state = const AsyncValue<InventoryState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(_load);
   }
 
-  /// Wykonuje mutację, po czym przeładowuje listę (źródło prawdy = serwer —
-  /// bez optymistycznych podmian, bo zapisy są rzadkie, a dane wyliczane).
-  /// Wyjątek propagujemy do wywołującego (UI pokazuje snackbar), ale i tak
-  /// odświeżamy stan. Zwraca utworzoną/zmienioną szpulę (lub null).
+  /// Executes a mutation, then reloads the list (server is source of truth —
+  /// no optimistic updates because writes are rare and data is computed).
+  /// Exceptions propagate to the caller (UI shows snackbar), but state refreshes anyway.
+  /// Returns the created/modified spool (or null).
   Future<Spool?> _mutate(Future<Spool?> Function(InventoryRepository) action) async {
     final repo = ref.read(inventoryRepositoryProvider);
     try {
@@ -106,9 +104,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   Future<void> resetUsage(int spoolId) =>
       _mutate((repo) async => repo.resetUsage(spoolId).then((_) => null));
 
-  /// Przypisuje szpulę do slotu, pilnując że szpula siedzi w DOKŁADNIE jednym
-  /// slocie: jeśli była już gdzie indziej, [from] wskazuje stary slot i najpierw
-  /// ją stamtąd odpinamy (przeniesienie). [from] == ten sam slot → samo przypisanie.
+  /// Assigns a spool to a slot, ensuring it occupies EXACTLY one slot:
+  /// if it was elsewhere, [from] points to the old slot and we unpin it first (move).
+  /// [from] == same slot → just assign.
   Future<void> assignSpool(SpoolAssignmentDraft draft,
           {SpoolAssignment? from}) =>
       _mutate((repo) async {
@@ -127,38 +125,38 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
           repo.unassignSpool(printerId, amsId, trayId).then((_) => null));
 }
 
-/// Rozwiązuje, która szpula z magazynu siedzi w danym slocie konkretnej
-/// drukarki — do wzbogacenia czipów AMS na dashboardzie (dokładna pozostała
-/// waga + nazwa). Budowane z [InventoryState]; matchowanie zależy od kształtu
-/// przypisań (patrz [[inventory-filaments]]).
+/// Resolves which spool from inventory sits in a given slot of a specific printer —
+/// to enrich AMS chips on the dashboard (exact remaining weight + name).
+/// Built from [InventoryState]; matching depends on assignment structure
+/// (see [[inventory-filaments]]).
 class AssignedSpools {
   const AssignedSpools(this.printerId, this._byKey, this._byExtruder);
 
-  /// Pusty resolver (magazyn nieziaładowany / błąd) — nie wzbogaca niczego.
+  /// Empty resolver (inventory not loaded / error) — enriches nothing.
   static const empty = AssignedSpools(-1, {}, {});
 
   final int printerId;
 
-  /// Klucz `amsId * 1000 + trayId` → szpula (sloty jednostek AMS).
+  /// Key `amsId * 1000 + trayId` → spool (AMS unit slots).
   final Map<int, Spool> _byKey;
 
-  /// Ekstruder (1=lewy, 0=prawy) → szpula zewnętrzna.
+  /// Extruder (1=left, 0=right) → external spool.
   final Map<int, Spool> _byExtruder;
 
-  /// Szpula w slocie jednostki AMS (`amsId` = id jednostki, `trayId` = numer
-  /// tacy w jednostce). Null, gdy nic nie przypisano.
+  /// Spool in an AMS unit slot (`amsId` = unit id, `trayId` = tray number in unit).
+  /// Null if nothing is assigned.
   Spool? forAmsSlot(int amsId, int trayId) => _byKey[amsId * 1000 + trayId];
 
-  /// Szpula zewnętrzna karmiąca dany ekstruder (1=lewy, 0=prawy).
+  /// External spool feeding a given extruder (1=left, 0=right).
   Spool? forExtruder(int? extruder) =>
       extruder == null ? null : _byExtruder[extruder];
 
   bool get isEmpty => _byKey.isEmpty && _byExtruder.isEmpty;
 }
 
-/// Resolver przypisań dla jednej drukarki (po `printerId`). Czyta `inventoryProvider`
-/// (współdzieli ten sam fetch co zakładka Filamentów); degraduje się do pustego,
-/// gdy magazyn jeszcze się nie załadował lub padł — dashboard działa bez niego.
+/// Assignment resolver for one printer (by `printerId`). Reads `inventoryProvider`
+/// (shares the same fetch as the Filaments tab); degrades to empty if inventory
+/// hasn't loaded or failed — dashboard works without it.
 final assignedSpoolsProvider =
     Provider.autoDispose.family<AssignedSpools, int>((ref, printerId) {
   final inv = ref.watch(inventoryProvider).valueOrNull;
@@ -180,13 +178,12 @@ final assignedSpoolsProvider =
   return AssignedSpools(printerId, byKey, byExtruder);
 });
 
-/// Tekst wyszukiwania (materiał/marka/kolor/lokalizacja). Filtrowanie po stronie
-/// klienta w widoku.
+/// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 
-/// Zestaw filtrów magazynu (poza wyszukiwaniem) — dobierany w arkuszu filtrów.
-/// Wszystko stosowane po stronie klienta na pełnej liście szpul. Domyślnie:
-/// tylko aktywne, bez ograniczeń. Puste zbiory = „wszystkie".
+/// Set of inventory filters (apart from search) — chosen in the filter sheet.
+/// All applied client-side on the full spool list. Defaults: active only, no limits.
+/// Empty sets = "all".
 class InventoryFilters {
   const InventoryFilters({
     this.showArchived = false,
@@ -196,14 +193,14 @@ class InventoryFilters {
     this.locations = const {},
   });
 
-  /// false → tylko aktywne (domyślnie); true → tylko zarchiwizowane.
+  /// false → active only (default); true → archived only.
   final bool showArchived;
   final bool lowStockOnly;
   final Set<String> materials;
   final Set<String> brands;
   final Set<String> locations;
 
-  /// Liczba niedomyślnych filtrów — na plakietkę przy przycisku filtrów.
+  /// Count of non-default filters — for badge on filter button.
   int get activeCount =>
       (showArchived ? 1 : 0) +
       (lowStockOnly ? 1 : 0) +
@@ -230,16 +227,15 @@ class InventoryFilters {
 final inventoryFiltersProvider =
     StateProvider.autoDispose<InventoryFilters>((_) => const InventoryFilters());
 
-/// Historia zużycia szpuli — ładowana na żądanie w szczegółach (family po id).
+/// Spool usage history — loaded on demand in details (family by id).
 final spoolUsageProvider = FutureProvider.autoDispose
     .family<List<SpoolUsageEntry>, int>(
   (ref, spoolId) => ref.watch(inventoryRepositoryProvider).fetchUsage(spoolId),
 );
 
-/// Dane referencyjne formularza szpuli (Faza 2). Ładowane przy otwarciu
-/// formularza; degradują się do pustej listy (formularz dopuszcza wpis ręczny),
-/// więc błąd nie blokuje dodania szpuli. Trzymane chwilę po zamknięciu
-/// (`keepAlive`), by ponowne otwarcie nie pobierało od nowa.
+/// Spool form reference data (Phase 2). Loaded on form open; degrades to empty list
+/// (form allows manual entry), so errors don't block spool creation. Kept briefly
+/// after close (`keepAlive`) so reopening doesn't fetch again.
 final coreWeightsProvider =
     FutureProvider.autoDispose<List<CoreWeightEntry>>((ref) async {
   ref.keepAlive();
@@ -270,13 +266,13 @@ final filamentPresetsProvider =
   }
 });
 
-/// Opcje dropdownu materiału: stałe popularne + materiały z profili katalogu i
-/// istniejących szpul (zachowane wartości użytkownika). Posortowane, unikalne.
+/// Material dropdown options: fixed popular ones + materials from catalog profiles
+/// and existing spools (preserved user values). Sorted, unique.
 const _commonMaterials = [
   'PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', 'PET', 'PP',
 ];
 
-/// Popularne podtypy/warianty filamentu (pole „Subtype" w bambuddy).
+/// Common filament subtypes/variants (Subtype field in bambuddy).
 const _commonSubtypes = [
   'Basic', 'Matte', 'Silk', 'Tough', 'Translucent', 'Glow', 'Marble',
   'Metal', 'Wood', 'CF', 'GF', 'Sparkle', 'Gradient',

@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 
-/// Miniatura pliku biblioteki. Uwierzytelnia się przez `?token=` (token kamery)
-/// — nagłówek auth NIE działa dla tego zasobu, identycznie jak miniatura
-/// archiwum (patrz `PrintThumbnail`). Placeholder zamiast błędu.
+/// Library file thumbnail. Authenticated via `?token=` (camera token) —
+/// auth header does NOT work for this resource, same as archive thumbnail
+/// (see `PrintThumbnail`). Placeholder instead of error.
 class LibraryThumbnail extends ConsumerWidget {
   const LibraryThumbnail({
     super.key,
@@ -18,8 +18,8 @@ class LibraryThumbnail extends ConsumerWidget {
 
   final int fileId;
 
-  /// Czy serwer w ogóle ma miniaturę (z `thumbnail_path`). Gdy nie — od razu
-  /// placeholder, bez zbędnego strzału po obraz.
+  /// Whether server has thumbnail at all (from `thumbnail_path`). If not —
+  /// show placeholder immediately, no wasted image fetch.
   final bool hasThumbnail;
   final double size;
   final double zoom;

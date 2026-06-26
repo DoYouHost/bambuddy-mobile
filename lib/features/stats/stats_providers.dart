@@ -9,7 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'stats_computed.dart';
 
-/// Etykieta aktywnego zakresu czasu — wspólna dla AppBaru i podpisów widżetów.
+/// Active time range label — shared by AppBar and widget captions.
 String statsRangeLabel(AppLocalizations l10n, StatsRange range) =>
     switch (range) {
       StatsRange.allTime => l10n.statsRangeAllTime,
@@ -20,11 +20,11 @@ String statsRangeLabel(AppLocalizations l10n, StatsRange range) =>
       StatsRange.custom => l10n.statsRangeCustom,
     };
 
-/// Predefiniowane zakresy czasu dla statystyk (odpowiednik dropdownu „All Time"
-/// w wersji web). [custom] używa jawnych [StatsFilter.from]/[StatsFilter.to].
+/// Predefined time ranges for stats (equivalent of web "All Time" dropdown).
+/// [custom] uses explicit [StatsFilter.from]/[StatsFilter.to].
 enum StatsRange { allTime, last7Days, last30Days, last90Days, thisYear, custom }
 
-/// Filtr statystyk: zakres czasu (+ ewentualne jawne daty dla [StatsRange.custom]).
+/// Stats filter: time range (+ optional explicit dates for [StatsRange.custom]).
 @immutable
 class StatsFilter {
   const StatsFilter({this.range = StatsRange.allTime, this.from, this.to});
@@ -51,7 +51,7 @@ class StatsFilter {
   int get hashCode => Object.hash(range, from, to);
 }
 
-/// Aktywny filtr statystyk. Zmiana wartości przeładowuje [statsProvider].
+/// Active stats filter. Changing value reloads [statsProvider].
 final statsFilterProvider =
     NotifierProvider<StatsFilterNotifier, StatsFilter>(StatsFilterNotifier.new);
 
@@ -60,7 +60,7 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
   StatsFilter build() => const StatsFilter();
 
   void setRange(StatsRange range) {
-    if (range == StatsRange.custom) return; // custom ustawia setCustom
+    if (range == StatsRange.custom) return; // custom uses setCustom
     state = StatsFilter(range: range);
   }
 
@@ -69,9 +69,9 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
   }
 }
 
-/// Pobrane statystyki dla aktywnego [statsFilterProvider]. Liczymy daty
-/// `from`/`to` z wybranego zakresu i delegujemy do repozytorium. Daty względne
-/// kotwiczymy do [now] obliczanego raz na build (nie trzymamy zegara w stanie).
+/// Fetched statistics for active [statsFilterProvider]. We compute `from`/`to`
+/// dates from chosen range and delegate to repository. Relative dates anchored to
+/// [now] computed once per build (no clock in state).
 final statsProvider =
     AutoDisposeAsyncNotifierProvider<StatsNotifier, ArchiveStats>(
   StatsNotifier.new,
@@ -86,7 +86,7 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
     return ref.read(statsRepositoryProvider).fetch(from: from, to: to);
   }
 
-  /// Pull-to-refresh: ponów pobranie dla bieżącego filtra.
+  /// Pull-to-refresh: refetch for current filter.
   Future<void> refresh() async {
     state = const AsyncValue<ArchiveStats>.loading().copyWithPrevious(state);
     final filter = ref.read(statsFilterProvider);
@@ -96,8 +96,8 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
     );
   }
 
-  /// Zamienia [StatsRange] na konkretne `from`/`to`. `allTime` → oba `null`
-  /// (serwer zwraca całość). Zakresy względne liczymy wstecz od dziś.
+  /// Convert [StatsRange] to concrete `from`/`to`. `allTime` → both `null`
+  /// (server returns all). Relative ranges computed backward from today.
   static (DateTime?, DateTime?) _resolveDates(StatsFilter f) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -112,8 +112,8 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
   }
 }
 
-/// Mapa `printer_id → nazwa` do podpisania rozbicia „po drukarce". Tylko
-/// konfiguracja (bez statusów) — tania. Brak wpisu → UI pokaże `#id`.
+/// Map `printer_id → name` to label "by printer" breakdown. Config only
+/// (no statuses) — cheap. Missing entry → UI shows `#id`.
 final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
   (ref) async {
     final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
@@ -121,8 +121,8 @@ final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
   },
 );
 
-/// Lekka lista wszystkich wydruków dla aktywnego filtra — źródło bogatych
-/// statystyk (heatmapa, rekordy, kolory, zużycie w czasie, histogramy).
+/// Slim list of all prints for active filter — source of rich stats (heatmap,
+/// records, colors, usage over time, histograms).
 final archiveSlimProvider =
     FutureProvider.autoDispose<List<ArchiveSlim>>((ref) async {
   ref.watch(serverProfileProvider);
@@ -131,7 +131,7 @@ final archiveSlimProvider =
   return ref.read(statsRepositoryProvider).fetchSlim(from: from, to: to);
 });
 
-/// Policzone agregaty z lekkiej listy (czyste przeliczenie, bez I/O).
+/// Computed aggregates from slim list (pure calculation, no I/O).
 final statsComputedProvider =
     Provider.autoDispose<AsyncValue<StatsComputed>>((ref) {
   return ref
@@ -139,22 +139,22 @@ final statsComputedProvider =
       .whenData((items) => StatsComputed.from(items));
 });
 
-/// Trwały cache analizy niepowodzeń (na dysku, SharedPreferences).
+/// Persistent failure analysis cache (on disk, SharedPreferences).
 final failureAnalysisCacheProvider = Provider<FailureAnalysisCache>(
   (ref) => FailureAnalysisCache(ref.watch(sharedPreferencesProvider)),
 );
 
-/// Analiza niepowodzeń dla aktywnego filtra — z cache i przyrostowym
-/// dociąganiem. Po wejściu na ekran natychmiast pokazuje ostatni zapis z cache,
-/// a w tle dociąga brakujący okres i podmienia stan:
-/// - „cały okres": bankuje pełne dni (archiwum jest append-only) i osobno
-///   dolicza dzisiejszy, niekompletny dzień — serwer liczy tylko wąskie okno
-///   zamiast całego archiwum przy każdym wejściu;
-/// - pozostałe zakresy: pełny refetch (stale-while-revalidate), bo dolna
-///   granica okna przesuwa się w czasie i czysty przyrost nie jest poprawny.
+/// Failure analysis for active filter — with cache and incremental fetch.
+/// On screen entry, immediately show last cached result, then fetch missing
+/// period in background and update state:
+/// - "all time": bank complete days (archive is append-only) and separately
+///   add today's incomplete day — server counts only narrow window instead of
+///   whole archive on each entry;
+/// - other ranges: full refetch (stale-while-revalidate) because window's lower
+///   bound shifts over time and pure increment isn't correct.
 ///
-/// Dla „całego okresu" zamiast braku dat (serwer domyśla się wtedy 30 dni)
-/// kotwiczymy `from` w dawnej przeszłości, by objąć całe archiwum.
+/// For "all time" instead of no dates (server would guess 30 days), anchor `from`
+/// in far past to cover entire archive.
 final failureAnalysisProvider =
     AutoDisposeAsyncNotifierProvider<FailureAnalysisNotifier, FailureAnalysis>(
   FailureAnalysisNotifier.new,
@@ -172,11 +172,11 @@ class FailureAnalysisNotifier
 
     final cached = ref.read(failureAnalysisCacheProvider).load(filter);
     if (cached != null) {
-      // Pokaż cache od razu; dociągnij świeże w tle i podmień.
+      // Show cache immediately; fetch fresh data in background and update.
       _refreshInBackground(filter, cached);
       return cached.analysis;
     }
-    // Brak cache (np. pierwsze uruchomienie) — pełna ścieżka.
+    // No cache (e.g., first launch) — full fetch.
     return _fetch(filter, base: null);
   }
 
@@ -186,13 +186,13 @@ class FailureAnalysisNotifier
         final fresh = await _fetch(filter, base: base);
         if (!_disposed) state = AsyncData(fresh);
       } on Object {
-        // Cicho — na ekranie zostaje pokazany cache.
+        // Silent — cache stays shown on screen.
       }
     });
   }
 
-  /// Liczy świeży wynik i aktualizuje cache. Dla „całego okresu" doklejamy tylko
-  /// brakujący okres do [base]; inaczej pełne pobranie całego zakresu.
+  /// Compute fresh result and update cache. For "all time" append only missing
+  /// period to [base]; otherwise full fetch of entire range.
   Future<FailureAnalysis> _fetch(
     StatsFilter filter, {
     required FailureCacheEntry? base,
@@ -212,9 +212,9 @@ class FailureAnalysisNotifier
       return full;
     }
 
-    // „Cały okres" przyrostowo. Cache trzyma agregat PEŁNYCH dni
-    // [2000..coveredThrough] BEZ dzisiejszego (niekompletnego) dnia — ten
-    // zawsze dociągamy świeżo, by nie zamrozić częściowych danych w cache.
+    // "All time" incrementally. Cache holds aggregate of COMPLETE days
+    // [2000..coveredThrough] WITHOUT today's (incomplete) day — that's always
+    // fetched fresh to avoid freezing partial data in cache.
     final yesterday = DateTime(today.year, today.month, today.day - 1);
     var banked = base?.analysis ?? const FailureAnalysis();
     final coveredThrough = base?.coveredThrough;
@@ -222,7 +222,7 @@ class FailureAnalysisNotifier
         ? DateTime(2000)
         : DateTime(coveredThrough.year, coveredThrough.month,
             coveredThrough.day + 1);
-    // Dobankuj dni, które domknęły się od ostatniego razu (zwykle 0–1 dnia).
+    // Bank days that closed since last time (typically 0–1 day).
     if (!bankStart.isAfter(yesterday)) {
       final bank = await repo.fetchFailures(from: bankStart, to: yesterday);
       banked = banked.merge(bank);
@@ -232,7 +232,7 @@ class FailureAnalysisNotifier
             analysis: banked, coveredThrough: yesterday, fetchedAt: now),
       );
     }
-    // Dzisiejszy, niekompletny dzień — osobno, poza cache.
+    // Today's incomplete day — separate, outside cache.
     final todayPart = await repo.fetchFailures(from: today, to: today);
     return banked.merge(todayPart);
   }

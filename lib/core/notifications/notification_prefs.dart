@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-/// Typy lokalnych powiadomień, jakie potrafi wykryć [PrintMonitor] z ramek WS
-/// `printer_status`. Świadomie pomijamy zdarzenia kolejki / funkcje serwera
-/// bambuddy (quiet hours, digest, providers) — tu liczy się tylko to, co da się
-/// wywnioskować lokalnie ze statusu drukarki.
+/// Local notification types that [PrintMonitor] can detect from WS `printer_status` frames.
+/// Intentionally omits queue events and bambuddy server features (quiet hours, digests, providers) —
+/// only includes what can be inferred locally from printer status.
 enum NotifEvent {
   printStarted,
   printFinished,
@@ -17,16 +16,16 @@ enum NotifEvent {
   amsHumidity,
   bedCooled,
 
-  /// Czynność konserwacji stała się przeterminowana (`is_due`). Źródło: REST
-  /// `/maintenance/overview` (NIE ramki WS) — sprawdzane periodycznie w tle.
+  /// Maintenance task became overdue (`is_due`). Source: REST `/maintenance/overview`
+  /// (NOT WS frames) — checked periodically in background.
   maintenanceDue,
 }
 
-/// Wybór użytkownika: które zdarzenia mają puszczać powiadomienie i z jakimi
-/// progami. Serializowana do JEDNEGO stringa w SharedPreferences, by isolate tła
-/// (który czyta `SharedPreferences.getInstance()` od zera) mógł ją odczytać tak
-/// samo jak UI. Parsowanie tolerancyjne — nieznana nazwa zdarzenia jest
-/// pomijana (kompatybilność wprzód: starsza apka nie wywróci się na nowym enumie).
+/// User's notification preferences: which events trigger notifications and with what thresholds.
+/// Serialized to a SINGLE JSON string in SharedPreferences so the background isolate
+/// (which reads `SharedPreferences.getInstance()` from scratch) can parse it the same way as the UI.
+/// Parsing is lenient — unknown event names are skipped (forward compatibility:
+/// older app won't crash on new enum values).
 class NotificationPrefs {
   const NotificationPrefs({
     required this.enabled,
@@ -35,24 +34,24 @@ class NotificationPrefs {
     this.lowFilamentThreshold = defaultLowFilament,
   });
 
-  /// Zbiór zdarzeń, dla których puszczamy powiadomienie.
+  /// Set of events for which we send notifications.
   final Set<NotifEvent> enabled;
 
-  /// Próg „stół wystygł": alert, gdy temperatura stołu spadnie poniżej (°C).
+  /// Threshold for "bed cooled": alert when bed temperature falls below (°C).
   final int bedCooledTemp;
 
-  /// Próg „wysoka wilgotność AMS": alert, gdy wilgotność przekroczy (%).
+  /// Threshold for "high AMS humidity": alert when humidity exceeds (%).
   final int amsHumidityThreshold;
 
-  /// Próg „niski filament": alert, gdy pozostała ilość spadnie poniżej (%).
+  /// Threshold for "low filament": alert when remaining amount falls below (%).
   final int lowFilamentThreshold;
 
   static const int defaultBedCooledTemp = 35;
   static const int defaultAmsHumidity = 60;
   static const int defaultLowFilament = 10;
 
-  /// Domyślnie włączone tylko zdarzenia „akcyjne"; reszta cicho (OFF), by nie
-  /// zalewać użytkownika — sam je włączy w ustawieniach.
+  /// By default, only "actionable" events are enabled; the rest are silent (OFF)
+  /// to avoid overwhelming the user — they can enable them in settings.
   static const Set<NotifEvent> _defaultEnabled = {
     NotifEvent.printFinished,
     NotifEvent.printFailed,
@@ -79,7 +78,7 @@ class NotificationPrefs {
         lowFilamentThreshold: lowFilamentThreshold ?? this.lowFilamentThreshold,
       );
 
-  /// Włącza/wyłącza pojedyncze zdarzenie i zwraca nowy obiekt.
+  /// Toggles a single event and returns a new object.
   NotificationPrefs withEvent(NotifEvent e, bool on) {
     final next = {...enabled};
     if (on) {
@@ -118,7 +117,7 @@ class NotificationPrefs {
     );
   }
 
-  /// Dekoduje z surowego stringa SharedPreferences; uszkodzony/pusty → domyślne.
+  /// Decodes from a raw SharedPreferences string; corrupted/empty → defaults.
   factory NotificationPrefs.decode(String? raw) {
     if (raw == null || raw.isEmpty) return defaults;
     try {

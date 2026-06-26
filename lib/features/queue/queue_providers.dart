@@ -5,8 +5,8 @@ import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
 import '../../providers.dart';
 
-/// Wynik akcji kolejki zwracany do widżetu — to on pokazuje SnackBar
-/// (notifier nie ma [BuildContext]). Analogicznie do sterowania w M4.
+/// Queue action result returned to widget — it shows the SnackBar
+/// (notifier has no [BuildContext]). Similar to M4 controls.
 enum QueueActionResult { ok, forbidden, error }
 
 final queueProvider =
@@ -14,28 +14,25 @@ final queueProvider =
   QueueNotifier.new,
 );
 
-/// Kolejka wydruku (M5). Pokazujemy tylko elementy AKTYWNE (oczekujące,
-/// zaplanowane, drukujące, wstrzymane) posortowane po `position` — historia
-/// (completed/cancelled) żyje w archiwum, nie w kolejce.
+/// Print queue (M5). Shows only ACTIVE items (pending, scheduled, printing, paused)
+/// sorted by `position` — history (completed/cancelled) lives in archive, not queue.
 ///
-/// Reorder i usuwanie są optymistyczne z rollbackiem (wzorzec
-/// `ControlsNotifier` z M4): UI reaguje natychmiast, błąd cofa zmianę.
-/// Start/anuluj zmieniają stan po stronie serwera (start uruchamia fizyczny
-/// wydruk!), więc po sukcesie dociągamy świeżą listę zamiast zgadywać.
+/// Reorder and delete are optimistic with rollback (M4's `ControlsNotifier` pattern):
+/// UI responds immediately, error reverts change. Start/cancel change server state
+/// (start triggers physical print!), so we fetch fresh list on success instead of guessing.
 class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   @override
   Future<List<QueueItem>> build() async {
-    // Przebudowa przy zmianie profilu serwera (inny klucz/uprawnienia).
+    // Rebuild on server profile change (different key/permissions).
     ref.watch(serverProfileProvider);
     final all = await ref.read(queueRepositoryProvider).fetch();
     return _activeSorted(all);
   }
 
   List<QueueItem> _activeSorted(List<QueueItem> items) {
-    // Drukujące zawsze na górze (przypięte, nieprzesuwalne w UI), potem reszta
-    // po `position` z `id` jako tiebreakerem: serwer domyślnie trzyma
-    // `position == 1` dla wszystkich, dopóki kolejka nie zostanie ułożona, więc
-    // bez stabilnego tiebreakera kolejność byłaby nieokreślona.
+    // Printing always on top (pinned, non-reorderable in UI), then rest by
+    // `position` with `id` as tiebreaker: server defaults all to `position == 1`
+    // until queue is arranged, so stable tiebreaker is needed or order is undefined.
     int printingFirst(QueueItem i) =>
         i.statusKind == QueueItemStatusKind.printing ? 0 : 1;
     return items.where((i) => i.isActive).toList()
@@ -47,8 +44,8 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       });
   }
 
-  /// Pull-to-refresh / odświeżenie po mutacji. Zachowuje poprzednią listę
-  /// pod spodem (AsyncLoading z previous), żeby UI nie mrugało spinnerem.
+  /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
+  /// (AsyncLoading with previous) so UI doesn't flicker with spinner.
   Future<void> refresh() async {
     state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
@@ -56,13 +53,12 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     );
   }
 
-  /// Optymistyczna zmiana kolejności (drag&drop). Indeksy w konwencji
-  /// `onReorderItem` z `ReorderableListView` — `newIndex` jest JUŻ skorygowany
-  /// o usunięcie elementu spod `oldIndex`, więc wstawiamy bez dodatkowej korekty.
-  /// Na serwer wysyłamy SEKWENCYJNE pozycje 1..N w nowej kolejności — endpoint
-  /// „bulk update positions" oczekuje wartości docelowych, a domyślnie wszystkie
-  /// elementy mają `position == 1` (zweryfikowane na żywo, patrz reorder w
-  /// kontrakcie). Błąd → rollback do stanu sprzed przeciągnięcia.
+  /// Optimistic reorder (drag&drop). Indices in `onReorderItem` convention from
+  /// `ReorderableListView` — `newIndex` is already adjusted for removing from
+  /// `oldIndex`, so insert without additional correction. Send SEQUENTIAL positions
+  /// 1..N in new order to server — "bulk update positions" endpoint expects target
+  /// values, and all items default to `position == 1` (verified live, see reorder in
+  /// contract). Error → rollback to pre-drag state.
   Future<QueueActionResult> reorder(int oldIndex, int newIndex) async {
     final current = state.valueOrNull;
     if (current == null) return QueueActionResult.error;
@@ -85,7 +81,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     }
   }
 
-  /// Optymistyczne usunięcie (swipe-to-delete). Błąd → przywrócenie elementu.
+  /// Optimistic delete (swipe-to-delete). Error → restore item.
   Future<QueueActionResult> delete(int itemId) async {
     final current = state.valueOrNull;
     if (current == null) return QueueActionResult.error;
@@ -102,18 +98,18 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     }
   }
 
-  /// Ręczne wystartowanie elementu — uruchamia fizyczny wydruk. Po sukcesie
-  /// dociągamy świeżą listę (status zmienia się po stronie serwera).
+  /// Manually start item — triggers physical print. On success, fetch fresh list
+  /// (status changes server-side).
   Future<QueueActionResult> start(int itemId) =>
       _serverAction(() => ref.read(queueRepositoryProvider).start(itemId));
 
-  /// Anulowanie elementu kolejki. Po sukcesie odświeżenie listy.
+  /// Cancel queue item. On success, refresh list.
   Future<QueueActionResult> cancel(int itemId) =>
       _serverAction(() => ref.read(queueRepositoryProvider).cancel(itemId));
 
-  /// Przypisanie wskazanej (wolnej) drukarki i wystartowanie elementu —
-  /// uruchamia fizyczny wydruk. `start` nie przyjmuje drukarki, więc najpierw
-  /// PATCH `printer_id`, potem POST `start`. Po sukcesie odświeżenie listy.
+  /// Assign indicated (free) printer and start item — triggers physical print.
+  /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
+  /// On success, refresh list.
   Future<QueueActionResult> startOnPrinter(int itemId, int printerId) =>
       _serverAction(() async {
         final repo = ref.read(queueRepositoryProvider);
@@ -139,23 +135,22 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   }
 }
 
-/// Kandydat na docelową drukarkę przy „uruchom następny". Niesie samą drukarkę
-/// oraz to, czy jest aktualnie online i czy ma przypisane smart gniazdko —
-/// żeby UI mógł oznaczyć drukarki OFFLINE (bambuddy je obudzi przed startem).
+/// Candidate for target printer in "start next". Carries printer itself plus
+/// whether it's currently online and has smart plug assigned — so UI can mark
+/// OFFLINE printers (bambuddy will wake them before start).
 typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
 
-/// Drukarki, na których można uruchomić następny wydruk. Wyłączamy tylko te
-/// FAKTYCZNIE zajęte (drukowanie/pauza) — drukarki OFFLINE zostają na liście,
-/// bo bambuddy włączy je przed startem (własnym smart gniazdkiem albo inaczej).
-/// Pobiera drukarki + statusy + mapę gniazdek świeżo przy każdym wywołaniu
-/// (autoDispose), bo dostępność zmienia się w czasie.
+/// Printers available to start next print on. Only exclude those ACTUALLY busy
+/// (printing/paused) — OFFLINE printers stay in list because bambuddy will wake
+/// them before start (with own smart plug or otherwise). Fetches printers + statuses
+/// + plug map fresh on each call (autoDispose) because availability changes over time.
 final availablePrintersProvider =
     FutureProvider.autoDispose<List<PrinterCandidate>>(
   (ref) async {
     final all = await ref.watch(printersRepositoryProvider).fetchAll();
 
-    // Przypisania gniazdek są opcjonalnym wzbogaceniem — ich brak/awaria nie
-    // może blokować wyboru drukarki, więc błąd traktujemy jak „brak gniazdek".
+    // Plug assignments are optional enrichment — their absence/failure can't block
+    // printer selection, so treat error as "no plugs".
     Set<int> printersWithPlug = const {};
     try {
       final plugs = await ref.read(smartPlugsRepositoryProvider).fetchPlugs();
@@ -164,7 +159,7 @@ final availablePrintersProvider =
           if ((plug.enabled ?? true) && plug.printerId != null) plug.printerId!,
       };
     } on AppApiException {
-      // zostawiamy pusty zbiór — brak oznaczeń gniazdek
+      // Leave empty set — no plug markings
     }
 
     return [

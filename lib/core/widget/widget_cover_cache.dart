@@ -3,23 +3,23 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Pobiera i cache'uje okładkę bieżącego wydruku (`cover_url`) do pliku, którego
-/// ścieżkę bierze widget ekranu głównego (dekoduje ją natywny provider przez
-/// `setImageViewBitmap`). Okładka jest uwierzytelniana tokenem kamery jako
-/// `?token=` (NIE nagłówkiem — patrz pamięć archive-thumbnail-auth-m5), więc
-/// ściągamy gołym Dio z mintowanym tokenem i retry na 401.
+/// Fetches and caches the current print cover (`cover_url`) to a file, whose path
+/// the home screen widget reads (native provider decodes it via `setImageViewBitmap`).
+/// The cover is authenticated as a camera token via `?token=` (NOT a header — see
+/// archive-thumbnail-auth-m5 memory), so we fetch with bare Dio using a minted token
+/// and retry on 401.
 ///
-/// Stan cache jest per-isolate (statyczny): apka na pierwszym planie i isolate
-/// tła mają osobne instancje — każda ściąga raz na zmianę `cover_url`. Plik jest
-/// stały (`widget_cover.jpg`) i nadpisywany, więc nie puchnie.
+/// Cache state is per-isolate (static): the foreground app and background isolate have
+/// separate instances — each fetches once per `cover_url` change. The file is fixed
+/// (`widget_cover.jpg`) and overwritten, so it doesn't grow.
 class WidgetCoverCache {
   WidgetCoverCache._();
 
   static String? _lastUrl;
   static String? _lastPath;
 
-  /// Zwraca lokalną ścieżkę pliku okładki albo `null` (brak/nieudane). Pomija
-  /// pobranie, gdy `cover_url` się nie zmienił od ostatniego razu.
+  /// Returns the local cover file path, or `null` (missing/failed). Skips fetching
+  /// if `cover_url` hasn't changed since the last call.
   static Future<String?> fetch({
     required String baseUrl,
     required String coverPath,
@@ -39,12 +39,12 @@ class WidgetCoverCache {
       _lastPath = file.path;
       return file.path;
     } on Object {
-      // Pobranie okładki nie może wywrócić publikacji widgetu.
+      // Cover fetch failure cannot break widget publication.
       return null;
     }
   }
 
-  /// GET obrazka z `?token=`; po 401 mintuje świeży token i próbuje raz jeszcze.
+  /// GETs the image using `?token=`; on 401, mints a fresh token and retries once.
   static Future<List<int>?> _download(
     String url,
     Dio dio,
@@ -68,8 +68,8 @@ class WidgetCoverCache {
     }
   }
 
-  /// Czyści zapamiętany URL — wymusza ponowne pobranie przy następnej publikacji
-  /// (np. gdy druk się skończył i okładka ma zniknąć).
+  /// Clears the cached URL — forces a re-fetch on the next publish
+  /// (e.g., when a print finishes and the cover should disappear).
   static void reset() {
     _lastUrl = null;
     _lastPath = null;

@@ -4,14 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 
-/// Miniatura wydruku z archiwum (kolejka + archiwum). Uwierzytelnia się przez
-/// `?token=` (token kamery) — nagłówek auth NIE działa dla tego zasobu,
-/// zweryfikowane na żywo. Wzorzec identyczny jak okładka w printer_card.
-/// Placeholder zamiast błędu — nigdy nie wywraca karty.
+/// Print thumbnail from archive (queue + archive). Auth via `?token=`
+/// (camera token) — auth header does NOT work for this resource, live-verified.
+/// Pattern identical to cover in printer_card. Placeholder instead of error —
+/// never crashes card.
 ///
-/// Renderowane miniatury mają sporo pustego marginesu wokół modelu, więc
-/// skalujemy zawartość ([zoom], domyślnie 140%) wewnątrz przycięcia, by
-/// „dokadrować" wydruk i wypełnić kafelek.
+/// Rendered thumbnails have lots of empty margin around model, so we scale
+/// content ([zoom], default 140%) inside crop to "frame" the print and fill tile.
 class PrintThumbnail extends ConsumerWidget {
   const PrintThumbnail({
     super.key,
@@ -20,11 +19,11 @@ class PrintThumbnail extends ConsumerWidget {
     this.zoom = 1.4,
   });
 
-  /// Id archiwum; gdy null → placeholder (np. element kolejki bez archiwum).
+  /// Archive id; when null → placeholder (e.g. queue item without archive).
   final int? archiveId;
   final double size;
 
-  /// Współczynnik powiększenia zawartości miniatury (crop pustego marginesu).
+  /// Scale factor of thumbnail content (crop empty margin).
   final double zoom;
 
   @override

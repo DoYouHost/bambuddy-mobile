@@ -4,20 +4,18 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/maintenance.dart';
 
-/// REST-owe źródło danych o konserwacji drukarek (M7): przegląd stanu per
-/// drukarka, oznaczanie czynności jako wykonanej (reset licznika) i historia.
+/// REST data source for printer maintenance (M7): status overview per printer,
+/// mark task as done (reset counter), and history.
 ///
-/// Auth dokłada `AuthInterceptor` na współdzielonym Dio. Parsowanie list jest
-/// defensywne (zły wpis pomijamy), a [fetchPrinter] degraduje się do `null`
-/// przy błędach innych niż auth — pojedyncza nieosiągalna drukarka nie może
-/// wywrócić przypomnienia po wydruku.
+/// Auth adds `AuthInterceptor` to the shared Dio. List parsing is defensive
+/// (skip bad entries), and [fetchPrinter] degrades to `null` on non-auth errors —
+/// a single unreachable printer won't break post-print reminders.
 class MaintenanceRepository {
   MaintenanceRepository(this._dio);
 
   final Dio _dio;
 
-  /// `GET /maintenance/overview` — wszystkie aktywne drukarki. Pojedynczy
-  /// niesparsowalny wpis pomijamy.
+  /// `GET /maintenance/overview` — all active printers. Skip unparseable entries.
   Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
     final List<dynamic> body;
     try {
@@ -30,8 +28,8 @@ class MaintenanceRepository {
     return _parseOverviews(body);
   }
 
-  /// `GET /maintenance/printers/{id}` — jedna drukarka. Auth wypływa
-  /// (UI → /setup); reszta degraduje się do `null`.
+  /// `GET /maintenance/printers/{id}` — one printer. Auth errors bubble up
+  /// (UI → /setup); other errors degrade to `null`.
   Future<PrinterMaintenanceOverview?> fetchPrinter(int printerId) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -48,8 +46,8 @@ class MaintenanceRepository {
     }
   }
 
-  /// `POST /maintenance/items/{id}/perform` — reset licznika. Body
-  /// `{"notes": notes}`. 403 (brak uprawnień) → [AuthException(forbidden)].
+  /// `POST /maintenance/items/{id}/perform` — reset counter. Body `{"notes": notes}`.
+  /// 403 (no permission) → [AuthException(forbidden)].
   Future<void> perform(int itemId, {String? notes}) async {
     try {
       await _dio.post<dynamic>(
@@ -61,7 +59,7 @@ class MaintenanceRepository {
     }
   }
 
-  /// `GET /maintenance/items/{id}/history` — historia wykonania.
+  /// `GET /maintenance/items/{id}/history` — execution history.
   Future<List<MaintenanceHistoryEntry>> fetchHistory(int itemId) async {
     final List<dynamic> body;
     try {

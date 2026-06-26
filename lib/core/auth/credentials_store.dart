@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Magazyn sekretów. Abstrakcja po to, by czysto-dartowy rdzeń
-/// (AuthService, interceptor) dało się testować mockiem bez pluginu.
+/// Secrets store. Abstraction so pure-Dart core (AuthService, interceptor)
+/// is testable with mock without plugin.
 abstract class CredentialsStore {
   Future<String?> readJwt();
   Future<void> writeJwt(String token);
@@ -9,15 +9,15 @@ abstract class CredentialsStore {
   Future<String?> readApiKey();
   Future<void> writeApiKey(String key);
 
-  /// Login+hasło trzymane WYŁĄCZNIE przy opt-in „zapamiętaj mnie" —
-  /// umożliwiają cichy re-login po wygaśnięciu JWT (24 h, brak refresh-tokena).
+  /// Username+password stored ONLY on opt-in "remember me" —
+  /// enable silent re-login after JWT expiry (24 h, no refresh token).
   Future<({String username, String password})?> readRememberedLogin();
   Future<void> writeRememberedLogin(String username, String password);
 
   Future<void> clearAll();
 }
 
-/// Implementacja na Android Keystore przez flutter_secure_storage.
+/// Implementation using Android Keystore via flutter_secure_storage.
 class SecureCredentialsStore implements CredentialsStore {
   SecureCredentialsStore([FlutterSecureStorage? storage])
       : _storage = storage ?? const FlutterSecureStorage();

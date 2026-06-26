@@ -1,11 +1,10 @@
-/// Dane referencyjne formularza szpuli (Faza 2): katalog wag rdzeni, baza
-/// kolorów i profile filamentów. Wszystko z natywnego `/inventory/*` oraz
-/// `/filament-catalog/*`. Parsowanie defensywne (tolerancyjne typy, nieznane
-/// klucze ignorowane), jak reszta modeli magazynu.
+/// Reference data for spool form (Phase 2): core weight catalog, color database,
+/// filament profiles. All from native `/inventory/*` and `/filament-catalog/*`.
+/// Defensive parsing (tolerant types, unknown keys ignored), like other inventory models.
 library;
 
-/// Wpis katalogu wag rdzeni szpuli (`CatalogEntryResponse`) — pole
-/// „Empty Spool Weight". Wybór ustawia `core_weight` + `core_weight_catalog_id`.
+/// Spool core weight catalog entry (`CatalogEntryResponse`) — "Empty Spool Weight"
+/// field. Selection sets `core_weight` + `core_weight_catalog_id`.
 class CoreWeightEntry {
   const CoreWeightEntry({
     required this.id,
@@ -26,12 +25,12 @@ class CoreWeightEntry {
   final int weight;
   final bool isDefault;
 
-  /// Etykieta do dropdownu: „Bambu Lab – Plastic Low Temp · 250 g".
+  /// Dropdown label: "Bambu Lab – Plastic Low Temp · 250 g".
   String get label => '$name · $weight g';
 }
 
-/// Wpis bazy kolorów (`ColorEntryResponse`) — picker kolorów. Wybór ustawia
-/// `rgba`/`color_name` (+ opcjonalnie `extra_colors`/`effect_type`).
+/// Color database entry (`ColorEntryResponse`) — color picker. Selection sets
+/// `rgba`/`color_name` (+ optionally `extra_colors`/`effect_type`).
 class ColorEntry {
   const ColorEntry({
     required this.id,
@@ -59,7 +58,7 @@ class ColorEntry {
   final String manufacturer;
   final String colorName;
 
-  /// Hex koloru, zwykle `#RRGGBB` lub `RRGGBBAA`.
+  /// Color hex, usually `#RRGGBB` or `RRGGBBAA`.
   final String hexColor;
   final String? material;
   final bool isDefault;
@@ -67,8 +66,8 @@ class ColorEntry {
   final String? effectType;
 }
 
-/// Profil filamentu z katalogu (`FilamentResponse`) — źródło opcji materiału/
-/// marki oraz prefillu (kolor, koszt, temperatury) przy wyborze presetu.
+/// Filament profile from catalog (`FilamentResponse`) — source of material/brand
+/// options and prefill (color, cost, temps) on preset selection.
 class FilamentPreset {
   const FilamentPreset({
     required this.id,
@@ -97,7 +96,7 @@ class FilamentPreset {
   final int id;
   final String name;
 
-  /// Materiał (PLA/PETG/…) — w API pole `type`.
+  /// Material (PLA/PETG/…) — in API field `type`.
   final String type;
   final String? brand;
   final String? colorHex;

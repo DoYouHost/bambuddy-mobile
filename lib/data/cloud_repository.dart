@@ -4,14 +4,14 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/cloud_auth.dart';
 
-/// REST-owe źródło danych logowania do chmury Bambu (warunek pobierania
-/// z MakerWorld). Mapuje [DioException] na [AppApiException].
+/// REST data source for Bambu cloud login (prerequisite for MakerWorld downloads).
+/// Maps [DioException] to [AppApiException].
 class CloudRepository {
   CloudRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /cloud/status — stan logowania (e-mail/region jeśli zalogowany).
+  /// GET /cloud/status — login state (email/region if logged in).
   Future<CloudAuthStatus> status() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(Endpoints.cloudStatus);
@@ -21,7 +21,7 @@ class CloudRepository {
     }
   }
 
-  /// POST /cloud/login — start logowania. `needs_verification=true` → [verify].
+  /// POST /cloud/login — start login. `needs_verification=true` → [verify].
   Future<CloudLoginResult> login({
     required String email,
     required String password,
@@ -42,7 +42,7 @@ class CloudRepository {
     }
   }
 
-  /// POST /cloud/verify — dosłanie kodu 2FA/OTP (e-mail lub TOTP).
+  /// POST /cloud/verify — submit 2FA/OTP code (email or TOTP).
   Future<CloudLoginResult> verify({
     required String email,
     required String code,
@@ -65,7 +65,7 @@ class CloudRepository {
     }
   }
 
-  /// POST /cloud/logout — wylogowanie (kasuje token chmury po stronie serwera).
+  /// POST /cloud/logout — logout (clears cloud token on server side).
   Future<void> logout() async {
     try {
       await _dio.post<dynamic>(Endpoints.cloudLogout);

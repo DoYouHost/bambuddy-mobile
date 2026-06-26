@@ -2,10 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'firmware.g.dart';
 
-/// Informacja o oprogramowaniu (firmware) jednej drukarki z
-/// `GET /firmware/updates/{printer_id}` oraz jako element listy z
-/// `GET /firmware/updates`. Parsowanie defensywne (wzorzec [PrinterStatus]):
-/// pola nullable, liczby/boole przez tolerancyjne konwertery.
+/// Firmware information for a single printer from
+/// `GET /firmware/updates/{printer_id}` and as list element from
+/// `GET /firmware/updates`. Defensive parsing (pattern: [PrinterStatus]):
+/// nullable fields, numbers/bools via tolerant converters.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class FirmwareUpdateInfo {
   const FirmwareUpdateInfo({
@@ -23,37 +23,36 @@ class FirmwareUpdateInfo {
   factory FirmwareUpdateInfo.fromJson(Map<String, dynamic> json) =>
       _$FirmwareUpdateInfoFromJson(json);
 
-  /// Id drukarki — do mapowania na status/kartę. Tolerancyjny parser, bo gdyby
-  /// serwer go pominął/zepsuł, wpis i tak da się pominąć po stronie providera.
+  /// Printer ID — for mapping to status/card. Tolerant parser; if server
+  /// omits/breaks it, entry can still be skipped by provider.
   @JsonKey(fromJson: _toIntOrNull)
   final int? printerId;
 
   final String? printerName;
   final String? model;
 
-  /// Wersja aktualnie zainstalowana na drukarce; null gdy nieznana.
+  /// Currently installed version; null if unknown.
   final String? currentVersion;
 
-  /// Najnowsza dostępna wersja; null gdy serwer nie ma danych z chmury.
+  /// Latest available version; null if server has no cloud data.
   final String? latestVersion;
 
-  /// Czy serwer wykrył nowszą wersję niż zainstalowana.
+  /// Whether server detected newer version than installed.
   @JsonKey(fromJson: _toBoolOrFalse)
   final bool updateAvailable;
 
   final String? downloadUrl;
   final String? releaseNotes;
 
-  /// Pełna lista wersji do wyboru (do przyszłego flow wykonania aktualizacji).
+  /// Full version list for selection (for future update flow).
   @JsonKey(fromJson: _toAvailableVersionsOrNull)
   final List<AvailableFirmwareVersion>? availableVersions;
 
-  /// Czy mamy cokolwiek sensownego do pokazania (przynajmniej bieżącą wersję).
+  /// Whether there is anything meaningful to display (at least current version).
   bool get hasVersion => currentVersion != null && currentVersion!.isNotEmpty;
 }
 
-/// Pojedyncza wersja firmware z `available_versions` (na przyszłość — wybór
-/// wersji przy wykonywaniu aktualizacji).
+/// Single firmware version from `available_versions` (for future update flow).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class AvailableFirmwareVersion {
   const AvailableFirmwareVersion({
@@ -69,7 +68,7 @@ class AvailableFirmwareVersion {
 
   final String? version;
 
-  /// Czy plik firmware jest dostępny do pobrania/wgrania.
+  /// Whether firmware file is available for download/upload.
   @JsonKey(fromJson: _toBoolOrFalse)
   final bool fileAvailable;
 
@@ -78,7 +77,7 @@ class AvailableFirmwareVersion {
   final String? releaseTime;
 }
 
-/// Odpowiedź `GET /firmware/updates` — firmware dla całej farmy jednym zapytaniem.
+/// Response from `GET /firmware/updates` — firmware for entire fleet in one call.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class FirmwareUpdatesResponse {
   const FirmwareUpdatesResponse({
@@ -92,15 +91,15 @@ class FirmwareUpdatesResponse {
   @JsonKey(fromJson: _toUpdateListOrEmpty)
   final List<FirmwareUpdateInfo> updates;
 
-  /// Ile drukarek ma dostępną aktualizację (do ewentualnego badge'a globalnego).
+  /// How many printers have updates available (for optional global badge).
   @JsonKey(fromJson: _toIntOrNull)
   final int? updatesAvailable;
 }
 
-// --- Modele pod PRZYSZŁE wykonywanie aktualizacji (jeszcze nie w UI) ---
-// Repozytorium już je zwraca, więc warstwa wyżej będzie gotowa bez zmian modelu.
+/// Models for FUTURE update execution (not yet in UI) — repository already
+/// returns them, so higher layer will be ready without model changes.
 
-/// `GET /firmware/updates/{id}/prepare` — czy można wgrać firmware (SD, miejsce).
+/// `GET /firmware/updates/{id}/prepare` — can we upload firmware (SD, space)?
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class FirmwareUploadPrepare {
   const FirmwareUploadPrepare({
@@ -140,7 +139,7 @@ class FirmwareUploadPrepare {
   final List<String> errors;
 }
 
-/// `POST /firmware/updates/{id}/upload` — start wgrywania firmware.
+/// `POST /firmware/updates/{id}/upload` — start firmware upload.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class FirmwareUploadStartResult {
   const FirmwareUploadStartResult({this.started = false, this.message});
@@ -153,7 +152,7 @@ class FirmwareUploadStartResult {
   final String? message;
 }
 
-/// `GET /firmware/updates/{id}/upload/status` — postęp wgrywania firmware.
+/// `GET /firmware/updates/{id}/upload/status` — firmware upload progress.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class FirmwareUploadStatus {
   const FirmwareUploadStatus({
@@ -168,7 +167,7 @@ class FirmwareUploadStatus {
   factory FirmwareUploadStatus.fromJson(Map<String, dynamic> json) =>
       _$FirmwareUploadStatusFromJson(json);
 
-  /// Surowy stan z serwera (np. idle/uploading/done/error) — nie enumujemy.
+  /// Raw status from server (e.g. idle/uploading/done/error) — not enum-backed.
   final String? status;
   @JsonKey(fromJson: _toIntOrNull)
   final int? progress;

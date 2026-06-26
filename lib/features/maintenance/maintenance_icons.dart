@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Mapuje nazwę ikony typu konserwacji (serwer podaje nazwy w stylu Lucide,
-/// np. „Droplet", „Flame") na Material [IconData]. Nieznana/`null` → [Icons.build].
-/// Zestaw obejmuje ikony domyślnych typów bambuddy plus kilka prawdopodobnych.
+/// Maps maintenance type icon name (server provides Lucide-style names,
+/// e.g. "Droplet", "Flame") to Material [IconData]. Unknown/`null` → [Icons.build].
+/// Set covers default bambuddy types plus some probable ones.
 IconData maintenanceIcon(String? name) {
   switch (name) {
     case 'Droplet':

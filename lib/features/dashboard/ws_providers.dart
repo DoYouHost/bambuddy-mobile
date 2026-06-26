@@ -14,17 +14,16 @@ import '../../data/printers_repository.dart';
 import '../../providers.dart';
 import '../notifications/print_monitor.dart' show systemAppLocalizations;
 
-/// Buduje URL WS z baseUrl profilu: http→ws, https→wss, ścieżka `…/api/v1/ws`.
+/// Builds WS URL from profile baseUrl: http→ws, https→wss, path `…/api/v1/ws`.
 Uri wsUrlFor(String baseUrl) {
   final u = Uri.parse(baseUrl);
   final scheme = u.scheme == 'https' ? 'wss' : 'ws';
   return u.replace(scheme: scheme, path: '${u.path}${Endpoints.apiPrefix}/ws');
 }
 
-/// Nagłówki auth dla handshake'u WS — branchują po [AuthMode] tak samo jak
-/// interceptor REST. WS bambuddy uwierzytelnia się nagłówkiem (nie tokenem
-/// w query — patrz pamięć ws-contract-m2), więc reconnect z odświeżonym
-/// kluczem/JWT wystarcza, bez osobnego mintowania.
+/// Auth headers for WS handshake — branches by [AuthMode] same as REST
+/// interceptor. Bambu WS auth via header (not query token — see ws-contract-m2
+/// memory), so reconnect with refreshed key/JWT suffices, no separate minting.
 Future<Map<String, String>> wsAuthHeaders(
   AuthMode mode,
   CredentialsStore creds,
@@ -41,22 +40,21 @@ Future<Map<String, String>> wsAuthHeaders(
   }
 }
 
-/// Pojedynczy [WsClient] dla aktywnego profilu. Przebudowywany przy zmianie
-/// profilu (stary klient jest wtedy zamykany). Rzuca bez profilu — trasy bez
-/// profilu i tak idą do /setup.
+/// Single [WsClient] for active profile. Rebuilt on profile change (old client
+/// then closed). Throws without profile — routes without profile go to /setup anyway.
 final wsClientProvider = Provider<WsClient>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) {
-    throw StateError('wsClientProvider użyty bez profilu serwera');
+    throw StateError('wsClientProvider used without server profile');
   }
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);
   final client = WsClient(
     url: wsUrlFor(profile.baseUrl),
     authHeaders: () => wsAuthHeaders(profile.authMode, creds),
-    // Tylko JWT da się odświeżyć cichym re-loginem; klucz API jest stały,
-    // a serwer bez auth nie odrzuca. silentReLogin zapisuje świeży JWT,
-    // który authHeaders odczyta przy ponownym połączeniu.
+    // Only JWT can refresh via silent re-login; API key is static,
+    // server without auth doesn't reject. silentReLogin saves fresh JWT,
+    // which authHeaders reads on reconnect.
     refreshAuth: profile.authMode == AuthMode.jwt
         ? () async => await auth.silentReLogin(profile.baseUrl) != null
         : null,
@@ -65,12 +63,11 @@ final wsClientProvider = Provider<WsClient>((ref) {
   return client;
 });
 
-/// Najnowszy status per drukarka (`Map<printerId, PrinterStatus>`) — jedno
-/// wspólne źródło prawdy dla UI i [PrintMonitor]. Zasilane z DWÓCH torów:
-/// strumienia WS (świeżość w czasie rzeczywistym) oraz pollingu REST
-/// (fallback gdy WS padnie, backfill po wznowieniu). Polling wpina wyniki
-/// przez [PrinterStatusesNotifier.ingestPoll]; składem drukarek (rosterem)
-/// nadal zarządza `dashboardProvider` — WS listy nie wysyła.
+/// Latest status per printer (`Map<printerId, PrinterStatus>`) — one
+/// shared source of truth for UI and [PrintMonitor]. Fed from TWO lanes:
+/// WS stream (real-time freshness) and REST polling (fallback if WS fails,
+/// backfill on resume). Polling hooks results via [PrinterStatusesNotifier.ingestPoll];
+/// printer roster still managed by `dashboardProvider` — WS doesn't send list.
 final printerStatusesProvider =
     NotifierProvider<PrinterStatusesNotifier, Map<int, PrinterStatus>>(
   PrinterStatusesNotifier.new,
@@ -84,8 +81,8 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
     final client = ref.watch(wsClientProvider);
     final sub = client.statuses.listen((status) {
-      // Scalamy na poprzednim stanie, by ramka WS nie skasowała pól, których
-      // WS nie niesie (np. tryb komory `airduct_mode` z REST) — patrz mergedWith.
+      // Merge on previous state so WS frame doesn't erase fields WS doesn't
+      // carry (e.g. chamber mode `airduct_mode` from REST) — see mergedWith.
       state = {...state, status.id: status.mergedWith(state[status.id])};
       _publishWidget();
     });
@@ -94,9 +91,9 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     return const {};
   }
 
-  /// Odświeża natywny widget ekranu głównego stanem wybranej drukarki. Wołane
-  /// po każdej zmianie [state] (WS i poll). Lokalizacja z systemu — apka i tak
-  /// idzie za ustawieniem systemu. Błąd publikacji nie może wywrócić strumienia.
+  /// Refresh native home screen widget with state of selected printer. Called
+  /// after each [state] change (WS and poll). Localization from system — app
+  /// follows system setting anyway. Publish error can't break stream.
   void _publishWidget() {
     unawaited(
       HomeWidgetPublisher.publish(
@@ -108,8 +105,8 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     );
   }
 
-  /// Pobiera okładkę bieżącego wydruku do pliku (auth tokenem kamery). Goły Dio
-  /// + token z [cameraTokenServiceProvider]; cache po `cover_url` w [WidgetCoverCache].
+  /// Fetch cover of current print to file (auth via camera token). Raw Dio
+  /// + token from [cameraTokenServiceProvider]; cache by `cover_url` in [WidgetCoverCache].
   Future<String?> _fetchCover(PrinterStatus picked) {
     final profile = ref.read(serverProfileProvider);
     final cover = picked.coverUrl;
@@ -124,25 +121,24 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     );
   }
 
-  /// Scala statusy z pollingu REST do tej samej mapy co WS — by `PrintMonitor`
-  /// i UI miały jedno źródło prawdy niezależnie od tego, czy WS żyje. Wpisy
-  /// `null` (status endpoint padł) pomijamy, żeby nie skasować świeższego
-  /// statusu z WS. Last-write-wins jest bezpieczny: poll zwraca BIEŻĄCY stan
-  /// serwera (nie stary job), więc nie generuje fałszywych zboczy w monitorze,
-  /// a alerty mają stałe id per drukarka, więc duplikat z dwóch torów się
-  /// nadpisuje, nie dubluje.
+  /// Merge REST poll statuses into same map as WS — so `PrintMonitor`
+  /// and UI have single source of truth regardless of WS health. Skip `null`
+  /// entries (status endpoint failed) to not erase fresher WS status.
+  /// Last-write-wins is safe: poll returns CURRENT server state (not old job),
+  /// so doesn't generate false edges in monitor, and alerts have fixed id per
+  /// printer, so duplicate from two lanes overwrites, not duplicates.
   void ingestPoll(List<PrinterWithStatus> polled) {
-    // Poll niesie pełny roster, więc to autorytatywne źródło składu — przycinamy
-    // statusy drukarek, które zniknęły z listy (inaczej rosłyby bez końca; WS
-    // sam nie raportuje usunięć). Wpisy z null-statusem zostają w rosterze.
+    // Poll carries full roster, so authoritative source of composition — trim
+    // statuses of printers gone from list (otherwise would grow unbounded; WS
+    // doesn't report deletes). Entries with null-status stay in roster.
     final rosterIds = {for (final p in polled) p.printer.id};
     final next = {...state}..removeWhere((id, _) => !rosterIds.contains(id));
     var changed = next.length != state.length;
     for (final p in polled) {
       final s = p.status;
       if (s == null) continue;
-      // Scalamy na bieżącym stanie (mógł pochodzić z WS), by poll nie skasował
-      // pól, których REST nie niesie (model/vt_tray/cover_url…) — patrz mergedWith.
+      // Merge on current state (might come from WS) so poll doesn't erase
+      // fields REST doesn't carry (model/vt_tray/cover_url…) — see mergedWith.
       next[p.printer.id] = s.mergedWith(next[p.printer.id]);
       changed = true;
     }
@@ -152,14 +148,14 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     }
   }
 
-  /// Wołane przez lifecycle: tło → zamknij socket.
+  /// Called by lifecycle: background → close socket.
   void suspend() {
     final profile = ref.read(serverProfileProvider);
     if (profile == null) return;
     ref.read(wsClientProvider).suspend();
   }
 
-  /// Powrót z tła → wznów socket (backfill REST robi dashboardProvider).
+  /// Return from background → resume socket (dashboardProvider does REST backfill).
   void resume() {
     final profile = ref.read(serverProfileProvider);
     if (profile == null) return;
@@ -167,8 +163,8 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   }
 }
 
-/// Stan połączenia WS dla banera. `null` (brak danych) traktujemy w UI jak
-/// „jeszcze nie wiadomo" — baner pokazujemy tylko dla stanów nie-connected.
+/// WS connection state for banner. `null` (no data) treated in UI like
+/// "still unknown" — show banner only for non-connected states.
 final wsConnectionStateProvider = StreamProvider<WsConnectionState>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) return const Stream.empty();

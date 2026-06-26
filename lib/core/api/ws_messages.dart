@@ -2,33 +2,33 @@ import 'dart:convert';
 
 import '../models/printer_status.dart';
 
-/// Sparsowana wiadomość ze strumienia WS `/api/v1/ws`.
+/// Parsed message from WebSocket stream `/api/v1/ws`.
 ///
-/// Typ zapieczętowany → warstwa wyżej (menedżer WS) robi wyczerpujący
-/// `switch`. Naczelna zasada: **nowy lub niekompletny typ ramki serwera
-/// nigdy nie może wywalić klienta** — nieznane lądują w [WsUnknown],
-/// całkowicie nieparsowalne dają `null` z [parseWsMessage].
+/// Sealed type → upper layer (WS manager) does exhaustive switch. Core rule:
+/// **new or incomplete server frame type must never crash the client** —
+/// unknown land in [WsUnknown], completely unparseable returns `null` from
+/// [parseWsMessage].
 sealed class WsMessage {
   const WsMessage();
 }
 
-/// Ramka `printer_status` — pełny stan jednej drukarki.
+/// `printer_status` frame — full state of one printer.
 ///
-/// Serwer wysyła `{"type":"printer_status","printer_id":N,"data":{...}}`,
-/// gdzie `data` ma kształt REST-owego statusu, ale **bez pola `id`**
-/// (identyfikator jest tylko w `printer_id`). [status] ma już id wstrzyknięte.
+/// Server sends `{"type":"printer_status","printer_id":N,"data":{...}}`,
+/// where `data` has shape of REST status, but **WITHOUT `id` field**
+/// (identifier only in `printer_id`). [status] has id already injected.
 class WsPrinterStatus extends WsMessage {
   const WsPrinterStatus(this.status);
   final PrinterStatus status;
 }
 
-/// Ramka `plate_not_empty` — detekcja kamerą wykryła obiekty na stole na
-/// starcie wydruku i bambuddy **wstrzymał** druk (analogicznie do push-a
-/// `on_plate_not_empty` w backendzie). To JEDYNE prawdziwe źródło zdarzenia
-/// „płyta niepusta" — pole `awaiting_plate_clear` ze statusu to tylko bramka
-/// kolejki podnoszona przy KAŻDYM końcu druku, więc nie nadaje się na trigger.
+/// `plate_not_empty` frame — camera detection found objects on plate at
+/// print start and bambuddy **paused** the print (analogous to
+/// `on_plate_not_empty` push in backend). This is the ONLY true source of
+/// "plate not empty" event — field `awaiting_plate_clear` from status is just
+/// a queue gate raised on EVERY print end, so unsuitable as trigger.
 ///
-/// Serwer wysyła `{"type":"plate_not_empty","printer_id":N,"printer_name":…,
+/// Server sends `{"type":"plate_not_empty","printer_id":N,"printer_name":…,
 /// "message":…}`.
 class WsPlateNotEmpty extends WsMessage {
   const WsPlateNotEmpty(this.printerId, this.printerName, this.message);
@@ -37,26 +37,26 @@ class WsPlateNotEmpty extends WsMessage {
   final String? message;
 }
 
-/// Odpowiedź serwera na nasz heartbeat (`{"type":"pong"}`). Sam fakt
-/// nadejścia JAKIEJKOLWIEK ramki resetuje watchdog; ten typ wyróżniamy,
-/// by menedżer mógł odróżnić ruch sterujący od danych.
+/// Server response to our heartbeat (`{"type":"pong"}`). The mere arrival of
+/// ANY frame resets the watchdog; we distinguish this type so the manager can
+/// tell control traffic from data.
 class WsPong extends WsMessage {
   const WsPong();
 }
 
-/// Każdy inny typ ramki (`bambuddy_print_progress`, `spoolbuddy_update`,
-/// `firmware_upload_progress`, …) lub ramka `printer_status` bez kompletu
-/// `printer_id`+`data`. Zachowujemy `type` do logów, nie interpretujemy.
+/// Any other frame type (`bambuddy_print_progress`, `spoolbuddy_update`,
+/// `firmware_upload_progress`, …) or `printer_status` frame missing complete
+/// `printer_id`+`data`. We keep `type` for logs, don't interpret.
 class WsUnknown extends WsMessage {
   const WsUnknown(this.type);
   final String? type;
 }
 
-/// Parsuje surowy tekst ramki WS.
+/// Parses raw WebSocket frame text.
 ///
-/// Zwraca `null` tylko gdy tekst nie jest obiektem JSON (nie-JSON albo
-/// JSON nie-mapa) — wołający to loguje i ignoruje. Wszystko inne, łącznie
-/// z niekompletnymi i nieznanymi typami, daje [WsMessage] (nigdy wyjątek).
+/// Returns `null` only when text is not JSON object (non-JSON or
+/// JSON non-map) — caller logs and ignores. Everything else, including
+/// incomplete and unknown types, yields [WsMessage] (never throws).
 WsMessage? parseWsMessage(String raw) {
   final Object? decoded;
   try {
@@ -72,16 +72,16 @@ WsMessage? parseWsMessage(String raw) {
       final data = decoded['data'];
       final printerId = _toIntOrNull(decoded['printer_id']);
       if (data is! Map<String, dynamic> || printerId == null) {
-        return WsUnknown(type); // niekompletna ramka — nie crashujemy
+        return WsUnknown(type); // incomplete frame — don't crash
       }
-      // `data` nie niesie `id`; wstrzykujemy z `printer_id`. Spread po
-      // wstrzyknięciu znaczy, że gdyby serwer kiedyś dodał `id` do `data`,
-      // to ono wygra — payload jest źródłem prawdy.
+      // `data` doesn't carry `id`; we inject from `printer_id`. Spread after
+      // injection means if server ever adds `id` to `data`, it wins — payload
+      // is source of truth.
       final merged = <String, dynamic>{'id': printerId, ...data};
       return WsPrinterStatus(PrinterStatus.fromJson(merged));
     case 'plate_not_empty':
       final printerId = _toIntOrNull(decoded['printer_id']);
-      if (printerId == null) return WsUnknown(type); // bez id nie wiadomo czyja
+      if (printerId == null) return WsUnknown(type); // without id, unclear whose
       return WsPlateNotEmpty(
         printerId,
         decoded['printer_name']?.toString(),

@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
 
-/// Miniatura okładki MakerWorld. Renderowana przez publiczny proxy serwera
-/// (`/makerworld/thumbnail?url=`) — bez tokenu/auth (inaczej niż miniatury
-/// biblioteki/archiwum). Placeholder zamiast błędu.
+/// MakerWorld cover thumbnail. Rendered via public server proxy (`/makerworld/thumbnail?url=`) —
+/// no token/auth (unlike library/archive thumbnails). Placeholder instead of error.
 class MakerWorldThumbnail extends ConsumerWidget {
   const MakerWorldThumbnail({
     super.key,
@@ -14,7 +13,7 @@ class MakerWorldThumbnail extends ConsumerWidget {
     this.size = 56,
   });
 
-  /// URL okładki z MakerWorld (design/instancja). `null` → od razu placeholder.
+  /// Cover URL from MakerWorld (design/instance). `null` → show placeholder immediately.
   final String? coverUrl;
   final double size;
 

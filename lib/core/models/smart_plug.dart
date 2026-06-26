@@ -2,11 +2,11 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'smart_plug.g.dart';
 
-/// Konfiguracja smart gniazdka z `GET /smart-plugs/` i
-/// `GET /smart-plugs/by-printer/{id}` (SmartPlugResponse). Parsujemy tylko to,
-/// czego używa UI dashboardu — przypisanie do drukarki, widoczność i ostatni
-/// znany stan; resztę (MQTT/REST/HA/harmonogramy) serwer trzyma u siebie.
-/// Defensywnie: poza `id` wszystko nullable, nieznane klucze ignorowane.
+/// Smart plug configuration from `GET /smart-plugs/` and
+/// `GET /smart-plugs/by-printer/{id}` (SmartPlugResponse). Parse only what
+/// dashboard UI uses — printer assignment, visibility, last known state; rest
+/// (MQTT/REST/HA/schedules) stays on server. Defensive: all except `id` nullable,
+/// unknown keys ignored.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class SmartPlug {
   const SmartPlug({
@@ -27,31 +27,30 @@ class SmartPlug {
 
   final String? name;
 
-  /// `tasmota` | `homeassistant` | `mqtt` | `rest` — surowo, nie enumujemy.
+  /// `tasmota` | `homeassistant` | `mqtt` | `rest` — raw, not enum-backed.
   final String? plugType;
 
-  /// Drukarka, do której gniazdko jest przypisane (null = nieprzypisane).
+  /// Printer this plug is assigned to (null = unassigned).
   @JsonKey(fromJson: _toIntOrNull)
   final int? printerId;
 
   final bool? enabled;
 
-  /// Ostatni znany stan z serwera (np. „ON"/„OFF") — szybki fallback, zanim
-  /// dociągniemy żywy [SmartPlugStatus].
+  /// Last known state from server (e.g. “ON”/”OFF”) — quick fallback before
+  /// fetching live [SmartPlugStatus].
   final String? lastState;
 
-  /// Czy gniazdko ma się pokazać na karcie drukarki (preferencja serwera).
+  /// Whether plug should show on printer card (server preference).
   final bool? showOnPrinterCard;
 
   final bool? showInSwitchbar;
 
-  /// Czy gniazdko nadaje się do pokazania na karcie drukarki: włączone i
-  /// oznaczone do wyświetlenia (oba pola domyślnie traktujemy jako „tak”,
-  /// gdy serwer ich nie poda).
+  /// Whether plug is fit to show on printer card: enabled and marked for display
+  /// (both fields default to “yes” if server omits).
   bool get visibleOnCard =>
       (enabled ?? true) && (showOnPrinterCard ?? true);
 
-  /// Stan z konfiguracji (fallback, gdy nie ma jeszcze żywego statusu).
+  /// State from config (fallback, before live status available).
   bool? get lastIsOn => switch (lastState?.toUpperCase()) {
         'ON' || 'TRUE' || '1' => true,
         'OFF' || 'FALSE' || '0' => false,
@@ -59,8 +58,8 @@ class SmartPlug {
       };
 }
 
-/// Żywy status gniazdka z `GET /smart-plugs/{id}/status` (SmartPlugStatus):
-/// stan on/off, osiągalność i pomiar energii. To stąd bierzemy moc na żywo.
+/// Live plug status from `GET /smart-plugs/{id}/status` (SmartPlugStatus):
+/// on/off state, reachability, energy measurement. Source of live power.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class SmartPlugStatus {
   const SmartPlugStatus({
@@ -73,10 +72,10 @@ class SmartPlugStatus {
   factory SmartPlugStatus.fromJson(Map<String, dynamic> json) =>
       _$SmartPlugStatusFromJson(json);
 
-  /// Surowy stan z serwera (np. „ON"/„OFF"); null gdy nieznany/nieosiągalne.
+  /// Raw state from server (e.g. "ON"/"OFF"); null if unknown/unreachable.
   final String? state;
 
-  /// Czy gniazdko odpowiada (na false moc/stan są nieaktualne).
+  /// Whether plug responds (false = power/state stale).
   final bool? reachable;
 
   final String? deviceName;
@@ -91,12 +90,12 @@ class SmartPlugStatus {
         _ => null,
       };
 
-  /// Bieżąca moc czynna w watach — null gdy gniazdko nie mierzy lub nieosiągalne.
+  /// Current active power in watts — null if plug doesn't measure or unreachable.
   double? get powerW => isReachable ? energy?.power : null;
 }
 
-/// Pomiar energii z gniazdka (SmartPlugEnergy). Wszystko opcjonalne — nie każdy
-/// typ gniazdka raportuje każdy parametr.
+/// Energy measurement from plug (SmartPlugEnergy). All optional — not every
+/// plug type reports every parameter.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class SmartPlugEnergy {
   const SmartPlugEnergy({
@@ -111,27 +110,27 @@ class SmartPlugEnergy {
   factory SmartPlugEnergy.fromJson(Map<String, dynamic> json) =>
       _$SmartPlugEnergyFromJson(json);
 
-  /// Moc czynna [W].
+  /// Active power [W].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? power;
 
-  /// Napięcie [V].
+  /// Voltage [V].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? voltage;
 
-  /// Prąd [A].
+  /// Current [A].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? current;
 
-  /// Energia dziś [kWh].
+  /// Energy today [kWh].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? today;
 
-  /// Energia wczoraj [kWh].
+  /// Energy yesterday [kWh].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? yesterday;
 
-  /// Energia łącznie (licznik) [kWh].
+  /// Total energy (meter) [kWh].
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? total;
 }

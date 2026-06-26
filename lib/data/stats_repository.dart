@@ -6,27 +6,25 @@ import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
 
-/// REST-owe źródło statystyk archiwum (`GET /archives/stats`).
+/// REST data source for archive stats (`GET /archives/stats`).
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio. [DioException]
-/// mapujemy na [AppApiException]; parsowanie odpowiedzi jest defensywne
-/// (patrz [ArchiveStats.fromJson]).
+/// Auth adds [AuthInterceptor] to the shared Dio. [DioException] mapped
+/// to [AppApiException]; response parsing is defensive (see [ArchiveStats.fromJson]).
 class StatsRepository {
   StatsRepository(this._dio);
 
   final Dio _dio;
 
-  /// Rozmiar strony przy pobieraniu lekkiej listy.
+  /// Page size when fetching lightweight list.
   static const _pageSize = 500;
 
-  /// Twardy limit pobranych wpisów (bezpiecznik na patologicznie duże archiwa).
+  /// Hard limit on fetched entries (safeguard for pathologically large archives).
   static const _maxSlim = 10000;
 
-  /// Pobiera statystyki dla opcjonalnego zakresu dat i autora.
+  /// Fetch stats for optional date range and creator.
   ///
-  /// [from]/[to] wysyłamy jako `YYYY-MM-DD` (włącznie). [createdById] filtruje
-  /// po autorze wydruku (`-1` = bez przypisanego użytkownika); `null` pomija
-  /// filtr.
+  /// [from]/[to] sent as `YYYY-MM-DD` (inclusive). [createdById] filters by
+  /// print creator (`-1` = no assigned user); `null` omits filter.
   Future<ArchiveStats> fetch({
     DateTime? from,
     DateTime? to,
@@ -48,9 +46,9 @@ class StatsRepository {
     }
   }
 
-  /// Pobiera pełną listę lekkich wpisów dla zakresu (paginując po [_pageSize]
-  /// aż serwer zwróci niepełną stronę). Używana do liczenia bogatych statystyk
-  /// po stronie klienta. Zwykle archiwum to setki wpisów, nie miliony.
+  /// Fetch full lightweight entry list for range (paginate by [_pageSize] until
+  /// server returns incomplete page). Used to count rich stats client-side.
+  /// Archive is usually hundreds of entries, not millions.
   Future<List<ArchiveSlim>> fetchSlim({
     DateTime? from,
     DateTime? to,
@@ -81,18 +79,18 @@ class StatsRepository {
         try {
           out.add(ArchiveSlim.fromJson(item));
         } on Object {
-          continue; // pojedynczy niesparsowalny wpis nie psuje całości
+          continue;
         }
       }
       if (body.length < _pageSize) break;
       offset += _pageSize;
-      if (offset >= _maxSlim) break; // bezpiecznik na patologiczne archiwa
+      if (offset >= _maxSlim) break;
     }
     return out;
   }
 
-  /// Pobiera analizę niepowodzeń. Podaj [days] (ostatnie N dni) ALBO zakres
-  /// [from]/[to]. Odpowiedź bez zadeklarowanego schematu — parsujemy defensywnie.
+  /// Fetch failure analysis. Provide [days] (last N days) OR range [from]/[to].
+  /// Response has no declared schema — parse defensively.
   Future<FailureAnalysis> fetchFailures({
     int? days,
     DateTime? from,
@@ -116,7 +114,7 @@ class StatsRepository {
     }
   }
 
-  /// Formatuje datę jako `YYYY-MM-DD` (bez strefy/czasu) — kontrakt serwera.
+  /// Format date as `YYYY-MM-DD` (no timezone/time) — server contract.
   static String? _ymd(DateTime? d) {
     if (d == null) return null;
     final m = d.month.toString().padLeft(2, '0');

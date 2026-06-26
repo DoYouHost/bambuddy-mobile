@@ -4,22 +4,21 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/firmware.dart';
 
-/// REST-owe źródło danych o firmware drukarek.
+/// REST data source for printer firmware.
 ///
-/// Dziś używane są tylko odczyty ([fetchUpdates]/[fetchForPrinter]) — pokazanie
-/// wersji i flagi „dostępna aktualizacja". Metody wykonania ([prepareUpload]/
-/// [startUpload]/[uploadStatus]) są już gotowe (typowane), by przyszły flow
-/// aktualizacji wpiąć bez ruszania warstwy danych.
+/// Currently uses reads only ([fetchUpdates]/[fetchForPrinter]) — to show version
+/// and "update available" flag. Execution methods ([prepareUpload]/[startUpload]/
+/// [uploadStatus]) are ready (typed) so future update flow can be integrated without
+/// data-layer changes.
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio. Parsowanie defensywne;
-/// odczyt pojedynczej drukarki degraduje się do `null` przy błędach innych niż
-/// auth — brak danych firmware nie może wywrócić karty.
+/// Auth adds [AuthInterceptor] to the shared Dio. Defensive parsing; single-printer
+/// reads degrade to `null` on non-auth errors — missing firmware data won't break the card.
 class FirmwareRepository {
   FirmwareRepository(this._dio);
 
   final Dio _dio;
 
-  /// `GET /firmware/updates` — firmware całej farmy jednym zapytaniem.
+  /// `GET /firmware/updates` — firmware for entire farm in one request.
   Future<FirmwareUpdatesResponse> fetchUpdates() async {
     try {
       final res =
@@ -30,8 +29,8 @@ class FirmwareRepository {
     }
   }
 
-  /// `GET /firmware/updates/{id}` — firmware jednej drukarki. Auth wypływa
-  /// (UI → /setup); reszta degraduje się do `null`.
+  /// `GET /firmware/updates/{id}` — firmware for one printer. Auth errors bubble up
+  /// (UI → /setup); other errors degrade to `null`.
   Future<FirmwareUpdateInfo?> fetchForPrinter(int printerId) async {
     try {
       final res = await _dio
@@ -47,9 +46,9 @@ class FirmwareRepository {
     }
   }
 
-  // --- Wykonywanie aktualizacji (na przyszłość; jeszcze nieużywane w UI) ---
+  // --- Firmware update execution (for future use; not yet used in UI) ---
 
-  /// `GET /firmware/updates/{id}/prepare` — sonda przed wgraniem firmware.
+  /// `GET /firmware/updates/{id}/prepare` — probe before firmware upload.
   Future<FirmwareUploadPrepare> prepareUpload(int printerId) async {
     try {
       final res = await _dio
@@ -60,8 +59,8 @@ class FirmwareRepository {
     }
   }
 
-  /// `POST /firmware/updates/{id}/upload` — start wgrywania. Opcjonalna
-  /// `version` (gdy brak — serwer bierze najnowszą). 403 = klucz bez uprawnień.
+  /// `POST /firmware/updates/{id}/upload` — start upload. Optional `version`
+  /// (server uses latest if omitted). 403 = key lacks permissions.
   Future<FirmwareUploadStartResult> startUpload(
     int printerId, {
     String? version,
@@ -77,7 +76,7 @@ class FirmwareRepository {
     }
   }
 
-  /// `GET /firmware/updates/{id}/upload/status` — postęp wgrywania.
+  /// `GET /firmware/updates/{id}/upload/status` — upload progress.
   Future<FirmwareUploadStatus> uploadStatus(int printerId) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(

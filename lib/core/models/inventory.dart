@@ -1,11 +1,11 @@
-/// Modele magazynu filamentów (szpule) — znormalizowane domenowo, niezależne od
-/// backendu. Aplikacja używa natywnego `/inventory/*` (domyślny), ale ma działać
-/// też na Spoolman (`/spoolman/inventory/*`), który zwraca inny, luźny kształt
-/// JSON. Dlatego model jest pisany ręcznie z tolerancyjnymi helperami i osobnymi
-/// fabrykami per backend — UI dostaje jeden spójny typ, nie wie, skąd dane.
+/// Filament inventory models (spools) — domain-normalized, backend-agnostic.
+/// App uses native `/inventory/*` (default) but must work with Spoolman
+/// (`/spoolman/inventory/*`), which returns different JSON shape. So model is
+/// hand-written with tolerant helpers and per-backend factories — UI gets one
+/// coherent type, unaware of source.
 ///
-/// Parsowanie defensywne: poza `id`/`material` wszystko nullable, nieznane klucze
-/// ignorowane, liczby tolerują int/num/string.
+/// Defensive parsing: all except `id`/`material` are nullable, unknown keys
+/// ignored, numbers accept int/num/string.
 library;
 
 /// Pojedyncza szpula w magazynie. Pola wagowe w gramach.
@@ -37,7 +37,7 @@ class Spool {
     this.kProfiles = const [],
   });
 
-  /// Natywny `SpoolResponse` z `GET /inventory/spools`.
+  /// Native `SpoolResponse` from `GET /inventory/spools`.
   factory Spool.fromNative(Map<String, dynamic> json) => Spool(
         id: _toInt(json['id']) ?? -1,
         material: (json['material'] as String?)?.trim().isNotEmpty == true
@@ -67,8 +67,8 @@ class Spool {
         kProfiles: _kProfiles(json['k_profiles']),
       );
 
-  /// Spoolman zwraca luźny obiekt (passthrough) — nazwy pól bywają inne, więc
-  /// czytamy tolerancyjnie z kilku możliwych kluczy.
+  /// Spoolman returns loose object (passthrough) — field names vary, so read
+  /// tolerantly from several possible keys.
   factory Spool.fromSpoolman(Map<String, dynamic> json) {
     final filament = json['filament'];
     final fil = filament is Map<String, dynamic> ? filament : const {};
@@ -103,29 +103,29 @@ class Spool {
   final String? subtype;
   final String? colorName;
 
-  /// Surowy zapis koloru do swatcha (np. hex8 `RRGGBBAA` lub `#RRGGBB`).
+  /// Raw color for swatch (e.g. hex8 `RRGGBBAA` or `#RRGGBB`).
   final String? rgba;
 
-  /// Dodatkowe przystanki koloru (gradient), CSV hexów — filamenty wielokolorowe.
+  /// Additional color stops (gradient), comma-separated hex — multi-color filament.
   final String? extraColors;
 
-  /// Efekt wizualny filamentu (np. silk/glow) — `effect_type`.
+  /// Visual effect (e.g. silk/glow) — `effect_type`.
   final String? effectType;
   final String? brand;
 
-  /// Waga pełnej szpuli wg etykiety [g] (netto filamentu, bez rdzenia).
+  /// Full spool weight per label [g] (filament net, without core).
   final int labelWeight;
 
-  /// Zużyty filament [g].
+  /// Used filament [g].
   final double weightUsed;
 
-  /// Waga pustej szpuli/rdzenia [g] (`core_weight`).
+  /// Empty spool/core weight [g] (`core_weight`).
   final int coreWeight;
 
-  /// Id wpisu katalogu wag rdzeni, jeśli wybrany z listy (`core_weight_catalog_id`).
+  /// Catalog entry ID if selected from list (`core_weight_catalog_id`).
   final int? coreWeightCatalogId;
 
-  /// Ostatni odczyt wagi z wagi kuchennej [g] brutto (`last_scale_weight`).
+  /// Last weight scale reading [g] gross (`last_scale_weight`).
   final int? lastScaleWeight;
   final double? costPerKg;
   final int? lowStockThresholdPct;
@@ -139,13 +139,13 @@ class Spool {
   final String? lastUsed;
   final List<SpoolKProfile> kProfiles;
 
-  /// Pozostały filament [g] (nie schodzi poniżej 0).
+  /// Remaining filament [g] (clamps to 0).
   double get remainingWeight {
     final r = labelWeight - weightUsed;
     return r < 0 ? 0 : r;
   }
 
-  /// Udział pozostałego filamentu (0..1); null gdy nie znamy wagi etykiety.
+  /// Remaining filament fraction (0..1); null if label weight unknown.
   double? get remainingFraction {
     if (labelWeight <= 0) return null;
     final f = remainingWeight / labelWeight;
@@ -154,7 +154,7 @@ class Spool {
 
   bool get isArchived => archivedAt != null && archivedAt!.isNotEmpty;
 
-  /// Czy poniżej progu low-stock (domyślnie 10% gdy serwer nie poda progu).
+  /// Whether below low-stock threshold (default 10% if server doesn't provide).
   bool get isLowStock {
     final frac = remainingFraction;
     if (frac == null) return false;
@@ -162,18 +162,18 @@ class Spool {
     return frac * 100 <= thresholdPct;
   }
 
-  /// Czytelna nazwa do listy: marka + materiał + (kolor).
+  /// Display name for list: brand + material + (subtype).
   String get displayName {
     final parts = <String>[?brand, material, ?subtype];
     return parts.join(' ');
   }
 }
 
-/// Edytowalny zestaw pól szpuli do zapisu (create/update) — neutralny wobec
-/// backendu. UI wypełnia draft, a źródło tłumaczy go na właściwy kształt body
-/// (`SpoolCreate`/`SpoolUpdate` natywnie, `SpoolmanInventory*` dla Spoolmana).
-/// Pola, których dany backend nie zna (próg low-stock, kategoria, temp. dyszy),
-/// po prostu nie trafiają do jego JSON-a.
+/// Editable spool field set for saving (create/update) — backend-agnostic.
+/// UI fills draft, source translates to proper body shape
+/// (`SpoolCreate`/`SpoolUpdate` native, `SpoolmanInventory*` for Spoolman).
+/// Fields unknown to a backend (low-stock threshold, category, nozzle temps)
+/// simply don't go into its JSON.
 class SpoolDraft {
   const SpoolDraft({
     required this.material,
@@ -197,7 +197,7 @@ class SpoolDraft {
     this.note,
   });
 
-  /// Draft z istniejącej szpuli — do wypełnienia formularza edycji.
+  /// Draft from existing spool — for edit form prefill.
   factory SpoolDraft.fromSpool(Spool s) => SpoolDraft(
         material: s.material,
         subtype: s.subtype,
@@ -240,9 +240,8 @@ class SpoolDraft {
   final int? nozzleTempMax;
   final String? note;
 
-  /// Body dla natywnego `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` mają ten
-  /// sam zestaw pól; serwer ignoruje brakujące). Pomijamy null, by przy edycji
-  /// (PATCH) nie zerować pól, których formularz nie dotknął.
+  /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
+  /// server ignores missing). Skip null to avoid zeroing untouched fields on PATCH.
   Map<String, dynamic> toNativeJson() => {
         'material': material,
         if (subtype != null) 'subtype': subtype,
@@ -267,8 +266,8 @@ class SpoolDraft {
         if (note != null) 'note': note,
       };
 
-  /// Body dla Spoolmana (`SpoolmanInventoryCreate`/`Update`) — węższy zestaw
-  /// pól; te nieobsługiwane przez Spoolman pomijamy.
+  /// Body for Spoolman (`SpoolmanInventoryCreate`/`Update`) — narrower field set;
+  /// fields unsupported by Spoolman are skipped.
   Map<String, dynamic> toSpoolmanJson() => {
         if (material.isNotEmpty) 'material': material,
         if (subtype != null) 'subtype': subtype,
@@ -284,8 +283,8 @@ class SpoolDraft {
       };
 }
 
-/// Przypisanie szpuli do slotu AMS — znormalizowane z natywnego
-/// `SpoolAssignmentResponse` i spoolmanowego `SpoolmanSlotAssignmentEnriched`.
+/// Spool assignment to AMS slot — normalized from native
+/// `SpoolAssignmentResponse` and Spoolman `SpoolmanSlotAssignmentEnriched`.
 class SpoolAssignment {
   const SpoolAssignment({
     required this.spoolId,
@@ -323,37 +322,36 @@ class SpoolAssignment {
   final String? printerName;
   final String? amsLabel;
 
-  /// Szpula zewnętrzna (na uchwycie zewn.), NIE w jednostce AMS — backend
-  /// inventory oznacza ją `ams_id` 254/255. Wtedy „slotem" jest ekstruder
-  /// (dla drukarek dwugłowicowych), nie „AMS·tray".
+  /// External spool (external holder), NOT in AMS unit — inventory backend
+  /// marks as `ams_id` 254/255. Then "slot" is extruder (dual-head printers),
+  /// not "AMS·tray".
   bool get isExternalSpool => amsId >= 254;
 
-  /// Ekstruder karmiony przez szpulę zewnętrzną (X2D/H2D). UWAGA: w backendzie
-  /// inventory OBIE szpule zewnętrzne mają `ams_id=255` — rozróżnia je dopiero
-  /// `tray_id`. Zweryfikowane na żywo na X2D z surowych przypisań:
-  /// TPU `ams=255, tray=0` siedzi fizycznie w LEWYM, PLA `ams=255, tray=1`
-  /// w PRAWYM. (To inna reprezentacja niż MQTT `vtTray` 254/255 z dashboardu —
-  /// nie mylić.) Konwencja zwracana jak w `printer_status`: 1 = lewy, 0 = prawy;
-  /// null dla zwykłego slotu AMS lub nieoczekiwanego `tray_id`.
+  /// Extruder fed by external spool (X2D/H2D). NOTE: inventory backend has
+  /// BOTH external spools with `ams_id=255` — distinguished by `tray_id`.
+  /// Verified live on X2D from raw assignments:
+  /// TPU `ams=255, tray=0` sits physically LEFT, PLA `ams=255, tray=1` RIGHT.
+  /// (Different from MQTT `vtTray` 254/255 from dashboard — don't confuse.)
+  /// Convention as in `printer_status`: 1 = left, 0 = right;
+  /// null for regular AMS slot or unexpected `tray_id`.
   int? get extruder {
     if (!isExternalSpool) return null;
     return switch (trayId) {
-      0 => 1, // tray 0 → lewy ekstruder
-      1 => 0, // tray 1 → prawy ekstruder
+      0 => 1, // tray 0 → left extruder
+      1 => 0, // tray 1 → right extruder
       _ => null,
     };
   }
 
-  /// Etykieta slotu AMS do UI: `ams_label` z serwera albo `AMS{ams}·{tray+1}`.
-  /// Dla szpuli zewnętrznej label budujemy w UI (potrzebny l10n) — patrz
-  /// `assignmentSlotLabel`.
+  /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
+  /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.
   String get slotLabel =>
       amsLabel ?? 'AMS$amsId · ${trayId + 1}';
 }
 
-/// Żądanie przypisania szpuli do slotu (`SpoolAssignmentCreate`). Klucz fizyczny
-/// to trójka (drukarka, jednostka AMS, taca); dla szpuli zewnętrznej `amsId=255`,
-/// a `trayId` rozróżnia ekstruder (0=lewy, 1=prawy — patrz [SpoolAssignment]).
+/// Spool-to-slot assignment request (`SpoolAssignmentCreate`). Physical key
+/// is triple (printer, AMS unit, tray); for external spool `amsId=255`,
+/// `trayId` distinguishes extruder (0=left, 1=right — see [SpoolAssignment]).
 class SpoolAssignmentDraft {
   const SpoolAssignmentDraft({
     required this.spoolId,
@@ -375,7 +373,7 @@ class SpoolAssignmentDraft {
       };
 }
 
-/// Wpis historii zużycia szpuli (`SpoolUsageHistoryResponse`).
+/// Spool usage history entry (`SpoolUsageHistoryResponse`).
 class SpoolUsageEntry {
   const SpoolUsageEntry({
     required this.id,
@@ -407,8 +405,8 @@ class SpoolUsageEntry {
   final String? createdAt;
 }
 
-/// Profil kalibracji K przypięty do szpuli (`SpoolKProfileResponse`) — pokazujemy
-/// tylko podsumowanie w szczegółach.
+/// K-calibration profile pinned to spool (`SpoolKProfileResponse`) — show
+/// only summary in details.
 class SpoolKProfile {
   const SpoolKProfile({
     required this.id,

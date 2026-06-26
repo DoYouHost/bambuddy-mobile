@@ -7,18 +7,18 @@ import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';
 import '../core/models/trash_file.dart';
 
-/// REST-owe źródło danych menedżera plików / biblioteki.
+/// REST data source for file manager / library.
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio (miniatura idzie
-/// osobno przez `?token=` — patrz `LibraryThumbnail`). Każda metoda mapuje
-/// [DioException] na [AppApiException].
+/// Auth adds [AuthInterceptor] to the shared Dio (thumbnails go separately via
+/// `?token=` — see `LibraryThumbnail`). Each method maps [DioException] to
+/// [AppApiException].
 class LibraryRepository {
   LibraryRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /library/files — pliki w folderze [folderId] (null = root).
-  /// Defensywne parsowanie: niesparsowalny wpis jest pomijany.
+  /// GET /library/files — files in folder [folderId] (null = root).
+  /// Defensive parsing: unparseable entries are skipped.
   Future<List<LibraryFile>> listFiles({int? folderId}) async {
     final query = <String, dynamic>{
       'folder_id': folderId,
@@ -46,8 +46,8 @@ class LibraryRepository {
     return files;
   }
 
-  /// GET /library/files?include_root=false — WSZYSTKIE pliki z całej biblioteki
-  /// (ze wszystkich folderów), do wyszukiwania globalnego. Defensywne parsowanie.
+  /// GET /library/files?include_root=false — ALL files from entire library (all folders)
+  /// for global search. Defensive parsing.
   Future<List<LibraryFile>> listAllFiles() async {
     final List<dynamic> body;
     try {
@@ -71,8 +71,8 @@ class LibraryRepository {
     return files;
   }
 
-  /// GET /library/folders — pełne drzewo folderów (zagnieżdżone). Spłaszczamy
-  /// nawigację po [LibraryFolder.parentId], więc zwracamy korzenie drzewa.
+  /// GET /library/folders — full folder tree (nested). We flatten navigation by
+  /// [LibraryFolder.parentId], so return tree roots.
   Future<List<LibraryFolder>> listFolders() async {
     final List<dynamic> body;
     try {
@@ -93,7 +93,7 @@ class LibraryRepository {
     return folders;
   }
 
-  /// GET /library/stats — statystyki biblioteki (best-effort; braki tolerowane).
+  /// GET /library/stats — library stats (best-effort; missing fields tolerated).
   Future<LibraryStats> stats() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(Endpoints.libraryStats);
@@ -103,10 +103,9 @@ class LibraryRepository {
     }
   }
 
-  // --- Foldery: CRUD ---
+  // --- Folders: CRUD ---
 
-  /// POST /library/folders — utworzenie folderu o nazwie [name] w [parentId]
-  /// (null = root).
+  /// POST /library/folders — create folder named [name] in [parentId] (null = root).
   Future<void> createFolder(String name, {int? parentId}) async {
     try {
       await _dio.post<dynamic>(
@@ -121,7 +120,7 @@ class LibraryRepository {
     }
   }
 
-  /// PUT /library/folders/{id} — zmiana nazwy folderu.
+  /// PUT /library/folders/{id} — rename folder.
   Future<void> renameFolder(int folderId, String name) async {
     try {
       await _dio.put<dynamic>(
@@ -133,7 +132,7 @@ class LibraryRepository {
     }
   }
 
-  /// DELETE /library/folders/{id} — usunięcie folderu wraz z zawartością.
+  /// DELETE /library/folders/{id} — delete folder and contents.
   Future<void> deleteFolder(int folderId) async {
     try {
       await _dio.delete<dynamic>(Endpoints.libraryFolder(folderId));
@@ -142,9 +141,9 @@ class LibraryRepository {
     }
   }
 
-  // --- Pliki: edycja / przenoszenie / usuwanie ---
+  // --- Files: edit / move / delete ---
 
-  /// PUT /library/files/{id} — zmiana nazwy pliku.
+  /// PUT /library/files/{id} — rename file.
   Future<void> renameFile(int fileId, String filename) async {
     try {
       await _dio.put<dynamic>(
@@ -156,8 +155,7 @@ class LibraryRepository {
     }
   }
 
-  /// POST /library/files/move — przeniesienie plików do folderu [folderId]
-  /// (null = root).
+  /// POST /library/files/move — move files to folder [folderId] (null = root).
   Future<void> moveFiles(List<int> fileIds, {int? folderId}) async {
     try {
       await _dio.post<dynamic>(
@@ -169,7 +167,7 @@ class LibraryRepository {
     }
   }
 
-  /// DELETE /library/files/{id} — przeniesienie pliku do kosza.
+  /// DELETE /library/files/{id} — move file to trash.
   Future<void> deleteFile(int fileId) async {
     try {
       await _dio.delete<dynamic>(Endpoints.libraryFile(fileId));
@@ -178,7 +176,7 @@ class LibraryRepository {
     }
   }
 
-  /// POST /library/bulk-delete — zbiorcze usunięcie plików i folderów do kosza.
+  /// POST /library/bulk-delete — bulk move files and folders to trash.
   Future<void> bulkDelete({
     List<int> fileIds = const [],
     List<int> folderIds = const [],
@@ -196,10 +194,10 @@ class LibraryRepository {
     }
   }
 
-  // --- Druk / kolejka ---
+  // --- Print / queue ---
 
-  /// POST /library/files/{id}/print?printer_id=… — wysłanie pliku do druku.
-  /// Body puste (domyślne ustawienia slicera po stronie serwera).
+  /// POST /library/files/{id}/print?printer_id=… — send file to print. Empty body
+  /// (default slicer settings server-side).
   Future<void> printFile(int fileId, {required int printerId}) async {
     try {
       await _dio.post<dynamic>(
@@ -211,7 +209,7 @@ class LibraryRepository {
     }
   }
 
-  /// POST /library/files/add-to-queue — dodanie plików do kolejki.
+  /// POST /library/files/add-to-queue — add files to queue.
   Future<void> addToQueue(List<int> fileIds) async {
     try {
       await _dio.post<dynamic>(
@@ -225,8 +223,8 @@ class LibraryRepository {
 
   // --- Upload ---
 
-  /// POST /library/files — wgranie pliku do folderu [folderId] (null = root).
-  /// [onProgress] dostaje ułamek 0..1 (lub null, gdy rozmiar nieznany).
+  /// POST /library/files — upload file to folder [folderId] (null = root).
+  /// [onProgress] receives a fraction 0..1 (or null if size is unknown).
   Future<void> uploadFile({
     required String filePath,
     required String filename,
@@ -245,7 +243,7 @@ class LibraryRepository {
         Endpoints.libraryFiles,
         data: form,
         queryParameters: query,
-        // Upload bywa duży — zdejmujemy limit czasu wysyłki dla tego żądania.
+        // Upload can be large — disable send/receive timeout for this request.
         options: Options(sendTimeout: Duration.zero, receiveTimeout: Duration.zero),
         onSendProgress: onProgress == null
             ? null
@@ -257,9 +255,9 @@ class LibraryRepository {
     }
   }
 
-  // --- Kosz ---
+  // --- Trash ---
 
-  /// GET /library/trash — pliki w koszu.
+  /// GET /library/trash — files in trash.
   Future<List<TrashFile>> listTrash() async {
     final Map<String, dynamic> body;
     try {
@@ -283,7 +281,7 @@ class LibraryRepository {
     return out;
   }
 
-  /// POST /library/trash/{id}/restore — przywrócenie pliku z kosza.
+  /// POST /library/trash/{id}/restore — restore file from trash.
   Future<void> restoreFromTrash(int fileId) async {
     try {
       await _dio.post<dynamic>(Endpoints.libraryTrashRestore(fileId));
@@ -292,7 +290,7 @@ class LibraryRepository {
     }
   }
 
-  /// DELETE /library/trash/{id} — trwałe usunięcie pliku z kosza.
+  /// DELETE /library/trash/{id} — permanently delete file from trash.
   Future<void> hardDelete(int fileId) async {
     try {
       await _dio.delete<dynamic>(Endpoints.libraryTrashItem(fileId));
@@ -301,7 +299,7 @@ class LibraryRepository {
     }
   }
 
-  /// DELETE /library/trash — opróżnienie kosza (trwałe).
+  /// DELETE /library/trash — empty trash (permanent).
   Future<void> emptyTrash() async {
     try {
       await _dio.delete<dynamic>(Endpoints.libraryTrash);

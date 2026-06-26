@@ -28,25 +28,25 @@ import 'data/queue_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
 
-/// Nadpisywany w main() po SharedPreferences.getInstance().
+/// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
-  (ref) => throw UnimplementedError('Nadpisz w ProviderScope'),
+  (ref) => throw UnimplementedError('Override in ProviderScope'),
 );
 
-/// Nadpisywany w main() zainicjalizowaną instancją (init wymaga pluginu).
+/// Overridden in main() with initialized instance (init requires plugin).
 final notificationServiceProvider = Provider<NotificationService>(
-  (ref) => throw UnimplementedError('Nadpisz w ProviderScope'),
+  (ref) => throw UnimplementedError('Override in ProviderScope'),
 );
 
 final credentialsStoreProvider =
     Provider<CredentialsStore>((ref) => SecureCredentialsStore());
 
-/// Mechanizm monitoringu w tle. Dziś zawsze foreground service; furtka na push
-/// = podmiana implementacji tutaj (patrz [BackgroundMonitor]).
+/// Background monitoring mechanism. Currently always foreground service; gate for
+/// push = swap implementation here (see [BackgroundMonitor]).
 final backgroundMonitorProvider =
     Provider<BackgroundMonitor>((ref) => ForegroundServiceMonitor());
 
-/// Czy monitoring w tle jest włączony (przełącznik użytkownika, domyślnie tak).
+/// Background monitoring enabled (user toggle, default true).
 final bgMonitoringEnabledProvider =
     NotifierProvider<BgMonitoringNotifier, bool>(BgMonitoringNotifier.new);
 
@@ -61,8 +61,8 @@ class BgMonitoringNotifier extends Notifier<bool> {
   }
 }
 
-/// Preferencje powiadomień (które zdarzenia, jakie progi). Persystencja przez
-/// [SettingsRepository]; isolate tła czyta te same prefs niezależnie przy starcie.
+/// Notification preferences (which events, which thresholds). Persisted via
+/// [SettingsRepository]; background isolate reads same prefs independently on startup.
 final notificationPrefsProvider =
     NotifierProvider<NotificationPrefsNotifier, NotificationPrefs>(
   NotificationPrefsNotifier.new,
@@ -104,14 +104,14 @@ final authServiceProvider = Provider<AuthService>(
   ),
 );
 
-/// Proaktywna odnowa JWT dla aktywnego profilu: planuje cichy re-login tuż
-/// przed wygaśnięciem tokenu, żeby REST i handshake WS nie trafiały na 401
-/// (które dopiero reaktywnie ponawiamy). Tylko dla [AuthMode.jwt] — klucz API
-/// jest stały, a serwer bez auth nie wygasa; w tych trybach provider daje `null`.
+/// Proactive JWT refresh for active profile: schedules silent re-login just
+/// before token expiry so REST and WS handshake don't hit 401s (which we only
+/// retry reactively). Only for [AuthMode.jwt] — API key is static and no-auth
+/// server doesn't expire; those modes return `null`.
 ///
-/// Sam się NIE uruchamia — to leniwy provider; UI utrzymuje go żywym i steruje
-/// nim wg cyklu życia (w tle przejmuje isolate foreground service'u, patrz
-/// [PrintMonitorTaskHandler]). Przebudowywany przy zmianie profilu.
+/// Doesn't run itself — lazy provider; UI keeps it alive and controls it per
+/// lifecycle (background taken over by foreground service isolate, see
+/// [PrintMonitorTaskHandler]). Rebuilt on profile change.
 final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
@@ -125,7 +125,7 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   return refresher;
 });
 
-/// Aktywny profil serwera; `null` = nieskonfigurowany (router → /setup).
+/// Active server profile; `null` = unconfigured (router → /setup).
 final serverProfileProvider =
     NotifierProvider<ServerProfileNotifier, ServerProfile?>(
   ServerProfileNotifier.new,
@@ -141,7 +141,7 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
     state = profile;
   }
 
-  /// „Wyloguj / zmień serwer": czyści profil i wszystkie sekrety.
+  /// "Logout / change server": clear profile and all secrets.
   Future<void> clear() async {
     await ref.read(settingsRepositoryProvider).clearProfile();
     await ref.read(credentialsStoreProvider).clearAll();
@@ -149,9 +149,8 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
   }
 }
 
-/// Klient API dla aktywnego profilu. Wymaga skonfigurowanego profilu —
-/// trasy bez profilu są przekierowywane do /setup, więc UI nigdy nie
-/// powinno tego dotknąć przy null.
+/// API client for active profile. Requires configured profile — routes without
+/// profile redirect to /setup, so UI should never touch this when null.
 final apiClientProvider = Provider<ApiClient>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) {
@@ -171,76 +170,76 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Komendy sterujące (M4). Współdzieli uwierzytelnione Dio z resztą —
-/// przebudowywany przy zmianie profilu wraz z [apiClientProvider].
+/// Printer commands (M4). Shares authenticated Dio with rest — rebuilt on
+/// profile change with [apiClientProvider].
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Kolejka wydruków (M5). Współdzieli uwierzytelnione Dio.
+/// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
   (ref) => QueueRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Archiwum wydruków (M5). Współdzieli uwierzytelnione Dio.
+/// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Smart gniazdka (M7). Współdzieli uwierzytelnione Dio.
+/// Smart plugs (M7). Shares authenticated Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Statystyki archiwum. Współdzieli uwierzytelnione Dio.
+/// Archive statistics. Shares authenticated Dio.
 final statsRepositoryProvider = Provider<StatsRepository>(
   (ref) => StatsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Konserwacja drukarek (M7). Współdzieli uwierzytelnione Dio.
+/// Printer maintenance (M7). Shares authenticated Dio.
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
   (ref) => MaintenanceRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Firmware drukarek. Współdzieli uwierzytelnione Dio.
+/// Printer firmware. Shares authenticated Dio.
 final firmwareRepositoryProvider = Provider<FirmwareRepository>(
   (ref) => FirmwareRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Menedżer plików / biblioteka. Współdzieli uwierzytelnione Dio.
+/// File manager / library. Shares authenticated Dio.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Integracja MakerWorld (import modeli). Współdzieli uwierzytelnione Dio.
+/// MakerWorld integration (model import). Shares authenticated Dio.
 final makerworldRepositoryProvider = Provider<MakerWorldRepository>(
   (ref) => MakerWorldRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Logowanie do chmury Bambu (warunek pobierania). Współdzieli uwierzytelnione Dio.
+/// Bambu Cloud login (prerequisite for downloads). Shares authenticated Dio.
 final cloudRepositoryProvider = Provider<CloudRepository>(
   (ref) => CloudRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Stan logowania do chmury Bambu. Invalidowany po zalogowaniu/wylogowaniu.
+/// Bambu Cloud login status. Invalidated on login/logout.
 final cloudAuthStatusProvider = FutureProvider.autoDispose<CloudAuthStatus>(
   (ref) => ref.watch(cloudRepositoryProvider).status(),
 );
 
-/// Stan integracji MakerWorld (czy można pobierać). Bramkuje przyciski importu;
-/// invalidowany po zmianie logowania do chmury.
+/// MakerWorld integration status (can download). Gates import buttons;
+/// invalidated on cloud login change.
 final makerworldStatusProvider = FutureProvider.autoDispose<MakerWorldStatus>(
   (ref) => ref.watch(makerworldRepositoryProvider).status(),
 );
 
-/// Ostatnie importy z MakerWorld. Invalidowany po udanym imporcie.
+/// Recent MakerWorld imports. Invalidated on successful import.
 final makerworldRecentImportsProvider =
     FutureProvider.autoDispose<List<MakerWorldRecentImport>>(
   (ref) => ref.watch(makerworldRepositoryProvider).recentImports(),
 );
 
-/// Wybrany backend magazynu filamentów (natywny domyślnie). Przełącznik
-/// użytkownika; Spoolman to drop-in — patrz [SpoolInventorySource].
+/// Chosen filament inventory backend (native by default). User toggle;
+/// Spoolman is drop-in — see [SpoolInventorySource].
 final inventoryBackendProvider =
     NotifierProvider<InventoryBackendNotifier, InventoryBackend>(
   InventoryBackendNotifier.new,
@@ -262,8 +261,8 @@ class InventoryBackendNotifier extends Notifier<InventoryBackend> {
   }
 }
 
-/// Źródło danych magazynu zależne od wybranego backendu. Współdzieli
-/// uwierzytelnione Dio; przebudowywane przy zmianie profilu lub backendu.
+/// Inventory data source dependent on chosen backend. Shares authenticated Dio;
+/// rebuilt on profile or backend change.
 final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
   final dio = ref.watch(apiClientProvider).dio;
   return switch (ref.watch(inventoryBackendProvider)) {
@@ -272,20 +271,20 @@ final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
   };
 });
 
-/// Magazyn filamentów. Fasada nad wybranym źródłem.
+/// Filament inventory. Facade over chosen source.
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
   (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
 );
 
-/// Serwis mintujący token strumienia kamery (okładka wydruku; od M2 też
-/// podgląd kamery). Przebudowywany wraz z klientem przy zmianie profilu.
+/// Service minting camera stream token (print cover; from M2 also camera preview).
+/// Rebuilt with client on profile change.
 final cameraTokenServiceProvider = Provider<CameraTokenService>(
   (ref) => CameraTokenService(ref.watch(apiClientProvider).dio),
 );
 
-/// Token kamery dla widżetów (okładka). Cache trzyma serwis; ten future
-/// udostępnia bieżący token do budowy URL-a obrazka. Invalidacja:
-/// `ref.invalidate(cameraTokenProvider)` po 401 z chronionego zasobu.
+/// Camera token for widgets (cover). Service holds cache; this future provides
+/// current token for building image URL. Invalidate: `ref.invalidate(cameraTokenProvider)`
+/// after 401 from protected resource.
 final cameraTokenProvider = FutureProvider<String>(
   (ref) => ref.watch(cameraTokenServiceProvider).token(),
 );

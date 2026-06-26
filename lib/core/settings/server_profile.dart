@@ -1,10 +1,10 @@
-/// Tryb uwierzytelniania serwera. KAŻDA ścieżka kodu dotykająca auth
-/// (nagłówki, mintowanie tokenów, re-login) MUSI branchować po tym enumie —
-/// serwer z wyłączonym auth jest pełnoprawną konfiguracją.
+/// Server authentication mode. EVERY code path that touches auth
+/// (headers, token minting, re-login) MUST branch on this enum —
+/// auth-disabled servers are fully supported configurations.
 enum AuthMode { none, jwt, apiKey }
 
-/// Profil połączenia z serwerem bambuddy. Nie zawiera sekretów —
-/// te żyją w [CredentialsStore] (secure storage).
+/// Connection profile for a bambuddy server. Does not contain secrets —
+/// those live in [CredentialsStore] (secure storage).
 class ServerProfile {
   const ServerProfile({
     required this.baseUrl,
@@ -19,7 +19,7 @@ class ServerProfile {
         label: json['label'] as String?,
       );
 
-  /// Np. `http://192.168.1.10:8000` — bez końcowego `/` i bez `/api/v1`.
+  /// E.g., `http://192.168.1.10:8000` — without trailing `/` or `/api/v1`.
   final String baseUrl;
   final AuthMode authMode;
   final String? label;
@@ -30,8 +30,7 @@ class ServerProfile {
         if (label != null) 'label': label,
       };
 
-  /// Normalizuje surowy wpis użytkownika: dokleja `http://` gdy brak
-  /// schematu, ucina końcowe `/`.
+  /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`.
   static String normalizeBaseUrl(String raw) {
     var url = raw.trim();
     if (url.isEmpty) return url;

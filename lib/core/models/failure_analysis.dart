@@ -1,7 +1,7 @@
-/// Analiza niepowodzeń z `GET /archives/analysis/failures`.
+/// Failure analysis from `GET /archives/analysis/failures`.
 ///
-/// Endpoint nie ma zadeklarowanego schematu w OpenAPI — kształt ustalony z
-/// żywej odpowiedzi. Parsowanie defensywne; nieznane pola ignorowane.
+/// Endpoint has no declared schema in OpenAPI — shape determined from live
+/// response. Defensive parsing; unknown fields ignored.
 class FailureAnalysis {
   const FailureAnalysis({
     this.periodDays = 0,
@@ -29,20 +29,20 @@ class FailureAnalysis {
   final int totalPrints;
   final int failedPrints;
 
-  /// Odsetek niepowodzeń w procentach (np. 4.5).
+  /// Failure rate in percent (e.g. 4.5).
   final double failureRate;
 
-  /// Liczba porażek per powód (np. `{Unknown: 3}`).
+  /// Failure count per reason (e.g. `{Unknown: 3}`).
   final Map<String, int> failuresByReason;
   final Map<String, int> failuresByFilament;
   final Map<String, int> failuresByPrinter;
 
-  /// Liczba porażek per godzina doby (klucz „0".."23").
+  /// Failure count per hour of day (key "0".."23").
   final Map<String, int> failuresByHour;
 
   bool get isEmpty => failedPrints == 0 && totalPrints == 0;
 
-  /// Serializacja do cache — klucze zgodne z [fromJson], więc round-trip.
+  /// Serialization for cache — keys match [fromJson] for round-trip.
   Map<String, dynamic> toJson() => {
         'period_days': periodDays,
         'total_prints': totalPrints,
@@ -54,15 +54,14 @@ class FailureAnalysis {
         'failures_by_hour': failuresByHour,
       };
 
-  /// Scala dwa rozłączne (czasowo) agregaty w jeden. Liczniki są addytywne
-  /// (archiwum jest append-only, okresy nie nachodzą na siebie); `failureRate`
-  /// przeliczamy z sum, bo średnia z procentów byłaby błędna. Używane przy
-  /// przyrostowym dociąganiu („cache + nowy okres") dla zakresu „cały okres".
+  /// Merge two disjoint (temporal) aggregates into one. Counters are additive
+  /// (archive is append-only, periods don't overlap); `failureRate` recalculated
+  /// from sums (average of percents would be wrong). Used for incremental fetch
+  /// ("cache + new period") for "full period" range.
   FailureAnalysis merge(FailureAnalysis other) {
     final total = totalPrints + other.totalPrints;
     final failed = failedPrints + other.failedPrints;
     return FailureAnalysis(
-      // Nieużywane w UI; suma to najmniej mylące przybliżenie łącznego okresu.
       periodDays: periodDays + other.periodDays,
       totalPrints: total,
       failedPrints: failed,

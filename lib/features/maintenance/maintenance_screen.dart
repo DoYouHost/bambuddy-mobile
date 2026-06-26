@@ -9,9 +9,8 @@ import '../../providers.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
-/// Ekran konserwacji drukarek (M7): przegląd stanu wszystkich drukarek
-/// pogrupowany po drukarce, oznaczanie czynności jako wykonanej (reset licznika)
-/// i historia. Tylko podgląd + wykonanie — zarządzanie typami zostaje na serwerze.
+/// Printer maintenance screen (M7): overview of all printer states grouped by printer,
+/// mark task done (reset counter), and history. View + execute only — type management stays on server.
 class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
 
@@ -25,8 +24,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Pierwszy build i tak dociąga aktualny stan z serwera — zdejmij ewentualny
-    // marker z akcji w tle, by nie odpalić zbędnego odświeżenia przy powrocie.
+    // First build fetches current state anyway — clear any dirty marker from background action
+    // to avoid unnecessary refresh on return.
     ref.read(settingsRepositoryProvider).setMaintenanceDirty(false);
   }
 
@@ -41,9 +40,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
     if (state == AppLifecycleState.resumed) _refreshIfDirty();
   }
 
-  /// Po powrocie do apki: jeśli „oznacz wykonane" z powiadomienia zresetowało
-  /// licznik w isolacie tła, dociągnij świeży stan. `reload()` jest konieczny —
-  /// zapis poszedł z innego isolate'u, więc cache prefów w UI go nie widzi.
+  /// On app return: if background notification "mark done" reset counter in isolate,
+  /// fetch fresh state. `reload()` necessary — write from different isolate,
+  /// so UI prefs cache doesn't see it.
   Future<void> _refreshIfDirty() async {
     await ref.read(sharedPreferencesProvider).reload();
     final settings = ref.read(settingsRepositoryProvider);
@@ -157,8 +156,8 @@ class _CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tekst dobrany do jasności tła — `colorScheme.error` w ciemnym motywie to
-    // jasny łosoś, na którym biały tekst znika; czarny daje czytelny kontrast.
+    // Text color matched to background brightness — `colorScheme.error` in dark mode is
+    // bright salmon where white text disappears; black gives readable contrast.
     final onColor = ThemeData.estimateBrightnessForColor(color) == Brightness.dark
         ? Colors.white
         : Colors.black;
@@ -192,9 +191,9 @@ class _MaintenanceTile extends ConsumerWidget {
       MaintenanceSeverity.ok => theme.colorScheme.primary,
     };
 
-    final dueText = item.isDue
-        ? l10n.maintenanceOverdueBy(item.hoursUntilDue.abs().round())
-        : l10n.maintenanceDueIn(item.hoursUntilDue.round());
+  final dueText = item.isDue
+      ? l10n.maintenanceOverdueBy(item.hoursUntilDue.abs().round())
+      : l10n.maintenanceDueIn(item.hoursUntilDue.round());
 
     return Opacity(
       opacity: item.enabled ? 1 : 0.5,
@@ -354,7 +353,7 @@ class _HistorySheet extends ConsumerWidget {
   }
 }
 
-/// Prosty format daty `RRRR-MM-DD GG:MM` (lokalny) bez zależności od intl.
+/// Simple date format `YYYY-MM-DD HH:MM` (local) without intl dependency.
 String? _formatDate(DateTime? dt) {
   if (dt == null) return null;
   final l = dt.toLocal();

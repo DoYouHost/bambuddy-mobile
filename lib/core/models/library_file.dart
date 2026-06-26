@@ -2,10 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'library_file.g.dart';
 
-/// Plik w bibliotece menedżera plików (`FileListResponse`).
+/// File in library file manager (`FileListResponse`).
 ///
-/// Parsowanie defensywne: poza id/filename/file_type/file_size/created_at
-/// wszystko nullable, nieznane klucze ignorowane — kontrakt API bywa ruchliwy.
+/// Defensive parsing: all except id/filename/file_type/file_size/created_at
+/// are nullable, unknown keys ignored — API contract evolves.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class LibraryFile {
   const LibraryFile({
@@ -32,53 +32,53 @@ class LibraryFile {
   final int id;
   final int? folderId;
 
-  /// Plik z folderu zewnętrznego (read-only po stronie hosta) — pewne akcje
-  /// (np. usunięcie/zmiana nazwy) mogą być niedostępne.
+  /// File from external folder (host-side read-only) — some actions
+  /// (delete/rename) may be unavailable.
   @JsonKey(defaultValue: false)
   final bool isExternal;
 
-  /// Nazwa pliku na dysku (np. „Mug Holder.3mf").
+  /// Filename on disk (e.g. "Mug Holder.3mf").
   final String filename;
 
-  /// Rozszerzenie/typ pliku (np. „3mf", „gcode", „stl").
+  /// File extension/type (e.g. "3mf", "gcode", "stl").
   final String fileType;
 
-  /// Rozmiar pliku w bajtach.
+  /// File size in bytes.
   final int fileSize;
 
-  /// Ścieżka miniatury (jeśli wygenerowana). Sam render idzie przez endpoint
-  /// `thumbnail` z tokenem — to pole służy tylko do sprawdzenia „czy jest".
+  /// Thumbnail path (if generated). Actual render goes via `thumbnail` endpoint
+  /// with token — this field only checks "does it exist".
   final String? thumbnailPath;
 
-  /// Ile razy plik był drukowany.
+  /// Print count for this file.
   final int printCount;
 
-  /// Liczba duplikatów (ten sam hash w innych miejscach biblioteki).
+  /// Duplicate count (same hash elsewhere in library).
   @JsonKey(defaultValue: 0)
   final int duplicateCount;
 
-  /// Nazwa użytkownika, który wgrał plik.
+  /// Username who uploaded the file.
   final String? createdByUsername;
 
   final DateTime? createdAt;
 
-  /// Czytelna nazwa wydruku z metadanych slicera (jeśli inna niż [filename]).
+  /// Human-readable print name from slicer metadata (if different from [filename]).
   final String? printName;
 
-  /// Szacowany czas wydruku w sekundach (z metadanych slicera).
+  /// Estimated print time in seconds from slicer metadata.
   final int? printTimeSeconds;
 
-  /// Szacowane zużycie filamentu w gramach (z metadanych slicera).
+  /// Estimated filament usage in grams from slicer metadata.
   final double? filamentUsedGrams;
 
-  /// Model drukarki, dla którego plik był skrojony (np. „P1S", „X1C").
+  /// Printer model this file was sliced for (e.g. "P1S", "X1C").
   final String? slicedForModel;
 
-  /// Wyświetlana nazwa: czytelna nazwa wydruku, jeśli jest, inaczej nazwa pliku.
+  /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
 
-  /// Czy plik nadaje się do druku (skrojony g-code). Tylko takie przyjmuje
-  /// endpoint druku — patrz `FilePrint` w API.
+  /// Whether file is printable (sliced g-code). Print endpoint only accepts these
+  /// — see `FilePrint` in API.
   bool get isPrintable {
     final t = fileType.toLowerCase();
     final name = filename.toLowerCase();

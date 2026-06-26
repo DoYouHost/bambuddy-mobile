@@ -12,13 +12,13 @@ import '../../l10n/error_messages.dart';
 import '../common/print_thumbnail.dart';
 import 'queue_providers.dart';
 
-/// Ekran kolejki wydruków (M5): przeciąganie (reorder), swipe-to-delete za
-/// potwierdzeniem, akcje start/anuluj. Pokazuje tylko elementy aktywne.
+/// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
+/// start/cancel actions. Shows only active items.
 ///
-/// Kolejka nie ma WS, a stan zmienia się też poza apką (np. wydruk wystartowany
-/// z drukarki/innego klienta), więc gdy ekran żyje na pierwszym planie dociągamy
-/// świeżą listę cyklicznie. Timer milknie w tle (jak polling Dashboardu), bo to
-/// niepotrzebne bicie po serwerze — powrót i tak robi świeży fetch.
+/// Queue has no WS and state changes outside app (e.g. print started from
+/// printer/other client), so when screen is in foreground we fetch fresh list
+/// periodically. Timer pauses in background (like Dashboard polling) because it's
+/// unnecessary server hits — returning fetches fresh anyway.
 class QueueScreen extends ConsumerStatefulWidget {
   const QueueScreen({super.key});
 
@@ -27,8 +27,8 @@ class QueueScreen extends ConsumerStatefulWidget {
 }
 
 class _QueueScreenState extends ConsumerState<QueueScreen> {
-  /// Częstotliwość auto-odświeżania na pierwszym planie. Rzadziej niż roster
-  /// Dashboardu (5 s) — kolejka zmienia się wolniej, a fetch jest cięższy.
+  /// Auto-refresh frequency in foreground. Less frequent than Dashboard's roster
+  /// (5s) — queue changes slower and fetch is heavier.
   static const _refreshInterval = Duration(seconds: 10);
 
   Timer? _timer;
@@ -41,7 +41,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     _lifecycle = AppLifecycleListener(
       onPause: _stopTimer,
       onResume: () {
-        // Powrót na pierwszy plan: natychmiast dociągnij i wznów cykl.
+        // Return to foreground: fetch immediately and resume cycle.
         unawaited(ref.read(queueProvider.notifier).refresh());
         _startTimer();
       },
@@ -73,8 +73,8 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(queueProvider);
 
-    // Wydruki oczekujące (poza aktualnie drukowanymi) — od ich obecności
-    // zależy widoczność przycisku „uruchom następny".
+    // Pending prints (excluding currently printing) — "start next" button
+    // visibility depends on their presence.
     final items = async.valueOrNull ?? const <QueueItem>[];
     final queued = [
       for (final i in items)
@@ -112,10 +112,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     );
   }
 
-  /// „Uruchom następny": bierze pierwszy oczekujący wydruk, pyta o drukarkę
-  /// i startuje go na niej (przypisanie + start). Uruchamia fizyczny wydruk.
-  /// Drukarki OFFLINE też można wybrać — bambuddy włączy je przed startem
-  /// (smart gniazdkiem albo inaczej); oznaczamy je w wyborze.
+  /// "Start next": takes first pending print, asks for printer, and starts it
+  /// (assign + start). Triggers physical print. OFFLINE printers can be selected too —
+  /// bambuddy will wake them before start (with smart plug or otherwise); we mark
+  /// them in the picker.
   Future<void> _startNext(
     BuildContext context,
     WidgetRef ref,
@@ -132,8 +132,8 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     }
     if (!context.mounted) return;
     if (candidates.isEmpty) {
-      // Pusto tylko gdy WSZYSTKIE drukarki są zajęte wydrukiem — offline nadal
-      // są wybieralne, więc ten przypadek to realnie „brak wolnych".
+      // Empty only when ALL printers are busy with printing — offline are still
+      // selectable, so this case is really "no free ones".
       messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
       return;
     }
@@ -171,9 +171,9 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
   }
 }
 
-/// Pozycja drukarki w arkuszu wyboru „uruchom następny": nazwa, status
-/// (online/offline) i ikona gniazdka, gdy drukarka ma przypisane smart
-/// gniazdko (bambuddy włączy je przed startem). Bez tekstu objaśniającego.
+/// Printer entry in "start next" picker: name, status (online/offline), and plug
+/// icon if printer has smart plug assigned (bambuddy will wake it before start).
+/// No explanatory text.
 class _PrinterCandidateTile extends StatelessWidget {
   const _PrinterCandidateTile({required this.candidate, required this.onTap});
 
@@ -215,9 +215,9 @@ class _QueueList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    // Drukujące przypięte na górze (nieprzesuwalne, poza ReorderableListView);
-    // reszta reorderowalna. Indeksy reorderu przesuwamy o liczbę przypiętych,
-    // bo notifier operuje na pełnej liście aktywnych (drukujące + reszta).
+    // Printing pinned on top (non-reorderable, outside ReorderableListView);
+    // rest is reorderable. Shift reorder indices by pinned count because
+    // notifier operates on full active list (printing + rest).
     final pinned = [
       for (final i in items)
         if (i.statusKind == QueueItemStatusKind.printing) i,
@@ -235,8 +235,8 @@ class _QueueList extends ConsumerWidget {
           child: ReorderableListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 6),
             physics: const AlwaysScrollableScrollPhysics(),
-            // Bez domyślnego przeciągania na long-press — kolejność zmienia się
-            // wyłącznie przez jawny uchwyt po lewej stronie kafelka.
+            // No default long-press drag — reorder only via explicit handle on left
+            // side of tile.
             buildDefaultDragHandles: false,
             itemCount: reorderable.length,
             onReorderItem: (oldIndex, newIndex) async {
@@ -268,12 +268,12 @@ class _QueueCard extends ConsumerWidget {
 
   final QueueItem item;
 
-  /// Element drukujący: przypięty na górze, wyróżniony, nieprzesuwalny i bez
-  /// swipe-to-delete (nie wrapujemy w Dismissible).
+  /// Printing item: pinned on top, highlighted, non-reorderable, no swipe-to-delete
+  /// (not wrapped in Dismissible).
   final bool pinned;
 
-  /// Indeks w liście reorderowalnej; gdy podany, po lewej pokazujemy jawny
-  /// uchwyt przeciągania (`ReorderableDragStartListener`). Null dla przypiętych.
+  /// Index in reorderable list; when provided, show explicit drag handle on left
+  /// (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
 
   @override
@@ -284,7 +284,7 @@ class _QueueCard extends ConsumerWidget {
 
     final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      // Drukujące wyróżniamy obramowaniem (outline), nie wypełnieniem tła.
+      // Printing distinguished by outline border, not background fill.
       shape: pinned
           ? RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -320,8 +320,8 @@ class _QueueCard extends ConsumerWidget {
       ),
     );
 
-    // Drukujące: bez Dismissible — nie da się ich usunąć swipe'em (i są poza
-    // ReorderableListView, więc nieprzesuwalne).
+    // Printing: no Dismissible — can't swipe-delete (and outside ReorderableListView,
+    // so non-reorderable).
     if (pinned) return card;
 
     return Dismissible(
@@ -338,8 +338,8 @@ class _QueueCard extends ConsumerWidget {
         child: Icon(Icons.delete_outline,
             color: theme.colorScheme.onErrorContainer),
       ),
-      // Dialog tylko TU; faktyczne usunięcie w onDismissed (notifier usuwa
-      // element ze stanu) — inaczej Dismissible kłóci się z przebudową listy.
+      // Dialog here only; actual delete in onDismissed (notifier removes from state) —
+      // else Dismissible conflicts with list rebuild.
       confirmDismiss: (_) => _confirmDelete(context, l10n),
       onDismissed: (_) async {
         final messenger = ScaffoldMessenger.of(context);
@@ -459,7 +459,7 @@ class _QueueActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    // Drukujący element nie ma sensu „startować"; każdy aktywny można anulować.
+    // Printing item doesn't make sense to "start"; any active item can cancel.
     final canStart = item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
     final canPreview = item.archiveId != null || item.libraryFileId != null;
@@ -511,8 +511,8 @@ class _QueueActions extends ConsumerWidget {
     );
   }
 
-  /// Otwiera pełnoekranowy podgląd G-code dla źródła elementu (archiwum lub
-  /// plik z biblioteki). Tytuł paska = nazwa wydruku, gdy znana.
+  /// Opens fullscreen G-code preview for item source (archive or library file).
+  /// App bar title = print name, if known.
   void _previewGcode(BuildContext context) {
     final name = item.archiveName == null
         ? ''
@@ -531,7 +531,7 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ListView, by RefreshIndicator działał także przy pustym stanie.
+    // ListView so RefreshIndicator works in empty state too.
     return ListView(
       children: [
         Padding(
@@ -581,8 +581,8 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Wspólny SnackBar dla wyników akcji kolejki (forbidden/error → komunikat;
-/// ok → cisza, bo zmiana jest widoczna w UI).
+/// Common SnackBar for queue action results (forbidden/error → message;
+/// ok → silent because change is visible in UI).
 void _snackForResult(
   ScaffoldMessengerState messenger,
   AppLocalizations l10n,

@@ -8,14 +8,12 @@ import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 
-/// Identyfikator akcji „Oznacz wykonane" w powiadomieniach konserwacji.
-/// `payload` notyfikacji niesie listę id (`1,2,3`) do zresetowania.
+/// Action ID for "Mark Done" in maintenance notifications.
+/// The notification payload carries a comma-separated list of item IDs to reset.
 const String maintenancePerformActionId = 'maint_perform';
 
-/// Składa payload notyfikacji konserwacji z listy id pozycji.
 String maintenancePayload(Iterable<int> itemIds) => itemIds.join(',');
 
-/// Parsuje payload notyfikacji konserwacji na listę id pozycji (tolerancyjnie).
 List<int> parseMaintenancePayload(String? payload) {
   if (payload == null || payload.isEmpty) return const [];
   final ids = <int>[];
@@ -26,10 +24,10 @@ List<int> parseMaintenancePayload(String? payload) {
   return ids;
 }
 
-/// Buduje uwierzytelnione [ApiClient] BEZ Riverpod — używalne w isolacie tła
-/// (foreground service) i w isolacie callbacku powiadomień, gdzie nie ma
-/// dostępu do providerów. Wzorzec 1:1 z `apiClientProvider`. `null`, gdy nie ma
-/// skonfigurowanego profilu serwera.
+/// Builds an authenticated [ApiClient] without Riverpod — usable in the
+/// background isolate (foreground service) and notification callback isolate
+/// where providers are unavailable. Mirrors `apiClientProvider` logic.
+/// Returns `null` if no server profile is configured.
 Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
   final profile = SettingsRepository(prefs).loadProfile();
   if (profile == null) return null;
@@ -44,18 +42,19 @@ Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
   );
 }
 
-/// Wejście isolate'u callbacku powiadomień (apka zamknięta). MUSI być top-level
-/// i `@pragma('vm:entry-point')` — plugin uruchamia je w osobnym silniku Dart.
+/// Entry point for the notification callback isolate (app may be closed).
+/// Must be top-level and marked with `@pragma('vm:entry-point')` —
+/// the plugin launches it in a separate Dart engine.
 @pragma('vm:entry-point')
 void maintenanceNotificationBackgroundHandler(NotificationResponse response) {
   handleMaintenanceAction(response);
 }
 
-/// Obsługa tapnięcia akcji „Oznacz wykonane" na powiadomieniu konserwacji —
-/// wołana z isolate'u callbacku pluginu (apka może być zamknięta), więc
-/// odtwarza całość od zera: prefs, klient API, repo. Resetuje licznik dla
-/// każdej pozycji z payloadu, zdejmuje je z dedup-zbioru (re-arm) i kasuje
-/// notyfikację. Wszystkie błędy łykane — callback pluginu nie może rzucić.
+/// Handles tapping the "Mark Done" action on a maintenance notification.
+/// Called from the plugin's callback isolate (app may be closed), so it rebuilds
+/// everything from scratch: prefs, API client, repository. Resets the item counter,
+/// removes items from the dedup set (re-arm for future alerts), and dismisses
+/// the notification. All errors are swallowed — the callback must not throw.
 Future<void> handleMaintenanceAction(NotificationResponse response) async {
   if (response.actionId != maintenancePerformActionId) return;
   final itemIds = parseMaintenancePayload(response.payload);
@@ -72,15 +71,15 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
         await repo.perform(id);
         anyPerformed = true;
       } on Object {
-        // Pojedyncza porażka nie blokuje pozostałych.
+        // Isolate callback cannot crash.
       }
     }
     final settings = SettingsRepository(prefs);
     final notified = settings.loadNotifiedMaintenanceDueIds()
       ..removeAll(itemIds);
     await settings.saveNotifiedMaintenanceDueIds(notified);
-    // Sygnał dla UI: stan serwera się zmienił poza nim. Ekran konserwacji
-    // dociągnie świeże dane przy powrocie do apki zamiast czekać na pull-to-refresh.
+    // Signal to UI: server state changed outside the app.
+    // Maintenance screen will fetch fresh data on return instead of polling.
     if (anyPerformed) await settings.setMaintenanceDirty(true);
 
     final id = response.id;
@@ -88,6 +87,6 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
       await FlutterLocalNotificationsPlugin().cancel(id);
     }
   } on Object {
-    // Brak crasha isolate'u callbacku.
+    // Prevent callback isolate crash.
   }
 }

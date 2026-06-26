@@ -8,8 +8,8 @@ import '../../l10n/app_localizations.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';
 
-/// Główny szkielet powłoki z dolną belką nawigacyjną (Material 3).
-/// Wyświetlany dla wszystkich tras wewnątrz [StatefulShellRoute].
+/// Main shell scaffold with bottom navigation bar (Material 3).
+/// Displayed for all routes inside [StatefulShellRoute].
 class RootScaffold extends ConsumerWidget {
   const RootScaffold({super.key, required this.navigationShell});
 
@@ -20,8 +20,8 @@ class RootScaffold extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
-    // Licznik plakietki na zakładce „Kolejka": tylko wydruki OCZEKUJĄCE
-    // (pending/scheduled) — aktualnie drukowany i wstrzymane się nie liczą.
+    // Badge count on "Queue" tab: only PENDING prints (pending/scheduled) —
+    // currently printing and paused don't count.
     final queueCount = ref.watch(queueProvider).valueOrNull?.where((i) {
           final k = i.statusKind;
           return k == QueueItemStatusKind.pending ||
@@ -29,8 +29,7 @@ class RootScaffold extends ConsumerWidget {
         }).length ??
         0;
 
-    // Licznik na zakładce „Konserwacja": suma przeterminowanych czynności
-    // (is_due) ze wszystkich drukarek.
+    // Badge count on "Maintenance" tab: sum of overdue tasks (is_due) from all printers.
     final maintenanceCount = ref
             .watch(maintenanceOverviewProvider)
             .valueOrNull
@@ -38,14 +37,14 @@ class RootScaffold extends ConsumerWidget {
         0;
 
     return Scaffold(
-      // Każda gałąź ma swój własny Scaffold z AppBar — ciało powłoki
-      // to bezpośrednio widget gałęzi, bez dodatkowego opakowania.
+      // Each branch has own Scaffold with AppBar — shell body is branch widget
+      // directly, no extra wrapper.
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => navigationShell.goBranch(
           index,
-          // Ponowne kliknięcie aktywnej zakładki → wróć do korzenia gałęzi.
+          // Tap active tab again → return to branch root.
           initialLocation: index == navigationShell.currentIndex,
         ),
         destinations: [
@@ -82,15 +81,15 @@ class RootScaffold extends ConsumerWidget {
     );
   }
 
-  /// Owija ikonę zakładki plakietką z liczbą [count]. Gdy [count] == 0 zwraca
-  /// samą ikonę (plakietki nie pokazujemy). `Badge` z Material 3 ma kształt
-  /// zaokrąglonego squircle'a i sam pozycjonuje się w prawym górnym rogu.
+  /// Wrap tab icon with badge showing [count]. If [count] == 0, return just icon
+  /// (don't show badge). Material 3 `Badge` has rounded squircle shape and
+  /// self-positions in top-right.
   Widget _badged(Widget icon, int count) =>
       count > 0 ? Badge(label: Text('$count'), child: icon) : icon;
 
-  /// Ikona z własnego assetu SVG (Material nie ma sensownych glifów drukarki 3D
-  /// ani szpuli). [color] dobierany pod stan zaznaczenia belki, by zachować się
-  /// jak zwykła ikona Material (zaznaczona vs nie).
+  /// Icon from own SVG asset (Material lacks sensible 3D printer and spool glyphs).
+  /// [color] chosen for bar selection state to behave like normal Material icon
+  /// (selected vs unselected).
   Widget _svgIcon(String asset, Color color) => SvgPicture.asset(
         asset,
         width: 24,

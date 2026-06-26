@@ -2,13 +2,13 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'maintenance.g.dart';
 
-/// Pilność czynności konserwacji wyliczona z flag serwera.
+/// Urgency of maintenance task calculated from server flags.
 enum MaintenanceSeverity { ok, warning, due }
 
-/// Przegląd konserwacji jednej drukarki z `GET /maintenance/overview`
-/// (i `GET /maintenance/printers/{id}`) — `PrinterMaintenanceOverview`.
-/// Parsujemy defensywnie: poza identyfikatorami wszystko liczbowe przez helpery
-/// tolerujące int/num/string, nieznane klucze ignorowane.
+/// Maintenance overview for single printer from `GET /maintenance/overview`
+/// (and `GET /maintenance/printers/{id}`) — `PrinterMaintenanceOverview`.
+/// Defensive parsing: besides IDs, all numeric via tolerant helpers accepting
+/// int/num/string, unknown keys ignored.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class PrinterMaintenanceOverview {
   const PrinterMaintenanceOverview({
@@ -39,12 +39,12 @@ class PrinterMaintenanceOverview {
   @JsonKey(fromJson: _toInt)
   final int warningCount;
 
-  /// Pozycje przeterminowane (po reset licznika znikają stąd).
+  /// Overdue items (disappear after counter reset).
   List<MaintenanceStatus> get dueItems =>
       [for (final i in maintenanceItems) if (i.isDue) i];
 }
 
-/// Stan pojedynczej czynności konserwacji (`MaintenanceStatus`).
+/// State of a single maintenance task (`MaintenanceStatus`).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class MaintenanceStatus {
   const MaintenanceStatus({
@@ -79,8 +79,8 @@ class MaintenanceStatus {
   final int maintenanceTypeId;
   final String maintenanceTypeName;
 
-  /// Nazwa ikony w stylu Lucide (np. „Droplet", „Flame") — mapowana na Material
-  /// w [maintenance_icons.dart]. Serwer może jej nie podać.
+  /// Lucide-style icon name (e.g. "Droplet", "Flame") — mapped to Material in
+  /// [maintenance_icons.dart]. Server may omit.
   final String? maintenanceTypeIcon;
   final String? maintenanceTypeWikiUrl;
 
@@ -89,7 +89,7 @@ class MaintenanceStatus {
   @JsonKey(fromJson: _toDouble)
   final double intervalHours;
 
-  /// Jednostka interwału (np. „hours"). Surowo, nie enumujemy.
+  /// Interval unit (e.g. "hours"). Raw, not enum-backed.
   final String intervalType;
 
   @JsonKey(fromJson: _toDouble)
@@ -110,7 +110,7 @@ class MaintenanceStatus {
   final bool isDue;
   final bool isWarning;
 
-  /// ISO8601 (czasem z „Z", czasem bez) — parsujemy do [lastPerformedAt].
+  /// ISO8601 (sometimes with "Z", sometimes without) — parsed to [lastPerformedAt].
   @JsonKey(name: 'last_performed_at')
   final String? lastPerformedAtRaw;
 
@@ -123,15 +123,14 @@ class MaintenanceStatus {
           ? MaintenanceSeverity.warning
           : MaintenanceSeverity.ok;
 
-  /// Postęp do terminu w zakresie 0..1 (do paska postępu). Powyżej terminu
-  /// klamrowany do 1.
+  /// Progress to due date in range 0..1 (for progress bar). Beyond due clamped to 1.
   double get progress {
     if (intervalHours <= 0) return 0;
     return (hoursSinceMaintenance / intervalHours).clamp(0, 1).toDouble();
   }
 }
 
-/// Wpis historii wykonania konserwacji (`MaintenanceHistoryResponse`).
+/// Maintenance execution history entry (`MaintenanceHistoryResponse`).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class MaintenanceHistoryEntry {
   const MaintenanceHistoryEntry({

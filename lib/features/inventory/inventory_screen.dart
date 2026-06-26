@@ -12,12 +12,11 @@ import '../dashboard/ws_providers.dart';
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
-/// Skanuje kod QR szpuli i otwiera jej kartę szczegółów (NIE tryb edycji).
-/// Skaner zwraca id (parsowane z URL `?spool=`); szukamy szpuli na wczytanej
-/// liście (jest z `include_archived`, więc każda powinna tam być). Świeżo
-/// dodaną na serwerze próbujemy dociągnąć jednym odświeżeniem; gdy nadal
-/// brak — meldujemy. Współdzielone przez FAB Filamentów oraz widget ekranu
-/// głównego (przycisk skanera), stąd funkcja top-level (a nie metoda ekranu).
+/// Scans a spool QR code and opens its detail card (NOT edit mode).
+/// Scanner returns id (parsed from URL `?spool=`); we find the spool in the loaded
+/// list (includes archived, so it should be there). Newly added on server is fetched
+/// with one refresh; if still missing, we report it. Shared by Filaments FAB and
+/// home screen widget (scanner button), hence top-level function (not screen method).
 Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -56,10 +55,9 @@ Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
   );
 }
 
-/// Zakładka „Filamenty" (Faza 1, read-only): magazyn szpul z wyszukiwaniem,
-/// przełącznikiem zarchiwizowanych i szczegółami (historia zużycia, slot AMS,
-/// kalibracja). Dane przez [inventoryProvider] z backendu wybranego w ustawieniach
-/// (natywny/Spoolman). Zarządzanie (CRUD, przypisania) dojdzie w Fazie 2.
+/// Filaments tab (Phase 1, read-only): spool inventory with search, archived toggle,
+/// and details (usage history, AMS slot, calibration). Data from [inventoryProvider]
+/// via selected backend (native/Spoolman). Management (CRUD, assignments) comes in Phase 2.
 class InventoryScreen extends ConsumerWidget {
   const InventoryScreen({super.key});
 
@@ -151,9 +149,9 @@ class InventoryScreen extends ConsumerWidget {
     );
   }
 
-  /// Filtr po stronie klienta: status (aktywne/zarchiwizowane), zapas, materiał,
-  /// marka, lokalizacja oraz szukanie po materiale/marce/kolorze/lokalizacji
-  /// (case-insensitive). Puste zbiory w [filters] = brak ograniczenia.
+  /// Client-side filter: status (active/archived), stock, material, brand, location,
+  /// and search by material/brand/color/location (case-insensitive). Empty sets in
+  /// [filters] = no restriction.
   List<Spool> _filter(List<Spool> spools, String query, InventoryFilters filters) {
     final q = query.trim().toLowerCase();
     return [
@@ -171,13 +169,13 @@ class InventoryScreen extends ConsumerWidget {
     ];
   }
 
-  /// Skanuje kod QR szpuli i otwiera jej kartę szczegółów (NIE tryb edycji).
-  /// Deleguje do [scanSpoolFlow], współdzielonego z widgetem ekranu głównego.
+  /// Scans a spool QR code and opens its detail card (NOT edit mode).
+  /// Delegates to [scanSpoolFlow], shared with the home screen widget.
   Future<void> _scanSpool(BuildContext context, WidgetRef ref) =>
       scanSpoolFlow(context, ref);
 
-  /// Otwiera arkusz filtrów. Opcje (materiały/marki/lokalizacje) liczymy z pełnej
-  /// listy szpul, żeby pokazać tylko realnie występujące wartości.
+  /// Opens the filter sheet. Options (materials/brands/locations) counted from the
+  /// full spool list to show only actually occurring values.
   void _openFilters(BuildContext context, List<Spool> all) {
     showModalBottomSheet<void>(
       context: context,
@@ -191,7 +189,7 @@ class InventoryScreen extends ConsumerWidget {
     );
   }
 
-  /// Posortowane, niepuste, unikalne wartości pola — do listy opcji filtra.
+  /// Sorted, non-empty, unique field values — for filter option list.
   List<String> _distinct(Iterable<String?> values) {
     final set = <String>{
       for (final v in values)
@@ -235,7 +233,7 @@ class _SearchBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      // Wspólna wysokość obu elementów, żeby pole i przycisk się równały.
+      // Common height for both elements so field and button align.
       child: SizedBox(
         height: 48,
         child: Row(
@@ -268,8 +266,8 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/// Kwadratowy przycisk otwierający arkusz filtrów; plakietka pokazuje liczbę
-/// aktywnych filtrów. Wyrównany rozmiarem do pola wyszukiwania (48×48).
+/// Square button opening the filter sheet; badge shows count of active filters.
+/// Size matches search field (48×48).
 class _FilterButton extends StatelessWidget {
   const _FilterButton({required this.count, required this.onTap});
 
@@ -310,9 +308,9 @@ class _FilterButton extends StatelessWidget {
   }
 }
 
-/// Arkusz filtrów magazynu: status, zapas, materiał, marka, lokalizacja.
-/// Zmiany zapisujemy od razu w [inventoryFiltersProvider] — lista pod spodem
-/// odświeża się na żywo. Opcje przekazane z widoku (realnie występujące wartości).
+/// Inventory filter sheet: status, stock, material, brand, location.
+/// Changes saved immediately to [inventoryFiltersProvider] — list below updates live.
+/// Options passed from view (values that actually occur).
 class _FilterSheet extends ConsumerWidget {
   const _FilterSheet({
     required this.materials,
@@ -596,9 +594,9 @@ class _SpoolTile extends StatelessWidget {
   }
 }
 
-/// Etykieta miejsca, w którym siedzi szpula. Realny slot AMS → „AMS0 · 2".
-/// Szpula zewnętrzna (id 254/255) NIE jest jednostką AMS — pokazujemy ekstruder
-/// (lewy/prawy), spójnie z dashboardem; mapowanie z [SpoolAssignment.extruder].
+/// Label of where a spool sits. Real AMS slot → "AMS0 · 2".
+/// External spool (id 254/255) is NOT an AMS unit — show extruder (left/right),
+/// consistent with dashboard; mapping from [SpoolAssignment.extruder].
 String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {
   if (!a.isExternalSpool) return a.slotLabel;
   return switch (a.extruder) {
@@ -608,8 +606,8 @@ String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {
   };
 }
 
-/// Kwadratowy swatch koloru szpuli. `rgba` to zwykle hex `RRGGBBAA` (jak kolory
-/// AMS) albo `#RRGGBB`; gdy nieznany, rysujemy neutralny placeholder.
+/// Square spool color swatch. `rgba` is typically hex `RRGGBBAA` (like AMS colors)
+/// or `#RRGGBB`; if unknown, show neutral placeholder.
 class SpoolSwatch extends StatelessWidget {
   const SpoolSwatch({super.key, this.rgba, this.size = 36});
 
@@ -636,10 +634,10 @@ class SpoolSwatch extends StatelessWidget {
   }
 }
 
-/// Normalizuje hex koloru do formatu wymaganego przez serwer: `RRGGBBAA`
-/// (8 znaków, bez `#`). Akceptuje wejście z `#`, 6-cyfrowe (dokłada `FF` alfa)
-/// i 8-cyfrowe. Zwraca null dla pustego/nieprawidłowego — wtedy pole pomijamy,
-/// żeby nie dostać 422 (`SpoolCreate.rgba` ma wzorzec `^[0-9A-Fa-f]{8}$`).
+/// Normalizes color hex to server format: `RRGGBBAA` (8 chars, no `#`).
+/// Accepts input with `#`, 6-digit (adds `FF` alpha), and 8-digit.
+/// Returns null for empty/invalid — skip field to avoid 422
+/// (`SpoolCreate.rgba` pattern is `^[0-9A-Fa-f]{8}$`).
 String? normalizeRgba(String? raw) {
   if (raw == null) return null;
   var h = raw.trim();
@@ -650,7 +648,7 @@ String? normalizeRgba(String? raw) {
   return null;
 }
 
-/// Parsuje kolor szpuli z `RRGGBBAA` / `RRGGBB` (z opcjonalnym `#`).
+/// Parses spool color from `RRGGBBAA` / `RRGGBB` (optional `#`).
 Color? parseSpoolColor(String? raw) {
   if (raw == null) return null;
   var hex = raw.trim();
@@ -754,11 +752,9 @@ class _SpoolDetailSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          // Akcje zarządzania (Faza 2).
           _SpoolActions(spool: spool, assignment: assignment),
           const SizedBox(height: 16),
 
-          // Waga / pozostało.
           if (spool.remainingFraction != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -780,7 +776,6 @@ class _SpoolDetailSheet extends ConsumerWidget {
             const SizedBox(height: 16),
           ],
 
-          // Przypisanie do slotu AMS.
           _DetailRow(
             icon: Icons.print_outlined,
             label: assignment != null
@@ -820,7 +815,6 @@ class _SpoolDetailSheet extends ConsumerWidget {
               label: '${l10n.inventoryNote}: ${spool.note}',
             ),
 
-          // Kalibracja K.
           if (spool.kProfiles.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(l10n.inventoryKProfiles, style: theme.textTheme.titleMedium),
@@ -838,7 +832,6 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
           ],
 
-          // Historia zużycia.
           const SizedBox(height: 16),
           Text(l10n.inventoryUsageHistory, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
@@ -914,7 +907,7 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ListView, by RefreshIndicator działał także przy pustym stanie.
+    // ListView so RefreshIndicator works when empty.
     return ListView(
       children: [
         const SizedBox(height: 120),
@@ -956,7 +949,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Otwiera arkusz tworzenia/edycji szpuli. [existing] != null → tryb edycji.
+/// Opens spool create/edit sheet. [existing] != null → edit mode.
 void openSpoolForm(BuildContext context, {Spool? existing}) {
   showModalBottomSheet<void>(
     context: context,
@@ -966,9 +959,9 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
   );
 }
 
-/// Otwiera arkusz przypisania szpuli do slotu AMS / ekstrudera zewnętrznego —
-/// odwrotny przepływ do czipa na dashboardzie: tu szpula jest znana, a wybiera
-/// się slot. Dostępny, gdy szpula nie jest jeszcze nigdzie przypisana.
+/// Opens spool-to-slot assignment sheet (AMS or external extruder) —
+/// reverse flow from dashboard chip: spool is known, we pick a slot.
+/// Available when spool is not yet assigned anywhere.
 void _openAssignSheet(BuildContext context, Spool spool) {
   showModalBottomSheet<void>(
     context: context,
@@ -978,12 +971,11 @@ void _openAssignSheet(BuildContext context, Spool spool) {
   );
 }
 
-/// Wybór drukarki i slotu, do którego przypisujemy [spool]. Listę drukarek
-/// bierzemy z rostera dashboardu; układ slotów (jednostki AMS, dwudyszowość)
-/// dociągamy z żywego statusu, gdy dostępny — przy drukarce offline schodzimy
-/// do ręcznego wyboru numerów (przypisanie to operacja na bazie, działa też
-/// przy wyłączonej maszynie). Konwencja szpuli zewnętrznej: `ams_id=255`,
-/// `tray_id` 0=lewy, 1=prawy ([[inventory-filaments]]).
+/// Printer and slot picker for assigning [spool]. Printer list from dashboard roster;
+/// slot layout (AMS units, dual-extruder) fetched from live status if available —
+/// for offline printer, fall back to manual number entry (assignment is DB operation,
+/// works even with machine off). External spool convention: `ams_id=255`,
+/// `tray_id` 0=left, 1=right ([[inventory-filaments]]).
 class _AssignSheet extends ConsumerStatefulWidget {
   const _AssignSheet({required this.spool});
 
@@ -1007,7 +999,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     final theme = Theme.of(context);
     final roster = ref.watch(dashboardProvider).printers ?? const [];
 
-    // Domyślna drukarka: pierwsza z rostera (raz, póki nic nie wybrano).
+    // Default printer: first from roster (once, while nothing chosen).
     if (_printerId == null && roster.isNotEmpty) {
       _printerId = roster.first.printer.id;
     }
@@ -1016,7 +1008,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         ? null
         : ref.watch(printerStatusesProvider)[_printerId];
     final dual = status?.isDualExtruder ?? false;
-    // Jednostki AMS wykryte na żywo (ich id) — gdy brak, dajemy 0..3.
+    // AMS units detected live (their ids) — if none, provide 0..3.
     final unitIds = (status?.ams ?? const [])
         .map((u) => u.id ?? 0)
         .toSet()
@@ -1096,7 +1088,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       value: unitOptions.contains(_amsUnit)
                           ? _amsUnit
                           : unitOptions.first,
-                      // Wyświetlamy 1-based, wartość to id jednostki.
+                      // Display 1-based, value is unit id.
                       items: {for (final u in unitOptions) u: '${u + 1}'},
                       onChanged: (v) => setState(() => _amsUnit = v),
                     ),
@@ -1161,7 +1153,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
   }
 }
 
-/// Dropdown liczbowy (etykieta nad polem) — int z mapą wyświetlanych etykiet.
+/// Numeric dropdown (label above field) — int with display label map.
 class _NumberDropdown extends StatelessWidget {
   const _NumberDropdown({
     required this.label,
@@ -1198,10 +1190,10 @@ class _NumberDropdown extends StatelessWidget {
   }
 }
 
-/// Wiersz akcji w szczegółach szpuli: edycja, reset zużycia, archiwizacja/
-/// przywrócenie i usunięcie. Każda akcja najpierw zamyka arkusz, potem woła
-/// mutację na [inventoryProvider] (która sama przeładowuje listę) i melduje
-/// wynik snackbarem. Destrukcyjne (usuń, reset) potwierdzamy dialogiem.
+/// Action row in spool details: edit, reset usage, archive/restore, delete.
+/// Each action closes the sheet first, then calls mutation on [inventoryProvider]
+/// (which reloads the list itself) and reports result via snackbar.
+/// Destructive actions (delete, reset) need dialog confirmation.
 class _SpoolActions extends ConsumerWidget {
   const _SpoolActions({required this.spool, this.assignment});
 
@@ -1224,8 +1216,6 @@ class _SpoolActions extends ConsumerWidget {
           icon: const Icon(Icons.edit_outlined, size: 18),
           label: Text(l10n.inventoryEdit),
         ),
-        // Przypisanie/odpięcie slotu. Przypisać można też z czipa AMS na
-        // dashboardzie — tu wybiera się slot dla konkretnej szpuli.
         if (!spool.isArchived)
           if (assignment != null)
             OutlinedButton.icon(
@@ -1305,8 +1295,8 @@ class _SpoolActions extends ConsumerWidget {
         l10n.inventorySpoolDeleted);
   }
 
-  /// Zamyka arkusz, czeka na [action] i melduje wynik na nadrzędnym
-  /// ScaffoldMessengerze (przechwyconym przed pop, bo kontekst arkusza ginie).
+  /// Closes sheet, waits for [action], reports result to parent ScaffoldMessenger
+  /// (captured before pop, since sheet context disappears).
   Future<void> _run(BuildContext context, WidgetRef ref, AppLocalizations l10n,
       Future<void> action, String successMsg) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -1323,7 +1313,7 @@ class _SpoolActions extends ConsumerWidget {
   }
 }
 
-/// Prosty dialog potwierdzenia. Zwraca true gdy użytkownik zatwierdził.
+/// Simple confirmation dialog. Returns true if user confirmed.
 Future<bool> _confirm(BuildContext context, String title, String message,
     String confirmLabel,
     {bool destructive = false}) async {
@@ -1352,9 +1342,9 @@ Future<bool> _confirm(BuildContext context, String title, String message,
   return result ?? false;
 }
 
-/// Arkusz tworzenia/edycji szpuli. Pola tekstowe + walidacja; zapis przez
-/// [inventoryProvider] (create gdy [existing] == null, inaczej update). Liczbowe
-/// pola puste → null (serwer użyje domyślnych). Kolor podglądamy na żywo.
+/// Spool create/edit sheet. Text fields + validation; save via [inventoryProvider]
+/// (create if [existing] == null, else update). Empty numeric fields → null
+/// (server uses defaults). Color previewed live.
 class _SpoolFormSheet extends ConsumerStatefulWidget {
   const _SpoolFormSheet({this.existing});
 
@@ -1364,7 +1354,7 @@ class _SpoolFormSheet extends ConsumerStatefulWidget {
   ConsumerState<_SpoolFormSheet> createState() => _SpoolFormSheetState();
 }
 
-/// Stałe efekty filamentu do dropdownu (None + popularne).
+/// Fixed filament effects for dropdown (None + popular).
 const _effectOptions = [
   'Silk', 'Matte', 'Glow', 'Sparkle', 'Marble', 'Metal', 'Dual', 'Gradient',
 ];
@@ -1385,7 +1375,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     super.initState();
     final s = widget.existing;
     String n(num? v) => v == null ? '' : v.toString();
-    // Pozostała waga = etykieta − zużyte. Dla nowej szpuli domyślnie pełna 1000 g.
+    // Remaining weight = label − used. For new spool, default full 1000 g.
     final remaining = s == null ? '1000' : n(s.remainingWeight.round());
     _c = {
       'material': TextEditingController(text: s?.material ?? ''),
@@ -1407,7 +1397,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     };
     _coreWeightCatalogId = s?.coreWeightCatalogId;
     _effectType = s?.effectType;
-    // Podgląd swatcha odświeża się przy zmianie hexa.
+    // Swatch preview updates when hex changes.
     _c['rgba']!.addListener(() => setState(() {}));
   }
 
@@ -1424,10 +1414,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     return v.isEmpty ? null : v;
   }
 
-  /// Zmierzona waga to brutto (filament + pusta szpula/rdzeń). Po wpisaniu
-  /// odczytu z wagi przelicza pozostały filament: pozostało = zmierzone −
-  /// waga pustej szpuli. Dzięki temu zapis (weight_used = etykieta − pozostało)
-  /// faktycznie zmienia stan szpuli — bez tego sam odczyt nie aktualizował nic.
+  /// Measured weight is gross (filament + empty spool/core). After entering scale
+  /// reading, calculate remaining filament: remaining = measured − empty spool weight.
+  /// This ensures save (weight_used = label − remaining) actually changes spool state —
+  /// without it, the reading alone wouldn't update anything.
   void _applyScaleWeight(String raw) {
     final measured = double.tryParse(raw.trim());
     if (measured == null) return;
@@ -1437,7 +1427,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     setState(() {});
   }
 
-  /// Ustawia kolor z bazy (hex + nazwa + ewentualne gradient/efekt).
+  /// Sets color from database (hex + name + optional gradient/effect).
   void _applyColor(ColorEntry e) {
     setState(() {
       _c['rgba']!.text = e.hexColor;
@@ -1457,11 +1447,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    // Serwer wymaga progu low-stock w zakresie 1..99 (poza nim → 422).
+    // Server requires low-stock threshold in range 1..99 (outside = 422).
     final lowStock = int.tryParse(_c['lowStock']!.text.trim())?.clamp(1, 99);
     final label = int.tryParse(_c['labelWeight']!.text.trim());
     final remaining = double.tryParse(_c['remaining']!.text.trim());
-    // Pozostała waga steruje zużyciem: weight_used = etykieta − pozostało.
+    // Remaining weight controls usage: weight_used = label − remaining.
     double? used;
     if (remaining != null && label != null) {
       used = (label - remaining).clamp(0, label).toDouble();
@@ -1615,8 +1605,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Edytowalny combo (dropdown z filtrowaniem + wpis własny) dla materiału/
-  /// marki/wariantu. Wartość trzyma kontroler — wpis spoza listy zostaje.
+  /// Editable combo (dropdown with filtering + custom entry) for material/brand/variant.
+  /// Value held by controller — entry outside list is kept.
   Widget _combo(String key, String label, List<String> options,
       {bool required = false, String? errorText}) {
     return Padding(
@@ -1641,8 +1631,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Pole „Empty Spool Weight": dropdown z katalogu rdzeni (ustawia wagę + id)
-  /// obok edytowalnej wagi w gramach. Gdy katalog pusty — sama waga.
+  /// Empty Spool Weight field: dropdown from core catalog (sets weight + id)
+  /// beside editable weight in grams. If catalog empty — weight only.
   Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
     final weightField = SizedBox(
       width: cores.isEmpty ? null : 110,
@@ -1730,9 +1720,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Pole koloru: zamiast ręcznego wpisywania hexa otwiera color picker
-  /// (koło HSV + pasek hex). Po wyborze wpisuje hex `RRGGBBAA` do kontrolera
-  /// `rgba` (alfa zachowana z poprzedniej wartości, domyślnie `FF`).
+  /// Color field: instead of manual hex entry, opens color picker (HSV wheel + hex bar).
+  /// On selection, writes hex `RRGGBBAA` to `rgba` controller (alpha preserved
+  /// from previous value, default `FF`).
   Widget _hexColorPickerField(AppLocalizations l10n) {
     final hex = _c['rgba']!.text.trim();
     final color = parseSpoolColor(hex);
@@ -1767,10 +1757,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Dialog z color pickerem. Startuje od bieżącego koloru (lub białego),
-  /// a po zatwierdzeniu zapisuje wybrany hex `RRGGBBAA` do pola `rgba`.
-  /// Zachowuje istniejący bajt alfa (zwykle `FF`) — picker edytuje tylko RGB,
-  /// więc nie gubimy alfy szpuli (gdyby kiedyś była inna niż pełna).
+  /// Color picker dialog. Starts from current color (or white), saves chosen hex
+  /// `RRGGBBAA` to `rgba` field on confirm. Preserves existing alpha byte (usually `FF`) —
+  /// picker edits RGB only, so we don't lose spool alpha (if ever non-full).
   Future<void> _openColorPicker(AppLocalizations l10n) async {
     final rawCurrent = _c['rgba']!.text.trim().replaceFirst('#', '');
     final alphaHex =
@@ -1851,8 +1840,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }
 }
 
-/// Picker kolorów: duży podgląd + popularne swatche z bazy + wyszukiwarka.
-/// Tap koloru wypełnia hex/nazwę/gradient/efekt w formularzu (przez [onPick]).
+/// Color picker: large preview + popular swatches from database + search.
+/// Tap color fills hex/name/gradient/effect in form (via [onPick]).
 class _ColorPicker extends ConsumerWidget {
   const _ColorPicker({
     required this.rgba,
@@ -1890,7 +1879,6 @@ class _ColorPicker extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Duży podgląd aktualnego koloru.
         Container(
           height: 40,
           decoration: BoxDecoration(

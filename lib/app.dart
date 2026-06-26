@@ -19,15 +19,15 @@ class BambuBuddyApp extends ConsumerStatefulWidget {
 
 class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
   StreamSubscription<Uri?>? _widgetClickSub;
-  // Strażnik przed wielokrotnym wyzwoleniem skanera z jednego tapnięcia widgetu
-  // (cold start może dostać URI i z initiallyLaunched, i ze strumienia).
+  // Guard against multiple scanner triggers from one widget tap (cold start may
+  // get URI from both initiallyLaunched and stream).
   bool _scanInFlight = false;
 
   @override
   void initState() {
     super.initState();
-    // Tapnięcia w widget ekranu głównego: cold start (initiallyLaunched) oraz
-    // gdy apka już żyje (strumień). Oba niosą deep-link `bambuddy://widget?...`.
+    // Home screen widget taps: cold start (initiallyLaunched) and when app alive
+    // (stream). Both carry deep-link `bambuddy://widget?...`.
     _widgetClickSub = HomeWidget.widgetClicked.listen(_onWidgetUri);
     unawaited(HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri));
   }
@@ -45,9 +45,9 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
     }
   }
 
-  /// Otwiera skaner szpuli wyzwolony z widgetu. Wymaga skonfigurowanego profilu
-  /// (bez niego router i tak trzyma /setup). Czeka na gotowy nawigator — przy
-  /// zimnym starcie pierwsza klatka może jeszcze nie istnieć.
+  /// Open spool scanner triggered from widget. Requires configured profile
+  /// (without it router keeps /setup anyway). Wait for ready navigator — on cold
+  /// start first frame may not exist yet.
   void _triggerSpoolScan() {
     if (_scanInFlight) return;
     if (ref.read(serverProfileProvider) == null) return;
@@ -58,7 +58,7 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
         _scanInFlight = false;
         return;
       }
-      // Ląduj na zakładce Filamentów, potem otwórz skaner.
+      // Land on Filaments tab, then open scanner.
       context.go('/inventory');
       try {
         await scanSpoolFlow(context, ref);
@@ -70,15 +70,15 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Powiadomieniami zajmuje się WYŁĄCZNIE isolate tła (foreground service);
-    // na pierwszym planie status pokazuje sam UI, więc nie ma tu monitora.
+    // Notifications handled ONLY by background isolate (foreground service);
+    // foreground status shown by UI itself, so no monitor here.
     return MaterialApp.router(
       title: 'BambuBuddy',
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
-      // Apka idzie za ustawieniem systemu; ciemny motyw jak w PWA.
+      // App follows system setting; dark theme like PWA.
       themeMode: ThemeMode.system,
-      // Locale czytany automatycznie z systemu; en = fallback.
+      // Locale auto-detected from system; en = fallback.
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),

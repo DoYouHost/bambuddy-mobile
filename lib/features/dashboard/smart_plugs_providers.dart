@@ -8,12 +8,12 @@ import '../../data/smart_plugs_repository.dart';
 import '../../providers.dart';
 import 'controls_providers.dart' show ControlResult;
 
-/// Tempo odpytywania gniazdek. Status leci tylko REST (nie WS), więc trzymamy
-/// własny, stały interwał — niezależny od tego, czy WS drukarek żyje.
+/// Smart plug polling rate. Status only via REST (not WS), so we maintain
+/// our own fixed interval — independent of printer WS health.
 const smartPlugPollInterval = Duration(seconds: 5);
 
-/// Migawka gniazdek dla dashboardu: konfiguracja (z przypisaniem do drukarek),
-/// żywe statusy (moc/stan) oraz stan optymistyczny/`w locie` sterowania.
+/// Snapshot of smart plugs for dashboard: configuration (with printer
+/// assignment), live statuses (power/state) and optimistic/"in-flight" control state.
 class SmartPlugsState {
   const SmartPlugsState({
     this.plugs = const [],
@@ -23,24 +23,24 @@ class SmartPlugsState {
     this.forbidden = false,
   });
 
-  /// Konfiguracja wszystkich gniazdek (każde niesie `printerId`).
+  /// Configuration of all plugs (each carries `printerId`).
   final List<SmartPlug> plugs;
 
-  /// Żywy status per `plugId` (null-wpis = nieosiągalne/padło).
+  /// Live status per `plugId` (null entry = unreachable/failed).
   final Map<int, SmartPlugStatus> statuses;
 
-  /// Optymistyczne nadpisanie stanu on/off per `plugId` — natychmiastowy efekt
-  /// tapnięcia, zanim dogoni je realny status (potem sprzątane).
+  /// Optimistic on/off override per `plugId` — instant effect of tap,
+  /// before real status catches up (then cleaned).
   final Map<int, bool> optimistic;
 
-  /// Gniazdka z komendą aktualnie w locie (spinner + blokada przełącznika).
+  /// Plugs with command in flight (spinner + switch lock).
   final Set<int> inFlight;
 
-  /// Lepkie: komenda zwróciła 403 (klucz bez uprawnień) → blokujemy sterowanie.
+  /// Sticky: command returned 403 (key lacks permissions) → block control.
   final bool forbidden;
 
-  /// Gniazdko do pokazania na karcie danej drukarki: przypisane, włączone i
-  /// oznaczone do wyświetlenia. Pierwsze pasujące (zwykle jest jedno).
+  /// Plug to show on printer card: assigned, enabled, and marked visible.
+  /// First match (usually one).
   SmartPlug? plugForPrinterCard(int printerId) {
     for (final p in plugs) {
       if (p.printerId == printerId && p.visibleOnCard) return p;
@@ -52,12 +52,12 @@ class SmartPlugsState {
 
   bool isBusy(int plugId) => inFlight.contains(plugId);
 
-  /// Efektywny stan on/off: optymistyczne nadpisanie ma pierwszeństwo nad
-  /// statusem, ten nad ostatnim znanym z konfiguracji.
+  /// Effective on/off state: optimistic override takes priority over status,
+  /// status over last known from config.
   bool? effectiveOn(SmartPlug plug) =>
       optimistic[plug.id] ?? statusFor(plug.id)?.isOn ?? plug.lastIsOn;
 
-  /// Suma mocy czynnej [W] po wszystkich osiągalnych gniazdkach (cała farma).
+  /// Total active power [W] across all reachable plugs (entire farm).
   double get totalPowerW {
     var sum = 0.0;
     for (final s in statuses.values) {
@@ -66,7 +66,7 @@ class SmartPlugsState {
     return sum;
   }
 
-  /// Czy jest cokolwiek do pokazania w kontekście mocy (≥1 gniazdko w ogóle).
+  /// Whether anything to show in power context (at least 1 plug at all).
   bool get hasAnyPlug => plugs.isNotEmpty;
 
   SmartPlugsState copyWith({
@@ -90,22 +90,22 @@ final smartPlugsProvider =
   SmartPlugsNotifier.new,
 );
 
-/// Pobiera listę gniazdek i odpytuje ich status w pętli (5 s), a także wysyła
-/// komendy on/off z optymistycznym nadpisaniem i rollbackiem (wzorzec jak
-/// [ControlsNotifier]). Auto-dispose: żyje tylko gdy dashboard go obserwuje.
+/// Fetches plug list and polls statuses in loop (5s), and sends on/off
+/// commands with optimistic override and rollback (pattern like [ControlsNotifier]).
+/// Auto-dispose: lives only when dashboard observes it.
 class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
   Timer? _timer;
   int _generation = 0;
 
-  /// Ile trzymać optymistyczne nadpisanie po sukcesie, zanim je porzucimy
-  /// (realny status zdąży dogonić zmianę — inaczej przełącznik mrugnąłby wstecz).
+  /// How long to keep optimistic override after success before discarding
+  /// (real status will have caught up — otherwise switch would flicker back).
   static const _optimisticHold = Duration(seconds: 8);
   final Map<int, Timer> _clearTimers = {};
 
   @override
   SmartPlugsState build() {
-    // Przebudowa przy zmianie profilu (inny serwer/klucz → inne gniazdka,
-    // a lepka blokada `forbidden` znika).
+    // Rebuild on profile change (different server/key → different plugs,
+    // sticky `forbidden` lock clears).
     ref.watch(serverProfileProvider);
     ref.watch(smartPlugsRepositoryProvider);
     final generation = ++_generation;
@@ -128,13 +128,13 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
         Timer.periodic(smartPlugPollInterval, (_) => _poll(generation));
   }
 
-  /// Tło → cisza (FGS nie potrzebuje danych gniazdek; nie bijemy po serwerze).
+  /// Background → silence (FGS doesn't need plug data; don't hit server).
   void pausePolling() {
     _timer?.cancel();
     _timer = null;
   }
 
-  /// Powrót z tła → wznów pętlę i natychmiast dociągnij stan.
+  /// Return from background → resume loop and immediately pull state.
   void resumePolling() {
     _arm(_generation);
     _poll(_generation);
@@ -148,17 +148,17 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     try {
       plugs = await repo.fetchPlugs();
     } on AuthException {
-      return; // dashboardProvider już odeśle do /setup
+      return; // dashboardProvider will redirect to /setup
     } on AppApiException {
-      return; // przejściowy błąd sieci — zostawiamy ostatnie dane
+      return; // transient network error — keep last known state
     }
     if (generation != _generation) return;
 
-    // Status odpytujemy dla włączonych gniazdek (moc do sumy całej farmy),
-    // równolegle. Nieosiągalne zwracają null → pomijamy w mapie. [fetchStatus]
-    // rethrowuje AuthException (per-endpoint 401/403, gdy lista przeszła) — łapiemy
-    // ją tu, bo dashboardProvider i tak odeśle do /setup; bez tego byłby to
-    // nieobsłużony async error w ticku Timera.
+    // Poll statuses for enabled plugs (power into farm total), in parallel.
+    // Unreachable return null → skip in map. [fetchStatus] rethrows
+    // AuthException (per-endpoint 401/403, if list passed) — catch here
+    // because dashboardProvider will redirect to /setup anyway; without this
+    // would be unhandled async error in Timer tick.
     final enabled = plugs.where((p) => p.enabled ?? true).toList();
     final List<SmartPlugStatus?> results;
     try {
@@ -176,8 +176,8 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
     state = state.copyWith(plugs: plugs, statuses: statuses);
   }
 
-  /// Przełącza gniazdko (on/off/toggle) z optymistycznym nadpisaniem.
-  /// Zwraca [ControlResult] — widżet decyduje, co pokazać.
+  /// Toggle plug (on/off/toggle) with optimistic override.
+  /// Returns [ControlResult] — widget decides what to show.
   Future<ControlResult> control(int plugId, SmartPlugAction action) async {
     final plug = state.plugs.firstWhere(
       (p) => p.id == plugId,
@@ -199,10 +199,10 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
       await ref.read(smartPlugsRepositoryProvider).control(plugId, action);
       _clearInFlight(plugId);
       _scheduleClearOptimistic(plugId);
-      unawaited(_poll(_generation)); // dociągnij realny stan + moc
+      unawaited(_poll(_generation)); // pull real state + power
       return ControlResult.ok;
     } on AppApiException catch (e) {
-      // Rollback nadpisania do stanu sprzed akcji.
+      // Rollback override to pre-action state.
       final opt = {...state.optimistic};
       if (before == null) {
         opt.remove(plugId);

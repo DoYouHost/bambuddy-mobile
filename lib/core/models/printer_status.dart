@@ -2,11 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'printer_status.g.dart';
 
-/// Status drukarki z `GET /printers/{id}/status` (i docelowo z ramek WS
-/// `printer_status` w M2). Centralne DTO — tu obowiązuje wzorzec
-/// parsowania defensywnego: pola nullable, liczby przez konwertery
-/// tolerujące int/double/string, nieznane klucze ignorowane,
-/// nigdy `!` na danych z serwera.
+/// Printer status from `GET /printers/{id}/status` (and eventually from WS
+/// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
+/// nullable fields, numbers via tolerant converters accepting int/double/string,
+/// unknown keys ignored, never force-unwrap server data.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class PrinterStatus {
   const PrinterStatus({
@@ -49,17 +48,17 @@ class PrinterStatus {
   final String? name;
   final bool? connected;
 
-  /// Surowy stan z serwera (np. RUNNING/IDLE/FAILED) — nie enumujemy,
-  /// żeby nowe wartości nie wywalały parsera.
+  /// Raw state from server (e.g. RUNNING/IDLE/FAILED) — not enum-backed to allow
+  /// new values without breaking.
   final String? state;
   final String? currentPrint;
   final String? gcodeFile;
 
-  /// Postęp w procentach 0–100.
+  /// Progress in percent 0–100.
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? progress;
 
-  /// Pozostały czas w minutach.
+  /// Remaining time in minutes.
   @JsonKey(fromJson: _toIntOrNull)
   final int? remainingTime;
 
@@ -69,116 +68,113 @@ class PrinterStatus {
   @JsonKey(fromJson: _toIntOrNull)
   final int? totalLayers;
 
-  /// Klucze nieudokumentowane po stronie serwera (zwykle nozzle/bed/
-  /// chamber) — renderujemy co przyjdzie, nie zakładamy zestawu.
+  /// Undocumented keys from server (usually nozzle/bed/chamber) — render
+  /// whatever arrives, don't assume set.
   @JsonKey(fromJson: _toTemperaturesOrNull)
   final Map<String, double>? temperatures;
 
-  /// Ścieżka do okładki bieżącego wydruku (np. `/api/v1/printers/1/cover`).
-  /// Wymaga tokenu strumienia kamery jako `?token=` przy pobieraniu.
+  /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Requires
+  /// camera stream token as `?token=` parameter on fetch.
   final String? coverUrl;
 
-  /// Nazwa bieżącego etapu z serwera (np. „Auto bed leveling", „Heating");
-  /// null/pusta poza fazą przygotowania. Przychodzi po angielsku.
+  /// Current stage name from server (e.g. "Auto bed leveling", "Heating");
+  /// null/empty outside prep phase. Comes in English.
   final String? stgCurName;
 
-  /// Wentylator chłodzenia części (part cooling), 0–100%.
+  /// Part cooling fan, 0–100%.
   @JsonKey(fromJson: _toIntOrNull)
   final int? coolingFanSpeed;
 
-  /// Wentylator pomocniczy (aux/big fan 1), 0–100%.
+  /// Auxiliary fan (big fan 1), 0–100%.
   @JsonKey(fromJson: _toIntOrNull)
   final int? bigFan1Speed;
 
-  /// Wentylator komory (big fan 2), 0–100%.
+  /// Chamber fan (big fan 2), 0–100%.
   @JsonKey(fromJson: _toIntOrNull)
   final int? bigFan2Speed;
 
-  /// Wentylator heatbreaku, 0–100% (zwykle 0 — sterowany przez firmware).
+  /// Heatbreak fan, 0–100% (usually 0 — firmware-controlled).
   @JsonKey(fromJson: _toIntOrNull)
   final int? heatbreakFanSpeed;
 
-  /// Poziom prędkości Bambu: 1 Silent, 2 Standard, 3 Sport, 4 Ludicrous.
+  /// Bambu speed level: 1 Silent, 2 Standard, 3 Sport, 4 Ludicrous.
   @JsonKey(fromJson: _toIntOrNull)
   final int? speedLevel;
 
-  /// Czy światło komory jest włączone.
+  /// Whether chamber light is on.
   final bool? chamberLight;
 
-  /// Tryb nawiewu komory: 0 = chłodzenie, 1 = grzanie. Inne wartości → null
-  /// w [airductIsHeating] (nie zakładamy więcej trybów niż znane).
+  /// Chamber airduct mode: 0 = cooling, 1 = heating. Other values → null
+  /// in [airductIsHeating] (don't assume modes beyond known).
   @JsonKey(fromJson: _toIntOrNull)
   final int? airductMode;
 
-  /// Jednostki AMS (po jednej na moduł). Parsowane defensywnie — element
-  /// nie-mapowy jest pomijany, nigdy nie wywraca statusu.
+  /// AMS units (one per module). Defensive parsing — non-map elements skipped,
+  /// never breaks status.
   @JsonKey(fromJson: _toAmsListOrNull)
   final List<AmsUnit>? ams;
 
-  /// Zewnętrzna szpula (external spool) — ta sama struktura co slot AMS.
-  /// Serwer zwykle podaje 1–2 wpisy (id 254/255).
+  /// External spool — same structure as AMS slot. Server usually provides 1–2
+  /// entries (id 254/255).
   @JsonKey(fromJson: _toTrayListOrNull)
   final List<AmsTray>? vtTray;
 
-  /// Globalny numer aktywnego slotu (AMS: jednostka*4 + slot; szpula 254/255).
+  /// Global active slot number (AMS: unit*4 + slot; external 254/255).
   @JsonKey(fromJson: _toIntOrNull)
   final int? trayNow;
 
-  /// Aktywny ekstruder (dysza) na maszynach dwudyszowych (X2D/H2D); 0/1.
-  /// null/0 na zwykłych jednodyszowych.
+  /// Active extruder (nozzle) on dual-head printers (X2D/H2D); 0/1.
+  /// null/0 on regular single-head.
   @JsonKey(fromJson: _toIntOrNull)
   final int? activeExtruder;
 
-  /// Mapa „id jednostki AMS → ekstruder, który karmi". Klucze przychodzą
-  /// jako stringi (np. `{"0":1}`) — normalizujemy do int.
+  /// Map "AMS unit ID → feeding extruder". Keys come as strings (e.g. `{"0":1}`)
+  /// — normalize to int.
   @JsonKey(fromJson: _toExtruderMapOrNull)
   final Map<int, int>? amsExtruderMap;
 
-  /// Model drukarki z serwera (np. „X2D", „P1S").
+  /// Printer model from server (e.g. "X2D", "P1S").
   final String? model;
 
-  /// Siła sygnału Wi-Fi w dBm (ujemna; bliżej 0 = lepiej). null = brak/LAN.
+  /// Wi-Fi signal strength in dBm (negative; closer to 0 = better). null = none/LAN.
   @JsonKey(fromJson: _toIntOrNull)
   final int? wifiSignal;
 
-  /// Czy drzwiczki/pokrywa są otwarte (jeśli drukarka to raportuje).
+  /// Whether door/cover is open (if printer reports it).
   final bool? doorOpen;
 
-  /// Czy maszyna czeka na zdjęcie wydruku z płyty przed kolejnym zadaniem
-  /// (klucz `awaiting_plate_clear`). Źródło zdarzenia „płyta niepusta".
+  /// Whether machine awaits print removal from plate before next task
+  /// (key `awaiting_plate_clear`). Source of "plate not empty" event.
   final bool? awaitingPlateClear;
 
-  /// Aktywne błędy HMS drukarki (`hms_errors`). Lista bywa pusta = brak błędów;
-  /// kształt elementu różni się między wersjami serwera, więc parsujemy
-  /// defensywnie (patrz [HmsError]).
+  /// Active printer HMS errors (`hms_errors`). List can be empty = no errors;
+  /// element shape varies across server versions, so parse defensively
+  /// (see [HmsError]).
   @JsonKey(fromJson: _toHmsListOrNull)
   final List<HmsError>? hmsErrors;
 
-  /// Scala świeżą ramkę na poprzednim stanie tej samej drukarki. Reguła:
-  /// **nigdy nie zeruj znanej wartości** — każde pole, którego nowa ramka nie
-  /// niesie (`null`), dziedziczy ostatnią znaną. Powód: ani REST, ani WS nie
-  /// gwarantują kompletnego snapshotu — WS i REST niosą rozłączne podzbiory
-  /// (WS nie ma `airduct_mode`; REST nie ma `model`/`vt_tray`/`cover_url`/
-  /// `stg_cur_name`/…), a do tego pojedynczy poll bootującej się drukarki bywa
-  /// częściowy/zaszumiony. Bezwarunkowe nadpisanie „żywych" pól (postęp, temp,
-  /// wentylatory) gasiło je wtedy na chwilę do `—`, by następny poll je
-  /// przywrócił — stąd miganie wartości co 5 s na fallbacku REST (zanim WS
-  /// nawiąże połączenie). Wartość, która realnie się zmienia, i tak przychodzi
-  /// nie-null (np. `connected:false`, fan `0`), więc się propaguje; dziedziczenie
-  /// łapie tylko brak pola, nie jego zmianę.
+  /// Merge fresh frame into previous state of same printer. Core rule:
+  /// **never zero known value** — any field the new frame doesn't carry (`null`)
+  /// inherits last known. Why: neither REST nor WS guarantees complete snapshot —
+  /// they carry disjoint subsets (WS lacks `airduct_mode`; REST lacks
+  /// `model`/`vt_tray`/`cover_url`/`stg_cur_name`/…), plus single booting printer
+  /// poll is often partial/noisy. Unconditional overwrite of "live" fields
+  /// (progress, temps, fans) would briefly blank them to "—", next poll restores
+  /// → flicker every 5s on REST fallback (before WS connects). Field genuinely
+  /// changing always arrives non-null (e.g. `connected:false`, fan `0`), so
+  /// propagates; inheritance only catches missing field, not change.
   ///
-  /// `temperatures` scalamy PER-KLUCZ (nakładka): brak jednego czujnika w ramce
-  /// nie wygasza jego kafelka, a obecne czujniki dostają świeże odczyty.
+  /// `temperatures` merged PER-KEY (overlay): missing sensor in frame doesn't
+  /// blank its tile, present sensors get fresh reads.
   PrinterStatus mergedWith(PrinterStatus? previous) {
     if (previous == null) return this;
-    // Wyjątek od reguły dziedziczenia: okładka jest związana z KONKRETNYM
-    // plikiem. Gdy ramka niesie inny `gcode_file`/`current_print` niż poprzednia
-    // (nowy wydruk albo wejście w fazę kalibracji „auto_cali_for_user_param.
-    // gcode"), okładka poprzedniego wydruku przestaje obowiązywać — NIE wolno jej
-    // dziedziczyć, inaczej karta i widget przez chwilę pokazują podgląd
-    // poprzedniego modelu (cali nie ma własnej okładki, więc ramka niesie tu
-    // null). Dziedziczenie zostaje, gdy plik się nie zmienił — bo REST nie niesie
-    // `cover_url` i bez tego okładka migałaby co poll.
+    // Exception to inheritance rule: cover is tied to SPECIFIC file. When frame
+    // carries different `gcode_file`/`current_print` than previous (new print or
+    // entering calibration phase "auto_cali_for_user_param.gcode"), previous
+    // print's cover no longer applies — must NOT inherit, else card & widget
+    // briefly show previous model preview (calibration has no own cover, frame
+    // carries null). Inheritance stays if file unchanged — REST lacks
+    // `cover_url` so without this cover would flicker every poll.
     final job = gcodeFile ?? currentPrint;
     final prevJob = previous.gcodeFile ?? previous.currentPrint;
     final jobChanged = job != null && prevJob != null && job != prevJob;
@@ -217,24 +213,23 @@ class PrinterStatus {
     );
   }
 
-  /// Nakładka odczytów temperatur na poprzednie: świeże klucze nadpisują,
-  /// brakujące zostają z ostatniej znanej wartości (czujnik nieobecny w danej
-  /// ramce nie gaśnie do `—`).
+  /// Overlay temperature readings on previous: fresh keys override, missing
+  /// inherit from last known (absent sensor in frame doesn't blank to "—").
   Map<String, double>? _mergeTemps(Map<String, double>? previous) {
     if (temperatures == null) return previous;
     if (previous == null) return temperatures;
     return {...previous, ...temperatures!};
   }
 
-  /// true = grzanie, false = chłodzenie, null = brak/nieznany tryb.
+  /// true = heating, false = cooling, null = none/unknown mode.
   bool? get airductIsHeating => switch (airductMode) {
         0 => false,
         1 => true,
         _ => null,
       };
 
-  /// Procent prędkości odpowiadający [speedLevel] (mapowanie Bambu);
-  /// null gdy poziom nieznany/nieustawiony.
+  /// Speed percent matching [speedLevel] (Bambu mapping);
+  /// null if level unknown/unset.
   int? get speedPercent => switch (speedLevel) {
         1 => 50,
         2 => 100,
@@ -243,10 +238,9 @@ class PrinterStatus {
         _ => null,
       };
 
-  /// Czy trwa zadanie wydruku — w tym fazy przygotowania (nagrzewanie,
-  /// auto bed leveling, pauza), gdzie `progress`/`remainingTime` bywają
-  /// zerowe, a serwer i tak raportuje aktywny stan. Fallback na dane
-  /// postępu, gdy serwer nie poda stanu.
+  /// Whether print job is running — including prep phases (heating, auto bed
+  /// leveling, pause) where `progress`/`remainingTime` may be zero but server
+  /// reports active state. Falls back to progress data if server omits state.
   bool get isPrinting {
     switch (state?.toUpperCase()) {
       case 'RUNNING':
@@ -263,44 +257,44 @@ class PrinterStatus {
     return (progress ?? 0) > 0 && (remainingTime ?? 0) > 0;
   }
 
-  /// Faza przygotowania: aktywny wydruk, ale jeszcze bez realnego postępu —
-  /// wtedy w UI pokazujemy nazwę etapu zamiast paska 0%.
+  /// Prep phase: active print but no real progress yet — show stage name
+  /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
 
-  /// Czy „wydruk" to wbudowana kalibracja drukarki (np. plik
-  /// `auto_cali_for_user_param.gcode`). Taki przebieg nie ma własnej okładki,
-  /// więc UI nie pokazuje miniatury — inaczej wisiałby tu podgląd POPRZEDNIEGO
-  /// modelu (okładka dziedziczona zanim ramka go wyzeruje — patrz [mergedWith]).
+  /// Whether "print" is printer built-in calibration (e.g. file
+  /// `auto_cali_for_user_param.gcode`). No own cover, so UI doesn't show
+  /// thumbnail — else would hang previous model preview (cover inherited before
+  /// frame zeroes it — see [mergedWith]).
   bool get isCalibration {
     final file = (gcodeFile ?? currentPrint)?.toLowerCase();
     if (file == null || file.isEmpty) return false;
     return file.contains('auto_cali') || file.contains('_cali_for_');
   }
 
-  /// Wydruk wstrzymany (pauza). Sterowanie pokazuje wtedy „Wznów" zamiast
-  /// „Pauza". Stan z serwera, więc bywa po angielsku w różnych wariantach.
+  /// Print paused. Controls show "Resume" instead of "Pause". From server,
+  /// so appears English in various forms.
   bool get isPaused => switch (state?.toUpperCase()) {
         'PAUSE' || 'PAUSED' => true,
         _ => false,
       };
 
-  /// Szpule zewnętrzne uporządkowane po id rosnąco (254, 255, …).
+  /// External spools sorted by ID ascending (254, 255, …).
   List<AmsTray> get externalSpools {
     final list = [...?vtTray];
     list.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
     return list;
   }
 
-  /// Maszyna dwudyszowa — wtedy w UI rozróżniamy, który materiał siedzi na
-  /// którym ekstruderze (na zwykłej jednodyszowej to zbędne).
+  /// Dual-head machine — UI then distinguishes which material on which extruder
+  /// (single-head doesn't need this).
   bool get isDualExtruder =>
       externalSpools.length > 1 || (amsExtruderMap?.length ?? 0) > 1;
 
-  /// Numer ekstrudera, który karmi szpula zewnętrzna o danym `id`.
+  /// Extruder number fed by external spool with given `id`.
   ///
-  /// Kontrakt H2D/X2D potwierdzony przy fizycznej drukarce: szpule mapują się
-  /// ODWROTNIE do kolejności id — 254 → ekstruder 1 (lewy), 255 → ekstruder 0
-  /// (prawy). Stąd odwrócony indeks względem [externalSpools] (rosnących).
+  /// H2D/X2D contract verified on live printer: spools map INVERSE to ID order —
+  /// 254 → extruder 1 (left), 255 → extruder 0 (right). Hence inverted index
+  /// vs [externalSpools] (ascending).
   int? extruderForExternal(int? trayId) {
     if (trayId == null) return null;
     final spools = externalSpools;
@@ -308,19 +302,18 @@ class PrinterStatus {
     return i < 0 ? null : (spools.length - 1) - i;
   }
 
-  /// Materiał aktualnie załadowany na drukarce (na aktywnym ekstruderze).
+  /// Currently loaded material on printer (on active extruder).
   ///
-  /// Założenie kontraktu X2D/H2D (zweryfikowane na żywo dla AMS; dla szpuli
-  /// przyjęte wg ustaleń): `tray_now` ≥ 254 oznacza szpulę zewnętrzną — wtedy
-  /// liczy się szpula karmiąca [activeExtruder] (254→ekstruder 0, 255→1).
-  /// Dla `tray_now` < 254 to slot AMS o numerze globalnym `jednostka*4 + slot`.
+  /// X2D/H2D contract assumption (verified live for AMS; adopted for spools per
+  /// spec): `tray_now` ≥ 254 means external spool — then count spool feeding
+  /// [activeExtruder] (254→extruder 0, 255→1). For `tray_now` < 254 it's AMS
+  /// slot with global number `unit*4 + slot`.
   AmsTray? get activeTray {
     final now = trayNow;
     if (now == null) return null;
 
-    // Szpula zewnętrzna: wybór po aktywnym ekstruderze, nie po samym id
-    // (na dwudyszowej `tray_now` nie rozróżnia obu szpul jednoznacznie).
-    // Mapowanie szpula→ekstruder jest odwrotne do id (patrz extruderForExternal).
+    // External spool: select by active extruder, not by ID alone
+    // (on dual-head `tray_now` doesn't distinguish both spools unambiguously).
     if (now >= 254) {
       final spools = externalSpools;
       if (spools.isEmpty) return null;
@@ -328,14 +321,14 @@ class PrinterStatus {
       for (final t in spools) {
         if (extruderForExternal(t.id) == ext) return t;
       }
-      // Fallback: dopasowanie po id, a w ostateczności pierwsza szpula.
+      // Fallback: match by ID, else first spool.
       return spools.firstWhere(
         (t) => t.id == now,
         orElse: () => spools.first,
       );
     }
 
-    // Slot AMS: numer globalny = indeks jednostki * 4 + numer slotu.
+    // AMS slot: global number = unit index * 4 + slot number.
     final units = ams ?? const [];
     for (var u = 0; u < units.length; u++) {
       for (final t in units[u].trays ?? const []) {
@@ -345,8 +338,8 @@ class PrinterStatus {
     return null;
   }
 
-  /// Czy są jakiekolwiek dane do rozwinięcia w sekcji szczegółów
-  /// (AMS, szpula zewnętrzna lub metadane łączności/modelu).
+  /// Whether there is any data to expand in details section (AMS, external
+  /// spool, or connectivity/model metadata).
   bool get hasDetails =>
       (ams != null && ams!.isNotEmpty) ||
       (vtTray != null && vtTray!.isNotEmpty) ||
@@ -355,7 +348,7 @@ class PrinterStatus {
       doorOpen != null;
 }
 
-/// Pojedyncza jednostka AMS: wilgotność, temperatura i sloty (tace).
+/// Single AMS unit: humidity, temperature, and slots (trays).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class AmsUnit {
   const AmsUnit({this.id, this.humidity, this.temp, this.trays, this.isAmsHt});
@@ -366,25 +359,25 @@ class AmsUnit {
   @JsonKey(fromJson: _toIntOrNull)
   final int? id;
 
-  /// Czy to moduł AMS-HT (high-temperature) — rozróżniany w treści powiadomień
-  /// o wilgotności/temperaturze. Klucz serwera `is_ams_ht`.
+  /// Whether this is AMS-HT module (high-temperature) — distinguished in
+  /// humidity/temperature notifications. Server key `is_ams_ht`.
   final bool? isAmsHt;
 
-  /// Wilgotność wewnątrz AMS w procentach (jeśli moduł ją mierzy).
+  /// Humidity inside AMS in percent (if module measures).
   @JsonKey(fromJson: _toIntOrNull)
   final int? humidity;
 
-  /// Temperatura wewnątrz AMS w °C (serwer bywa, że podaje jako string).
+  /// Temperature inside AMS in °C (server sometimes sends as string).
   @JsonKey(fromJson: _toDoubleOrNull)
   final double? temp;
 
-  /// Sloty na filament. Klucz serwera to `tray`.
+  /// Filament slots. Server key is `tray`.
   @JsonKey(name: 'tray', fromJson: _toTrayListOrNull)
   final List<AmsTray>? trays;
 }
 
-/// Slot filamentu (taca AMS lub szpula zewnętrzna). Tylko pola potrzebne
-/// do chipów — kolor, materiał i pozostała ilość; reszta ignorowana.
+/// Filament slot (AMS tray or external spool). Only fields needed for chips —
+/// color, material, remaining amount; rest ignored.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class AmsTray {
   const AmsTray({
@@ -401,20 +394,20 @@ class AmsTray {
   @JsonKey(fromJson: _toIntOrNull)
   final int? id;
 
-  /// Kolor filamentu jako hex RRGGBBAA (np. „F55A74FF"); null/puste = brak.
+  /// Filament color as hex RRGGBBAA (e.g. "F55A74FF"); null/empty = none.
   final String? trayColor;
 
-  /// Typ materiału (np. „PLA", „PETG", „TPU"); null/puste = pusty slot.
+  /// Material type (e.g. "PLA", "PETG", "TPU"); null/empty = empty slot.
   final String? trayType;
 
-  /// Wariant marki (np. „PLA Basic"), gdy serwer poda.
+  /// Brand variant (e.g. "PLA Basic") if server provides.
   final String? traySubBrands;
 
-  /// Pozostała ilość w procentach (0–100); -1 = nieznana (bez tagu RFID).
+  /// Remaining amount in percent (0–100); -1 = unknown (no RFID tag).
   @JsonKey(fromJson: _toIntOrNull)
   final int? remain;
 
-  /// Pusty slot: brak materiału lub w pełni przezroczysty kolor (alpha 00).
+  /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
     final type = trayType?.trim();
     if (type == null || type.isEmpty) return true;
@@ -422,7 +415,7 @@ class AmsTray {
     return color != null && color.length == 8 && color.endsWith('00');
   }
 
-  /// Etykieta materiału do chipa (wariant marki, gdy jest sensowny).
+  /// Material label for chip (brand variant, if sensible).
   String? get materialLabel {
     final sub = traySubBrands?.trim();
     if (sub != null && sub.isNotEmpty) return sub;
@@ -431,10 +424,9 @@ class AmsTray {
   }
 }
 
-/// Pojedynczy błąd HMS drukarki z `hms_errors`. Serwer raportuje go w dwóch
-/// kształtach zależnie od wersji: `{code, attr, module, severity}` albo
-/// `{code, message}` — dlatego wszystko nullable, a `code` normalizujemy do
-/// stringa (bywa hex-stringiem albo liczbą).
+/// Single printer HMS error from `hms_errors`. Server reports in two shapes per
+/// version: `{code, attr, module, severity}` or `{code, message}` — so all
+/// nullable, and `code` normalized to string (can be hex-string or number).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class HmsError {
   const HmsError({
@@ -456,16 +448,16 @@ class HmsError {
   @JsonKey(fromJson: _toIntOrNull)
   final int? severity;
 
-  /// Atrybut HMS (górne 32 bity pełnego kodu). Z firmware Bambu.
+  /// HMS attribute (upper 32 bits of full code). From Bambu firmware.
   @JsonKey(fromJson: _toIntOrNull)
   final int? attr;
 
-  /// Numer modułu/podsystemu (np. 5=płyta główna, 7=AMS) — patrz `hmsModuleKey`.
+  /// Module/subsystem number (e.g. 5=mainboard, 7=AMS) — see `hmsModuleKey`.
   @JsonKey(fromJson: _toIntOrNull)
   final int? module;
 
-  /// Numeryczna wartość `code` (firmware podaje hex-stringiem „0x20070"
-  /// albo liczbą); null gdy `code` jest już w formie kanonicznej z separatorami.
+  /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
+  /// null if `code` already in canonical form with separators.
   int? get _codeInt {
     final c = code?.trim();
     if (c == null || c.isEmpty) return null;
@@ -474,8 +466,8 @@ class HmsError {
     return int.tryParse(hex, radix: 16);
   }
 
-  /// Pełny 16-hex kod HMS (`attr`+`code`) używany przez katalog Bambu, np.
-  /// `0500060000020070`. null gdy brak `attr` lub `code` nie jest liczbą.
+  /// Full 16-hex HMS code (`attr`+`code`) used by Bambu catalog, e.g.
+  /// `0500060000020070`. null if missing `attr` or `code` not numeric.
   String? get ecode {
     final a = attr;
     final c = _codeInt;
@@ -485,8 +477,8 @@ class HmsError {
         .toUpperCase();
   }
 
-  /// Czytelny kanoniczny kod z myślnikami: `0500-0600-0002-0070`. Fallback na
-  /// surowy `code` (po normalizacji separatorów), gdy nie da się złożyć pełnego.
+  /// Readable canonical code with dashes: `0500-0600-0002-0070`. Falls back to
+  /// raw `code` (after separator normalization) if full can't be composed.
   String get displayCode {
     final e = ecode;
     if (e != null && e.length == 16) {
@@ -499,15 +491,15 @@ class HmsError {
   }
 }
 
-/// Kod HMS przychodzi raz jako string (`"0x20070"`, `"0500_0100"`), raz jako
-/// liczba — sprowadzamy do stringa, by dało się dedupować zbiorami.
+/// HMS code arrives as string (`"0x20070"`, `"0500_0100"`) or number — convert
+/// to string for dedup in sets.
 String? _toCodeStringOrNull(dynamic value) => switch (value) {
       String s when s.trim().isNotEmpty => s.trim(),
       num n => n.toString(),
       _ => null,
     };
 
-/// Lista błędów HMS — elementy nie-mapowe pomijamy (parsowanie defensywne).
+/// HMS error list — skip non-map elements (defensive parsing).
 List<HmsError>? _toHmsListOrNull(dynamic value) {
   if (value is! List) return null;
   return [
@@ -538,7 +530,7 @@ Map<String, double>? _toTemperaturesOrNull(dynamic value) {
   return out;
 }
 
-/// Mapa `id AMS → ekstruder` z kluczami-stringami (`{"0":1}`) → `{0:1}`.
+/// Map `AMS ID → extruder` with string keys (`{"0":1}`) → `{0:1}`.
 Map<int, int>? _toExtruderMapOrNull(dynamic value) {
   if (value is! Map) return null;
   final out = <int, int>{};
@@ -550,7 +542,7 @@ Map<int, int>? _toExtruderMapOrNull(dynamic value) {
   return out;
 }
 
-/// Lista jednostek AMS — elementy nie-mapowe pomijamy (parsowanie defensywne).
+/// AMS unit list — skip non-map elements (defensive parsing).
 List<AmsUnit>? _toAmsListOrNull(dynamic value) {
   if (value is! List) return null;
   return [
@@ -559,7 +551,7 @@ List<AmsUnit>? _toAmsListOrNull(dynamic value) {
   ];
 }
 
-/// Lista slotów filamentu (tace AMS lub szpule) — elementy nie-mapowe pomijamy.
+/// Filament slot list (AMS trays or spools) — skip non-map elements.
 List<AmsTray>? _toTrayListOrNull(dynamic value) {
   if (value is! List) return null;
   return [

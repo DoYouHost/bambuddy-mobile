@@ -5,13 +5,13 @@ import '../../core/models/archive.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 
-/// Rozmiar strony przy przewijaniu archiwum.
+/// Page size during archive scrolling.
 const _pageSize = 50;
 
-/// Minimalna długość zapytania wymagana przez serwer (krótsze → 422).
+/// Minimum query length required by server (shorter → 422).
 const _minQueryLength = 2;
 
-/// Stan listy archiwum: pozycje + czy jest kolejna strona + aktywne zapytanie.
+/// Archive list state: items + whether there's next page + active query.
 class ArchiveState {
   const ArchiveState({
     this.items = const [],
@@ -26,9 +26,8 @@ class ArchiveState {
   final bool loadingMore;
   final String query;
 
-  /// Wyszukiwanie zwróciło błąd (serwer bywa niestabilny na krótkich, częstych
-  /// zapytaniach — patrz `_fetchPage`). UI pokazuje łagodny komunikat zamiast
-  /// wywalać cały ekran błędem.
+  /// Search returned an error (server is unstable on short, frequent queries —
+  /// see `_fetchPage`). UI shows a gentle message instead of crashing the screen.
   final bool searchFailed;
 
   ArchiveState copyWith({
@@ -52,8 +51,8 @@ final archiveProvider =
   ArchiveNotifier.new,
 );
 
-/// Lista archiwum z paginacją (infinite scroll) i wyszukiwaniem (M5).
-/// Pusty `query` → `GET /archives/` (paginowane); niepusty → `/archives/search`.
+/// Archive list with pagination (infinite scroll) and search (M5).
+/// Empty `query` → `GET /archives/` (paginated); non-empty → `/archives/search`.
 class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
   @override
   Future<ArchiveState> build() async {
@@ -76,10 +75,10 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
     );
   }
 
-  /// Nowe wyszukiwanie / wyczyszczenie — resetuje listę do pierwszej strony.
-  /// Zapytanie krótsze niż [_minQueryLength] traktujemy jak puste (pełna lista):
-  /// serwer i tak odrzuca <2 znaki (422). Błąd searcha nie wywala ekranu —
-  /// ustawiamy [ArchiveState.searchFailed] i pokazujemy łagodny komunikat.
+  /// New search / clear — resets list to first page.
+  /// Query shorter than [_minQueryLength] is treated as empty (full list):
+  /// server rejects <2 chars anyway (422). Search error doesn't crash the screen —
+  /// we set [ArchiveState.searchFailed] and show a gentle message.
   Future<void> search(String query) async {
     final q = query.length >= _minQueryLength ? query : '';
     state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
@@ -92,15 +91,15 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
     }
   }
 
-  /// Pull-to-refresh: ponowne pobranie pierwszej strony bieżącego zapytania.
+  /// Pull-to-refresh: re-fetch the first page of the current query.
   Future<void> refresh() async {
     final query = state.valueOrNull?.query ?? '';
     state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(() => _fetchPage(query: query, offset: 0));
   }
 
-  /// Dociąga kolejną stronę i dokleja do listy. Bez rzucania — błąd
-  /// dociągania nie może wywrócić już pokazanych pozycji (zatrzymuje paginację).
+  /// Loads the next page and appends to list. No throwing — fetch error cannot
+  /// break already-shown items (halts pagination).
   Future<void> loadMore() async {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.loadingMore) return;
@@ -121,7 +120,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
         loadingMore: false,
       ));
     } on AppApiException {
-      // Zatrzymaj paginację, zachowaj to, co już mamy.
+      // Halt pagination, preserve what we have.
       state = AsyncValue.data(current.copyWith(
         hasMore: false,
         loadingMore: false,
@@ -130,8 +129,8 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
   }
 }
 
-/// Lekka lista drukarek do pickera (reprint / dodanie do kolejki). Tylko
-/// konfiguracja, bez statusów — tańsze niż `fetchAll`.
+/// Lightweight printer list for picker (reprint / add to queue). Config only,
+/// no statuses — cheaper than `fetchAll`.
 final printersForPickerProvider = FutureProvider.autoDispose<List<Printer>>(
   (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );

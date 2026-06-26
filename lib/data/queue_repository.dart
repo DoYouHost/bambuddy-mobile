@@ -4,20 +4,19 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/queue_item.dart';
 
-/// REST-owe źródło danych kolejki wydruku (M5).
+/// REST data source for print queue (M5).
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio.
-/// Każda metoda mapuje [DioException] na [AppApiException].
-/// Sukces = zwrot bez wyjątku (dla void) lub sparsowane dane.
+/// Auth adds [AuthInterceptor] to the shared Dio.
+/// Each method maps [DioException] to [AppApiException].
 class QueueRepository {
   QueueRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /queue/ — defensywne parsowanie listy (pomiń niesparsowalne wpisy,
-  /// jak [PrintersRepository.fetchPrinters]).
+  /// GET /queue/ — defensive list parsing (skip unparseable entries,
+  /// like [PrintersRepository.fetchPrinters]).
   ///
-  /// Opcjonalne query: `printer_id`, `status` (pominięte gdy null).
+  /// Optional query: `printer_id`, `status` (omitted if null).
   Future<List<QueueItem>> fetch({int? printerId, String? status}) async {
     final query = <String, dynamic>{
       'printer_id': printerId,
@@ -39,14 +38,13 @@ class QueueRepository {
       try {
         items.add(QueueItem.fromJson(item));
       } on Object {
-        // Pojedynczy niesparsowalny wpis nie może zabić całej listy.
         continue;
       }
     }
     return items;
   }
 
-  /// POST /queue/reorder — zmiana kolejności elementów.
+  /// POST /queue/reorder — change element order.
   ///
   /// Body: `{"items": [{"id": .., "position": ..}, ...]}`.
   Future<void> reorder(List<({int id, int position})> items) async {
@@ -62,7 +60,7 @@ class QueueRepository {
     }
   }
 
-  /// DELETE /queue/{id} — usunięcie elementu z kolejki.
+  /// DELETE /queue/{id} — delete item from queue.
   Future<void> delete(int itemId) async {
     try {
       await _dio.delete<dynamic>(Endpoints.queueItem(itemId));
@@ -71,7 +69,7 @@ class QueueRepository {
     }
   }
 
-  /// PATCH /queue/{id} — przypisanie drukarki do elementu (przed startem).
+  /// PATCH /queue/{id} — assign printer to item (before start).
   /// Body: `{"printer_id": ..}`.
   Future<void> assignPrinter(int itemId, int printerId) async {
     try {
@@ -84,7 +82,7 @@ class QueueRepository {
     }
   }
 
-  /// POST /queue/{id}/start — ręczne wystartowanie elementu.
+  /// POST /queue/{id}/start — manually start item.
   Future<void> start(int itemId) async {
     try {
       await _dio.post<dynamic>(Endpoints.queueItemStart(itemId));
@@ -93,7 +91,7 @@ class QueueRepository {
     }
   }
 
-  /// POST /queue/{id}/cancel — anulowanie elementu kolejki.
+  /// POST /queue/{id}/cancel — cancel queue item.
   Future<void> cancel(int itemId) async {
     try {
       await _dio.post<dynamic>(Endpoints.queueItemCancel(itemId));
@@ -102,10 +100,10 @@ class QueueRepository {
     }
   }
 
-  /// POST /queue/ — dodanie nowego elementu z archiwum.
+  /// POST /queue/ — add new item from archive.
   ///
   /// Body: `{"archive_id": .., "printer_id": .., "quantity": ..}`;
-  /// `printer_id` pomijany gdy null.
+  /// `printer_id` omitted if null.
   Future<void> addFromArchive(
     int archiveId, {
     int? printerId,

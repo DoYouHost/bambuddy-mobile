@@ -1,41 +1,41 @@
-/// Wszystkie używane ścieżki API bambuddy w jednym miejscu.
+/// All bambuddy API endpoints in one place.
 ///
-/// Kontrakt: bambuddy v0.2.4.4 (`/api/v1`). Przy aktualizacji serwera
-/// porównać z jego `/openapi.json` zanim coś się tu zmieni.
+/// Contract: bambuddy v0.2.4.4 (`/api/v1`). When updating the server,
+/// compare with `/openapi.json` before changing anything here.
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
-  /// Strona przeglądarki G-code (PrettyGCode) serwowana POZA `/api/v1`.
-  /// Trailing slash wymagany — `/gcode-viewer` (bez slasha) celowo spada do
-  /// SPA. Sterowanie przez query: `?archive=<id>` lub `?library_file=<id>`
-  /// (+ opcjonalnie `&plate=<N>`); auth czyta z `localStorage.auth_token`.
+  /// G-code browser page (PrettyGCode) served outside `/api/v1`.
+  /// Trailing slash required — `/gcode-viewer` (without slash) intentionally
+  /// falls back to SPA. Control via query: `?archive=<id>` or `?library_file=<id>`
+  /// (+ optionally `&plate=<N>`); auth read from `localStorage.auth_token`.
   static const gcodeViewer = '/gcode-viewer/';
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
-  // Trailing slash wymagany: serwer (FastAPI) ma trasę pod `/printers/`,
-  // a `/printers` (bez slasha) zwraca 404 dla uwierzytelnionego żądania.
+  // Trailing slash required: server (FastAPI) has route at `/printers/`,
+  // and `/printers` (without slash) returns 404 for authenticated requests.
   static const printers = '$apiPrefix/printers/';
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
-  /// Mint tokenu strumienia kamery (ważny ~60 min). Wymagany jako `?token=`
-  /// dla okładki wydruku (`cover_url`) i — od M2 — dla podglądu kamery.
+  /// Mint camera stream token (valid ~60 min). Required as `?token=`
+  /// for print cover (`cover_url`) and — from M2 — for camera preview.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';
 
-  /// Strumień MJPEG kamery (`multipart/x-mixed-replace; boundary=frame`).
-  /// Autoryzacja przez `?token=` (mint w [cameraStreamToken]).
+  /// MJPEG camera stream (`multipart/x-mixed-replace; boundary=frame`).
+  /// Authorization via `?token=` (minted at [cameraStreamToken]).
   static String cameraStream(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/stream';
 
-  /// Pojedyncza klatka JPEG (fallback/odświeżenie). Również `?token=`.
+  /// Single JPEG frame (fallback/refresh). Also via `?token=`.
   static String cameraSnapshot(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/snapshot';
 
-  // --- Sterowanie (M4) ---
-  // Wszystkie to POST; wymagają uprawnienia `can_control_printer` na kluczu
-  // API (brak → 403). Body puste — parametry idą w query (patrz niżej).
+  // --- Control (M4) ---
+  // All are POST; require `can_control_printer` permission on API key
+  // (missing → 403). Body empty — parameters in query (see below).
 
   static String printPause(int printerId) =>
       '$apiPrefix/printers/$printerId/print/pause';
@@ -44,19 +44,19 @@ abstract final class Endpoints {
   static String printStop(int printerId) =>
       '$apiPrefix/printers/$printerId/print/stop';
 
-  /// Światło komory. Query: `on=true|false`.
+  /// Chamber light. Query: `on=true|false`.
   static String chamberLight(int printerId) =>
       '$apiPrefix/printers/$printerId/chamber-light';
 
-  /// Prędkość druku. Query: `mode=1..4` (1 Silent, 2 Standard, 3 Sport,
-  /// 4 Ludicrous) — zgodne z [PrinterStatus.speedLevel].
+  /// Print speed. Query: `mode=1..4` (1 Silent, 2 Standard, 3 Sport,
+  /// 4 Ludicrous) — matches [PrinterStatus.speedLevel].
   static String printSpeed(int printerId) =>
       '$apiPrefix/printers/$printerId/print-speed';
 
-  // --- Kolejka + archiwum (M5) ---
+  // --- Queue + archive (M5) ---
 
-  // Trailing slash wymagany: serwer (FastAPI) ma trasę pod `/queue/`,
-  // a `/queue` (bez slasha) zwraca 404 dla uwierzytelnionego żądania.
+  // Trailing slash required: server (FastAPI) has route at `/queue/`,
+  // and `/queue` (without slash) returns 404 for authenticated requests.
   static const queue = '$apiPrefix/queue/';
   static const queueReorder = '$apiPrefix/queue/reorder';
   static String queueItem(int itemId) => '$apiPrefix/queue/$itemId';
@@ -64,122 +64,122 @@ abstract final class Endpoints {
   static String queueItemCancel(int itemId) =>
       '$apiPrefix/queue/$itemId/cancel';
 
-  // Trailing slash wymagany: analogicznie do `/queue/`.
+  // Trailing slash required: similar to `/queue/`.
   static const archives = '$apiPrefix/archives/';
   static const archivesSearch = '$apiPrefix/archives/search';
 
-  /// Statystyki zbiorcze archiwum. Query (wszystkie opcjonalne):
-  /// `date_from`/`date_to` (YYYY-MM-DD, włącznie), `created_by_id`
-  /// (filtr po autorze; `-1` = bez użytkownika).
+  /// Archive aggregate statistics. Query (all optional):
+  /// `date_from`/`date_to` (YYYY-MM-DD, inclusive), `created_by_id`
+  /// (filter by author; `-1` = no user).
   static const archivesStats = '$apiPrefix/archives/stats';
 
-  /// Lekka lista wydruków (ArchiveSlim[]) do liczenia bogatych statystyk po
-  /// stronie klienta. Query: `date_from`/`date_to`/`created_by_id`/`limit`/`offset`.
+  /// Lightweight print list (ArchiveSlim[]) for rich client-side stats.
+  /// Query: `date_from`/`date_to`/`created_by_id`/`limit`/`offset`.
   static const archivesSlim = '$apiPrefix/archives/slim';
 
-  /// Analiza niepowodzeń. Query: `days` lub `date_from`/`date_to`,
+  /// Failure analysis. Query: `days` or `date_from`/`date_to`,
   /// `printer_id`/`project_id`/`created_by_id`.
   static const archivesFailures = '$apiPrefix/archives/analysis/failures';
   static String archiveReprint(int archiveId) =>
       '$apiPrefix/archives/$archiveId/reprint';
 
-  /// Miniatura uwierzytelniana przez `?token=` (token kamery), NIE nagłówkiem
-  /// — patrz okładka w printer_card.
+  /// Thumbnail authenticated via `?token=` (camera token), NOT via header
+  /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
-  // --- Smart gniazdka (M7) ---
+  // --- Smart plugs (M7) ---
 
-  /// Lista wszystkich gniazdek (SmartPlugResponse[]). Każdy wpis niesie
-  /// `printer_id` — stąd mapowanie gniazdko↔drukarka bez N zapytań.
-  /// Trailing slash wymagany (FastAPI), analogicznie do `/printers/`.
+  /// List of all smart plugs (SmartPlugResponse[]). Each entry carries
+  /// `printer_id` — from this, map plug↔printer without N queries.
+  /// Trailing slash required (FastAPI), similar to `/printers/`.
   static const smartPlugs = '$apiPrefix/smart-plugs/';
 
-  /// Żywy status gniazdka (SmartPlugStatus): stan on/off + pomiar mocy/energii.
+  /// Live smart plug status (SmartPlugStatus): on/off state + power/energy measurement.
   static String smartPlugStatus(int plugId) =>
       '$apiPrefix/smart-plugs/$plugId/status';
 
-  /// Sterowanie gniazdkiem. Body JSON `{"action":"on"|"off"|"toggle"}`.
-  /// Wymaga uprawnienia sterowania na kluczu API (brak → 403).
+  /// Control smart plug. JSON body `{"action":"on"|"off"|"toggle"}`.
+  /// Requires control permission on API key (missing → 403).
   static String smartPlugControl(int plugId) =>
       '$apiPrefix/smart-plugs/$plugId/control';
 
-  // --- Konserwacja (M7) ---
+  // --- Maintenance (M7) ---
 
-  /// Przegląd konserwacji wszystkich aktywnych drukarek
+  /// Maintenance overview for all active printers
   /// (`PrinterMaintenanceOverview[]`).
   static const maintenanceOverview = '$apiPrefix/maintenance/overview';
 
-  /// Przegląd konserwacji jednej drukarki (`PrinterMaintenanceOverview`).
+  /// Maintenance overview for one printer (`PrinterMaintenanceOverview`).
   static String maintenancePrinter(int printerId) =>
       '$apiPrefix/maintenance/printers/$printerId';
 
-  /// Oznaczenie czynności jako wykonanej (reset licznika). Body
-  /// `{"notes": string?}`. Wymaga uprawnienia sterowania (brak → 403).
+  /// Mark task as performed (reset counter). Body
+  /// `{"notes": string?}`. Requires control permission (missing → 403).
   static String maintenancePerform(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/perform';
 
-  /// Historia wykonania czynności (`MaintenanceHistoryResponse[]`).
+  /// Task execution history (`MaintenanceHistoryResponse[]`).
   static String maintenanceHistory(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId/history';
 
-  // --- Filamenty: magazyn szpul (inventory) ---
+  // --- Filaments: spool inventory ---
   //
-  // Dwa backendy za wspólnym interfejsem (patrz [SpoolInventorySource]):
-  // natywny `/inventory/*` (domyślny) i Spoolman `/spoolman/inventory/*`.
-  // Trailing slash NIE jest tu wymagany — trasy są pod pełną ścieżką bez slasha.
+  // Two backends under common interface (see [SpoolInventorySource]):
+  // native `/inventory/*` (default) and Spoolman `/spoolman/inventory/*`.
+  // Trailing slash NOT required — routes are at full path without slash.
 
-  /// Lista szpul. Query: `include_archived=true|false`. Również `POST` —
-  /// utworzenie szpuli (body `SpoolCreate`, zwraca `SpoolResponse`).
+  /// List spools. Query: `include_archived=true|false`. Also `POST` —
+  /// create spool (body `SpoolCreate`, returns `SpoolResponse`).
   static const inventorySpools = '$apiPrefix/inventory/spools';
 
-  /// Pojedyncza szpula: `GET` (szczegóły), `PATCH` (edycja, body `SpoolUpdate`),
-  /// `DELETE` (trwałe usunięcie). Zapisy wymagają uprawnienia na kluczu (→ 403).
+  /// Single spool: `GET` (details), `PATCH` (edit, body `SpoolUpdate`),
+  /// `DELETE` (permanent deletion). Writes require permission on key (→ 403).
   static String inventorySpool(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId';
 
-  /// Archiwizacja szpuli (`POST`, bez body). Odwrotność: [inventorySpoolRestore].
+  /// Archive spool (`POST`, no body). Reverse: [inventorySpoolRestore].
   static String inventorySpoolArchive(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/archive';
 
-  /// Przywrócenie zarchiwizowanej szpuli (`POST`, bez body).
+  /// Restore archived spool (`POST`, no body).
   static String inventorySpoolRestore(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/restore';
 
-  /// Reset zużycia szpuli do zera (`POST`, bez body).
+  /// Reset spool usage to zero (`POST`, no body).
   static String inventorySpoolResetUsage(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/reset-usage';
 
-  /// Historia zużycia szpuli (`SpoolUsageHistoryResponse[]`).
+  /// Spool usage history (`SpoolUsageHistoryResponse[]`).
   static String inventorySpoolUsage(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/usage';
 
-  /// Przypisania szpul do slotów AMS (`SpoolAssignmentResponse[]`). Również
-  /// `POST` — przypisanie szpuli (body `SpoolAssignmentCreate`).
+  /// Spool-to-AMS-slot assignments (`SpoolAssignmentResponse[]`). Also
+  /// `POST` — assign spool (body `SpoolAssignmentCreate`).
   static const inventoryAssignments = '$apiPrefix/inventory/assignments';
 
-  /// Odpięcie szpuli ze slotu (`DELETE`) — klucz to trójka (drukarka, jednostka
-  /// AMS, taca). Szpula zewnętrzna: `amsId=255`, `trayId` 0=lewy/1=prawy.
+  /// Unassign spool from slot (`DELETE`) — key is triple (printer, AMS unit,
+  /// tray). External spool: `amsId=255`, `trayId` 0=left/1=right.
   static String inventoryAssignment(int printerId, int amsId, int trayId) =>
       '$apiPrefix/inventory/assignments/$printerId/$amsId/$trayId';
 
-  // --- Dane referencyjne formularza szpuli (Faza 2) ---
+  // --- Spool form reference data (Phase 2) ---
 
-  /// Katalog wag rdzeni szpul (`CatalogEntryResponse[]`: id/name/weight/
-  /// is_default) — do pola „Empty Spool Weight".
+  /// Spool core weight catalog (`CatalogEntryResponse[]`: id/name/weight/
+  /// is_default) — for "Empty Spool Weight" field.
   static const inventoryCatalog = '$apiPrefix/inventory/catalog';
 
-  /// Baza kolorów filamentów (`ColorEntryResponse[]`: manufacturer/color_name/
-  /// hex_color/material/extra_colors/effect_type/is_default) — picker kolorów.
-  /// Źródło dropdownów materiału/marki to istniejący [filamentCatalog].
+  /// Filament color database (`ColorEntryResponse[]`: manufacturer/color_name/
+  /// hex_color/material/extra_colors/effect_type/is_default) — color picker.
+  /// Material/brand dropdown source is existing [filamentCatalog].
   static const inventoryColors = '$apiPrefix/inventory/colors';
 
-  /// Profile kalibracji K szpuli (`SpoolKProfileResponse[]`). `PUT` zastępuje
-  /// całą listę (body `SpoolKProfileBase[]`). Zakładka PA Profile.
+  /// Spool K calibration profiles (`SpoolKProfileResponse[]`). `PUT` replaces
+  /// entire list (body `SpoolKProfileBase[]`). PA Profile tab.
   static String inventorySpoolKProfiles(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/k-profiles';
 
-  // Backend Spoolman (drop-in — inny kształt danych).
+  // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
@@ -192,141 +192,141 @@ abstract final class Endpoints {
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
 
-  // Katalog filamentów (definicje/profile — `FilamentResponse[]`).
+  // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';
 
   // --- Firmware ---
 
-  /// Firmware całej farmy jednym zapytaniem (`FirmwareUpdatesResponse`:
+  /// Firmware for entire farm in one call (`FirmwareUpdatesResponse`:
   /// `{updates:[FirmwareUpdateInfo], updates_available:int}`).
   static const firmwareUpdates = '$apiPrefix/firmware/updates';
 
-  /// Firmware jednej drukarki (`FirmwareUpdateInfo`).
+  /// Firmware for one printer (`FirmwareUpdateInfo`).
   static String firmwareUpdate(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId';
 
-  /// Najnowsze firmware per model (`LatestFirmwareInfo[]`).
+  /// Latest firmware per model (`LatestFirmwareInfo[]`).
   static const firmwareLatest = '$apiPrefix/firmware/latest';
 
-  // Poniższe na PRZYSZŁOŚĆ — wykonywanie aktualizacji (nieużywane jeszcze w UI).
+  // Below for FUTURE — firmware update execution (not yet used in UI).
 
-  /// Sonda przed wgraniem firmware (`FirmwareUploadPrepareResponse`).
+  /// Probe before firmware upload (`FirmwareUploadPrepareResponse`).
   static String firmwarePrepare(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId/prepare';
 
-  /// Start wgrywania firmware (`FirmwareUploadStartResponse`). Query: `version`.
-  /// Wymaga uprawnienia sterowania na kluczu API (brak → 403).
+  /// Start firmware upload (`FirmwareUploadStartResponse`). Query: `version`.
+  /// Requires control permission on API key (missing → 403).
   static String firmwareUpload(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId/upload';
 
-  /// Postęp wgrywania firmware (`FirmwareUploadStatusResponse`).
+  /// Firmware upload progress (`FirmwareUploadStatusResponse`).
   static String firmwareUploadStatus(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId/upload/status';
 
-  // --- Menedżer plików / biblioteka (library) ---
+  // --- File manager / library ---
   //
-  // Pliki druku (3mf/gcode/stl…) zorganizowane w drzewo folderów. Auth
-  // nagłówkiem (X-API-Key / Bearer) — poza miniaturą, która (jak archiwum)
-  // idzie przez `?token=` token kamery.
+  // Print files (3mf/gcode/stl…) organized in folder tree. Auth via header
+  // (X-API-Key / Bearer) — except thumbnail, which (like archive cover)
+  // goes via `?token=` camera token.
 
-  /// Lista plików. Query (wszystkie opcjonalne): `folder_id` (null = poziom
-  /// root przy `include_root=true`), `project_id`, `include_root` (domyślnie
-  /// true). Zwraca `FileListResponse[]`. Również `POST` — upload pliku
+  /// File list. Query (all optional): `folder_id` (null = root level when
+  /// `include_root=true`), `project_id`, `include_root` (default true).
+  /// Returns `FileListResponse[]`. Also `POST` — file upload
   /// (multipart, query `folder_id` + `generate_stl_thumbnails`).
   static const libraryFiles = '$apiPrefix/library/files';
 
-  /// Pojedynczy plik: `GET` (szczegóły), `PUT` (edycja `FileUpdate`:
-  /// filename/folder_id/notes), `DELETE` (do kosza).
+  /// Single file: `GET` (details), `PUT` (edit `FileUpdate`:
+  /// filename/folder_id/notes), `DELETE` (to trash).
   static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
 
-  /// Pobranie pliku (`GET`, strumień bajtów). Auth nagłówkiem.
+  /// Download file (`GET`, byte stream). Auth via header.
   static String libraryFileDownload(int fileId) =>
       '$apiPrefix/library/files/$fileId/download';
 
-  /// Miniatura pliku — uwierzytelniana przez `?token=` (token kamery), NIE
-  /// nagłówkiem, analogicznie do [archiveThumbnail].
+  /// File thumbnail — authenticated via `?token=` (camera token), NOT
+  /// header, similar to [archiveThumbnail].
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
-  /// Wysłanie pliku do druku na drukarce. Query `printer_id`; body opcjonalne
-  /// (`FilePrintRequest`). Tylko pliki skrojone (.gcode/.gcode.3mf).
+  /// Send file to printer for printing. Query `printer_id`; body optional
+  /// (`FilePrintRequest`). Sliced files only (.gcode/.gcode.3mf).
   static String libraryFilePrint(int fileId) =>
       '$apiPrefix/library/files/$fileId/print';
 
-  /// Przeniesienie plików do folderu (`POST`, body `FileMoveRequest`:
+  /// Move files to folder (`POST`, body `FileMoveRequest`:
   /// `{file_ids, folder_id}`; `folder_id=null` = root).
   static const libraryFilesMove = '$apiPrefix/library/files/move';
 
-  /// Dodanie plików do kolejki (`POST`, body `AddToQueueRequest`:
+  /// Add files to queue (`POST`, body `AddToQueueRequest`:
   /// `{file_ids}`).
   static const libraryFilesAddToQueue = '$apiPrefix/library/files/add-to-queue';
 
-  /// Zbiorcze usunięcie do kosza (`POST`, body `BulkDeleteRequest`:
+  /// Bulk delete to trash (`POST`, body `BulkDeleteRequest`:
   /// `{file_ids, folder_ids}`).
   static const libraryBulkDelete = '$apiPrefix/library/bulk-delete';
 
-  /// Drzewo folderów (`FolderTreeItem[]`, zagnieżdżone przez `children`).
-  /// Również `POST` — utworzenie folderu (`FolderCreate`: name/parent_id…).
+  /// Folder tree (`FolderTreeItem[]`, nested via `children`).
+  /// Also `POST` — create folder (`FolderCreate`: name/parent_id…).
   static const libraryFolders = '$apiPrefix/library/folders';
 
-  /// Pojedynczy folder: `PUT` (edycja `FolderUpdate`: name/parent_id),
-  /// `DELETE` (usunięcie folderu wraz z zawartością).
+  /// Single folder: `PUT` (edit `FolderUpdate`: name/parent_id),
+  /// `DELETE` (delete folder and contents).
   static String libraryFolder(int folderId) =>
       '$apiPrefix/library/folders/$folderId';
 
-  /// Statystyki biblioteki (liczba plików/folderów, rozmiar, wolne miejsce).
+  /// Library statistics (file/folder count, size, free space).
   static const libraryStats = '$apiPrefix/library/stats';
 
-  // --- Kosz biblioteki (library-trash) ---
+  // --- Library trash ---
 
-  /// Lista plików w koszu (`TrashListResponse`: items/total/retention_days).
-  /// Również `DELETE` — opróżnienie kosza (`EmptyTrashResponse`).
+  /// Trash file list (`TrashListResponse`: items/total/retention_days).
+  /// Also `DELETE` — empty trash (`EmptyTrashResponse`).
   static const libraryTrash = '$apiPrefix/library/trash';
 
-  /// Przywrócenie pliku z kosza (`POST`, bez body).
+  /// Restore file from trash (`POST`, no body).
   static String libraryTrashRestore(int fileId) =>
       '$apiPrefix/library/trash/$fileId/restore';
 
-  /// Trwałe usunięcie pliku z kosza (`DELETE`).
+  /// Permanently delete file from trash (`DELETE`).
   static String libraryTrashItem(int fileId) =>
       '$apiPrefix/library/trash/$fileId';
 
   // --- MakerWorld + Bambu Cloud ---
 
-  /// Stan integracji MakerWorld (`GET`): `{has_cloud_token, can_download}`.
-  /// `can_download=false` → brak/nieważny token chmury Bambu, pobieranie
-  /// niedostępne (użytkownik musi się zalogować — patrz [cloudLogin]).
+  /// MakerWorld integration status (`GET`): `{has_cloud_token, can_download}`.
+  /// `can_download=false` → missing/invalid Bambu cloud token, download
+  /// unavailable (user must log in — see [cloudLogin]).
   static const makerworldStatus = '$apiPrefix/makerworld/status';
 
-  /// Rozwiązanie dowolnego URL-a modelu MakerWorld (`POST`, body `{url}`)
-  /// → `MakerWorldResolvedModel` (design + lista instancji/płyt). Nie wymaga
-  /// tokenu chmury — działa także wylogowanym.
+  /// Resolve any MakerWorld model URL (`POST`, body `{url}`)
+  /// → `MakerWorldResolvedModel` (design + list of instances/plates).
+  /// Does not require cloud token — works logged out too.
   static const makerworldResolve = '$apiPrefix/makerworld/resolve';
 
-  /// Import (pobranie) instancji do biblioteki (`POST`, body
+  /// Import (download) instance to library (`POST`, body
   /// `{model_id, profile_id?, folder_id?}`) → `MakerWorldImportResponse`.
-  /// Wymaga ważnego tokenu chmury Bambu (inaczej błąd).
+  /// Requires valid Bambu cloud token (otherwise error).
   static const makerworldImport = '$apiPrefix/makerworld/import';
 
-  /// Ostatnie importy z MakerWorld (`GET`, query `limit`).
+  /// Recent MakerWorld imports (`GET`, query `limit`).
   static const makerworldRecentImports =
       '$apiPrefix/makerworld/recent-imports';
 
-  /// Proxy miniatury MakerWorld (`GET`, query `url=<URL okładki>`). Publiczny
-  /// — bez auth; używany bezpośrednio przez `Image.network`.
+  /// MakerWorld thumbnail proxy (`GET`, query `url=<cover URL>`). Public
+  /// — no auth; used directly by `Image.network`.
   static const makerworldThumbnail = '$apiPrefix/makerworld/thumbnail';
 
-  /// Stan logowania do chmury Bambu (`GET`): `{is_authenticated, email?, region?}`.
+  /// Bambu Cloud login status (`GET`): `{is_authenticated, email?, region?}`.
   static const cloudStatus = '$apiPrefix/cloud/status';
 
-  /// Logowanie do chmury Bambu (`POST`, body `{email, password, region}`)
-  /// → `CloudLoginResponse`. `needs_verification=true` → dosyłamy kod przez
+  /// Bambu Cloud login (`POST`, body `{email, password, region}`)
+  /// → `CloudLoginResponse`. `needs_verification=true` → send code via
   /// [cloudVerify].
   static const cloudLogin = '$apiPrefix/cloud/login';
 
-  /// Weryfikacja kodu 2FA/OTP (`POST`, body `{email, code, tfa_key?, region}`).
+  /// Verify 2FA/OTP code (`POST`, body `{email, code, tfa_key?, region}`).
   static const cloudVerify = '$apiPrefix/cloud/verify';
 
-  /// Wylogowanie z chmury Bambu (`POST`, bez body).
+  /// Bambu Cloud logout (`POST`, no body).
   static const cloudLogout = '$apiPrefix/cloud/logout';
 }

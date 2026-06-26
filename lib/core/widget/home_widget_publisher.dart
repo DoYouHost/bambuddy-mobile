@@ -4,22 +4,22 @@ import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
 import '../notifications/hms_catalog.dart';
 
-/// Publikuje stan jednej (wybranej) drukarki do natywnego widgetu ekranu
-/// głównego (`BambuddyWidgetProvider`). Zasilany z DWÓCH torów: providera UI na
-/// pierwszym planie ([printerStatusesProvider]) oraz isolate'u tła (foreground
-/// service). Oba wołają [publish] przy każdej świeżej ramce — `home_widget`
-/// zapisuje dane do współdzielonych SharedPreferences i odświeża widget.
+/// Publishes the state of one selected printer to the native home screen widget
+/// (`BambuddyWidgetProvider`). Fed from TWO sources: the UI provider in the foreground
+/// ([printerStatusesProvider]) and the background isolate (foreground service). Both call
+/// [publish] on every fresh frame — `home_widget` writes data to shared SharedPreferences
+/// and updates the widget.
 ///
-/// Świadomie prosty: widget pokazuje JEDNĄ drukarkę (preferuje aktywnie
-/// drukującą, w przeciwnym razie pierwszą po `id`). Dane dynamiczne (nazwy,
-/// etykieta statusu) lecą już zlokalizowane z Darta — natywna strona ich nie
-/// tłumaczy, dba tylko o układ i kolor kropki statusu (po `status_key`).
+/// Intentionally simple: the widget shows ONE printer (prefers one actively printing;
+/// otherwise, the first by `id`). Dynamic data (names, status label) are already localized
+/// from Dart — the native side doesn't translate them, only handles layout and
+/// the status dot color (by `status_key`).
 class HomeWidgetPublisher {
-  /// Nazwa klasy [AppWidgetProvider] po stronie Androida (pakiet wnioskowany
-  /// z applicationId). `home_widget` używa jej do `updateWidget`.
+  /// Name of the [AppWidgetProvider] class on the Android side (package inferred from
+  /// applicationId). `home_widget` uses it for `updateWidget`.
   static const String _androidProvider = 'BambuddyWidgetProvider';
 
-  /// Klucze statusu — muszą się zgadzać z mapą kolorów w Kotlinie.
+  /// Status keys — must match color map in Kotlin.
   static const String _kPrinting = 'printing';
   static const String _kPaused = 'paused';
   static const String _kFinished = 'finished';
@@ -28,13 +28,13 @@ class HomeWidgetPublisher {
   static const String _kOffline = 'offline';
   static const String _kError = 'error';
 
-  /// Zapisuje stan wybranej drukarki i odświeża widget. Bezpieczne do wołania
-  /// często — sam plugin debouncuje zapis, a `updateWidget` jest tani.
+  /// Saves the selected printer's state and updates the widget. Safe to call frequently —
+  /// the plugin itself debounces writes, and `updateWidget` is cheap.
   ///
-  /// [describeHms] — opis błędu HMS z katalogu (foreground: `HmsCatalog.instance`,
-  /// tło: lokalny katalog isolate'u). [fetchCover] — pobranie okładki wydruku do
-  /// pliku (auth tokenem kamery); różne per isolate, więc wstrzykiwane. Oba
-  /// opcjonalne — bez nich widget po prostu pomija błąd HMS / miniaturę.
+  /// [describeHms] — HMS error description from catalog (foreground: `HmsCatalog.instance`,
+  /// background: isolate's local catalog). [fetchCover] — fetches print cover to file
+  /// (authenticated with camera token); differs per isolate, so injected.
+  /// Both optional — without them, widget simply skips HMS error/thumbnail.
   static Future<void> publish(
     Map<int, PrinterStatus> statuses,
     AppLocalizations l10n, {
@@ -59,8 +59,8 @@ class HomeWidgetPublisher {
       final baseKey = _statusKey(picked);
       final printing = baseKey == _kPrinting || baseKey == _kPaused;
 
-      // Aktywny błąd HMS nadpisuje status (czerwona kropka + treść błędu),
-      // ale postęp/ETA dalej pokazujemy, jeśli drukarka mimo to drukuje.
+      // Active HMS error overrides status (red dot + error content),
+      // but we still show progress/ETA if the printer is printing anyway.
       final hms = _topHmsError(picked, describeHms);
       final key = hms != null ? _kError : baseKey;
       final statusLabel = hms != null
@@ -79,9 +79,9 @@ class HomeWidgetPublisher {
       await HomeWidget.saveWidgetData<int>('progress', _progressPct(picked));
       await HomeWidget.saveWidgetData<bool>('printing', printing);
 
-      // Okładkę ściągamy tylko podczas druku i tylko gdy serwer poda `cover_url`.
-      // Pomijamy ją w fazie kalibracji (`auto_cali_*`) — taki przebieg nie ma
-      // własnej okładki, więc inaczej widget pokazałby podgląd poprzedniego druku.
+      // Fetch cover only during printing and only if server provides `cover_url`.
+      // Skip during calibration phases (`auto_cali_*`) — those have no cover,
+      // so otherwise the widget would show the previous print's thumbnail.
       var coverPath = '';
       if (printing &&
           picked.coverUrl != null &&
@@ -99,8 +99,8 @@ class HomeWidgetPublisher {
     );
   }
 
-  /// Pierwszy „pokazywalny" błąd HMS (filtr severity 1..4 / z treścią — patrz
-  /// [hmsIsDisplayable]), albo `null`. To samo kryterium co karta drukarki.
+  /// The first "displayable" HMS error (severity 1..4 / with content — see
+  /// [hmsIsDisplayable]), or `null`. Same criteria as the printer card.
   static HmsError? _topHmsError(
     PrinterStatus s,
     String? Function(HmsError)? describeHms,
@@ -111,7 +111,7 @@ class HomeWidgetPublisher {
     return null;
   }
 
-  /// Warstwy „X/Y" podczas druku, jeśli serwer poda oba pola. Inaczej pusto.
+  /// Layers as "X/Y" during printing, if server provides both fields. Otherwise empty.
   static String _layers(PrinterStatus s, String key) {
     if (key != _kPrinting && key != _kPaused) return '';
     final cur = s.layerNum;
@@ -120,8 +120,8 @@ class HomeWidgetPublisher {
     return '$cur/$total';
   }
 
-  /// Wybiera drukarkę do pokazania: najpierw aktywnie drukującą (połączoną),
-  /// w przeciwnym razie pierwszą po rosnącym `id`. `null`, gdy brak drukarek.
+  /// Selects printer to show: first one actively printing (connected),
+  /// otherwise the first by ascending `id`. null if no printers.
   static PrinterStatus? _select(Map<int, PrinterStatus> statuses) {
     if (statuses.isEmpty) return null;
     final sorted = statuses.values.toList()..sort((a, b) => a.id.compareTo(b.id));
@@ -162,8 +162,8 @@ class HomeWidgetPublisher {
     }
   }
 
-  /// Nazwa wydruku do pokazania: gdy drukuje — bieżący plik (lub etap, gdy
-  /// jeszcze brak postępu); poza drukiem — pusto (UI ukrywa wiersz).
+  /// Print name to show: when printing — current file (or stage if progress not yet available);
+  /// when not printing — empty (UI hides the row).
   static String _printName(
     PrinterStatus s,
     AppLocalizations l10n,
@@ -172,13 +172,13 @@ class HomeWidgetPublisher {
     if (key != _kPrinting && key != _kPaused) return '';
     final name = s.currentPrint ?? s.gcodeFile;
     if (name != null && name.trim().isNotEmpty) return name.trim();
-    // Faza przygotowania bez nazwy pliku — pokaż etap, jeśli serwer go poda.
+    // Prep phase without file name — show stage if server provides it.
     return s.stgCurName?.trim() ?? '';
   }
 
-  /// Wiersz ETA: pozostały czas + godzina zakończenia (HH:mm). Pusty poza
-  /// drukiem lub gdy serwer nie poda pozostałego czasu. Format jak na karcie
-  /// drukarki (`durationMinutes`/`durationHoursMinutes`).
+  /// ETA row: remaining time + finish time (HH:mm). Empty outside printing or if
+  /// server doesn't provide remaining time. Format matches the printer card
+  /// (`durationMinutes`/`durationHoursMinutes`).
   static String _eta(PrinterStatus s, AppLocalizations l10n, String key) {
     if (key != _kPrinting && key != _kPaused) return '';
     final mins = s.remainingTime ?? 0;

@@ -5,30 +5,29 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// Wyłuskuje id szpuli z treści kodu QR bambuddy. Format produkcyjny to URL
-/// `https://<host>/inventory?spool=24` (parametr `spool`), ale parser jest
-/// celowo tolerancyjny — radzi sobie też z gołą liczbą, innymi nazwami
-/// parametru oraz id w ścieżce (`/inventory/spools/24`). Zwraca null, gdy nic
-/// sensownego nie da się odczytać. Top-level (czysta funkcja) — testowalne bez UI.
+/// Extracts spool id from bambuddy QR code content. Production format is URL
+/// `https://<host>/inventory?spool=24` (param `spool`), but parser is intentionally
+/// lenient — handles bare numbers, other param names, and id in path (`/inventory/spools/24`).
+/// Returns null if nothing sensible can be read. Top-level (pure function) — testable without UI.
 int? parseScannedSpoolId(String raw) {
   final s = raw.trim();
   if (s.isEmpty) return null;
 
-  // Goła liczba = id szpuli.
+  // Bare number = spool id.
   final asInt = int.tryParse(s);
   if (asInt != null && asInt > 0) return asInt;
 
   final uri = Uri.tryParse(s);
   if (uri == null) return null;
 
-  // Parametr query (produkcyjny `spool`, plus warianty na zapas).
+  // Query param (production `spool`, plus variants as fallback).
   for (final key in const ['spool', 'spool_id', 'spoolId', 'id']) {
     final v = uri.queryParameters[key];
     final n = v == null ? null : int.tryParse(v.trim());
     if (n != null && n > 0) return n;
   }
 
-  // Ostatni liczbowy segment ścieżki (np. `/inventory/spools/24`).
+  // Last numeric path segment (e.g. `/inventory/spools/24`).
   for (final seg in uri.pathSegments.reversed) {
     final n = int.tryParse(seg.trim());
     if (n != null && n > 0) return n;
@@ -36,11 +35,10 @@ int? parseScannedSpoolId(String raw) {
   return null;
 }
 
-/// Pełnoekranowy skaner kodów QR szpul. Po pierwszym poprawnym odczycie zamyka
-/// się, zwracając przez [Navigator.pop] id szpuli (`int`). Anuluj/wstecz →
-/// zwraca null. Sam zarządza kontrolerem aparatu (start/stop z cyklem życia,
-/// dispose). Uprawnienie do aparatu obsługuje [MobileScanner] (prośba runtime +
-/// `errorBuilder` dla odmowy).
+/// Full-screen spool QR code scanner. Closes on first successful read, returns spool id
+/// via [Navigator.pop] (`int`). Cancel/back → returns null. Manages camera controller
+/// (start/stop with lifecycle, dispose). Camera permission handled by [MobileScanner]
+/// (runtime request + `errorBuilder` for denial).
 class SpoolScannerScreen extends StatefulWidget {
   const SpoolScannerScreen({super.key});
 
@@ -49,18 +47,16 @@ class SpoolScannerScreen extends StatefulWidget {
 }
 
 class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
-  // `autoStart: false` + jawny `start()` w initState — wzorzec z oficjalnego
-  // przykładu pakietu. NIE zarządzamy cyklem życia ręcznym observerem:
-  // start/stop ścigałyby się z prośbą o uprawnienie (dialog usypia aplikację)
-  // i zostawiały odpiętą teksturę → czarny podgląd na realnym urządzeniu.
+  // `autoStart: false` + explicit `start()` in initState — pattern from official package example.
+  // We DON'T manage lifecycle with manual observer: start/stop would race with permission
+  // request (dialog puts app to sleep) and leave detached texture → black preview on real device.
   final MobileScannerController _controller = MobileScannerController(
     autoStart: false,
     detectionSpeed: DetectionSpeed.noDuplicates,
     formats: const [BarcodeFormat.qrCode],
   );
 
-  /// Strażnik przed wielokrotnym pop — kamera potrafi wystrzelić kilka odczytów
-  /// zanim ekran zdąży się zamknąć.
+  /// Guard against multiple pops — camera can fire several reads before screen closes.
   bool _handled = false;
 
   @override
@@ -123,7 +119,6 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
             errorBuilder: (context, error) =>
                 _ScannerError(error: error, l10n: l10n),
           ),
-          // Ramka celownika + podpowiedź.
           IgnorePointer(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -158,8 +153,8 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
   }
 }
 
-/// Komunikat zastępczy, gdy aparat jest niedostępny — najczęściej odmowa
-/// uprawnienia. Pokazujemy czytelny powód i przycisk powrotu.
+/// Fallback message when camera is unavailable — usually permission denial.
+/// Show clear reason and back button.
 class _ScannerError extends StatelessWidget {
   const _ScannerError({required this.error, required this.l10n});
 

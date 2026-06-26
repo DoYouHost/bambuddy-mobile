@@ -1,6 +1,6 @@
 import '../../core/models/archive_slim.dart';
 
-/// Akumulator metryk per klucz (materiał / drukarka / dzień tygodnia).
+/// Metric accumulator per key (material / printer / weekday).
 class StatBucket {
   int prints = 0;
   double grams = 0;
@@ -17,7 +17,7 @@ class StatBucket {
   double get successRate => prints == 0 ? 0 : successes / prints * 100;
 }
 
-/// Próg histogramu czasu trwania (górna granica w sekundach; ostatni = ∞).
+/// Duration histogram thresholds (upper bound in seconds; last = ∞).
 const durationBucketBounds = <int>[
   1800, // <30 min
   3600, // 30 min–1 h
@@ -28,30 +28,30 @@ const durationBucketBounds = <int>[
   86400, // 12–24 h
 ];
 
-/// Liczba kubełków czasu trwania (granice + jeden „24h+").
+/// Duration bucket count (bounds + one "24h+").
 const durationBucketCount = 8; // durationBucketBounds.length + 1
 
-/// Bogate statystyki policzone jednym przejściem po lekkiej liście wydruków
-/// (`/archives/slim`). Wszystkie agregaty, których nie daje `/archives/stats`.
+/// Rich statistics computed in one pass over slim print list (`/archives/slim`).
+/// All aggregates not provided by `/archives/stats`.
 class StatsComputed {
   StatsComputed._();
 
-  /// Zliczenia wg dnia kalendarzowego (klucz = północ lokalna) — heatmapa,
-  /// najbusy dzień, zużycie w czasie.
+  /// Counts by calendar day (key = midnight local) — heatmap, busiest day,
+  /// usage over time.
   final Map<DateTime, int> printsByDay = {};
   final Map<DateTime, double> gramsByDay = {};
 
-  /// Histogram czasu trwania (długość [durationBucketCount]).
+  /// Duration histogram (length [durationBucketCount]).
   final List<int> durationBuckets = List.filled(durationBucketCount, 0);
 
-  /// Wg dnia tygodnia (indeks 0 = poniedziałek … 6 = niedziela).
+  /// By weekday (index 0 = Mon … 6 = Sun).
   final List<StatBucket> byWeekday = List.generate(7, (_) => StatBucket());
 
-  /// Wg godziny doby (0–23): łączna liczba i porażki.
+  /// By hour of day (0–23): total count and failures.
   final List<int> byHour = List.filled(24, 0);
   final List<int> failedByHour = List.filled(24, 0);
 
-  /// Wg materiału, drukarki, koloru (dominującego).
+  /// By material, printer, dominant color.
   final Map<String, StatBucket> byMaterial = {};
   final Map<int, StatBucket> byPrinter = {};
   final Map<String, double> gramsByColor = {};
@@ -68,8 +68,8 @@ class StatsComputed {
   factory StatsComputed.from(List<ArchiveSlim> items) {
     final c = StatsComputed._();
 
-    // Strumień sukcesów liczymy w porządku chronologicznym (najstarsze →
-    // najnowsze), żeby „seria" odpowiadała kolejności zdarzeń.
+    // Success streak counted in chronological order (oldest → newest) so "streak"
+    // matches event order.
     final chronological = [...items]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     var streak = 0;
@@ -93,7 +93,7 @@ class StatsComputed {
         c.busiestDay = day;
       }
 
-      // Dzień tygodnia: Dart `weekday` 1=pon … 7=niedz → indeks 0..6.
+      // Weekday: Dart `weekday` 1=Mon … 7=Sun → index 0..6.
       c.byWeekday[a.createdAt.weekday - 1].add(a);
 
       final hour = a.createdAt.hour;
@@ -120,7 +120,7 @@ class StatsComputed {
         c.printsByColor[color] = (c.printsByColor[color] ?? 0) + 1;
       }
 
-      // Rekordy.
+      // Records.
       if (secs != null &&
           (c.longest == null || secs > (c.longest!.effectiveSeconds ?? 0))) {
         c.longest = a;
@@ -142,8 +142,8 @@ class StatsComputed {
 
   bool get isEmpty => printsByDay.isEmpty;
 
-  /// Punkty zużycia w gramach per dzień, posortowane rosnąco po dacie — do
-  /// wykresu liniowego „Usage Over Time".
+  /// Usage points in grams per day, sorted ascending by date — for
+  /// "Usage Over Time" line chart.
   List<MapEntry<DateTime, double>> get usageOverTime {
     final list = gramsByDay.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));

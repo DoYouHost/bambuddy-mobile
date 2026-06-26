@@ -8,11 +8,11 @@ import '../../data/printers_repository.dart';
 import '../../providers.dart';
 import 'ws_providers.dart';
 
-/// Szybki polling — fallback, gdy WS nie jest połączony (świeżość statusów).
+/// Fast polling — fallback when WS not connected (status freshness).
 const pollInterval = Duration(seconds: 5);
 
-/// Wolny polling przy WS `connected` — WS niesie świeżość statusów, REST
-/// dociąga już tylko skład drukarek (roster), który zmienia się rzadko.
+/// Slow polling when WS is `connected` — WS carries status freshness, REST
+/// only pulls printer roster, which changes rarely.
 const slowPollInterval = Duration(seconds: 60);
 
 class DashboardState {
@@ -22,14 +22,14 @@ class DashboardState {
     this.authExpired = false,
   });
 
-  /// Ostatnie dobrze pobrane dane — zostają widoczne, gdy kolejny
-  /// poll padnie (baner zamiast pustego ekranu).
+  /// Last successfully fetched data — stays visible if next poll fails
+  /// (banner instead of blank screen).
   final List<PrinterWithStatus>? printers;
 
-  /// Błąd ostatniego pollingu (null = ostatni poll OK); tłumaczony w UI.
+  /// Last poll error (null = last poll OK); translated in UI.
   final AppApiException? error;
 
-  /// Sesja/klucz odrzucone i nieodnowialne — UI odsyła do /setup.
+  /// Session/key rejected and unrenewable — UI redirects to /setup.
   final bool authExpired;
 
   bool get loading => printers == null && error == null;
@@ -41,22 +41,22 @@ final dashboardProvider =
   DashboardNotifier.new,
 );
 
-/// Polling REST co 5 s. Ten wzorzec zostaje po M2 jako backfill po
-/// wznowieniu aplikacji i fallback przy padzie WebSocketa.
+/// REST polling every 5s. This pattern remains from M2 as backfill after
+/// app resume and fallback when WebSocket fails.
 class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
   Timer? _timer;
   int _generation = 0;
 
   @override
   DashboardState build() {
-    // Przebudowa przy zmianie profilu/klienta (np. zmiana serwera).
+    // Rebuild on profile/client change (e.g. server change).
     ref.watch(printersRepositoryProvider);
     final generation = ++_generation;
 
-    // Tempo pollingu zależy od WS: connected → wolno (60 s, tylko roster),
-    // w innym razie → szybko (5 s, fallback). Reagujemy przez ref.listen, a
-    // NIE watch — inaczej każdy flap WS przebudowałby notifier i zresetował
-    // listę do spinnera. Stan zostaje, zmienia się tylko interwał timera.
+    // Poll rate depends on WS: connected → slow (60s, roster only),
+    // otherwise → fast (5s, fallback). Listen via ref.listen, NOT watch —
+    // otherwise each WS flap would rebuild notifier and reset list to spinner.
+    // State stays, only timer interval changes.
     ref.listen(
       wsConnectionStateProvider
           .select((s) => s.valueOrNull == WsConnectionState.connected),
@@ -79,8 +79,8 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     _timer = Timer.periodic(interval, (_) => _poll(generation));
   }
 
-  /// Zmiana stanu WS: przy utracie połączenia natychmiast dociągnij REST
-  /// (fallback wskakuje od razu) i przyspiesz; przy odzyskaniu zwolnij.
+  /// WS state change: on connection loss immediately pull REST
+  /// (fallback kicks in), speed up; on regain, slow down.
   void _retune({required bool connected, required int generation}) {
     if (generation != _generation) return;
     _arm(connected: connected, generation: generation);
@@ -89,16 +89,16 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
 
   Future<void> refresh() => _poll(_generation);
 
-  /// Wstrzymuje polling REST, gdy apka idzie w tło z aktywnym monitoringiem —
-  /// foreground service (osobny isolate) przejmuje świeżość, a isolate UI musi
-  /// zamilknąć, bo FGS trzyma proces żywym i timer dalej by tykał, karmiąc
-  /// `printerStatusesProvider` → drugie, zdublowane powiadomienie.
+  /// Pause REST polling when app goes background with active monitoring —
+  /// foreground service (separate isolate) takes freshness, UI isolate must
+  /// be silent because FGS keeps process alive and timer would keep ticking,
+  /// feeding `printerStatusesProvider` → duplicate notification.
   void pausePolling() {
     _timer?.cancel();
     _timer = null;
   }
 
-  /// Wznawia polling po powrocie z tła (rearm + natychmiastowy backfill).
+  /// Resume polling on return from background (rearm + immediate backfill).
   void resumePolling() {
     _arm(connected: _wsConnectedNow(), generation: _generation);
     _poll(_generation);
@@ -108,11 +108,10 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     final repo = ref.read(printersRepositoryProvider);
     try {
       final data = await repo.fetchAll();
-      if (generation != _generation) return; // wynik z poprzedniego życia
-      // Wpięcie do wspólnej mapy statusów: polling karmi ten sam provider co
-      // WS, więc PrintMonitor łapie zmiany także na fallbacku REST (a nie tylko
-      // z żywego socketa). Robione przed `state`, by UI i monitor widziały to
-      // samo w tym samym ticku.
+      if (generation != _generation) return; // result from previous life
+      // Hook into shared statuses map: polling feeds same provider as WS,
+      // so PrintMonitor catches changes also on REST fallback (not just live
+      // socket). Done before `state` so UI and monitor see same thing in same tick.
       ref.read(printerStatusesProvider.notifier).ingestPoll(data);
       state = DashboardState(printers: data);
     } on AuthException {

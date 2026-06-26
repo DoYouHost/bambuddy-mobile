@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'trash_file.g.dart';
 
-/// Plik w koszu biblioteki (`TrashFile`). Parsowanie defensywne.
+/// File in library trash (`TrashFile`). Defensive parsing.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class TrashFile {
   const TrashFile({
@@ -24,13 +24,13 @@ class TrashFile {
   final int fileSize;
   final String? thumbnailPath;
 
-  /// Nazwa folderu, z którego plik trafił do kosza.
+  /// Folder name the file was trashed from.
   final String? folderName;
   final String? createdByUsername;
 
-  /// Kiedy plik trafił do kosza.
+  /// When file was moved to trash.
   final DateTime? deletedAt;
 
-  /// Kiedy plik zostanie automatycznie wyczyszczony (retencja kosza).
+  /// When file will auto-purge (trash retention).
   final DateTime? autoPurgeAt;
 }

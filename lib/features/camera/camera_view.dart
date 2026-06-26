@@ -6,12 +6,12 @@ import '../../core/api/endpoints.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 
-/// Pełnoekranowy podgląd kamery (MJPEG). Strumień żyje tylko póki ekran jest
-/// zamontowany: `Mjpeg` zamyka połączenie w `dispose` (pop trasy), a wbudowany
-/// `visibility_detector` pauzuje go, gdy ekran zostaje przykryty.
+/// Full-screen camera view (MJPEG). Stream lives only while screen is
+/// mounted: `Mjpeg` closes connection on `dispose` (pop route), and built-in
+/// `visibility_detector` pauses when screen is obscured.
 ///
-/// Token strumienia (~60 min) bierzemy z [cameraTokenProvider]; po 401
-/// (wygaśnięcie) raz wymuszamy re-mint i restart strumienia.
+/// Stream token (~60 min) from [cameraTokenProvider]; on 401 (expiry)
+/// once force re-mint and restart stream.
 class CameraView extends ConsumerStatefulWidget {
   const CameraView({
     super.key,
@@ -27,8 +27,8 @@ class CameraView extends ConsumerStatefulWidget {
 }
 
 class _CameraViewState extends ConsumerState<CameraView> {
-  /// Token, dla którego już raz wymusiliśmy re-mint po 401 — chroni przed
-  /// pętlą odświeżania, gdy błąd nie wynika z wygasłego tokenu.
+  /// Token for which we already forced re-mint after 401 — protects against
+  /// refresh loop if error doesn't stem from expired token.
   String? _remintedFor;
 
   void _retry() {
@@ -69,11 +69,11 @@ class _CameraViewState extends ConsumerState<CameraView> {
       stream: url,
       isLive: true,
       fit: BoxFit.contain,
-      // Strumień bywa wolny na łączu zdalnym — dajemy więcej niż domyślne 5 s.
+      // Stream can be slow on remote connection — give more than default 5s.
       timeout: const Duration(seconds: 15),
       loading: (_) => _Loading(text: l10n.cameraConnecting),
       error: (context, error, _) {
-        // 401 = token wygasł → jednorazowy re-mint i restart strumienia.
+        // 401 = token expired → once force re-mint and restart stream.
         if (error.toString().contains('401') && _remintedFor != token) {
           _remintedFor = token;
           Future.microtask(() {

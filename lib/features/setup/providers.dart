@@ -5,8 +5,8 @@ import '../../core/auth/auth_service.dart';
 import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
-/// Błędy walidacji/konfiguracji pochodzące z samego ekranu setupu
-/// (w odróżnieniu od [AppApiException] z warstwy sieci). Tłumaczone w UI.
+/// Validation/configuration errors from setup screen itself (distinct from
+/// [AppApiException] from network layer). Translated in UI.
 enum SetupErrorCode {
   missingUrl,
   missingApiKey,
@@ -24,16 +24,16 @@ class SetupState {
 
   final bool busy;
 
-  /// [SetupErrorCode] albo [AppApiException]; tłumaczone przy wyświetlaniu.
+  /// [SetupErrorCode] or [AppApiException]; translated on display.
   final Object? error;
 
-  /// Wynik sondy trybu auth; null = URL jeszcze nie zweryfikowany.
+  /// Auth mode probe result; null = URL not yet verified.
   final AuthProbeResult? probe;
 
-  /// Znormalizowany URL, ustalony przy udanej sondzie.
+  /// Normalized URL, set on successful probe.
   final String? baseUrl;
 
-  /// Sonda przeszła i serwer wymaga uwierzytelnienia.
+  /// Probe passed and server requires authentication.
   bool get needsAuth => probe?.authEnabled == true;
 
   SetupState copyWith({
@@ -59,8 +59,8 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   @override
   SetupState build() => const SetupState();
 
-  /// Sonduje tryb auth serwera. Gdy auth wyłączony — od razu zapisuje
-  /// profil (zero dodatkowych kroków dla najprostszej konfiguracji).
+  /// Probe server auth mode. If auth disabled — immediately save profile
+  /// (zero extra steps for simplest setup).
   Future<void> probe(String rawUrl) async {
     final url = ServerProfile.normalizeBaseUrl(rawUrl);
     if (url.isEmpty) {
@@ -129,7 +129,7 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     }
   }
 
-  /// Zapis profilu przełącza router na dashboard (patrz routerProvider).
+  /// Profile save switches router to dashboard (see routerProvider).
   Future<void> _saveProfile(String url, AuthMode mode) =>
       ref.read(serverProfileProvider.notifier).save(
             ServerProfile(baseUrl: url, authMode: mode),

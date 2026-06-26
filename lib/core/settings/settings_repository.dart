@@ -6,8 +6,8 @@ import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
 import 'server_profile.dart';
 
-/// Persystencja profilu serwera w SharedPreferences.
-/// URL i tryb auth nie są sekretami — sekrety trzyma CredentialsStore.
+/// Persistence of server profile in SharedPreferences.
+/// URL and auth mode are not secrets — CredentialsStore holds those.
 class SettingsRepository {
   SettingsRepository(this._prefs);
 
@@ -27,8 +27,8 @@ class SettingsRepository {
     try {
       return ServerProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } on Object {
-      // Uszkodzony wpis traktujemy jak brak profilu — użytkownik
-      // przejdzie ponownie przez setup zamiast oglądać crash.
+      // Treat corrupted entry as no profile — user will go through
+      // setup again instead of crashing.
       return null;
     }
   }
@@ -38,27 +38,27 @@ class SettingsRepository {
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
 
-  /// Czy monitorować wydruki w tle (foreground service). Domyślnie włączone —
-  /// priorytetem jest niezawodność powiadomień; użytkownik może wyłączyć, by
-  /// pozbyć się stałego powiadomienia kosztem łapania startu wydruku w tle.
+  /// Whether to monitor prints in the background (foreground service). Enabled by default —
+  /// notification reliability is the priority; user can disable to remove the persistent
+  /// notification at the cost of potentially missing print start events in the background.
   bool loadBgMonitoringEnabled() => _prefs.getBool(_bgMonitoringKey) ?? true;
 
   Future<void> saveBgMonitoringEnabled(bool enabled) =>
       _prefs.setBool(_bgMonitoringKey, enabled);
 
-  /// Preferencje powiadomień (które zdarzenia, jakie progi). Trzymane jako jeden
-  /// string JSON, by isolate tła odczytał je tak samo jak UI. Brak/uszkodzenie
-  /// → wartości domyślne.
+  /// Notification preferences (which events, what thresholds). Stored as a single
+  /// JSON string so the background isolate parses it the same way as the UI.
+  /// Corrupted/missing → defaults.
   NotificationPrefs loadNotificationPrefs() =>
       NotificationPrefs.decode(_prefs.getString(_notifPrefsKey));
 
   Future<void> saveNotificationPrefs(NotificationPrefs prefs) =>
       _prefs.setString(_notifPrefsKey, prefs.encode());
 
-  /// Zbiór id czynności konserwacji, dla których już puszczono powiadomienie
-  /// „przeterminowane". Dedup periodycznego monitora w tle: przeżywa restart
-  /// isolate'u (brak ponownego spamu), a po wykonaniu konserwacji pozycja
-  /// przestaje być due i jest stąd usuwana (re-arm). Uszkodzony wpis → pusty zbiór.
+  /// Set of maintenance task IDs for which we've already sent an "overdue" alert.
+  /// Dedup for periodic background monitor: survives isolate restarts (no re-spam),
+  /// and items stop being due after perform and are removed from here (re-arm).
+  /// Corrupted entry → empty set.
   Set<int> loadNotifiedMaintenanceDueIds() {
     final raw = _prefs.getStringList(_maintNotifiedKey);
     if (raw == null) return <int>{};
@@ -70,26 +70,24 @@ class SettingsRepository {
         [for (final id in ids) id.toString()],
       );
 
-  /// Czy stan konserwacji zmienił się poza UI (akcja „oznacz wykonane" z
-  /// powiadomienia, obsłużona w isolacie tła) i wymaga odświeżenia ekranu.
-  /// Sygnał między isolatem callbacku a UI — UI musi `reload()` prefów przed
-  /// odczytem, bo zapis poszedł z innego isolate'u.
+  /// Whether maintenance state changed outside the UI (action "Mark Done" from notification,
+  /// handled in background isolate) and needs screen refresh. Signal between callback isolate
+  /// and UI — UI must call `reload()` on prefs before reading, as the write came from another isolate.
   bool maintenanceDirty() => _prefs.getBool(_maintDirtyKey) ?? false;
 
   Future<void> setMaintenanceDirty(bool dirty) =>
       dirty ? _prefs.setBool(_maintDirtyKey, true) : _prefs.remove(_maintDirtyKey);
 
-  /// Backend magazynu filamentów: `native` (domyślny) lub `spoolman`. Zapisany
-  /// jako nazwa enuma; nieznana/uszkodzona wartość → natywny.
+  /// Filament inventory backend: `native` (default) or `spoolman`. Stored as enum name;
+  /// unknown/corrupted → native.
   String loadInventoryBackend() =>
       _prefs.getString(_inventoryBackendKey) ?? 'native';
 
   Future<void> saveInventoryBackend(String backend) =>
       _prefs.setString(_inventoryBackendKey, backend);
 
-  /// Kody swatch (definicje filamentów z przypisanym kodem) — dane lokalne,
-  /// trzymane jako jeden string JSON (lista obiektów). Brak/uszkodzenie → pusta
-  /// lista. Patrz [SwatchCode].
+  /// Swatch codes (filament definitions with assigned codes) — local data stored as a single
+  /// JSON string (list of objects). Missing/corrupted → empty list. See [SwatchCode].
   List<SwatchCode> loadSwatchCodes() {
     final raw = _prefs.getString(_swatchCodesKey);
     if (raw == null || raw.isEmpty) return const [];

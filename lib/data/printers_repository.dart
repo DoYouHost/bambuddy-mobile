@@ -5,8 +5,8 @@ import '../core/api/endpoints.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 
-/// Drukarka razem ze statusem (status bywa niedostępny niezależnie
-/// od listy — np. drukarka odłączona albo pojedynczy endpoint padł).
+/// Printer with status (status may be unavailable independently from the list —
+/// e.g., printer offline or single endpoint down).
 class PrinterWithStatus {
   const PrinterWithStatus({required this.printer, this.status});
 
@@ -14,8 +14,8 @@ class PrinterWithStatus {
   final PrinterStatus? status;
 }
 
-/// REST-owe źródło danych o drukarkach. W M2 dojdzie scalanie z WS —
-/// ta ścieżka zostaje na zawsze jako backfill po wznowieniu i fallback.
+/// REST data source for printers. M2 will add WebSocket merging — this path
+/// remains as backfill on resume and fallback.
 class PrintersRepository {
   PrintersRepository(this._dio);
 
@@ -35,7 +35,6 @@ class PrintersRepository {
       try {
         printers.add(Printer.fromJson(item));
       } on Object {
-        // Pojedynczy niesparsowalny wpis nie może zabić całej listy.
         continue;
       }
     }
@@ -50,8 +49,8 @@ class PrintersRepository {
       return body == null ? null : PrinterStatus.fromJson(body);
     } on DioException catch (e) {
       final mapped = mapDioException(e);
-      // Auth musi wypłynąć (UI odsyła do konfiguracji); reszta degraduje
-      // się do karty „status niedostępny" zamiast wywracać dashboard.
+      // Auth must bubble up (UI redirects to config); others degrade to
+      // "status unavailable" card instead of breaking dashboard.
       if (mapped is AuthException) throw mapped;
       return null;
     } on Object {
@@ -59,7 +58,7 @@ class PrintersRepository {
     }
   }
 
-  /// Lista + statusy pobierane równolegle.
+  /// List and statuses fetched in parallel.
   Future<List<PrinterWithStatus>> fetchAll() async {
     final printers = await fetchPrinters();
     final statuses =

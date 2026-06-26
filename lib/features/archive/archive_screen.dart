@@ -14,8 +14,8 @@ import '../common/print_thumbnail.dart';
 import '../queue/queue_providers.dart';
 import 'archive_providers.dart';
 
-/// Ekran archiwum wydruków (M5): przeglądanie z wyszukiwaniem i miniaturami,
-/// re-print i dodanie do kolejki (oba wymagają wyboru drukarki).
+/// Archive screen for prints (M5): browsing with search and thumbnails,
+/// reprint and add to queue (both require printer selection).
 class ArchiveScreen extends ConsumerStatefulWidget {
   const ArchiveScreen({super.key});
 
@@ -41,7 +41,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   void _onScroll() {
-    // Dociągaj kolejną stronę, gdy zbliżamy się do końca listy.
+    // Load next page as we approach the end of the list.
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 400) {
       ref.read(archiveProvider.notifier).loadMore();
@@ -131,19 +131,19 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     );
   }
 
-  /// Podgląd G-code: zamyka sheet i otwiera pełnoekranową przeglądarkę 3D.
+  /// G-code preview: closes sheet and opens full-screen 3D viewer.
   void _previewGcode(Archive archive) {
-    Navigator.pop(context); // zamknij bottom sheet
+    Navigator.pop(context);
     final name = Uri.encodeQueryComponent(archive.displayName);
     context.push('/gcode-viewer?archive=${archive.id}&name=$name');
   }
 
-  /// Re-print: wybór drukarki → potwierdzenie → POST reprint. Uruchamia
-  /// fizyczny wydruk, więc zawsze za dialogiem potwierdzenia.
+  /// Reprint: printer selection → confirmation → POST reprint. Initiates
+  /// physical print, so always behind confirmation dialog.
   Future<void> _reprint(Archive archive) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context); // zamknij bottom sheet
+    Navigator.pop(context);
 
     final printer = await _pickPrinter(l10n);
     if (printer == null || !mounted) return;
@@ -178,8 +178,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     }
   }
 
-  /// Dodanie do kolejki: wybór drukarki → POST /queue/. Po sukcesie odświeża
-  /// zakładkę kolejki.
+  /// Add to queue: printer selection → POST /queue/. On success, refreshes
+  /// the queue tab.
   Future<void> _addToQueue(Archive archive) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -192,7 +192,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       await ref
           .read(queueRepositoryProvider)
           .addFromArchive(archive.id, printerId: printer.id);
-      // Odśwież listę kolejki, by nowy element był widoczny po przełączeniu.
+      // Refresh queue list so new item is visible after tab switch.
       await ref.read(queueProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.archiveAddedToQueue)));
     } on AppApiException catch (e) {
@@ -200,8 +200,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     }
   }
 
-  /// Bottom sheet z listą drukarek. Gdy jest dokładnie jedna — zwraca ją bez
-  /// pytania. Gdy zero — komunikat i null.
+  /// Bottom sheet with printer list. If exactly one — returns it without asking.
+  /// If zero — message and null.
   Future<Printer?> _pickPrinter(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
     final List<Printer> printers;

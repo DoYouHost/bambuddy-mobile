@@ -5,9 +5,9 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 
-/// Ekran wyboru, które lokalne zdarzenia mają puszczać powiadomienie, wraz z
-/// progami dla zdarzeń progowych. Czyta/zapisuje [notificationPrefsProvider];
-/// isolate tła odczyta te prefs niezależnie przy najbliższym starcie.
+/// Settings screen to choose which local events trigger notifications, with
+/// thresholds for threshold-based events. Reads/writes [notificationPrefsProvider];
+/// background isolate reads these prefs independently on next startup.
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -109,8 +109,8 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Suwak progu (liczba całkowita). Wygaszony, gdy powiązane zdarzenie jest OFF
-/// — próg nie ma wtedy działania, ale wartość zostaje zapamiętana.
+/// Threshold slider (integer). Disabled when related event is OFF — threshold has
+/// no effect then, but value is preserved.
 class _ThresholdSlider extends StatelessWidget {
   const _ThresholdSlider({
     required this.label,

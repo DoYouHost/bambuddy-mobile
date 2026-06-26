@@ -6,18 +6,18 @@ import '../../core/api/api_exceptions.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
 
-/// Akcje sterowania — klucz do oznaczania, co jest „w locie" (spinner +
-/// blokada konkretnego przycisku).
+/// Control actions — key for marking what is "in flight" (spinner +
+/// button lock).
 enum ControlAction { pause, resume, stop, light, speed }
 
-/// Wynik komendy zwracany do widżetu, który zainicjował akcję — to on
-/// pokazuje SnackBar (notifier nie ma [BuildContext]).
+/// Command result returned to the widget that initiated the action — it
+/// displays the SnackBar (notifier has no [BuildContext]).
 enum ControlResult { ok, forbidden, error }
 
-/// Optymistyczne nadpisania i stan „w locie" dla jednej drukarki.
-/// Nadpisania ([light]/[speedLevel]) UI nakłada na żywy status, więc tapnięcie
-/// daje natychmiastowy efekt; po sukcesie znikają, gdy dogoni je realny status
-/// (timer bezpieczeństwa), po błędzie — natychmiast (rollback).
+/// Optimistic overrides and "in-flight" state for one printer.
+/// Overrides ([light]/[speedLevel]) overlay on live status, so tapping gives
+/// instant effect; on success they disappear when real status catches up
+/// (safety timer), on error — immediately (rollback).
 class PendingControls {
   const PendingControls({
     this.light,
@@ -25,13 +25,13 @@ class PendingControls {
     this.inFlight = const {},
   });
 
-  /// Optymistyczny stan światła komory (null = brak nadpisania → bierz z status).
+  /// Optimistic chamber light state (null = no override → take from status).
   final bool? light;
 
-  /// Optymistyczny poziom prędkości 1–4 (null = brak nadpisania).
+  /// Optimistic speed level 1–4 (null = no override).
   final int? speedLevel;
 
-  /// Akcje aktualnie wysyłane do serwera.
+  /// Actions currently in flight to server.
   final Set<ControlAction> inFlight;
 
   bool isBusy(ControlAction a) => inFlight.contains(a);
@@ -54,8 +54,8 @@ class ControlsState {
 
   final Map<int, PendingControls> pending;
 
-  /// Lepkie: którakolwiek komenda zwróciła 403 (klucz bez
-  /// `can_control_printer`) → blokujemy sterowanie do zmiany profilu.
+  /// Sticky: any command returned 403 (key lacks `can_control_printer`) →
+  /// we block control until profile change.
   final bool forbidden;
 
   PendingControls pendingFor(int id) =>
@@ -71,20 +71,20 @@ class ControlsState {
 final controlsProvider =
     NotifierProvider<ControlsNotifier, ControlsState>(ControlsNotifier.new);
 
-/// Wysyła komendy sterujące i trzyma optymistyczny stan UI. Bez nawigacji i
-/// SnackBarów — zwraca [ControlResult], a widżet decyduje co pokazać.
+/// Sends control commands and maintains optimistic UI state. No navigation or
+/// SnackBars — returns [ControlResult], and widget decides what to show.
 class ControlsNotifier extends Notifier<ControlsState> {
-  /// Ile trzymać optymistyczne nadpisanie po sukcesie, zanim je porzucimy
-  /// (do tego czasu realny status z WS/pollingu powinien już dogonić zmianę —
-  /// bez tego chip mrugnąłby na starą wartość na ~sekundę).
+  /// How long to keep optimistic override after success before discarding
+  /// (real status from WS/polling should have caught up by then —
+  /// without this, the chip would flicker to old value for ~a second).
   static const optimisticHold = Duration(seconds: 8);
 
   final Map<String, Timer> _clearTimers = {};
 
   @override
   ControlsState build() {
-    // Zmiana profilu serwera → świeży stan i porzucone timery (inny klucz API
-    // może mieć inne uprawnienia, więc i lepka blokada `forbidden` znika).
+    // Server profile change → fresh state and discarded timers (different API key
+    // may have different permissions, so sticky `forbidden` lock clears).
     ref.watch(serverProfileProvider);
     _cancelTimers();
     ref.onDispose(_cancelTimers);
@@ -129,7 +129,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   }) async {
     final before = state.pendingFor(id);
 
-    // Optymistycznie: oznacz „w locie" i nałóż nadpisanie (jeśli akcja je ma).
+    // Optimistically: mark "in flight" and apply override (if action has one).
     var next = before.setInFlight({...before.inFlight, action});
     if (optimistic == 'light') next = next.setLight(applyLight);
     if (optimistic == 'speed') next = next.setSpeed(applySpeed);
@@ -137,13 +137,13 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
     try {
       await send();
-      // Sukces: zdejmij „w locie", nadpisanie zostaw i zaplanuj jego sprzątnięcie.
+      // Success: remove "in flight", keep override and schedule cleanup.
       _setPending(id, _withoutInFlight(state.pendingFor(id), action));
       if (optimistic != null) _scheduleClear(id, optimistic);
       return ControlResult.ok;
     } on AppApiException catch (e) {
-      // Rollback: zdejmij „w locie" i przywróć nadpisanie do stanu sprzed akcji
-      // (chirurgicznie — żeby nie skasować równoległej, innej akcji).
+      // Rollback: remove "in flight" and restore override to pre-action state
+      // (surgically — to not cancel a concurrent different action).
       var rolled = _withoutInFlight(state.pendingFor(id), action);
       if (optimistic == 'light') rolled = rolled.setLight(before.light);
       if (optimistic == 'speed') rolled = rolled.setSpeed(before.speedLevel);

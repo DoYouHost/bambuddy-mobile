@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/models/failure_analysis.dart';
 import '../features/stats/stats_providers.dart';
 
-/// Wpis cache analizy niepowodzeń: zbankowany agregat plus dokąd sięga.
+/// Failure analysis cache entry: an aggregate plus the extent of coverage.
 ///
-/// [coveredThrough] to ostatni PEŁNY dzień objęty [analysis] (dla zakresu
-/// „cały okres" — przyrostowe doklejanie). `null` dla pozostałych zakresów,
-/// gdzie cache trzyma po prostu ostatni pełny wynik (stale-while-revalidate).
+/// [coveredThrough] is the last complete day covered by [analysis] (for the
+/// "all time" range — allows incremental appending). `null` for other ranges,
+/// where cache stores the last full result (stale-while-revalidate strategy).
 class FailureCacheEntry {
   const FailureCacheEntry({
     required this.analysis,
@@ -40,9 +40,9 @@ class FailureCacheEntry {
   }
 }
 
-/// Trwały cache analizy niepowodzeń (SharedPreferences), kluczowany sygnaturą
-/// filtra. Pozwala pokazać dane natychmiast po wejściu na ekran i dociągnąć
-/// tylko brakujący okres w tle. Mały JSON na wpis — agregaty, nie surowe wpisy.
+/// Persistent failure analysis cache (SharedPreferences), keyed by filter signature.
+/// Allows instant data display on screen entry and fetches only missing periods in the
+/// background. Small JSON per entry — aggregates, not raw records.
 class FailureAnalysisCache {
   FailureAnalysisCache(this._prefs);
 
@@ -50,9 +50,9 @@ class FailureAnalysisCache {
 
   static const _prefix = 'failure_analysis_cache_';
 
-  /// Sygnatura filtra → klucz cache. Zakresy względne kluczujemy po nazwie
-  /// (resolved daty zmieniają się co dzień, ale stale-while-revalidate i tak
-  /// dociąga świeże); „własny" — po jawnych datach.
+  /// Filter signature → cache key. Relative ranges keyed by name (resolved dates
+  /// change daily, but stale-while-revalidate fetches fresh anyway); custom range
+  /// keyed by explicit dates.
   static String signature(StatsFilter f) => switch (f.range) {
         StatsRange.custom => 'custom_${_ymd(f.from)}_${_ymd(f.to)}',
         _ => f.range.name,
@@ -65,7 +65,7 @@ class FailureAnalysisCache {
       return FailureCacheEntry.fromJson(
           jsonDecode(raw) as Map<String, dynamic>);
     } on Object {
-      return null; // uszkodzony wpis → traktuj jak brak
+      return null;
     }
   }
 

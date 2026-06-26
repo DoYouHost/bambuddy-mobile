@@ -6,11 +6,11 @@ import '../../core/models/library_stats.dart';
 import '../../core/models/trash_file.dart';
 import '../../providers.dart';
 
-/// Klucze sortowania listy plików (po stronie klienta — endpoint nie sortuje).
+/// File list sort keys (client-side — endpoint doesn't sort).
 enum FileSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }
 
-/// Stan menedżera plików: drzewo folderów (płaskie), bieżący folder, pliki
-/// w nim oraz filtry/sortowanie i tryb zaznaczania (bulk).
+/// File manager state: folder tree (flat), current folder, files in it,
+/// plus filters/sorting and selection (bulk) mode.
 class FileManagerState {
   const FileManagerState({
     this.allFolders = const [],
@@ -25,30 +25,30 @@ class FileManagerState {
     this.selectionMode = false,
   });
 
-  /// Wszystkie foldery spłaszczone (do budowy ścieżki i listy podfolderów).
+  /// All folders flattened (for breadcrumb and subfolder list).
   final List<LibraryFolder> allFolders;
 
-  /// Bieżący folder; `null` = poziom root.
+  /// Current folder; `null` = root level.
   final int? currentFolderId;
 
-  /// Pliki w bieżącym folderze (surowe, przed filtrem/sortem).
+  /// Files in current folder (raw, before filter/sort).
   final List<LibraryFile> files;
 
-  /// Wszystkie pliki z całej biblioteki — cache pod wyszukiwanie globalne.
-  /// `null` = jeszcze niepobrane (pobierane leniwie przy pierwszym zapytaniu).
+  /// All files from entire library — cache for global search.
+  /// `null` = not yet fetched (loaded lazily on first query).
   final List<LibraryFile>? allFiles;
 
-  /// Trwa pobieranie [allFiles] do wyszukiwania globalnego.
+  /// Fetching [allFiles] for global search in progress.
   final bool searching;
 
   final String query;
 
-  /// Filtr po typie pliku (np. „3mf"); `null` = wszystkie.
+  /// File type filter (e.g. "3mf"); `null` = all.
   final String? typeFilter;
 
   final FileSort sort;
 
-  /// Zaznaczone pliki (tryb bulk).
+  /// Selected files (bulk mode).
   final Set<int> selected;
   final bool selectionMode;
 
@@ -81,7 +81,7 @@ class FileManagerState {
         selectionMode: selectionMode ?? this.selectionMode,
       );
 
-  /// Bieżący folder jako obiekt (null na poziomie root).
+  /// Current folder as object (null at root level).
   LibraryFolder? get currentFolder =>
       currentFolderId == null ? null : _byId(currentFolderId);
 
@@ -92,7 +92,7 @@ class FileManagerState {
     return null;
   }
 
-  /// Ścieżka okruszków od root do bieżącego folderu (bez root-a).
+  /// Breadcrumb path from root to current folder (without root).
   List<LibraryFolder> get breadcrumb {
     final path = <LibraryFolder>[];
     var node = currentFolder;
@@ -103,7 +103,7 @@ class FileManagerState {
     return path;
   }
 
-  /// Podfoldery bieżącego folderu (sortowane alfabetycznie).
+  /// Subfolders of current folder (sorted alphabetically).
   List<LibraryFolder> get subfolders {
     final list = allFolders
         .where((f) => f.parentId == currentFolderId)
@@ -112,25 +112,24 @@ class FileManagerState {
     return list;
   }
 
-  /// Czy aktywne jest wyszukiwanie (zapytanie niepuste → tryb globalny).
+  /// Whether searching is active (non-empty query → global mode).
   bool get isSearching => query.trim().isNotEmpty;
 
-  /// Nazwa folderu po id (do etykiety lokalizacji w wynikach wyszukiwania).
+  /// Folder name by id (for location label in search results).
   String? folderName(int? id) => _byId(id)?.name;
 
-  /// Źródło listy plików: w trybie wyszukiwania cała biblioteka, inaczej
-  /// bieżący folder.
+  /// File list source: in search mode all library, otherwise current folder.
   List<LibraryFile> get _source =>
       isSearching ? (allFiles ?? files) : files;
 
-  /// Dostępne typy plików (do filtra) — z aktualnego źródła.
+  /// Available file types (for filter) — from current source.
   List<String> get availableTypes {
     final set = <String>{for (final f in _source) f.fileType.toLowerCase()};
     final list = set.toList()..sort();
     return list;
   }
 
-  /// Pliki po zastosowaniu wyszukiwania, filtra typu i sortowania.
+  /// Files after search, type filter, and sorting applied.
   List<LibraryFile> get visibleFiles {
     final q = query.trim().toLowerCase();
     final filtered = _source.where((f) {
@@ -169,7 +168,7 @@ final fileManagerProvider =
   FileManagerNotifier.new,
 );
 
-/// Menedżer plików: nawigacja po folderach, lista plików, filtry i akcje.
+/// File manager: folder navigation, file list, filters, and actions.
 class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   @override
   Future<FileManagerState> build() async {
@@ -183,7 +182,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     );
   }
 
-  /// Spłaszcza zagnieżdżone drzewo folderów do jednej listy.
+  /// Flattens nested folder tree to a single list.
   List<LibraryFolder> _flatten(List<LibraryFolder> roots) {
     final out = <LibraryFolder>[];
     void walk(List<LibraryFolder> nodes) {
@@ -197,8 +196,8 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     return out;
   }
 
-  /// Wchodzi do folderu [folderId] (null = root) i pobiera jego pliki.
-  /// Czyści zaznaczenie i wyszukiwanie.
+  /// Opens folder [folderId] (null = root) and fetches its files.
+  /// Clears selection and search.
   Future<void> openFolder(int? folderId) async {
     final current = state.valueOrNull;
     if (current == null) return;
@@ -220,7 +219,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     });
   }
 
-  /// Odświeża bieżący folder oraz drzewo folderów (po mutacjach).
+  /// Refreshes current folder and folder tree (after mutations).
   Future<void> refresh() async {
     final current = state.valueOrNull;
     final folderId = current?.currentFolderId;
@@ -230,7 +229,7 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
       final folders = await repo.listFolders();
       final files = await repo.listFiles(folderId: folderId);
       final flat = _flatten(folders);
-      // Folder mógł zniknąć (usunięty) — wróć do root.
+      // Folder may have disappeared (deleted) — back to root.
       final stillExists =
           folderId == null || flat.any((f) => f.id == folderId);
       return FileManagerState(
@@ -242,9 +241,9 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     });
   }
 
-  /// Ustawia zapytanie. Pierwsze niepuste zapytanie pobiera leniwie wszystkie
-  /// pliki biblioteki (cache [FileManagerState.allFiles]) — wyszukiwanie jest
-  /// globalne (po wszystkich folderach), nie tylko po bieżącym.
+  /// Sets query. First non-empty query lazily fetches all library files
+  /// (cache [FileManagerState.allFiles]) — search is global (all folders),
+  /// not just current.
   Future<void> setQuery(String q) async {
     var current = state.valueOrNull;
     if (current == null) return;
@@ -288,12 +287,12 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
   }
 }
 
-/// Statystyki biblioteki (nagłówek). Osobny provider — odświeżany niezależnie.
+/// Library stats (header). Separate provider — refreshed independently.
 final libraryStatsProvider = FutureProvider.autoDispose<LibraryStats>(
   (ref) => ref.watch(libraryRepositoryProvider).stats(),
 );
 
-/// Lista plików w koszu.
+/// List of files in trash.
 final libraryTrashProvider = FutureProvider.autoDispose<List<TrashFile>>(
   (ref) => ref.watch(libraryRepositoryProvider).listTrash(),
 );

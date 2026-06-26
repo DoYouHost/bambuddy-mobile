@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-/// Czas wygaśnięcia JWT odczytany z claimu `exp` (sekundy od epoki, UTC).
+/// JWT expiry time extracted from `exp` claim (seconds since epoch, UTC).
 ///
-/// Zwraca `null`, gdy token nie jest poprawnym trójczłonowym JWT, payload nie
-/// jest mapą albo brak w nim liczbowego `exp` — wołający stosuje wtedy fallback
-/// (nie zakładamy formatu tokenu serwera ponad standard). Czysta funkcja: bez
-/// zależności od pluginów, działa też w isolacie tła.
+/// Returns `null` if token is not a valid 3-part JWT, payload is not a map,
+/// or lacks numeric `exp` — caller then uses fallback (we don't assume server
+/// token format beyond standard). Pure function: no plugin dependencies,
+/// works in background isolate too.
 DateTime? jwtExpiry(String? token) {
   if (token == null || token.isEmpty) return null;
   final parts = token.split('.');

@@ -1,11 +1,11 @@
-/// Modele integracji MakerWorld (`/api/v1/makerworld/*`).
+/// MakerWorld integration models (`/api/v1/makerworld/*`).
 ///
-/// `design` i `instances` przychodzą z MakerWorld przepuszczone „as-is" —
-/// serwer ich nie przekształca. Czytamy je więc defensywnie po kilku
-/// kandydujących kluczach i tolerujemy braki; UI degraduje do nazwy/placeholdera.
+/// `design` and `instances` come from MakerWorld passed through as-is — server
+/// doesn't transform them. So read defensively from several candidate keys and
+/// tolerate missing fields; UI degrades to name/placeholder.
 library;
 
-/// Stan integracji z `GET /makerworld/status`.
+/// Integration status from `GET /makerworld/status`.
 class MakerWorldStatus {
   const MakerWorldStatus({
     required this.hasCloudToken,
@@ -18,14 +18,14 @@ class MakerWorldStatus {
         canDownload: json['can_download'] == true,
       );
 
-  /// Czy konto ma zapisany token chmury Bambu.
+  /// Whether account has saved Bambu Cloud token.
   final bool hasCloudToken;
 
-  /// Skrót: token istnieje i wygląda na ważny. Pobieranie tego wymaga.
+  /// Shorthand: token exists and appears valid. Download requires this.
   final bool canDownload;
 }
 
-/// Pojedyncza okładka/obiekt z opaque mapy — wyciąga tytuł i URL okładki.
+/// Extract title and cover URL from opaque map.
 String? _pickString(Map<String, dynamic> json, List<String> keys) {
   for (final k in keys) {
     final v = json[k];
@@ -47,8 +47,7 @@ int? _pickInt(Map<String, dynamic> json, List<String> keys) {
   return null;
 }
 
-/// Nagłówek modelu (tytuł + okładka). Pola MakerWorld bywają pod różnymi
-/// nazwami — bierzemy pierwszą pasującą.
+/// Model header (title + cover). MakerWorld fields vary in name — pick first match.
 class MakerWorldDesign {
   const MakerWorldDesign({this.title, this.coverUrl});
 
@@ -65,8 +64,8 @@ class MakerWorldDesign {
   final String? coverUrl;
 }
 
-/// Instancja (płyta/profil) modelu. `profileId` jest tym, co dosyłamy jako
-/// `profile_id` przy imporcie.
+/// Model instance (plate/profile). `profileId` is what we send as `profile_id`
+/// on import.
 class MakerWorldInstance {
   const MakerWorldInstance({
     this.profileId,
@@ -94,7 +93,7 @@ class MakerWorldInstance {
   final String? coverUrl;
 }
 
-/// Wynik `POST /makerworld/resolve`.
+/// Result from `POST /makerworld/resolve`.
 class MakerWorldResolvedModel {
   const MakerWorldResolvedModel({
     required this.modelId,
@@ -143,16 +142,16 @@ class MakerWorldResolvedModel {
 
   final int modelId;
 
-  /// Profil z fragmentu URL-a (`#profileId-`), jeśli był.
+  /// Profile from URL fragment (`#profileId-`), if present.
   final int? profileId;
   final MakerWorldDesign design;
   final List<MakerWorldInstance> instances;
 
-  /// `LibraryFile` ID-ki wcześniej zaimportowane z tego URL-a.
+  /// `LibraryFile` IDs previously imported from this URL.
   final Set<int> alreadyImportedLibraryIds;
 }
 
-/// Wynik `POST /makerworld/import`.
+/// Result from `POST /makerworld/import`.
 class MakerWorldImportResponse {
   const MakerWorldImportResponse({
     required this.libraryFileId,
@@ -176,11 +175,11 @@ class MakerWorldImportResponse {
   final int? folderId;
   final int? profileId;
 
-  /// Plik z tego samego URL-a był już — nie pobrano ponownie.
+  /// File from same URL already existed — not re-downloaded.
   final bool wasExisting;
 }
 
-/// Wiersz listy „ostatnie importy z MakerWorld".
+/// Row in "recent MakerWorld imports" list.
 class MakerWorldRecentImport {
   const MakerWorldRecentImport({
     required this.libraryFileId,
@@ -208,6 +207,6 @@ class MakerWorldRecentImport {
   final String? sourceUrl;
   final String? createdAt;
 
-  /// Czy serwer ma dla pliku miniaturę (do `LibraryThumbnail`).
+  /// Whether server has thumbnail for file (for `LibraryThumbnail`).
   bool get hasThumbnail => thumbnailPath != null && thumbnailPath!.isNotEmpty;
 }

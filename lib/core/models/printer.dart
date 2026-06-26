@@ -2,9 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'printer.g.dart';
 
-/// Konfiguracja drukarki z `GET /printers` (PrinterResponse).
-/// Parsowanie defensywne: poza id/name wszystko nullable, nieznane
-/// klucze ignorowane — API bambuddy jest młode i ruchliwe.
+/// Printer configuration from `GET /printers` (PrinterResponse).
+/// Defensive parsing: all except id/name are nullable, unknown keys ignored — API
+/// is young and evolving.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class Printer {
   const Printer({

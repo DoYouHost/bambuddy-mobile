@@ -3,8 +3,8 @@ import 'package:dio/dio.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 
-/// Goły Dio do wywołań bez auth (login, sonda auth/status) i jako baza
-/// dla [ApiClient]. Jedno miejsce na timeouty.
+/// Bare Dio for calls without auth (login, auth/status probe) and as the base
+/// for [ApiClient]. Single place for timeouts.
 Dio createBareDio() => Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 8),
@@ -13,7 +13,7 @@ Dio createBareDio() => Dio(
       ),
     );
 
-/// Uwierzytelniony klient HTTP dla jednego [ServerProfile].
+/// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {
   ApiClient({
     required ServerProfile profile,
@@ -33,8 +33,8 @@ class ApiClient {
   final Dio dio;
 }
 
-/// Dodaje nagłówki auth wg [AuthMode] i obsługuje 401 dla JWT
-/// (cichy re-login → jednorazowy retry).
+/// Adds auth headers per [AuthMode] and handles 401 for JWT
+/// (silent re-login → single retry).
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required this.authMode,
@@ -48,10 +48,10 @@ class AuthInterceptor extends Interceptor {
   final AuthMode authMode;
   final CredentialsStore credentials;
 
-  /// Próba odzyskania ważnego JWT (cichy re-login). `null` = nie da się.
+  /// Attempt to recover a valid JWT (silent re-login). `null` = not possible.
   final Future<String?> Function()? refreshAuth;
 
-  /// Dio użyte do ponowienia żądania po odświeżeniu tokenu.
+  /// Dio used to retry request after token refresh.
   final Dio retryDio;
 
   @override
@@ -61,7 +61,6 @@ class AuthInterceptor extends Interceptor {
   ) async {
     switch (authMode) {
       case AuthMode.none:
-        break; // Serwer bez auth — ŻADNYCH nagłówków.
       case AuthMode.jwt:
         final jwt = await credentials.readJwt();
         if (jwt != null) {

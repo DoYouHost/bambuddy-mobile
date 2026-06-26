@@ -3,26 +3,25 @@ import 'package:dio/dio.dart';
 import 'api_exceptions.dart';
 import 'endpoints.dart';
 
-/// Mint i cache tokenu strumienia kamery (`POST /printers/camera/stream-token`).
+/// Mints and caches camera stream token (`POST /printers/camera/stream-token`).
 ///
-/// Token jest wspólny dla serwera, ważny ~60 min i wymagany jako `?token=`
-/// przy pobieraniu okładki wydruku (`cover_url`). To zalążek pod M2: ten sam
-/// token autoryzuje strumień MJPEG i snapshot kamery — wtedy dojdzie
-/// proaktywne odświeżanie (~50. min) i reakcja na kod zamknięcia 4401.
+/// Token is shared per server, valid ~60 min, and required as `?token=`
+/// when fetching print covers (`cover_url`). Groundwork for M2: the same token
+/// will authorize MJPEG stream and camera snapshots — then add proactive
+/// refresh (~50 min) and handling for close code 4401.
 class CameraTokenService {
   CameraTokenService(this._dio);
 
   final Dio _dio;
 
-  /// Konserwatywnie krócej niż serwerowe 60 min, żeby token nie wygasł
-  /// w trakcie użycia.
+  /// Conservatively shorter than server's 60 min to avoid token expiry during use.
   static const _ttl = Duration(minutes: 55);
 
   String? _token;
   DateTime? _expiresAt;
 
-  /// Zwraca ważny token; mintuje nowy, gdy brak lub po wygaśnięciu (albo
-  /// gdy [forceRefresh], np. po odpowiedzi 401 z zasobu chronionego tokenem).
+  /// Returns a valid token; mints a new one if missing, expired, or
+  /// if [forceRefresh] is true (e.g., after 401 from a token-protected resource).
   Future<String> token({bool forceRefresh = false}) async {
     final cached = _token;
     final expiry = _expiresAt;
@@ -49,7 +48,7 @@ class CameraTokenService {
     return token;
   }
 
-  /// Wymusza ponowny mint przy następnym [token] (np. po 401).
+  /// Forces a fresh mint on next [token] call (e.g., after 401).
   void invalidate() {
     _token = null;
     _expiresAt = null;

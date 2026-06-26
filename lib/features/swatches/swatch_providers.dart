@@ -4,9 +4,9 @@ import '../../core/models/swatch_code.dart';
 import '../../providers.dart';
 import '../inventory/inventory_providers.dart';
 
-/// Rejestr kodów swatch (dane lokalne). Ładowany z SharedPreferences przy
-/// pierwszym dostępie; każda mutacja zapisuje całość z powrotem (lista jest
-/// mała, zapisy rzadkie). Posortowany alfabetycznie po nazwie definicji.
+/// Swatch codes registry (local data). Loaded from SharedPreferences on first
+/// access; each mutation persists entire list (small list, rare writes).
+/// Alphabetically sorted by definition name.
 final swatchCodesProvider =
     NotifierProvider<SwatchCodesNotifier, List<SwatchCode>>(
   SwatchCodesNotifier.new,
@@ -32,17 +32,16 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
     state = sorted;
   }
 
-  /// Czy dany kod (znormalizowany) już istnieje. [exclude] pomija wpis o danym
-  /// kodzie (edycja własnego wpisu nie jest kolizją).
+  /// Whether given code (normalized) already exists. [exclude] skips entry with
+  /// given code (editing own entry is not a collision).
   bool hasCode(String code, {String? exclude}) {
     final c = normalizeSwatchCode(code);
     final ex = exclude == null ? null : normalizeSwatchCode(exclude);
     return state.any((e) => e.code == c && (ex == null || e.code != ex));
   }
 
-  /// Losuje kod nieużywany jeszcze w rejestrze. Po wielu kolizjach (mało
-  /// prawdopodobne przy 887 mln kombinacji) i tak zwraca ostatni — kolizja
-  /// zostałaby wychwycona przy zapisie.
+  /// Generate unused code in registry. After many collisions (unlikely with 887M
+  /// combinations) still returns last — collision caught on save.
   String freshCode() {
     for (var i = 0; i < 50; i++) {
       final c = generateSwatchCode();
@@ -51,7 +50,7 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
     return generateSwatchCode();
   }
 
-  /// Dodaje definicję z auto-wygenerowanym kodem. Zwraca utworzony wpis.
+  /// Add definition with auto-generated code. Return created entry.
   Future<SwatchCode> add({
     required String material,
     String? brand,
@@ -72,9 +71,8 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
     return entry;
   }
 
-  /// Zapisuje wpis (tworzenie lub edycja). [replacingCode] = stary kod przy
-  /// edycji (gdy użytkownik zmienił sam kod, usuwamy stary wpis). Wpis o tym
-  /// samym (nowym) kodzie zostaje nadpisany.
+  /// Save entry (create or edit). [replacingCode] = old code on edit (if user
+  /// changed code itself, remove old entry). Entry with same (new) code is overwritten.
   Future<void> save(SwatchCode entry, {String? replacingCode}) async {
     final replacing =
         replacingCode == null ? null : normalizeSwatchCode(replacingCode);
@@ -91,8 +89,7 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
     await _persist([for (final e in state) if (e.code != c) e]);
   }
 
-  /// Nadpisuje CAŁY rejestr (import z pliku). Dedup po kodzie — wygrywa
-  /// pierwsze wystąpienie.
+  /// Overwrite ENTIRE registry (file import). Dedup by code — first occurrence wins.
   Future<void> replaceAll(List<SwatchCode> codes) async {
     final seen = <String>{};
     final deduped = <SwatchCode>[];
@@ -104,10 +101,9 @@ class SwatchCodesNotifier extends Notifier<List<SwatchCode>> {
   }
 }
 
-/// Definicje filamentów z magazynu (aktywne szpule), które NIE mają jeszcze
-/// kodu swatch. Deduplikacja po tożsamości (marka+materiał+wariant+kolor).
-/// Współdzieli fetch magazynu z zakładką Filamentów; pusta, gdy magazyn się
-/// jeszcze nie załadował lub padł.
+/// Filament definitions from inventory (active spools) without swatch code yet.
+/// Dedup by identity (brand+material+variant+color). Shares inventory fetch with
+/// Filaments tab; empty if inventory not loaded or failed.
 final uncodedFilamentsProvider =
     Provider.autoDispose<List<FilamentIdentity>>((ref) {
   final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
@@ -134,6 +130,5 @@ final uncodedFilamentsProvider =
   return out;
 });
 
-/// Tekst wyszukiwania na ekranie kodów (po kodzie lub nazwie). Filtrowanie po
-/// stronie klienta.
+/// Search text on codes screen (by code or name). Client-side filtering.
 final swatchQueryProvider = StateProvider.autoDispose<String>((_) => '');

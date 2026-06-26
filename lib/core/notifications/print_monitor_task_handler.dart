@@ -26,22 +26,22 @@ import '../widget/home_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
 
-/// Co ile odpytujemy REST o stan konserwacji. Godziny narastają tylko podczas
-/// druku, więc rzadki tick wystarcza — i tak nie obciąża serwera.
+/// How often to poll REST for maintenance status. Operating hours only accumulate
+/// during printing, so infrequent checks suffice and don't burden the server.
 const Duration _maintenanceCheckInterval = Duration(minutes: 30);
 
-/// Punkt wejścia isolate'u tła. MUSI być top-level i oznaczony
-/// `@pragma('vm:entry-point')` — flutter_foreground_task uruchamia go w osobnym
-/// silniku Dart, więc tree-shaking nie może go wyciąć.
+/// Entry point for the background isolate. Must be top-level and marked
+/// with `@pragma('vm:entry-point')` — flutter_foreground_task launches it
+/// in a separate Dart engine, so tree-shaking can't remove it.
 @pragma('vm:entry-point')
 void startCallback() {
   FlutterForegroundTask.setTaskHandler(PrintMonitorTaskHandler());
 }
 
-/// Mózg monitoringu w tle: żyje w isolacie foreground service'u, niezależnym od
-/// UI (przeżywa zmiecenie aktywności z recentów). Odtwarza tu cały tor: profil z
-/// SharedPreferences, sekrety z Keystore, własny [WsClient] i [PrintMonitor].
-/// Nie współdzieli pamięci ani providerów z isolatem UI — wszystko budowane od zera.
+/// The brain of background monitoring: lives in the foreground service isolate,
+/// independent from the UI (survives activity swiping from recents). Rebuilds
+/// everything from scratch here: profile from SharedPreferences, secrets from Keystore,
+/// own [WsClient] and [PrintMonitor]. Shares no memory or providers with the UI isolate.
 class PrintMonitorTaskHandler extends TaskHandler {
   WsClient? _ws;
   StreamSubscription<PrinterStatus>? _sub;
@@ -52,7 +52,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Timer? _maintenanceTimer;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
-  // Katalog HMS + tor pobierania okładki dla widgetu (osobny od UI isolate'u).
+  // HMS catalog + cover fetch path for widget (separate from UI isolate).
   HmsCatalog? _hmsCatalog;
   CameraTokenService? _cameraToken;
   Dio? _coverDio;
@@ -61,30 +61,30 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     final prefs = await SharedPreferences.getInstance();
     final profile = SettingsRepository(prefs).loadProfile();
-    // Bez profilu nie ma czego monitorować — serwis zostaje (UI go zatrzyma),
-    // ale nic nie subskrybujemy.
+    // Without a profile there's nothing to monitor — service stays running
+    // (UI will stop it), but we don't subscribe to anything.
     if (profile == null) return;
 
     final l10n = systemAppLocalizations();
     final alerts = LocalNotificationService()..init();
     final fgs = _FgsNotificationService(alerts, l10n);
     _fgs = fgs;
-    // Katalog opisów HMS wczytujemy raz (asset działa też w isolacie tła).
+    // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
     _hmsCatalog = catalog;
-    // Tor pobierania okładki wydruku dla widgetu: token kamery mintowany
-    // uwierzytelnionym Dio, sam obraz ściągany gołym Dio z `?token=`.
+    // Print cover fetch for the widget: camera token minted with authenticated Dio,
+    // image fetched with bare Dio using `?token=`.
     final coverApi = await buildBackgroundApiClient(prefs);
     _cameraToken =
         coverApi != null ? CameraTokenService(coverApi.dio) : null;
     _coverDio = createBareDio();
-    // Preferencje zdarzeń czytamy raz przy starcie serwisu; zmiana w UI
-    // obowiązuje od następnego wejścia w tło (wtedy serwis startuje na nowo).
+    // Load notification preferences once at startup; UI changes take effect
+    // on the next background entry (service restarts from scratch then).
     final notifPrefs = SettingsRepository(prefs).loadNotificationPrefs();
 
-    // Konserwacja: REST-owy monitor (jeśli włączony) + przypomnienie po wydruku.
-    // Budujemy go PRZED [PrintMonitor], by wpiąć callback `onPrintEnded`.
+    // Maintenance: REST monitor (if enabled) + reminder after print.
+    // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
     await _setUpMaintenance(prefs, notifPrefs);
 
     _monitor = PrintMonitor(
@@ -104,8 +104,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _sub = ws.statuses.listen((status) {
       _statuses[status.id] = status;
       _monitor?.update(Map.of(_statuses));
-      // Karmimy też natywny widget ekranu głównego — isolate tła bywa jedynym
-      // żywym torem statusu, gdy apka jest zamknięta. Błąd nie wywraca strumienia.
+      // Also feed the native home screen widget — background isolate may be the only
+      // live source of status when the app is closed. Errors don't break the stream.
       unawaited(
         HomeWidgetPublisher.publish(
           Map.of(_statuses),
@@ -115,19 +115,19 @@ class PrintMonitorTaskHandler extends TaskHandler {
         ).catchError((_) {}),
       );
     });
-    // Zdarzenie „płyta niepusta" przychodzi osobną ramką (nie statusem) —
-    // prawdziwy trigger, w odróżnieniu od `awaiting_plate_clear` w statusie.
+    // "Plate not empty" event arrives as a separate frame (not in status) —
+    // a real trigger distinct from `awaiting_plate_clear` in status.
     _plateSub = ws.plateAlerts.listen((e) {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
     ws.start();
 
-    // Foreground service bywa żywy dłużej niż ważność JWT (np. wielogodzinny
-    // wydruk) — proaktywnie odnawiamy token, żeby handshake WS nie padał na 401.
+    // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
+    // proactively refresh the token so WS handshake doesn't fail with 401.
     _setUpTokenRefresh(profile, creds);
   }
 
-  /// Uruchamia proaktywną odnowę JWT w isolacie tła (tylko tryb [AuthMode.jwt]).
+  /// Starts proactive JWT refresh in the background isolate (JWT mode only).
   void _setUpTokenRefresh(ServerProfile profile, CredentialsStore creds) {
     if (profile.authMode != AuthMode.jwt) return;
     final auth = AuthService(bareDio: createBareDio(), credentials: creds);
@@ -139,9 +139,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     refresher.start();
   }
 
-  /// Buduje [MaintenanceMonitor] na uwierzytelnionym Dio (jeśli zdarzenie
-  /// `maintenanceDue` jest włączone) i uruchamia periodyczne sprawdzanie REST.
-  /// Dedup-zbiór trzymamy w SharedPreferences (re-arm po wykonaniu).
+  /// Builds [MaintenanceMonitor] on authenticated Dio (if `maintenanceDue` event is enabled)
+  /// and starts periodic REST polling. Dedup set stored in SharedPreferences (re-armed after perform).
   Future<void> _setUpMaintenance(
     SharedPreferences prefs,
     NotificationPrefs notifPrefs,
@@ -159,15 +158,15 @@ class PrintMonitorTaskHandler extends TaskHandler {
       persist: settings.saveNotifiedMaintenanceDueIds,
     );
     _maintenance = maintenance;
-    unawaited(maintenance.check()); // pierwsze sprawdzenie zaraz po starcie
+    unawaited(maintenance.check()); // First check immediately after startup
     _maintenanceTimer = Timer.periodic(
       _maintenanceCheckInterval,
       (_) => unawaited(maintenance.check()),
     );
   }
 
-  /// Pobiera okładkę bieżącego wydruku do pliku dla widgetu (auth tokenem
-  /// kamery, cache po `cover_url` w [WidgetCoverCache]). `null` gdy brak toru.
+  /// Fetches the current print cover image to a file for the widget (authenticated with
+  /// camera token, cached by `cover_url` in [WidgetCoverCache]). Returns null if unavailable.
   Future<String?> _fetchCover(String baseUrl, PrinterStatus picked) {
     final cover = picked.coverUrl;
     final tokenSvc = _cameraToken;
@@ -184,15 +183,15 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
   }
 
-  // Sterujemy zdarzeniami przez strumień WS, nie cyklicznym tickiem — ale
-  // metoda jest wymagana przez kontrakt TaskHandler.
+  // Events are driven by the WS stream, not by periodic ticking — but
+  // the method is required by the TaskHandler contract.
   @override
   void onRepeatEvent(DateTime timestamp) {}
 
-  /// Android 14+ pozwala zsunąć powiadomienie foreground service'u
-  /// („usuń wszystkie"), co NIE zatrzymuje serwisu — zostałby działający, ale
-  /// niewidoczny. Ponawiamy je z ostatnią treścią, by trzymać niezmiennik
-  /// „serwis żyje ⇔ powiadomienie widoczne".
+  /// Android 14+ allows swiping the foreground service notification ("Clear All"),
+  /// which does NOT stop the service — it keeps running but becomes invisible.
+  /// We re-post it with the last content to maintain the invariant:
+  /// "service alive ⇔ notification visible".
   @override
   void onNotificationDismissed() {
     final fgs = _fgs;
@@ -209,10 +208,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
   }
 }
 
-/// [NotificationService] dla isolate'u tła: wiszący postęp kieruje do
-/// powiadomienia samego foreground service'u (jest jedno i obowiązkowe, więc nie
-/// mnożymy notyfikacji), a głośne alerty „skończone/błąd" puszcza zwykłym
-/// kanałem przez [LocalNotificationService].
+/// [NotificationService] for the background isolate: ongoing progress updates
+/// are sent to the foreground service's notification itself (there's only one and it's
+/// mandatory, so we don't multiply notifications). Loud alerts (finished/failed) are
+/// sent via the regular channel through [LocalNotificationService].
 class _FgsNotificationService implements NotificationService {
   _FgsNotificationService(this._alerts, AppLocalizations l10n)
       : _l10n = l10n,
@@ -222,8 +221,8 @@ class _FgsNotificationService implements NotificationService {
   final NotificationService _alerts;
   final AppLocalizations _l10n;
 
-  // Ostatnio pokazana treść wiszącego powiadomienia — by odtworzyć je 1:1 po
-  // zsunięciu przez użytkownika ([repost]).
+  // Last shown content of the ongoing notification — to recreate it exactly
+  // after the user swipes it ([repost]).
   String _title;
   String _text;
 
@@ -249,7 +248,7 @@ class _FgsNotificationService implements NotificationService {
 
   @override
   Future<void> clearOngoing() async {
-    // Nic nie drukuje → powiadomienie FGS wraca do neutralnego „monitoruję".
+    // Nothing printing → FGS notification returns to neutral "monitoring".
     _title = _l10n.bgServiceTitle;
     _text = _l10n.bgServiceText;
     await FlutterForegroundTask.updateService(
@@ -258,8 +257,8 @@ class _FgsNotificationService implements NotificationService {
     );
   }
 
-  /// Ponawia wiszące powiadomienie z ostatnią treścią — po zsunięciu przez
-  /// użytkownika (FGS na Androidzie 14+ jest usuwalny, a serwis dalej żyje).
+  /// Re-posts the ongoing notification with the last content — after the user
+  /// swipes it (FGS on Android 14+ is dismissible, but the service keeps running).
   Future<void> repost() => FlutterForegroundTask.updateService(
         notificationTitle: _title,
         notificationText: _text,

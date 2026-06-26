@@ -1,15 +1,14 @@
 import 'package:dio/dio.dart';
 
-/// Kody błędów warstwy API/auth. Warstwa rdzenia jest niezależna od UI:
-/// tłumaczenie na tekst następuje przy wyświetlaniu (patrz
-/// `lib/l10n/error_messages.dart`).
+/// Error codes for the API/auth layer. The core layer is UI-independent:
+/// translation to text happens at display time (see `lib/l10n/error_messages.dart`).
 enum AppErrorCode {
   serverUnreachable,
   unauthorized,
 
-  /// 403 — uwierzytelnienie OK, ale brak uprawnień do tej akcji (np. klucz API
-  /// bez `can_control_printer`). W przeciwieństwie do [unauthorized] NIE
-  /// oznacza wygaśnięcia sesji — nie wylogowujemy, tylko blokujemy akcję.
+  /// 403 — authentication OK, but no permission for this action (e.g., API key
+  /// without `can_control_printer`). Unlike [unauthorized], does NOT indicate
+  /// session expiry — we don't log out, just block the action.
   forbidden,
   badResponse,
   badCertificate,
@@ -20,17 +19,17 @@ enum AppErrorCode {
   apiKeyRejected,
 }
 
-/// Bazowy wyjątek warstwy API. Niesie kod błędu (do lokalizacji) oraz
-/// opcjonalne, techniczne szczegóły do logów.
+/// Base exception for the API layer. Carries error code (for localization) and
+/// optional technical details for logs.
 sealed class AppApiException implements Exception {
   const AppApiException(this.code, {this.statusCode, this.detail});
 
   final AppErrorCode code;
 
-  /// Kod HTTP dla [AppErrorCode.badResponse] (null w innych przypadkach).
+  /// HTTP status code for [AppErrorCode.badResponse] (null for others).
   final int? statusCode;
 
-  /// Surowy, niewidoczny dla użytkownika szczegół (np. `DioException.message`).
+  /// Raw, user-invisible detail (e.g., `DioException.message`).
   final String? detail;
 
   @override
@@ -39,24 +38,24 @@ sealed class AppApiException implements Exception {
       '${detail == null ? '' : ', detail=$detail'})';
 }
 
-/// Serwer odpowiedział, ale błędem (4xx/5xx poza 401/403) albo
-/// odpowiedź miała nieoczekiwany kształt.
+/// Server responded with an error (4xx/5xx except 401/403) or
+/// response had unexpected shape.
 class ApiException extends AppApiException {
   const ApiException(super.code, {super.statusCode, super.detail});
 }
 
-/// Problem z uwierzytelnieniem: złe dane logowania, wygasły/unieważniony
-/// token lub klucz, brak uprawnień.
+/// Authentication problem: bad credentials, expired/invalidated token or key, or
+/// insufficient permissions.
 class AuthException extends AppApiException {
   const AuthException(super.code, {super.detail});
 }
 
-/// Serwer nieosiągalny: timeout, odmowa połączenia, brak sieci.
+/// Server unreachable: timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
   const NetworkException(super.code, {super.detail});
 }
 
-/// Mapuje [DioException] na typowany wyjątek aplikacji.
+/// Maps [DioException] to a typed application exception.
 AppApiException mapDioException(DioException e) {
   if (e.error is AppApiException) {
     return e.error! as AppApiException;

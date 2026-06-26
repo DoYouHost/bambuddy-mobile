@@ -9,20 +9,19 @@ import '../../core/settings/server_profile.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 
-/// Pełnoekranowa przeglądarka G-code 3D. Osadza hostowaną stronę PrettyGCode
-/// (`<baseUrl>/gcode-viewer/`) w WebView.
+/// Full-screen 3D G-code viewer. Embeds hosted PrettyGCode page
+/// (`<baseUrl>/gcode-viewer/`) in WebView.
 ///
-/// Strona uwierzytelnia własne wywołania API tokenem `Bearer` czytanym z
-/// `localStorage.auth_token`. Ładujemy więc najpierw goły viewer (BEZ
-/// parametrów — wtedy NIE robi żadnego wywołania API, więc brak 401 i
-/// przekierowania do SPA), a po `onPageFinished` wstrzykujemy auth i ręcznie
-/// wołamy publiczne API adaptera `BambuddyPrettyGCode.loadArchive(...)`.
+/// Page authenticates its API calls with `Bearer` token from `localStorage.auth_token`.
+/// Load bare viewer first (NO params — no API calls, so no 401 or SPA redirect), then
+/// on `onPageFinished` inject auth and manually call adapter public API
+/// `BambuddyPrettyGCode.loadArchive(...)`.
 ///
-/// Auth wg [AuthMode]:
-///  - [AuthMode.jwt]   → JWT do `localStorage.auth_token` (adapter doda Bearer);
-///  - [AuthMode.apiKey]→ owijamy `window.fetch`, dokładając nagłówek X-API-Key
-///                       (adapter sam wysyła tylko Bearer);
-///  - [AuthMode.none]  → nic; serwer puszcza bez auth.
+/// Auth by [AuthMode]:
+///  - [AuthMode.jwt]   → JWT to `localStorage.auth_token` (adapter adds Bearer);
+///  - [AuthMode.apiKey]→ wrap `window.fetch`, add X-API-Key header
+///                       (adapter sends only Bearer);
+///  - [AuthMode.none]  → nothing; server allows no auth.
 class GcodeViewerScreen extends ConsumerStatefulWidget {
   const GcodeViewerScreen({
     super.key,
@@ -33,16 +32,16 @@ class GcodeViewerScreen extends ConsumerStatefulWidget {
   }) : assert(archiveId != null || libraryFileId != null,
             'archiveId lub libraryFileId wymagane');
 
-  /// Id archiwum do podglądu (`?archive=`). Wyklucza się z [libraryFileId].
+  /// Archive id to view (`?archive=`). Mutually exclusive with [libraryFileId].
   final int? archiveId;
 
-  /// Id pliku z biblioteki (`?library_file=`). Wyklucza się z [archiveId].
+  /// Library file id (`?library_file=`). Mutually exclusive with [archiveId].
   final int? libraryFileId;
 
-  /// Numer płyty (1..N) dla archiwów wielopłytowych; null → pierwsza płyta.
+  /// Plate number (1..N) for multi-plate archives; null → first plate.
   final int? plate;
 
-  /// Tytuł na pasku (np. nazwa wydruku); fallback z l10n.
+  /// Title on bar (e.g. print name); fallback from l10n.
   final String? title;
 
   @override
@@ -73,9 +72,8 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) => _onPageFinished(profile),
-          // Tylko błąd głównej ramki = realna porażka ładowania. Viewer ciągnie
-          // wiele zasobów (np. obraz webcama), których 404 NIE może wywracać
-          // całego ekranu na widok błędu.
+          // Only main frame error = actual load failure. Viewer pulls many resources
+          // (e.g. webcam image) whose 404 must NOT break entire screen with error view.
           onWebResourceError: (error) {
             if (error.isForMainFrame == true && mounted) {
               setState(() => _failed = true);
@@ -88,12 +86,11 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     setState(() => _controller = controller);
   }
 
-  /// Wstrzykuje auth i uruchamia ładowanie źródła po załadowaniu gołego
-  /// viewera. Czeka (poll w JS) aż viewmodel adaptera będzie gotowy, dopiero
-  /// wtedy woła `loadArchive`/`loadLibraryFile` — inaczej pobranie G-code by
-  /// się nie wyzwoliło.
+  /// Injects auth and starts source loading after bare viewer loads. Waits (JS poll)
+  /// until adapter viewmodel is ready, only then calls `loadArchive`/`loadLibraryFile` —
+  /// otherwise G-code fetch won't trigger.
   Future<void> _onPageFinished(ServerProfile profile) async {
-    if (_ready) return; // wstrzykuj tylko raz (pierwsze pełne ładowanie)
+    if (_ready) return; // Inject only once (first full load).
     final controller = _controller;
     if (controller == null) return;
 
@@ -114,11 +111,11 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
         ? 'loadArchive(${widget.archiveId}, ${widget.plate ?? 'undefined'})'
         : 'loadLibraryFile(${widget.libraryFileId}, ${widget.plate ?? 'undefined'})';
 
-    // Tryb ciemny viewera podążający za motywem SYSTEMU (nie motywem apki).
+    // Viewer dark mode follows SYSTEM theme (not app theme).
     final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark;
 
-    // jsonEncode → bezpieczne osadzenie tokenu/klucza jako literałów JS.
+    // jsonEncode → safe embedding of token/key as JS literals.
     final tokenJs = token == null ? 'null' : jsonEncode(token);
     final apiKeyJs = apiKey == null ? 'null' : jsonEncode(apiKey);
 
@@ -153,11 +150,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       }
     })();
 
-    // Tryb ciemny: PrettyGCode steruje nim checkboxem dat.GUI ("darkMode").
-    // pgSettings jest prywatne w domknięciu, a localStorage NIE jest czytane
-    // domyślnie (opt-in "save locally"), więc przełączamy stan klikając
-    // realny checkbox — odpala oryginalny handler (tło sceny + klasa CSS +
-    // render). Gui powstaje dopiero w onTabChange, więc odpytujemy aż będzie.
+    // Dark mode: PrettyGCode controls it via dat.GUI checkbox ("darkMode").
+    // pgSettings is private in closure, localStorage NOT read by default (opt-in "save locally"),
+    // so toggle via checkbox click — fires original handler (scene background + CSS class + render).
+    // Gui created in onTabChange only, so poll until it exists.
     var dtries = 0;
     (function applyDark() {
       var labels = document.querySelectorAll('#mygui .cr.boolean .property-name');

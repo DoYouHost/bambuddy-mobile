@@ -4,8 +4,8 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
 import '../../providers.dart';
 
-/// Wynik akcji konserwacji zwracany do widżetu — to on pokazuje SnackBar
-/// (notifier nie ma [BuildContext]). Analogicznie do kolejki (M5).
+/// Maintenance action result returned to widget — it shows SnackBar
+/// (notifier has no [BuildContext]). Analogous to queue (M5).
 enum MaintenanceActionResult { ok, forbidden, error }
 
 final maintenanceOverviewProvider = AutoDisposeAsyncNotifierProvider<
@@ -13,20 +13,20 @@ final maintenanceOverviewProvider = AutoDisposeAsyncNotifierProvider<
   MaintenanceOverviewNotifier.new,
 );
 
-/// Przegląd konserwacji wszystkich drukarek (M7). Lista grupowana po drukarce
-/// pochodzi wprost z serwera; „oznacz wykonane" (perform) resetuje licznik po
-/// stronie serwera, więc po sukcesie dociągamy świeży stan zamiast zgadywać.
+/// Maintenance overview for all printers (M7). List grouped by printer
+/// comes straight from server; "perform" (mark done) resets counter server-side,
+/// so on success we fetch fresh state instead of guessing.
 class MaintenanceOverviewNotifier
     extends AutoDisposeAsyncNotifier<List<PrinterMaintenanceOverview>> {
   @override
   Future<List<PrinterMaintenanceOverview>> build() async {
-    // Przebudowa przy zmianie profilu serwera (inny klucz/uprawnienia).
+    // Rebuild on server profile change (different key/permissions).
     ref.watch(serverProfileProvider);
     return ref.read(maintenanceRepositoryProvider).fetchOverview();
   }
 
-  /// Pull-to-refresh / odświeżenie po mutacji. Zachowuje poprzednią listę pod
-  /// spodem (AsyncLoading z previous), żeby UI nie mrugało spinnerem.
+  /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
+  /// (AsyncLoading with previous) so UI doesn't flicker with spinner.
   Future<void> refresh() async {
     state = const AsyncValue<List<PrinterMaintenanceOverview>>.loading()
         .copyWithPrevious(state);
@@ -35,8 +35,7 @@ class MaintenanceOverviewNotifier
     );
   }
 
-  /// Oznacza czynność jako wykonaną (reset licznika). Po sukcesie odświeżenie
-  /// listy (stan zmienia się po stronie serwera).
+  /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
   Future<MaintenanceActionResult> perform(int itemId, {String? notes}) async {
     try {
       await ref.read(maintenanceRepositoryProvider).perform(itemId, notes: notes);
@@ -51,10 +50,9 @@ class MaintenanceOverviewNotifier
   }
 }
 
-/// Łączny czas druku (godziny) danej drukarki z przeglądu konserwacji. Dane są
-/// historyczne (serwer liczy je niezależnie od WS), więc dostępne także gdy
-/// drukarka OFFLINE — dzięki temu karta dashboardu może je pokazać po zwinięciu.
-/// Null = brak danych/jeszcze nieładowane (UI chowa wtedy wiersz).
+/// Total print time (hours) of printer from maintenance overview. Data is historical
+/// (server counts independent of WS), so available even when printer OFFLINE — allows
+/// dashboard card to show after collapse. Null = no data/not loaded yet (UI hides row).
 final printerTotalPrintHoursProvider =
     Provider.autoDispose.family<double?, int>((ref, printerId) {
   final overview = ref.watch(maintenanceOverviewProvider).valueOrNull;
@@ -65,8 +63,8 @@ final printerTotalPrintHoursProvider =
   return null;
 });
 
-/// Historia wykonania czynności — ładowana na żądanie (bottom-sheet). Autodispose
-/// + family po `itemId`, bo otwieramy ją punktowo dla wybranej pozycji.
+/// Task completion history — loaded on demand (bottom-sheet). Autodispose + family
+/// by `itemId` since we load it point-wise for selected item.
 final maintenanceHistoryProvider = FutureProvider.autoDispose
     .family<List<MaintenanceHistoryEntry>, int>(
   (ref, itemId) =>

@@ -5,58 +5,57 @@ import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_reference.dart';
 
-/// Backend magazynu filamentów. User korzysta z natywnego, ale aplikacja ma
-/// działać też na Spoolman — wybór przez ustawienie (patrz `inventoryBackendProvider`).
+/// Filament inventory backend. User has native, but app should also work on Spoolman —
+/// selected via setting (see `inventoryBackendProvider`).
 enum InventoryBackend { native, spoolman }
 
-/// Wspólny interfejs źródła danych magazynu — UI i providery nie wiedzą, który
-/// backend działa (wzorzec swap-owalny jak `BackgroundMonitor`). Każda
-/// implementacja mapuje surowy JSON swojego API do znormalizowanych modeli.
+/// Common interface for inventory data source — UI and providers don't know which
+/// backend is running (swappable pattern like `BackgroundMonitor`). Each implementation
+/// maps raw JSON from its API to normalized models.
 ///
-/// Odczyt (Faza 1) + zarządzanie szpulami (Faza 2: create/update/delete/
-/// archive/restore/reset-usage). Przypisania AMS i katalog dojdą później.
-/// Zapisy wymagają uprawnienia na kluczu API (brak → [AuthException] forbidden).
+/// Read (Phase 1) + spool management (Phase 2: create/update/delete/archive/restore/
+/// reset-usage). AMS assignments and catalog come later. Writes require API key
+/// permission (missing → [AuthException] forbidden).
 abstract class SpoolInventorySource {
-  /// Wszystkie szpule. `includeArchived` dokłada zarchiwizowane.
+  /// All spools. `includeArchived` includes archived ones.
   Future<List<Spool>> fetchSpools({bool includeArchived = false});
 
-  /// Przypisania szpul do slotów AMS (do pokazania, gdzie szpula siedzi).
+  /// Spool assignments to AMS slots (shows where a spool is placed).
   Future<List<SpoolAssignment>> fetchAssignments();
 
-  /// Przypisuje szpulę do slotu (drukarka/jednostka AMS/taca).
+  /// Assigns a spool to a slot (printer/AMS unit/tray).
   Future<void> assignSpool(SpoolAssignmentDraft draft);
 
-  /// Odpina szpulę z danego slotu.
+  /// Unassigns a spool from a slot.
   Future<void> unassignSpool(int printerId, int amsId, int trayId);
 
-  /// Historia zużycia jednej szpuli (ładowana na żądanie w szczegółach).
+  /// Usage history for a single spool (loaded on-demand in details).
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId);
 
-  /// Tworzy nową szpulę; zwraca utworzony, znormalizowany rekord.
+  /// Creates a new spool; returns the created, normalized record.
   Future<Spool> createSpool(SpoolDraft draft);
 
-  /// Aktualizuje pola szpuli; zwraca zaktualizowany rekord.
+  /// Updates spool fields; returns the updated record.
   Future<Spool> updateSpool(int spoolId, SpoolDraft draft);
 
-  /// Trwale usuwa szpulę (nieodwracalne — UI potwierdza).
+  /// Permanently deletes a spool (irreversible — UI confirms).
   Future<void> deleteSpool(int spoolId);
 
-  /// Archiwizuje / przywraca szpulę (miękkie ukrycie z listy aktywnych).
+  /// Archives / restores a spool (soft hide from active list).
   Future<void> archiveSpool(int spoolId);
   Future<void> restoreSpool(int spoolId);
 
-  /// Zeruje zużycie szpuli (pełna ponownie).
+  /// Resets spool usage (full again).
   Future<void> resetUsage(int spoolId);
 
-  /// Dane referencyjne formularza (katalog rdzeni, baza kolorów, profile
-  /// filamentów). Degradują się do pustej listy — formularz dopuszcza wpis ręczny.
+  /// Form reference data (core weight catalog, color database, filament profiles).
+  /// Degrade to empty lists — form allows manual entry.
   Future<List<CoreWeightEntry>> fetchCoreWeights();
   Future<List<ColorEntry>> fetchColors();
   Future<List<FilamentPreset>> fetchFilamentPresets();
 }
 
-/// Defensywne parsowanie listy: pojedynczy niesparsowalny wpis pomijamy,
-/// żeby jeden zły rekord nie wywrócił całego ekranu.
+/// Defensive list parsing: skip unparseable entries to avoid one bad record breaking the screen.
 List<T> _parseList<T>(
   List<dynamic> body,
   T Function(Map<String, dynamic>) fromJson,
@@ -73,8 +72,8 @@ List<T> _parseList<T>(
   return out;
 }
 
-/// Natywny backend `/inventory/*` (domyślny). Auth dokłada wspólny
-/// `AuthInterceptor`; błędy mapujemy do typowanych [AppApiException].
+/// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
+/// errors mapped to typed [AppApiException].
 class NativeInventorySource implements SpoolInventorySource {
   NativeInventorySource(this._dio);
 
@@ -231,9 +230,9 @@ class NativeInventorySource implements SpoolInventorySource {
   }
 }
 
-/// Backend Spoolman `/spoolman/inventory/*`. Spoolman zwraca luźny passthrough,
-/// więc mappery [Spool.fromSpoolman]/[SpoolAssignment.fromSpoolman] są bardziej
-/// tolerancyjne. Historia zużycia nie ma stabilnego kształtu — na razie pusta.
+/// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
+/// [Spool.fromSpoolman]/[SpoolAssignment.fromSpoolman] mappers are more forgiving.
+/// Usage history has no stable shape — empty for now.
 class SpoolmanInventorySource implements SpoolInventorySource {
   SpoolmanInventorySource(this._dio);
 
@@ -263,9 +262,9 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     }
   }
 
-  // Spoolman zarządza przypisaniami slotów po swojej stronie — backend nie
-  // wystawia tu zapisu. Domyślny backend usera to natywny; gdyby ktoś przełączył
-  // na Spoolman, UI dostaje czytelny komunikat zamiast cichej awarii.
+  // Spoolman manages slot assignments server-side — backend doesn't expose writes here.
+  // User's default backend is native; if someone switches to Spoolman, UI gets a
+  // clear error message instead of silent failure.
   @override
   Future<void> assignSpool(SpoolAssignmentDraft draft) async =>
       throw UnsupportedError('Spoolman backend does not support slot assignment');
@@ -339,8 +338,8 @@ class SpoolmanInventorySource implements SpoolInventorySource {
     }
   }
 
-  // Dane referencyjne to katalogi natywnego backendu — przy Spoolmanie formularz
-  // korzysta z wpisu ręcznego (puste listy).
+  // Reference data comes from native backend catalogs — on Spoolman, form uses
+  // manual entry (empty lists).
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async => const [];
 

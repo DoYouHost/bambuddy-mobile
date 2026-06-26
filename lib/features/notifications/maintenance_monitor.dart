@@ -6,20 +6,20 @@ import '../../data/maintenance_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'print_monitor.dart' show systemAppLocalizations;
 
-/// Bazy id alertów konserwacji — rozłączne z alertami wydruku (te kończą się na
-/// 11000 w [PrintMonitor]). Do bazy dodajemy id pozycji / drukarki.
+/// Base alert IDs for maintenance — separate from print alerts (which end at
+/// 11000 in [PrintMonitor]). Add item ID / printer ID to base.
 const int _maintenanceDueAlertBase = 12000;
 const int _maintenanceReminderAlertBase = 13000;
 
-/// REST-owy monitor konserwacji żyjący w isolacie foreground service'u: cyklicznie
-/// sprawdza, czy któraś czynność stała się przeterminowana ([check]), i puszcza
-/// pojedynczy alert dla każdej nowo-due pozycji. Dodatkowo [remindOnPrintEnd]
-/// daje zbiorcze przypomnienie po zakończeniu wydruku.
+/// REST-based maintenance monitor running in the foreground service isolate:
+/// periodically checks if any maintenance task became overdue ([check]) and fires
+/// a single alert for each newly-due item. Additionally [remindOnPrintEnd]
+/// provides a summary reminder when a print completes.
 ///
-/// Dedup: persystentny zbiór id już zgłoszonych — przeżywa restart isolate'u
-/// (brak ponownego spamu), a gdy pozycja przestaje być due (po wykonaniu), jest
-/// stąd usuwana (re-arm). Pojedynczy alert i przypomnienie niosą akcję
-/// „Oznacz wykonane" resetującą licznik bez otwierania apki.
+/// Dedup: persistent set of already-notified IDs — survives isolate restart
+/// (no spam on reboot), and when an item is no longer due (after completion),
+/// it's removed from the set (re-arm). Single alert and reminder carry a
+/// "Mark done" action that resets the counter without opening the app.
 class MaintenanceMonitor {
   MaintenanceMonitor(
     this._notifications, {
@@ -36,14 +36,14 @@ class MaintenanceMonitor {
   final NotificationPrefs _prefs;
   final Set<int> _notified;
 
-  /// Zapis dedup-zbioru (np. do SharedPreferences). `null` w testach.
+  /// Persistence callback for dedup set (e.g., to SharedPreferences). `null` in tests.
   final Future<void> Function(Set<int>)? persist;
   final AppLocalizations Function() _l10n;
 
   bool get _enabled => _prefs.isOn(NotifEvent.maintenanceDue);
 
-  /// Periodyczne sprawdzenie wszystkich drukarek. Błąd sieci/parsowania →
-  /// cicho pomijamy turę (nie czyścimy dedup-zbioru, nie wywracamy serwisu).
+  /// Periodically check all printers. Network/parsing errors are silently skipped
+  /// (dedup set not cleared, service not crashed).
   Future<void> check() async {
     if (!_enabled) return;
     final List<PrinterMaintenanceOverview> printers;
@@ -63,14 +63,14 @@ class MaintenanceMonitor {
         }
       }
     }
-    // Pozycje, które przestały być due (np. po wykonaniu) — re-arm.
+    // Items no longer due (e.g., after completion) — re-arm.
     _notified.removeWhere((id) => !dueNow.contains(id));
     await persist?.call(_notified);
   }
 
-  /// Zbiorcze przypomnienie po zakończeniu wydruku na drukarce [printerId]:
-  /// jeśli ma przeterminowane czynności — jeden alert (NIE dedupowany, to
-  /// celowe przypomnienie w naturalnym momencie). Stały id per drukarka.
+  /// Summary reminder when print on printer [printerId] completes: if it has
+  /// overdue tasks, fire one alert (not dedup'd — intentional reminder at natural time).
+  /// Fixed ID per printer.
   Future<void> remindOnPrintEnd(int printerId) async {
     if (!_enabled) return;
     final printer = await _repo.fetchPrinter(printerId);

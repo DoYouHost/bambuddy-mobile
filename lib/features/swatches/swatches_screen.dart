@@ -13,11 +13,10 @@ import '../inventory/inventory_providers.dart'
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
 import 'swatch_providers.dart';
 
-/// Ekran kodów swatch: tworzenie i ręczna edycja 6-znakowych kodów dla
-/// DEFINICJI filamentu (producent + typ + wariant + kolor, bez konkretnej
-/// szpuli), wyszukiwanie po kodzie/nazwie, lista filamentów z magazynu bez
-/// kodu oraz eksport/import całego rejestru plikiem JSON (import nadpisuje
-/// wszystko, z ostrzeżeniem).
+/// Swatch codes screen: create and manually edit 6-char codes for filament
+/// DEFINITIONS (brand + type + variant + color, not specific spool), search by
+/// code/name, list uncoded filaments from inventory, and export/import entire
+/// registry as JSON file (import overwrites all, with warning).
 class SwatchesScreen extends ConsumerStatefulWidget {
   const SwatchesScreen({super.key});
 
@@ -63,7 +62,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         fileName: 'swatch-codes.json',
         bytes: bytes,
       );
-      if (path == null) return; // anulowano
+      if (path == null) return; // Cancelled
       _snack(_l10n.swatchExported(codes.length));
     } on Exception {
       _snack(_l10n.swatchExportFailed);
@@ -83,7 +82,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
       return;
     }
     final bytes = picked?.files.single.bytes;
-    if (bytes == null) return; // anulowano
+    if (bytes == null) return; // Cancelled
 
     final List<SwatchCode> incoming;
     try {
@@ -137,7 +136,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
 
   // --- Tworzenie / edycja / usuwanie ---
 
-  /// Otwiera arkusz tworzenia (initial == null) lub edycji istniejącego kodu.
+  /// Open create sheet (initial == null) or edit existing code.
   Future<void> _openForm({SwatchCode? initial}) async {
     final result = await showModalBottomSheet<SwatchCode>(
       context: context,
@@ -155,7 +154,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         : _l10n.swatchUpdatedSnack(result.code));
   }
 
-  /// Szybkie wygenerowanie kodu dla filamentu z magazynu (bez formularza).
+  /// Quick code generation for inventory filament (no form).
   Future<void> _generateFor(FilamentIdentity identity) async {
     final notifier = ref.read(swatchCodesProvider.notifier);
     final already = ref
@@ -359,8 +358,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// Próbka koloru filamentu — zaokrąglony kwadrat. Gdy brak/nieparsowalny kolor:
-/// neutralne tło z ikoną palety.
+/// Filament color swatch — rounded square. If missing/unparseable color:
+/// neutral background with palette icon.
 class _ColorSwatch extends StatelessWidget {
   const _ColorSwatch({required this.rgba, this.size = 46});
 
@@ -396,7 +395,7 @@ class _ColorSwatch extends StatelessWidget {
   }
 }
 
-/// Chip z kodem — wyróżniony monospace na tle primaryContainer.
+/// Code chip — highlighted monospace on primaryContainer background.
 class _CodeChip extends StatelessWidget {
   const _CodeChip({required this.code});
 
@@ -580,7 +579,7 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-/// Formatuje pole tekstowe na wielkie litery (kod swatch).
+/// Format text field to uppercase (swatch code).
 class _UpperCaseFormatter extends TextInputFormatter {
   const _UpperCaseFormatter();
 
@@ -590,9 +589,9 @@ class _UpperCaseFormatter extends TextInputFormatter {
       newValue.copyWith(text: newValue.text.toUpperCase());
 }
 
-/// Arkusz tworzenia/edycji kodu. Materiał wymagany; kod edytowalny ręcznie
-/// (walidacja długości/alfabetu/unikalności) z przyciskiem ponownego losowania.
-/// Reszta pól opcjonalna; kolor jako opcjonalny hex z podglądem.
+/// Code create/edit sheet. Material required; code manually editable (length/
+/// alphabet/uniqueness validation) with regenerate button. Rest optional; color
+/// as optional hex with preview.
 class _SwatchFormSheet extends ConsumerStatefulWidget {
   const _SwatchFormSheet({this.initial});
 
@@ -644,9 +643,8 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
     });
   }
 
-  /// Otwiera przeglądarkę bazy kolorów bambuddy (jak w formularzu szpuli).
-  /// Wybór wypełnia nazwę koloru ORAZ hex (`rgba`); pola nadal można edytować
-  /// ręcznie po wyborze.
+  /// Open bambuddy color catalog browser (like in spool form). Selection fills
+  /// color name AND hex (`rgba`); fields can still be edited manually after choice.
   Future<void> _pickColor() async {
     final entry = await showModalBottomSheet<ColorEntry>(
       context: context,
@@ -848,10 +846,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
   }
 }
 
-/// Arkusz wyboru koloru z bazy bambuddy (`/inventory/colors`). Wyszukiwarka po
-/// nazwie/producencie/materiale; bez zapytania pokazuje kolory domyślne. Tap
-/// zwraca wybrany [ColorEntry] do formularza. Pusty katalog (np. backend
-/// Spoolman) → podpowiedź, że można wpisać kolor ręcznie.
+/// Color selection sheet from bambuddy catalog (`/inventory/colors`). Searchable
+/// by name/brand/material; no query shows defaults. Tap returns chosen [ColorEntry]
+/// to form. Empty catalog (e.g. Spoolman backend) → hint to enter color manually.
 class _ColorCatalogSheet extends ConsumerStatefulWidget {
   const _ColorCatalogSheet();
 

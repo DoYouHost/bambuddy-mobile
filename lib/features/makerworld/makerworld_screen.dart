@@ -12,10 +12,9 @@ import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
 
-/// Ekran MakerWorld: wklej URL modelu → rozwiąż → wybierz płytę → importuj
-/// (pobierz) do biblioteki. Pobieranie wymaga zalogowania do chmury Bambu;
-/// gdy go brak, akcja importu przenosi na ekran logowania w ustawieniach
-/// (`/settings/cloud`) — logowanie NIE jest wbudowane w ten ekran.
+/// MakerWorld screen: paste model URL → resolve → pick plate → import (download) to library.
+/// Download requires Bambu Cloud login; if missing, import action goes to settings login screen
+/// (`/settings/cloud`) — login NOT built into this screen.
 class MakerWorldScreen extends ConsumerStatefulWidget {
   const MakerWorldScreen({super.key});
 
@@ -26,10 +25,10 @@ class MakerWorldScreen extends ConsumerStatefulWidget {
 class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
   final _urlController = TextEditingController();
 
-  /// `profileId` (lub -1 dla braku) płyt aktualnie importowanych.
+  /// `profileId` (or -1 for none) of plates currently importing.
   final _importing = <int>{};
 
-  /// Płyty zaimportowane w tej sesji (do oznaczenia „w bibliotece").
+  /// Plates imported in this session (for marking "in library").
   final _imported = <int>{};
 
   @override
@@ -44,9 +43,8 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg),
         action: action,
-        // SnackBar.persist domyślnie = (action != null), więc z akcją NIE
-        // znika sam. Wymuszamy auto-zamknięcie po czasie — akcja zostaje
-        // klikalna, ale pasek nie wisi w nieskończoność.
+        // SnackBar.persist defaults to (action != null), so WITH action it doesn't auto-close.
+        // Force auto-close after timeout — action stays clickable, but bar doesn't hang forever.
         persist: false,
         duration: const Duration(seconds: 5),
       ));
@@ -65,12 +63,12 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
   }
 
   Future<void> _import(MakerWorldResolvedModel model, MakerWorldInstance plate) async {
-    // Bramka logowania: bez ważnego tokenu chmury — na ekran logowania.
+    // Login gate: without valid cloud token — go to login screen.
     final status = ref.read(makerworldStatusProvider).valueOrNull;
     if (status == null || !status.canDownload) {
       _snack(_l10n.mwLoginRequired);
       await context.push('/settings/cloud');
-      // Po powrocie odśwież stan logowania/integracji.
+      // Refresh login/integration status after return.
       ref.invalidate(cloudAuthStatusProvider);
       ref.invalidate(makerworldStatusProvider);
       return;
@@ -155,7 +153,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
   }
 }
 
-/// Pasek wejścia URL-a + przycisk „Rozwiąż".
+/// URL input bar + "Resolve" button.
 class _UrlBar extends StatelessWidget {
   const _UrlBar({
     required this.controller,
@@ -206,7 +204,7 @@ class _UrlBar extends StatelessWidget {
   }
 }
 
-/// Baner „zaloguj się, żeby pobierać" — gdy brak ważnego tokenu chmury.
+/// "Sign in to download" banner — when no valid cloud token.
 class _LoginBanner extends StatelessWidget {
   const _LoginBanner({required this.onSignIn});
 
@@ -240,7 +238,7 @@ class _LoginBanner extends StatelessWidget {
   }
 }
 
-/// Sekcja rozwiązanego modelu: nagłówek + lista płyt.
+/// Resolved model section: header + plate list.
 class _ResolvedModel extends StatefulWidget {
   const _ResolvedModel({
     required this.model,
@@ -261,7 +259,7 @@ class _ResolvedModel extends StatefulWidget {
 }
 
 class _ResolvedModelState extends State<_ResolvedModel> {
-  /// Ile płyt pokazujemy przed zwinięciem — niektóre modele mają ich dziesiątki.
+  /// How many plates to show before collapse — some models have dozens.
   static const _collapsedCount = 5;
 
   bool _expanded = false;
@@ -269,7 +267,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
   @override
   void didUpdateWidget(_ResolvedModel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Nowy model (inny URL/identyfikator) — zwiń z powrotem.
+    // New model (different URL/id) — collapse again.
     if (oldWidget.model.modelId != widget.model.modelId) _expanded = false;
   }
 
@@ -353,7 +351,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
   }
 }
 
-/// Wiersz pojedynczej płyty (instancji) z przyciskiem importu.
+/// Single plate (instance) row with import button.
 class _PlateRow extends StatelessWidget {
   const _PlateRow({
     required this.plate,
@@ -409,7 +407,7 @@ class _PlateRow extends StatelessWidget {
   }
 }
 
-/// Sekcja „ostatnie importy".
+/// "Recent imports" section.
 class _RecentImports extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -480,7 +478,7 @@ class _RecentRow extends StatelessWidget {
   }
 }
 
-/// Inline-błąd z przyciskiem ponowienia.
+/// Inline error with retry button.
 class _InlineError extends StatelessWidget {
   const _InlineError({required this.message, required this.onRetry});
 

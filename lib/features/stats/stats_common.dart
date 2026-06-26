@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'stats_computed.dart';
 
-/// Metryka wybierana w przełącznikach „Waga / Wydruki / Czas".
+/// Metric chosen in "Weight / Prints / Time" toggles.
 enum StatMetric { weight, prints, time }
 
 extension StatMetricValue on StatMetric {
-  /// Wyciąga wartość metryki z kubełka [b].
+  /// Extract metric value from bucket [b].
   num of(StatBucket b) => switch (this) {
         StatMetric.weight => b.grams,
         StatMetric.prints => b.prints,
@@ -22,7 +22,7 @@ extension StatMetricValue on StatMetric {
         StatMetric.time => l.statsMetricTime,
       };
 
-  /// Sformatowana wartość metryki do podpisu wiersza.
+  /// Formatted metric value for row label.
   String format(num v) => switch (this) {
         StatMetric.weight => fmtGrams(v.toDouble()),
         StatMetric.prints => '${v.round()}',
@@ -30,7 +30,7 @@ extension StatMetricValue on StatMetric {
       };
 }
 
-/// Karta sekcji ze stałym nagłówkiem — wspólna otoczka wszystkich widżetów.
+/// Section card with fixed header — common wrapper for all widgets.
 class SectionCard extends StatelessWidget {
   const SectionCard({super.key, required this.title, required this.child, this.trailing});
 
@@ -69,7 +69,7 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// Przełącznik metryki (Waga / Wydruki / Czas) jako kompaktowy SegmentedButton.
+/// Metric toggle (Weight / Prints / Time) as compact SegmentedButton.
 class MetricToggle extends StatelessWidget {
   const MetricToggle({super.key, required this.value, required this.onChanged});
 
@@ -95,7 +95,7 @@ class MetricToggle extends StatelessWidget {
   }
 }
 
-/// Pierścieniowy wskaźnik procentowy (0–100) z etykietą w środku.
+/// Ring gauge (0–100 percent) with label in center.
 class RingGauge extends StatelessWidget {
   const RingGauge({
     super.key,
@@ -172,7 +172,7 @@ class _RingPainter extends CustomPainter {
       old.percent != percent || old.color != color || old.track != track;
 }
 
-/// Pozioma legenda kolor–tekst (kropka + etykieta).
+/// Horizontal color-text legend (dot + label).
 class LegendDot extends StatelessWidget {
   const LegendDot({super.key, required this.color, required this.text});
 
@@ -196,23 +196,23 @@ class LegendDot extends StatelessWidget {
   }
 }
 
-/// Etykiety kubełków histogramu czasu trwania (górne granice — wspólne PL/EN).
+/// Duration histogram bucket labels (upper bounds — common PL/EN).
 const durationBucketLabels = <String>[
   '<30min', '<1h', '<2h', '<4h', '<8h', '<12h', '<24h', '24h+',
 ];
 
-/// Liczba do max 2 miejsc po przecinku, bez zbędnych zer.
+/// Number to max 2 decimal places, no trailing zeros.
 String fmtNum(num v) {
   final d = v.toDouble();
   if (d == d.roundToDouble()) return d.toStringAsFixed(0);
   return d.toStringAsFixed(2);
 }
 
-/// Filament: gramy poniżej 1 kg, w przeciwnym razie kilogramy.
+/// Filament: grams below 1 kg, otherwise kilograms.
 String fmtGrams(double g) =>
     g >= 1000 ? '${(g / 1000).toStringAsFixed(2)} kg' : '${g.toStringAsFixed(0)} g';
 
-/// Czas trwania z sekund: „9h 31m", „45m", „30s".
+/// Duration from seconds: "9h 31m", "45m", "30s".
 String fmtDuration(int seconds) {
   if (seconds <= 0) return '0m';
   final h = seconds ~/ 3600;
@@ -222,7 +222,7 @@ String fmtDuration(int seconds) {
   return '${seconds}s';
 }
 
-/// Parsuje `#RRGGBB`/`RRGGBB` na [Color]; null gdy niepoprawny.
+/// Parse `#RRGGBB`/`RRGGBB` to [Color]; null if invalid.
 Color? colorFromHex(String? hex) {
   if (hex == null) return null;
   var h = hex.trim();

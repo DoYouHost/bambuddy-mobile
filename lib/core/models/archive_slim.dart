@@ -1,9 +1,9 @@
-/// Lekki wpis archiwum z `GET /archives/slim` — jeden wiersz na zdarzenie
-/// wydruku, bez ciężkich pól (miniatury, gcode itd.). Używany do liczenia
-/// bogatych statystyk po stronie klienta (heatmapa, rekordy, rozkład kolorów,
-/// zużycie w czasie, histogramy), których nie daje `/archives/stats`.
+/// Lightweight archive entry from `GET /archives/slim` — one row per print event,
+/// without heavy fields (thumbnails, gcode, etc.). Used for client-side rich
+/// statistics (heatmaps, records, color distribution, consumption over time,
+/// histograms) not provided by `/archives/stats`.
 ///
-/// Parsowanie defensywne: wszystko poza [status]/[createdAt] bywa null.
+/// Defensive parsing: all fields except [status]/[createdAt] may be null.
 class ArchiveSlim {
   const ArchiveSlim({
     required this.status,
@@ -42,16 +42,16 @@ class ArchiveSlim {
   final int? printerId;
   final String? printName;
 
-  /// Szacowany czas druku (z gcode/slicera).
+  /// Estimated print time from gcode/slicer.
   final int? printTimeSeconds;
 
-  /// Rzeczywisty czas druku (zmierzony). Bazowy dla histogramu czasu trwania.
+  /// Actual print time (measured). Base for duration histogram.
   final int? actualTimeSeconds;
 
   final double? filamentUsedGrams;
   final String? filamentType;
 
-  /// Kolor filamentu — `#RRGGBB`, czasem wielokolorowy: `#AABBCC,#112233`.
+  /// Filament color — `#RRGGBB`, sometimes multi-color: `#AABBCC,#112233`.
   final String? filamentColor;
 
   final DateTime? startedAt;
@@ -59,14 +59,14 @@ class ArchiveSlim {
   final double? cost;
   final int quantity;
 
-  /// Wydruk udany = status „completed" (reszta to porażki/inne).
+  /// Print success = status "completed" (others are failures/other).
   bool get isSuccess => status.toLowerCase() == 'completed';
 
-  /// Czas do statystyk: preferuj rzeczywisty, w razie braku szacowany.
+  /// Time for stats: prefer actual, fall back to estimated.
   int? get effectiveSeconds => actualTimeSeconds ?? printTimeSeconds;
 
-  /// Dominujący kolor (pierwszy segment przy filamencie wielokolorowym),
-  /// znormalizowany do `#RRGGBB` w wielkich literach. Null, gdy brak/niepoprawny.
+  /// Dominant color (first segment for multi-color filament), normalized to
+  /// `#RRGGBB` uppercase. Null if missing or invalid.
   String? get primaryColor {
     final raw = filamentColor?.trim();
     if (raw == null || raw.isEmpty) return null;

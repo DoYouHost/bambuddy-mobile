@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'queue_item.g.dart';
 
-/// Klasy statusu elementu kolejki — tolerancyjne na nieznane wartości serwera.
+/// Queue item status kinds — tolerant of unknown server values.
 enum QueueItemStatusKind {
   pending,
   scheduled,
@@ -14,9 +14,9 @@ enum QueueItemStatusKind {
   unknown,
 }
 
-/// Element kolejki wydruku z `PrintQueueItemResponse`.
-/// Parsowanie defensywne: poza id/position/status wszystko nullable, nieznane
-/// klucze ignorowane — API bambuddy jest młode i ruchliwe.
+/// Print queue item from `PrintQueueItemResponse`.
+/// Defensive parsing: all except id/position/status are nullable, unknown keys
+/// ignored — API is young and evolving.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class QueueItem {
   const QueueItem({
@@ -48,9 +48,9 @@ class QueueItem {
   final int id;
   final int position;
 
-  /// Surowy status z serwera (np. „printing", „completed") — nie enumujemy
-  /// bezpośrednio, żeby nowe wartości nie wywalały parsera.
-  /// Użyj [statusKind] do logiki warunkowej w UI.
+  /// Raw status from server (e.g. "printing", "completed") — not directly
+  /// enum-backed to allow new values without breaking. Use [statusKind]
+  /// for conditional logic in UI.
   final String status;
 
   final int? printerId;
@@ -59,25 +59,25 @@ class QueueItem {
   final String? archiveName;
   final String? archiveThumbnail;
 
-  /// Czy archiwum powiązanego wydruku zostało usunięte. Domyślnie false.
+  /// Whether associated print archive was deleted. Defaults to false.
   @JsonKey(defaultValue: false)
   final bool archiveDeleted;
 
   final String? printerName;
 
-  /// Szacowany czas wydruku w sekundach.
+  /// Estimated print time in seconds.
   final int? printTimeSeconds;
 
-  /// Zużyty filament w gramach.
+  /// Used filament in grams.
   final double? filamentUsedGrams;
 
-  /// Typ filamentu — może być połączony przecinkami, np. „PETG, PLA".
+  /// Filament type — may be comma-separated, e.g. "PETG, PLA".
   final String? filamentType;
 
-  /// Kolor filamentu jako połączone heksy, np. „#FFD00B,#F55A74,#91202B".
+  /// Filament color as combined hex values, e.g. "#FFD00B,#F55A74,#91202B".
   final String? filamentColor;
 
-  /// Czy element przeskoczył w kolejce (jumped). Domyślnie false.
+  /// Whether item jumped in queue. Defaults to false.
   @JsonKey(defaultValue: false)
   final bool beenJumped;
 
@@ -87,8 +87,8 @@ class QueueItem {
   final DateTime? startedAt;
   final DateTime? completedAt;
 
-  /// Tolerancyjny klasyfikator statusu — nieznane wartości serwera trafiają
-  /// do [QueueItemStatusKind.unknown], nigdy nie wywalają UI.
+  /// Tolerant status classifier — unknown server values map to
+  /// [QueueItemStatusKind.unknown], never break UI.
   QueueItemStatusKind get statusKind {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -113,7 +113,7 @@ class QueueItem {
     }
   }
 
-  /// Czy element jest aktywny (czeka, zaplanowany, drukuje lub jest wstrzymany).
+  /// Whether item is active (pending, scheduled, printing, or paused).
   bool get isActive =>
       statusKind == QueueItemStatusKind.printing ||
       statusKind == QueueItemStatusKind.paused ||

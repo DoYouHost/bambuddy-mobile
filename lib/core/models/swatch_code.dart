@@ -1,23 +1,22 @@
-/// Kody „swatch" — 6-znakowe identyfikatory PRÓBKI filamentu (nie konkretnej
-/// szpuli). Opisują definicję filamentu: producent + typ + wariant + kolor
-/// (np. „Bambu PLA Basic Red"), bez wagi, lokalizacji czy historii zużycia.
+/// "Swatch" codes — 6-character identifiers for filament SAMPLE (not specific spool).
+/// Describe filament definition: brand + type + variant + color
+/// (e.g. "Bambu PLA Basic Red"), without weight, location, or usage history.
 ///
-/// Dane lokalne (nie ma endpointu serwerowego) — trzymane w SharedPreferences
-/// jako JSON i eksportowalne/importowalne plikiem. Kody są wielkością liter
-/// nieczułe i unikają znaków dwuznacznych (0/O, 1/I/L), by łatwo je przepisać
-/// z naklejki na fizycznej próbce.
+/// Local data (no server endpoint) — stored in SharedPreferences as JSON,
+/// exportable/importable as file. Codes are case-insensitive and avoid ambiguous
+/// chars (0/O, 1/I/L) for easy transcription from physical sample label.
 library;
 
 import 'dart:math';
 
-/// Alfabet kodów: cyfry 2–9 i litery A–Z BEZ znaków dwuznacznych
-/// (`0`, `1`, `I`, `L`, `O`). 31 znaków → 31^6 ≈ 887 mln kombinacji.
+/// Code alphabet: digits 2–9 and letters A–Z WITHOUT ambiguous chars
+/// (`0`, `1`, `I`, `L`, `O`). 31 chars → 31^6 ≈ 887M combinations.
 const String swatchCodeAlphabet = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
-/// Długość kodu swatch.
+/// Swatch code length.
 const int swatchCodeLength = 6;
 
-/// Generuje losowy 6-znakowy kod z [swatchCodeAlphabet].
+/// Generate random 6-character code from [swatchCodeAlphabet].
 String generateSwatchCode([Random? rng]) {
   final r = rng ?? Random.secure();
   return String.fromCharCodes(
@@ -28,14 +27,14 @@ String generateSwatchCode([Random? rng]) {
   );
 }
 
-/// Normalizuje kod wpisany przez użytkownika do porównania: wielkie litery,
-/// bez spacji. (Znaki dwuznaczne i tak nie występują w kodach, więc nie
-/// mapujemy O→0 itp. — wpisanie ich to po prostu brak trafienia.)
+/// Normalize user-entered code for comparison: uppercase, no spaces.
+/// (Ambiguous chars don't appear in codes, so we don't map O→0 etc. —
+/// typing them just means no match.)
 String normalizeSwatchCode(String raw) =>
     raw.toUpperCase().replaceAll(RegExp(r'\s+'), '');
 
-/// Czy [code] (po normalizacji) jest poprawny: dokładnie [swatchCodeLength]
-/// znaków, wszystkie z [swatchCodeAlphabet]. Do walidacji ręcznej edycji.
+/// Whether [code] (after normalization) is valid: exactly [swatchCodeLength]
+/// chars, all from [swatchCodeAlphabet]. For manual edit validation.
 bool isValidSwatchCode(String code) {
   final c = normalizeSwatchCode(code);
   if (c.length != swatchCodeLength) return false;
@@ -45,9 +44,9 @@ bool isValidSwatchCode(String code) {
   return true;
 }
 
-/// Klucz tożsamości definicji filamentu — używany do dedup i dopasowania kodu
-/// do szpul z magazynu. Składany z producenta, materiału, wariantu i koloru
-/// (znormalizowane: trim + lowercase). Pusta wartość = „—".
+/// Filament definition identity key — used for dedup and code-to-inventory
+/// spool matching. Composed from brand, material, variant, color
+/// (normalized: trim + lowercase). Empty = "—".
 String filamentIdentityKey({
   String? brand,
   required String material,
@@ -58,7 +57,7 @@ String filamentIdentityKey({
   return [n(brand), n(material), n(variant), n(colorName)].join('|');
 }
 
-/// Czytelna nazwa definicji filamentu: „Marka Materiał Wariant — Kolor".
+/// Readable filament definition name: "Brand Material Variant — Color".
 String filamentIdentityName({
   String? brand,
   required String material,
@@ -74,7 +73,7 @@ String filamentIdentityName({
   return (color != null && color.isNotEmpty) ? '$head — $color' : head;
 }
 
-/// Definicja filamentu z przypisanym kodem swatch.
+/// Filament definition with assigned swatch code.
 class SwatchCode {
   const SwatchCode({
     required this.code,
@@ -106,7 +105,7 @@ class SwatchCode {
   final String? rgba;
   final String? createdAt;
 
-  /// Klucz tożsamości filamentu (do dopasowania do szpul z magazynu).
+  /// Filament identity key (for matching to inventory spools).
   String get identityKey => filamentIdentityKey(
         brand: brand,
         material: material,
@@ -137,8 +136,8 @@ class SwatchCode {
   }
 }
 
-/// Lekka tożsamość filamentu wyłuskana z magazynu (bez konkretnej szpuli) —
-/// do listy „filamenty bez kodu". Klucz/nazwa spójne ze [SwatchCode].
+/// Light filament identity extracted from inventory (no specific spool) — for
+/// "filamenty without code" list. Key/name consistent with [SwatchCode].
 class FilamentIdentity {
   const FilamentIdentity({
     required this.material,

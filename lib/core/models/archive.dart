@@ -2,9 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'archive.g.dart';
 
-/// Wpis archiwum wydruku z `ArchiveResponse`.
-/// Parsowanie defensywne: poza id/filename/status wszystko nullable, nieznane
-/// klucze ignorowane — API bambuddy jest młode i ruchliwe.
+/// Archive entry from `ArchiveResponse`.
+/// Defensive parsing: all fields except id/filename/status are nullable, unknown
+/// keys ignored — the API is young and evolving.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class Archive {
   const Archive({
@@ -35,64 +35,62 @@ class Archive {
 
   final int id;
 
-  /// Nazwa pliku gcode/3mf na dysku.
   final String filename;
 
-  /// Surowy status z serwera (np. „completed", „printing") — nie enumujemy,
-  /// żeby nowe wartości nie wywalały parsera.
+  /// Raw status from server (e.g. "completed", "printing") — not enum-backed
+  /// to avoid breaking on new server values.
   final String status;
 
   final int? printerId;
 
-  /// Czytelna nazwa wydruku podana przez użytkownika lub eksportera slicera.
+  /// Human-readable print name from user or slicer.
   final String? printName;
 
-  /// Ścieżka do miniatury wydruku.
+  /// Thumbnail path for the print.
   final String? thumbnailPath;
 
-  /// Czas wydruku w sekundach.
+  /// Print time in seconds.
   final int? printTimeSeconds;
 
-  /// Zużyty filament w gramach.
+  /// Filament used in grams.
   final double? filamentUsedGrams;
 
-  /// Typ filamentu (np. „PETG", „PLA").
+  /// Filament type (e.g. "PETG", "PLA").
   final String? filamentType;
 
-  /// Kolor filamentu jako hex (np. „#FFFF00").
+  /// Filament color as hex (e.g. "#FFFF00").
   final String? filamentColor;
 
-  /// Koszt wydruku w walucie skonfigurowanej na serwerze.
+  /// Print cost in server-configured currency.
   final double? cost;
 
-  /// Czy wydruk jest oznaczony jako ulubiony. Domyślnie false.
+  /// Whether marked as favorite. Defaults to false.
   @JsonKey(defaultValue: false)
   final bool isFavorite;
 
   final DateTime? createdAt;
 
-  /// Projektant/autor modelu (np. z MakerWorld).
+  /// Model designer/author (e.g. from MakerWorld).
   final String? designer;
 
-  /// Link do modelu na MakerWorld, jeśli pochodzi stamtąd.
+  /// Link to model on MakerWorld, if imported from there.
   final String? makerworldUrl;
 
-  /// Łączna liczba warstw wydruku.
+  /// Total layer count for the print.
   final int? totalLayers;
 
-  /// Wysokość warstwy w mm.
+  /// Layer height in mm.
   final double? layerHeight;
 
-  /// Średnica dyszy w mm.
+  /// Nozzle diameter in mm.
   final double? nozzleDiameter;
 
-  /// Model drukarki, dla którego plik był skrojony (np. „X2D").
+  /// Printer model this file was sliced for (e.g. "X2D").
   final String? slicedForModel;
 
-  /// Liczba egzemplarzy wydruku.
+  /// Print quantity.
   final int? quantity;
 
-  /// Wyświetlana nazwa: czytelna nazwa wydruku, jeśli dostępna, w przeciwnym
-  /// razie surowa nazwa pliku.
+  /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
 }

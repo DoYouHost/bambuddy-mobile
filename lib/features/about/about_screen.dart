@@ -4,14 +4,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// Publiczny adres źródeł — apka jest AGPL-3.0, więc link do kodu jest
-/// wymogiem licencyjnym (zob. plan 02 §higiena licencyjna).
+/// Public source URL — app is AGPL-3.0, so code link is license requirement
+/// (see 02 §license hygiene).
 const String _sourceUrl = 'https://codeberg.org/MorganMLGman/bambuddy-mobile';
 const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
 
-/// Ekran „O aplikacji": nazwa/wersja, nota licencyjna AGPL-3.0, link do źródeł
-/// oraz wejście do `showLicensePage` z licencjami zależności. Pełny ekran poza
-/// powłoką (push z szuflady Dashboardu).
+/// "About" screen: name/version, AGPL-3.0 license notice, source link, and entry
+/// to `showLicensePage` with dependency licenses. Full screen outside shell
+/// (pushed from Dashboard drawer).
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -119,7 +119,7 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-/// Wersja czytana z metadanych pakietu (pubspec → buildName+buildNumber).
+/// Version read from package metadata (pubspec → buildName+buildNumber).
 class _VersionLabel extends StatelessWidget {
   const _VersionLabel();
 

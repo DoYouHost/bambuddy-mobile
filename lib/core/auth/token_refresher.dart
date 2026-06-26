@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'jwt.dart';
 
-/// Fabryka timera — wstrzykiwalna, by testy mogły sterować upływem czasu
-/// zamiast czekać godzinami realnego zegara.
+/// Timer factory — injectable so tests can control time flow instead of waiting
+/// real clock hours.
 typedef RefreshTimerFactory = Timer Function(Duration, void Function());
 
-/// Proaktywna odnowa JWT: planuje cichy re-login tuż PRZED wygaśnięciem tokenu,
-/// zamiast czekać na reaktywne 401 (które ubija żądanie/handshake WS i daje
-/// chwilowy błąd, zanim interceptor go ponowi). Brak refresh-tokena po stronie
-/// serwera — odnawiamy zapamiętanymi poświadczeniami (patrz [AuthService.silentReLogin]).
+/// Proactive JWT refresh: schedules silent re-login just BEFORE token expiry,
+/// instead of waiting for reactive 401 (which kills request/WS handshake and
+/// causes brief error before interceptor retries). No refresh token on server
+/// — we refresh with saved credentials (see [AuthService.silentReLogin]).
 ///
-/// Czysta logika (zegar i timer wstrzykiwane) — testowalna bez Riverpoda i
-/// pluginów; używana zarówno przez provider UI, jak i isolate foreground service'u.
+/// Pure logic (clock and timer injected) — testable without Riverpod and
+/// plugins; used by both UI provider and foreground service isolate.
 class ProactiveTokenRefresher {
   ProactiveTokenRefresher({
     required Future<String?> Function() readJwt,
@@ -23,8 +23,8 @@ class ProactiveTokenRefresher {
     DateTime Function()? clock,
     RefreshTimerFactory? timerFactory,
   })  :
-        // Publiczne nazwy parametrów + prywatne pola — initializing formal
-        // wymagałby prywatnego parametru, więc lint jest tu niespełnialny.
+        // Public parameter names + private fields — initializing formal
+        // would require private parameter, so lint is unsatisfiable here.
         // ignore: prefer_initializing_formals
         _readJwt = readJwt,
         // ignore: prefer_initializing_formals
@@ -32,22 +32,22 @@ class ProactiveTokenRefresher {
         _now = clock ?? DateTime.now,
         _timerFactory = timerFactory ?? Timer.new;
 
-  /// Odczyt bieżącego JWT (do wyliczenia, ile zostało do wygaśnięcia).
+  /// Read current JWT (to compute time until expiry).
   final Future<String?> Function() _readJwt;
 
-  /// Cichy re-login; zwraca świeży token (już zapisany w storage) albo `null`,
-  /// gdy się nie powiódł / nie ma czym (brak zapamiętanych poświadczeń).
+  /// Silent re-login; returns fresh token (already stored) or `null` if failed
+  /// or no saved credentials.
   final Future<String?> Function() _refresh;
 
-  /// Ile przed wygaśnięciem odnawiać (margines na zegar/sieć).
+  /// How far before expiry to refresh (margin for clock/network).
   final Duration leadTime;
 
-  /// Dolny limit opóźnienia — chroni przed pętlą natychmiastowych prób, gdy
-  /// token już wygasł, a my dopiero startujemy.
+  /// Minimum delay floor — protects against instant retry loop when token
+  /// already expired and we just started.
   final Duration minDelay;
 
-  /// Gdy nie da się odczytać `exp` z tokenu albo odnowa zawiodła: sprawdź
-  /// ponownie po tym czasie (reaktywne 401 i tak pozostaje siatką bezpieczeństwa).
+  /// If `exp` can't be read from token or refresh failed: retry after this
+  /// (reactive 401 is still the safety net).
   final Duration fallbackDelay;
 
   final DateTime Function() _now;
@@ -56,11 +56,11 @@ class ProactiveTokenRefresher {
   Timer? _timer;
   bool _running = false;
 
-  /// Unieważnia spóźnione, asynchroniczne kroki po [stop]/restarcie.
+  /// Invalidates stale async steps after [stop]/restart.
   int _generation = 0;
 
-  /// Uruchamia harmonogram (idempotentne). Planuje pierwszą odnowę na podstawie
-  /// wygaśnięcia AKTUALNEGO tokenu.
+  /// Start schedule (idempotent). Schedules first refresh based on
+  /// CURRENT token expiry.
   void start() {
     if (_running) return;
     _running = true;
@@ -68,7 +68,7 @@ class ProactiveTokenRefresher {
     unawaited(_schedule(generation));
   }
 
-  /// Zatrzymuje harmonogram (np. apka w tle — przejmuje isolate FGS).
+  /// Stop schedule (e.g., app in background — FGS isolate takes over).
   void stop() {
     _running = false;
     _generation++;
@@ -98,8 +98,8 @@ class ProactiveTokenRefresher {
     if (!_running || generation != _generation) return;
     final fresh = await _refresh();
     if (!_running || generation != _generation) return;
-    // Sukces → planuj wg nowego tokenu; porażka → fallback (nie spinujemy na
-    // wygasłym tokenie co [minDelay], bo reaktywne 401 i tak zadziała).
+    // Success → schedule per new token; failure → fallback (don't spin on
+    // expired token every [minDelay], reactive 401 will catch it).
     _armTimer(fresh != null ? _delayFor(fresh) : fallbackDelay, generation);
   }
 }

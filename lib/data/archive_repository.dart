@@ -4,20 +4,18 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive.dart';
 
-/// REST-owe źródło danych archiwum wydruków (M5).
+/// REST data source for print archive (M5).
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio.
-/// Każda metoda mapuje [DioException] na [AppApiException].
-/// Sukces = zwrot bez wyjątku (dla void) lub sparsowane dane.
+/// Auth adds [AuthInterceptor] to the shared Dio instance.
+/// Each method maps [DioException] to [AppApiException].
 class ArchiveRepository {
   ArchiveRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /archives/ — paginowana lista archiwum.
+  /// GET /archives/ — paginated archive list.
   ///
-  /// Defensywne parsowanie: niesparsowalny wpis jest pomijany, nie
-  /// wywala całej listy.
+  /// Defensive parsing: unparseable entries are skipped.
   Future<List<Archive>> list({
     int limit = 50,
     int offset = 0,
@@ -44,16 +42,15 @@ class ArchiveRepository {
       try {
         archives.add(Archive.fromJson(item));
       } on Object {
-        // Pojedynczy niesparsowalny wpis nie może zabić całej listy.
         continue;
       }
     }
     return archives;
   }
 
-  /// GET /archives/search?q=&limit=&offset= — wyszukiwanie pełnotekstowe.
+  /// GET /archives/search?q=&limit=&offset= — full-text search.
   ///
-  /// Defensywne parsowanie: niesparsowalny wpis jest pomijany.
+  /// Defensive parsing: unparseable entries are skipped.
   Future<List<Archive>> search(
     String q, {
     int limit = 50,
@@ -75,15 +72,14 @@ class ArchiveRepository {
       try {
         archives.add(Archive.fromJson(item));
       } on Object {
-        // Pojedynczy niesparsowalny wpis nie może zabić całej listy.
         continue;
       }
     }
     return archives;
   }
 
-  /// POST /archives/{id}/reprint?printer_id=PRINTER — wznowienie wydruku
-  /// z archiwum na wskazanej drukarce. Body puste; parametr idzie w query.
+  /// POST /archives/{id}/reprint?printer_id=PRINTER — resume print from archive
+  /// on the specified printer. Empty body; parameter goes in query.
   Future<void> reprint(int archiveId, {required int printerId}) async {
     try {
       await _dio.post<dynamic>(

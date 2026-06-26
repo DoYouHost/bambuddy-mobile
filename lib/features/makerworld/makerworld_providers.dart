@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/makerworld.dart';
 import '../../providers.dart';
 
-/// Stan akcji „rozwiąż URL" na ekranie MakerWorld. `null` (dane) = nic jeszcze
-/// nie rozwiązano (stan startowy); loading w trakcie żądania; error z wyjątkiem.
+/// State of "resolve URL" action on MakerWorld screen. `null` (data) = nothing
+/// resolved yet (initial state); loading during request; error with exception.
 final makerworldResolveProvider = AutoDisposeAsyncNotifierProvider<
     MakerWorldResolveNotifier, MakerWorldResolvedModel?>(
   MakerWorldResolveNotifier.new,
@@ -15,7 +15,7 @@ class MakerWorldResolveNotifier
   @override
   Future<MakerWorldResolvedModel?> build() async => null;
 
-  /// Rozwiązuje [url]; pusty URL czyści wynik. Wynik trafia do [state].
+  /// Resolves [url]; empty URL clears result. Result lands in [state].
   Future<void> resolve(String url) async {
     final trimmed = url.trim();
     if (trimmed.isEmpty) {
@@ -28,6 +28,6 @@ class MakerWorldResolveNotifier
     );
   }
 
-  /// Czyści rozwiązany model (np. po imporcie/zmianie URL-a).
+  /// Clears resolved model (e.g. after import/URL change).
   void clear() => state = const AsyncValue.data(null);
 }

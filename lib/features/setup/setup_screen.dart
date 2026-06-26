@@ -6,9 +6,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import 'providers.dart';
 
-/// Konfiguracja połączenia: URL → sonda trybu auth → (opcjonalnie)
-/// klucz API albo login+hasło. Klucze API rekomendowane: nie wygasają
-/// i mają scope'y, w przeciwieństwie do 24-godzinnego JWT.
+/// Connection setup: URL → auth mode probe → (optional) API key or login+password.
+/// API keys recommended: no expiry and scopes, unlike 24-hour JWT.
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
 
@@ -163,8 +162,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ];
 }
 
-/// Tłumaczy błąd setupu: [AppApiException] z sieci albo lokalny
-/// [SetupErrorCode] walidacji.
+/// Translate setup error: [AppApiException] from network or local
+/// [SetupErrorCode] validation.
 String _setupErrorText(AppLocalizations l10n, Object error) {
   if (error is AppApiException) return error.localized(l10n);
   if (error is SetupErrorCode) {

@@ -14,11 +14,11 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final notifications = LocalNotificationService();
   await notifications.init();
-  // Katalog opisów HMS dla UI (karta drukarki). Isolate tła ładuje własny.
+  // HMS description catalog for UI (printer card). Background isolate loads its own.
   await HmsCatalog.instance.load(systemLocale());
 
-  // Port komunikacji UI↔isolate tła + opcje foreground service'u. Sam serwis
-  // startuje dopiero, gdy apka idzie w tło (patrz dashboard_screen).
+  // UI↔background isolate communication port + foreground service options.
+  // Service starts only when app goes to background (see dashboard_screen).
   FlutterForegroundTask.initCommunicationPort();
   FlutterForegroundTask.init(
     androidNotificationOptions: AndroidNotificationOptions(
@@ -30,7 +30,7 @@ Future<void> main() async {
     ),
     iosNotificationOptions: const IOSNotificationOptions(),
     foregroundTaskOptions: ForegroundTaskOptions(
-      // Zdarzenia dostajemy ze strumienia WS, nie z cyklicznego ticka.
+      // Events come from WS stream, not periodic tick.
       eventAction: ForegroundTaskEventAction.nothing(),
       autoRunOnBoot: false,
       allowWakeLock: true,

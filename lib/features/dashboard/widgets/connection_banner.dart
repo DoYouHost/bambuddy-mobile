@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Waga banera: błąd (serwer nieosiągalny — dane nieaktualne) vs informacja
-/// (WS wznawia połączenie, ale dane z pollingu są nadal aktualne).
+/// Banner weight: error (server unreachable — data stale) vs info
+/// (WS resuming connection, but polling data still fresh).
 enum BannerTone { error, info }
 
-/// Baner stanu połączenia — pokazywany NAD ostatnimi dobrymi danymi,
-/// nigdy zamiast nich.
+/// Connection status banner — shown ABOVE last good data,
+/// never instead of it.
 class ConnectionBanner extends StatelessWidget {
   const ConnectionBanner({
     super.key,

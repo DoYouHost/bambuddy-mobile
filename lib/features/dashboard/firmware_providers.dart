@@ -4,14 +4,13 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/firmware.dart';
 import '../../providers.dart';
 
-/// Firmware całej farmy zmapowane po `printerId` — źródło dla karty drukarki
-/// (wersja + flaga „dostępna aktualizacja"). Firmware zmienia się rzadko i
-/// sprawdzenie bije po chmurze, więc NIE pollujemy: pobieramy raz przy wejściu
-/// i odświeżamy jawnie ([FirmwareNotifier.refresh], pull-to-refresh / po
-/// przyszłym wykonaniu aktualizacji).
+/// Firmware for entire farm mapped by `printerId` — source for printer card
+/// (version + "update available" flag). Firmware changes rarely and checking
+/// hits cloud, so we DON'T poll: fetch once on entry and refresh explicitly
+/// ([FirmwareNotifier.refresh], pull-to-refresh / after future update execution).
 ///
-/// Błąd (chmura nieosiągalna itp.) zostaje w `AsyncError` — karta po prostu nie
-/// pokazuje firmware (`valueOrNull == null`), nigdy nie wywraca dashboardu.
+/// Error (cloud unreachable etc.) stays in `AsyncError` — card simply doesn't
+/// show firmware (`valueOrNull == null`), never crashes dashboard.
 final firmwareProvider =
     AsyncNotifierProvider<FirmwareNotifier, Map<int, FirmwareUpdateInfo>>(
   FirmwareNotifier.new,
@@ -20,7 +19,7 @@ final firmwareProvider =
 class FirmwareNotifier extends AsyncNotifier<Map<int, FirmwareUpdateInfo>> {
   @override
   Future<Map<int, FirmwareUpdateInfo>> build() {
-    // Przebudowa przy zmianie profilu serwera (inny serwer → inne firmware).
+    // Rebuild on server profile change (different server → different firmware).
     ref.watch(serverProfileProvider);
     return _load();
   }
@@ -33,8 +32,8 @@ class FirmwareNotifier extends AsyncNotifier<Map<int, FirmwareUpdateInfo>> {
     };
   }
 
-  /// Ponowne sprawdzenie firmware (zachowuje poprzednie dane pod spodem, żeby
-  /// UI nie mrugało). Auth wypływa jako [AuthException] — dashboard odeśle do /setup.
+  /// Re-check firmware (preserves previous data underneath so UI doesn't flicker).
+  /// Auth flows as [AuthException] — dashboard redirects to /setup.
   Future<void> refresh() async {
     state = const AsyncValue<Map<int, FirmwareUpdateInfo>>.loading()
         .copyWithPrevious(state);
@@ -42,14 +41,14 @@ class FirmwareNotifier extends AsyncNotifier<Map<int, FirmwareUpdateInfo>> {
   }
 }
 
-/// Firmware pojedynczej drukarki (lub `null`, gdy brak danych/jeszcze ładuje).
-/// Cienki selektor nad [firmwareProvider] — karta nie musi znać kształtu mapy.
+/// Single printer firmware (or `null` when no data/still loading).
+/// Thin selector over [firmwareProvider] — card doesn't need to know map shape.
 final printerFirmwareProvider =
     Provider.family<FirmwareUpdateInfo?, int>((ref, printerId) {
   return ref.watch(firmwareProvider).valueOrNull?[printerId];
 });
 
-/// Czy w ogóle warto pokazywać błąd auth z firmware na zewnątrz. Trzymane tu,
-/// by ewentualny przyszły UI flow miał gdzie sięgnąć (na razie nieużywane).
+/// Whether to expose firmware auth error externally. Kept here for future
+/// UI flows to hook into (currently unused).
 bool isFirmwareAuthError(Object? error) =>
     error is AuthException && error.code == AppErrorCode.unauthorized;

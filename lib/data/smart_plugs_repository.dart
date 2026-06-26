@@ -4,8 +4,8 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/smart_plug.dart';
 
-/// Akcja sterująca gniazdkiem — mapuje się 1:1 na pole `action` w body
-/// `POST /smart-plugs/{id}/control`.
+/// Action controlling a smart plug — maps 1:1 to the `action` field in
+/// `POST /smart-plugs/{id}/control` body.
 enum SmartPlugAction {
   on,
   off,
@@ -14,19 +14,19 @@ enum SmartPlugAction {
   String get wire => name;
 }
 
-/// REST-owe źródło danych o smart gniazdkach (M7): lista (z przypisaniem do
-/// drukarek), żywy status (moc/energia) i sterowanie on/off.
+/// REST data source for smart plugs (M7): list (with printer assignment), live
+/// status (power/energy), and on/off control.
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio. Parsowanie listy jest
-/// defensywne (zły wpis pomijamy), a [fetchStatus] degraduje się do `null` przy
-/// błędach innych niż auth — gniazdko nieosiągalne nie może wywrócić dashboardu.
+/// Auth adds [AuthInterceptor] to the shared Dio. List parsing is defensive
+/// (skip bad entries), and [fetchStatus] degrades to `null` on non-auth errors —
+/// unreachable plug won't break dashboard.
 class SmartPlugsRepository {
   SmartPlugsRepository(this._dio);
 
   final Dio _dio;
 
-  /// `GET /smart-plugs/` — wszystkie gniazdka z konfiguracją (w tym
-  /// `printer_id`). Pojedynczy niesparsowalny wpis pomijamy.
+  /// `GET /smart-plugs/` — all plugs with config (including `printer_id`).
+  /// Skip unparseable entries.
   Future<List<SmartPlug>> fetchPlugs() async {
     final List<dynamic> body;
     try {
@@ -47,8 +47,8 @@ class SmartPlugsRepository {
     return plugs;
   }
 
-  /// `GET /smart-plugs/{id}/status` — żywy stan + pomiar. Auth wypływa
-  /// (UI → /setup); reszta degraduje się do `null` (gniazdko nieosiągalne).
+  /// `GET /smart-plugs/{id}/status` — live state + measurement. Auth errors bubble up
+  /// (UI → /setup); others degrade to `null` (plug unreachable).
   Future<SmartPlugStatus?> fetchStatus(int plugId) async {
     try {
       final res = await _dio
@@ -64,8 +64,8 @@ class SmartPlugsRepository {
     }
   }
 
-  /// `POST /smart-plugs/{id}/control` — body `{"action":...}`. Sukces = zwrot
-  /// bez wyjątku; 403 (brak uprawnień) → [AuthException(forbidden)].
+  /// `POST /smart-plugs/{id}/control` — body `{"action":...}`. Success =
+  /// return without exception; 403 (no permission) → [AuthException(forbidden)].
   Future<void> control(int plugId, SmartPlugAction action) async {
     try {
       await _dio.post<dynamic>(

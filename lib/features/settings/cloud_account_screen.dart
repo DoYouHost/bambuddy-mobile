@@ -8,9 +8,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 
-/// Ekran konta chmury Bambu (logowanie) — w „ustawieniach" aplikacji (szuflada),
-/// celowo osobny od ekranu MakerWorld. Logowanie tu jest warunkiem pobierania
-/// modeli z MakerWorld; ekran importu kieruje tutaj, gdy brak tokenu.
+/// Bambu Cloud account screen (login) — in app "settings" (drawer), intentionally
+/// separate from MakerWorld screen. Login here is prerequisite for importing models
+/// from MakerWorld; import screen directs here if no token.
 class CloudAccountScreen extends ConsumerWidget {
   const CloudAccountScreen({super.key});
 
@@ -31,7 +31,7 @@ class CloudAccountScreen extends ConsumerWidget {
   }
 }
 
-/// Widok zalogowany: e-mail/region + wyloguj.
+/// Signed-in view: email/region + logout.
 class _SignedIn extends ConsumerStatefulWidget {
   const _SignedIn({required this.status});
 
@@ -100,7 +100,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
       widget.status.region == 'china' ? l10n.cloudRegionChina : l10n.cloudRegionGlobal;
 }
 
-/// Formularz logowania: e-mail/hasło/region, a po `needs_verification` — kod 2FA.
+/// Login form: email/password/region, then on `needs_verification` — 2FA code.
 class _LoginForm extends ConsumerStatefulWidget {
   const _LoginForm();
 
@@ -117,7 +117,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
   bool _busy = false;
   bool _obscure = true;
 
-  /// Trwa etap weryfikacji 2FA (po `needs_verification`).
+  /// Currently in 2FA verification stage (after `needs_verification`).
   bool _verifying = false;
   String? _tfaKey;
   String _verificationPrompt = '';
@@ -198,7 +198,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
       if (context.canPop()) context.pop();
       return;
     }
-    // Brak sukcesu i brak weryfikacji → komunikat z serwera (lub ogólny).
+    // No success and no verification → server message (or generic).
     _snack(res.message.isNotEmpty ? res.message : _l10n.cloudSignInFailed);
   }
 

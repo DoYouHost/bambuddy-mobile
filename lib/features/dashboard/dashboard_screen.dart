@@ -32,13 +32,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Cykl życia (Model A: serwis tła przejmuje na czas tła).
-    // - Tło: jeśli monitoring w tle włączony, startujemy foreground service —
-    //   jego osobny isolate jest JEDYNYM właścicielem powiadomień i ma własny
-    //   WS (łapie też START wydruku w tle). UI wycisza się całkowicie: zwalnia
-    //   socket i zatrzymuje polling (FGS trzyma proces, więc timer dalej by
-    //   tykał i bił po serwerze bez potrzeby).
-    // - Powrót: zatrzymujemy serwis, backfill REST, reconnect WS UI.
+    // Lifecycle (Model A: background service takes over during background).
+    // - Background: if background monitoring is enabled, start foreground service —
+    //   its separate isolate is the ONLY notification owner with its own
+    //   WS (also catches print START in background). UI goes silent: closes
+    //   socket and stops polling (FGS keeps process alive, so timer would keep
+    //   ticking and hitting server unnecessarily).
+    // - Resume: stop service, REST backfill, reconnect WS UI.
     _lifecycle = AppLifecycleListener(
       onPause: () {
         if (ref.read(bgMonitoringEnabledProvider)) {
@@ -47,7 +47,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
         ref.read(smartPlugsProvider.notifier).pausePolling();
-        // Odnowę tokenu w tle przejmuje isolate FGS — UI milczy.
+        // Token refresh in background is handled by FGS isolate — UI is silent.
         ref.read(tokenRefresherProvider)?.stop();
       },
       onResume: () {
@@ -58,8 +58,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.start();
       },
     );
-    // Po pierwszym renderze: jednorazowy onboarding powiadomień (uprawnienie +
-    // prośba o „Bez ograniczeń" dla baterii).
+    // After first render: one-time notification onboarding (permission +
+    // request to allow "Unrestricted" battery usage).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeOnboardNotifications();
     });
@@ -72,12 +72,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     await _runNotificationOnboarding();
   }
 
-  /// Prosi o uprawnienie powiadomień, a jeśli apka nie jest zwolniona z
-  /// optymalizacji baterii — pokazuje dialog z linkiem do ustawień.
+  /// Requests notification permission, and if app is not exempt from battery
+  /// optimization — shows a dialog with link to settings.
   ///
-  /// `manual` = wywołane przyciskiem (nie auto-onboardingiem): wtedy na „cichych"
-  /// ścieżkach (uprawnienie odrzucone / wszystko już ustawione) dajemy SnackBar,
-  /// żeby przycisk nie wyglądał na martwy.
+  /// `manual` = triggered by button (not auto-onboarding): then on "quiet"
+  /// paths (permission denied / already set up) show SnackBar
+  /// so button doesn't look dead.
   Future<void> _runNotificationOnboarding({bool manual = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -122,8 +122,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (open ?? false) await battery.request();
   }
 
-  /// Menu powiadomień: przełącznik monitoringu w tle + ponowny onboarding
-  /// (uprawnienie/bateria). Otwierane spod ikony dzwonka.
+  /// Notification menu: background monitoring toggle + re-onboard
+  /// (permission/battery). Opened from bell icon.
   void _openNotificationMenu(BuildContext context, AppLocalizations l10n) {
     showModalBottomSheet<void>(
       context: context,
@@ -173,9 +173,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     await ref.read(bgMonitoringEnabledProvider.notifier).set(enabled);
-    // Wyłączenie ma działać od razu, gdyby serwis akurat chodził; włączenie
-    // zadziała przy najbliższym przejściu w tło (na pierwszym planie FGS nie
-    // jest nam potrzebny).
+    // Disabling takes effect immediately if service is running; enabling
+    // takes effect at next background transition (FGS not needed in foreground).
     if (!enabled) await ref.read(backgroundMonitorProvider).stop();
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     messenger.showSnackBar(
@@ -195,8 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    // Wygaśnięcie sesji → łagodny powrót do konfiguracji,
-    // nigdy crash ani martwy dashboard.
+    // Session expiry → graceful return to setup, never crash or dead dashboard.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
       if (expired) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -211,8 +209,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final statuses = ref.watch(printerStatusesProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
 
-    // Utrzymujemy proaktywną odnowę JWT żywą, dopóki dashboard jest na ekranie,
-    // i uruchamiamy ją (idempotentnie). Cykl życia ją wstrzymuje/wznawia.
+    // Keep proactive JWT refresh alive while dashboard is on screen,
+    // and start it (idempotently). Lifecycle pauses/resumes it.
     ref.watch(tokenRefresherProvider)?.start();
 
     return Scaffold(
@@ -226,7 +224,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onPressed: () => _openNotificationMenu(context, l10n),
           ),
         ],
-        // Tylko przyjazna etykieta profilu (jeśli ustawiona) — bez adresu URL.
+        // Only friendly profile label (if set) — no URL.
         bottom: profile?.label == null
             ? null
             : PreferredSize(
@@ -244,8 +242,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           if (state.stale)
             ConnectionBanner(message: l10n.serverUnreachableStale)
-          // WS wznawia połączenie, ale polling wciąż daje aktualne dane —
-          // baner informacyjny, nie alarmowy. Nie dublujemy banera „stale".
+          // WS resuming connection, but polling still provides fresh data —
+          // informational banner, not alarming. Don't duplicate "stale" banner.
           else if (_wsReconnecting(wsState))
             ConnectionBanner(
               message: l10n.wsReconnecting,
@@ -257,8 +255,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  /// Baner WS pokazujemy, gdy aktywnie próbujemy odzyskać połączenie —
-  /// nie przy `connected` (cisza) ani `suspended` (apka w tle).
+  /// Show WS banner when actively trying to restore connection —
+  /// not on `connected` (silent) or `suspended` (app in background).
   bool _wsReconnecting(WsConnectionState? s) =>
       s == WsConnectionState.connecting || s == WsConnectionState.waitingRetry;
 
@@ -272,7 +270,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Pierwsze ładowanie padło — nie ma czego pokazać poza błędem.
+    // Initial load failed — nothing to show but error.
     if (state.printers == null) {
       return Center(
         child: Padding(
@@ -296,9 +294,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    // Skład drukarek bierzemy z pollingu (roster), a status nakładamy ze
-    // wspólnej mapy statusów (WS + poll scalone w printerStatusesProvider).
-    // Brak wpisu w mapie → zostaje status z samej listy.
+    // Printer composition from polling (roster), with status overlaid from
+    // shared statuses map (WS + poll merged in printerStatusesProvider).
+    // Missing map entry → status stays from list alone.
     final printers = [
       for (final p in state.printers!)
         statuses.containsKey(p.printer.id)
@@ -318,7 +316,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Column(
       children: [
         _SummaryHeader(printers: printers),
-        // Wyszukiwarka ma sens dopiero przy wielu drukarkach.
+        // Search bar only makes sense with multiple printers.
         if (printers.length > 1)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
@@ -363,9 +361,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-/// Szuflada nawigacyjna z ekranami „app-level" (drugorzędnymi względem zakładek
-/// dolnej belki): Statystyki, Powiadomienia, zmiana serwera. Hamburger pokazuje
-/// się automatycznie w AppBarze Dashboardu, bo Scaffold ma ustawioną `drawer`.
+/// Navigation drawer with "app-level" screens (secondary to bottom bar tabs):
+/// Statistics, Notifications, change server. Hamburger auto-appears in
+/// Dashboard AppBar because Scaffold has `drawer` set.
 class _AppDrawer extends ConsumerWidget {
   const _AppDrawer({this.profileLabel});
 
@@ -380,9 +378,8 @@ class _AppDrawer extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Brandowany nagłówek: ikona aplikacji w uniesionym kafelku + nazwa
-          // + profil, na gradiencie z miękką poświatą w narożniku (zamiast
-          // pustego prostokąta DrawerHeader).
+          // Branded header: app icon in raised tile + name + profile,
+          // on gradient with soft glow in corner (instead of empty DrawerHeader rect).
           ClipRect(
             child: Container(
               decoration: BoxDecoration(
@@ -400,7 +397,7 @@ class _AppDrawer extends ConsumerWidget {
               ),
               child: Stack(
                 children: [
-                  // Poświata — okrąg primary rozmyty w prawym górnym rogu.
+                  // Glow — primary circle blurred in top-right corner.
                   Positioned(
                     top: -48,
                     right: -36,
@@ -543,7 +540,7 @@ class _AppDrawer extends ConsumerWidget {
               ],
             ),
           ),
-          // Stopka z wersją — czytana z metadanych pakietu (jak na ekranie „O…").
+          // Footer with version — read from package metadata (like About screen).
           const Divider(height: 1),
           SafeArea(
             top: false,
@@ -573,9 +570,8 @@ class _AppDrawer extends ConsumerWidget {
     );
   }
 
-  /// Powtórka potwierdzenia zmiany serwera — wyczyszczenie profilu odsyła do
-  /// `/setup` przez router. Trzymane przy szufladzie, by nie zależeć od metod
-  /// stanu Dashboardu.
+  /// Confirmation repeat for server change — clearing profile navigates to
+  /// `/setup` via router. Kept with drawer to not depend on Dashboard state methods.
   Future<void> _confirmChangeServer(
       BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
@@ -601,8 +597,8 @@ class _AppDrawer extends ConsumerWidget {
   }
 }
 
-/// Etykieta profilu (adres serwera) jako delikatny „chip" pod nazwą aplikacji.
-/// Gdy brak profilu — chowamy się, by nie zostawiać pustego miejsca.
+/// Profile label (server address) as gentle "chip" under app name.
+/// When no profile — hide to not leave blank space.
 class _ProfileChip extends StatelessWidget {
   const _ProfileChip({required this.label});
 
@@ -643,10 +639,9 @@ class _ProfileChip extends StatelessWidget {
   }
 }
 
-/// Pozycja szuflady w stylu M3 — zaokrąglony „pigułkowy" kształt z ripple,
-/// tintowany kafelek ikony i chevron sugerujący nawigację. Opcjonalny `tint`
-/// pozwala wyróżnić pozycję (np. zmiana serwera). Wydzielone, by lista była
-/// zwięzła.
+/// Drawer item in M3 style — rounded "pill" shape with ripple,
+/// tinted icon tile and chevron suggesting navigation. Optional `tint`
+/// highlights item (e.g. change server). Extracted for list brevity.
 class _DrawerTile extends StatelessWidget {
   const _DrawerTile({
     required this.icon,
@@ -702,8 +697,8 @@ class _DrawerTile extends StatelessWidget {
   }
 }
 
-/// Podsumowanie u góry listy: ile drukarek pracuje i która zwolni się
-/// najwcześniej (najmniej pozostałego czasu).
+/// Summary at top of list: how many printers are working and which
+/// will be free soonest (least remaining time).
 class _SummaryHeader extends ConsumerWidget {
   const _SummaryHeader({required this.printers});
 
@@ -714,7 +709,7 @@ class _SummaryHeader extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    // Suma mocy całej farmy ze smart gniazdek (osobny tor pollingu).
+    // Total power across farm from smart plugs (separate polling lane).
     final hasPlugs = ref.watch(smartPlugsProvider.select((s) => s.hasAnyPlug));
     final totalPowerW =
         ref.watch(smartPlugsProvider.select((s) => s.totalPowerW));
@@ -772,8 +767,8 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            // Gdy jest „następna wolna" drukarka, jej Flexible zjada miejsce —
-            // wtedy bez Spacera; inaczej dosuwamy moc do prawej krawędzi.
+            // When there's "next available" printer, its Flexible takes space —
+            // then no Spacer; otherwise push power to right edge.
             if (next == null) const Spacer() else const SizedBox(width: 12),
             Tooltip(
               message: l10n.totalPowerTooltip,

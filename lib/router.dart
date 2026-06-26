@@ -20,19 +20,19 @@ import 'features/stats/statistics_screen.dart';
 import 'features/swatches/swatches_screen.dart';
 import 'providers.dart';
 
-/// Klucz głównego nawigatora — pozwala pchać ekrany (np. skaner szpuli
-/// wyzwolony z widgetu ekranu głównego) spoza drzewa widgetów.
+/// Main navigator key — allows pushing screens (e.g. spool scanner triggered
+/// from home widget) outside widget tree.
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
-/// Klucze nawigatorów dla każdej gałęzi powłoki.
+/// Navigator keys for each shell branch.
 final _dashboardNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final _queueNavigatorKey       = GlobalKey<NavigatorState>(debugLabel: 'queue');
 final _archiveNavigatorKey     = GlobalKey<NavigatorState>(debugLabel: 'archive');
 final _maintenanceNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'maintenance');
 final _inventoryNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'inventory');
 
-/// Router aplikacji z powłoką dolnej belki nawigacyjnej (Material 3).
-/// Trasa /setup pozostaje poza powłoką — wyświetlana bez NavigationBar.
+/// App router with bottom navigation bar shell (Material 3).
+/// /setup route stays outside shell — shown without NavigationBar.
 final routerProvider = Provider<GoRouter>((ref) {
   final hasProfile =
       ref.watch(serverProfileProvider.select((p) => p != null));
@@ -46,23 +46,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Ekran konfiguracji serwera — poza powłoką, bez belki nawigacyjnej.
+      // Server setup screen — outside shell, no navigation bar.
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
 
-      // Ustawienia powiadomień — pełny ekran poza powłoką (push z dashboardu).
+      // Notification settings — full screen outside shell (pushed from dashboard).
       GoRoute(
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
       ),
 
-      // Statystyki archiwum — pełny ekran poza powłoką (push z szuflady).
+      // Archive statistics — full screen outside shell (pushed from drawer).
       GoRoute(
         path: '/stats',
         builder: (_, _) => const StatisticsScreen(),
       ),
 
-      // Menedżer plików (biblioteka) — pełny ekran poza powłoką (push
-      // z szuflady). Kosz jako podtrasa.
+      // File manager (library) — full screen outside shell (pushed from drawer).
+      // Trash as subroute.
       GoRoute(
         path: '/files',
         builder: (_, _) => const FileManagerScreen(),
@@ -74,34 +74,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // MakerWorld — import modeli; pełny ekran poza powłoką (push z szuflady).
+      // MakerWorld — model import; full screen outside shell (pushed from drawer).
       GoRoute(
         path: '/makerworld',
         builder: (_, _) => const MakerWorldScreen(),
       ),
 
-      // Kody próbek filamentów — pełny ekran poza powłoką (push z szuflady).
+      // Filament swatch codes — full screen outside shell (pushed from drawer).
       GoRoute(
         path: '/swatches',
         builder: (_, _) => const SwatchesScreen(),
       ),
 
-      // Konto chmury Bambu (logowanie do pobierania z MakerWorld) — w
-      // ustawieniach; pełny ekran poza powłoką (push z szuflady lub z importu).
+      // Bambu Cloud account (login for MakerWorld downloads) — in settings;
+      // full screen outside shell (pushed from drawer or import).
       GoRoute(
         path: '/settings/cloud',
         builder: (_, _) => const CloudAccountScreen(),
       ),
 
-      // O aplikacji + licencje — pełny ekran poza powłoką (push z szuflady).
+      // About + licenses — full screen outside shell (pushed from drawer).
       GoRoute(
         path: '/about',
         builder: (_, _) => const AboutScreen(),
       ),
 
-      // Przeglądarka G-code (WebView) — pełny ekran poza powłoką. Źródło w
-      // query: `archive` lub `library_file` (+ opcjonalnie `plate`); `name`
-      // ustawia tytuł paska.
+      // G-code viewer (WebView) — full screen outside shell. Source in query:
+      // `archive` or `library_file` (+ optionally `plate`); `name` sets title.
       GoRoute(
         path: '/gcode-viewer',
         builder: (_, state) {
@@ -115,26 +114,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Powłoka z dolną belką nawigacyjną — trzy zakładki jako gałęzie.
+      // Shell with bottom navigation bar — three tabs as branches.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             RootScaffold(navigationShell: navigationShell),
         branches: [
-          // Zakładka 0: Dashboard
+          // Tab 0: Dashboard
           StatefulShellBranch(
             navigatorKey: _dashboardNavigatorKey,
             routes: [
               GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
             ],
           ),
-          // Zakładka 1: Kolejka
+          // Tab 1: Queue
           StatefulShellBranch(
             navigatorKey: _queueNavigatorKey,
             routes: [
               GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
             ],
           ),
-          // Zakładka 2: Archiwum
+          // Tab 2: Archive
           StatefulShellBranch(
             navigatorKey: _archiveNavigatorKey,
             routes: [
@@ -144,7 +143,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Zakładka 3: Konserwacja
+          // Tab 3: Maintenance
           StatefulShellBranch(
             navigatorKey: _maintenanceNavigatorKey,
             routes: [
@@ -154,7 +153,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Zakładka 4: Filamenty (magazyn szpul)
+          // Tab 4: Filaments (spool inventory)
           StatefulShellBranch(
             navigatorKey: _inventoryNavigatorKey,
             routes: [

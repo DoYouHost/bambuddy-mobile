@@ -1,7 +1,5 @@
-// Modele logowania do chmury Bambu (`/api/v1/cloud/*`) — warunek pobierania
-// z MakerWorld.
-
-/// Stan z `GET /cloud/status`.
+/// Models for Bambu Cloud authentication (`/api/v1/cloud/*`) — required for
+/// MakerWorld download.
 class CloudAuthStatus {
   const CloudAuthStatus({
     required this.isAuthenticated,
@@ -19,11 +17,11 @@ class CloudAuthStatus {
   final bool isAuthenticated;
   final String? email;
 
-  /// `global` lub `china` (lub null, gdy wylogowany).
+  /// `global` or `china` (null if logged out).
   final String? region;
 }
 
-/// Wynik `POST /cloud/login` oraz `POST /cloud/verify` (ten sam kształt).
+/// Result of `POST /cloud/login` and `POST /cloud/verify` (same shape).
 class CloudLoginResult {
   const CloudLoginResult({
     required this.success,
@@ -46,13 +44,13 @@ class CloudLoginResult {
 
   final bool success;
 
-  /// Serwer żąda kodu 2FA/OTP — dosyłamy go przez `POST /cloud/verify`.
+  /// Server requests 2FA/OTP code — send via `POST /cloud/verify`.
   final bool needsVerification;
   final String message;
 
-  /// Np. `email` / `totp` — wskazówka, skąd wziąć kod.
+  /// E.g. `email` / `totp` — hint for code source.
   final String? verificationType;
 
-  /// Klucz przekazywany do weryfikacji TOTP (z odpowiedzi logowania).
+  /// Key sent to TOTP verification (from login response).
   final String? tfaKey;
 }

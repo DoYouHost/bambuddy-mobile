@@ -1,9 +1,9 @@
-/// Statystyki archiwum z `GET /archives/stats` (agregat po `PrintLogEntry` —
-/// jeden wiersz na zdarzenie wydruku, reprint dokłada nowy wpis, #1378).
+/// Archive statistics from `GET /archives/stats` (aggregate of `PrintLogEntry` —
+/// one row per print event, reprint adds new entry, #1378).
 ///
-/// Parsowanie ręczne i defensywne: API bambuddy jest młode, więc każde pole ma
-/// rozsądny default, a nieznane klucze są ignorowane. Wartości liczbowe
-/// przyjmujemy zarówno jako `int`, jak i `double` (serwer bywa niespójny).
+/// Manual and defensive parsing: API is young, so each field has sensible
+/// defaults and unknown keys ignored. Numeric values accepted as both `int`
+/// and `double` (server inconsistency).
 class ArchiveStats {
   const ArchiveStats({
     this.totalPrints = 0,
@@ -37,55 +37,55 @@ class ArchiveStats {
         energyDataWarmingUp: json['energy_data_warming_up'] == true,
       );
 
-  /// Łączna liczba wydruków (zdarzeń) w okresie.
+  /// Total print count in the period.
   final int totalPrints;
 
-  /// Wydruki zakończone sukcesem.
+  /// Successful prints.
   final int successfulPrints;
 
-  /// Wydruki zakończone niepowodzeniem.
+  /// Failed prints.
   final int failedPrints;
 
-  /// Łączny czas druku w godzinach.
+  /// Total print time in hours.
   final double totalPrintTimeHours;
 
-  /// Łączne zużycie filamentu w gramach.
+  /// Total filament used in grams.
   final double totalFilamentGrams;
 
-  /// Łączny koszt filamentu (w walucie serwera).
+  /// Total filament cost (server currency).
   final double totalCost;
 
-  /// Liczba wydruków per typ filamentu (np. `{PETG: 68, PLA: 32}`).
+  /// Print count per filament type (e.g. `{PETG: 68, PLA: 32}`).
   final Map<String, int> printsByFilamentType;
 
-  /// Liczba wydruków per drukarka (klucz = `printer_id` jako string).
+  /// Print count per printer (key = `printer_id` as string).
   final Map<String, int> printsByPrinter;
 
-  /// Średnia dokładność szacowania czasu w procentach (100% = idealny estymat).
+  /// Average time estimate accuracy in percent (100% = perfect).
   final double averageTimeAccuracy;
 
-  /// Dokładność czasu per drukarka (klucz = `printer_id` jako string).
+  /// Time accuracy per printer (key = `printer_id` as string).
   final Map<String, double> timeAccuracyByPrinter;
 
-  /// Łączna energia w kWh.
+  /// Total energy in kWh.
   final double totalEnergyKwh;
 
-  /// Łączny koszt energii.
+  /// Total energy cost.
   final double totalEnergyCost;
 
-  /// Dane energii jeszcze się „rozgrzewają" (serwer dopiero zbiera pomiary) —
-  /// UI może wtedy oznaczyć energię jako niepełną.
+  /// Energy data still "warming up" (server still collecting measurements) —
+  /// UI can mark energy as incomplete.
   final bool energyDataWarmingUp;
 
-  /// Procent skuteczności (0–100). Bazujemy na sukcesach względem ich sumy
-  /// z porażkami — wydruki w toku/anulowane nie liczą się do mianownika.
+  /// Success rate percent (0–100). Based on successful vs failed;
+  /// in-progress/cancelled don't count in denominator.
   double get successRate {
     final decided = successfulPrints + failedPrints;
     if (decided <= 0) return 0;
     return successfulPrints / decided * 100;
   }
 
-  /// Czy w ogóle mamy co pokazać (pusty okres → puste karty).
+  /// Whether there is anything to display (empty period → empty cards).
   bool get isEmpty => totalPrints == 0;
 }
 

@@ -9,12 +9,12 @@ import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
 
-/// Ekran statystyk archiwum (pełny ekran, push z szuflady Dashboardu).
+/// Archive statistics screen (full screen, pushed from Dashboard drawer).
 ///
-/// Parność z wersją web: górne karty (Quick Stats, skuteczność, dokładność)
-/// z `GET /archives/stats`; bogate widżety (heatmapa, rekordy, trendy,
-/// histogramy) liczone po stronie klienta z `GET /archives/slim`; analiza
-/// niepowodzeń z `GET /archives/analysis/failures`.
+/// Parity with web version: top cards (Quick Stats, success rate, time accuracy)
+/// from `GET /archives/stats`; rich widgets (heatmap, records, trends, histograms)
+/// computed client-side from `GET /archives/slim`; failure analysis from
+/// `GET /archives/analysis/failures`.
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
@@ -49,7 +49,7 @@ class StatisticsScreen extends ConsumerWidget {
   }
 }
 
-/// Menu wyboru zakresu czasu w AppBarze. `custom` otwiera picker zakresu dat.
+/// Time range picker menu in AppBar. `custom` opens date range picker.
 class _RangeMenu extends ConsumerWidget {
   const _RangeMenu({required this.filter});
 
@@ -139,7 +139,7 @@ class _StatsBody extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         const FailureAnalysisCard(),
-        // Bogate widżety liczone z lekkiej listy — czekają na jej pobranie.
+        // Rich widgets computed from slim list — wait for it to load.
         ...computed.when(
           loading: () => const [
             SizedBox(height: 12),
@@ -178,7 +178,7 @@ class _StatsBody extends ConsumerWidget {
   }
 }
 
-// ── Przegląd (Quick Stats) ──────────────────────────────────────────────────
+// ── Overview (Quick Stats) ──────────────────────────────────────────────────
 
 class _OverviewCard extends StatelessWidget {
   const _OverviewCard({required this.data});
@@ -330,7 +330,7 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-// ── Skuteczność / Dokładność czasu (pierścienie) ────────────────────────────
+// ── Success rate / Time accuracy (ring gauges) ────────────────────────────
 
 class _SuccessRateCard extends StatelessWidget {
   const _SuccessRateCard({required this.data});
@@ -413,7 +413,7 @@ class _TimeAccuracyCard extends StatelessWidget {
   }
 }
 
-// ── Wspólne ─────────────────────────────────────────────────────────────────
+// ── Shared ─────────────────────────────────────────────────────────────────
 
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});

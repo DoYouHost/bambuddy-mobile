@@ -4,17 +4,17 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/makerworld.dart';
 
-/// REST-owe źródło danych integracji MakerWorld.
+/// REST data source for MakerWorld integration.
 ///
-/// Auth dokłada [AuthInterceptor] na współdzielonym Dio (miniatury idą osobno —
-/// proxy `/makerworld/thumbnail` jest publiczne). Każda metoda mapuje
-/// [DioException] na [AppApiException].
+/// Auth adds [AuthInterceptor] to the shared Dio (thumbnails go separately —
+/// `/makerworld/thumbnail` proxy is public). Each method maps [DioException]
+/// to [AppApiException].
 class MakerWorldRepository {
   MakerWorldRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /makerworld/status — czy pobieranie jest dostępne (token chmury).
+  /// GET /makerworld/status — whether downloading is available (cloud token).
   Future<MakerWorldStatus> status() async {
     try {
       final res =
@@ -25,7 +25,7 @@ class MakerWorldRepository {
     }
   }
 
-  /// POST /makerworld/resolve — rozwiązanie URL-a modelu na design + instancje.
+  /// POST /makerworld/resolve — resolve model URL to design + instances.
   Future<MakerWorldResolvedModel> resolve(String url) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -38,7 +38,7 @@ class MakerWorldRepository {
     }
   }
 
-  /// POST /makerworld/import — pobranie instancji do biblioteki.
+  /// POST /makerworld/import — download instance to library.
   Future<MakerWorldImportResponse> import({
     required int modelId,
     int? profileId,
@@ -59,7 +59,7 @@ class MakerWorldRepository {
     }
   }
 
-  /// GET /makerworld/recent-imports — ostatnie importy. Defensywne parsowanie.
+  /// GET /makerworld/recent-imports — recent imports. Defensive parsing.
   Future<List<MakerWorldRecentImport>> recentImports({int limit = 20}) async {
     final List<dynamic> body;
     try {

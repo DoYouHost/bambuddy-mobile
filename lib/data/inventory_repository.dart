@@ -2,10 +2,10 @@ import '../core/models/inventory.dart';
 import '../core/models/inventory_reference.dart';
 import 'inventory_source.dart';
 
-/// Fasada magazynu filamentów nad wybranym [SpoolInventorySource]. Cienka
-/// warstwa: ujednolica API dla providerów i jest punktem rozszerzenia na zapisy
-/// (Faza 2). Wybór backendu (natywny/Spoolman) zapada w providerze, który tu
-/// wstrzykuje gotowe źródło.
+/// Facade for filament inventory over a selected [SpoolInventorySource]. A thin
+/// layer: unifies API for providers and is an extension point for writes (Phase 2).
+/// Backend choice (native/Spoolman) is made in the provider, which injects the
+/// ready-made source here.
 class InventoryRepository {
   InventoryRepository(this._source);
 

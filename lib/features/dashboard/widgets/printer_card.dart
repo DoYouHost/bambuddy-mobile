@@ -33,36 +33,31 @@ class PrinterCard extends StatefulWidget {
 }
 
 class _PrinterCardState extends State<PrinterCard> {
-  /// Rozwinięcie sekcji szczegółów (AMS, szpula, łączność). Trzymane lokalnie,
-  /// więc przeżywa odświeżenia z pollingu/WS (karta ma klucz po id drukarki).
+  /// Details section expansion state (AMS, spool, connectivity) — kept locally
+  /// to survive polling/WS refreshes (card is keyed by printer id).
   bool _expanded = false;
 
-  /// Czy POKAZUJEMY kartę jako OFFLINE. To NIE jest 1:1 `connected` z bambuddy —
-  /// przejście online→offline jest debouncowane ([_offlineGrace]), żeby karta
-  /// nie migała zwiń/rozwiń, gdy `connected` mrugnie (np. REST jeszcze raportuje
-  /// online, gdy WS już nie — typowe tuż po odcięciu zasilania gniazdkiem).
-  /// Powrót online jest natychmiastowy.
+  /// Whether the card displays as OFFLINE. This is debounced via [_offlineGrace]
+  /// to prevent flashing when `connected` flickers (e.g., REST still reports online
+  /// while WS doesn't—typical right after power-switching). Immediate return to online.
   late bool _offline;
   Timer? _offlineGrace;
 
-  /// Błędy HMS warte pokazania — odsiewa wpisy wewnętrzne/nieprzetłumaczalne
-  /// (parytet z bambuddy). Opis bierzemy z katalogu, by znane kody przeszły.
+  /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
   List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
         for (final e in status?.hmsErrors ?? const <HmsError>[])
           if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e)))
             e,
       ];
 
-  /// Jak długo bambuddy musi UTRZYMAĆ offline, zanim zwiniemy kartę. Każde
-  /// świeże `connected:true` w tym oknie kasuje licznik — więc zwija się dopiero,
-  /// gdy serwer naprawdę przestanie raportować drukarkę online.
+  /// Grace period before collapsing the card when offline is sustained; fresh
+  /// `connected:true` within this window resets the timer (debounce flashing).
   static const _offlineGracePeriod = Duration(seconds: 15);
 
   @override
   void initState() {
     super.initState();
-    // Stan początkowy bez łaski: drukarka offline od startu zwija się od razu
-    // (debounce dotyczy tylko ŻYWEGO przejścia online→offline).
+    // Initial offline state (no grace period): card collapses immediately.
     _offline = !(widget.item.status?.connected ?? false);
   }
 
@@ -71,12 +66,12 @@ class _PrinterCardState extends State<PrinterCard> {
     super.didUpdateWidget(oldWidget);
     final connected = widget.item.status?.connected ?? false;
     if (connected) {
-      // Powrót/utrzymanie online: natychmiast rozwiń i skasuj licznik.
+      // Back/maintaining online: immediately expand and cancel timer.
       _offlineGrace?.cancel();
       _offlineGrace = null;
       if (_offline) setState(() => _offline = false);
     } else if (!_offline && _offlineGrace == null) {
-      // Świeżo zniknęła — odlicz, zamiast zwijać od razu (anty-miganie).
+      // Freshly disconnected — count down instead of collapsing immediately (debounce).
       _offlineGrace = Timer(_offlineGracePeriod, () {
         _offlineGrace = null;
         if (mounted) setState(() => _offline = true);
@@ -97,12 +92,11 @@ class _PrinterCardState extends State<PrinterCard> {
     final status = widget.item.status;
     final connected = status?.connected ?? false;
 
-    // Drukarka niedostępna (brak statusu lub rozłączona): karta zwija się do
-    // samego nagłówka z etykietą OFFLINE. Nie pokazujemy nieaktualnych
-    // temperatur, sterowania ani szczegółów — byłyby mylące przy wyłączonej
-    // maszynie. Stan rozwinięcia (_expanded) zostaje i wróci, gdy ożyje.
-    // Używamy debouncowanego [_offline], nie surowego `connected`, by karta nie
-    // migała, gdy bambuddy chwilowo mrugnie stanem (patrz didUpdateWidget).
+    // Printer unavailable (no status or disconnected): card collapses to header-only
+    // with OFFLINE label. Don't show stale temperatures, controls, or details—they'd
+    // be misleading on an inactive machine. Expansion state is preserved and returns
+    // when the printer wakes. Use debounced [_offline], not raw `connected`, to avoid
+    // flashing when the server momentarily flickers (see didUpdateWidget).
     if (_offline) {
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -123,9 +117,8 @@ class _PrinterCardState extends State<PrinterCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Gniazdko zostaje sterowalne nawet przy OFFLINE — to jedyny
-                  // sposób, by zdalnie ZAŁĄCZYĆ zasilanie i obudzić drukarkę. Sam
-                  // się chowa, gdy do drukarki nie przypisano (widocznego) gniazdka.
+                  // Smart plug remains controllable even when OFFLINE—the only way to
+                  // remotely power on and wake the printer. Auto-hides if none assigned.
                   _SmartPlugButton(
                     printerId: widget.item.printer.id,
                     printing: false,
@@ -138,8 +131,8 @@ class _PrinterCardState extends State<PrinterCard> {
                   ),
                 ],
               ),
-              // Łączny czas druku pochodzi z serwera (konserwacja), więc znamy
-              // go także po zwinięciu karty OFFLINE — pokazujemy zamiast pustki.
+              // Total print time is from the server (maintenance), so we know it
+              // even when the card is collapsed—show it instead of blank space.
               _TotalPrintTimeLine(printerId: widget.item.printer.id),
             ],
           ),
@@ -184,8 +177,7 @@ class _PrinterCardState extends State<PrinterCard> {
                     ],
                   ),
                 ),
-                // Podgląd kamery — tylko gdy drukarka jest połączona (offline
-                // i tak nie zwróci strumienia).
+                // Camera view only when connected (offline won't stream anyway).
                 if (connected)
                   IconButton(
                     tooltip: l10n.cameraTooltip,
@@ -256,9 +248,9 @@ class _PrinterCardState extends State<PrinterCard> {
   }
 }
 
-/// Panel aktywnych błędów HMS: czerwona ramka, każdy błąd z czytelnym opisem
-/// (z katalogu Bambu lub fallback „poziom · moduł"), kanonicznym kodem i —
-/// gdy da się złożyć pełny kod — odnośnikiem do wiki Bambu.
+/// Active HMS errors panel: red border, each error with readable description
+/// (from Bambu catalog or fallback "level · module"), canonical code, and—
+/// when the full code can be composed—link to Bambu wiki.
 class _HmsErrorsPanel extends StatelessWidget {
   const _HmsErrorsPanel({required this.errors});
 
@@ -358,7 +350,7 @@ class _HmsErrorRow extends StatelessWidget {
   }
 }
 
-/// Klikalny pasek „Szczegóły ▾" rozwijający sekcję AMS/łączności.
+/// Clickable "Details ▾" bar expanding AMS/connectivity section.
 class _DetailsToggle extends StatelessWidget {
   const _DetailsToggle({required this.expanded, required this.onTap});
 
@@ -376,7 +368,7 @@ class _DetailsToggle extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: Ink(
         decoration: BoxDecoration(
-          // Delikatne odróżnienie od tła karty — ten sam ton co kafelki/chipy.
+          // Subtle contrast from card background — same tone as chips/tiles.
           color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
         ),
@@ -401,8 +393,8 @@ class _DetailsToggle extends StatelessWidget {
   }
 }
 
-/// Rozwinięta sekcja szczegółów: jednostki AMS z kolorowymi slotami,
-/// szpula zewnętrzna oraz metadane łączności (model, Wi-Fi, drzwiczki).
+/// Expanded details section: AMS units with colored slots,
+/// external spool, and connectivity metadata (model, Wi-Fi, door state).
 class _DetailsPanel extends ConsumerWidget {
   const _DetailsPanel({required this.status});
 
@@ -413,13 +405,13 @@ class _DetailsPanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final ams = status.ams ?? const [];
     final spools = status.externalSpools;
-    // Materiał faktycznie załadowany (na aktywnym ekstruderze) — to JEGO
-    // podświetlamy, niezależnie od kolejności na liście.
+    // Actually loaded filament (on the active extruder)—highlight this one
+    // regardless of list order.
     final active = status.activeTray;
     final dual = status.isDualExtruder;
     final activeExtruder = status.activeExtruder;
-    // Szpule z magazynu przypisane do slotów tej drukarki — by pokazać dokładną
-    // pozostałą wagę (drukarka podaje tylko %, a dla szpuli zewn. nawet tego nie).
+    // Spools from inventory assigned to this printer's slots—to show exact
+    // remaining weight (printer only reports %, external spools report nothing).
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
 
     final printerId = status.id;
@@ -431,7 +423,7 @@ class _DetailsPanel extends ConsumerWidget {
           unit: ams[i],
           unitIndex: i,
           active: active,
-          // Na dwudyszowej pokazujemy, który ekstruder karmi ta jednostka.
+          // On dual extruder, show which extruder feeds this unit.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
@@ -443,16 +435,16 @@ class _DetailsPanel extends ConsumerWidget {
           title: l10n.externalSpool,
           trays: spools,
           active: active,
-          // Szpula→ekstruder liczona z id (odwrotnie do kolejności: 254→lewy).
+          // Spool→extruder mapping from id (inverse order: 254→left).
           extruderOf:
               dual ? (i) => status.extruderForExternal(spools[i].id) : (_) => null,
           activeExtruder: activeExtruder,
-          // Szpula zewnętrzna karmiąca dany ekstruder (gdy dwudyszowa); na
-          // jednodyszowej traktujemy ją jako „lewą" (ekstruder 1) — patrz resolver.
+          // External spool feeding a given extruder (dual); on single extruder
+          // treat as "left" (extruder 1)—see resolver.
           assignedOf: (i) =>
               assigned.forExtruder(dual ? status.extruderForExternal(spools[i].id) : 1),
-          // tray_id przypisania zewn.: ekstruder 1 (lewy)→0, 0 (prawy)→1;
-          // jednodyszowa → 0. amsId=255 (konwencja inventory).
+          // tray_id for external assignment: extruder 1 (left)→0, 0 (right)→1;
+          // single extruder→0. amsId=255 (inventory convention).
           trayIdOf: (i) {
             if (!dual) return 0;
             return status.extruderForExternal(spools[i].id) == 1 ? 0 : 1;
@@ -464,8 +456,8 @@ class _DetailsPanel extends ConsumerWidget {
 
     final info = _InfoRow(status: status);
 
-    // Jednolity odstęp 10 px nad pierwszą sekcją (od paska „Szczegóły") i
-    // między kolejnymi sekcjami — rytm spójny z resztą karty.
+    // Uniform 10px spacing above first section (from "Details" bar) and between
+    // sections—consistent rhythm with the rest of the card.
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Column(
@@ -483,9 +475,9 @@ class _DetailsPanel extends ConsumerWidget {
   }
 }
 
-/// Jedna jednostka AMS: nagłówek (numer + ekstruder + wilgotność + temperatura)
-/// i sloty. [active] to instancja faktycznie załadowanego slotu (z modelu) —
-/// porównujemy przez tożsamość, więc podświetla się dokładnie ten jeden.
+/// One AMS unit: header (number + extruder + humidity + temperature) and slots.
+/// [active] is the actually loaded tray instance (from model)—compared by identity,
+/// so exactly one is highlighted.
 class _AmsUnitView extends StatelessWidget {
   const _AmsUnitView({
     required this.unit,
@@ -515,9 +507,9 @@ class _AmsUnitView extends StatelessWidget {
     final color = scheme.onSurfaceVariant;
     final trays = unit.trays ?? const [];
 
-    // Jednostkę AMS wyróżniamy jako wydzieloną „kartę": tło niżej niż chipy
-    // slotów (surfaceContainerHigh), więc sloty wizualnie wystają ponad blok,
-    // a sam AMS czyta się jako spójna grupa odrębna od szpul zewnętrznych.
+    // Distinguish the AMS unit as a separate "card": darker background than slot
+    // chips (surfaceContainerHigh), so slots visually pop above the unit block,
+    // and the AMS reads as a cohesive group distinct from external spools.
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
@@ -589,8 +581,8 @@ class _AmsUnitView extends StatelessWidget {
   }
 }
 
-/// Sekcja slotów z tytułem (np. szpula zewnętrzna). [extruderOf] mapuje indeks
-/// na ekstruder (na dwudyszowej), [active] to faktycznie załadowany slot.
+/// Tray section with title (e.g., external spool). [extruderOf] maps index to
+/// extruder (on dual), [active] is the actually loaded tray.
 class _TraySection extends StatelessWidget {
   const _TraySection({
     required this.title,
@@ -633,8 +625,8 @@ class _TraySection extends StatelessWidget {
                 active: identical(trays[i], active),
                 extruder: extruderOf(i),
                 activeExtruder: activeExtruder,
-                // Szpula zewnętrzna: drukarka nie mierzy zapełnienia (brak RFID
-                // jak w oryginalnych filamentach Bambu w AMS) — nie pokazujemy %.
+                // External spool: printer doesn't measure fill (no RFID like genuine
+                // Bambu filament in AMS)—don't show %.
                 allowRemain: false,
                 assignedSpool: assignedOf(i),
                 slot: _SlotRef(
@@ -656,8 +648,8 @@ class _TraySection extends StatelessWidget {
   }
 }
 
-/// Chip pojedynczego slotu: opcjonalny znacznik ekstrudera + kropka w kolorze
-/// filamentu + materiał + ilość. Aktywny (załadowany) slot dostaje obwódkę.
+/// Single slot chip: optional extruder badge + color dot + material + qty.
+/// Active (loaded) tray gets a border.
 class _TrayChip extends StatelessWidget {
   const _TrayChip({
     required this.tray,
@@ -674,16 +666,15 @@ class _TrayChip extends StatelessWidget {
   final int? extruder;
   final int? activeExtruder;
 
-  /// Czy w ogóle pokazywać % zapełnienia (tylko AMS — szpula zewnętrzna nie ma
-  /// wiarygodnego pomiaru).
+  /// Whether to show fill % at all (AMS only—external spool has no reliable measurement).
   final bool allowRemain;
 
-  /// Szpula z magazynu przypisana do tego slotu — daje dokładną pozostałą wagę
-  /// w gramach (uzupełnia/zastępuje zgrubne % drukarki). Null = nic nie przypisano.
+  /// Spool from inventory assigned to this slot—gives exact remaining weight in grams
+  /// (supplements/replaces the printer's rough %). Null = none assigned.
   final Spool? assignedSpool;
 
-  /// Identyfikacja slotu (drukarka/AMS/taca) — gdy podana, tap czipa otwiera
-  /// arkusz przypisania szpuli do TEGO slotu. Null → chip nieklikalny.
+  /// Slot identification (printer/AMS/tray)—when provided, tapping the chip opens
+  /// the assignment sheet for THIS slot. Null → chip not tappable.
   final _SlotRef? slot;
 
   @override
@@ -699,7 +690,7 @@ class _TrayChip extends StatelessWidget {
         : (tray.materialLabel ?? l10n.traySlotEmpty);
     final remain = tray.remain;
     final showRemain = allowRemain && !empty && remain != null && remain >= 0;
-    // Dokładne gramy z przypisanej szpuli (tylko dla zajętego slotu).
+    // Exact grams from assigned spool (only for occupied slots).
     final spool = empty ? null : assignedSpool;
     final grams = spool == null
         ? null
@@ -757,14 +748,14 @@ class _TrayChip extends StatelessWidget {
             child: chip,
           );
 
-    // Nazwa przypisanej szpuli w tooltipie (chip pokazuje tylko materiał + gramy).
+    // Assigned spool name in tooltip (chip shows material + grams only).
     return spool == null
         ? tappable
         : Tooltip(message: spool.displayName, child: tappable);
   }
 }
 
-/// Identyfikacja fizycznego slotu na potrzeby przypisania szpuli z czipa.
+/// Physical slot identification for spool assignment from chip.
 class _SlotRef {
   const _SlotRef({
     required this.printerId,
@@ -779,13 +770,13 @@ class _SlotRef {
   final int amsId;
   final int trayId;
 
-  /// Czytelna etykieta slotu (np. „AMS 1 · 2" albo „Lewy ekstruder").
+  /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
   final String label;
 }
 
-/// Arkusz „przypisz szpulę do tego slotu" otwierany z czipa AMS/szpuli. Slot jest
-/// znany z kontekstu czipa, więc user wybiera TYLKO szpulę. Pokazuje obecnie
-/// przypisaną (z opcją odpięcia) i listę aktywnych szpul z magazynu.
+/// "Assign spool to this slot" sheet opened from AMS/spool chip. Slot is known
+/// from chip context, so user picks ONLY the spool. Shows current assignment
+/// (with unassign option) and list of active spools from inventory.
 class _AssignSlotSheet extends ConsumerWidget {
   const _AssignSlotSheet({required this.slot});
 
@@ -798,7 +789,7 @@ class _AssignSlotSheet extends ConsumerWidget {
     final inv = ref.watch(inventoryProvider).valueOrNull;
     final spools = inv?.spools ?? const <Spool>[];
 
-    // Szpula obecnie przypisana DOKŁADNIE do tego slotu (jeśli jest).
+    // Spool currently assigned to exactly this slot (if any).
     Spool? current;
     for (final s in spools) {
       final a = inv?.assignmentFor(s.id);
@@ -811,9 +802,8 @@ class _AssignSlotSheet extends ConsumerWidget {
       }
     }
 
-    // Do wyboru: aktywne szpule (bez zarchiwizowanych), bez tej już w slocie.
-    // Sortowanie: najpierw szpule nieprzypisane do żadnego slotu, w obrębie grup
-    // od najmniejszej pozostałej ilości filamentu (łatwiej dobić niedobitki).
+    // Available: active spools (no archived), excluding current assignment.
+    // Sort: unassigned spools first, then by remaining qty (use up scraps first).
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
     final options = [
       for (final s in spools)
@@ -874,8 +864,8 @@ class _AssignSlotSheet extends ConsumerWidget {
           else
             for (final s in options)
               Builder(builder: (context) {
-                // Gdzie szpula siedzi teraz (jeśli w innym slocie) — przy wyborze
-                // zostanie stamtąd przeniesiona (po potwierdzeniu).
+                // Where spool currently sits (if in another slot)—will be moved
+                // from there upon selection (after confirmation).
                 final from = inv?.assignmentFor(s.id);
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -906,7 +896,7 @@ class _AssignSlotSheet extends ConsumerWidget {
       {SpoolAssignment? from}) async {
     final messenger = ScaffoldMessenger.of(context);
 
-    // Szpula już w innym slocie → potwierdź przeniesienie (odepnij stamtąd).
+    // Spool already in another slot → confirm move (unassign from there).
     if (from != null) {
       final fromLabel =
           [?from.printerName, assignmentSlotLabel(l10n, from)].join(' · ');
@@ -970,10 +960,9 @@ class _AssignSlotSheet extends ConsumerWidget {
   }
 }
 
-/// Mały znacznik ekstrudera dla maszyn dwudyszowych: ikona + strona
-/// (L/P — lewy/prawy). Mapowanie wg kontraktu: ekstruder 1 = lewy, 0 = prawy
-/// (potwierdzone na żywo: AMS → ekstruder 1 = lewy). Aktywny ekstruder w
-/// kolorze akcentu, pozostałe przygaszone.
+/// Small extruder badge for dual-extruder machines: icon + side (L/R—left/right).
+/// Mapping per contract: extruder 1 = left, 0 = right (verified live: AMS →
+/// extruder 1 = left). Active extruder in accent color, others dimmed.
 class _ExtruderBadge extends StatelessWidget {
   const _ExtruderBadge({required this.extruder, required this.active});
 
@@ -1009,7 +998,7 @@ class _ExtruderBadge extends StatelessWidget {
   }
 }
 
-/// Kółko w kolorze filamentu; pusty/nieznany slot → przekreślona obwódka.
+/// Circle in filament color; empty/unknown slot → crossed-out outline.
 class _ColorDot extends StatelessWidget {
   const _ColorDot({required this.color});
 
@@ -1033,8 +1022,8 @@ class _ColorDot extends StatelessWidget {
   }
 }
 
-/// Wiersz metadanych łączności: sygnał Wi-Fi, stan drzwiczek. Model drukarki
-/// celowo pominięty — nazwa drukarki w nagłówku już wystarcza za identyfikację.
+/// Connectivity metadata row: Wi-Fi signal, door state. Printer model intentionally
+/// omitted—printer name in header suffices for identification.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.status});
 
@@ -1058,14 +1047,13 @@ class _InfoRow extends StatelessWidget {
         _InfoChip(
           icon: doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
           text: doorOpen ? l10n.doorOpen : l10n.doorClosed,
-          // Otwarte drzwiczki wyróżniamy ostrzegawczo; zamknięte neutralnie.
+          // Open door highlighted in warning color; closed shown neutrally.
           color: doorOpen ? const Color(0xFFFFB300) : scheme.onSurfaceVariant,
         ),
     ];
     if (items.isEmpty) return const SizedBox.shrink();
 
-    // Rozłożone na całą szerokość (jak chipy wentylatorów) — wyraźne, czytelne
-    // pola zamiast drobnego szarego tekstu.
+    // Distributed across full width (like fan chips)—clear, readable fields instead of tiny gray text.
     return Row(
       children: [
         for (var i = 0; i < items.length; i++) ...[
@@ -1076,7 +1064,7 @@ class _InfoRow extends StatelessWidget {
     );
   }
 
-  /// Ikona Wi-Fi wg siły sygnału (dBm): im bliżej 0, tym lepiej.
+  /// Wi-Fi icon based on signal strength (dBm): closer to 0 is better.
   IconData _wifiIcon(int dbm) {
     if (dbm >= -55) return Icons.network_wifi;
     if (dbm >= -65) return Icons.network_wifi_3_bar;
@@ -1084,7 +1072,7 @@ class _InfoRow extends StatelessWidget {
     return Icons.network_wifi_1_bar;
   }
 
-  /// Kolor wg jakości sygnału: dobry → zielony, średni → bursztyn, słaby → błąd.
+  /// Color based on signal quality: good → green, fair → amber, weak → error.
   Color _wifiColor(ColorScheme scheme, int dbm) {
     if (dbm >= -60) return const Color(0xFF66BB6A);
     if (dbm >= -72) return const Color(0xFFFFB300);
@@ -1092,8 +1080,8 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// Czytelna „pigułka" metadanej: kolorowa ikona + tekst na tle kontenera,
-/// rozciągana na równą część szerokości wiersza.
+/// Readable metadata "pill": colored icon + text on container background,
+/// stretched to equal width share within a row.
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.text, this.color});
 
@@ -1135,12 +1123,11 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-/// Wersja firmware tuż pod nazwą drukarki (widoczna bez rozwijania szczegółów,
-/// tylko gdy drukarka online). Gdy dostępna aktualizacja — wyróżniona kolorem
-/// (tertiary), pogrubiona, z ikoną aktualizacji i wersją docelową
-/// (`bieżąca → najnowsza`); gdy aktualne — neutralnie. Tooltip wyjaśnia stan i
-/// niesie notatki wydania, gdy serwer je poda. Sam się chowa, gdy brak danych
-/// firmware. Wykonanie aktualizacji dojdzie tu w przyszłości (repo już gotowe).
+/// Firmware version under printer name (visible without expanding details,
+/// only when online). When update available—highlighted in tertiary color, bold,
+/// with update icon and target version (`current → latest`); when current—neutral.
+/// Tooltip explains state and carries release notes if server provides them.
+/// Auto-hides when no firmware data. Update action will come in future (repo ready).
 class _FirmwareLine extends ConsumerWidget {
   const _FirmwareLine({required this.printerId});
 
@@ -1194,9 +1181,9 @@ class _FirmwareLine extends ConsumerWidget {
   }
 }
 
-/// Łączny czas druku drukarki (godziny, z przeglądu konserwacji) tuż pod nazwą.
-/// Dane są historyczne i niezależne od WS, więc pokazujemy je także gdy drukarka
-/// OFFLINE. Sam się chowa, gdy serwer nie poda danych konserwacji.
+/// Total print time (hours, from maintenance review) under printer name.
+/// Data is historical and independent of WS, so we show it even when offline.
+/// Auto-hides when server provides no maintenance data.
 class _TotalPrintTimeLine extends ConsumerWidget {
   const _TotalPrintTimeLine({required this.printerId});
 
@@ -1230,7 +1217,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
   }
 }
 
-/// Parsuje kolor filamentu z hex RRGGBBAA na [Color]; null gdy niepoprawny.
+/// Parses filament color from hex RRGGBBAA to [Color]; null if invalid.
 Color? _parseTrayColor(String? hex) {
   if (hex == null || hex.length != 8) return null;
   final rgb = int.tryParse(hex.substring(0, 6), radix: 16);
@@ -1239,7 +1226,7 @@ Color? _parseTrayColor(String? hex) {
   return Color((a << 24) | rgb);
 }
 
-/// Panel aktywnego wydruku: nazwa, pasek postępu z %, ETA i warstwy.
+/// Active print panel: name, progress bar with %, ETA, and layer count.
 class _PrintPanel extends StatelessWidget {
   const _PrintPanel({required this.status});
 
@@ -1272,12 +1259,12 @@ class _PrintPanel extends StatelessWidget {
         ),
     ];
 
-    // Faza przygotowania (nagrzewanie, auto bed leveling): pokaż nazwę
-    // etapu i nieoznaczony pasek zamiast mylącego 0%.
+    // Prep phase (heating, auto bed leveling): show stage name
+    // and indeterminate bar instead of confusing 0%.
     final stage = status.stgCurName?.trim();
     final showStage = status.isPreparing && stage != null && stage.isNotEmpty;
 
-    // Rząd 1: nazwa pliku + (w przygotowaniu) nazwa etapu.
+    // Row 1: file name + (when preparing) stage name.
     final nameBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1319,11 +1306,11 @@ class _PrintPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rząd 1: miniatura + nazwa pliku.
+          // Row 1: thumbnail + file name.
           Row(
             children: [
-              // Miniatura zawsze podczas druku; bez okładki (lub w kalibracji,
-              // która nie ma własnej) — placeholder zamiast pustki.
+              // Thumbnail always during print; without cover (or in calibration
+              // which has no cover)—placeholder instead of blank space.
               _CoverThumbnail(
                 coverUrl: status.isCalibration ? null : status.coverUrl,
               ),
@@ -1332,14 +1319,14 @@ class _PrintPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          // Rząd 2: pasek postępu + reszta — pełna szerokość, od lewej krawędzi.
+          // Row 2: progress bar + rest—full width, from left edge.
           Row(
             children: [
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    // Faza przygotowania → nieoznaczony pasek (bez 0%).
+                    // Prep phase → indeterminate bar (no 0%).
                     value: showStage
                         ? null
                         : (progress == null
@@ -1390,22 +1377,22 @@ class _MetaItem extends StatelessWidget {
   }
 }
 
-/// Miniatura okładki bieżącego wydruku. Pobiera obrazek z `cover_url`
-/// dołączając token strumienia kamery (`?token=`). Placeholder zamiast
-/// błędu — nigdy nie wywraca karty.
+/// Cover thumbnail for current print. Fetches image from `cover_url`
+/// with camera stream token (`?token=`). Placeholder instead of
+/// error—never crashes the card.
 ///
-/// M2: proaktywne odświeżanie tokenu i reaktywna invalidacja po 401
-/// (`ref.invalidate(cameraTokenProvider)`) wejdą razem z podglądem kamery.
+/// M2: proactive token refresh and reactive invalidation on 401
+/// (`ref.invalidate(cameraTokenProvider)`) will arrive with camera preview.
 class _CoverThumbnail extends ConsumerWidget {
   const _CoverThumbnail({required this.coverUrl});
 
-  /// `null`/pusty → od razu placeholder (np. kalibracja bez własnej okładki).
+  /// `null`/empty → immediate placeholder (e.g., calibration with no cover).
   final String? coverUrl;
 
   static const _size = 64.0;
 
-  /// Grafika placeholdera (dysza nad stołem, zaokrąglone przezroczyste rogi) —
-  /// pokazywana zamiast okładki, gdy brak podglądu lub trwa kalibracja.
+  /// Placeholder graphic (nozzle over table, rounded transparent corners)—
+  /// shown instead of cover when preview missing or calibration running.
   static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
 
   @override
@@ -1445,8 +1432,8 @@ class _CoverThumbnail extends ConsumerWidget {
   }
 }
 
-/// Siatka kafelków temperatur (2 w rzędzie), każdy z ikoną i parą
-/// wartość aktualna / docelowa.
+/// Grid of temperature tiles (2 per row), each with icon and pair
+/// current value / target value.
 class _TempGrid extends StatelessWidget {
   const _TempGrid({required this.readings});
 
@@ -1471,10 +1458,9 @@ class _TempGrid extends StatelessWidget {
   }
 }
 
-/// Interaktywny pasek sterowania (M4): pauza/wznów/stop (stop zawsze za
-/// dialogiem potwierdzenia), światło komory i prędkość. Stan optymistyczny +
-/// rollback trzyma [controlsProvider]; tu tylko render, wysłanie akcji i
-/// SnackBar z wynikiem. Chowa się gdy drukarka odłączona.
+/// Interactive control bar (M4): pause/resume/stop (stop always behind confirmation),
+/// chamber light, speed. Optimistic state + rollback held by [controlsProvider];
+/// here: render, send action, show result snackbar. Hides when disconnected.
 class _ControlsActions extends ConsumerWidget {
   const _ControlsActions({required this.printerId, required this.status});
 
@@ -1490,8 +1476,7 @@ class _ControlsActions extends ConsumerWidget {
 
     final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
     if (forbidden) {
-      // Klucz API bez `can_control_printer` — zamiast martwych przycisków
-      // pokazujemy czytelny powód.
+      // API key lacks `can_control_printer`—show clear reason instead of dead buttons.
       return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: Row(
@@ -1588,8 +1573,8 @@ class _ControlsActions extends ConsumerWidget {
     if (context.mounted) _showResult(context, result);
   }
 
-  /// Stop ZAWSZE za potwierdzeniem — to deliverable, nie szlif: łatwo ubić
-  /// wielogodzinny wydruk jednym tapnięciem.
+  /// Stop always behind confirmation—deliverable requirement, not polish: easy to kill
+  /// a multi-hour print with one tap.
   Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -1631,15 +1616,12 @@ class _ControlsActions extends ConsumerWidget {
   }
 }
 
-/// Sterowanie smart gniazdkiem przypisanym do drukarki (M7) — kwadratowy
-/// przycisk-ikona w nagłówku karty, w jednej linii z nazwą drukarki. Sam symbol
-/// wtyczki niesie stan: `power` = załączone, `power_off` (przekreślona) =
-/// wyłączone; pobór mocy i stan są w tooltipie. Tapnięcie przełącza. Sam się
-/// chowa, gdy do drukarki nie przypisano (widocznego) gniazdka. Reguły
-/// kluczowe: **w trakcie druku przycisk jest wyszarzony** (żadnej zmiany
-/// zasilania pracującej maszyny) oraz **każda zmiana (ON/OFF) wymaga
-/// potwierdzenia** w dialogu. Stan optymistyczny + rollback trzyma
-/// [smartPlugsProvider].
+/// Smart plug control for printer (M7)—square icon button in card header, inline
+/// with printer name. Plug symbol shows state: `power` = on, `power_off` (crossed)
+/// = off; power draw and state in tooltip. Tap toggles. Auto-hides if none assigned.
+/// Key rules: **button grayed out during print** (no power changes to active machine)
+/// and **every change (ON/OFF) needs confirmation** dialog. Optimistic state + rollback
+/// held by [smartPlugsProvider].
 class _SmartPlugButton extends ConsumerWidget {
   const _SmartPlugButton({required this.printerId, required this.printing});
 
@@ -1664,12 +1646,11 @@ class _SmartPlugButton extends ConsumerWidget {
     final reachable = status?.isReachable ?? true;
     final power = status?.powerW;
 
-    // W trakcie druku przycisk jest całkowicie wyszarzony — nie zmieniamy
-    // zasilania pracującej maszyny (ani ON, ani OFF).
+    // During print button is fully grayed out—don't change power on active machine.
     final canControl = !busy && !forbidden && reachable && !printing;
 
-    // Tooltip niesie stan + pobór mocy (przycisk to sam symbol): nieosiągalne →
-    // „Niedostępne"; załączone z pomiarem → „X W"; inaczej surowy stan Wł./Wył.
+    // Tooltip carries state + power draw (button is just icon): unreachable→
+    // "Unreachable"; on with measurement→"X W"; otherwise raw state On/Off.
     final tip = printing
         ? l10n.smartPlugCantPowerOff
         : !reachable
@@ -1689,8 +1670,8 @@ class _SmartPlugButton extends ConsumerWidget {
       icon: Icon(on ? Icons.power : Icons.power_off),
       style: IconButton.styleFrom(
         foregroundColor: fg,
-        // Kwadrat (lekko zaokrąglony) z obrysem — odróżnia toggle zasilania od
-        // okrągłego przycisku kamery obok.
+        // Square (slightly rounded) with border—distinguishes power toggle from
+        // round camera button next to it.
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide(
           color: on ? scheme.primary : scheme.outlineVariant,
@@ -1707,8 +1688,8 @@ class _SmartPlugButton extends ConsumerWidget {
   ) async {
     final l10n = AppLocalizations.of(context);
 
-    // Każda zmiana zasilania wymaga potwierdzenia — łatwo ubić maszynę jednym
-    // tapnięciem. OFF (odcięcie) wyróżniamy kolorem błędu; ON jest neutralny.
+    // Every power change needs confirmation—easy to kill the machine with one tap.
+    // OFF (power cut) highlighted in error color; ON is neutral.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1758,10 +1739,9 @@ const _btnSpinner = SizedBox(
   child: CircularProgressIndicator(strokeWidth: 2),
 );
 
-/// Układa przyciski sterowania w siatkę 2-kolumnową, w kolejności z [buttons]
-/// (pauza/wznów, zatrzymaj, oświetlenie, prędkość). Każda komórka rozciąga się
-/// na równą szerokość; samotny przycisk (np. tylko światło w bezczynności)
-/// zajmuje pełną szerokość wiersza.
+/// Arranges control buttons in 2-column grid, in [buttons] order (pause/resume,
+/// stop, light, speed). Each cell stretches to equal width; solo button (e.g.,
+/// light only when idle) takes full row width.
 class _ControlsGrid extends StatelessWidget {
   const _ControlsGrid({required this.buttons});
 
@@ -1795,8 +1775,8 @@ class _ControlsGrid extends StatelessWidget {
   }
 }
 
-/// Przycisk akcji cyklu życia wydruku (pauza/wznów/stop). W locie pokazuje
-/// spinner i jest zablokowany; `danger` koloruje stop na czerwono.
+/// Print lifecycle action button (pause/resume/stop). Shows spinner and locks when
+/// busy; `danger` colors stop red.
 class _LifecycleButton extends StatelessWidget {
   const _LifecycleButton({
     required this.icon,
@@ -1830,8 +1810,7 @@ class _LifecycleButton extends StatelessWidget {
   }
 }
 
-/// Przełącznik światła komory. Pokazuje aktualny (optymistyczny) stan;
-/// żółta żarówka = włączone.
+/// Chamber light toggle. Shows current (optimistic) state; yellow bulb = on.
 class _LightToggle extends StatelessWidget {
   const _LightToggle({
     required this.on,
@@ -1859,8 +1838,8 @@ class _LightToggle extends StatelessWidget {
   }
 }
 
-/// Wybór prędkości druku (1–4). Tapnięcie otwiera menu z czterema poziomami;
-/// bieżący jest odhaczony. W locie zablokowany ze spinnerem.
+/// Print speed picker (1–4). Tap opens menu with four levels; current is checked.
+/// Locked with spinner when busy.
 class _SpeedControl extends StatelessWidget {
   const _SpeedControl({
     required this.level,
@@ -1924,9 +1903,8 @@ String? _speedName(AppLocalizations l10n, int? level) => switch (level) {
       _ => null,
     };
 
-/// Pasek read-only chipów ze stanem czujników (wentylatory, nawiew komory).
-/// Sterowalne wartości (światło, prędkość) są w [_ControlsActions].
-/// Renderuje się tylko gdy serwer poda którąkolwiek wartość.
+/// Read-only chip bar for sensor state (fans, chamber air duct). Controllable
+/// values (light, speed) in [_ControlsActions]. Renders only if server provides any value.
 class _ControlsRow extends StatelessWidget {
   const _ControlsRow({required this.status});
 
@@ -1937,9 +1915,9 @@ class _ControlsRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final fanColor = _fanColor(context);
 
-    // `valueAlternatives` rezerwuje szerokość na najszerszą możliwą wartość,
-    // żeby chip nie zmieniał rozmiaru przy pollingu (np. 53% → 100%).
-    // Wentylatory 0–100%, prędkość do 166% (Ludicrous) → 3 cyfry.
+    // `valueAlternatives` reserves width for widest possible value so chip
+    // size doesn't change during polling (e.g., 53% → 100%).
+    // Fans 0–100%, speed up to 166% (Ludicrous)→3 digits.
     final chips = <Widget>[
       if (status.coolingFanSpeed != null)
         _ControlChip(
@@ -1968,14 +1946,14 @@ class _ControlsRow extends StatelessWidget {
           valueAlternatives: const ['100%'],
           color: fanColor(status.bigFan2Speed!),
         ),
-      // Nawiew komory (grzanie/chłodzenie) przeniesiony do kafelka temperatury
-      // komory — patrz _AirductBadge w _TempTile.
+      // Chamber air duct (heating/cooling) moved to chamber temp tile—
+      // see _AirductBadge in _TempTile.
     ];
 
     if (chips.isEmpty) return const SizedBox.shrink();
 
-    // Chipy rozłożone równomiernie na całej szerokości karty — każdy w
-    // `Expanded`, więc dzielą wiersz na równe części niezależnie od liczby.
+    // Chips evenly distributed across card width—each in `Expanded`, so they
+    // divide the row equally regardless of count.
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Row(
@@ -1989,7 +1967,7 @@ class _ControlsRow extends StatelessWidget {
     );
   }
 
-  // Wentylator: stojący (0%) przygaszony, kręcący się — chłodny akcent.
+  // Fan: idle (0%)→dimmed, spinning→cool accent.
   Color Function(int) _fanColor(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return (speed) =>
@@ -1997,9 +1975,9 @@ class _ControlsRow extends StatelessWidget {
   }
 }
 
-/// Pojedynczy chip sterowania: ikona + krótki podpis + wartość. [label] to
-/// pełna nazwa w tooltipie, [caption] to widoczny skrót (np. „Komora"), żeby
-/// sama ikona nie musiała tłumaczyć, którego wentylatora dotyczy odczyt.
+/// Single control chip: icon + short caption + value. [label] is full name in
+/// tooltip; [caption] is visible shorthand (e.g., "Chamber") so icon alone needn't
+/// explain which fan the reading is for.
 class _ControlChip extends StatelessWidget {
   const _ControlChip({
     required this.icon,
@@ -2013,18 +1991,18 @@ class _ControlChip extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  /// Widoczny skrót obok ikony (opcjonalny). Gdy null — chip pokazuje samą
-  /// ikonę i wartość (jak dawniej).
+  /// Visible shorthand next to icon (optional). When null—chip shows icon and
+  /// value only (legacy behavior).
   final String? caption;
 
   final String value;
 
-  /// Wszystkie wartości, jakie ten chip może pokazać. Slot wartości
-  /// rezerwuje szerokość na najszerszą z nich, więc chip ma stały rozmiar
-  /// niezależnie od bieżącej wartości (np. „53%" vs „100%").
+  /// All possible values this chip can display. Value slot reserves width for
+  /// widest, so chip maintains constant size regardless of current value
+  /// (e.g., "53%" vs "100%").
   final List<String> valueAlternatives;
 
-  /// Akcent ikony/wartości; null = neutralny kolor z motywu.
+  /// Icon/value accent color; null = neutral theme color.
   final Color? color;
 
   @override
@@ -2032,8 +2010,8 @@ class _ControlChip extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final accent = color ?? scheme.onSurfaceVariant;
-    // Tabular figures: każda cyfra tej samej szerokości — brak drgania
-    // przy zmianie cyfr o tej samej długości (np. 53% → 67%).
+    // Tabular figures: all digits same width—no jitter when swapping same-length
+    // digits (e.g., 53% → 67%).
     final valueStyle = (theme.textTheme.labelMedium ?? const TextStyle())
         .copyWith(
       color: accent,
@@ -2041,9 +2019,8 @@ class _ControlChip extends StatelessWidget {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    // Szerokość slotu = najszersza z możliwych wartości (zmierzona, nie
-    // zgadnięta) → chip ma stały rozmiar mimo zmian wartości przy pollingu.
-    // Pomiar uwzględnia skalowanie tekstu z MediaQuery.
+    // Slot width = widest possible value (measured, not guessed)→chip stays
+    // constant size despite polling changes. Measurement respects text scaling.
     final scaler = MediaQuery.textScalerOf(context);
     final dir = Directionality.of(context);
     var slotWidth = 0.0;
@@ -2108,7 +2085,7 @@ class _TempTile extends StatelessWidget {
     final target = reading.target;
 
     final iconColor = _tempIconColor(scheme, actual, target);
-    // Cel pokazujemy tylko gdy ustawiony (>0); 0 = grzanie wyłączone.
+    // Show target only if set (>0); 0 = heating off.
     final hasTarget = target != null && target > 0;
 
     return Container(
@@ -2121,8 +2098,8 @@ class _TempTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Ikona w lewym górnym rogu + etykieta czujnika; dla komory po prawej
-          // wskaźnik nawiewu (grzanie/chłodzenie) zamiast osobnego chipa.
+          // Icon top-left + sensor label; for chamber, air duct indicator (heating/
+          // cooling) on right instead of separate chip.
           Row(
             children: [
               Icon(reading.icon, size: 16, color: iconColor),
@@ -2140,8 +2117,8 @@ class _TempTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // Aktualna: duża, żywy kolor, przy lewej. Cel: mniejszy,
-          // półprzezroczysty, dosunięty do prawej krawędzi.
+          // Current: large, vivid color, left-aligned. Target: smaller, semi-
+          // transparent, right-aligned.
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -2170,9 +2147,8 @@ class _TempTile extends StatelessWidget {
   }
 }
 
-/// Wskaźnik nawiewu komory wpięty w kafelek temperatury komory: ikona +
-/// „Grzanie"/„Chłodzenie". Zastępuje dawny osobny chip, żeby nie rozbijać
-/// informacji o komorze na dwa miejsca.
+/// Chamber air duct indicator pinned to chamber temp tile: icon +
+/// "Heating"/"Cooling". Replaces former separate chip to keep chamber info unified.
 class _AirductBadge extends StatelessWidget {
   const _AirductBadge({required this.heating});
 
@@ -2201,18 +2177,17 @@ class _AirductBadge extends StatelessWidget {
   }
 }
 
-/// Kolor ikony kafelka temperatury zależny od stanu czujnika:
-/// biała gdy cel nieustawiony, niebieska przy chłodzeniu (aktualna nad celem),
-/// pomarańczowa przy rozgrzewaniu i utrzymywaniu wysokiej temperatury.
+/// Icon color for temperature tile depends on sensor state: white when target
+/// unset, blue when cooling (actual above target), orange when heating/holding high temp.
 Color _tempIconColor(ColorScheme scheme, double? actual, double? target) {
-  // Cel nieustawiony (null lub 0 = grzanie wyłączone) → neutralna biała.
+  // Target unset (null or 0 = heating off)→neutral white.
   if (target == null || target <= 0) return scheme.onSurface;
-  // Tolerancja, by drobne wahania przy celu nie migotały kolorem.
+  // Tolerance: minor fluctuations at target shouldn't flicker the color.
   const tolerance = 2.0;
   if (actual != null && actual > target + tolerance) {
-    return const Color(0xFF4FC3F7); // chłodzenie — niebieska
+    return const Color(0xFF4FC3F7); // cooling—blue
   }
-  return const Color(0xFFFF8A50); // rozgrzewanie / wysoka temp — pomarańczowa
+  return const Color(0xFFFF8A50); // heating/high temp—orange
 }
 
 class _StateChip extends StatelessWidget {
@@ -2227,8 +2202,8 @@ class _StateChip extends StatelessWidget {
   final bool connected;
   final bool active;
 
-  /// Wariant OFFLINE: delikatne czerwone tło + żywszy czerwony outline,
-  /// żeby rozłączona drukarka rzucała się w oczy mimo zwiniętej karty.
+  /// OFFLINE variant: light red background + vivid red border so disconnected
+  /// printer stands out even in collapsed card.
   final bool offline;
 
   @override
@@ -2258,8 +2233,8 @@ class _StateChip extends StatelessWidget {
 
 enum _TempKind { nozzle, bed, chamber, unknown }
 
-/// Para odczytów (aktualny + docelowy) jednego czujnika. Etykieta jest
-/// tłumaczona dopiero przy renderowaniu (z [BuildContext]).
+/// Pair of readings (current + target) for one sensor. Label is translated
+/// at render time (with [BuildContext]).
 class _TempReading {
   const _TempReading({
     required this.kind,
@@ -2271,13 +2246,13 @@ class _TempReading {
   });
 
   final _TempKind kind;
-  final String raw; // surowy klucz — pokazywany dla nieznanego czujnika
-  final int? index; // numer dyszy (np. 2) lub null
+  final String raw; // raw key—shown for unknown sensor
+  final int? index; // nozzle number (e.g., 2) or null
   final double? actual;
   final double? target;
 
-  /// Tryb nawiewu komory (grzanie/chłodzenie); ustawiany TYLKO dla kafelka
-  /// komory, gdzie pokazujemy go zamiast osobnego chipa. null = nieznany/n.d.
+  /// Chamber air duct mode (heating/cooling); set ONLY for chamber tile where we
+  /// show it instead of separate chip. null = unknown/n.a.
   final bool? airductIsHeating;
 
   String label(AppLocalizations l10n) => switch (kind) {
@@ -2296,8 +2271,8 @@ class _TempReading {
       };
 }
 
-/// Grupuje surowe klucze temperatur w pary aktualna/docelowa i porządkuje
-/// znane czujniki (dysza, stół, komora) przed nieznanymi.
+/// Group raw temperature keys into current/target pairs and order known sensors
+/// (nozzle, bed, chamber) before unknown ones.
 List<_TempReading> _buildReadings(
   Map<String, double>? temps,
   bool? airductIsHeating,
@@ -2358,7 +2333,7 @@ _TempReading _readingFor(
     index: kind == _TempKind.nozzle ? index : null,
     actual: actual,
     target: target,
-    // Nawiew dotyczy tylko komory.
+    // Air duct applies to chamber only.
     airductIsHeating: kind == _TempKind.chamber ? airductIsHeating : null,
   );
 }
@@ -2367,7 +2342,7 @@ String _durationText(AppLocalizations l10n, int minutes) => minutes < 60
     ? l10n.durationMinutes(minutes)
     : l10n.durationHoursMinutes(minutes ~/ 60, minutes % 60);
 
-/// Godzina zakończenia (ETA) jako HH:mm = teraz + pozostałe minuty.
+/// ETA as HH:mm = now + remaining minutes.
 String _etaTime(int remainingMinutes) {
   final eta = DateTime.now().add(Duration(minutes: remainingMinutes));
   final hh = eta.hour.toString().padLeft(2, '0');

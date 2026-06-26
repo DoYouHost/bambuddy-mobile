@@ -11,7 +11,7 @@ import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
 
-/// Domyślna zieleń wykresów (spójna z motywem aplikacji).
+/// Default chart green (consistent with app theme).
 const _accent = Color(0xFF22C55E);
 
 // ── Failure Analysis ────────────────────────────────────────────────────────
@@ -110,8 +110,8 @@ class PrintActivityCard extends StatelessWidget {
   final StatsComputed data;
   final String locale;
 
-  static const _margin = 3.0; // 1.5 z każdej strony komórki
-  static const _labelW = 30.0; // kolumna etykiet dni tygodnia
+  static const _margin = 3.0;
+  static const _labelW = 30.0;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +120,7 @@ class PrintActivityCard extends StatelessWidget {
     final days = data.printsByDay;
     final maxCount = days.values.fold<int>(1, math.max);
 
-    // Zakres: od poniedziałku tygodnia z najwcześniejszym wydrukiem do dziś.
+    // Range: from Monday of the week with earliest print to today.
     final sorted = days.keys.toList()..sort();
     final first = sorted.first;
     final startMonday = first.subtract(Duration(days: first.weekday - 1));
@@ -139,9 +139,9 @@ class PrintActivityCard extends StatelessWidget {
 
     DateTime dayAt(int w, int d) => startMonday.add(Duration(days: w * 7 + d));
 
-    // Krótkie nazwy dni: pon..niedz w locale (dateSymbols: 0=niedz..6=sob).
+    // Short weekday names in locale.
     final wd = DateFormat.E(locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    String weekdayLabel(int d) => d.isEven ? wd[(d + 1) % 7] : ''; // pon/śr/pt/niedz
+    String weekdayLabel(int d) => d.isEven ? wd[(d + 1) % 7] : '';
     final monthFmt = DateFormat.MMM(locale);
 
     return SectionCard(
@@ -151,16 +151,15 @@ class PrintActivityCard extends StatelessWidget {
         children: [
           LayoutBuilder(
             builder: (context, c) {
-              // Komórka skalowana tak, by siatka (+ kolumna etykiet) wypełniła
-              // szerokość karty. Dla bardzo długich zakresów schodzimy do
-              // minimum i włączamy przewijanie poziome.
+              // Cell scaled so grid (+ label column) fills card width.
+              // For very long ranges, scale down to minimum and enable horizontal scroll.
               final avail = c.maxWidth - _labelW;
               var size = avail / weeks - _margin;
               final scroll = size < 9;
               if (scroll) size = 14;
               final colW = size + _margin;
 
-              // Nagłówek miesięcy: etykieta nad kolumną, gdy zaczyna się miesiąc.
+              // Month header: label above column when month starts.
               final monthRow = Row(
                 children: [
                   const SizedBox(width: _labelW),
@@ -179,7 +178,7 @@ class PrintActivityCard extends StatelessWidget {
               final body = Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Kolumna etykiet dni tygodnia.
+                  // Weekday label column.
                   Column(
                     children: [
                       for (var d = 0; d < 7; d++)
@@ -346,12 +345,12 @@ class _RecordRow extends StatelessWidget {
   }
 }
 
-// ── Lista pasków (wspólna dla rozbić) ───────────────────────────────────────
+// ── Bar list (shared for breakdowns) ─────────────────────────────────────
 
 class BarList extends StatelessWidget {
   const BarList({super.key, required this.rows});
 
-  /// (etykieta, wartość-tekst, ułamek 0..1, kolor opcjonalny).
+  /// (label, value-text, fraction 0..1, optional color).
   final List<({String label, String value, double fraction, Color? color})> rows;
 
   @override
@@ -394,7 +393,7 @@ class BarList extends StatelessWidget {
   }
 }
 
-// ── Printer Stats (toggle metryki) ──────────────────────────────────────────
+// ── Printer Stats (metric toggle) ──────────────────────────────────────────
 
 class PrinterStatsCard extends ConsumerStatefulWidget {
   const PrinterStatsCard({super.key, required this.data});
@@ -438,7 +437,7 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
   }
 }
 
-// ── Filament Trends — nagłówek ──────────────────────────────────────────────
+// ── Filament Trends — header ──────────────────────────────────────────────
 
 class FilamentTrendsHeader extends StatelessWidget {
   const FilamentTrendsHeader({super.key, required this.stats});
@@ -497,7 +496,7 @@ class _Metric extends StatelessWidget {
   }
 }
 
-// ── Usage Over Time (wykres liniowy) ────────────────────────────────────────
+// ── Usage Over Time (line chart) ────────────────────────────────────────
 
 class UsageOverTimeCard extends StatelessWidget {
   const UsageOverTimeCard({super.key, required this.data, required this.locale});
@@ -587,7 +586,7 @@ class UsageOverTimeCard extends StatelessWidget {
   }
 }
 
-// ── By Material (donut + toggle) ────────────────────────────────────────────
+// ── By Material (donut + metric toggle) ────────────────────────────────────────────
 
 class ByMaterialCard extends StatefulWidget {
   const ByMaterialCard({super.key, required this.data});
@@ -702,7 +701,7 @@ class SuccessByMaterialCard extends StatelessWidget {
   }
 }
 
-// ── Color Distribution (donut prawdziwych kolorów) ──────────────────────────
+// ── Color Distribution (donut of actual colors) ──────────────────────────
 
 class ColorDistributionCard extends StatelessWidget {
   const ColorDistributionCard({super.key, required this.data});
@@ -794,7 +793,7 @@ class ColorDistributionCard extends StatelessWidget {
   }
 }
 
-/// Próbka koloru + etykieta procentowa (czytelna, z obwódką dla bieli/czerni).
+/// Color swatch + percentage label (readable, with border for white/black).
 class _ColorChip extends StatelessWidget {
   const _ColorChip({required this.color, required this.label});
 
@@ -830,16 +829,16 @@ class _ColorChip extends StatelessWidget {
   }
 }
 
-// ── Histogramy słupkowe (czas trwania / nawyki / pora dnia) ──────────────────
+// ── Bar histograms (duration / habits / time of day) ──────────────────
 
-/// Wspólny wykres słupkowy z etykietami osi X.
+/// Shared bar chart with X-axis labels.
 class _BarHistogram extends StatelessWidget {
   const _BarHistogram({required this.values, required this.labels, this.everyLabel = 1});
 
   final List<double> values;
   final List<String> labels;
 
-  /// Pokazuj etykietę osi X co [everyLabel] słupek (zagęszczenie).
+  /// Show X-axis label every [everyLabel] bar (spacing).
   final int everyLabel;
 
   @override
@@ -934,9 +933,8 @@ class _HabitsCardState extends State<HabitsCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Krótkie nazwy dni: poniedziałek..niedziela w locale użytkownika.
+    // Short weekday names in user's locale.
     final symbols = DateFormat.E(widget.locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    // dateSymbols: index 0 = niedziela … 6 = sobota; my chcemy pon..niedz.
     final labels = [for (var i = 1; i <= 7; i++) symbols[i % 7]];
     return SectionCard(
       title: l10n.statsPrintHabits,

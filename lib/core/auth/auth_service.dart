@@ -4,12 +4,12 @@ import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import 'credentials_store.dart';
 
-/// Wynik sondy trybu auth serwera.
+/// Result of server auth mode probe.
 typedef AuthProbeResult = ({bool authEnabled, bool requiresSetup});
 
-/// Logowanie JWT i detekcja trybu auth. Używa „gołego" Dio (bez
-/// interceptora auth) — login z definicji idzie bez nagłówków,
-/// a to przecina cykl AuthService ↔ ApiClient.
+/// JWT login and auth mode detection. Uses bare Dio (no auth interceptor) —
+/// login by definition goes without headers, which breaks the AuthService ↔
+/// ApiClient cycle.
 class AuthService {
   AuthService({required Dio bareDio, required this._credentials})
       : _dio = bareDio;
@@ -18,8 +18,8 @@ class AuthService {
   final CredentialsStore _credentials;
 
   /// `GET /auth/status` → `{auth_enabled, requires_setup}`.
-  /// Fallback dla starszych serwerów bez tego endpointu (404):
-  /// nieuwierzytelniony `GET /printers` — 200 znaczy auth wyłączony.
+  /// Fallback for older servers without this endpoint (404):
+  /// unauthenticated `GET /printers` — 200 means auth disabled.
   Future<AuthProbeResult> probeAuthStatus(String baseUrl) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -51,8 +51,8 @@ class AuthService {
     }
   }
 
-  /// `POST /auth/login`. Zwraca JWT i zapisuje go w secure storage.
-  /// Przy [remember] zapisuje też login+hasło (cichy re-login po 401).
+  /// `POST /auth/login`. Returns JWT and stores in secure storage.
+  /// When [remember] is true, also stores username+password (silent re-login after 401).
   Future<String> login({
     required String baseUrl,
     required String username,
@@ -88,8 +88,8 @@ class AuthService {
     return token;
   }
 
-  /// Weryfikuje klucz API próbnym `GET /printers` i zapisuje go.
-  /// Rzuca [AuthException] przy odrzuconym kluczu.
+  /// Verifies API key with a test `GET /printers` and stores it.
+  /// Throws [AuthException] if key is rejected.
   Future<void> verifyAndStoreApiKey({
     required String baseUrl,
     required String apiKey,
@@ -109,9 +109,9 @@ class AuthService {
     await _credentials.writeApiKey(apiKey);
   }
 
-  /// Cichy re-login zapamiętanymi poświadczeniami. `null` gdy nic nie
-  /// zapamiętano albo logowanie się nie powiodło — wtedy UI ma łagodnie
-  /// odesłać użytkownika do ekranu konfiguracji, nigdy crashować.
+  /// Silent re-login with saved credentials. `null` if nothing was saved or
+  /// login failed — then UI should gently redirect user to settings screen,
+  /// never crash.
   Future<String?> silentReLogin(String baseUrl) async {
     final saved = await _credentials.readRememberedLogin();
     if (saved == null) return null;

@@ -16,9 +16,8 @@ import '../archive/archive_providers.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
 
-/// Menedżer plików (biblioteka): nawigacja po folderach, miniatury, akcje na
-/// plikach (druk, kolejka, zmiana nazwy, przeniesienie, usunięcie), CRUD
-/// folderów, upload i kosz. Wzorzec UI spójny z ekranem archiwum.
+/// File manager (library): folder navigation, thumbnails, file actions (print, queue,
+/// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.
 class FileManagerScreen extends ConsumerStatefulWidget {
   const FileManagerScreen({super.key});
 
@@ -116,13 +115,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Widget _body(FileManagerState s) {
     final l10n = _l10n;
-    // Wyszukiwanie jest globalne (cała biblioteka) — w jego trybie nie pokazujemy
-    // podfolderów bieżącego katalogu, tylko pasujące pliki z całej biblioteki.
+    // Search is global (all library) — in search mode show matching files from all library,
+    // not subfolders of current directory.
     final folders = s.isSearching ? const [] : s.subfolders;
     final files = s.visibleFiles;
     final notifier = ref.read(fileManagerProvider.notifier);
 
-    // Trwa pobieranie indeksu do wyszukiwania, a nie ma jeszcze wyników.
+    // Fetching search index, no results yet.
     if (s.searching && files.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -150,11 +149,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                     file: f,
                     selected: s.selected.contains(f.id),
                     selectionMode: s.selectionMode,
-                    // W wynikach wyszukiwania pokazujemy, w którym folderze
-                    // plik leży (root, gdy bez folderu).
+                    // Show folder location in search results (root when no folder).
                     folderLabel: s.isSearching
                         ? (s.folderName(f.folderId) ?? l10n.fmRoot)
-                        : null,
+                        : null,  // Show folder location in global search results.
                     onTap: () {
                       if (s.selectionMode) {
                         notifier.toggleSelect(f.id);
@@ -194,8 +192,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ],
     );
   }
-
-  // --- Tworzenie: bottom sheet (folder / upload) ---
 
   void _openCreateSheet(FileManagerState s) {
     final l10n = _l10n;
@@ -261,8 +257,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ),
     );
   }
-
-  // --- Akcje na pliku: bottom sheet ---
 
   void _openFileSheet(LibraryFile file) {
     final l10n = _l10n;
@@ -342,8 +336,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ),
     );
   }
-
-  // --- Implementacje akcji ---
 
   Future<void> _createFolder(FileManagerState s) async {
     final name = await _promptName(
@@ -525,8 +517,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     }
   }
 
-  // --- Pomocnicze dialogi ---
-
   Future<String?> _promptName({
     required String title,
     required String label,
@@ -585,8 +575,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     );
   }
 
-  /// Wybór folderu docelowego (przeniesienie). Zawiera „All Files" (root).
-  /// [excludeFolderId] pomija folder i jego poddrzewo (przeniesienie folderu).
+  /// Target folder picker (move). Includes "All Files" (root).
+  /// [excludeFolderId] skips folder and its subtree (folder move).
   Future<LibraryFolder?> _pickFolder(
     FileManagerState s, {
     int? excludeFolderId,
@@ -610,7 +600,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               leading: const Icon(Icons.home_outlined),
               title: Text(l10n.fmRoot),
               onTap: () =>
-                  Navigator.pop(ctx, const LibraryFolder(id: -1, name: '')),
+                  Navigator.pop(ctx, const LibraryFolder(id: -1, name: '')),  // Sentinel for root.
             ),
             for (final f in folders)
               if (f.id != excludeFolderId && !f.isExternal)
@@ -625,7 +615,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     );
   }
 
-  /// Wybór drukarki (jak w archiwum): jedna → bez pytania, zero → komunikat.
+  /// Printer picker (like in archive): one → no question, zero → message.
   Future<Printer?> _pickPrinter() async {
     final l10n = _l10n;
     final List<Printer> printers;
@@ -667,13 +657,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 }
 
-/// Helper: na wybór roota z [_pickFolder] zwracamy sentinel id=-1; tłumaczymy
-/// to na `folderId=null` w wywołaniu move.
+/// Helper: for root selection from [_pickFolder] we return sentinel id=-1;
+/// translate to `folderId=null` in move call.
 extension on LibraryFolder {
   int? get moveTargetId => id == -1 ? null : id;
 }
-
-// --- Widżety pomocnicze ---
 
 class _StatsBar extends ConsumerWidget {
   const _StatsBar();
@@ -957,7 +945,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Format rozmiaru w bajtach na czytelny tekst (B/KB/MB/GB).
+/// Format bytes to readable text (B/KB/MB/GB).
 String formatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
   const units = ['KB', 'MB', 'GB', 'TB'];

@@ -2,8 +2,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'background_api.dart';
 
-/// Przycisk akcji powiadomienia (np. „Oznacz wykonane" przy konserwacji).
-/// Niezależny od pluginu, by fake w testach mógł go asertować.
+/// Notification action button (e.g., "Mark Done" for maintenance).
+/// Independent of the plugin so tests can inject a fake and assert.
 class NotificationAction {
   const NotificationAction({required this.id, required this.title});
 
@@ -11,32 +11,31 @@ class NotificationAction {
   final String title;
 }
 
-/// Kontrakt powiadomień widziany przez [PrintMonitor]. Wydzielony, by w testach
-/// wstrzyknąć fake i sprawdzić same przejścia (bez pluginu/Androida).
+/// Notification contract seen by [PrintMonitor]. Extracted so tests can inject
+/// a fake and verify state transitions alone (without plugin/Android).
 ///
-/// Stringi przychodzą już zlokalizowane — serwis jest „głupi", nie zna l10n.
+/// Strings are already localized — the service is "dumb" and knows nothing of l10n.
 abstract class NotificationService {
   Future<void> init();
 
-  /// Prosi o uprawnienie powiadomień (Android 13+). `true` = przyznane.
+  /// Requests notification permission (Android 13+). Returns `true` if granted.
   Future<bool> requestPermission();
 
-  /// Pokazuje/aktualizuje JEDNO wiszące powiadomienie wydruku z paskiem
-  /// postępu (zwykła notyfikacja). Podtrzymywaniem procesu w tle zajmuje się
-  /// foreground service z `flutter_foreground_task` (osobny isolate), nie ten
-  /// serwis — tu zostaje tylko warstwa „pokaż powiadomienie".
+  /// Shows/updates ONE ongoing print notification with a progress bar.
+  /// The foreground service from `flutter_foreground_task` (separate isolate)
+  /// handles keeping the process alive; this service just shows the notification.
   Future<void> showOngoing({
     required String title,
     required String body,
     required int progress,
   });
 
-  /// Zdejmuje wiszące powiadomienie.
+  /// Removes the ongoing notification.
   Future<void> clearOngoing();
 
-  /// Jednorazowy alert (zakończenie/błąd) — przeżywa tło, bo plugin sam budzi
-  /// apkę po tapnięciu. Opcjonalne [actions] dokładają przyciski akcji
-  /// (obsługiwane w tle bez otwierania apki).
+  /// One-shot alert (completion/failure) — survives backgrounding because the plugin
+  /// itself wakes the app on tap. Optional [actions] add action buttons
+  /// (handled in background without opening the app).
   Future<void> showAlert({
     required int id,
     required String title,
@@ -46,15 +45,15 @@ abstract class NotificationService {
   });
 }
 
-/// Produkcyjna implementacja na `flutter_local_notifications`.
+/// Production implementation using `flutter_local_notifications`.
 class LocalNotificationService implements NotificationService {
   LocalNotificationService({FlutterLocalNotificationsPlugin? plugin})
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  /// Stałe id wiszącego powiadomienia — `show` z tym samym id aktualizuje
-  /// istniejące powiadomienie zamiast tworzyć nowe. Nie może być 0.
+  /// Fixed ID for the ongoing notification — calling `show` with the same ID
+  /// updates the existing notification instead of creating a new one. Cannot be 0.
   static const int _ongoingId = 1;
 
   static const String _ongoingChannelId = 'ongoing_print';
@@ -71,8 +70,8 @@ class LocalNotificationService implements NotificationService {
     );
     await _plugin.initialize(
       settings,
-      // Tapnięcie akcji „Oznacz wykonane" przy konserwacji: foreground i tło
-      // (apka zamknięta) trafiają do tego samego handlera.
+      // Tapping "Mark Done" on maintenance notification: both foreground and background
+      // (app closed) route to the same handler.
       onDidReceiveNotificationResponse: handleMaintenanceAction,
       onDidReceiveBackgroundNotificationResponse:
           maintenanceNotificationBackgroundHandler,
@@ -80,7 +79,7 @@ class LocalNotificationService implements NotificationService {
 
     final android = _android;
     if (android == null) return;
-    // Kanały tworzone z góry: wiszący cichy (LOW), alerty głośne (HIGH).
+    // Create channels upfront: ongoing silent (LOW), alerts loud (HIGH).
     await android.createNotificationChannel(const AndroidNotificationChannel(
       _ongoingChannelId,
       'Print progress',
@@ -157,8 +156,8 @@ class LocalNotificationService implements NotificationService {
               AndroidNotificationAction(
                 a.id,
                 a.title,
-                // Akcja obsługiwana w tle (reset licznika) — bez otwierania UI;
-                // notyfikacja znika po tapnięciu.
+                // Action handled in background (counter reset) without opening UI;
+                // notification dismisses after tap.
                 showsUserInterface: false,
                 cancelNotification: true,
               ),

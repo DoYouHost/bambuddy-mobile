@@ -6,20 +6,20 @@ import 'package:flutter/widgets.dart' show Locale;
 import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
 
-/// Katalog opisów kodów HMS Bambu, zbundlowany jako asset (`assets/hms/`).
-/// Mapa `ecode (16 hex) → opis`, scalona z oficjalnych zasobów BambuStudio
-/// (PL + EN, wszystkie rodziny drukarek). Ładowana leniwie i cache'owana —
-/// działa tak samo w isolacie UI jak w isolacie tła (każdy ma własną instancję).
+/// Catalog of HMS error code descriptions bundled as assets (`assets/hms/`).
+/// Maps `ecode (16 hex) → description`, merged from official BambuStudio resources
+/// (PL + EN, all printer families). Loaded lazily and cached — works the same
+/// in the UI isolate and background isolate (each has its own instance).
 class HmsCatalog {
   HmsCatalog();
 
-  /// Współdzielona instancja na isolate (UI lub tło).
+  /// Shared instance per isolate (UI or background).
   static final HmsCatalog instance = HmsCatalog();
 
   Map<String, String> _map = const {};
   String? _loadedLang;
 
-  /// Wczytuje tabelę dla języka locale (pl→pl, reszta→en). Idempotentne.
+  /// Loads the table for the locale (pl→pl, others→en). Idempotent.
   Future<void> load(Locale locale) async {
     final lang = locale.languageCode == 'pl' ? 'pl' : 'en';
     if (_loadedLang == lang) return;
@@ -28,13 +28,13 @@ class HmsCatalog {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       _map = {for (final e in decoded.entries) e.key: e.value.toString()};
     } on Object {
-      // Brak/uszkodzony asset → pusty katalog (fallback do formatu kodu).
+      // Missing or corrupt asset → empty catalog (fallback to code format).
       _map = const {};
     }
     _loadedLang = lang;
   }
 
-  /// Opis kodu z tabeli lub null, gdy nieznany / katalog niezaładowany.
+  /// Returns the code description from the table, or null if unknown/not loaded.
   String? describe(HmsError e) {
     final ec = e.ecode;
     if (ec == null) return null;
@@ -42,13 +42,13 @@ class HmsCatalog {
   }
 }
 
-/// Czy błąd HMS jest wart pokazania użytkownikowi (parytet z bambuddy, które
-/// NIE wyświetla wpisów wewnętrznych). Pokazujemy, gdy:
-///  • serwer dał wiadomość, albo
-///  • kod rozwiązuje się w katalogu (znany błąd), albo
-///  • severity jest rozpoznanym poziomem Bambu (1 fatal…4 info).
-/// Obserwacja z żywego serwera: nieprzetłumaczalne/wewnętrzne wpisy przychodzą
-/// z nietypowym `severity` (np. 6) i bez wiadomości — te chowamy.
+/// Whether an HMS error should be shown to the user (matches bambuddy's behavior:
+/// does NOT display internal errors). Show if:
+///  • server provided a message, OR
+///  • code resolves in the catalog (known error), OR
+///  • severity is a recognized Bambu level (1 fatal…4 info).
+/// Live observation: untranslatable/internal entries come with unusual severity
+/// (e.g., 6) and no message — we hide these.
 bool hmsIsDisplayable(HmsError e, {String? description}) {
   if ((e.message?.trim().isNotEmpty ?? false)) return true;
   if ((description?.trim().isNotEmpty ?? false)) return true;
@@ -56,9 +56,9 @@ bool hmsIsDisplayable(HmsError e, {String? description}) {
   return s != null && s >= 1 && s <= 4;
 }
 
-/// Czytelna etykieta błędu BEZ kodu: wiadomość z serwera → opis z katalogu →
-/// „poziom · moduł". null, gdy nic z tego nie jest znane (zostaje sam kod).
-/// Używane przez kartę, gdzie kod pokazujemy osobno (z linkiem do wiki).
+/// Human-readable error label WITHOUT the code: server message → catalog description →
+/// "severity · module". null if nothing is known (only code remains).
+/// Used by the printer card, which shows the code separately (with wiki link).
 String? hmsLabel(
   HmsError e, {
   String? description,
@@ -77,8 +77,8 @@ String? hmsLabel(
   return parts.isEmpty ? null : parts.join(' · ');
 }
 
-/// Najlepszy czytelny tekst dla błędu HMS w JEDNEJ linii (powiadomienie):
-/// [hmsLabel] + kod w nawiasie, lub sam kod. Nigdy surowy hex bez kontekstu.
+/// Best human-readable text for an HMS error in ONE line (for notifications):
+/// [hmsLabel] + code in parentheses, or code alone. Never bare hex without context.
 String hmsHumanText(
   HmsError e, {
   String? description,
@@ -86,14 +86,14 @@ String hmsHumanText(
 }) {
   final label = hmsLabel(e, description: description, l10n: l10n);
   if (label == null) return e.displayCode;
-  // Wiadomość/opis bywa pełnym zdaniem — nie doklejamy do niego kodu.
+  // When message/description is a full sentence, don't append the code.
   final hasText = (e.message?.trim().isNotEmpty ?? false) ||
       (description?.trim().isNotEmpty ?? false);
   return hasText ? label : '$label (${e.displayCode})';
 }
 
-/// Etykieta poziomu ważności HMS (Bambu: 1 fatal, 2 serious, 3 common, 4 info).
-/// null dla nieznanej wartości — wtedy pomijamy w tekście.
+/// Label for HMS severity level (Bambu: 1 fatal, 2 serious, 3 common, 4 info).
+/// null for unknown values — omitted from text in those cases.
 String? hmsSeverityLabel(int? severity, AppLocalizations l10n) => switch (severity) {
       1 => l10n.hmsSeverityFatal,
       2 => l10n.hmsSeveritySerious,
@@ -102,7 +102,7 @@ String? hmsSeverityLabel(int? severity, AppLocalizations l10n) => switch (severi
       _ => null,
     };
 
-/// Etykieta modułu/podsystemu HMS. null dla nieznanego.
+/// Label for HMS module/subsystem. null for unknown.
 String? hmsModuleLabel(int? module, AppLocalizations l10n) => switch (module) {
       0x03 => l10n.hmsModuleMc,
       0x05 => l10n.hmsModuleMainboard,
@@ -112,8 +112,8 @@ String? hmsModuleLabel(int? module, AppLocalizations l10n) => switch (module) {
       _ => null,
     };
 
-/// Link do strony wiki Bambu dla danego kodu (format z podkreśleniami).
-/// null, gdy nie da się złożyć pełnego 16-hex kodu.
+/// URL to the Bambu wiki page for the given code (underscore-separated format).
+/// null if unable to construct the full 16-hex code.
 String? hmsWikiUrl(HmsError e) {
   final ec = e.ecode;
   if (ec == null || ec.length != 16) return null;

@@ -9,8 +9,7 @@ import '../../providers.dart';
 import 'file_manager_providers.dart';
 import 'file_manager_screen.dart' show formatBytes;
 
-/// Kosz biblioteki: lista usuniętych plików z przywracaniem, trwałym
-/// usuwaniem i opróżnianiem.
+/// Library trash: list of deleted files with restore, permanent delete, and empty trash.
 class TrashScreen extends ConsumerWidget {
   const TrashScreen({super.key});
 

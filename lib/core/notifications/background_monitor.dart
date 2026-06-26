@@ -3,28 +3,27 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import '../../features/notifications/print_monitor.dart' show systemAppLocalizations;
 import 'print_monitor_task_handler.dart';
 
-/// Mechanizm utrzymujący monitoring wydruków, gdy aplikacja nie jest na
-/// pierwszym planie. Abstrakcja celowo nie zna szczegółów transportu — kod
-/// cyklu życia woła tylko [start]/[stop].
+/// Mechanism for maintaining print monitoring when the app is not in the foreground.
+/// The abstraction intentionally doesn't know transport details — lifecycle code
+/// only calls [start]/[stop].
 ///
-/// Furtka na push: w przyszłości obok [ForegroundServiceMonitor] może powstać
-/// `PushMonitor implements BackgroundMonitor`, który zamiast trzymać foreground
-/// service rejestruje urządzenie do powiadomień po stronie serwera (ntfy/FCM).
-/// Wtedy wystarczy podmienić implementację w `backgroundMonitorProvider` —
-/// reszta aplikacji nie drgnie. (Tu NIE implementujemy nic z push.)
+/// Future extension point: `PushMonitor implements BackgroundMonitor` could
+/// register the device for server-side notifications (ntfy/FCM) instead of
+/// holding a foreground service. Then swapping the implementation in
+/// `backgroundMonitorProvider` would work without changes to the rest of the app.
 abstract class BackgroundMonitor {
-  /// Rozpoczyna monitoring w tle (idempotentne — gdy już działa, nic nie robi).
+  /// Starts monitoring in the background (idempotent).
   Future<void> start();
 
-  /// Zatrzymuje monitoring w tle (idempotentne).
+  /// Stops monitoring in the background (idempotent).
   Future<void> stop();
 
-  /// Czy monitoring w tle aktualnie działa.
+  /// Whether monitoring is currently running.
   Future<bool> isRunning();
 }
 
-/// Implementacja na `flutter_foreground_task`: hostuje [PrintMonitorTaskHandler]
-/// w osobnym isolacie wewnątrz prawdziwego Android foreground service.
+/// Implementation using `flutter_foreground_task`: hosts [PrintMonitorTaskHandler]
+/// in a separate isolate inside an actual Android foreground service.
 class ForegroundServiceMonitor implements BackgroundMonitor {
   @override
   Future<void> start() async {

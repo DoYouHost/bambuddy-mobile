@@ -1,8 +1,8 @@
-/// Statystyki biblioteki z `GET /library/stats`.
+/// Library statistics from `GET /library/stats`.
 ///
-/// Endpoint nie ma ustalonego schematu w OpenAPI (zwraca surowy obiekt), więc
-/// czytamy defensywnie po kilku kandydujących nazwach kluczy i tolerujemy braki
-/// — nagłówek statystyk i tak jest tylko ozdobny.
+/// Endpoint has no fixed schema in OpenAPI (returns raw object), so read
+/// defensively from several candidate key names and tolerate missing fields
+/// — stats header is decorative anyway.
 class LibraryStats {
   const LibraryStats({
     this.totalFiles,

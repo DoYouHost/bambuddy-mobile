@@ -1,14 +1,14 @@
 import 'dart:math';
 
-/// Backoff wykładniczy z **pełnym jitterem** dla reconnectu WebSocketa.
+/// Exponential backoff with **full jitter** for WebSocket reconnect.
 ///
-/// `delay = rand(0, min(cap, base * 2^attempt))` — pełny jitter (a nie samo
-/// wykładnicze opóźnienie) rozprasza stado klientów, które ruszają do
-/// serwera w tej samej chwili po jego restarcie. Cap obowiązuje na zawsze:
-/// to aplikacja domowego LAN-u, serwer bywa restartowany, nie poddajemy się.
+/// `delay = rand(0, min(cap, base * 2^attempt))` — full jitter (not just
+/// exponential delay) disperses a herd of clients attempting server at once
+/// after restart. Cap applies forever: this is a home LAN app, server restarts,
+/// we don't give up.
 ///
-/// Licznik prób zeruje [reset] — wołane przez [WsClient] dopiero gdy
-/// połączenie przeżyło próg stabilności, żeby flapping nie kasował narastania.
+/// Attempt counter reset by [reset] — called by [WsClient] only after
+/// connection survives stability threshold, so flapping doesn't reset backoff.
 class WsBackoff {
   WsBackoff({
     this.base = const Duration(seconds: 1),
@@ -22,13 +22,13 @@ class WsBackoff {
 
   int _attempt = 0;
 
-  /// Numer kolejnej próby (0 = pierwsza po resecie) — pomocne w testach/logach.
+  /// Current attempt number (0 = first after reset) — helpful in tests/logs.
   int get attempt => _attempt;
 
-  /// Zwraca losowe opóźnienie dla bieżącej próby i inkrementuje licznik.
+  /// Returns random delay for current attempt and increments counter.
   Duration nextDelay() {
-    // Wykładnik z ochroną przed przepełnieniem: 2^attempt rośnie szybko,
-    // ale i tak ścinamy do cap, więc clamp wykładnika na 30 wystarcza.
+    // Exponent overflow protection: 2^attempt grows fast, but we cap it anyway,
+    // so clamping exponent to 30 is sufficient.
     final shifted = base.inMilliseconds * (1 << _attempt.clamp(0, 30));
     final ceilingMs = shifted.clamp(0, cap.inMilliseconds);
     _attempt++;
