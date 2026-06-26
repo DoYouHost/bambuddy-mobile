@@ -304,6 +304,111 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveDeleteFailed => 'Nie udało się usunąć wydruku';
 
   @override
+  String get archiveSelectAll => 'Zaznacz wszystko';
+
+  @override
+  String archiveSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zaznaczonych',
+      many: '$count zaznaczonych',
+      few: '$count zaznaczone',
+      one: '1 zaznaczony',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveDeleteSelectedTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunąć $count wydruków?',
+      many: 'Usunąć $count wydruków?',
+      few: 'Usunąć $count wydruki?',
+      one: 'Usunąć 1 wydruk?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveDeleteSelectedBody => 'Usuń zaznaczone wydruki z archiwum.';
+
+  @override
+  String archiveDeletedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count wydruków',
+      many: 'Usunięto $count wydruków',
+      few: 'Usunięto $count wydruki',
+      one: 'Usunięto 1 wydruk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveDeleteSomeFailed(int ok, int failed) {
+    return 'Usunięto $ok, nie udało się $failed';
+  }
+
+  @override
+  String get archivePurgeOlder => 'Usuń stare wydruki…';
+
+  @override
+  String get archivePurgeTitle => 'Usuń stare wydruki';
+
+  @override
+  String get archivePurgeOlderThan => 'Starsze niż';
+
+  @override
+  String archivePurgeDaysOption(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days dni',
+      many: '$days dni',
+      few: '$days dni',
+      one: '1 dzień',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archivePurgePreview(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wydruków · $size',
+      many: '$count wydruków · $size',
+      few: '$count wydruki · $size',
+      one: '1 wydruk · $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePurgeNothing => 'Brak wydruków starszych niż tyle.';
+
+  @override
+  String get archivePurgePreviewError => 'Nie udało się wczytać podglądu.';
+
+  @override
+  String archivePurgeResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count wydruków',
+      many: 'Usunięto $count wydruków',
+      few: 'Usunięto $count wydruki',
+      one: 'Usunięto 1 wydruk',
+      zero: 'Nie usunięto żadnych wydruków',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get pickPrinterTitle => 'Wybierz drukarkę';
 
   @override

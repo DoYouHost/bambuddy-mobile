@@ -301,6 +301,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveDeleteFailed => 'Couldn\'t delete the print';
 
   @override
+  String get archiveSelectAll => 'Select all';
+
+  @override
+  String archiveSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveDeleteSelectedTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete $count prints?',
+      one: 'Delete 1 print?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveDeleteSelectedBody =>
+      'Remove the selected prints from the archive.';
+
+  @override
+  String archiveDeletedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints deleted',
+      one: '1 print deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveDeleteSomeFailed(int ok, int failed) {
+    return '$ok deleted, $failed failed';
+  }
+
+  @override
+  String get archivePurgeOlder => 'Purge old prints…';
+
+  @override
+  String get archivePurgeTitle => 'Purge old prints';
+
+  @override
+  String get archivePurgeOlderThan => 'Older than';
+
+  @override
+  String archivePurgeDaysOption(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archivePurgePreview(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints · $size',
+      one: '1 print · $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePurgeNothing => 'No prints older than this.';
+
+  @override
+  String get archivePurgePreviewError => 'Couldn\'t load the preview.';
+
+  @override
+  String archivePurgeResult(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prints purged',
+      one: '1 print purged',
+      zero: 'No prints purged',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get pickPrinterTitle => 'Choose a printer';
 
   @override

@@ -130,6 +130,57 @@
   "archiveDeletePurgeStatsHint": "Otherwise the print is kept in your statistics totals.",
   "archiveDeleted": "Print deleted",
   "archiveDeleteFailed": "Couldn't delete the print",
+  "archiveSelectAll": "Select all",
+  "archiveSelectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "@archiveSelectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "archiveDeleteSelectedTitle": "{count, plural, =1{Delete 1 print?} other{Delete {count} prints?}}",
+  "@archiveDeleteSelectedTitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "archiveDeleteSelectedBody": "Remove the selected prints from the archive.",
+  "archiveDeletedCount": "{count, plural, =1{1 print deleted} other{{count} prints deleted}}",
+  "@archiveDeletedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "archiveDeleteSomeFailed": "{ok} deleted, {failed} failed",
+  "@archiveDeleteSomeFailed": {
+    "placeholders": {
+      "ok": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "archivePurgeOlder": "Purge old prints…",
+  "archivePurgeTitle": "Purge old prints",
+  "archivePurgeOlderThan": "Older than",
+  "archivePurgeDaysOption": "{days, plural, =1{1 day} other{{days} days}}",
+  "@archivePurgeDaysOption": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "archivePurgePreview": "{count, plural, =1{1 print · {size}} other{{count} prints · {size}}}",
+  "@archivePurgePreview": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "size": { "type": "String" }
+    }
+  },
+  "archivePurgeNothing": "No prints older than this.",
+  "archivePurgePreviewError": "Couldn't load the preview.",
+  "archivePurgeResult": "{count, plural, =0{No prints purged} =1{1 print purged} other{{count} prints purged}}",
+  "@archivePurgeResult": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "pickPrinterTitle": "Choose a printer",
   "noPrintersAvailable": "No printers available",
 

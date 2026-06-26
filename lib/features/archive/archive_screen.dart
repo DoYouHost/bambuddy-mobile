@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/archive_purge.dart';
 import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -30,6 +31,24 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// Purge-stats choice from the delete dialog, carried from `confirmDismiss`
   /// to `onDismissed` (only one swipe is in flight at a time).
   bool _pendingPurge = false;
+
+  /// Archive ids picked in multi-select mode. Non-empty → selection mode.
+  final Set<int> _selected = {};
+
+  bool get _selectionMode => _selected.isNotEmpty;
+
+  void _toggleSelect(int id) {
+    setState(() {
+      if (!_selected.remove(id)) _selected.add(id);
+    });
+  }
+
+  void _clearSelection() => setState(_selected.clear);
+
+  void _selectAllVisible() {
+    final items = ref.read(archiveProvider).valueOrNull?.items ?? const [];
+    setState(() => _selected.addAll(items.map((a) => a.id)));
+  }
 
   @override
   void initState() {
@@ -65,7 +84,43 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final async = ref.watch(archiveProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navArchive)),
+      appBar: _selectionMode
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: l10n.cancel,
+                onPressed: _clearSelection,
+              ),
+              title: Text(l10n.archiveSelectedCount(_selected.length)),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: l10n.archiveSelectAll,
+                  onPressed: _selectAllVisible,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: l10n.archiveDelete,
+                  onPressed: _deleteSelected,
+                ),
+              ],
+            )
+          : AppBar(
+              title: Text(l10n.navArchive),
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'purge') _purgeOlder();
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'purge',
+                      child: Text(l10n.archivePurgeOlder),
+                    ),
+                  ],
+                ),
+              ],
+            ),
       body: Column(
         children: [
           Padding(
@@ -109,13 +164,18 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                             );
                           }
                           final archive = s.items[i];
-                          return _deletable(
-                            archive,
-                            _ArchiveCard(
-                              archive: archive,
-                              onTap: () => _openSheet(archive),
-                            ),
+                          final card = _ArchiveCard(
+                            archive: archive,
+                            selected: _selected.contains(archive.id),
+                            onTap: () => _selectionMode
+                                ? _toggleSelect(archive.id)
+                                : _openSheet(archive),
+                            onLongPress: () => _toggleSelect(archive.id),
                           );
+                          // No swipe-to-delete while multi-selecting.
+                          return _selectionMode
+                              ? card
+                              : _deletable(archive, card);
                         },
                       ),
               ),
@@ -180,10 +240,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   /// Confirmation dialog. Returns `null` on cancel, otherwise whether the print
   /// should also be purged from statistics (`purge_stats`).
-  Future<bool?> _askDelete(Archive archive) => showDialog<bool>(
-        context: context,
-        builder: (_) => _DeleteArchiveDialog(archiveName: archive.displayName),
-      );
+  Future<bool?> _askDelete(Archive archive) {
+    final l10n = AppLocalizations.of(context);
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => _DeleteArchiveDialog(
+        title: l10n.archiveDeleteTitle,
+        message: l10n.archiveDeleteBody(archive.displayName),
+      ),
+    );
+  }
 
   Future<void> _deleteArchive(Archive archive, bool purgeStats) async {
     final l10n = AppLocalizations.of(context);
@@ -194,6 +260,59 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     messenger.showSnackBar(SnackBar(
       content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
     ));
+  }
+
+  /// Delete all selected prints after one confirmation (with purge-stats
+  /// choice). Clears selection regardless of per-item outcome.
+  Future<void> _deleteSelected() async {
+    final l10n = AppLocalizations.of(context);
+    final count = _selected.length;
+    final purge = await showDialog<bool>(
+      context: context,
+      builder: (_) => _DeleteArchiveDialog(
+        title: l10n.archiveDeleteSelectedTitle(count),
+        message: l10n.archiveDeleteSelectedBody,
+      ),
+    );
+    if (purge == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final ids = Set<int>.from(_selected);
+    final res = await ref
+        .read(archiveProvider.notifier)
+        .deleteMany(ids, purgeStats: purge);
+    if (!mounted) return;
+    _clearSelection();
+    messenger.showSnackBar(SnackBar(
+      content: Text(res.failed == 0
+          ? l10n.archiveDeletedCount(res.ok)
+          : l10n.archiveDeleteSomeFailed(res.ok, res.failed)),
+    ));
+  }
+
+  /// Purge prints older than a chosen threshold: pick days + purge-stats,
+  /// see a live preview, confirm → `POST /archives/purge`, then refresh.
+  Future<void> _purgeOlder() async {
+    final result = await showDialog<({int days, bool purgeStats})>(
+      context: context,
+      builder: (_) => const _PurgeOlderDialog(),
+    );
+    if (result == null || !mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final deleted = await ref.read(archiveRepositoryProvider).purge(
+            olderThanDays: result.days,
+            purgeStats: result.purgeStats,
+          );
+      await ref.read(archiveProvider.notifier).refresh();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
+      );
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+    }
   }
 
   /// G-code preview: closes sheet and opens full-screen 3D viewer.
@@ -315,10 +434,17 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 }
 
 class _ArchiveCard extends StatelessWidget {
-  const _ArchiveCard({required this.archive, required this.onTap});
+  const _ArchiveCard({
+    required this.archive,
+    required this.onTap,
+    this.onLongPress,
+    this.selected = false,
+  });
 
   final Archive archive;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -331,9 +457,15 @@ class _ArchiveCard extends StatelessWidget {
     ];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      color: selected ? theme.colorScheme.primaryContainer : null,
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-        leading: PrintThumbnail(archiveId: archive.id, size: 56),
+        leading: selected
+            ? CircleAvatar(
+                backgroundColor: theme.colorScheme.primary,
+                child: Icon(Icons.check, color: theme.colorScheme.onPrimary),
+              )
+            : PrintThumbnail(archiveId: archive.id, size: 56),
         title: Text(
           archive.displayName,
           maxLines: 2,
@@ -352,6 +484,8 @@ class _ArchiveCard extends StatelessWidget {
             ? Icon(Icons.star, size: 18, color: theme.colorScheme.tertiary)
             : null,
         onTap: onTap,
+        onLongPress: onLongPress,
+        selected: selected,
       ),
     );
   }
@@ -458,12 +592,14 @@ class _ArchiveSheet extends StatelessWidget {
   }
 }
 
-/// Delete-confirmation dialog with a "remove from statistics" choice.
+/// Delete-confirmation dialog with a "remove from statistics" choice. Shared
+/// by single- and multi-delete (caller supplies [title]/[message]).
 /// Returns `null` (cancel) or the `purge_stats` flag via `Navigator.pop`.
 class _DeleteArchiveDialog extends StatefulWidget {
-  const _DeleteArchiveDialog({required this.archiveName});
+  const _DeleteArchiveDialog({required this.title, required this.message});
 
-  final String archiveName;
+  final String title;
+  final String message;
 
   @override
   State<_DeleteArchiveDialog> createState() => _DeleteArchiveDialogState();
@@ -477,12 +613,12 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return AlertDialog(
-      title: Text(l10n.archiveDeleteTitle),
+      title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.archiveDeleteBody(widget.archiveName)),
+          Text(widget.message),
           const SizedBox(height: 8),
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
@@ -509,6 +645,139 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
       ],
     );
   }
+}
+
+/// "Purge older than" dialog: pick a day threshold + purge-stats choice, see a
+/// live count/size preview, then confirm. Returns `(days, purgeStats)` or
+/// `null` on cancel.
+class _PurgeOlderDialog extends ConsumerStatefulWidget {
+  const _PurgeOlderDialog();
+
+  @override
+  ConsumerState<_PurgeOlderDialog> createState() => _PurgeOlderDialogState();
+}
+
+class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
+  static const _dayOptions = [7, 30, 90, 180, 365];
+
+  int _days = 90;
+  bool _purgeStats = false;
+  AsyncValue<ArchivePurgePreview> _preview = const AsyncValue.loading();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPreview();
+  }
+
+  Future<void> _fetchPreview() async {
+    setState(() => _preview = const AsyncValue.loading());
+    try {
+      final preview = await ref.read(archiveRepositoryProvider).purgePreview(
+            olderThanDays: _days,
+            purgeStats: _purgeStats,
+          );
+      if (mounted) setState(() => _preview = AsyncValue.data(preview));
+    } on AppApiException catch (e, st) {
+      if (mounted) setState(() => _preview = AsyncValue.error(e, st));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final canDelete = _preview.valueOrNull?.isEmpty == false;
+
+    return AlertDialog(
+      title: Text(l10n.archivePurgeTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(l10n.archivePurgeOlderThan)),
+              DropdownButton<int>(
+                value: _days,
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _days = v);
+                  _fetchPreview();
+                },
+                items: [
+                  for (final d in _dayOptions)
+                    DropdownMenuItem(
+                      value: d,
+                      child: Text(l10n.archivePurgeDaysOption(d)),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _preview.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            ),
+            error: (_, _) => Text(
+              l10n.archivePurgePreviewError,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            data: (p) => Text(
+              p.isEmpty
+                  ? l10n.archivePurgeNothing
+                  : l10n.archivePurgePreview(p.count, _formatBytes(p.totalBytes)),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _purgeStats,
+            onChanged: (v) {
+              setState(() => _purgeStats = v ?? false);
+              _fetchPreview();
+            },
+            title: Text(l10n.archiveDeletePurgeStats),
+            subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: theme.colorScheme.error,
+          ),
+          onPressed: canDelete
+              ? () => Navigator.pop(
+                    context,
+                    (days: _days, purgeStats: _purgeStats),
+                  )
+              : null,
+          child: Text(l10n.archiveDelete),
+        ),
+      ],
+    );
+  }
+}
+
+/// Human-readable byte size (binary units), e.g. `12.3 MB`.
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  var size = bytes / 1024;
+  var unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit++;
+  }
+  return '${size.toStringAsFixed(1)} ${units[unit]}';
 }
 
 class _EmptyView extends StatelessWidget {

@@ -70,4 +70,36 @@ void main() {
 
     await repo.delete(82, purgeStats: true);
   });
+
+  test('purgePreview: parsuje count/total_bytes i przekazuje próg', () async {
+    adapter.onGet(
+      '/api/v1/archives/purge/preview',
+      (server) => server.reply(200, {
+        'count': 12,
+        'total_bytes': 2048,
+        'sample_filenames': ['a.3mf', 'b.3mf'],
+        'older_than_days': 90,
+      }),
+      queryParameters: {'older_than_days': 90, 'purge_stats': false},
+    );
+
+    final preview = await repo.purgePreview(olderThanDays: 90);
+
+    expect(preview.count, 12);
+    expect(preview.totalBytes, 2048);
+    expect(preview.sampleFilenames, ['a.3mf', 'b.3mf']);
+    expect(preview.olderThanDays, 90);
+  });
+
+  test('purge: POST z older_than_days/purge_stats zwraca deleted', () async {
+    adapter.onPost(
+      '/api/v1/archives/purge',
+      (server) => server.reply(200, {'deleted': 7, 'purge_stats': true}),
+      data: {'older_than_days': 30, 'purge_stats': true},
+    );
+
+    final deleted = await repo.purge(olderThanDays: 30, purgeStats: true);
+
+    expect(deleted, 7);
+  });
 }

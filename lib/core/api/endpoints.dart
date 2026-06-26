@@ -87,6 +87,15 @@ abstract final class Endpoints {
   /// query `purge_stats=true` hard-deletes, removing the print from statistics.
   static String archive(int archiveId) => '$apiPrefix/archives/$archiveId';
 
+  /// Bulk-delete prints older than a threshold (`POST`, body
+  /// `{older_than_days, purge_stats}`) → `{deleted, purge_stats}`. Soft by
+  /// default; `purge_stats=true` also drops them from /stats (irreversible).
+  static const archivesPurge = '$apiPrefix/archives/purge';
+
+  /// Read-only preview of [archivesPurge] (`GET`). Query: `older_than_days`
+  /// (required), `purge_stats` → `ArchivePurgePreviewResponse`.
+  static const archivesPurgePreview = '$apiPrefix/archives/purge/preview';
+
   /// Thumbnail authenticated via `?token=` (camera token), NOT via header
   /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>

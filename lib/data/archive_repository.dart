@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive.dart';
+import '../core/models/archive_purge.dart';
 
 /// REST data source for print archive (M5).
 ///
@@ -100,6 +101,45 @@ class ArchiveRepository {
         Endpoints.archive(archiveId),
         queryParameters: {'purge_stats': purgeStats},
       );
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
+  /// GET /archives/purge/preview — count + size of prints older than
+  /// [olderThanDays] eligible for purge. Read-only.
+  Future<ArchivePurgePreview> purgePreview({
+    required int olderThanDays,
+    bool purgeStats = false,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archivesPurgePreview,
+        queryParameters: {
+          'older_than_days': olderThanDays,
+          'purge_stats': purgeStats,
+        },
+      );
+      return ArchivePurgePreview.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
+  /// POST /archives/purge — bulk-delete prints older than [olderThanDays].
+  /// [purgeStats] also drops them from statistics (irreversible). Returns the
+  /// number of deleted prints.
+  Future<int> purge({
+    required int olderThanDays,
+    bool purgeStats = false,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        Endpoints.archivesPurge,
+        data: {'older_than_days': olderThanDays, 'purge_stats': purgeStats},
+      );
+      final deleted = res.data?['deleted'];
+      return deleted is int ? deleted : 0;
     } on DioException catch (e) {
       throw mapDioException(e);
     }

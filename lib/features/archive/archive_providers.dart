@@ -147,6 +147,33 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
       return false;
     }
   }
+
+  /// Delete several prints (multi-select). No bulk-by-id endpoint exists, so
+  /// each is deleted individually; successful ones are dropped from the list,
+  /// failed ones are kept. Returns how many succeeded / failed.
+  Future<({int ok, int failed})> deleteMany(
+    Set<int> ids, {
+    required bool purgeStats,
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return (ok: 0, failed: ids.length);
+
+    final repo = ref.read(archiveRepositoryProvider);
+    final deleted = <int>{};
+    var failed = 0;
+    for (final id in ids) {
+      try {
+        await repo.delete(id, purgeStats: purgeStats);
+        deleted.add(id);
+      } on AppApiException {
+        failed++;
+      }
+    }
+    state = AsyncValue.data(current.copyWith(
+      items: current.items.where((a) => !deleted.contains(a.id)).toList(),
+    ));
+    return (ok: deleted.length, failed: failed);
+  }
 }
 
 /// Lightweight printer list for picker (reprint / add to queue). Config only,

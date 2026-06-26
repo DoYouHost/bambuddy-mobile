@@ -632,6 +632,90 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the print'**
   String get archiveDeleteFailed;
 
+  /// No description provided for @archiveSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get archiveSelectAll;
+
+  /// No description provided for @archiveSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String archiveSelectedCount(int count);
+
+  /// No description provided for @archiveDeleteSelectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Delete 1 print?} other{Delete {count} prints?}}'**
+  String archiveDeleteSelectedTitle(int count);
+
+  /// No description provided for @archiveDeleteSelectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the selected prints from the archive.'**
+  String get archiveDeleteSelectedBody;
+
+  /// No description provided for @archiveDeletedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 print deleted} other{{count} prints deleted}}'**
+  String archiveDeletedCount(int count);
+
+  /// No description provided for @archiveDeleteSomeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} deleted, {failed} failed'**
+  String archiveDeleteSomeFailed(int ok, int failed);
+
+  /// No description provided for @archivePurgeOlder.
+  ///
+  /// In en, this message translates to:
+  /// **'Purge old prints…'**
+  String get archivePurgeOlder;
+
+  /// No description provided for @archivePurgeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purge old prints'**
+  String get archivePurgeTitle;
+
+  /// No description provided for @archivePurgeOlderThan.
+  ///
+  /// In en, this message translates to:
+  /// **'Older than'**
+  String get archivePurgeOlderThan;
+
+  /// No description provided for @archivePurgeDaysOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}}'**
+  String archivePurgeDaysOption(int days);
+
+  /// No description provided for @archivePurgePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 print · {size}} other{{count} prints · {size}}}'**
+  String archivePurgePreview(int count, String size);
+
+  /// No description provided for @archivePurgeNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No prints older than this.'**
+  String get archivePurgeNothing;
+
+  /// No description provided for @archivePurgePreviewError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the preview.'**
+  String get archivePurgePreviewError;
+
+  /// No description provided for @archivePurgeResult.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No prints purged} =1{1 print purged} other{{count} prints purged}}'**
+  String archivePurgeResult(int count);
+
   /// No description provided for @pickPrinterTitle.
   ///
   /// In en, this message translates to:
