@@ -2,8 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
+import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../providers.dart';
+
+/// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
+/// Used by the queue filament-mapping sheet to list loaded AMS filaments.
+final printerStatusOnceProvider =
+    FutureProvider.autoDispose.family<PrinterStatus?, int>(
+  (ref, printerId) =>
+      ref.watch(printersRepositoryProvider).fetchStatus(printerId),
+);
 
 /// Queue action result returned to widget — it shows the SnackBar
 /// (notifier has no [BuildContext]). Similar to M4 controls.
@@ -107,13 +116,27 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   Future<QueueActionResult> cancel(int itemId) =>
       _serverAction(() => ref.read(queueRepositoryProvider).cancel(itemId));
 
+  /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
+  /// queue may auto-dispatch later). On success, refresh list.
+  Future<QueueActionResult> saveMapping(int itemId, List<int> mapping) =>
+      _serverAction(
+          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping));
+
   /// Assign indicated (free) printer and start item — triggers physical print.
   /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
-  /// On success, refresh list.
-  Future<QueueActionResult> startOnPrinter(int itemId, int printerId) =>
+  /// [amsMapping] (optional) sets the filament→AMS-slot mapping before starting;
+  /// `-1` entries mean "auto". On success, refresh list.
+  Future<QueueActionResult> startOnPrinter(
+    int itemId,
+    int printerId, {
+    List<int>? amsMapping,
+  }) =>
       _serverAction(() async {
         final repo = ref.read(queueRepositoryProvider);
         await repo.assignPrinter(itemId, printerId);
+        if (amsMapping != null && amsMapping.isNotEmpty) {
+          await repo.setAmsMapping(itemId, amsMapping);
+        }
         await repo.start(itemId);
       });
 

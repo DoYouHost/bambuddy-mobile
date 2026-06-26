@@ -207,6 +207,9 @@ class _PrinterCardState extends State<PrinterCard> {
                 ),
               ],
             ),
+            if (status != null)
+              _PlateClearBanner(
+                  printerId: widget.item.printer.id, status: status),
             if (hmsErrors.isNotEmpty) ...[
               const SizedBox(height: 10),
               _HmsErrorsPanel(errors: hmsErrors),
@@ -241,6 +244,87 @@ class _PrinterCardState extends State<PrinterCard> {
                     : const SizedBox(width: double.infinity),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Plate-clear banner: shown only when the scheduler requires plate-clear
+/// confirmation AND this printer still has a finished job on the plate. The
+/// button posts the same `clear-plate` acknowledgement used before queued
+/// starts, freeing the scheduler to dispatch the next print.
+class _PlateClearBanner extends ConsumerStatefulWidget {
+  const _PlateClearBanner({required this.printerId, required this.status});
+
+  final int printerId;
+  final PrinterStatus status;
+
+  @override
+  ConsumerState<_PlateClearBanner> createState() => _PlateClearBannerState();
+}
+
+class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
+  bool _busy = false;
+
+  Future<void> _clear() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(printerCommandsRepositoryProvider)
+          .clearPlate(widget.printerId);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text(e is AuthException && e.code == AppErrorCode.forbidden
+              ? l10n.ctrlForbidden
+              : l10n.ctrlFailed)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.status.awaitingPlateClear != true) {
+      return const SizedBox.shrink();
+    }
+    // Only relevant when the server actually gates on plate-clear.
+    final require = ref.watch(requirePlateClearProvider).valueOrNull ?? false;
+    if (!require) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.layers_clear_outlined,
+                size: 20, color: theme.colorScheme.onTertiaryContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(l10n.plateClearBadge,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer)),
+            ),
+            TextButton(
+              onPressed: _busy ? null : _clear,
+              child: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(l10n.plateClearAction),
+            ),
           ],
         ),
       ),

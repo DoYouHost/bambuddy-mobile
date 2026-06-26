@@ -2535,7 +2535,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceProcess => 'Process / Quality';
 
   @override
+  String get sliceBedType => 'Build plate';
+
+  @override
+  String get sliceBedDefault => 'Default (from preset)';
+
+  @override
   String get sliceFilament => 'Filament';
+
+  @override
+  String sliceFilamentNumbered(String n) {
+    return 'Filament $n';
+  }
 
   @override
   String get sliceSelect => 'Tap to select';
@@ -2589,4 +2600,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceTierStandard => 'Built-in';
+
+  @override
+  String get queueFilamentMapping => 'Filament mapping';
+
+  @override
+  String get mappingNoPrinter =>
+      'Assign a printer to this item first to map its AMS slots.';
+
+  @override
+  String get mappingNoSlots => 'No filament information for this file.';
+
+  @override
+  String mappingNoAms(String printer) {
+    return 'No AMS filaments loaded on $printer.';
+  }
+
+  @override
+  String get mappingPickTray => 'Select AMS slot';
+
+  @override
+  String get mappingExternalSpool => 'External spool';
+
+  @override
+  String mappingAmsSlot(String unit, String slot) {
+    return 'AMS $unit · slot $slot';
+  }
+
+  @override
+  String get mappingSaved => 'Filament mapping saved';
+
+  @override
+  String get plateClearTitle => 'Is the plate clear?';
+
+  @override
+  String get plateClearBody =>
+      'Make sure the build plate is empty before starting this print.';
+
+  @override
+  String get plateClearConfirm => 'Plate is clear';
+
+  @override
+  String get plateClearAction => 'Mark plate as cleared';
+
+  @override
+  String get plateClearBadge => 'Plate not cleared';
+
+  @override
+  String get plateClearedSnack => 'Plate marked as cleared';
 }

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive_capabilities.dart';
+import '../core/models/filament_requirement.dart';
 import '../core/models/slice_job.dart';
 import '../core/models/slicer_preset.dart';
 
@@ -17,16 +18,16 @@ class SlicerRepository {
 
   final Dio _dio;
 
-  /// Whether server-side slicing is enabled (`AppSettings.use_slicer_api`).
-  /// When false, no slice UI is shown anywhere. Best-effort: a read failure
-  /// degrades to `false` rather than throwing, so the rest of the app is
+  /// Raw server `AppSettings` map. Feature flags (e.g. `use_slicer_api`,
+  /// `require_plate_clear`) derive from this. Best-effort: a read failure
+  /// degrades to an empty map rather than throwing, so the rest of the app is
   /// unaffected by an unexpected settings shape.
-  Future<bool> isEnabled() async {
+  Future<Map<String, dynamic>> serverSettings() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(Endpoints.appSettings);
-      return res.data?['use_slicer_api'] == true;
+      return res.data ?? const {};
     } on DioException {
-      return false;
+      return const {};
     }
   }
 
@@ -40,6 +41,23 @@ class SlicerRepository {
       return UnifiedPresets.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw mapDioException(e);
+    }
+  }
+
+  /// Filament slots a model needs (one per color). Best-effort: any failure
+  /// degrades to a single generic slot so the slice modal still works.
+  Future<List<FilamentRequirement>> filamentRequirements({
+    required int id,
+    required bool isArchive,
+  }) async {
+    final path = isArchive
+        ? Endpoints.archiveFilamentRequirements(id)
+        : Endpoints.libraryFileFilamentRequirements(id);
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(path);
+      return FilamentRequirement.parseList(res.data ?? const {});
+    } on DioException {
+      return const [];
     }
   }
 

@@ -503,6 +503,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final ok = await _confirm(
       title: l10n.fmPrint,
       body: l10n.fmPrintConfirmBody(file.displayName, printer.name),
+      confirmLabel: l10n.fmPrint,
     );
     if (ok != true) return;
     try {
@@ -595,6 +596,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     required String title,
     required String body,
     bool danger = false,
+    String? confirmLabel,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return showDialog<bool>(
@@ -612,7 +614,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 ? FilledButton.styleFrom(backgroundColor: scheme.error)
                 : null,
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(_l10n.fmDelete),
+            // Defaults to "Delete" for the delete-confirm callers; print/other
+            // flows pass their own verb.
+            child: Text(confirmLabel ?? _l10n.fmDelete),
           ),
         ],
       ),

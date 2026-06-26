@@ -82,6 +82,19 @@ class QueueRepository {
     }
   }
 
+  /// PATCH /queue/{id} — set the AMS slot mapping (file filament slot → global
+  /// AMS tray). Body: `{"ams_mapping": [..]}`.
+  Future<void> setAmsMapping(int itemId, List<int> mapping) async {
+    try {
+      await _dio.patch<dynamic>(
+        Endpoints.queueItem(itemId),
+        data: {'ams_mapping': mapping},
+      );
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
   /// POST /queue/{id}/start — manually start item.
   Future<void> start(int itemId) async {
     try {

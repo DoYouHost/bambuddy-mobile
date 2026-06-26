@@ -44,6 +44,12 @@ abstract final class Endpoints {
   static String printStop(int printerId) =>
       '$apiPrefix/printers/$printerId/print/stop';
 
+  /// Acknowledge the build plate is cleared after a finished/failed print, so
+  /// the scheduler may start the next queued print (`POST`, empty body). Gated
+  /// on the `require_plate_clear` server setting.
+  static String printerClearPlate(int printerId) =>
+      '$apiPrefix/printers/$printerId/clear-plate';
+
   /// Chamber light. Query: `on=true|false`.
   static String chamberLight(int printerId) =>
       '$apiPrefix/printers/$printerId/chamber-light';
@@ -112,12 +118,22 @@ abstract final class Endpoints {
   static String archiveSlice(int archiveId) =>
       '$apiPrefix/archives/$archiveId/slice';
 
+  /// Per-filament requirements parsed from an archive's 3MF — `{filaments:
+  /// [{slot_id, type, color, ...}]}`. Drives the multi-filament slice mapping.
+  static String archiveFilamentRequirements(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/filament-requirements';
+
   // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
 
   /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).
   /// Returns `202 {job_id}`; poll [sliceJob].
   static String libraryFileSlice(int fileId) =>
       '$apiPrefix/library/files/$fileId/slice';
+
+  /// Per-filament requirements parsed from a library file's 3MF. See
+  /// [archiveFilamentRequirements].
+  static String libraryFileFilamentRequirements(int fileId) =>
+      '$apiPrefix/library/files/$fileId/filament-requirements';
 
   /// Poll a slice job (`GET`) → status/progress/result. See [archiveSlice].
   static String sliceJob(int jobId) => '$apiPrefix/slice-jobs/$jobId';

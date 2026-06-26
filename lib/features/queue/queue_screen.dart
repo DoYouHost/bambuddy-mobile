@@ -9,7 +9,10 @@ import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../../providers.dart';
 import '../common/print_thumbnail.dart';
+import '../files/library_thumbnail.dart';
+import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 
 /// Print queue screen (M5): drag-to-reorder, swipe-to-delete with confirmation,
@@ -112,63 +115,15 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     );
   }
 
-  /// "Start next": takes first pending print, asks for printer, and starts it
-  /// (assign + start). Triggers physical print. OFFLINE printers can be selected too —
-  /// bambuddy will wake them before start (with smart plug or otherwise); we mark
-  /// them in the picker.
+  /// FAB "start next" — delegates to the shared start flow (assign a printer if
+  /// the item has none, then filament mapping, then start).
   Future<void> _startNext(
     BuildContext context,
     WidgetRef ref,
     QueueItem item,
     AppLocalizations l10n,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final List<PrinterCandidate> candidates;
-    try {
-      candidates = await ref.read(availablePrintersProvider.future);
-    } on AppApiException {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.ctrlFailed)));
-      return;
-    }
-    if (!context.mounted) return;
-    if (candidates.isEmpty) {
-      // Empty only when ALL printers are busy with printing — offline are still
-      // selectable, so this case is really "no free ones".
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
-      return;
-    }
-
-    final printer = await showModalBottomSheet<Printer>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(l10n.pickPrinterTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium),
-            ),
-            for (final c in candidates)
-              _PrinterCandidateTile(
-                candidate: c,
-                onTap: () => Navigator.pop(ctx, c.printer),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (printer == null) return;
-
-    final result =
-        await ref.read(queueProvider.notifier).startOnPrinter(item.id, printer.id);
-    if (result == QueueActionResult.ok) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queuePrintStarted)));
-    } else {
-      _snackForResult(messenger, l10n, result);
-    }
-  }
+  ) =>
+      _startQueueItem(context, ref, item, l10n);
 }
 
 /// Printer entry in "start next" picker: name, status (online/offline), and plug
@@ -307,11 +262,18 @@ class _QueueCard extends ConsumerWidget {
                   ),
                 ),
               ),
-            PrintThumbnail(archiveId: item.archiveId),
+            if (item.archiveId == null && item.libraryFileId != null)
+              LibraryThumbnail(
+                fileId: item.libraryFileId!,
+                hasThumbnail: item.libraryFileThumbnail != null,
+                size: 52,
+              )
+            else
+              PrintThumbnail(archiveId: item.archiveId),
           ],
         ),
         title: Text(
-          item.archiveName ?? '#${item.id}',
+          item.displayName,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -463,6 +425,8 @@ class _QueueActions extends ConsumerWidget {
     final canStart = item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
     final canPreview = item.archiveId != null || item.libraryFileId != null;
+    // Filament mapping needs a printer (for its AMS) and a source file.
+    final canMap = canPreview && item.printerId != null;
 
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
@@ -471,10 +435,29 @@ class _QueueActions extends ConsumerWidget {
           _previewGcode(context);
           return;
         }
+        // Start: shared flow (assign printer if none → mapping → start).
+        if (value == 'start') {
+          await _startQueueItem(context, ref, item, l10n);
+          return;
+        }
         final messenger = ScaffoldMessenger.of(context);
         final notifier = ref.read(queueProvider.notifier);
+        final printerId = item.printerId;
+
+        // Standalone mapping (save without starting) — needs a known printer.
+        if (value == 'ams' && printerId != null) {
+          final mapping = await showQueueMappingSheet(context,
+              item: item, printerId: printerId, confirmLabel: l10n.fmSave);
+          if (mapping == null) return;
+          final r = await notifier.saveMapping(item.id, mapping);
+          messenger.showSnackBar(SnackBar(
+              content: Text(r == QueueActionResult.ok
+                  ? l10n.mappingSaved
+                  : l10n.ctrlFailed)));
+          return;
+        }
+
         final result = switch (value) {
-          'start' => await notifier.start(item.id),
           'cancel' => await notifier.cancel(item.id),
           _ => QueueActionResult.error,
         };
@@ -499,6 +482,15 @@ class _QueueActions extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
+        if (canMap)
+          PopupMenuItem(
+            value: 'ams',
+            child: ListTile(
+              leading: const Icon(Icons.bento_outlined),
+              title: Text(l10n.queueFilamentMapping),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         PopupMenuItem(
           value: 'cancel',
           child: ListTile(
@@ -514,9 +506,9 @@ class _QueueActions extends ConsumerWidget {
   /// Opens fullscreen G-code preview for item source (archive or library file).
   /// App bar title = print name, if known.
   void _previewGcode(BuildContext context) {
-    final name = item.archiveName == null
-        ? ''
-        : '&name=${Uri.encodeQueryComponent(item.archiveName!)}';
+    final title = item.archiveName ?? item.libraryFileName;
+    final name =
+        title == null ? '' : '&name=${Uri.encodeQueryComponent(title)}';
     final source = item.archiveId != null
         ? 'archive=${item.archiveId}'
         : 'library_file=${item.libraryFileId}';
@@ -548,6 +540,137 @@ class _EmptyView extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Shared start flow for a queue item, used by the FAB and the ⋮ Start action:
+/// assign a printer if the item has none, then the filament-mapping screen
+/// (pre-filled, not enforced), then start. Aborts silently if the user backs
+/// out of either step.
+Future<void> _startQueueItem(
+  BuildContext context,
+  WidgetRef ref,
+  QueueItem item,
+  AppLocalizations l10n,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  var printerId = item.printerId;
+  if (printerId == null) {
+    final printer = await _pickQueuePrinter(context, ref, l10n);
+    if (printer == null || !context.mounted) return;
+    printerId = printer.id;
+  }
+  final mapping = await showQueueMappingSheet(
+    context,
+    item: item,
+    printerId: printerId,
+    confirmLabel: l10n.queueStart,
+  );
+  if (mapping == null) return; // backed out of mapping → abort
+
+  // Plate-clear gate: when the scheduler requires it and this printer still has
+  // a finished job on the plate, confirm + acknowledge (clear-plate) before
+  // sending — otherwise the scheduler would hold the print anyway.
+  if (await _awaitingPlateClear(ref, printerId)) {
+    if (!context.mounted) return;
+    final confirmed = await _confirmPlateClear(context, l10n);
+    if (confirmed != true) return;
+    try {
+      await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text(e is AuthException && e.code == AppErrorCode.forbidden
+              ? l10n.ctrlForbidden
+              : l10n.ctrlFailed)));
+      return;
+    }
+  }
+
+  final result = await ref
+      .read(queueProvider.notifier)
+      .startOnPrinter(item.id, printerId, amsMapping: mapping);
+  if (result == QueueActionResult.ok) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.queuePrintStarted)));
+  } else {
+    _snackForResult(messenger, l10n, result);
+  }
+}
+
+/// Whether [printerId] still has a finished job on the plate AND the scheduler
+/// requires plate-clear confirmation — i.e. we must acknowledge clearance
+/// before sending. Best-effort: unknown state → no confirmation.
+Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
+  if (!await ref.read(requirePlateClearProvider.future)) return false;
+  try {
+    final st = await ref.read(printersRepositoryProvider).fetchStatus(printerId);
+    return st?.awaitingPlateClear == true;
+  } on AppApiException {
+    return false;
+  }
+}
+
+/// "Is the plate clear?" dialog shown before starting on a printer that awaits
+/// plate clearance. Returns true to proceed (and acknowledge clearance).
+Future<bool?> _confirmPlateClear(BuildContext context, AppLocalizations l10n) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.plateClearTitle),
+      content: Text(l10n.plateClearBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.plateClearConfirm),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Printer picker for the start flow. OFFLINE printers are selectable too —
+/// bambuddy wakes them before start. Returns null on cancel / no candidates.
+Future<Printer?> _pickQueuePrinter(
+  BuildContext context,
+  WidgetRef ref,
+  AppLocalizations l10n,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final List<PrinterCandidate> candidates;
+  try {
+    candidates = await ref.read(availablePrintersProvider.future);
+  } on AppApiException {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.ctrlFailed)));
+    return null;
+  }
+  if (!context.mounted) return null;
+  if (candidates.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
+    return null;
+  }
+  return showModalBottomSheet<Printer>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(l10n.pickPrinterTitle,
+                style: Theme.of(ctx).textTheme.titleMedium),
+          ),
+          for (final c in candidates)
+            _PrinterCandidateTile(
+              candidate: c,
+              onTap: () => Navigator.pop(ctx, c.printer),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ErrorView extends StatelessWidget {

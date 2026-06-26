@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/filament_requirement.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../stats/stats_common.dart' show fmtDuration;
+import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -44,24 +45,28 @@ class _SliceSheet extends ConsumerStatefulWidget {
   ConsumerState<_SliceSheet> createState() => _SliceSheetState();
 }
 
+/// Canonical BambuStudio / OrcaSlicer bed types accepted by `SliceRequest`'s
+/// `bed_type`. `null` ⇒ inherit the process preset's plate unchanged.
+const _bedTypes = <String>[
+  'Cool Plate',
+  'Textured PEI Plate',
+  'Smooth PEI Plate',
+  'Engineering Plate',
+  'High Temp Plate',
+  'Cool Plate (SuperTack)',
+  'Supertack Plate',
+];
+
 class _SliceSheetState extends ConsumerState<_SliceSheet> {
   SlicerPreset? _printer;
   SlicerPreset? _process;
-  SlicerPreset? _filament;
+  String? _bedType; // null = inherit from the process preset
+  // One entry per filament slot the model needs (>= 1). A multicolor 3MF has
+  // several; the slice request maps these to slots in order.
+  List<SlicerPreset?> _filaments = [];
   bool _submitting = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
-
-  /// Auto-pick the first option of a slot once presets load, preferring the
-  /// user's local presets (they own that printer).
-  void _autoPick(List<SlicerPreset> printers, List<SlicerPreset> processes,
-      List<SlicerPreset> filaments) {
-    SlicerPreset? first(List<SlicerPreset> list) =>
-        list.isEmpty ? null : list.firstWhere((p) => p.isLocal, orElse: () => list.first);
-    _printer ??= first(printers);
-    _process ??= first(processes);
-    _filament ??= first(filaments);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +75,13 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     final presetsAsync = ref.watch(slicerPresetsProvider);
     final ownedCodes =
         ref.watch(ownedPrinterCodesProvider).valueOrNull ?? const <String>{};
-    final ownedFilaments =
-        ref.watch(ownedFilamentNamesProvider).valueOrNull ?? const <String>{};
+    final owned =
+        ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
+    final reqs = ref
+            .watch(filamentRequirementsProvider(
+                (widget.target.isArchive, widget.target.id)))
+            .valueOrNull ??
+        const <FilamentRequirement>[];
 
     return SafeArea(
       child: Padding(
@@ -89,23 +99,35 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                 : l10n.sliceNoPresets),
           ),
           data: (presets) {
+            // One filament slot per requirement (at least one).
+            final slotCount = reqs.isEmpty ? 1 : reqs.length;
+            _resizeFilaments(slotCount);
+
             final printers = _filterPrinters(presets.printers, ownedCodes);
+            _printer ??= _firstLocalOr(printers);
             final code = _printer == null
                 ? null
                 : _codeOfPrinter(_printer!, ownedCodes);
             final processes = _filterProcesses(presets.processes, code);
-            final filaments =
-                _filterFilaments(presets.filaments, code, ownedFilaments);
-            _autoPick(printers, processes, filaments);
+            _process ??= _firstLocalOr(processes);
+
+            // One filament list for every slot — any owned, printer-compatible
+            // filament is selectable (swap PLA↔PETG↔TPU freely). The model's
+            // per-slot type/colour only seeds the auto-picked default; plate
+            // compatibility is enforced server-side at slice time.
+            final filaments = _filterFilaments(presets.filaments, code, owned);
+            for (var i = 0; i < slotCount; i++) {
+              _filaments[i] ??= _pickDefaultFilament(
+                  filaments, owned, i < reqs.length ? reqs[i] : null);
+            }
 
             final ready = _printer != null &&
                 _process != null &&
-                _filament != null &&
+                _filaments.every((f) => f != null) &&
                 !_submitting;
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            return ListView(
+              shrinkWrap: true,
               children: [
                 Text(l10n.sliceTitle, style: theme.textTheme.titleLarge),
                 const SizedBox(height: 2),
@@ -120,16 +142,15 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                   selected: _printer,
                   onTap: () async {
                     final p = await _openPicker(
-                      title: l10n.slicePrinter,
-                      filtered: printers,
-                      all: presets.printers,
-                    );
+                        title: l10n.slicePrinter,
+                        filtered: printers,
+                        all: presets.printers);
                     if (p != null) {
                       // Printer change can invalidate process/filament compatibility.
                       setState(() {
                         _printer = p;
                         _process = null;
-                        _filament = null;
+                        _filaments = List.filled(_filaments.length, null);
                       });
                     }
                   },
@@ -140,39 +161,53 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                   selected: _process,
                   onTap: () async {
                     final p = await _openPicker(
-                      title: l10n.sliceProcess,
-                      filtered: processes,
-                      all: presets.processes,
-                    );
+                        title: l10n.sliceProcess,
+                        filtered: processes,
+                        all: presets.processes);
                     if (p != null) setState(() => _process = p);
                   },
                 ),
-                _slotTile(
-                  label: l10n.sliceFilament,
-                  icon: Icons.cable,
-                  selected: _filament,
-                  onTap: () async {
-                    final p = await _openPicker(
-                      title: l10n.sliceFilament,
-                      filtered: filaments,
-                      all: presets.filaments,
-                    );
-                    if (p != null) setState(() => _filament = p);
-                  },
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: _submitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.layers_outlined),
-                    label: Text(l10n.sliceStart),
-                    onPressed: ready ? _submit : null,
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: const Icon(Icons.grid_on_outlined),
+                    title: Text(l10n.sliceBedType,
+                        style: theme.textTheme.labelMedium),
+                    subtitle: Text(_bedType ?? l10n.sliceBedDefault,
+                        style: theme.textTheme.bodyMedium),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _pickBedType,
                   ),
+                ),
+                for (var i = 0; i < slotCount; i++)
+                  _slotTile(
+                    label: slotCount == 1
+                        ? l10n.sliceFilament
+                        : l10n.sliceFilamentNumbered('${i + 1}'),
+                    icon: Icons.cable,
+                    swatch: i < reqs.length ? colorFromHex(reqs[i].color) : null,
+                    typeHint: i < reqs.length ? reqs[i].type : null,
+                    selected: _filaments[i],
+                    onTap: () async {
+                      final p = await _openPicker(
+                          title: slotCount == 1
+                              ? l10n.sliceFilament
+                              : l10n.sliceFilamentNumbered('${i + 1}'),
+                          filtered: filaments,
+                          all: presets.filaments);
+                      if (p != null) setState(() => _filaments[i] = p);
+                    },
+                  ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  icon: _submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.layers_outlined),
+                  label: Text(l10n.sliceStart),
+                  onPressed: ready ? _submit : null,
                 ),
               ],
             );
@@ -182,30 +217,80 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     );
   }
 
+  /// Grow/shrink the per-slot list, preserving existing picks.
+  void _resizeFilaments(int count) {
+    if (_filaments.length == count) return;
+    final next = List<SlicerPreset?>.filled(count, null);
+    for (var i = 0; i < count && i < _filaments.length; i++) {
+      next[i] = _filaments[i];
+    }
+    _filaments = next;
+  }
+
   Widget _slotTile({
     required String label,
     required IconData icon,
     required SlicerPreset? selected,
     required VoidCallback onTap,
+    Color? swatch,
+    String? typeHint,
   }) {
     final theme = Theme.of(context);
+    final subtitle = selected?.name ??
+        (typeHint != null ? '${_l10n.sliceSelect} · $typeHint' : _l10n.sliceSelect);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        leading: Icon(icon),
+        leading: swatch != null
+            ? Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: swatch,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.dividerColor),
+                ),
+              )
+            : Icon(icon),
         title: Text(label, style: theme.textTheme.labelMedium),
-        subtitle: Text(
-          selected?.name ?? _l10n.sliceSelect,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: selected == null ? theme.colorScheme.onSurfaceVariant : null,
-          ),
-        ),
+        subtitle: Text(subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color:
+                  selected == null ? theme.colorScheme.onSurfaceVariant : null,
+            )),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
     );
+  }
+
+  Future<void> _pickBedType() async {
+    final l10n = _l10n;
+    // Sentinel '' = "Default (inherit from preset)" → stored as null.
+    Widget tile(String value, String label) => ListTile(
+          leading: Icon((_bedType ?? '') == value
+              ? Icons.radio_button_checked
+              : Icons.radio_button_unchecked),
+          title: Text(label),
+          onTap: () => Navigator.pop(context, value),
+        );
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            tile('', l10n.sliceBedDefault),
+            for (final b in _bedTypes) tile(b, b),
+          ],
+        ),
+      ),
+    );
+    if (picked == null) return; // dismissed
+    setState(() => _bedType = picked.isEmpty ? null : picked);
   }
 
   Future<SlicerPreset?> _openPicker({
@@ -225,10 +310,18 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     final l10n = _l10n;
     final messenger = ScaffoldMessenger.of(context);
     final target = widget.target;
+    final refs = [for (final f in _filaments) f!.toRef()];
     final body = <String, dynamic>{
       'printer_preset': _printer!.toRef(),
       'process_preset': _process!.toRef(),
-      'filament_preset': _filament!.toRef(),
+      // Single slot → the singular field (the proven path); multicolor → the
+      // ordered array, one entry per filament slot.
+      if (refs.length == 1)
+        'filament_preset': refs.first
+      else
+        'filament_presets': refs,
+      // Override the plate only when the user picked one; null inherits.
+      if (_bedType != null) 'bed_type': _bedType,
     };
     setState(() => _submitting = true);
     final int jobId;
@@ -254,7 +347,11 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     Navigator.pop(context, ok); // close the sheet, report success upward
   }
 
-  // --- filtering ---
+  // --- filtering / auto-pick ---
+
+  SlicerPreset? _firstLocalOr(List<SlicerPreset> list) => list.isEmpty
+      ? null
+      : list.firstWhere((p) => p.isLocal, orElse: () => list.first);
 
   List<SlicerPreset> _filterPrinters(List<SlicerPreset> all, Set<String> codes) {
     if (codes.isEmpty) return all;
@@ -273,22 +370,77 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
 
   List<SlicerPreset> _filterProcesses(List<SlicerPreset> all, String? code) {
     if (code == null) return all;
-    return all
-        .where((p) => p.isLocal || _containsCode(p.name, code))
-        .toList();
+    return all.where((p) => p.isLocal || _containsCode(p.name, code)).toList();
   }
 
+  /// Owned (any material) + printer-compatible. Not narrowed by the model's
+  /// filament type — the user can pick a different material per slot.
   List<SlicerPreset> _filterFilaments(
-      List<SlicerPreset> all, String? code, Set<String> owned) {
+    List<SlicerPreset> all,
+    String? code,
+    List<OwnedFilament> owned,
+  ) {
     bool compat(SlicerPreset p) => code == null || _containsCode(p.name, code);
-    if (owned.isEmpty) {
-      // No owned-filament signal (e.g. Spoolman) — narrow by printer only.
+    final ownedNames = {for (final o in owned) o.name};
+    if (ownedNames.isEmpty) {
+      // No owned-filament signal — narrow by printer only.
       return all.where((p) => p.isLocal || compat(p)).toList();
     }
     return all
-        .where((p) => p.isLocal || (_ownedMatch(p.name, owned) && compat(p)))
+        .where((p) =>
+            p.isLocal || (_ownedMatch(p.name, ownedNames) && compat(p)))
         .toList();
   }
+
+  /// Prefer the owned filament of the right material closest in colour to the
+  /// requirement; fall back to a local preset, then the first option.
+  SlicerPreset? _pickDefaultFilament(
+    List<SlicerPreset> filtered,
+    List<OwnedFilament> owned,
+    FilamentRequirement? req,
+  ) {
+    if (filtered.isEmpty) return null;
+    if (req != null) {
+      final ofType = [
+        for (final o in owned)
+          if (req.type == null || _typeMatches(o.material, req.type!)) o,
+      ]..sort((a, b) =>
+          _colorDistance(a.color, req.color)
+              .compareTo(_colorDistance(b.color, req.color)));
+      for (final o in ofType) {
+        final match = filtered.where((p) => p.name == o.name);
+        if (match.isNotEmpty) return match.first;
+      }
+    }
+    return _firstLocalOr(filtered);
+  }
+}
+
+bool _typeMatches(String material, String type) {
+  final m = material.toUpperCase();
+  final t = type.toUpperCase();
+  return m == t || m.startsWith(t) || t.startsWith(m);
+}
+
+/// Squared RGB distance between two colours; large when either is missing so
+/// known colours win. Accepts `#RRGGBB` (requirement) and `RRGGBBAA` (spool).
+double _colorDistance(String? a, String? b) {
+  final ca = _rgb(a);
+  final cb = _rgb(b);
+  if (ca == null || cb == null) return double.maxFinite;
+  final dr = ca.$1 - cb.$1, dg = ca.$2 - cb.$2, db = ca.$3 - cb.$3;
+  return (dr * dr + dg * dg + db * db).toDouble();
+}
+
+/// Parse the leading `RRGGBB` of a hex colour (with or without `#`/alpha).
+(int, int, int)? _rgb(String? hex) {
+  if (hex == null) return null;
+  var h = hex.trim();
+  if (h.startsWith('#')) h = h.substring(1);
+  if (h.length < 6) return null;
+  final v = int.tryParse(h.substring(0, 6), radix: 16);
+  if (v == null) return null;
+  return ((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
 }
 
 /// A preset's name contains the printer [code] as a whole token, so "X1"
@@ -364,8 +516,8 @@ class _PresetPickerState extends State<_PresetPicker> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(widget.title,
-                        style: theme.textTheme.titleMedium),
+                    child:
+                        Text(widget.title, style: theme.textTheme.titleMedium),
                   ),
                   Text(l10n.sliceShowAll, style: theme.textTheme.bodySmall),
                   Switch(
@@ -450,8 +602,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
   void initState() {
     super.initState();
     _poll();
-    _timer =
-        Timer.periodic(const Duration(milliseconds: 1500), (_) => _poll());
+    _timer = Timer.periodic(const Duration(milliseconds: 1500), (_) => _poll());
   }
 
   @override

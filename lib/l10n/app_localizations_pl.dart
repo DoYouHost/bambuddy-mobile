@@ -2577,7 +2577,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceProcess => 'Proces / Jakość';
 
   @override
+  String get sliceBedType => 'Płyta robocza';
+
+  @override
+  String get sliceBedDefault => 'Domyślna (z profilu)';
+
+  @override
   String get sliceFilament => 'Filament';
+
+  @override
+  String sliceFilamentNumbered(String n) {
+    return 'Filament $n';
+  }
 
   @override
   String get sliceSelect => 'Dotknij, aby wybrać';
@@ -2631,4 +2642,52 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get sliceTierStandard => 'Wbudowany';
+
+  @override
+  String get queueFilamentMapping => 'Mapowanie filamentów';
+
+  @override
+  String get mappingNoPrinter =>
+      'Najpierw przypisz drukarkę do tej pozycji, aby mapować sloty AMS.';
+
+  @override
+  String get mappingNoSlots => 'Brak informacji o filamentach dla tego pliku.';
+
+  @override
+  String mappingNoAms(String printer) {
+    return 'Brak filamentów w AMS drukarki $printer.';
+  }
+
+  @override
+  String get mappingPickTray => 'Wybierz slot AMS';
+
+  @override
+  String get mappingExternalSpool => 'Szpula zewnętrzna';
+
+  @override
+  String mappingAmsSlot(String unit, String slot) {
+    return 'AMS $unit · slot $slot';
+  }
+
+  @override
+  String get mappingSaved => 'Zapisano mapowanie filamentów';
+
+  @override
+  String get plateClearTitle => 'Czy płyta jest pusta?';
+
+  @override
+  String get plateClearBody =>
+      'Upewnij się, że płyta robocza jest pusta przed rozpoczęciem tego wydruku.';
+
+  @override
+  String get plateClearConfirm => 'Płyta jest pusta';
+
+  @override
+  String get plateClearAction => 'Oznacz płytę jako pustą';
+
+  @override
+  String get plateClearBadge => 'Płyta niewyczyszczona';
+
+  @override
+  String get plateClearedSnack => 'Oznaczono płytę jako pustą';
 }

@@ -223,6 +223,21 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
   (ref) => SlicerRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Raw server `AppSettings` (best-effort, cached per session). Feature flags
+/// derive from this so we fetch `/settings` once.
+final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
+  (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
+);
+
+/// Whether the scheduler requires per-printer plate-clear confirmation before
+/// starting queued prints. Gates the plate badge / "clear plate" button and the
+/// pre-start confirmation.
+final requirePlateClearProvider = FutureProvider<bool>(
+  (ref) async =>
+      (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
+      true,
+);
+
 /// MakerWorld integration (model import). Shares authenticated Dio.
 final makerworldRepositoryProvider = Provider<MakerWorldRepository>(
   (ref) => MakerWorldRepository(ref.watch(apiClientProvider).dio),

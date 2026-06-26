@@ -4466,11 +4466,29 @@ abstract class AppLocalizations {
   /// **'Process / Quality'**
   String get sliceProcess;
 
+  /// No description provided for @sliceBedType.
+  ///
+  /// In en, this message translates to:
+  /// **'Build plate'**
+  String get sliceBedType;
+
+  /// No description provided for @sliceBedDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (from preset)'**
+  String get sliceBedDefault;
+
   /// No description provided for @sliceFilament.
   ///
   /// In en, this message translates to:
   /// **'Filament'**
   String get sliceFilament;
+
+  /// No description provided for @sliceFilamentNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {n}'**
+  String sliceFilamentNumbered(String n);
 
   /// No description provided for @sliceSelect.
   ///
@@ -4567,6 +4585,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Built-in'**
   String get sliceTierStandard;
+
+  /// No description provided for @queueFilamentMapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament mapping'**
+  String get queueFilamentMapping;
+
+  /// No description provided for @mappingNoPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign a printer to this item first to map its AMS slots.'**
+  String get mappingNoPrinter;
+
+  /// No description provided for @mappingNoSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'No filament information for this file.'**
+  String get mappingNoSlots;
+
+  /// No description provided for @mappingNoAms.
+  ///
+  /// In en, this message translates to:
+  /// **'No AMS filaments loaded on {printer}.'**
+  String mappingNoAms(String printer);
+
+  /// No description provided for @mappingPickTray.
+  ///
+  /// In en, this message translates to:
+  /// **'Select AMS slot'**
+  String get mappingPickTray;
+
+  /// No description provided for @mappingExternalSpool.
+  ///
+  /// In en, this message translates to:
+  /// **'External spool'**
+  String get mappingExternalSpool;
+
+  /// No description provided for @mappingAmsSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS {unit} · slot {slot}'**
+  String mappingAmsSlot(String unit, String slot);
+
+  /// No description provided for @mappingSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament mapping saved'**
+  String get mappingSaved;
+
+  /// No description provided for @plateClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the plate clear?'**
+  String get plateClearTitle;
+
+  /// No description provided for @plateClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure the build plate is empty before starting this print.'**
+  String get plateClearBody;
+
+  /// No description provided for @plateClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate is clear'**
+  String get plateClearConfirm;
+
+  /// No description provided for @plateClearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark plate as cleared'**
+  String get plateClearAction;
+
+  /// No description provided for @plateClearBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate not cleared'**
+  String get plateClearBadge;
+
+  /// No description provided for @plateClearedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate marked as cleared'**
+  String get plateClearedSnack;
 }
 
 class _AppLocalizationsDelegate

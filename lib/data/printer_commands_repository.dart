@@ -21,6 +21,11 @@ class PrinterCommandsRepository {
 
   Future<void> stop(int printerId) => _post(Endpoints.printStop(printerId));
 
+  /// Acknowledge the build plate has been cleared (lets the scheduler start the
+  /// next queued print). Empty body.
+  Future<void> clearPlate(int printerId) =>
+      _post(Endpoints.printerClearPlate(printerId));
+
   /// Chamber light: `on=true|false`.
   Future<void> setChamberLight(int printerId, {required bool on}) =>
       _post(Endpoints.chamberLight(printerId), query: {'on': on});

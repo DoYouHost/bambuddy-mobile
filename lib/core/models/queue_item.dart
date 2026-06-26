@@ -29,11 +29,14 @@ class QueueItem {
     this.archiveName,
     this.archiveThumbnail,
     this.archiveDeleted = false,
+    this.libraryFileName,
+    this.libraryFileThumbnail,
     this.printerName,
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.filamentType,
     this.filamentColor,
+    this.amsMapping,
     this.beenJumped = false,
     this.errorMessage,
     this.waitingReason,
@@ -63,6 +66,11 @@ class QueueItem {
   @JsonKey(defaultValue: false)
   final bool archiveDeleted;
 
+  /// Name/thumbnail for items queued from a library file (no archive). Without
+  /// these the tile falls back to `#id` and a placeholder.
+  final String? libraryFileName;
+  final String? libraryFileThumbnail;
+
   final String? printerName;
 
   /// Estimated print time in seconds.
@@ -77,6 +85,11 @@ class QueueItem {
   /// Filament color as combined hex values, e.g. "#FFD00B,#F55A74,#91202B".
   final String? filamentColor;
 
+  /// AMS slot mapping: `ams_mapping[i]` = global AMS tray (`unit*4 + slot`, or
+  /// 254/255 for external spools) feeding the file's i-th filament. Null until
+  /// the user maps it. Used to prefill the mapping sheet.
+  final List<int>? amsMapping;
+
   /// Whether item jumped in queue. Defaults to false.
   @JsonKey(defaultValue: false)
   final bool beenJumped;
@@ -86,6 +99,9 @@ class QueueItem {
   final DateTime? createdAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
+
+  /// Tile title: archive name, else library file name, else `#id`.
+  String get displayName => archiveName ?? libraryFileName ?? '#$id';
 
   /// Tolerant status classifier — unknown server values map to
   /// [QueueItemStatusKind.unknown], never break UI.
