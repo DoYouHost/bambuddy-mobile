@@ -37,6 +37,8 @@ class _FakeCommands implements PrinterCommandsRepository {
   @override
   Future<void> stop(int id) => _do('stop:$id');
   @override
+  Future<void> clearPlate(int id) => _do('clearPlate:$id');
+  @override
   Future<void> setChamberLight(int id, {required bool on}) =>
       _do('light:$id:$on');
   @override
