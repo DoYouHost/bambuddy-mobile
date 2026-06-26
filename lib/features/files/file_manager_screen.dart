@@ -13,6 +13,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart';
+import '../slicer/slice_providers.dart';
+import '../slicer/slice_sheet.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
 
@@ -58,6 +60,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Widget build(BuildContext context) {
     final l10n = _l10n;
     final async = ref.watch(fileManagerProvider);
+    // Warm the slice gate so the per-file sheet can read it synchronously.
+    ref.watch(slicerEnabledProvider);
     final state = async.valueOrNull;
     final selectionMode = state?.selectionMode ?? false;
 
@@ -260,6 +264,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   void _openFileSheet(LibraryFile file) {
     final l10n = _l10n;
+    // Slicing only applies to un-sliced models (not gcode), and only when the
+    // server's slicer sidecar is enabled.
+    final canSlice =
+        (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -288,13 +296,31 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               ),
             ),
             const Divider(height: 1),
-            if (file.isPrintable)
+            if (file.isPrintable) ...[
               ListTile(
                 leading: const Icon(Icons.print_outlined),
                 title: Text(l10n.fmPrint),
                 onTap: () {
                   Navigator.pop(ctx);
                   _printFile(file);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.view_in_ar_outlined),
+                title: Text(l10n.gcodeViewerOpen),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _previewGcode(file);
+                },
+              ),
+            ],
+            if (canSlice)
+              ListTile(
+                leading: const Icon(Icons.layers_outlined),
+                title: Text(l10n.sliceAction),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sliceFile(file);
                 },
               ),
             ListTile(
@@ -486,6 +512,24 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       _snack(l10n.fmPrintStarted);
     } on AppApiException catch (e) {
       _snack(_errText(e));
+    }
+  }
+
+  /// G-code preview: opens the full-screen 3D viewer for a sliced library file.
+  void _previewGcode(LibraryFile file) {
+    final name = Uri.encodeQueryComponent(file.displayName);
+    context.push('/gcode-viewer?library_file=${file.id}&name=$name');
+  }
+
+  Future<void> _sliceFile(LibraryFile file) async {
+    final sliced = await showSliceSheet(
+      context,
+      SliceTarget.libraryFile(file.id, file.displayName),
+    );
+    // A completed slice adds a new gcode file to the library — refresh.
+    if (sliced && mounted) {
+      await ref.read(fileManagerProvider.notifier).refresh();
+      ref.invalidate(libraryStatsProvider);
     }
   }
 

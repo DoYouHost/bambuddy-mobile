@@ -26,6 +26,7 @@ import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
 
@@ -215,6 +216,11 @@ final firmwareRepositoryProvider = Provider<FirmwareRepository>(
 /// File manager / library. Shares authenticated Dio.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Server-side slicing (sidecar). Shares authenticated Dio.
+final slicerRepositoryProvider = Provider<SlicerRepository>(
+  (ref) => SlicerRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// MakerWorld integration (model import). Shares authenticated Dio.

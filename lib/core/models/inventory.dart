@@ -34,6 +34,7 @@ class Spool {
     this.tagUid,
     this.archivedAt,
     this.lastUsed,
+    this.slicerFilamentName,
     this.kProfiles = const [],
   });
 
@@ -64,6 +65,7 @@ class Spool {
         tagUid: _str(json['tag_uid']),
         archivedAt: _str(json['archived_at']),
         lastUsed: _str(json['last_used']),
+        slicerFilamentName: _str(json['slicer_filament_name']),
         kProfiles: _kProfiles(json['k_profiles']),
       );
 
@@ -137,6 +139,11 @@ class Spool {
   final String? tagUid;
   final String? archivedAt;
   final String? lastUsed;
+
+  /// Slicer filament-preset name this spool maps to (e.g. "Bambu PLA Basic
+  /// @BBL X2D"). Drives "owned filament" filtering in the slice modal. Native
+  /// backend only — Spoolman has no equivalent.
+  final String? slicerFilamentName;
   final List<SpoolKProfile> kProfiles;
 
   /// Remaining filament [g] (clamps to 0).

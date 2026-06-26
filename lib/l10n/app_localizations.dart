@@ -4441,6 +4441,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} left'**
   String projectRemainingShort(int count);
+
+  /// No description provided for @sliceAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice'**
+  String get sliceAction;
+
+  /// No description provided for @sliceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice file'**
+  String get sliceTitle;
+
+  /// No description provided for @slicePrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get slicePrinter;
+
+  /// No description provided for @sliceProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Process / Quality'**
+  String get sliceProcess;
+
+  /// No description provided for @sliceFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get sliceFilament;
+
+  /// No description provided for @sliceSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select'**
+  String get sliceSelect;
+
+  /// No description provided for @sliceStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice'**
+  String get sliceStart;
+
+  /// No description provided for @sliceShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get sliceShowAll;
+
+  /// No description provided for @sliceSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search presets'**
+  String get sliceSearchHint;
+
+  /// No description provided for @sliceOwnedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.'**
+  String get sliceOwnedEmpty;
+
+  /// No description provided for @sliceNoPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'No presets available'**
+  String get sliceNoPresets;
+
+  /// No description provided for @sliceInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicing…'**
+  String get sliceInProgress;
+
+  /// No description provided for @sliceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice complete'**
+  String get sliceDone;
+
+  /// No description provided for @sliceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice failed'**
+  String get sliceFailed;
+
+  /// No description provided for @sliceClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get sliceClose;
+
+  /// No description provided for @sliceResultTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated time: {time}'**
+  String sliceResultTime(String time);
+
+  /// No description provided for @sliceResultFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament: {grams} g'**
+  String sliceResultFilament(String grams);
+
+  /// No description provided for @sliceTierLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local preset'**
+  String get sliceTierLocal;
+
+  /// No description provided for @sliceTierCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get sliceTierCloud;
+
+  /// No description provided for @sliceTierOrcaCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Orca Cloud'**
+  String get sliceTierOrcaCloud;
+
+  /// No description provided for @sliceTierStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get sliceTierStandard;
 }
 
 class _AppLocalizationsDelegate

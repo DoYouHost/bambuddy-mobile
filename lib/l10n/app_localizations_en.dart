@@ -2521,4 +2521,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String projectRemainingShort(int count) {
     return '$count left';
   }
+
+  @override
+  String get sliceAction => 'Slice';
+
+  @override
+  String get sliceTitle => 'Slice file';
+
+  @override
+  String get slicePrinter => 'Printer';
+
+  @override
+  String get sliceProcess => 'Process / Quality';
+
+  @override
+  String get sliceFilament => 'Filament';
+
+  @override
+  String get sliceSelect => 'Tap to select';
+
+  @override
+  String get sliceStart => 'Slice';
+
+  @override
+  String get sliceShowAll => 'All';
+
+  @override
+  String get sliceSearchHint => 'Search presets';
+
+  @override
+  String get sliceOwnedEmpty =>
+      'No matching presets for your printer and filaments. Turn on \"All\" to browse the full catalog.';
+
+  @override
+  String get sliceNoPresets => 'No presets available';
+
+  @override
+  String get sliceInProgress => 'Slicing…';
+
+  @override
+  String get sliceDone => 'Slice complete';
+
+  @override
+  String get sliceFailed => 'Slice failed';
+
+  @override
+  String get sliceClose => 'Close';
+
+  @override
+  String sliceResultTime(String time) {
+    return 'Estimated time: $time';
+  }
+
+  @override
+  String sliceResultFilament(String grams) {
+    return 'Filament: $grams g';
+  }
+
+  @override
+  String get sliceTierLocal => 'Local preset';
+
+  @override
+  String get sliceTierCloud => 'Bambu Cloud';
+
+  @override
+  String get sliceTierOrcaCloud => 'Orca Cloud';
+
+  @override
+  String get sliceTierStandard => 'Built-in';
 }

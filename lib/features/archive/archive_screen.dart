@@ -15,6 +15,8 @@ import '../../providers.dart';
 import '../common/print_thumbnail.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_providers.dart';
+import '../slicer/slice_providers.dart';
+import '../slicer/slice_sheet.dart';
 import 'archive_providers.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
@@ -202,6 +204,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
+        onSlice: () => _slice(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
     );
@@ -234,6 +237,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       },
       onDismissed: (_) => _deleteArchive(archive, _pendingPurge),
       child: child,
+    );
+  }
+
+  /// Slice from the bottom sheet: close it, open the slice modal.
+  Future<void> _slice(Archive archive) async {
+    Navigator.pop(context);
+    await showSliceSheet(
+      context,
+      SliceTarget.archive(archive.id, archive.displayName),
     );
   }
 
@@ -568,6 +580,7 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
+    required this.onSlice,
     required this.onDelete,
   });
 
@@ -575,6 +588,7 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
+  final VoidCallback onSlice;
   final VoidCallback onDelete;
 
   @override
@@ -642,6 +656,7 @@ class _ArchiveSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            _SliceArchiveButton(archive: archive, onSlice: onSlice),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -654,6 +669,36 @@ class _ArchiveSheet extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Slice button shown only when the slicer sidecar is enabled AND this archive
+/// is actually re-sliceable (retains a source/model — plain gcode.3mf prints
+/// are not). Renders nothing otherwise, so the sheet is unchanged for the
+/// common case.
+class _SliceArchiveButton extends ConsumerWidget {
+  const _SliceArchiveButton({required this.archive, required this.onSlice});
+
+  final Archive archive;
+  final VoidCallback onSlice;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(slicerEnabledProvider).valueOrNull ?? false;
+    if (!enabled) return const SizedBox.shrink();
+    final caps = ref.watch(archiveCapabilitiesProvider(archive.id)).valueOrNull;
+    if (caps == null || !caps.sliceable) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: const Icon(Icons.layers_outlined),
+          label: Text(AppLocalizations.of(context).sliceAction),
+          onPressed: onSlice,
         ),
       ),
     );

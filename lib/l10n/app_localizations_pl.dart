@@ -2563,4 +2563,72 @@ class AppLocalizationsPl extends AppLocalizations {
   String projectRemainingShort(int count) {
     return 'pozostało $count';
   }
+
+  @override
+  String get sliceAction => 'Potnij';
+
+  @override
+  String get sliceTitle => 'Potnij plik';
+
+  @override
+  String get slicePrinter => 'Drukarka';
+
+  @override
+  String get sliceProcess => 'Proces / Jakość';
+
+  @override
+  String get sliceFilament => 'Filament';
+
+  @override
+  String get sliceSelect => 'Dotknij, aby wybrać';
+
+  @override
+  String get sliceStart => 'Potnij';
+
+  @override
+  String get sliceShowAll => 'Wszystkie';
+
+  @override
+  String get sliceSearchHint => 'Szukaj profili';
+
+  @override
+  String get sliceOwnedEmpty =>
+      'Brak pasujących profili dla Twojej drukarki i filamentów. Włącz „Wszystkie”, aby przeglądać pełny katalog.';
+
+  @override
+  String get sliceNoPresets => 'Brak dostępnych profili';
+
+  @override
+  String get sliceInProgress => 'Cięcie…';
+
+  @override
+  String get sliceDone => 'Cięcie zakończone';
+
+  @override
+  String get sliceFailed => 'Cięcie nie powiodło się';
+
+  @override
+  String get sliceClose => 'Zamknij';
+
+  @override
+  String sliceResultTime(String time) {
+    return 'Szacowany czas: $time';
+  }
+
+  @override
+  String sliceResultFilament(String grams) {
+    return 'Filament: $grams g';
+  }
+
+  @override
+  String get sliceTierLocal => 'Profil lokalny';
+
+  @override
+  String get sliceTierCloud => 'Bambu Cloud';
+
+  @override
+  String get sliceTierOrcaCloud => 'Orca Cloud';
+
+  @override
+  String get sliceTierStandard => 'Wbudowany';
 }

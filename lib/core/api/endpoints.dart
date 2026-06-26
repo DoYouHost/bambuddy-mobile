@@ -101,6 +101,35 @@ abstract final class Endpoints {
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
+  /// Viewing/slicing capabilities of an archive's 3MF — `{has_model, has_gcode,
+  /// has_source, build_volume, filament_colors}`. Slice is only meaningful when
+  /// `has_source` or `has_model` is true (gcode-only archives can't be parsed).
+  static String archiveCapabilities(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/capabilities';
+
+  /// Enqueue a slice job for an archive's source/model (`POST`, body
+  /// `SliceRequest`). Returns `202 {job_id}`; poll [sliceJob].
+  static String archiveSlice(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/slice';
+
+  // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
+
+  /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).
+  /// Returns `202 {job_id}`; poll [sliceJob].
+  static String libraryFileSlice(int fileId) =>
+      '$apiPrefix/library/files/$fileId/slice';
+
+  /// Poll a slice job (`GET`) → status/progress/result. See [archiveSlice].
+  static String sliceJob(int jobId) => '$apiPrefix/slice-jobs/$jobId';
+
+  /// Unified preset list across local/cloud/standard tiers for the slice modal
+  /// (`GET`, query `refresh`). Returns `UnifiedPresetsResponse`.
+  static const slicerPresets = '$apiPrefix/slicer/presets';
+
+  /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
+  /// here to gate the slice UI; full settings management lives on the web.
+  static const appSettings = '$apiPrefix/settings';
+
   // --- Smart plugs (M7) ---
 
   /// List of all smart plugs (SmartPlugResponse[]). Each entry carries
