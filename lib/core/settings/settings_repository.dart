@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
 import 'server_profile.dart';
 
@@ -16,6 +17,7 @@ class SettingsRepository {
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
+  static const _swatchCodesKey = 'swatch_codes';
 
   final SharedPreferences _prefs;
 
@@ -84,4 +86,34 @@ class SettingsRepository {
 
   Future<void> saveInventoryBackend(String backend) =>
       _prefs.setString(_inventoryBackendKey, backend);
+
+  /// Kody swatch (definicje filamentów z przypisanym kodem) — dane lokalne,
+  /// trzymane jako jeden string JSON (lista obiektów). Brak/uszkodzenie → pusta
+  /// lista. Patrz [SwatchCode].
+  List<SwatchCode> loadSwatchCodes() {
+    final raw = _prefs.getString(_swatchCodesKey);
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      final out = <SwatchCode>[];
+      for (final e in decoded) {
+        if (e is Map<String, dynamic>) {
+          try {
+            out.add(SwatchCode.fromJson(e));
+          } on Object {
+            continue;
+          }
+        }
+      }
+      return out;
+    } on Object {
+      return const [];
+    }
+  }
+
+  Future<void> saveSwatchCodes(List<SwatchCode> codes) => _prefs.setString(
+        _swatchCodesKey,
+        jsonEncode([for (final c in codes) c.toJson()]),
+      );
 }

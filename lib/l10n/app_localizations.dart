@@ -3319,6 +3319,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the verification code'**
   String get cloudEnterCode;
+
+  /// Drawer entry: filament swatch codes
+  ///
+  /// In en, this message translates to:
+  /// **'Swatch Codes'**
+  String get swatchCodesMenu;
+
+  /// No description provided for @swatchCodesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Swatch Codes'**
+  String get swatchCodesTitle;
+
+  /// No description provided for @swatchSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by code or name'**
+  String get swatchSearchHint;
+
+  /// No description provided for @swatchSectionCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Codes'**
+  String get swatchSectionCodes;
+
+  /// No description provided for @swatchSectionUncoded.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory filaments without codes'**
+  String get swatchSectionUncoded;
+
+  /// No description provided for @swatchNoCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'No swatch codes yet'**
+  String get swatchNoCodes;
+
+  /// No description provided for @swatchNoCodesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a code to label a filament sample.'**
+  String get swatchNoCodesHint;
+
+  /// No description provided for @swatchNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No codes match \"{query}\"'**
+  String swatchNoMatch(String query);
+
+  /// No description provided for @swatchAllCoded.
+  ///
+  /// In en, this message translates to:
+  /// **'All inventory filaments have codes'**
+  String get swatchAllCoded;
+
+  /// No description provided for @swatchNewCode.
+  ///
+  /// In en, this message translates to:
+  /// **'New code'**
+  String get swatchNewCode;
+
+  /// No description provided for @swatchGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get swatchGenerate;
+
+  /// No description provided for @swatchGenerateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate code'**
+  String get swatchGenerateCode;
+
+  /// No description provided for @swatchExists.
+  ///
+  /// In en, this message translates to:
+  /// **'That filament already has a code'**
+  String get swatchExists;
+
+  /// No description provided for @swatchCreatedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Created code {code}'**
+  String swatchCreatedSnack(String code);
+
+  /// No description provided for @swatchUpdatedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated code {code}'**
+  String swatchUpdatedSnack(String code);
+
+  /// No description provided for @swatchCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied {code}'**
+  String swatchCopied(String code);
+
+  /// No description provided for @swatchDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get swatchDelete;
+
+  /// No description provided for @swatchDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete code?'**
+  String get swatchDeleteTitle;
+
+  /// No description provided for @swatchDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Code {code} for {name} will be removed.'**
+  String swatchDeleteBody(String code, String name);
+
+  /// No description provided for @swatchExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get swatchExport;
+
+  /// No description provided for @swatchImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get swatchImport;
+
+  /// No description provided for @swatchExportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No codes to export'**
+  String get swatchExportEmpty;
+
+  /// No description provided for @swatchExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported {count, plural, =1{1 code} other{{count} codes}}'**
+  String swatchExported(int count);
+
+  /// No description provided for @swatchExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get swatchExportFailed;
+
+  /// No description provided for @swatchImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import codes?'**
+  String get swatchImportTitle;
+
+  /// No description provided for @swatchImportWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces all {existing} existing codes with {incoming} codes from the file. This cannot be undone.'**
+  String swatchImportWarning(int existing, int incoming);
+
+  /// No description provided for @swatchImportConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all'**
+  String get swatchImportConfirm;
+
+  /// No description provided for @swatchImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count, plural, =1{1 code} other{{count} codes}}'**
+  String swatchImported(int count);
+
+  /// No description provided for @swatchImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file'**
+  String get swatchImportFailed;
+
+  /// No description provided for @swatchImportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No codes found in file'**
+  String get swatchImportEmpty;
+
+  /// No description provided for @swatchFormTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New swatch code'**
+  String get swatchFormTitle;
+
+  /// No description provided for @swatchEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit code'**
+  String get swatchEditTitle;
+
+  /// No description provided for @swatchSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get swatchSave;
+
+  /// No description provided for @swatchRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get swatchRegenerate;
+
+  /// No description provided for @swatchFieldCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get swatchFieldCode;
+
+  /// No description provided for @swatchCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 6 characters: digits and letters, no 0, 1, I, L or O'**
+  String get swatchCodeInvalid;
+
+  /// No description provided for @swatchCodeTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is already in use'**
+  String get swatchCodeTaken;
+
+  /// No description provided for @swatchFieldBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Manufacturer'**
+  String get swatchFieldBrand;
+
+  /// No description provided for @swatchFieldMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get swatchFieldMaterial;
+
+  /// No description provided for @swatchFieldVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'Variant'**
+  String get swatchFieldVariant;
+
+  /// No description provided for @swatchFieldColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get swatchFieldColor;
+
+  /// No description provided for @swatchFieldHex.
+  ///
+  /// In en, this message translates to:
+  /// **'Color hex'**
+  String get swatchFieldHex;
+
+  /// No description provided for @swatchMaterialRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Material is required'**
+  String get swatchMaterialRequired;
+
+  /// No description provided for @swatchNoCatalogColors.
+  ///
+  /// In en, this message translates to:
+  /// **'No catalog colors available. Enter a color name and hex manually.'**
+  String get swatchNoCatalogColors;
 }
 
 class _AppLocalizationsDelegate

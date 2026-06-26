@@ -492,6 +492,14 @@ class _AppDrawer extends ConsumerWidget {
                   },
                 ),
                 _DrawerTile(
+                  icon: Icons.qr_code_2_rounded,
+                  label: l10n.swatchCodesMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/swatches');
+                  },
+                ),
+                _DrawerTile(
                   icon: Icons.bar_chart_rounded,
                   label: l10n.menuStatistics,
                   onTap: () {

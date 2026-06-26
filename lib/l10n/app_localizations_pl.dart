@@ -1881,4 +1881,170 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get cloudEnterCode => 'Wpisz kod weryfikacyjny';
+
+  @override
+  String get swatchCodesMenu => 'Kody próbek';
+
+  @override
+  String get swatchCodesTitle => 'Kody próbek';
+
+  @override
+  String get swatchSearchHint => 'Szukaj po kodzie lub nazwie';
+
+  @override
+  String get swatchSectionCodes => 'Kody';
+
+  @override
+  String get swatchSectionUncoded => 'Filamenty z magazynu bez kodu';
+
+  @override
+  String get swatchNoCodes => 'Brak kodów próbek';
+
+  @override
+  String get swatchNoCodesHint => 'Utwórz kod, aby oznaczyć próbkę filamentu.';
+
+  @override
+  String swatchNoMatch(String query) {
+    return 'Brak kodów pasujących do „$query”';
+  }
+
+  @override
+  String get swatchAllCoded => 'Wszystkie filamenty z magazynu mają kody';
+
+  @override
+  String get swatchNewCode => 'Nowy kod';
+
+  @override
+  String get swatchGenerate => 'Generuj';
+
+  @override
+  String get swatchGenerateCode => 'Generuj kod';
+
+  @override
+  String get swatchExists => 'Ten filament ma już kod';
+
+  @override
+  String swatchCreatedSnack(String code) {
+    return 'Utworzono kod $code';
+  }
+
+  @override
+  String swatchUpdatedSnack(String code) {
+    return 'Zaktualizowano kod $code';
+  }
+
+  @override
+  String swatchCopied(String code) {
+    return 'Skopiowano $code';
+  }
+
+  @override
+  String get swatchDelete => 'Usuń';
+
+  @override
+  String get swatchDeleteTitle => 'Usunąć kod?';
+
+  @override
+  String swatchDeleteBody(String code, String name) {
+    return 'Kod $code dla $name zostanie usunięty.';
+  }
+
+  @override
+  String get swatchExport => 'Eksport';
+
+  @override
+  String get swatchImport => 'Import';
+
+  @override
+  String get swatchExportEmpty => 'Brak kodów do eksportu';
+
+  @override
+  String swatchExported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kodu',
+      many: '$count kodów',
+      few: '$count kody',
+      one: '1 kod',
+    );
+    return 'Wyeksportowano $_temp0';
+  }
+
+  @override
+  String get swatchExportFailed => 'Eksport nie powiódł się';
+
+  @override
+  String get swatchImportTitle => 'Zaimportować kody?';
+
+  @override
+  String swatchImportWarning(int existing, int incoming) {
+    return 'To zastąpi wszystkie obecne kody ($existing) kodami z pliku ($incoming). Tej operacji nie można cofnąć.';
+  }
+
+  @override
+  String get swatchImportConfirm => 'Zastąp wszystkie';
+
+  @override
+  String swatchImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kodu',
+      many: '$count kodów',
+      few: '$count kody',
+      one: '1 kod',
+    );
+    return 'Zaimportowano $_temp0';
+  }
+
+  @override
+  String get swatchImportFailed => 'Nie udało się odczytać pliku';
+
+  @override
+  String get swatchImportEmpty => 'Nie znaleziono kodów w pliku';
+
+  @override
+  String get swatchFormTitle => 'Nowy kod próbki';
+
+  @override
+  String get swatchEditTitle => 'Edytuj kod';
+
+  @override
+  String get swatchSave => 'Zapisz';
+
+  @override
+  String get swatchRegenerate => 'Wygeneruj ponownie';
+
+  @override
+  String get swatchFieldCode => 'Kod';
+
+  @override
+  String get swatchCodeInvalid =>
+      'Użyj 6 znaków: cyfry i litery, bez 0, 1, I, L i O';
+
+  @override
+  String get swatchCodeTaken => 'Ten kod jest już używany';
+
+  @override
+  String get swatchFieldBrand => 'Producent';
+
+  @override
+  String get swatchFieldMaterial => 'Materiał';
+
+  @override
+  String get swatchFieldVariant => 'Wariant';
+
+  @override
+  String get swatchFieldColor => 'Kolor';
+
+  @override
+  String get swatchFieldHex => 'Kolor hex';
+
+  @override
+  String get swatchMaterialRequired => 'Materiał jest wymagany';
+
+  @override
+  String get swatchNoCatalogColors =>
+      'Brak kolorów w katalogu. Wpisz nazwę i hex ręcznie.';
 }

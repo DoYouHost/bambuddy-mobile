@@ -17,6 +17,7 @@ import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/root_scaffold.dart';
 import 'features/stats/statistics_screen.dart';
+import 'features/swatches/swatches_screen.dart';
 import 'providers.dart';
 
 /// Klucz głównego nawigatora — pozwala pchać ekrany (np. skaner szpuli
@@ -77,6 +78,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/makerworld',
         builder: (_, _) => const MakerWorldScreen(),
+      ),
+
+      // Kody próbek filamentów — pełny ekran poza powłoką (push z szuflady).
+      GoRoute(
+        path: '/swatches',
+        builder: (_, _) => const SwatchesScreen(),
       ),
 
       // Konto chmury Bambu (logowanie do pobierania z MakerWorld) — w
