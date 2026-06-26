@@ -497,6 +497,14 @@ class _AppDrawer extends ConsumerWidget {
                   },
                 ),
                 _DrawerTile(
+                  icon: Icons.folder_special_outlined,
+                  label: l10n.projectsMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/projects');
+                  },
+                ),
+                _DrawerTile(
                   icon: Icons.bar_chart_rounded,
                   label: l10n.menuStatistics,
                   onTap: () {

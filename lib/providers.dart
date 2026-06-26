@@ -24,6 +24,7 @@ import 'data/library_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
+import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
@@ -184,6 +185,11 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Projects (group prints toward a goal + BOM/stats/timeline). Shares authenticated Dio.
+final projectsRepositoryProvider = Provider<ProjectsRepository>(
+  (ref) => ProjectsRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Smart plugs (M7). Shares authenticated Dio.

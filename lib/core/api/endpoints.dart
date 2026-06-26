@@ -342,4 +342,89 @@ abstract final class Endpoints {
 
   /// Bambu Cloud logout (`POST`, no body).
   static const cloudLogout = '$apiPrefix/cloud/logout';
+
+  // --- Projects ---
+  //
+  // Group prints (archives + queue) toward a goal: stats, BOM, timeline,
+  // attachments, cover image, templates and a parent/child hierarchy.
+
+  /// List projects (`ProjectListResponse[]`). Query: `status` (optional).
+  /// Also `POST` — create project (body `ProjectCreate`). Trailing slash
+  /// required (FastAPI), similar to `/printers/`.
+  static const projects = '$apiPrefix/projects/';
+
+  /// Project templates (`ProjectListResponse[]`, `is_template=true`).
+  static const projectsTemplates = '$apiPrefix/projects/templates';
+
+  /// Create project from template (`POST`). Query `name` (new project name).
+  static String projectFromTemplate(int templateId) =>
+      '$apiPrefix/projects/from-template/$templateId';
+
+  /// Import project from JSON (`POST`, body `ProjectImport`) → `ProjectResponse`.
+  static const projectsImport = '$apiPrefix/projects/import';
+
+  /// Import project from exported file (`POST`, multipart `{file}`).
+  static const projectsImportFile = '$apiPrefix/projects/import/file';
+
+  /// Single project: `GET` (full `ProjectResponse` incl. stats/children),
+  /// `PATCH` (body `ProjectUpdate`), `DELETE`.
+  static String project(int projectId) => '$apiPrefix/projects/$projectId';
+
+  /// Turn a project into a reusable template (`POST`, no body).
+  static String projectCreateTemplate(int projectId) =>
+      '$apiPrefix/projects/$projectId/create-template';
+
+  /// Export project as a downloadable archive (`GET`, byte stream).
+  /// Query `format` (default `zip`).
+  static String projectExport(int projectId) =>
+      '$apiPrefix/projects/$projectId/export';
+
+  /// Project archives (`GET`, query `limit`/`offset`).
+  static String projectArchives(int projectId) =>
+      '$apiPrefix/projects/$projectId/archives';
+
+  /// Add archives to project (`POST`, body `{archive_ids:[]}`).
+  static String projectAddArchives(int projectId) =>
+      '$apiPrefix/projects/$projectId/add-archives';
+
+  /// Remove archives from project (`POST`, body `{archive_ids:[]}`).
+  static String projectRemoveArchives(int projectId) =>
+      '$apiPrefix/projects/$projectId/remove-archives';
+
+  /// Project queue items (`GET` → queue item list).
+  static String projectQueue(int projectId) =>
+      '$apiPrefix/projects/$projectId/queue';
+
+  /// Add queue items to project (`POST`, body `{queue_item_ids:[]}`).
+  static String projectAddQueue(int projectId) =>
+      '$apiPrefix/projects/$projectId/add-queue';
+
+  /// BOM items (`GET` → `BOMItemResponse[]`; `POST` create body `BOMItemCreate`).
+  static String projectBom(int projectId) =>
+      '$apiPrefix/projects/$projectId/bom';
+
+  /// Single BOM item: `PATCH` (edit), `DELETE`.
+  static String projectBomItem(int projectId, int itemId) =>
+      '$apiPrefix/projects/$projectId/bom/$itemId';
+
+  /// Project attachments (`POST` multipart `{file}` — upload).
+  static String projectAttachments(int projectId) =>
+      '$apiPrefix/projects/$projectId/attachments';
+
+  /// Single attachment by filename: `GET` (download byte stream), `DELETE`.
+  static String projectAttachment(int projectId, String filename) =>
+      '$apiPrefix/projects/$projectId/attachments/$filename';
+
+  /// Cover image: `POST` multipart `{file}` (upload), `GET` (image — auth via
+  /// `?token=` camera token, NOT header), `DELETE`.
+  static String projectCoverImage(int projectId) =>
+      '$apiPrefix/projects/$projectId/cover-image';
+
+  /// Project timeline (`GET` → `TimelineEvent[]`). Query `limit` (optional).
+  static String projectTimeline(int projectId) =>
+      '$apiPrefix/projects/$projectId/timeline';
+
+  /// Library folders linked to a project (`GET` → `FolderTreeItem[]`).
+  static String libraryFoldersByProject(int projectId) =>
+      '$apiPrefix/library/folders/by-project/$projectId';
 }

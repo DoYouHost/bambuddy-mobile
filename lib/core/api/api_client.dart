@@ -61,6 +61,8 @@ class AuthInterceptor extends Interceptor {
   ) async {
     switch (authMode) {
       case AuthMode.none:
+        // Server requires no auth — never attach stale credentials.
+        break;
       case AuthMode.jwt:
         final jwt = await credentials.readJwt();
         if (jwt != null) {

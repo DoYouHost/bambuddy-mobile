@@ -12,6 +12,8 @@ import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/projects/projects_screen.dart';
+import 'features/projects/project_detail_screen.dart';
 import 'features/settings/cloud_account_screen.dart';
 import 'features/queue/queue_screen.dart';
 import 'features/setup/setup_screen.dart';
@@ -78,6 +80,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/makerworld',
         builder: (_, _) => const MakerWorldScreen(),
+      ),
+
+      // Projects — group prints toward a goal; full screen outside shell
+      // (pushed from drawer). Detail as subroute by id.
+      GoRoute(
+        path: '/projects',
+        builder: (_, _) => const ProjectsScreen(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (_, state) => ProjectDetailScreen(
+              projectId: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+        ],
       ),
 
       // Filament swatch codes — full screen outside shell (pushed from drawer).

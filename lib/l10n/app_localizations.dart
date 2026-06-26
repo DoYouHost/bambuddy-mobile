@@ -3709,6 +3709,738 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No catalog colors available. Enter a color name and hex manually.'**
   String get swatchNoCatalogColors;
+
+  /// No description provided for @projectsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get projectsMenu;
+
+  /// No description provided for @projectsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get projectsTitle;
+
+  /// No description provided for @projectsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet'**
+  String get projectsEmpty;
+
+  /// No description provided for @projectsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get projectsFilterAll;
+
+  /// No description provided for @projectCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New project'**
+  String get projectCreate;
+
+  /// No description provided for @projectEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit project'**
+  String get projectEdit;
+
+  /// No description provided for @projectDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get projectDelete;
+
+  /// No description provided for @projectDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete project?'**
+  String get projectDeleteTitle;
+
+  /// No description provided for @projectDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be removed. Linked prints stay in the archive.'**
+  String projectDeleteBody(String name);
+
+  /// No description provided for @projectDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Project deleted'**
+  String get projectDeleted;
+
+  /// No description provided for @projectDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete project'**
+  String get projectDeleteFailed;
+
+  /// No description provided for @projectSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Project saved'**
+  String get projectSaved;
+
+  /// No description provided for @projectActionForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Your API key lacks permission for this action'**
+  String get projectActionForbidden;
+
+  /// No description provided for @projectActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Action failed'**
+  String get projectActionFailed;
+
+  /// No description provided for @projectName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get projectName;
+
+  /// No description provided for @projectNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get projectNameRequired;
+
+  /// No description provided for @projectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get projectDescription;
+
+  /// No description provided for @projectNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get projectNotes;
+
+  /// No description provided for @projectStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get projectStatus;
+
+  /// No description provided for @projectPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get projectPriority;
+
+  /// No description provided for @projectColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get projectColor;
+
+  /// No description provided for @projectDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get projectDueDate;
+
+  /// No description provided for @projectDueDateClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get projectDueDateClear;
+
+  /// No description provided for @projectBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get projectBudget;
+
+  /// No description provided for @projectTargetCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Target plates'**
+  String get projectTargetCount;
+
+  /// No description provided for @projectTargetPartsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Target parts'**
+  String get projectTargetPartsCount;
+
+  /// No description provided for @projectTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags (comma-separated)'**
+  String get projectTags;
+
+  /// No description provided for @projectUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get projectUrl;
+
+  /// No description provided for @projectParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent project'**
+  String get projectParent;
+
+  /// No description provided for @projectParentNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get projectParentNone;
+
+  /// No description provided for @projectSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get projectSave;
+
+  /// No description provided for @projectStatusPlanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Planning'**
+  String get projectStatusPlanning;
+
+  /// No description provided for @projectStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get projectStatusActive;
+
+  /// No description provided for @projectStatusOnHold.
+  ///
+  /// In en, this message translates to:
+  /// **'On hold'**
+  String get projectStatusOnHold;
+
+  /// No description provided for @projectStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get projectStatusCompleted;
+
+  /// No description provided for @projectStatusArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get projectStatusArchived;
+
+  /// No description provided for @projectPriorityLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get projectPriorityLow;
+
+  /// No description provided for @projectPriorityNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get projectPriorityNormal;
+
+  /// No description provided for @projectPriorityHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get projectPriorityHigh;
+
+  /// No description provided for @projectPriorityUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgent'**
+  String get projectPriorityUrgent;
+
+  /// No description provided for @projectTabOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get projectTabOverview;
+
+  /// No description provided for @projectTabArchives.
+  ///
+  /// In en, this message translates to:
+  /// **'Archives'**
+  String get projectTabArchives;
+
+  /// No description provided for @projectTabBom.
+  ///
+  /// In en, this message translates to:
+  /// **'BOM'**
+  String get projectTabBom;
+
+  /// No description provided for @projectTabQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get projectTabQueue;
+
+  /// No description provided for @projectTabTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline'**
+  String get projectTabTimeline;
+
+  /// No description provided for @projectTabFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get projectTabFiles;
+
+  /// No description provided for @projectTabAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get projectTabAttachments;
+
+  /// No description provided for @projectStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get projectStatsTitle;
+
+  /// No description provided for @projectStatProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get projectStatProgress;
+
+  /// No description provided for @projectStatPartsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Parts'**
+  String get projectStatPartsProgress;
+
+  /// No description provided for @projectStatPrints.
+  ///
+  /// In en, this message translates to:
+  /// **'Plates'**
+  String get projectStatPrints;
+
+  /// No description provided for @projectStatCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get projectStatCompleted;
+
+  /// No description provided for @projectStatFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get projectStatFailed;
+
+  /// No description provided for @projectStatQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get projectStatQueued;
+
+  /// No description provided for @projectStatInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get projectStatInProgress;
+
+  /// No description provided for @projectStatPrintTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Print time'**
+  String get projectStatPrintTime;
+
+  /// No description provided for @projectStatFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get projectStatFilament;
+
+  /// No description provided for @projectStatCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. cost'**
+  String get projectStatCost;
+
+  /// No description provided for @projectStatEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get projectStatEnergy;
+
+  /// No description provided for @projectStatEnergyCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy cost'**
+  String get projectStatEnergyCost;
+
+  /// No description provided for @projectStatRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get projectStatRemaining;
+
+  /// No description provided for @projectStatBom.
+  ///
+  /// In en, this message translates to:
+  /// **'BOM'**
+  String get projectStatBom;
+
+  /// No description provided for @projectChildren.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-projects'**
+  String get projectChildren;
+
+  /// No description provided for @projectNoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get projectNoDescription;
+
+  /// No description provided for @projectDueOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Due {date}'**
+  String projectDueOn(String date);
+
+  /// No description provided for @projectAddArchives.
+  ///
+  /// In en, this message translates to:
+  /// **'Add archives'**
+  String get projectAddArchives;
+
+  /// No description provided for @projectRemoveArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from project'**
+  String get projectRemoveArchive;
+
+  /// No description provided for @projectArchivesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No archives linked'**
+  String get projectArchivesEmpty;
+
+  /// No description provided for @projectArchiveRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from project'**
+  String get projectArchiveRemoved;
+
+  /// No description provided for @archiveAddToProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to project'**
+  String get archiveAddToProject;
+
+  /// No description provided for @projectArchivesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to project'**
+  String get projectArchivesAdded;
+
+  /// No description provided for @projectPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a project'**
+  String get projectPickTitle;
+
+  /// No description provided for @projectBomEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No BOM items'**
+  String get projectBomEmpty;
+
+  /// No description provided for @bomAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get bomAdd;
+
+  /// No description provided for @bomEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit item'**
+  String get bomEditTitle;
+
+  /// No description provided for @bomAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New item'**
+  String get bomAddTitle;
+
+  /// No description provided for @bomName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get bomName;
+
+  /// No description provided for @bomQtyNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get bomQtyNeeded;
+
+  /// No description provided for @bomQtyAcquired.
+  ///
+  /// In en, this message translates to:
+  /// **'Acquired'**
+  String get bomQtyAcquired;
+
+  /// No description provided for @bomUnitPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get bomUnitPrice;
+
+  /// No description provided for @bomSourcingUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Source URL'**
+  String get bomSourcingUrl;
+
+  /// No description provided for @bomRemarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Remarks'**
+  String get bomRemarks;
+
+  /// No description provided for @bomComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get bomComplete;
+
+  /// No description provided for @bomDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete item'**
+  String get bomDelete;
+
+  /// No description provided for @bomDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Item deleted'**
+  String get bomDeleted;
+
+  /// No description provided for @projectQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No queue items'**
+  String get projectQueueEmpty;
+
+  /// No description provided for @projectTimelineEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No events yet'**
+  String get projectTimelineEmpty;
+
+  /// No description provided for @projectAttachmentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No attachments'**
+  String get projectAttachmentsEmpty;
+
+  /// No description provided for @projectFilesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No printable files'**
+  String get projectFilesEmpty;
+
+  /// No description provided for @projectAttachmentUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload file'**
+  String get projectAttachmentUpload;
+
+  /// No description provided for @projectAttachmentDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get projectAttachmentDownload;
+
+  /// No description provided for @projectAttachmentDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get projectAttachmentDelete;
+
+  /// No description provided for @projectAttachmentDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment deleted'**
+  String get projectAttachmentDeleted;
+
+  /// No description provided for @projectAttachmentUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment uploaded'**
+  String get projectAttachmentUploaded;
+
+  /// No description provided for @projectFileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String projectFileSaved(String path);
+
+  /// No description provided for @projectDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get projectDownloadFailed;
+
+  /// No description provided for @projectSaveCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Save cancelled'**
+  String get projectSaveCancelled;
+
+  /// No description provided for @projectCoverUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Set cover image'**
+  String get projectCoverUpload;
+
+  /// No description provided for @projectCoverDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove cover image'**
+  String get projectCoverDelete;
+
+  /// No description provided for @projectCoverUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover updated'**
+  String get projectCoverUpdated;
+
+  /// No description provided for @projectCoverRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover removed'**
+  String get projectCoverRemoved;
+
+  /// No description provided for @projectMenuExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get projectMenuExport;
+
+  /// No description provided for @projectMenuCreateTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get projectMenuCreateTemplate;
+
+  /// No description provided for @projectMenuImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import project'**
+  String get projectMenuImport;
+
+  /// No description provided for @projectFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create from template'**
+  String get projectFromTemplate;
+
+  /// No description provided for @projectTemplateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates'**
+  String get projectTemplateNone;
+
+  /// No description provided for @projectTemplatePickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a template'**
+  String get projectTemplatePickTitle;
+
+  /// No description provided for @projectTemplateNamePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'New project name'**
+  String get projectTemplateNamePrompt;
+
+  /// No description provided for @projectExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String projectExported(String path);
+
+  /// No description provided for @projectExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get projectExportFailed;
+
+  /// No description provided for @projectTemplateCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Template created'**
+  String get projectTemplateCreated;
+
+  /// No description provided for @projectImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Project imported'**
+  String get projectImported;
+
+  /// No description provided for @projectImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed'**
+  String get projectImportFailed;
+
+  /// No description provided for @projectUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading…'**
+  String get projectUploading;
+
+  /// No description provided for @projectLinkFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Link folder'**
+  String get projectLinkFolder;
+
+  /// No description provided for @projectNoFoldersToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'No folders available to link'**
+  String get projectNoFoldersToLink;
+
+  /// No description provided for @projectUnlinkFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink folder'**
+  String get projectUnlinkFolder;
+
+  /// No description provided for @projectFolderLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder linked'**
+  String get projectFolderLinked;
+
+  /// No description provided for @projectFolderUnlinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder unlinked'**
+  String get projectFolderUnlinked;
+
+  /// No description provided for @projectNotesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get projectNotesEmpty;
+
+  /// No description provided for @projectFolderFileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} file} other{{count} files}}'**
+  String projectFolderFileCount(int count);
+
+  /// No description provided for @projectRemainingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String projectRemainingShort(int count);
 }
 
 class _AppLocalizationsDelegate

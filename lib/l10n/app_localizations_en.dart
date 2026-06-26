@@ -2136,4 +2136,389 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get swatchNoCatalogColors =>
       'No catalog colors available. Enter a color name and hex manually.';
+
+  @override
+  String get projectsMenu => 'Projects';
+
+  @override
+  String get projectsTitle => 'Projects';
+
+  @override
+  String get projectsEmpty => 'No projects yet';
+
+  @override
+  String get projectsFilterAll => 'All';
+
+  @override
+  String get projectCreate => 'New project';
+
+  @override
+  String get projectEdit => 'Edit project';
+
+  @override
+  String get projectDelete => 'Delete';
+
+  @override
+  String get projectDeleteTitle => 'Delete project?';
+
+  @override
+  String projectDeleteBody(String name) {
+    return '“$name” will be removed. Linked prints stay in the archive.';
+  }
+
+  @override
+  String get projectDeleted => 'Project deleted';
+
+  @override
+  String get projectDeleteFailed => 'Could not delete project';
+
+  @override
+  String get projectSaved => 'Project saved';
+
+  @override
+  String get projectActionForbidden =>
+      'Your API key lacks permission for this action';
+
+  @override
+  String get projectActionFailed => 'Action failed';
+
+  @override
+  String get projectName => 'Name';
+
+  @override
+  String get projectNameRequired => 'Name is required';
+
+  @override
+  String get projectDescription => 'Description';
+
+  @override
+  String get projectNotes => 'Notes';
+
+  @override
+  String get projectStatus => 'Status';
+
+  @override
+  String get projectPriority => 'Priority';
+
+  @override
+  String get projectColor => 'Color';
+
+  @override
+  String get projectDueDate => 'Due date';
+
+  @override
+  String get projectDueDateClear => 'Clear';
+
+  @override
+  String get projectBudget => 'Budget';
+
+  @override
+  String get projectTargetCount => 'Target plates';
+
+  @override
+  String get projectTargetPartsCount => 'Target parts';
+
+  @override
+  String get projectTags => 'Tags (comma-separated)';
+
+  @override
+  String get projectUrl => 'Link';
+
+  @override
+  String get projectParent => 'Parent project';
+
+  @override
+  String get projectParentNone => 'None';
+
+  @override
+  String get projectSave => 'Save';
+
+  @override
+  String get projectStatusPlanning => 'Planning';
+
+  @override
+  String get projectStatusActive => 'Active';
+
+  @override
+  String get projectStatusOnHold => 'On hold';
+
+  @override
+  String get projectStatusCompleted => 'Completed';
+
+  @override
+  String get projectStatusArchived => 'Archived';
+
+  @override
+  String get projectPriorityLow => 'Low';
+
+  @override
+  String get projectPriorityNormal => 'Normal';
+
+  @override
+  String get projectPriorityHigh => 'High';
+
+  @override
+  String get projectPriorityUrgent => 'Urgent';
+
+  @override
+  String get projectTabOverview => 'Overview';
+
+  @override
+  String get projectTabArchives => 'Archives';
+
+  @override
+  String get projectTabBom => 'BOM';
+
+  @override
+  String get projectTabQueue => 'Queue';
+
+  @override
+  String get projectTabTimeline => 'Timeline';
+
+  @override
+  String get projectTabFiles => 'Files';
+
+  @override
+  String get projectTabAttachments => 'Attachments';
+
+  @override
+  String get projectStatsTitle => 'Statistics';
+
+  @override
+  String get projectStatProgress => 'Progress';
+
+  @override
+  String get projectStatPartsProgress => 'Parts';
+
+  @override
+  String get projectStatPrints => 'Plates';
+
+  @override
+  String get projectStatCompleted => 'Completed';
+
+  @override
+  String get projectStatFailed => 'Failed';
+
+  @override
+  String get projectStatQueued => 'Queued';
+
+  @override
+  String get projectStatInProgress => 'In progress';
+
+  @override
+  String get projectStatPrintTime => 'Print time';
+
+  @override
+  String get projectStatFilament => 'Filament';
+
+  @override
+  String get projectStatCost => 'Est. cost';
+
+  @override
+  String get projectStatEnergy => 'Energy';
+
+  @override
+  String get projectStatEnergyCost => 'Energy cost';
+
+  @override
+  String get projectStatRemaining => 'Remaining';
+
+  @override
+  String get projectStatBom => 'BOM';
+
+  @override
+  String get projectChildren => 'Sub-projects';
+
+  @override
+  String get projectNoDescription => 'No description';
+
+  @override
+  String projectDueOn(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get projectAddArchives => 'Add archives';
+
+  @override
+  String get projectRemoveArchive => 'Remove from project';
+
+  @override
+  String get projectArchivesEmpty => 'No archives linked';
+
+  @override
+  String get projectArchiveRemoved => 'Removed from project';
+
+  @override
+  String get archiveAddToProject => 'Add to project';
+
+  @override
+  String get projectArchivesAdded => 'Added to project';
+
+  @override
+  String get projectPickTitle => 'Pick a project';
+
+  @override
+  String get projectBomEmpty => 'No BOM items';
+
+  @override
+  String get bomAdd => 'Add item';
+
+  @override
+  String get bomEditTitle => 'Edit item';
+
+  @override
+  String get bomAddTitle => 'New item';
+
+  @override
+  String get bomName => 'Name';
+
+  @override
+  String get bomQtyNeeded => 'Quantity';
+
+  @override
+  String get bomQtyAcquired => 'Acquired';
+
+  @override
+  String get bomUnitPrice => 'Unit price';
+
+  @override
+  String get bomSourcingUrl => 'Source URL';
+
+  @override
+  String get bomRemarks => 'Remarks';
+
+  @override
+  String get bomComplete => 'Complete';
+
+  @override
+  String get bomDelete => 'Delete item';
+
+  @override
+  String get bomDeleted => 'Item deleted';
+
+  @override
+  String get projectQueueEmpty => 'No queue items';
+
+  @override
+  String get projectTimelineEmpty => 'No events yet';
+
+  @override
+  String get projectAttachmentsEmpty => 'No attachments';
+
+  @override
+  String get projectFilesEmpty => 'No printable files';
+
+  @override
+  String get projectAttachmentUpload => 'Upload file';
+
+  @override
+  String get projectAttachmentDownload => 'Download';
+
+  @override
+  String get projectAttachmentDelete => 'Delete';
+
+  @override
+  String get projectAttachmentDeleted => 'Attachment deleted';
+
+  @override
+  String get projectAttachmentUploaded => 'Attachment uploaded';
+
+  @override
+  String projectFileSaved(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get projectDownloadFailed => 'Download failed';
+
+  @override
+  String get projectSaveCancelled => 'Save cancelled';
+
+  @override
+  String get projectCoverUpload => 'Set cover image';
+
+  @override
+  String get projectCoverDelete => 'Remove cover image';
+
+  @override
+  String get projectCoverUpdated => 'Cover updated';
+
+  @override
+  String get projectCoverRemoved => 'Cover removed';
+
+  @override
+  String get projectMenuExport => 'Export';
+
+  @override
+  String get projectMenuCreateTemplate => 'Save as template';
+
+  @override
+  String get projectMenuImport => 'Import project';
+
+  @override
+  String get projectFromTemplate => 'Create from template';
+
+  @override
+  String get projectTemplateNone => 'No templates';
+
+  @override
+  String get projectTemplatePickTitle => 'Pick a template';
+
+  @override
+  String get projectTemplateNamePrompt => 'New project name';
+
+  @override
+  String projectExported(String path) {
+    return 'Exported to $path';
+  }
+
+  @override
+  String get projectExportFailed => 'Export failed';
+
+  @override
+  String get projectTemplateCreated => 'Template created';
+
+  @override
+  String get projectImported => 'Project imported';
+
+  @override
+  String get projectImportFailed => 'Import failed';
+
+  @override
+  String get projectUploading => 'Uploading…';
+
+  @override
+  String get projectLinkFolder => 'Link folder';
+
+  @override
+  String get projectNoFoldersToLink => 'No folders available to link';
+
+  @override
+  String get projectUnlinkFolder => 'Unlink folder';
+
+  @override
+  String get projectFolderLinked => 'Folder linked';
+
+  @override
+  String get projectFolderUnlinked => 'Folder unlinked';
+
+  @override
+  String get projectNotesEmpty => 'No notes yet';
+
+  @override
+  String projectFolderFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '$count file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String projectRemainingShort(int count) {
+    return '$count left';
+  }
 }

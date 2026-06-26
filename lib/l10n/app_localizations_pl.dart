@@ -2176,4 +2176,391 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get swatchNoCatalogColors =>
       'Brak kolorów w katalogu. Wpisz nazwę i hex ręcznie.';
+
+  @override
+  String get projectsMenu => 'Projekty';
+
+  @override
+  String get projectsTitle => 'Projekty';
+
+  @override
+  String get projectsEmpty => 'Brak projektów';
+
+  @override
+  String get projectsFilterAll => 'Wszystkie';
+
+  @override
+  String get projectCreate => 'Nowy projekt';
+
+  @override
+  String get projectEdit => 'Edytuj projekt';
+
+  @override
+  String get projectDelete => 'Usuń';
+
+  @override
+  String get projectDeleteTitle => 'Usunąć projekt?';
+
+  @override
+  String projectDeleteBody(String name) {
+    return '„$name” zostanie usunięty. Powiązane wydruki pozostaną w archiwum.';
+  }
+
+  @override
+  String get projectDeleted => 'Projekt usunięty';
+
+  @override
+  String get projectDeleteFailed => 'Nie udało się usunąć projektu';
+
+  @override
+  String get projectSaved => 'Projekt zapisany';
+
+  @override
+  String get projectActionForbidden =>
+      'Klucz API nie ma uprawnień do tej akcji';
+
+  @override
+  String get projectActionFailed => 'Akcja nie powiodła się';
+
+  @override
+  String get projectName => 'Nazwa';
+
+  @override
+  String get projectNameRequired => 'Nazwa jest wymagana';
+
+  @override
+  String get projectDescription => 'Opis';
+
+  @override
+  String get projectNotes => 'Notatki';
+
+  @override
+  String get projectStatus => 'Status';
+
+  @override
+  String get projectPriority => 'Priorytet';
+
+  @override
+  String get projectColor => 'Kolor';
+
+  @override
+  String get projectDueDate => 'Termin';
+
+  @override
+  String get projectDueDateClear => 'Wyczyść';
+
+  @override
+  String get projectBudget => 'Budżet';
+
+  @override
+  String get projectTargetCount => 'Docelowe płyty';
+
+  @override
+  String get projectTargetPartsCount => 'Docelowa liczba części';
+
+  @override
+  String get projectTags => 'Tagi (po przecinku)';
+
+  @override
+  String get projectUrl => 'Link';
+
+  @override
+  String get projectParent => 'Projekt nadrzędny';
+
+  @override
+  String get projectParentNone => 'Brak';
+
+  @override
+  String get projectSave => 'Zapisz';
+
+  @override
+  String get projectStatusPlanning => 'Planowanie';
+
+  @override
+  String get projectStatusActive => 'Aktywny';
+
+  @override
+  String get projectStatusOnHold => 'Wstrzymany';
+
+  @override
+  String get projectStatusCompleted => 'Ukończony';
+
+  @override
+  String get projectStatusArchived => 'Zarchiwizowany';
+
+  @override
+  String get projectPriorityLow => 'Niski';
+
+  @override
+  String get projectPriorityNormal => 'Normalny';
+
+  @override
+  String get projectPriorityHigh => 'Wysoki';
+
+  @override
+  String get projectPriorityUrgent => 'Pilny';
+
+  @override
+  String get projectTabOverview => 'Przegląd';
+
+  @override
+  String get projectTabArchives => 'Archiwa';
+
+  @override
+  String get projectTabBom => 'BOM';
+
+  @override
+  String get projectTabQueue => 'Kolejka';
+
+  @override
+  String get projectTabTimeline => 'Oś czasu';
+
+  @override
+  String get projectTabFiles => 'Pliki';
+
+  @override
+  String get projectTabAttachments => 'Załączniki';
+
+  @override
+  String get projectStatsTitle => 'Statystyki';
+
+  @override
+  String get projectStatProgress => 'Postęp';
+
+  @override
+  String get projectStatPartsProgress => 'Części';
+
+  @override
+  String get projectStatPrints => 'Płyty';
+
+  @override
+  String get projectStatCompleted => 'Ukończone';
+
+  @override
+  String get projectStatFailed => 'Nieudane';
+
+  @override
+  String get projectStatQueued => 'W kolejce';
+
+  @override
+  String get projectStatInProgress => 'W trakcie';
+
+  @override
+  String get projectStatPrintTime => 'Czas druku';
+
+  @override
+  String get projectStatFilament => 'Filament';
+
+  @override
+  String get projectStatCost => 'Szac. koszt';
+
+  @override
+  String get projectStatEnergy => 'Energia';
+
+  @override
+  String get projectStatEnergyCost => 'Koszt energii';
+
+  @override
+  String get projectStatRemaining => 'Pozostało';
+
+  @override
+  String get projectStatBom => 'BOM';
+
+  @override
+  String get projectChildren => 'Podprojekty';
+
+  @override
+  String get projectNoDescription => 'Brak opisu';
+
+  @override
+  String projectDueOn(String date) {
+    return 'Termin $date';
+  }
+
+  @override
+  String get projectAddArchives => 'Dodaj archiwa';
+
+  @override
+  String get projectRemoveArchive => 'Usuń z projektu';
+
+  @override
+  String get projectArchivesEmpty => 'Brak powiązanych archiwów';
+
+  @override
+  String get projectArchiveRemoved => 'Usunięto z projektu';
+
+  @override
+  String get archiveAddToProject => 'Dodaj do projektu';
+
+  @override
+  String get projectArchivesAdded => 'Dodano do projektu';
+
+  @override
+  String get projectPickTitle => 'Wybierz projekt';
+
+  @override
+  String get projectBomEmpty => 'Brak pozycji BOM';
+
+  @override
+  String get bomAdd => 'Dodaj pozycję';
+
+  @override
+  String get bomEditTitle => 'Edytuj pozycję';
+
+  @override
+  String get bomAddTitle => 'Nowa pozycja';
+
+  @override
+  String get bomName => 'Nazwa';
+
+  @override
+  String get bomQtyNeeded => 'Ilość';
+
+  @override
+  String get bomQtyAcquired => 'Posiadane';
+
+  @override
+  String get bomUnitPrice => 'Cena jedn.';
+
+  @override
+  String get bomSourcingUrl => 'Link do źródła';
+
+  @override
+  String get bomRemarks => 'Uwagi';
+
+  @override
+  String get bomComplete => 'Skompletowane';
+
+  @override
+  String get bomDelete => 'Usuń pozycję';
+
+  @override
+  String get bomDeleted => 'Pozycja usunięta';
+
+  @override
+  String get projectQueueEmpty => 'Brak elementów w kolejce';
+
+  @override
+  String get projectTimelineEmpty => 'Brak zdarzeń';
+
+  @override
+  String get projectAttachmentsEmpty => 'Brak załączników';
+
+  @override
+  String get projectFilesEmpty => 'Brak plików do druku';
+
+  @override
+  String get projectAttachmentUpload => 'Wgraj plik';
+
+  @override
+  String get projectAttachmentDownload => 'Pobierz';
+
+  @override
+  String get projectAttachmentDelete => 'Usuń';
+
+  @override
+  String get projectAttachmentDeleted => 'Załącznik usunięty';
+
+  @override
+  String get projectAttachmentUploaded => 'Załącznik wgrany';
+
+  @override
+  String projectFileSaved(String path) {
+    return 'Zapisano w $path';
+  }
+
+  @override
+  String get projectDownloadFailed => 'Pobieranie nie powiodło się';
+
+  @override
+  String get projectSaveCancelled => 'Anulowano zapis';
+
+  @override
+  String get projectCoverUpload => 'Ustaw okładkę';
+
+  @override
+  String get projectCoverDelete => 'Usuń okładkę';
+
+  @override
+  String get projectCoverUpdated => 'Okładka zaktualizowana';
+
+  @override
+  String get projectCoverRemoved => 'Okładka usunięta';
+
+  @override
+  String get projectMenuExport => 'Eksportuj';
+
+  @override
+  String get projectMenuCreateTemplate => 'Zapisz jako szablon';
+
+  @override
+  String get projectMenuImport => 'Importuj projekt';
+
+  @override
+  String get projectFromTemplate => 'Utwórz z szablonu';
+
+  @override
+  String get projectTemplateNone => 'Brak szablonów';
+
+  @override
+  String get projectTemplatePickTitle => 'Wybierz szablon';
+
+  @override
+  String get projectTemplateNamePrompt => 'Nazwa nowego projektu';
+
+  @override
+  String projectExported(String path) {
+    return 'Wyeksportowano do $path';
+  }
+
+  @override
+  String get projectExportFailed => 'Eksport nie powiódł się';
+
+  @override
+  String get projectTemplateCreated => 'Szablon utworzony';
+
+  @override
+  String get projectImported => 'Projekt zaimportowany';
+
+  @override
+  String get projectImportFailed => 'Import nie powiódł się';
+
+  @override
+  String get projectUploading => 'Wysyłanie…';
+
+  @override
+  String get projectLinkFolder => 'Podłącz folder';
+
+  @override
+  String get projectNoFoldersToLink => 'Brak folderów do podłączenia';
+
+  @override
+  String get projectUnlinkFolder => 'Odłącz folder';
+
+  @override
+  String get projectFolderLinked => 'Folder podłączony';
+
+  @override
+  String get projectFolderUnlinked => 'Folder odłączony';
+
+  @override
+  String get projectNotesEmpty => 'Brak notatek';
+
+  @override
+  String projectFolderFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plików',
+      many: '$count plików',
+      few: '$count pliki',
+      one: '$count plik',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String projectRemainingShort(int count) {
+    return 'pozostało $count';
+  }
 }

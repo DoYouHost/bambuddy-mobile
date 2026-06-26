@@ -8,10 +8,12 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/printer.dart';
+import '../../core/models/project.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/print_thumbnail.dart';
+import '../projects/project_common.dart';
 import '../queue/queue_providers.dart';
 import 'archive_providers.dart';
 
@@ -97,6 +99,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   icon: const Icon(Icons.select_all),
                   tooltip: l10n.archiveSelectAll,
                   onPressed: _selectAllVisible,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.folder_special_outlined),
+                  tooltip: l10n.archiveAddToProject,
+                  onPressed: _addSelectedToProject,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
@@ -288,6 +295,67 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           ? l10n.archiveDeletedCount(res.ok)
           : l10n.archiveDeleteSomeFailed(res.ok, res.failed)),
     ));
+  }
+
+  /// Add the selected prints to a project: pick a project from a sheet, then
+  /// `POST /projects/{id}/add-archives`. Clears selection on success.
+  Future<void> _addSelectedToProject() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final List<ProjectListResponse> projects;
+    try {
+      projects = await ref.read(projectsRepositoryProvider).list();
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      return;
+    }
+    if (!mounted) return;
+    if (projects.isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.projectsEmpty)));
+      return;
+    }
+
+    final projectId = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(l10n.projectPickTitle,
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final p in projects)
+                    ListTile(
+                      leading: ProjectColorDot(color: p.color),
+                      title: Text(p.name),
+                      subtitle: Text(projectStatusLabel(l10n, p.status)),
+                      onTap: () => Navigator.pop(ctx, p.id),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (projectId == null || !mounted) return;
+
+    final ids = _selected.toList();
+    try {
+      await ref.read(projectsRepositoryProvider).addArchives(projectId, ids);
+      if (!mounted) return;
+      _clearSelection();
+      messenger.showSnackBar(SnackBar(content: Text(l10n.projectArchivesAdded)));
+    } on AppApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+    }
   }
 
   /// Purge prints older than a chosen threshold: pick days + purge-stats,
