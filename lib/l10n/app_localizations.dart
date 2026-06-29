@@ -122,11 +122,35 @@ abstract class AppLocalizations {
   /// **'Server unreachable — data may be out of date'**
   String get serverUnreachableStale;
 
-  /// No description provided for @wsReconnecting.
+  /// Banner shown while the live WebSocket is down but REST polling keeps data fresh
   ///
   /// In en, this message translates to:
-  /// **'Reconnecting live updates…'**
+  /// **'No live connection — refreshing every 5 s'**
   String get wsReconnecting;
+
+  /// Connection-mode chip: real-time updates over WebSocket
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get connLive;
+
+  /// No description provided for @connLiveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time updates over WebSocket'**
+  String get connLiveTooltip;
+
+  /// Connection-mode chip: no WebSocket, data refreshed via periodic REST polling
+  ///
+  /// In en, this message translates to:
+  /// **'Polling'**
+  String get connPolling;
+
+  /// No description provided for @connPollingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'No live link — refreshing every 5 s (REST)'**
+  String get connPollingTooltip;
 
   /// No description provided for @connectFailed.
   ///

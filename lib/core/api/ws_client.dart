@@ -73,6 +73,8 @@ class WsClient {
     WsConnector connect = _defaultConnect,
     WsBackoff? backoff,
     Future<bool> Function()? refreshAuth,
+    Future<String?> Function()? queryToken,
+    void Function()? invalidateQueryToken,
     bool Function(Object error)? isAuthError,
     this.heartbeatInterval = const Duration(seconds: 25),
     this.idleTimeout = const Duration(seconds: 60),
@@ -88,6 +90,10 @@ class WsClient {
         _connect = connect,
         // ignore: prefer_initializing_formals
         _refreshAuth = refreshAuth,
+        // ignore: prefer_initializing_formals
+        _queryToken = queryToken,
+        // ignore: prefer_initializing_formals
+        _invalidateQueryToken = invalidateQueryToken,
         _isAuthError = isAuthError ?? _defaultIsAuthError,
         _backoff = backoff ?? WsBackoff();
 
@@ -100,6 +106,17 @@ class WsClient {
   /// handshake. `true` = got fresh credentials, worth retrying immediately.
   /// `null` (apiKey/none mode) → nothing to refresh, normal backoff.
   final Future<bool> Function()? _refreshAuth;
+
+  /// Mints the short-lived `?token=` value for the handshake (GHSA-r2qv:
+  /// the WS endpoint validates a query token before `accept()`, since the
+  /// upgrade can't carry `Authorization`/`X-API-Key` headers in browsers).
+  /// `null` token (or a server without `/auth/ws-token`) → connect without
+  /// the param, falling back to header auth for older servers.
+  final Future<String?> Function()? _queryToken;
+
+  /// Drops the cached query token so the next attempt mints a fresh one
+  /// (called when the server rejects the handshake as unauthorized).
+  final void Function()? _invalidateQueryToken;
 
   /// Whether handshake error is auth rejection (not connectivity failure).
   final bool Function(Object error) _isAuthError;
@@ -196,9 +213,27 @@ class WsClient {
     }
     if (generation != _generation || !_running || _disposed) return;
 
+    // Append the freshly-minted `?token=` when available (new server); on a
+    // null token keep the bare URL so header auth still works on old servers.
+    var url = _url;
+    if (_queryToken != null) {
+      String? token;
+      try {
+        token = await _queryToken();
+      } catch (_) {
+        token = null;
+      }
+      if (generation != _generation || !_running || _disposed) return;
+      if (token != null && token.isNotEmpty) {
+        url = _url.replace(
+          queryParameters: {..._url.queryParameters, 'token': token},
+        );
+      }
+    }
+
     final WsConnection conn;
     try {
-      conn = _connect(_url, headers);
+      conn = _connect(url, headers);
       await conn.ready;
     } catch (e) {
       if (generation != _generation) return;
@@ -243,6 +278,9 @@ class WsClient {
   /// silent re-login once — on success, reconnect immediately with new token.
   /// Otherwise normal backoff.
   Future<void> _handleConnectError(Object error, int generation) async {
+    // Unauthorized handshake → the cached query token is likely stale; drop it
+    // so the next attempt (immediate after re-login, or after backoff) re-mints.
+    if (_isAuthError(error)) _invalidateQueryToken?.call();
     if (_running &&
         !_disposed &&
         _refreshAuth != null &&

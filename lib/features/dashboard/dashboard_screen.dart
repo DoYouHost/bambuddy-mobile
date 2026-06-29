@@ -13,6 +13,7 @@ import '../../providers.dart';
 import 'providers.dart';
 import 'smart_plugs_providers.dart';
 import 'widgets/connection_banner.dart';
+import 'widgets/connection_mode_chip.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
 
@@ -218,6 +219,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       appBar: AppBar(
         title: Text(l10n.printersTitle),
         actions: [
+          const Center(child: ConnectionModeChip()),
           IconButton(
             tooltip: l10n.batteryOptMenu,
             icon: const Icon(Icons.notifications_active_outlined),

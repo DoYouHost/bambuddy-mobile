@@ -1,6 +1,6 @@
 /// All bambuddy API endpoints in one place.
 ///
-/// Contract: bambuddy v0.2.4.4 (`/api/v1`). When updating the server,
+/// Contract: bambuddy v0.2.4.8 (`/api/v1`). When updating the server,
 /// compare with `/openapi.json` before changing anything here.
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
@@ -13,6 +13,12 @@ abstract final class Endpoints {
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
+
+  /// Mint a short-lived WebSocket token (valid ~60 min). Required as `?token=`
+  /// on the `/ws` handshake (GHSA-r2qv follow-up) — the upgrade can't carry
+  /// `Authorization`/`X-API-Key` headers, so the server validates this token
+  /// before accepting the connection.
+  static const wsToken = '$apiPrefix/auth/ws-token';
 
   // Trailing slash required: server (FastAPI) has route at `/printers/`,
   // and `/printers` (without slash) returns 404 for authenticated requests.

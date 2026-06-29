@@ -287,4 +287,79 @@ void main() {
       });
     });
   });
+
+  group('token zapytania (?token=) na handshake', () {
+    test('dołącza zmielony token do URL połączenia', () {
+      fakeAsync((async) {
+        final urls = <Uri>[];
+        final client = WsClient(
+          url: Uri.parse('wss://example/api/v1/ws'),
+          authHeaders: () async => const {},
+          queryToken: () async => 'tok123',
+          connect: (url, _) {
+            urls.add(url);
+            return FakeConn()..connectOk();
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        expect(urls, hasLength(1));
+        expect(urls.first.queryParameters['token'], 'tok123');
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('token null → URL bez parametru (fallback header-only)', () {
+      fakeAsync((async) {
+        final urls = <Uri>[];
+        final client = WsClient(
+          url: Uri.parse('wss://example/api/v1/ws'),
+          authHeaders: () async => const {},
+          queryToken: () async => null,
+          connect: (url, _) {
+            urls.add(url);
+            return FakeConn()..connectOk();
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        expect(urls.first.queryParameters.containsKey('token'), isFalse);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
+    test('odrzucony handshake (401) unieważnia token przed ponowieniem', () {
+      fakeAsync((async) {
+        var invalidated = 0;
+        final conns = <FakeConn>[];
+        final client = WsClient(
+          url: Uri.parse('wss://example/api/v1/ws'),
+          authHeaders: () async => const {},
+          queryToken: () async => 'tok',
+          invalidateQueryToken: () => invalidated++,
+          backoff: WsBackoff(random: () => 1.0),
+          connect: (_, _) {
+            final c = FakeConn();
+            conns.add(c);
+            return c;
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail('401');
+        async.flushMicrotasks();
+        expect(invalidated, 1);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+  });
 }

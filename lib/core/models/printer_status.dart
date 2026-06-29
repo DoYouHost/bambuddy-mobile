@@ -524,8 +524,14 @@ Map<String, double>? _toTemperaturesOrNull(dynamic value) {
   if (value is! Map) return null;
   final out = <String, double>{};
   for (final entry in value.entries) {
+    final key = entry.key.toString();
+    // The server mixes non-temperature metadata into this map (e.g.
+    // `chamber_target_set_time`, a unix timestamp). Such keys parse as a
+    // double and would render as a bogus sensor tile — drop time fields.
+    // Real sensor keys (nozzle/bed/chamber + `_target`) never end in `_time`.
+    if (key.endsWith('_time')) continue;
     final v = _toDoubleOrNull(entry.value);
-    if (v != null) out[entry.key.toString()] = v;
+    if (v != null) out[key] = v;
   }
   return out;
 }

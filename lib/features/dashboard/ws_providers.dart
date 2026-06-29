@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
+import '../../core/api/ws_token.dart';
 import '../../core/auth/credentials_store.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
@@ -22,8 +23,9 @@ Uri wsUrlFor(String baseUrl) {
 }
 
 /// Auth headers for WS handshake — branches by [AuthMode] same as REST
-/// interceptor. Bambu WS auth via header (not query token — see ws-contract-m2
-/// memory), so reconnect with refreshed key/JWT suffices, no separate minting.
+/// interceptor. Newer servers (GHSA-r2qv follow-up) instead require a `?token=`
+/// minted via [WsTokenService]; we still send headers so older header-only
+/// servers keep working. See [wsClientProvider].
 Future<Map<String, String>> wsAuthHeaders(
   AuthMode mode,
   CredentialsStore creds,
@@ -40,6 +42,12 @@ Future<Map<String, String>> wsAuthHeaders(
   }
 }
 
+/// Mints the WS handshake token for the active profile (see [WsTokenService]).
+/// Uses the authenticated Dio so the mint itself carries header/JWT auth.
+final wsTokenServiceProvider = Provider<WsTokenService>(
+  (ref) => WsTokenService(ref.watch(apiClientProvider).dio),
+);
+
 /// Single [WsClient] for active profile. Rebuilt on profile change (old client
 /// then closed). Throws without profile — routes without profile go to /setup anyway.
 final wsClientProvider = Provider<WsClient>((ref) {
@@ -49,9 +57,13 @@ final wsClientProvider = Provider<WsClient>((ref) {
   }
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);
+  final wsToken = ref.watch(wsTokenServiceProvider);
   final client = WsClient(
     url: wsUrlFor(profile.baseUrl),
     authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+    // `?token=` for the handshake (new server); null → header-only fallback.
+    queryToken: wsToken.token,
+    invalidateQueryToken: wsToken.invalidate,
     // Only JWT can refresh via silent re-login; API key is static,
     // server without auth doesn't reject. silentReLogin saves fresh JWT,
     // which authHeaders reads on reconnect.

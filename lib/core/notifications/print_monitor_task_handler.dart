@@ -16,6 +16,7 @@ import '../api/api_client.dart';
 import '../api/camera_token.dart';
 import '../api/ws_client.dart';
 import '../api/ws_messages.dart';
+import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
@@ -96,9 +97,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
 
     final creds = SecureCredentialsStore();
+    // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
+    // null when the server lacks the endpoint → header-only fallback.
+    final wsToken = coverApi != null ? WsTokenService(coverApi.dio) : null;
     final ws = WsClient(
       url: wsUrlFor(profile.baseUrl),
       authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+      queryToken: wsToken?.token,
+      invalidateQueryToken: wsToken?.invalidate,
     );
     _ws = ws;
     _sub = ws.statuses.listen((status) {

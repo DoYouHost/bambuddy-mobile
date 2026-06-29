@@ -22,7 +22,21 @@ class AppLocalizationsPl extends AppLocalizations {
       'Serwer nieosiągalny — dane mogą być nieaktualne';
 
   @override
-  String get wsReconnecting => 'Wznawianie podglądu na żywo…';
+  String get wsReconnecting => 'Brak połączenia na żywo — odświeżanie co 5 s';
+
+  @override
+  String get connLive => 'Na żywo';
+
+  @override
+  String get connLiveTooltip =>
+      'Aktualizacje w czasie rzeczywistym przez WebSocket';
+
+  @override
+  String get connPolling => 'Odświeżanie';
+
+  @override
+  String get connPollingTooltip =>
+      'Brak łącza na żywo — odświeżanie co 5 s (REST)';
 
   @override
   String get connectFailed => 'Nie udało się połączyć z serwerem';

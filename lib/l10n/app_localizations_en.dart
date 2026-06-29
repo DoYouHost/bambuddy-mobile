@@ -22,7 +22,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Server unreachable — data may be out of date';
 
   @override
-  String get wsReconnecting => 'Reconnecting live updates…';
+  String get wsReconnecting => 'No live connection — refreshing every 5 s';
+
+  @override
+  String get connLive => 'Live';
+
+  @override
+  String get connLiveTooltip => 'Real-time updates over WebSocket';
+
+  @override
+  String get connPolling => 'Polling';
+
+  @override
+  String get connPollingTooltip => 'No live link — refreshing every 5 s (REST)';
 
   @override
   String get connectFailed => 'Could not connect to the server';

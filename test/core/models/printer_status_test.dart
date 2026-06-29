@@ -85,6 +85,21 @@ void main() {
           reason: '"off" nie jest liczbą — wpis pominięty, nie crash');
     });
 
+    test('metadane czasu (chamber_target_set_time) pomijane w temperaturach',
+        () {
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'temperatures': {
+          'nozzle': 210,
+          'chamber': 30,
+          'chamber_target_set_time': 1751000000,
+        },
+      });
+
+      expect(status.temperatures, {'nozzle': 210.0, 'chamber': 30.0},
+          reason: 'klucz *_time to znacznik czasu, nie czujnik — nie kafelek');
+    });
+
     test('minimalny payload (samo id) nie wywala parsera', () {
       final status = PrinterStatus.fromJson(const {'id': 7});
 
