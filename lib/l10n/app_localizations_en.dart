@@ -741,6 +741,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose which events trigger a notification. Changes apply the next time background monitoring starts.';
 
   @override
+  String get notifMasterTitle => 'Event notifications';
+
+  @override
+  String get notifMasterDesc =>
+      'Turn off to silence all alerts. The ongoing print-progress notification stays.';
+
+  @override
   String get notifEventsHeader => 'Events';
 
   @override

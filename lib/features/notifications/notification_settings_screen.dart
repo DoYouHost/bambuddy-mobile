@@ -28,13 +28,23 @@ class NotificationSettingsScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
+          SwitchListTile(
+            title: Text(l10n.notifMasterTitle),
+            subtitle: Text(l10n.notifMasterDesc),
+            value: prefs.alertsEnabled,
+            onChanged: notifier.setAlertsEnabled,
+          ),
+          const Divider(height: 24),
           _Header(l10n.notifEventsHeader),
           for (final e in _eventRows(l10n))
             SwitchListTile(
               title: Text(e.label),
               subtitle: Text(e.description),
-              value: prefs.isOn(e.event),
-              onChanged: (v) => notifier.setEvent(e.event, v),
+              // Reflect the per-event choice, but grey out while the master
+              // switch is off — the events are silenced regardless.
+              value: prefs.enabled.contains(e.event),
+              onChanged:
+                  prefs.alertsEnabled ? (v) => notifier.setEvent(e.event, v) : null,
             ),
           const Divider(height: 24),
           _Header(l10n.notifThresholdsHeader),

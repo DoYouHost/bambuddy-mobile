@@ -38,4 +38,30 @@ void main() {
     final off = on.withEvent(NotifEvent.lowFilament, false);
     expect(off.isOn(NotifEvent.lowFilament), isFalse);
   });
+
+  test('master alertsEnabled=false wycisza wszystkie zdarzenia bez utraty wyborów',
+      () {
+    const prefs = NotificationPrefs(
+      enabled: {NotifEvent.printFinished, NotifEvent.printerError},
+      alertsEnabled: false,
+    );
+    // isOn zwraca false dla wszystkiego...
+    for (final e in NotifEvent.values) {
+      expect(prefs.isOn(e), isFalse, reason: e.name);
+    }
+    // ...ale surowe wybory są zachowane i wracają po ponownym włączeniu.
+    expect(prefs.enabled, {NotifEvent.printFinished, NotifEvent.printerError});
+    final reEnabled = prefs.copyWith(alertsEnabled: true);
+    expect(reEnabled.isOn(NotifEvent.printFinished), isTrue);
+    expect(reEnabled.isOn(NotifEvent.printerError), isTrue);
+  });
+
+  test('alertsEnabled przechodzi round-trip; brak klucza → true (wstecz)', () {
+    const off = NotificationPrefs(enabled: {}, alertsEnabled: false);
+    expect(NotificationPrefs.decode(off.encode()).alertsEnabled, isFalse);
+    // Prefs zapisane przed dodaniem flagi nie mają klucza → alerty włączone.
+    expect(
+        NotificationPrefs.decode('{"enabled":["printFinished"]}').alertsEnabled,
+        isTrue);
+  });
 }

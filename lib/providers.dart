@@ -80,6 +80,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
     state = prefs;
   }
 
+  Future<void> setAlertsEnabled(bool on) =>
+      _save(state.copyWith(alertsEnabled: on));
+
   Future<void> setEvent(NotifEvent event, bool on) =>
       _save(state.withEvent(event, on));
 

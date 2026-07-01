@@ -312,6 +312,8 @@
 
   "notifSettingsTitle": "Notifications",
   "notifSettingsHint": "Choose which events trigger a notification. Changes apply the next time background monitoring starts.",
+  "notifMasterTitle": "Event notifications",
+  "notifMasterDesc": "Turn off to silence all alerts. The ongoing print-progress notification stays.",
   "notifEventsHeader": "Events",
   "notifThresholdsHeader": "Thresholds",
   "notifEvtStarted": "Print started",

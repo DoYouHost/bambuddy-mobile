@@ -1304,6 +1304,18 @@ abstract class AppLocalizations {
   /// **'Choose which events trigger a notification. Changes apply the next time background monitoring starts.'**
   String get notifSettingsHint;
 
+  /// No description provided for @notifMasterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event notifications'**
+  String get notifMasterTitle;
+
+  /// No description provided for @notifMasterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to silence all alerts. The ongoing print-progress notification stays.'**
+  String get notifMasterDesc;
+
   /// No description provided for @notifEventsHeader.
   ///
   /// In en, this message translates to:

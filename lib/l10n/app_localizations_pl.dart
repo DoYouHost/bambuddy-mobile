@@ -757,6 +757,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wybierz, które zdarzenia mają wywoływać powiadomienie. Zmiany działają od następnego uruchomienia monitoringu w tle.';
 
   @override
+  String get notifMasterTitle => 'Powiadomienia o zdarzeniach';
+
+  @override
+  String get notifMasterDesc =>
+      'Wyłącz, aby wyciszyć wszystkie alerty. Wiszące powiadomienie o postępie wydruku pozostaje.';
+
+  @override
   String get notifEventsHeader => 'Zdarzenia';
 
   @override

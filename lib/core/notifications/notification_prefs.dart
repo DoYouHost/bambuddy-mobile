@@ -29,10 +29,17 @@ enum NotifEvent {
 class NotificationPrefs {
   const NotificationPrefs({
     required this.enabled,
+    this.alertsEnabled = true,
     this.bedCooledTemp = defaultBedCooledTemp,
     this.amsHumidityThreshold = defaultAmsHumidity,
     this.lowFilamentThreshold = defaultLowFilament,
   });
+
+  /// Master switch for all event alerts. When false, [isOn] returns false for
+  /// every event, silencing all alerts (start/finish/error/maintenance/…) while
+  /// leaving the ongoing print-progress notification untouched (it never calls
+  /// [isOn]). Per-event choices below are preserved and restored when re-enabled.
+  final bool alertsEnabled;
 
   /// Set of events for which we send notifications.
   final Set<NotifEvent> enabled;
@@ -63,15 +70,17 @@ class NotificationPrefs {
   static const NotificationPrefs defaults =
       NotificationPrefs(enabled: _defaultEnabled);
 
-  bool isOn(NotifEvent e) => enabled.contains(e);
+  bool isOn(NotifEvent e) => alertsEnabled && enabled.contains(e);
 
   NotificationPrefs copyWith({
+    bool? alertsEnabled,
     Set<NotifEvent>? enabled,
     int? bedCooledTemp,
     int? amsHumidityThreshold,
     int? lowFilamentThreshold,
   }) =>
       NotificationPrefs(
+        alertsEnabled: alertsEnabled ?? this.alertsEnabled,
         enabled: enabled ?? this.enabled,
         bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
         amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
@@ -90,6 +99,7 @@ class NotificationPrefs {
   }
 
   Map<String, dynamic> toJson() => {
+        'alertsEnabled': alertsEnabled,
         'enabled': [for (final e in enabled) e.name],
         'bedCooledTemp': bedCooledTemp,
         'amsHumidityThreshold': amsHumidityThreshold,
@@ -108,6 +118,8 @@ class NotificationPrefs {
         if (names.contains(e.name)) e,
     };
     return NotificationPrefs(
+      // Missing key (prefs saved before this flag existed) → alerts stay on.
+      alertsEnabled: json['alertsEnabled'] is bool ? json['alertsEnabled'] as bool : true,
       enabled: enabled,
       bedCooledTemp: _asInt(json['bedCooledTemp'], defaultBedCooledTemp),
       amsHumidityThreshold:

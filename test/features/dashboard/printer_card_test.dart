@@ -261,6 +261,37 @@ void main() {
     expect(find.textContaining('Szczegóły'), findsNothing);
   });
 
+  testWidgets(
+      'OFFLINE + awaiting_plate_clear: pasek „oznacz płytę" dostępny '
+      '(clear-plate to flaga serwera, działa bez online)', (tester) async {
+    // Drukarka wyłączona z gniazdka, ale ostatni znany stan = płyta niepusta.
+    // clear-plate nie wysyła MQTT — to flaga schedulera — więc user może
+    // potwierdzić czystą płytę przed wybudzeniem drukarki.
+    const item = PrinterWithStatus(
+      printer: Printer(id: 4, name: 'P1S Warsztat'),
+      status: PrinterStatus(id: 4, connected: false, awaitingPlateClear: true),
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        cameraTokenProvider.overrideWith((ref) async => 'tok'),
+        inertFirmwareOverride,
+        inertTotalPrintHoursOverride,
+        smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+        requirePlateClearProvider.overrideWith((ref) async => true),
+      ],
+      child: plApp(Scaffold(body: PrinterCard(item: item))),
+    ));
+    await tester.pump(); // rozwiąż requirePlateClearProvider (async)
+
+    // Karta zwinięta (OFFLINE), zostaje sam przycisk clear-plate — bez pełnego
+    // paska „Płyta niewyczyszczona".
+    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('Płyta niewyczyszczona'), findsNothing);
+    expect(find.text('Oznacz płytę jako pustą'), findsOneWidget);
+  });
+
   group('rozwijane szczegóły (AMS)', () {
     PrinterWithStatus realItem() {
       final frame =

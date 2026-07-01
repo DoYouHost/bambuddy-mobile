@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/print_thumbnail.dart';
+import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
@@ -598,8 +599,17 @@ Future<void> _startQueueItem(
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
 /// requires plate-clear confirmation — i.e. we must acknowledge clearance
 /// before sending. Best-effort: unknown state → no confirmation.
+///
+/// Prefers the last-known cached status: it survives the printer going offline
+/// (mergedWith keeps `awaiting_plate_clear`), whereas a fresh REST fetch can
+/// degrade to null for a powered-off printer and wrongly skip the ack. Acking an
+/// offline printer is valid — clear-plate is a pure server flag (no MQTT / no
+/// online requirement), so the scheduler dispatches the pending job once the
+/// printer wakes. Falls back to a fresh fetch only when the printer isn't cached.
 Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
   if (!await ref.read(requirePlateClearProvider.future)) return false;
+  final cached = ref.read(printerStatusesProvider)[printerId];
+  if (cached != null) return cached.awaitingPlateClear == true;
   try {
     final st = await ref.read(printersRepositoryProvider).fetchStatus(printerId);
     return st?.awaitingPlateClear == true;

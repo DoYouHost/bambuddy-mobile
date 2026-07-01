@@ -219,6 +219,8 @@
 
   "notifSettingsTitle": "Powiadomienia",
   "notifSettingsHint": "Wybierz, które zdarzenia mają wywoływać powiadomienie. Zmiany działają od następnego uruchomienia monitoringu w tle.",
+  "notifMasterTitle": "Powiadomienia o zdarzeniach",
+  "notifMasterDesc": "Wyłącz, aby wyciszyć wszystkie alerty. Wiszące powiadomienie o postępie wydruku pozostaje.",
   "notifEventsHeader": "Zdarzenia",
   "notifThresholdsHeader": "Progi",
   "notifEvtStarted": "Wydruk rozpoczęty",
