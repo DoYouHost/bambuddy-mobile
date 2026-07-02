@@ -457,6 +457,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsTempTooltip => 'AMS temperature';
 
   @override
+  String amsHistoryTitle(String ams) {
+    return '$ams history';
+  }
+
+  @override
+  String get amsHistoryHumidity => 'Humidity';
+
+  @override
+  String get amsHistoryTemperature => 'Temperature';
+
+  @override
+  String get amsHistoryCurrent => 'Current';
+
+  @override
+  String get amsHistoryAverage => 'Average';
+
+  @override
+  String get amsHistoryMin => 'Min';
+
+  @override
+  String get amsHistoryMax => 'Max';
+
+  @override
+  String get amsHistoryRange6h => '6h';
+
+  @override
+  String get amsHistoryRange24h => '24h';
+
+  @override
+  String get amsHistoryRange48h => '48h';
+
+  @override
+  String get amsHistoryRange7d => '7d';
+
+  @override
+  String get amsHistoryGood => 'Good';
+
+  @override
+  String get amsHistoryFair => 'Fair';
+
+  @override
+  String get amsHistoryEmpty => 'No data for this range';
+
+  @override
+  String get amsHistoryError => 'Couldn\'t load history';
+
+  @override
+  String get amsHistoryRecordingInfo =>
+      'Recorded every 5 minutes while the printer is connected';
+
+  @override
   String get wifiTooltip => 'Wi-Fi signal';
 
   @override

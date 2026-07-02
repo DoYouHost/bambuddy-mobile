@@ -22,6 +22,7 @@ import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
 import '../smart_plugs_providers.dart';
+import 'ams_history_sheet.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({super.key, required this.item});
@@ -627,6 +628,13 @@ class _AmsUnitView extends StatelessWidget {
                 _MetaItem(
                   icon: Icons.water_drop_outlined,
                   text: '${unit.humidity}%',
+                  onTap: () => showAmsHistorySheet(
+                    context,
+                    printerId: printerId,
+                    amsId: unit.id ?? unitIndex,
+                    amsLabel: l10n.amsUnit(unitIndex + 1),
+                    initialMetric: AmsHistoryMetric.humidity,
+                  ),
                 ),
               if (unit.humidity != null && unit.temp != null)
                 const SizedBox(width: 12),
@@ -634,6 +642,13 @@ class _AmsUnitView extends StatelessWidget {
                 _MetaItem(
                   icon: Icons.thermostat,
                   text: '${unit.temp!.toStringAsFixed(0)}°',
+                  onTap: () => showAmsHistorySheet(
+                    context,
+                    printerId: printerId,
+                    amsId: unit.id ?? unitIndex,
+                    amsLabel: l10n.amsUnit(unitIndex + 1),
+                    initialMetric: AmsHistoryMetric.temperature,
+                  ),
                 ),
             ],
           ),
@@ -1444,22 +1459,34 @@ class _PrintPanel extends StatelessWidget {
 }
 
 class _MetaItem extends StatelessWidget {
-  const _MetaItem({required this.icon, required this.text});
+  const _MetaItem({required this.icon, required this.text, this.onTap});
 
   final IconData icon;
   final String text;
+
+  /// When set, the item becomes tappable (e.g. AMS humidity/temp → history).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.onSurfaceVariant;
-    return Row(
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 4),
         Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
       ],
+    );
+    if (onTap == null) return row;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: row,
+      ),
     );
   }
 }

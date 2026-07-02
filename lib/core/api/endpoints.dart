@@ -26,6 +26,11 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// AMS sensor history (temperature + humidity) for one AMS unit.
+  /// Query `?hours=1..168`. Reference: bambuddy `ams_history.py`.
+  static String amsHistory(int printerId, int amsId) =>
+      '$apiPrefix/ams-history/$printerId/$amsId';
+
   /// Mint camera stream token (valid ~60 min). Required as `?token=`
   /// for print cover (`cover_url`) and — from M2 — for camera preview.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';

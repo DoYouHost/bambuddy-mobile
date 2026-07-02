@@ -836,6 +836,102 @@ abstract class AppLocalizations {
   /// **'AMS temperature'**
   String get amsTempTooltip;
 
+  /// No description provided for @amsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{ams} history'**
+  String amsHistoryTitle(String ams);
+
+  /// No description provided for @amsHistoryHumidity.
+  ///
+  /// In en, this message translates to:
+  /// **'Humidity'**
+  String get amsHistoryHumidity;
+
+  /// No description provided for @amsHistoryTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get amsHistoryTemperature;
+
+  /// No description provided for @amsHistoryCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get amsHistoryCurrent;
+
+  /// No description provided for @amsHistoryAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average'**
+  String get amsHistoryAverage;
+
+  /// No description provided for @amsHistoryMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get amsHistoryMin;
+
+  /// No description provided for @amsHistoryMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get amsHistoryMax;
+
+  /// No description provided for @amsHistoryRange6h.
+  ///
+  /// In en, this message translates to:
+  /// **'6h'**
+  String get amsHistoryRange6h;
+
+  /// No description provided for @amsHistoryRange24h.
+  ///
+  /// In en, this message translates to:
+  /// **'24h'**
+  String get amsHistoryRange24h;
+
+  /// No description provided for @amsHistoryRange48h.
+  ///
+  /// In en, this message translates to:
+  /// **'48h'**
+  String get amsHistoryRange48h;
+
+  /// No description provided for @amsHistoryRange7d.
+  ///
+  /// In en, this message translates to:
+  /// **'7d'**
+  String get amsHistoryRange7d;
+
+  /// No description provided for @amsHistoryGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get amsHistoryGood;
+
+  /// No description provided for @amsHistoryFair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair'**
+  String get amsHistoryFair;
+
+  /// No description provided for @amsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No data for this range'**
+  String get amsHistoryEmpty;
+
+  /// No description provided for @amsHistoryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load history'**
+  String get amsHistoryError;
+
+  /// No description provided for @amsHistoryRecordingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded every 5 minutes while the printer is connected'**
+  String get amsHistoryRecordingInfo;
+
   /// No description provided for @wifiTooltip.
   ///
   /// In en, this message translates to:

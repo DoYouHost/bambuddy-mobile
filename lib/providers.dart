@@ -14,6 +14,7 @@ import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/makerworld.dart';
+import 'data/ams_history_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/firmware_repository.dart';
@@ -179,6 +180,11 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
 /// profile change with [apiClientProvider].
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// AMS sensor history (temperature + humidity charts). Shares authenticated Dio.
+final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
+  (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Print queue (M5). Shares authenticated Dio.
