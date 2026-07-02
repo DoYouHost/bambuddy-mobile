@@ -1510,6 +1510,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final materials = ref.watch(materialOptionsProvider);
     final brands = ref.watch(brandOptionsProvider);
     final subtypes = ref.watch(subtypeOptionsProvider);
+    final locations = ref.watch(locationOptionsProvider);
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
     final labelInt = int.tryParse(_c['labelWeight']!.text.trim());
 
@@ -1585,7 +1586,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _field('category', l10n.inventoryFieldCategory),
             _field('lowStock', l10n.inventoryFieldLowStock,
                 number: true, hint: l10n.inventoryLowStockHint),
-            _field('location', l10n.inventoryFieldLocation),
+            _combo('location', l10n.inventoryFieldLocation, locations),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             const SizedBox(height: 20),

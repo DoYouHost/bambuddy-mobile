@@ -238,6 +238,12 @@ abstract final class Endpoints {
   /// Material/brand dropdown source is existing [filamentCatalog].
   static const inventoryColors = '$apiPrefix/inventory/colors';
 
+  /// Storage-location catalog (`LocationResponse[]`: id/name/spool_count/...).
+  /// Drives the spool location picker. A spool create/update that sends a
+  /// free-text `storage_location` auto-creates the matching catalog entry
+  /// server-side, so the app doesn't need to POST here to "add" a location.
+  static const inventoryLocations = '$apiPrefix/inventory/locations';
+
   /// Spool K calibration profiles (`SpoolKProfileResponse[]`). `PUT` replaces
   /// entire list (body `SpoolKProfileBase[]`). PA Profile tab.
   static String inventorySpoolKProfiles(int spoolId) =>

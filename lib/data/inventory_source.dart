@@ -53,6 +53,10 @@ abstract class SpoolInventorySource {
   Future<List<CoreWeightEntry>> fetchCoreWeights();
   Future<List<ColorEntry>> fetchColors();
   Future<List<FilamentPreset>> fetchFilamentPresets();
+
+  /// Storage-location catalog names for the location picker. Native only;
+  /// Spoolman degrades to empty (the picker still accepts free text).
+  Future<List<String>> fetchLocations();
 }
 
 /// Defensive list parsing: skip unparseable entries to avoid one bad record breaking the screen.
@@ -228,6 +232,20 @@ class NativeInventorySource implements SpoolInventorySource {
       throw mapDioException(e);
     }
   }
+
+  @override
+  Future<List<String>> fetchLocations() async {
+    try {
+      final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
+      return [
+        for (final e in res.data ?? const [])
+          if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
+            (e['name'] as String).trim(),
+      ];
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -348,4 +366,9 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<FilamentPreset>> fetchFilamentPresets() async => const [];
+
+  // Location catalog is a native-backend feature; on Spoolman the picker falls
+  // back to free text + locations already used by spools.
+  @override
+  Future<List<String>> fetchLocations() async => const [];
 }

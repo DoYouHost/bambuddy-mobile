@@ -45,4 +45,6 @@ class InventoryRepository {
 
   Future<List<FilamentPreset>> fetchFilamentPresets() =>
       _source.fetchFilamentPresets();
+
+  Future<List<String>> fetchLocations() => _source.fetchLocations();
 }

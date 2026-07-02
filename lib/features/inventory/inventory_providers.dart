@@ -266,6 +266,37 @@ final filamentPresetsProvider =
   }
 });
 
+/// Server-side storage-location catalog (native backend). Degrades to empty on
+/// error; [locationOptionsProvider] still surfaces locations used by spools.
+final locationCatalogProvider =
+    FutureProvider.autoDispose<List<String>>((ref) async {
+  // No keepAlive: re-fetch on reopen so a location just created (as a side
+  // effect of saving a spool with a new storage_location) shows up next time.
+  try {
+    return await ref.watch(inventoryRepositoryProvider).fetchLocations();
+  } on Object {
+    return const [];
+  }
+});
+
+/// Options for the spool "location" picker: server catalog ∪ locations already
+/// used by existing spools. Sorted, unique. Mirrors bambuddy's choose-or-add
+/// UX — the picker also keeps free text, and the backend auto-creates the
+/// catalog entry from `storage_location` on save.
+final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
+  final catalog = ref.watch(locationCatalogProvider).valueOrNull ?? const [];
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  final set = <String>{
+    for (final l in catalog)
+      if (l.trim().isNotEmpty) l.trim(),
+    for (final s in spools)
+      if (s.storageLocation != null && s.storageLocation!.trim().isNotEmpty)
+        s.storageLocation!.trim(),
+  };
+  final list = set.toList()..sort();
+  return list;
+});
+
 /// Material dropdown options: fixed popular ones + materials from catalog profiles
 /// and existing spools (preserved user values). Sorted, unique.
 const _commonMaterials = [
