@@ -90,9 +90,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: ':id',
-            builder: (_, state) => ProjectDetailScreen(
-              projectId: int.parse(state.pathParameters['id']!),
-            ),
+            builder: (_, state) {
+              // Malformed id (e.g. deep link /projects/abc) → don't crash the
+              // route builder; bounce back to the list instead.
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const ProjectsScreen();
+              return ProjectDetailScreen(projectId: id);
+            },
           ),
         ],
       ),

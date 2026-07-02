@@ -5,6 +5,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive_stats.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/state_views.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -37,10 +38,12 @@ class StatisticsScreen extends ConsumerWidget {
         },
         child: stats.when(
           loading: () => const _Centered(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorView(
+          error: (e, _) => AsyncErrorView(
             message:
                 e is AppApiException ? e.localized(l10n) : l10n.statsLoadFailed,
             onRetry: () => ref.read(statsProvider.notifier).refresh(),
+            retryLabel: l10n.retry,
+            scrollable: true,
           ),
           data: (data) => _StatsBody(data: data),
         ),
@@ -414,40 +417,6 @@ class _TimeAccuracyCard extends StatelessWidget {
 }
 
 // ── Shared ─────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ListView(
-      children: [
-        SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.6,
-          child: _Centered(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off, size: 48),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(message, textAlign: TextAlign.center),
-                ),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _Centered extends StatelessWidget {
   const _Centered({required this.child});

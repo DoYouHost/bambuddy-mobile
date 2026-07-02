@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -172,7 +173,16 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) {
     final cached = _lastApiClient;
-    if (cached != null) return cached;
+    if (cached != null) {
+      // Expected only during the teardown frame on "change server". If it fires
+      // elsewhere, a consumer is reading the client without a null-profile guard
+      // and would hit the previous server — surface it in debug.
+      assert(() {
+        debugPrint('apiClientProvider: reusing last client (profile is null)');
+        return true;
+      }());
+      return cached;
+    }
     throw StateError('apiClientProvider użyty bez profilu serwera');
   }
   final auth = ref.watch(authServiceProvider);

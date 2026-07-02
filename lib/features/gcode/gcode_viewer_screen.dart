@@ -8,6 +8,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/settings/server_profile.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/state_views.dart';
 
 /// Full-screen 3D G-code viewer. Embeds hosted PrettyGCode page
 /// (`<baseUrl>/gcode-viewer/`) in WebView.
@@ -126,6 +127,8 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     var APIKEY = $apiKeyJs;
     var DARK = $dark;
     if (TOKEN) {
+      // Best-effort: storage access can throw in a sandboxed/incognito WebView.
+      // The X-API-Key fetch patch below is the real auth path, so ignore failures.
       try { localStorage.setItem('auth_token', TOKEN); } catch (e) {}
       try { sessionStorage.setItem('auth_token', TOKEN); } catch (e) {}
     }
@@ -186,7 +189,12 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(title: Text(widget.title ?? l10n.gcodeViewerTitle)),
       body: _failed
-          ? _ErrorView(message: l10n.gcodeViewerError, onRetry: _retry)
+          ? AsyncErrorView(
+              message: l10n.gcodeViewerError,
+              onRetry: _retry,
+              retryLabel: l10n.retry,
+              icon: Icons.broken_image_outlined,
+            )
           : controller == null
               ? const Center(child: CircularProgressIndicator())
               : Stack(
@@ -209,29 +217,3 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.broken_image_outlined, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
-          ],
-        ),
-      ),
-    );
-  }
-}

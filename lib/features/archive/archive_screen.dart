@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/print_thumbnail.dart';
+import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_providers.dart';
 import '../slicer/slice_providers.dart';
@@ -145,7 +146,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
               skipLoadingOnReload: true,
               skipLoadingOnRefresh: true,
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => _ErrorView(
+              error: (err, _) => AsyncErrorView(
                 message: err is AppApiException
                     ? err.localized(l10n)
                     : l10n.connectFailed,
@@ -155,12 +156,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
               data: (s) => RefreshIndicator(
                 onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
                 child: s.searchFailed
-                    ? _EmptyView(
+                    ? EmptyStateView(
                         message: l10n.archiveSearchFailed(s.query),
                         icon: Icons.search_off,
                       )
                     : s.items.isEmpty
-                        ? _EmptyView(message: l10n.archiveEmpty)
+                        ? EmptyStateView(
+                            message: l10n.archiveEmpty,
+                            icon: Icons.inventory_2_outlined,
+                          )
                         : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -891,60 +895,4 @@ String _formatBytes(int bytes) {
     unit++;
   }
   return '${size.toStringAsFixed(1)} ${units[unit]}';
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.message, this.icon = Icons.inventory_2_outlined});
-
-  final String message;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            children: [
-              Icon(icon, size: 48, color: Theme.of(context).disabledColor),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-    required this.retryLabel,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String retryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
-          ],
-        ),
-      ),
-    );
-  }
 }

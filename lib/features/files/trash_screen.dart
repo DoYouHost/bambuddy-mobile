@@ -6,6 +6,7 @@ import '../../core/models/trash_file.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
 import 'file_manager_providers.dart';
 import 'file_manager_screen.dart' show formatBytes;
 
@@ -114,13 +115,14 @@ class TrashScreen extends ConsumerWidget {
     AppLocalizations l10n,
     TrashFile file,
   ) async {
-    final ok = await _confirm(
+    final ok = await confirmDialog(
       context,
-      l10n,
       title: l10n.fmHardDelete,
-      body: l10n.fmHardDeleteConfirm(file.filename),
+      message: l10n.fmHardDeleteConfirm(file.filename),
+      confirmLabel: l10n.fmHardDelete,
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
@@ -135,13 +137,14 @@ class TrashScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    final ok = await _confirm(
+    final ok = await confirmDialog(
       context,
-      l10n,
       title: l10n.fmEmptyTrash,
-      body: l10n.fmEmptyTrashConfirm,
+      message: l10n.fmEmptyTrashConfirm,
+      confirmLabel: l10n.fmHardDelete,
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
@@ -151,32 +154,6 @@ class TrashScreen extends ConsumerWidget {
     }
   }
 
-  Future<bool?> _confirm(
-    BuildContext context,
-    AppLocalizations l10n, {
-    required String title,
-    required String body,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: scheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.fmHardDelete),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _TrashTile extends StatelessWidget {

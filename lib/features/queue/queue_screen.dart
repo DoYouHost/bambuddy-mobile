@@ -10,6 +10,8 @@ import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
+import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
@@ -99,7 +101,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         skipLoadingOnReload: true,
         skipLoadingOnRefresh: true,
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => _ErrorView(
+        error: (err, _) => AsyncErrorView(
           message: err is AppApiException
               ? err.localized(l10n)
               : l10n.connectFailed,
@@ -109,7 +111,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         data: (items) => RefreshIndicator(
           onRefresh: () => ref.read(queueProvider.notifier).refresh(),
           child: items.isEmpty
-              ? _EmptyView(message: l10n.queueEmpty)
+              ? EmptyStateView(
+                  message: l10n.queueEmpty,
+                  icon: Icons.playlist_add_check,
+                )
               : _QueueList(items: items),
         ),
       ),
@@ -303,7 +308,12 @@ class _QueueCard extends ConsumerWidget {
       ),
       // Dialog here only; actual delete in onDismissed (notifier removes from state) —
       // else Dismissible conflicts with list rebuild.
-      confirmDismiss: (_) => _confirmDelete(context, l10n),
+      confirmDismiss: (_) => confirmDialog(
+        context,
+        title: l10n.queueDeleteTitle,
+        message: l10n.queueDeleteBody,
+        confirmLabel: l10n.queueDeleteConfirm,
+      ),
       onDismissed: (_) async {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref.read(queueProvider.notifier).delete(item.id);
@@ -313,25 +323,6 @@ class _QueueCard extends ConsumerWidget {
     );
   }
 
-  Future<bool?> _confirmDelete(BuildContext context, AppLocalizations l10n) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.queueDeleteTitle),
-        content: Text(l10n.queueDeleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.queueDeleteConfirm),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Subtitle extends StatelessWidget {
@@ -517,31 +508,6 @@ class _QueueActions extends ConsumerWidget {
   }
 }
 
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    // ListView so RefreshIndicator works in empty state too.
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            children: [
-              Icon(Icons.playlist_add_check,
-                  size: 48, color: Theme.of(context).disabledColor),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /// Shared start flow for a queue item, used by the FAB and the ⋮ Start action:
 /// assign a printer if the item has none, then the filament-mapping screen
@@ -573,8 +539,13 @@ Future<void> _startQueueItem(
   // sending — otherwise the scheduler would hold the print anyway.
   if (await _awaitingPlateClear(ref, printerId)) {
     if (!context.mounted) return;
-    final confirmed = await _confirmPlateClear(context, l10n);
-    if (confirmed != true) return;
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.plateClearTitle,
+      message: l10n.plateClearBody,
+      confirmLabel: l10n.plateClearConfirm,
+    );
+    if (!confirmed) return;
     try {
       await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
     } on AppApiException catch (e) {
@@ -616,28 +587,6 @@ Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
   } on AppApiException {
     return false;
   }
-}
-
-/// "Is the plate clear?" dialog shown before starting on a printer that awaits
-/// plate clearance. Returns true to proceed (and acknowledge clearance).
-Future<bool?> _confirmPlateClear(BuildContext context, AppLocalizations l10n) {
-  return showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(l10n.plateClearTitle),
-      content: Text(l10n.plateClearBody),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: Text(l10n.plateClearConfirm),
-        ),
-      ],
-    ),
-  );
 }
 
 /// Printer picker for the start flow. OFFLINE printers are selectable too —
@@ -683,36 +632,6 @@ Future<Printer?> _pickQueuePrinter(
   );
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-    required this.retryLabel,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String retryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Common SnackBar for queue action results (forbidden/error → message;
 /// ok → silent because change is visible in UI).

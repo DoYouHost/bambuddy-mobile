@@ -6,6 +6,7 @@ import '../../core/models/maintenance.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/state_views.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -63,7 +64,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
         skipLoadingOnReload: true,
         skipLoadingOnRefresh: true,
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => _ErrorView(
+        error: (err, _) => AsyncErrorView(
           message: err is AppApiException
               ? err.localized(l10n)
               : l10n.connectFailed,
@@ -75,7 +76,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
           onRefresh: () =>
               ref.read(maintenanceOverviewProvider.notifier).refresh(),
           child: printers.isEmpty
-              ? _EmptyView(message: l10n.maintenanceEmpty)
+              ? EmptyStateView(
+                  message: l10n.maintenanceEmpty,
+                  icon: Icons.build_circle_outlined,
+                )
               : ListView(
                   children: [
                     for (final p in printers) _PrinterSection(printer: p),
@@ -361,58 +365,3 @@ String? _formatDate(DateTime? dt) {
   return '${l.year}-${two(l.month)}-${two(l.day)} ${two(l.hour)}:${two(l.minute)}';
 }
 
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            children: [
-              Icon(Icons.build_circle_outlined,
-                  size: 48, color: Theme.of(context).disabledColor),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-    required this.retryLabel,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String retryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
-          ],
-        ),
-      ),
-    );
-  }
-}

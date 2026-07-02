@@ -31,6 +31,8 @@ class MaintenanceOverviewNotifier
   /// Pull-to-refresh / refresh after mutation. Keeps previous list underneath
   /// (AsyncLoading with previous) so UI doesn't flicker with spinner.
   Future<void> refresh() async {
+    // No profile (mid server-change) → nothing to fetch; mirrors [build].
+    if (ref.read(serverProfileProvider) == null) return;
     state = const AsyncValue<List<PrinterMaintenanceOverview>>.loading()
         .copyWithPrevious(state);
     state = await AsyncValue.guard(

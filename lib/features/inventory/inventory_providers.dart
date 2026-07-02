@@ -23,8 +23,8 @@ class InventoryState {
 
 final inventoryProvider =
     AutoDisposeAsyncNotifierProvider<InventoryNotifier, InventoryState>(
-  InventoryNotifier.new,
-);
+      InventoryNotifier.new,
+    );
 
 /// Fetches spools and assignments in one pass. Assignments degrade to an empty map
 /// if the endpoint fails/is unavailable — the spool list is more important than
@@ -77,7 +77,9 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// no optimistic updates because writes are rare and data is computed).
   /// Exceptions propagate to the caller (UI shows snackbar), but state refreshes anyway.
   /// Returns the created/modified spool (or null).
-  Future<Spool?> _mutate(Future<Spool?> Function(InventoryRepository) action) async {
+  Future<Spool?> _mutate(
+    Future<Spool?> Function(InventoryRepository) action,
+  ) async {
     final repo = ref.read(inventoryRepositoryProvider);
     try {
       return await action(repo);
@@ -107,22 +109,24 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// Assigns a spool to a slot, ensuring it occupies EXACTLY one slot:
   /// if it was elsewhere, [from] points to the old slot and we unpin it first (move).
   /// [from] == same slot → just assign.
-  Future<void> assignSpool(SpoolAssignmentDraft draft,
-          {SpoolAssignment? from}) =>
-      _mutate((repo) async {
-        if (from != null &&
-            !(from.printerId == draft.printerId &&
-                from.amsId == draft.amsId &&
-                from.trayId == draft.trayId)) {
-          await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
-        }
-        await repo.assignSpool(draft);
-        return null;
-      });
+  Future<void> assignSpool(
+    SpoolAssignmentDraft draft, {
+    SpoolAssignment? from,
+  }) => _mutate((repo) async {
+    if (from != null &&
+        !(from.printerId == draft.printerId &&
+            from.amsId == draft.amsId &&
+            from.trayId == draft.trayId)) {
+      await repo.unassignSpool(from.printerId, from.amsId, from.trayId);
+    }
+    await repo.assignSpool(draft);
+    return null;
+  });
 
   Future<void> unassignSpool(int printerId, int amsId, int trayId) => _mutate(
-      (repo) async =>
-          repo.unassignSpool(printerId, amsId, trayId).then((_) => null));
+    (repo) async =>
+        repo.unassignSpool(printerId, amsId, trayId).then((_) => null),
+  );
 }
 
 /// Resolves which spool from inventory sits in a given slot of a specific printer —
@@ -157,26 +161,27 @@ class AssignedSpools {
 /// Assignment resolver for one printer (by `printerId`). Reads `inventoryProvider`
 /// (shares the same fetch as the Filaments tab); degrades to empty if inventory
 /// hasn't loaded or failed — dashboard works without it.
-final assignedSpoolsProvider =
-    Provider.autoDispose.family<AssignedSpools, int>((ref, printerId) {
-  final inv = ref.watch(inventoryProvider).valueOrNull;
-  if (inv == null) return AssignedSpools.empty;
-  final spoolById = {for (final s in inv.spools) s.id: s};
-  final byKey = <int, Spool>{};
-  final byExtruder = <int, Spool>{};
-  for (final a in inv.assignmentBySpool.values) {
-    if (a.printerId != printerId) continue;
-    final spool = spoolById[a.spoolId];
-    if (spool == null) continue;
-    if (a.isExternalSpool) {
-      final ext = a.extruder;
-      if (ext != null) byExtruder[ext] = spool;
-    } else {
-      byKey[a.amsId * 1000 + a.trayId] = spool;
+final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
+  (ref, printerId) {
+    final inv = ref.watch(inventoryProvider).valueOrNull;
+    if (inv == null) return AssignedSpools.empty;
+    final spoolById = {for (final s in inv.spools) s.id: s};
+    final byKey = <int, Spool>{};
+    final byExtruder = <int, Spool>{};
+    for (final a in inv.assignmentBySpool.values) {
+      if (a.printerId != printerId) continue;
+      final spool = spoolById[a.spoolId];
+      if (spool == null) continue;
+      if (a.isExternalSpool) {
+        final ext = a.extruder;
+        if (ext != null) byExtruder[ext] = spool;
+      } else {
+        byKey[a.amsId * 1000 + a.trayId] = spool;
+      }
     }
-  }
-  return AssignedSpools(printerId, byKey, byExtruder);
-});
+    return AssignedSpools(printerId, byKey, byExtruder);
+  },
+);
 
 /// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
@@ -214,30 +219,32 @@ class InventoryFilters {
     Set<String>? materials,
     Set<String>? brands,
     Set<String>? locations,
-  }) =>
-      InventoryFilters(
-        showArchived: showArchived ?? this.showArchived,
-        lowStockOnly: lowStockOnly ?? this.lowStockOnly,
-        materials: materials ?? this.materials,
-        brands: brands ?? this.brands,
-        locations: locations ?? this.locations,
-      );
+  }) => InventoryFilters(
+    showArchived: showArchived ?? this.showArchived,
+    lowStockOnly: lowStockOnly ?? this.lowStockOnly,
+    materials: materials ?? this.materials,
+    brands: brands ?? this.brands,
+    locations: locations ?? this.locations,
+  );
 }
 
-final inventoryFiltersProvider =
-    StateProvider.autoDispose<InventoryFilters>((_) => const InventoryFilters());
+final inventoryFiltersProvider = StateProvider.autoDispose<InventoryFilters>(
+  (_) => const InventoryFilters(),
+);
 
 /// Spool usage history — loaded on demand in details (family by id).
 final spoolUsageProvider = FutureProvider.autoDispose
     .family<List<SpoolUsageEntry>, int>(
-  (ref, spoolId) => ref.watch(inventoryRepositoryProvider).fetchUsage(spoolId),
-);
+      (ref, spoolId) =>
+          ref.watch(inventoryRepositoryProvider).fetchUsage(spoolId),
+    );
 
 /// Spool form reference data (Phase 2). Loaded on form open; degrades to empty list
 /// (form allows manual entry), so errors don't block spool creation. Kept briefly
 /// after close (`keepAlive`) so reopening doesn't fetch again.
-final coreWeightsProvider =
-    FutureProvider.autoDispose<List<CoreWeightEntry>>((ref) async {
+final coreWeightsProvider = FutureProvider.autoDispose<List<CoreWeightEntry>>((
+  ref,
+) async {
   ref.keepAlive();
   try {
     return await ref.watch(inventoryRepositoryProvider).fetchCoreWeights();
@@ -246,8 +253,9 @@ final coreWeightsProvider =
   }
 });
 
-final colorCatalogProvider =
-    FutureProvider.autoDispose<List<ColorEntry>>((ref) async {
+final colorCatalogProvider = FutureProvider.autoDispose<List<ColorEntry>>((
+  ref,
+) async {
   ref.keepAlive();
   try {
     return await ref.watch(inventoryRepositoryProvider).fetchColors();
@@ -258,18 +266,21 @@ final colorCatalogProvider =
 
 final filamentPresetsProvider =
     FutureProvider.autoDispose<List<FilamentPreset>>((ref) async {
-  ref.keepAlive();
-  try {
-    return await ref.watch(inventoryRepositoryProvider).fetchFilamentPresets();
-  } on Object {
-    return const [];
-  }
-});
+      ref.keepAlive();
+      try {
+        return await ref
+            .watch(inventoryRepositoryProvider)
+            .fetchFilamentPresets();
+      } on Object {
+        return const [];
+      }
+    });
 
 /// Server-side storage-location catalog (native backend). Degrades to empty on
 /// error; [locationOptionsProvider] still surfaces locations used by spools.
-final locationCatalogProvider =
-    FutureProvider.autoDispose<List<String>>((ref) async {
+final locationCatalogProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
   // No keepAlive: re-fetch on reopen so a location just created (as a side
   // effect of saving a spool with a new storage_location) shows up next time.
   try {
@@ -300,13 +311,34 @@ final locationOptionsProvider = Provider.autoDispose<List<String>>((ref) {
 /// Material dropdown options: fixed popular ones + materials from catalog profiles
 /// and existing spools (preserved user values). Sorted, unique.
 const _commonMaterials = [
-  'PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', 'PET', 'PP',
+  'PLA',
+  'PETG',
+  'ABS',
+  'ASA',
+  'TPU',
+  'PA',
+  'PC',
+  'PVA',
+  'HIPS',
+  'PET',
+  'PP',
 ];
 
 /// Common filament subtypes/variants (Subtype field in bambuddy).
 const _commonSubtypes = [
-  'Basic', 'Matte', 'Silk', 'Tough', 'Translucent', 'Glow', 'Marble',
-  'Metal', 'Wood', 'CF', 'GF', 'Sparkle', 'Gradient',
+  'Basic',
+  'Matte',
+  'Silk',
+  'Tough',
+  'Translucent',
+  'Glow',
+  'Marble',
+  'Metal',
+  'Wood',
+  'CF',
+  'GF',
+  'Sparkle',
+  'Gradient',
 ];
 
 final materialOptionsProvider = Provider.autoDispose<List<String>>((ref) {

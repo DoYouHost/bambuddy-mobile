@@ -13,6 +13,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart';
+import '../common/confirm_dialog.dart';
+import '../common/state_views.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_sheet.dart';
 import 'file_manager_providers.dart';
@@ -93,7 +95,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         skipLoadingOnReload: true,
         skipLoadingOnRefresh: true,
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => _ErrorView(
+        error: (err, _) => AsyncErrorView(
           message: err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
           retryLabel: l10n.retry,
           onRetry: () => ref.invalidate(fileManagerProvider),
@@ -133,10 +135,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     return RefreshIndicator(
       onRefresh: notifier.refresh,
       child: (folders.isEmpty && files.isEmpty)
-          ? _EmptyView(
+          ? EmptyStateView(
               message: s.isSearching || s.typeFilter != null
                   ? l10n.fmNoMatches
                   : l10n.fmEmpty,
+              icon: Icons.folder_open_outlined,
             )
           : ListView(
               padding: const EdgeInsets.only(bottom: 88),
@@ -397,12 +400,14 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _deleteFolder(LibraryFolder folder) async {
-    final ok = await _confirm(
+    final ok = await confirmDialog(
+      context,
       title: _l10n.fmDeleteFolder,
-      body: _l10n.fmDeleteFolderConfirm(folder.name),
-      danger: true,
+      message: _l10n.fmDeleteFolderConfirm(folder.name),
+      confirmLabel: _l10n.fmDelete,
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref.read(libraryRepositoryProvider).deleteFolder(folder.id);
       await ref.read(fileManagerProvider.notifier).refresh();
@@ -445,11 +450,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _deleteFile(LibraryFile file) async {
-    final ok = await _confirm(
+    final ok = await confirmDialog(
+      context,
       title: _l10n.fmDeleteFile,
-      body: _l10n.fmDeleteFileConfirm(file.displayName),
+      message: _l10n.fmDeleteFileConfirm(file.displayName),
+      confirmLabel: _l10n.fmDelete,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref.read(libraryRepositoryProvider).deleteFile(file.id);
       await ref.read(fileManagerProvider.notifier).refresh();
@@ -461,11 +468,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Future<void> _deleteSelected(FileManagerState s) async {
     final ids = s.selected.toList();
-    final ok = await _confirm(
+    final ok = await confirmDialog(
+      context,
       title: _l10n.fmDelete,
-      body: _l10n.fmDeleteSelectedConfirm(ids.length),
+      message: _l10n.fmDeleteSelectedConfirm(ids.length),
+      confirmLabel: _l10n.fmDelete,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref.read(libraryRepositoryProvider).bulkDelete(fileIds: ids);
       ref.read(fileManagerProvider.notifier).clearSelection();
@@ -500,12 +509,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final l10n = _l10n;
     final printer = await _pickPrinter();
     if (printer == null || !mounted) return;
-    final ok = await _confirm(
+    final ok = await confirmDialog(
+      context,
       title: l10n.fmPrint,
-      body: l10n.fmPrintConfirmBody(file.displayName, printer.name),
+      message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
       confirmLabel: l10n.fmPrint,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await ref
           .read(libraryRepositoryProvider)
@@ -586,37 +596,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: Text(_l10n.fmSave),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> _confirm({
-    required String title,
-    required String body,
-    bool danger = false,
-    String? confirmLabel,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(_l10n.cancel),
-          ),
-          FilledButton(
-            style: danger
-                ? FilledButton.styleFrom(backgroundColor: scheme.error)
-                : null,
-            onPressed: () => Navigator.pop(ctx, true),
-            // Defaults to "Delete" for the delete-confirm callers; print/other
-            // flows pass their own verb.
-            child: Text(confirmLabel ?? _l10n.fmDelete),
           ),
         ],
       ),
@@ -933,61 +912,6 @@ class _FileTile extends StatelessWidget {
         trailing: selectionMode ? null : const Icon(Icons.more_vert, size: 20),
         onTap: onTap,
         onLongPress: onLongPress,
-      ),
-    );
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            children: [
-              Icon(Icons.folder_open_outlined,
-                  size: 48, color: Theme.of(context).disabledColor),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-    required this.retryLabel,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String retryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off, size: 48),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: Text(retryLabel)),
-          ],
-        ),
       ),
     );
   }

@@ -32,20 +32,22 @@ class PrintThumbnail extends ConsumerWidget {
     final radius = BorderRadius.circular(size < 64 ? 8 : 10);
 
     Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
-            borderRadius: radius,
-          ),
-          child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
-        );
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: radius,
+      ),
+      child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
+    );
 
     final id = archiveId;
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (id == null || baseUrl == null) return placeholder();
 
-    return ref.watch(cameraTokenProvider).when(
+    return ref
+        .watch(cameraTokenProvider)
+        .when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
           data: (token) => ClipRRect(
