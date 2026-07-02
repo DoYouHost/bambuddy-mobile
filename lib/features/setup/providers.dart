@@ -75,11 +75,14 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
         state = const SetupState(error: SetupErrorCode.requiresServerSetup);
         return;
       }
+      // Adopt the URL actually reached (probe followed any http→https redirect),
+      // so REST and WS share the same scheme — otherwise ws:// fails silently.
+      final effectiveUrl = probe.baseUrl;
       if (!probe.authEnabled) {
-        await _saveProfile(url, AuthMode.none);
+        await _saveProfile(effectiveUrl, AuthMode.none);
         return;
       }
-      state = SetupState(probe: probe, baseUrl: url);
+      state = SetupState(probe: probe, baseUrl: effectiveUrl);
     } on AppApiException catch (e) {
       state = SetupState(error: e);
     }

@@ -2,10 +2,19 @@ import 'package:dio/dio.dart';
 
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
+import '../settings/server_profile.dart';
 import 'credentials_store.dart';
 
-/// Result of server auth mode probe.
-typedef AuthProbeResult = ({bool authEnabled, bool requiresSetup});
+/// Result of server auth mode probe. [baseUrl] is the URL actually reached —
+/// it may differ from what the user typed when the server redirected the probe
+/// (e.g. `http://host` → `https://host`), so the caller persists this one to
+/// keep REST and WS (ws/wss) on the same scheme.
+typedef AuthProbeResult = ({
+  bool authEnabled,
+  bool requiresSetup,
+  String baseUrl,
+});
+
 
 /// JWT login and auth mode detection. Uses bare Dio (no auth interceptor) —
 /// login by definition goes without headers, which breaks the AuthService ↔
@@ -29,6 +38,11 @@ class AuthService {
       return (
         authEnabled: body['auth_enabled'] == true,
         requiresSetup: body['requires_setup'] == true,
+        baseUrl: ServerProfile.baseUrlFromReached(
+          res.realUri,
+          requested: baseUrl,
+          endpointSuffix: Endpoints.authStatus,
+        ),
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -40,12 +54,28 @@ class AuthService {
 
   Future<AuthProbeResult> _probeViaPrinters(String baseUrl) async {
     try {
-      await _dio.get<dynamic>('$baseUrl${Endpoints.printers}');
-      return (authEnabled: false, requiresSetup: false);
+      final res = await _dio.get<dynamic>('$baseUrl${Endpoints.printers}');
+      return (
+        authEnabled: false,
+        requiresSetup: false,
+        baseUrl: ServerProfile.baseUrlFromReached(
+          res.realUri,
+          requested: baseUrl,
+          endpointSuffix: Endpoints.printers,
+        ),
+      );
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401 || code == 403) {
-        return (authEnabled: true, requiresSetup: false);
+        return (
+          authEnabled: true,
+          requiresSetup: false,
+          baseUrl: ServerProfile.baseUrlFromReached(
+            e.response?.realUri,
+            requested: baseUrl,
+            endpointSuffix: Endpoints.printers,
+          ),
+        );
       }
       throw mapDioException(e);
     }

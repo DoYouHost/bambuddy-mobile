@@ -32,6 +32,8 @@ void main() {
       final probe = await service.probeAuthStatus(baseUrl);
       expect(probe.authEnabled, isTrue);
       expect(probe.requiresSetup, isFalse);
+      // No redirect in this mock → the probed URL is echoed back unchanged.
+      expect(probe.baseUrl, baseUrl);
     });
 
     test('auth wyłączony', () async {

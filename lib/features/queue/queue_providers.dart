@@ -32,8 +32,11 @@ final queueProvider =
 class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   @override
   Future<List<QueueItem>> build() async {
-    // Rebuild on server profile change (different key/permissions).
-    ref.watch(serverProfileProvider);
+    // Rebuild on server profile change (different key/permissions). No profile
+    // (e.g. right after "change server", before the router swaps to /setup) →
+    // apiClientProvider throws, so short-circuit to an empty queue instead.
+    final profile = ref.watch(serverProfileProvider);
+    if (profile == null) return const [];
     final all = await ref.read(queueRepositoryProvider).fetch();
     return _activeSorted(all);
   }

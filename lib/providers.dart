@@ -155,15 +155,28 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
   }
 }
 
+/// Most recently built client. Survives the transient frame between "change
+/// server" clearing the profile and the router redirecting to /setup: the many
+/// non-autoDispose repository providers that `watch` [apiClientProvider] stay
+/// alive while the dashboard is still mounted under the drawer, so on clear they
+/// rebuild and would hit the null-profile throw before the redirect unmounts
+/// them. Returning the last client keeps them from crashing; it's never used for
+/// requests (its consumers are guarded / about to unmount) and is replaced as
+/// soon as a new profile is set. Safe to cache — [ApiClient] holds no resources
+/// needing disposal.
+ApiClient? _lastApiClient;
+
 /// API client for active profile. Requires configured profile — routes without
 /// profile redirect to /setup, so UI should never touch this when null.
 final apiClientProvider = Provider<ApiClient>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) {
+    final cached = _lastApiClient;
+    if (cached != null) return cached;
     throw StateError('apiClientProvider użyty bez profilu serwera');
   }
   final auth = ref.watch(authServiceProvider);
-  return ApiClient(
+  return _lastApiClient = ApiClient(
     profile: profile,
     credentials: ref.watch(credentialsStoreProvider),
     refreshAuth: profile.authMode == AuthMode.jwt

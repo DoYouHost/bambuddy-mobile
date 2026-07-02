@@ -75,6 +75,27 @@ void main() {
       expect(msg, isA<WsUnknown>());
     });
 
+    test('print_complete → WsPrintEvent completed z printer_id', () {
+      final msg = parseWsMessage('{"type":"print_complete","printer_id":5}');
+      expect(msg, isA<WsPrintEvent>());
+      final ev = msg! as WsPrintEvent;
+      expect(ev.printerId, 5);
+      expect(ev.completed, isTrue);
+    });
+
+    test('print_start → WsPrintEvent nie-completed', () {
+      final msg = parseWsMessage('{"type":"print_start","printer_id":2}');
+      expect(msg, isA<WsPrintEvent>());
+      final ev = msg! as WsPrintEvent;
+      expect(ev.printerId, 2);
+      expect(ev.completed, isFalse);
+    });
+
+    test('print_complete bez printer_id → WsUnknown', () {
+      final msg = parseWsMessage('{"type":"print_complete"}');
+      expect(msg, isA<WsUnknown>());
+    });
+
     test('nieznany typ zachowuje się jako WsUnknown z type', () {
       final msg = parseWsMessage('{"type":"spoolbuddy_update","x":1}');
       expect(msg, isA<WsUnknown>());

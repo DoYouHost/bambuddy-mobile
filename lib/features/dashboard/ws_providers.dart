@@ -13,7 +13,9 @@ import '../../core/widget/home_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
 import '../../providers.dart';
+import '../maintenance/maintenance_providers.dart';
 import '../notifications/print_monitor.dart' show systemAppLocalizations;
+import '../queue/queue_providers.dart';
 
 /// Builds WS URL from profile baseUrl: http→ws, https→wss, path `…/api/v1/ws`.
 Uri wsUrlFor(String baseUrl) {
@@ -95,12 +97,42 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     final sub = client.statuses.listen((status) {
       // Merge on previous state so WS frame doesn't erase fields WS doesn't
       // carry (e.g. chamber mode `airduct_mode` from REST) — see mergedWith.
-      state = {...state, status.id: status.mergedWith(state[status.id])};
+      final prev = state[status.id];
+      final merged = status.mergedWith(prev);
+      state = {...state, status.id: merged};
       _publishWidget();
+      // Fallback trigger: a print just ended (active → not active). Queue
+      // advances and maintenance counters tick at that moment, but the server
+      // pushes neither over WS — refresh both so the tabs/badges stay live.
+      if (prev?.isPrinting == true && !merged.isPrinting) {
+        _scheduleQueueMaintenanceRefresh();
+      }
     });
     ref.onDispose(sub.cancel);
+
+    // Primary trigger: explicit print_start/print_complete frames.
+    final printSub = client.printEvents.listen(
+      (_) => _scheduleQueueMaintenanceRefresh(),
+    );
+    ref.onDispose(printSub.cancel);
+    ref.onDispose(() => _refreshDebounce?.cancel());
+
     client.start();
     return const {};
+  }
+
+  Timer? _refreshDebounce;
+
+  /// Coalesce bursts (e.g. print_complete frame + the status transition that
+  /// follows it) into a single refresh. Providers are kept alive by the nav
+  /// badge, and `refresh()` keeps the previous value so open screens don't
+  /// flash a spinner.
+  void _scheduleQueueMaintenanceRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 800), () {
+      unawaited(ref.read(queueProvider.notifier).refresh());
+      unawaited(ref.read(maintenanceOverviewProvider.notifier).refresh());
+    });
   }
 
   /// Refresh native home screen widget with state of selected printer. Called

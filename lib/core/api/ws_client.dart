@@ -140,6 +140,7 @@ class WsClient {
   final _stateController = StreamController<WsConnectionState>.broadcast();
   final _statusController = StreamController<PrinterStatus>.broadcast();
   final _plateController = StreamController<WsPlateNotEmpty>.broadcast();
+  final _printController = StreamController<WsPrintEvent>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -163,6 +164,10 @@ class WsClient {
   /// "Plate not empty" events (suspended print) — separate stream from
   /// [statuses] because it's an event frame, not full printer state.
   Stream<WsPlateNotEmpty> get plateAlerts => _plateController.stream;
+
+  /// Print lifecycle events (`print_start`/`print_complete`) — a trigger to
+  /// refresh queue/maintenance, which aren't pushed over WS themselves.
+  Stream<WsPrintEvent> get printEvents => _printController.stream;
 
   /// Start connecting (idempotent). After [suspend], resume via [resume].
   void start() {
@@ -197,6 +202,7 @@ class WsClient {
     await _stateController.close();
     await _statusController.close();
     await _plateController.close();
+    await _printController.close();
   }
 
   Future<void> _openConnection() async {
@@ -270,6 +276,8 @@ class WsClient {
       _statusController.add(msg.status);
     } else if (msg is WsPlateNotEmpty && !_plateController.isClosed) {
       _plateController.add(msg);
+    } else if (msg is WsPrintEvent && !_printController.isClosed) {
+      _printController.add(msg);
     }
     // WsPong/WsUnknown/null: watchdog already reset — nothing more.
   }

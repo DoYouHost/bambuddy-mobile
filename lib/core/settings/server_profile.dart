@@ -31,6 +31,10 @@ class ServerProfile {
       };
 
   /// Normalizes raw user input: adds `http://` if no scheme, strips trailing `/`.
+  ///
+  /// The `http://` default is intentional: local/self-hosted servers are often
+  /// plain http, and a public https server redirects the probe so the caller
+  /// adopts the reached URL via [baseUrlFromReached]. See setup flow.
   static String normalizeBaseUrl(String raw) {
     var url = raw.trim();
     if (url.isEmpty) return url;
@@ -41,5 +45,26 @@ class ServerProfile {
       url = url.substring(0, url.length - 1);
     }
     return url;
+  }
+
+  /// Recover the base URL actually reached by a probe request, honoring any
+  /// http→https (or host) redirect the HTTP client followed transparently.
+  ///
+  /// [reached] is the final URI of the probe (e.g. `Response.realUri`);
+  /// [endpointSuffix] is the path that was appended to the base (e.g.
+  /// `/api/v1/auth/status`). Strips that suffix off `origin + path` so any base
+  /// path prefix survives. Falls back to [requested] when [reached] is null or
+  /// doesn't end with the suffix (unexpected shape, e.g. mocked transport).
+  static String baseUrlFromReached(
+    Uri? reached, {
+    required String requested,
+    required String endpointSuffix,
+  }) {
+    if (reached == null) return requested;
+    final full = reached.origin + reached.path;
+    if (full.endsWith(endpointSuffix)) {
+      return full.substring(0, full.length - endpointSuffix.length);
+    }
+    return requested;
   }
 }

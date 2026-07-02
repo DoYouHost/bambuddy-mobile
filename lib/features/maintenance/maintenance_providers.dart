@@ -20,8 +20,11 @@ class MaintenanceOverviewNotifier
     extends AutoDisposeAsyncNotifier<List<PrinterMaintenanceOverview>> {
   @override
   Future<List<PrinterMaintenanceOverview>> build() async {
-    // Rebuild on server profile change (different key/permissions).
-    ref.watch(serverProfileProvider);
+    // Rebuild on server profile change (different key/permissions). No profile
+    // (e.g. right after "change server", before the router swaps to /setup) →
+    // apiClientProvider throws, so short-circuit to an empty list instead.
+    final profile = ref.watch(serverProfileProvider);
+    if (profile == null) return const [];
     return ref.read(maintenanceRepositoryProvider).fetchOverview();
   }
 

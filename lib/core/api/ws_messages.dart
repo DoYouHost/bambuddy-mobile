@@ -37,6 +37,18 @@ class WsPlateNotEmpty extends WsMessage {
   final String? message;
 }
 
+/// Print lifecycle frame (`print_start` / `print_complete`). Carries only the
+/// printer id — used purely as a trigger to refresh queue/maintenance, whose
+/// state changes exactly at these moments (queue advances, maintenance counters
+/// tick) but which the server does NOT push over WS directly.
+class WsPrintEvent extends WsMessage {
+  const WsPrintEvent(this.printerId, {required this.completed});
+  final int printerId;
+
+  /// `true` for `print_complete`, `false` for `print_start`.
+  final bool completed;
+}
+
 /// Server response to our heartbeat (`{"type":"pong"}`). The mere arrival of
 /// ANY frame resets the watchdog; we distinguish this type so the manager can
 /// tell control traffic from data.
@@ -87,6 +99,11 @@ WsMessage? parseWsMessage(String raw) {
         decoded['printer_name']?.toString(),
         decoded['message']?.toString(),
       );
+    case 'print_start':
+    case 'print_complete':
+      final printerId = _toIntOrNull(decoded['printer_id']);
+      if (printerId == null) return WsUnknown(type); // without id, unclear whose
+      return WsPrintEvent(printerId, completed: type == 'print_complete');
     case 'pong':
       return const WsPong();
     default:

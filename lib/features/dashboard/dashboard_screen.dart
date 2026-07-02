@@ -584,6 +584,10 @@ class _AppDrawer extends ConsumerWidget {
   /// `/setup` via router. Kept with drawer to not depend on Dashboard state methods.
   Future<void> _confirmChangeServer(
       BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    // Read the notifier up front: the caller pops the drawer before calling us,
+    // so this `_AppDrawer` (a ConsumerWidget) is disposed during the dialog
+    // await — touching `ref` afterwards throws "Cannot use ref after dispose".
+    final profiles = ref.read(serverProfileProvider.notifier);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -602,7 +606,7 @@ class _AppDrawer extends ConsumerWidget {
       ),
     );
     if (confirmed ?? false) {
-      await ref.read(serverProfileProvider.notifier).clear();
+      await profiles.clear();
     }
   }
 }
