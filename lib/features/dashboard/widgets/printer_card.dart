@@ -134,16 +134,9 @@ class _PrinterCardState extends State<PrinterCard> {
               // Total print time is from the server (maintenance), so we know it
               // even when the card is collapsed—show it instead of blank space.
               _TotalPrintTimeLine(printerId: widget.item.printer.id),
-              // Plate-clear stays actionable while OFFLINE: it's a pure server
-              // flag (no MQTT), so the user can ack a dirty plate before waking
-              // the printer, freeing the scheduler to dispatch the queued job.
-              // Compact (button only) to keep the collapsed card minimal; uses
-              // last-known status, which retains awaiting_plate_clear.
-              if (status != null)
-                _PlateClearBanner(
-                    printerId: widget.item.printer.id,
-                    status: status,
-                    compact: true),
+              // No plate-clear here: the server's clear-plate endpoint rejects
+              // an offline printer (400 "Printer not connected"), so the ack can
+              // only be sent once it's back online.
             ],
           ),
         ),
@@ -266,18 +259,10 @@ class _PrinterCardState extends State<PrinterCard> {
 /// button posts the same `clear-plate` acknowledgement used before queued
 /// starts, freeing the scheduler to dispatch the next print.
 class _PlateClearBanner extends ConsumerStatefulWidget {
-  const _PlateClearBanner({
-    required this.printerId,
-    required this.status,
-    this.compact = false,
-  });
+  const _PlateClearBanner({required this.printerId, required this.status});
 
   final int printerId;
   final PrinterStatus status;
-
-  /// Compact rendering (just the action button, no full banner) — keeps the
-  /// collapsed OFFLINE card minimal while still allowing the plate-clear ack.
-  final bool compact;
 
   @override
   ConsumerState<_PlateClearBanner> createState() => _PlateClearBannerState();
@@ -316,24 +301,6 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-
-    // Collapsed OFFLINE card: keep it minimal — just the action button.
-    if (widget.compact) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: _busy ? null : _clear,
-          icon: _busy
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.layers_clear_outlined, size: 18),
-          label: Text(l10n.plateClearAction),
-        ),
-      );
-    }
-
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(

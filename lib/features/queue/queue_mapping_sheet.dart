@@ -13,11 +13,22 @@ import '../slicer/slice_providers.dart';
 /// One AMS slot (or external spool) a file filament can be mapped to.
 typedef _Tray = ({int global, String? type, String? color, int? remain, bool external});
 
-/// Loaded filaments for a printer's AMS, sourced from inventory assignments so
-/// it works even when the printer is OFFLINE (assignments persist server-side).
-/// Falls back to the live printer status if no assignments exist.
+/// Loaded filaments for a printer's AMS. Prefers the printer's LIVE AMS state:
+/// that's the source of truth the firmware resolves the mapping against, so a
+/// tray offered here is one that actually exists on the machine right now.
+/// Offering a global index that isn't loaded is exactly what makes the printer
+/// reject the job with "unable to fetch AMS mapping". Falls back to persisted
+/// inventory assignments only when the printer is OFFLINE (assignments survive
+/// server-side), so mapping save-ahead-of-time still works.
 final printerTraysProvider =
     FutureProvider.autoDispose.family<List<_Tray>, int>((ref, printerId) async {
+  try {
+    final live = _traysFromStatus(
+        await ref.watch(printersRepositoryProvider).fetchStatus(printerId));
+    if (live.isNotEmpty) return live;
+  } on AppApiException {
+    // Offline / unreachable — fall through to inventory assignments.
+  }
   final inv = ref.watch(inventoryRepositoryProvider);
   var assignments = const <SpoolAssignment>[];
   var spools = const <Spool>[];
@@ -25,7 +36,7 @@ final printerTraysProvider =
     assignments = await inv.fetchAssignments();
     spools = await inv.fetchSpools();
   } on AppApiException {
-    // Ignore — fall through to live status.
+    return const [];
   }
   final byId = {for (final s in spools) s.id: s};
   final out = <_Tray>[];
@@ -42,14 +53,7 @@ final printerTraysProvider =
       external: a.isExternalSpool,
     ));
   }
-  if (out.isNotEmpty) return out;
-  // Fallback: whatever the printer reports live (only when online).
-  try {
-    return _traysFromStatus(
-        await ref.watch(printersRepositoryProvider).fetchStatus(printerId));
-  } on AppApiException {
-    return const [];
-  }
+  return out;
 });
 
 List<_Tray> _traysFromStatus(PrinterStatus? status) {
@@ -120,6 +124,13 @@ class _MappingSheet extends ConsumerStatefulWidget {
 class _MappingSheetState extends ConsumerState<_MappingSheet> {
   // Selected global AMS tray per filament slot (null = auto / -1).
   List<int?> _selected = [];
+
+  // Whether the user explicitly picked a tray for any slot. While false we
+  // return an empty mapping so the caller skips the PATCH and lets the backend
+  // auto-compute from the printer's LIVE AMS (its robust path), instead of us
+  // forcing a pre-filled auto-match that may reference an unloaded tray and
+  // trip "unable to fetch AMS mapping" on the printer.
+  bool _touched = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
@@ -202,7 +213,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         for (var i = 0; i < reqs.length; i++)
           _slotRow(theme, i, reqs[i], trays),
         const SizedBox(height: 16),
-        _confirmButton([for (final s in _selected) s ?? -1]),
+        // Untouched → empty mapping = "let the backend auto-map from live AMS".
+        _confirmButton(_touched ? [for (final s in _selected) s ?? -1] : const []),
       ],
     );
   }
@@ -266,7 +278,12 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
       ),
     );
-    if (picked != null) setState(() => _selected[slot] = picked);
+    if (picked != null) {
+      setState(() {
+        _selected[slot] = picked;
+        _touched = true;
+      });
+    }
   }
 
   // --- helpers ---
