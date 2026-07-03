@@ -4,10 +4,11 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_purge.dart';
+import '../core/models/json_utils.dart';
 
 /// REST data source for print archive (M5).
 ///
-/// Auth adds [AuthInterceptor] to the shared Dio instance.
+/// Auth adds [AuthInterceptor] to the shared Dio.
 /// Each method maps [DioException] to [AppApiException].
 class ArchiveRepository {
   ArchiveRepository(this._dio);
@@ -27,104 +28,69 @@ class ArchiveRepository {
       'offset': offset,
       'printer_id': printerId,
     }..removeWhere((_, v) => v == null);
-    final List<dynamic> body;
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.archives,
         queryParameters: query,
       );
-      body = res.data ?? const [];
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-    final archives = <Archive>[];
-    for (final item in body) {
-      if (item is! Map<String, dynamic>) continue;
-      try {
-        archives.add(Archive.fromJson(item));
-      } on Object {
-        continue;
-      }
-    }
-    return archives;
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, Archive.fromJson);
   }
 
   /// GET /archives/search?q=&limit=&offset= — full-text search.
   ///
-  /// Defensive parsing: unparseable entries are skipped.
+  /// Defensive parsing: unparseable entries are skipped. [cancelToken] lets
+  /// callers cancel a stale in-flight search (e.g. search-as-you-type) instead
+  /// of letting it resolve and race with a newer request.
   Future<List<Archive>> search(
     String q, {
     int limit = 50,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
-    final List<dynamic> body;
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.archivesSearch,
         queryParameters: {'q': q, 'limit': limit, 'offset': offset},
+        cancelToken: cancelToken,
       );
-      body = res.data ?? const [];
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-    final archives = <Archive>[];
-    for (final item in body) {
-      if (item is! Map<String, dynamic>) continue;
-      try {
-        archives.add(Archive.fromJson(item));
-      } on Object {
-        continue;
-      }
-    }
-    return archives;
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, Archive.fromJson);
   }
 
   /// POST /archives/{id}/reprint?printer_id=PRINTER — resume print from archive
   /// on the specified printer. Empty body; parameter goes in query.
-  Future<void> reprint(int archiveId, {required int printerId}) async {
-    try {
-      await _dio.post<dynamic>(
+  Future<void> reprint(int archiveId, {required int printerId}) => guard(() => _dio.post<dynamic>(
         Endpoints.archiveReprint(archiveId),
         queryParameters: {'printer_id': printerId},
-      );
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+      ));
 
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
   /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
   /// from aggregate statistics.
-  Future<void> delete(int archiveId, {bool purgeStats = false}) async {
-    try {
-      await _dio.delete<dynamic>(
+  Future<void> delete(int archiveId, {bool purgeStats = false}) => guard(() => _dio.delete<dynamic>(
         Endpoints.archive(archiveId),
         queryParameters: {'purge_stats': purgeStats},
-      );
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+      ));
 
   /// GET /archives/purge/preview — count + size of prints older than
   /// [olderThanDays] eligible for purge. Read-only.
   Future<ArchivePurgePreview> purgePreview({
     required int olderThanDays,
     bool purgeStats = false,
-  }) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.archivesPurgePreview,
-        queryParameters: {
-          'older_than_days': olderThanDays,
-          'purge_stats': purgeStats,
-        },
-      );
-      return ArchivePurgePreview.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  }) =>
+      guard(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.archivesPurgePreview,
+          queryParameters: {
+            'older_than_days': olderThanDays,
+            'purge_stats': purgeStats,
+          },
+        );
+        return ArchivePurgePreview.fromJson(res.data ?? const {});
+      });
 
   /// POST /archives/purge — bulk-delete prints older than [olderThanDays].
   /// [purgeStats] also drops them from statistics (irreversible). Returns the
@@ -132,16 +98,12 @@ class ArchiveRepository {
   Future<int> purge({
     required int olderThanDays,
     bool purgeStats = false,
-  }) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        Endpoints.archivesPurge,
-        data: {'older_than_days': olderThanDays, 'purge_stats': purgeStats},
-      );
-      final deleted = res.data?['deleted'];
-      return deleted is int ? deleted : 0;
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  }) =>
+      guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.archivesPurge,
+          data: {'older_than_days': olderThanDays, 'purge_stats': purgeStats},
+        );
+        return toInt(res.data?['deleted']);
+      });
 }

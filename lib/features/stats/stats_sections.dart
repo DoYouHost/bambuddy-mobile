@@ -113,6 +113,12 @@ class PrintActivityCard extends StatelessWidget {
   static const _margin = 3.0;
   static const _labelW = 30.0;
 
+  /// Widest window shown (GitHub-style ~1 year). "All time" on a
+  /// multi-year history would otherwise build `weeks*7` `Container`s eagerly
+  /// (this grid isn't lazy/virtualized) — cap to the most recent window
+  /// instead of growing unbounded.
+  static const _maxWeeks = 53;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -120,12 +126,17 @@ class PrintActivityCard extends StatelessWidget {
     final days = data.printsByDay;
     final maxCount = days.values.fold<int>(1, math.max);
 
-    // Range: from Monday of the week with earliest print to today.
+    // Range: from Monday of the week with earliest print to today, capped to
+    // the most recent [_maxWeeks].
     final sorted = days.keys.toList()..sort();
     final first = sorted.first;
-    final startMonday = first.subtract(Duration(days: first.weekday - 1));
     final last = sorted.last;
-    final weeks = (last.difference(startMonday).inDays ~/ 7) + 1;
+    final fullStartMonday = first.subtract(Duration(days: first.weekday - 1));
+    final fullWeeks = (last.difference(fullStartMonday).inDays ~/ 7) + 1;
+    final weeks = fullWeeks > _maxWeeks ? _maxWeeks : fullWeeks;
+    final startMonday = fullWeeks > _maxWeeks
+        ? fullStartMonday.add(Duration(days: (fullWeeks - _maxWeeks) * 7))
+        : fullStartMonday;
 
     final track = theme.colorScheme.surfaceContainerHighest;
     final labelStyle = theme.textTheme.bodySmall

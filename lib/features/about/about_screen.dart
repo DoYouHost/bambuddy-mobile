@@ -120,15 +120,24 @@ class AboutScreen extends StatelessWidget {
 }
 
 /// Version read from package metadata (pubspec → buildName+buildNumber).
-class _VersionLabel extends StatelessWidget {
+class _VersionLabel extends StatefulWidget {
   const _VersionLabel();
+
+  @override
+  State<_VersionLabel> createState() => _VersionLabelState();
+}
+
+class _VersionLabelState extends State<_VersionLabel> {
+  // Created once in initState — a plain call in build() would kick off a
+  // brand-new platform-channel future (and a "…" flash) on every rebuild.
+  late final Future<PackageInfo> _future = PackageInfo.fromPlatform();
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return FutureBuilder<PackageInfo>(
-      future: PackageInfo.fromPlatform(),
+      future: _future,
       builder: (context, snap) {
         final v = snap.hasData
             ? '${snap.data!.version}+${snap.data!.buildNumber}'

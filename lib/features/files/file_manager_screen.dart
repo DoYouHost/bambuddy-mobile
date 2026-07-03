@@ -8,12 +8,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
-import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../archive/archive_providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/format_bytes.dart' show formatBytes;
+import '../common/printer_picker.dart';
 import '../common/state_views.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_sheet.dart';
@@ -136,10 +136,14 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       onRefresh: notifier.refresh,
       child: (folders.isEmpty && files.isEmpty)
           ? EmptyStateView(
-              message: s.isSearching || s.typeFilter != null
-                  ? l10n.fmNoMatches
-                  : l10n.fmEmpty,
-              icon: Icons.folder_open_outlined,
+              message: s.searchFailed
+                  ? l10n.connectFailed
+                  : s.isSearching || s.typeFilter != null
+                      ? l10n.fmNoMatches
+                      : l10n.fmEmpty,
+              icon: s.searchFailed
+                  ? Icons.cloud_off
+                  : Icons.folder_open_outlined,
             )
           : ListView(
               padding: const EdgeInsets.only(bottom: 88),
@@ -536,7 +540,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Future<void> _printFile(LibraryFile file) async {
     final l10n = _l10n;
-    final printer = await _pickPrinter();
+    final printer = await pickPrinterSheet(context, ref, l10n);
     if (printer == null || !mounted) return;
     final ok = await confirmDialog(
       context,
@@ -660,46 +664,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     );
   }
 
-  /// Printer picker (like in archive): one → no question, zero → message.
-  Future<Printer?> _pickPrinter() async {
-    final l10n = _l10n;
-    final List<Printer> printers;
-    try {
-      printers = await ref.read(printersForPickerProvider.future);
-    } on AppApiException catch (e) {
-      _snack(_errText(e));
-      return null;
-    }
-    if (!mounted) return null;
-    if (printers.isEmpty) {
-      _snack(l10n.noPrintersAvailable);
-      return null;
-    }
-    if (printers.length == 1) return printers.first;
-    return showModalBottomSheet<Printer>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(l10n.pickPrinterTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium),
-            ),
-            for (final p in printers)
-              ListTile(
-                leading: const Icon(Icons.print_outlined),
-                title: Text(p.name),
-                subtitle: p.model == null ? null : Text(p.model!),
-                onTap: () => Navigator.pop(ctx, p),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Helper: for root selection from [_pickFolder] we return sentinel id=-1;
@@ -988,17 +952,4 @@ class _FileTile extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Format bytes to readable text (B/KB/MB/GB).
-String formatBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  var size = bytes / 1024;
-  var i = 0;
-  while (size >= 1024 && i < units.length - 1) {
-    size /= 1024;
-    i++;
-  }
-  return '${size.toStringAsFixed(size >= 10 ? 0 : 1)} ${units[i]}';
 }

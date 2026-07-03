@@ -274,48 +274,58 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 96),
-              children: [
-                _SectionHeader(
-                  label: l10n.swatchSectionCodes,
-                  count: codes.length,
-                ),
-                if (codes.isEmpty)
-                  _EmptyHint(
-                    icon: Icons.qr_code_2_rounded,
-                    title: allCodes.isEmpty
-                        ? l10n.swatchNoCodes
-                        : l10n.swatchNoMatch(query.trim()),
-                    subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
-                  )
-                else
-                  for (final c in codes)
-                    _SwatchTile(
-                      code: c,
-                      onEdit: () => _openForm(initial: c),
-                      onCopy: () => _copy(c.code),
-                      onDelete: () => _confirmDelete(c),
-                    ),
-                if (inventoryLoaded && uncoded.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+            child: Builder(
+              builder: (_) {
+                // Flattened once per build (cheap widget construction); the
+                // list below only *lays out/mounts* items near the viewport
+                // instead of all of them eagerly (matters once the registry
+                // grows to hundreds of codes).
+                final items = <Widget>[
                   _SectionHeader(
-                    label: l10n.swatchSectionUncoded,
-                    count: uncoded.length,
+                    label: l10n.swatchSectionCodes,
+                    count: codes.length,
                   ),
-                  for (final f in uncoded)
-                    _UncodedTile(
-                      identity: f,
-                      onGenerate: () => _generateFor(f),
+                  if (codes.isEmpty)
+                    _EmptyHint(
+                      icon: Icons.qr_code_2_rounded,
+                      title: allCodes.isEmpty
+                          ? l10n.swatchNoCodes
+                          : l10n.swatchNoMatch(query.trim()),
+                      subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
+                    )
+                  else
+                    for (final c in codes)
+                      _SwatchTile(
+                        code: c,
+                        onEdit: () => _openForm(initial: c),
+                        onCopy: () => _copy(c.code),
+                        onDelete: () => _confirmDelete(c),
+                      ),
+                  if (inventoryLoaded && uncoded.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _SectionHeader(
+                      label: l10n.swatchSectionUncoded,
+                      count: uncoded.length,
                     ),
-                ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _EmptyHint(
-                    icon: Icons.check_circle_outline_rounded,
-                    title: l10n.swatchAllCoded,
-                  ),
-                ],
-              ],
+                    for (final f in uncoded)
+                      _UncodedTile(
+                        identity: f,
+                        onGenerate: () => _generateFor(f),
+                      ),
+                  ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _EmptyHint(
+                      icon: Icons.check_circle_outline_rounded,
+                      title: l10n.swatchAllCoded,
+                    ),
+                  ],
+                ];
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) => items[i],
+                );
+              },
             ),
           ),
         ],

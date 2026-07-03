@@ -676,14 +676,24 @@ class _BomItemDialogState extends State<BomItemDialog> {
         FilledButton(
           onPressed: () {
             if (_name.text.trim().isEmpty) return;
+            final item = widget.item;
+            final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+            final url = _url.text.trim();
+            final remarks = _remarks.text.trim();
             Navigator.pop(
               context,
               BomItemInput(
                 name: _name.text.trim(),
                 quantityNeeded: int.tryParse(_needed.text.trim()),
-                unitPrice: double.tryParse(_price.text.trim().replaceAll(',', '.')),
-                sourcingUrl: _url.text.trim().isEmpty ? null : _url.text.trim(),
-                remarks: _remarks.text.trim().isEmpty ? null : _remarks.text.trim(),
+                unitPrice: price,
+                // Editing an existing value down to empty must actively clear
+                // it server-side (see [BomItemInput]) — a fresh item has
+                // nothing to clear, so these never trigger on create.
+                clearUnitPrice: item?.unitPrice != null && price == null,
+                sourcingUrl: url.isEmpty ? null : url,
+                clearSourcingUrl: (item?.sourcingUrl?.isNotEmpty ?? false) && url.isEmpty,
+                remarks: remarks.isEmpty ? null : remarks,
+                clearRemarks: (item?.remarks?.isNotEmpty ?? false) && remarks.isEmpty,
               ),
             );
           },

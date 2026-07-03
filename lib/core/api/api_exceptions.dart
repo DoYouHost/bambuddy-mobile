@@ -55,6 +55,33 @@ class NetworkException extends AppApiException {
   const NetworkException(super.code, {super.detail});
 }
 
+/// Runs [body], mapping any [DioException] to [AppApiException] via
+/// [mapDioException]. Centralizes the `try { ... } on DioException catch (e)
+/// { throw mapDioException(e); }` boilerplate repeated across repositories.
+Future<T> guard<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    throw mapDioException(e);
+  }
+}
+
+/// Like [guard], but non-auth failures degrade to `null` instead of
+/// rethrowing — for single-entity fetches (printer/plug status, etc.) where
+/// one unreachable resource shouldn't break a composite view (dashboard,
+/// maintenance overview). Auth errors still bubble up so the UI can redirect.
+Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    final mapped = mapDioException(e);
+    if (mapped is AuthException) throw mapped;
+    return null;
+  } on Object {
+    return null;
+  }
+}
+
 /// Maps [DioException] to a typed application exception.
 AppApiException mapDioException(DioException e) {
   if (e.error is AppApiException) {

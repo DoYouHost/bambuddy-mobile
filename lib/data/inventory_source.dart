@@ -4,6 +4,7 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_reference.dart';
+import '../core/models/json_utils.dart';
 
 /// Filament inventory backend. User has native, but app should also work on Spoolman —
 /// selected via setting (see `inventoryBackendProvider`).
@@ -59,23 +60,6 @@ abstract class SpoolInventorySource {
   Future<List<String>> fetchLocations();
 }
 
-/// Defensive list parsing: skip unparseable entries to avoid one bad record breaking the screen.
-List<T> _parseList<T>(
-  List<dynamic> body,
-  T Function(Map<String, dynamic>) fromJson,
-) {
-  final out = <T>[];
-  for (final item in body) {
-    if (item is! Map<String, dynamic>) continue;
-    try {
-      out.add(fromJson(item));
-    } on Object {
-      continue;
-    }
-  }
-  return out;
-}
-
 /// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
 /// errors mapped to typed [AppApiException].
 class NativeInventorySource implements SpoolInventorySource {
@@ -85,167 +69,118 @@ class NativeInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.inventorySpools,
         queryParameters: {'include_archived': includeArchived},
       );
-      return _parseList(res.data ?? const [], Spool.fromNative);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, Spool.fromNative);
   }
 
   @override
   Future<List<SpoolAssignment>> fetchAssignments() async {
-    try {
-      final res =
-          await _dio.get<List<dynamic>>(Endpoints.inventoryAssignments);
-      return _parseList(res.data ?? const [], SpoolAssignment.fromNative);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+    final body = await guard(() async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.inventoryAssignments);
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, SpoolAssignment.fromNative);
   }
 
   @override
-  Future<void> assignSpool(SpoolAssignmentDraft draft) async {
-    try {
-      await _dio.post<dynamic>(
+  Future<void> assignSpool(SpoolAssignmentDraft draft) => guard(() => _dio.post<dynamic>(
         Endpoints.inventoryAssignments,
         data: draft.toNativeJson(),
-      );
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+      ));
 
   @override
-  Future<void> unassignSpool(int printerId, int amsId, int trayId) async {
-    try {
-      await _dio.delete<dynamic>(
-        Endpoints.inventoryAssignment(printerId, amsId, trayId),
+  Future<void> unassignSpool(int printerId, int amsId, int trayId) => guard(
+        () => _dio.delete<dynamic>(
+          Endpoints.inventoryAssignment(printerId, amsId, trayId),
+        ),
       );
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
-    try {
-      final res = await _dio
-          .get<List<dynamic>>(Endpoints.inventorySpoolUsage(spoolId));
-      return _parseList(res.data ?? const [], SpoolUsageEntry.fromNative);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+    final body = await guard(() async {
+      final res =
+          await _dio.get<List<dynamic>>(Endpoints.inventorySpoolUsage(spoolId));
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, SpoolUsageEntry.fromNative);
   }
 
   @override
-  Future<Spool> createSpool(SpoolDraft draft) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        Endpoints.inventorySpools,
-        data: draft.toNativeJson(),
-      );
-      return Spool.fromNative(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<Spool> createSpool(SpoolDraft draft) => guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.inventorySpools,
+          data: draft.toNativeJson(),
+        );
+        return Spool.fromNative(res.data ?? const {});
+      });
 
   @override
-  Future<Spool> updateSpool(int spoolId, SpoolDraft draft) async {
-    try {
-      final res = await _dio.patch<Map<String, dynamic>>(
-        Endpoints.inventorySpool(spoolId),
-        data: draft.toNativeJson(),
-      );
-      return Spool.fromNative(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<Spool> updateSpool(int spoolId, SpoolDraft draft) => guard(() async {
+        final res = await _dio.patch<Map<String, dynamic>>(
+          Endpoints.inventorySpool(spoolId),
+          data: draft.toNativeJson(),
+        );
+        return Spool.fromNative(res.data ?? const {});
+      });
 
   @override
-  Future<void> deleteSpool(int spoolId) async {
-    try {
-      await _dio.delete<dynamic>(Endpoints.inventorySpool(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> deleteSpool(int spoolId) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.inventorySpool(spoolId)));
 
   @override
-  Future<void> archiveSpool(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.inventorySpoolArchive(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> archiveSpool(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolArchive(spoolId)));
 
   @override
-  Future<void> restoreSpool(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.inventorySpoolRestore(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> restoreSpool(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.inventorySpoolResetUsage(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> resetUsage(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolResetUsage(spoolId)));
 
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async {
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.inventoryCatalog);
-      return _parseList(res.data ?? const [], CoreWeightEntry.fromJson);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, CoreWeightEntry.fromJson);
   }
 
   @override
   Future<List<ColorEntry>> fetchColors() async {
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.inventoryColors);
-      return _parseList(res.data ?? const [], ColorEntry.fromJson);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, ColorEntry.fromJson);
   }
 
   @override
   Future<List<FilamentPreset>> fetchFilamentPresets() async {
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.filamentCatalog);
-      return _parseList(res.data ?? const [], FilamentPreset.fromJson);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, FilamentPreset.fromJson);
   }
 
   @override
-  Future<List<String>> fetchLocations() async {
-    try {
-      final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
-      return [
-        for (final e in res.data ?? const [])
-          if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
-            (e['name'] as String).trim(),
-      ];
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<List<String>> fetchLocations() => guard(() async {
+        final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
+        return [
+          for (final e in res.data ?? const [])
+            if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
+              (e['name'] as String).trim(),
+        ];
+      });
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -258,26 +193,23 @@ class SpoolmanInventorySource implements SpoolInventorySource {
 
   @override
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) async {
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(
         Endpoints.spoolmanSpools,
         queryParameters: {'include_archived': includeArchived},
       );
-      return _parseList(res.data ?? const [], Spool.fromSpoolman);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, Spool.fromSpoolman);
   }
 
   @override
   Future<List<SpoolAssignment>> fetchAssignments() async {
-    try {
-      final res =
-          await _dio.get<List<dynamic>>(Endpoints.spoolmanAssignments);
-      return _parseList(res.data ?? const [], SpoolAssignment.fromSpoolman);
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
+    final body = await guard(() async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.spoolmanAssignments);
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, SpoolAssignment.fromSpoolman);
   }
 
   // Spoolman manages slot assignments server-side — backend doesn't expose writes here.
@@ -295,66 +227,38 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];
 
   @override
-  Future<Spool> createSpool(SpoolDraft draft) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        Endpoints.spoolmanSpools,
-        data: draft.toSpoolmanJson(),
-      );
-      return Spool.fromSpoolman(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<Spool> createSpool(SpoolDraft draft) => guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.spoolmanSpools,
+          data: draft.toSpoolmanJson(),
+        );
+        return Spool.fromSpoolman(res.data ?? const {});
+      });
 
   @override
-  Future<Spool> updateSpool(int spoolId, SpoolDraft draft) async {
-    try {
-      final res = await _dio.patch<Map<String, dynamic>>(
-        Endpoints.spoolmanSpool(spoolId),
-        data: draft.toSpoolmanJson(),
-      );
-      return Spool.fromSpoolman(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<Spool> updateSpool(int spoolId, SpoolDraft draft) => guard(() async {
+        final res = await _dio.patch<Map<String, dynamic>>(
+          Endpoints.spoolmanSpool(spoolId),
+          data: draft.toSpoolmanJson(),
+        );
+        return Spool.fromSpoolman(res.data ?? const {});
+      });
 
   @override
-  Future<void> deleteSpool(int spoolId) async {
-    try {
-      await _dio.delete<dynamic>(Endpoints.spoolmanSpool(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> deleteSpool(int spoolId) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.spoolmanSpool(spoolId)));
 
   @override
-  Future<void> archiveSpool(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.spoolmanSpoolArchive(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> archiveSpool(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolArchive(spoolId)));
 
   @override
-  Future<void> restoreSpool(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.spoolmanSpoolRestore(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> restoreSpool(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) async {
-    try {
-      await _dio.post<dynamic>(Endpoints.spoolmanSpoolResetUsage(spoolId));
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<void> resetUsage(int spoolId) =>
+      guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolResetUsage(spoolId)));
 
   // Reference data comes from native backend catalogs — on Spoolman, form uses
   // manual entry (empty lists).

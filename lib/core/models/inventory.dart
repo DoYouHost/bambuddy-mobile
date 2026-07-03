@@ -8,6 +8,8 @@
 /// ignored, numbers accept int/num/string.
 library;
 
+import 'json_utils.dart';
+
 /// Pojedyncza szpula w magazynie. Pola wagowe w gramach.
 class Spool {
   const Spool({
@@ -40,33 +42,33 @@ class Spool {
 
   /// Native `SpoolResponse` from `GET /inventory/spools`.
   factory Spool.fromNative(Map<String, dynamic> json) => Spool(
-        id: _toInt(json['id']) ?? -1,
+        id: toIntOrNull(json['id']) ?? -1,
         material: (json['material'] as String?)?.trim().isNotEmpty == true
             ? json['material'] as String
             : 'Unknown',
-        subtype: _str(json['subtype']),
-        colorName: _str(json['color_name']),
-        rgba: _str(json['rgba']),
-        extraColors: _str(json['extra_colors']),
-        effectType: _str(json['effect_type']),
-        brand: _str(json['brand']),
-        labelWeight: _toInt(json['label_weight']) ?? 0,
-        weightUsed: _toDouble(json['weight_used']) ?? 0,
-        coreWeight: _toInt(json['core_weight']) ?? 250,
-        coreWeightCatalogId: _toInt(json['core_weight_catalog_id']),
-        lastScaleWeight: _toInt(json['last_scale_weight']),
-        costPerKg: _toDouble(json['cost_per_kg']),
-        lowStockThresholdPct: _toInt(json['low_stock_threshold_pct']),
-        storageLocation: _str(json['storage_location']),
-        category: _str(json['category']),
-        note: _str(json['note']),
-        nozzleTempMin: _toInt(json['nozzle_temp_min']),
-        nozzleTempMax: _toInt(json['nozzle_temp_max']),
-        tagUid: _str(json['tag_uid']),
-        archivedAt: _str(json['archived_at']),
-        lastUsed: _str(json['last_used']),
-        slicerFilamentName: _str(json['slicer_filament_name']),
-        kProfiles: _kProfiles(json['k_profiles']),
+        subtype: toStringOrNull(json['subtype']),
+        colorName: toStringOrNull(json['color_name']),
+        rgba: toStringOrNull(json['rgba']),
+        extraColors: toStringOrNull(json['extra_colors']),
+        effectType: toStringOrNull(json['effect_type']),
+        brand: toStringOrNull(json['brand']),
+        labelWeight: toIntOrNull(json['label_weight']) ?? 0,
+        weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
+        coreWeight: toIntOrNull(json['core_weight']) ?? 250,
+        coreWeightCatalogId: toIntOrNull(json['core_weight_catalog_id']),
+        lastScaleWeight: toIntOrNull(json['last_scale_weight']),
+        costPerKg: toDoubleOrNull(json['cost_per_kg']),
+        lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
+        storageLocation: toStringOrNull(json['storage_location']),
+        category: toStringOrNull(json['category']),
+        note: toStringOrNull(json['note']),
+        nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
+        nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
+        tagUid: toStringOrNull(json['tag_uid']),
+        archivedAt: toStringOrNull(json['archived_at']),
+        lastUsed: toStringOrNull(json['last_used']),
+        slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
+        kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
       );
 
   /// Spoolman returns loose object (passthrough) — field names vary, so read
@@ -75,28 +77,28 @@ class Spool {
     final filament = json['filament'];
     final fil = filament is Map<String, dynamic> ? filament : const {};
     return Spool(
-      id: _toInt(json['id']) ?? -1,
-      material: _str(json['material']) ??
-          _str(fil['material']) ??
-          _str(json['filament_type']) ??
+      id: toIntOrNull(json['id']) ?? -1,
+      material: toStringOrNull(json['material']) ??
+          toStringOrNull(fil['material']) ??
+          toStringOrNull(json['filament_type']) ??
           'Unknown',
-      subtype: _str(json['subtype']),
-      colorName: _str(json['color_name']) ?? _str(fil['name']),
-      rgba: _str(json['rgba']) ?? _str(fil['color_hex']),
-      brand: _str(json['brand']) ?? _str((fil['vendor'] as Map?)?['name']),
-      labelWeight: _toInt(json['label_weight']) ??
-          _toInt(json['initial_weight']) ??
-          _toInt(fil['weight']) ??
+      subtype: toStringOrNull(json['subtype']),
+      colorName: toStringOrNull(json['color_name']) ?? toStringOrNull(fil['name']),
+      rgba: toStringOrNull(json['rgba']) ?? toStringOrNull(fil['color_hex']),
+      brand: toStringOrNull(json['brand']) ?? toStringOrNull((fil['vendor'] as Map?)?['name']),
+      labelWeight: toIntOrNull(json['label_weight']) ??
+          toIntOrNull(json['initial_weight']) ??
+          toIntOrNull(fil['weight']) ??
           0,
-      weightUsed: _toDouble(json['weight_used']) ?? _toDouble(json['used_weight']) ?? 0,
-      costPerKg: _toDouble(json['cost_per_kg']) ?? _toDouble(fil['price']),
-      lowStockThresholdPct: _toInt(json['low_stock_threshold_pct']),
-      storageLocation: _str(json['storage_location']) ?? _str(json['location']),
-      category: _str(json['category']),
-      note: _str(json['note']) ?? _str(json['comment']),
-      tagUid: _str(json['tag_uid']),
-      archivedAt: _str(json['archived_at']) ?? _str(json['archived']),
-      lastUsed: _str(json['last_used']),
+      weightUsed: toDoubleOrNull(json['weight_used']) ?? toDoubleOrNull(json['used_weight']) ?? 0,
+      costPerKg: toDoubleOrNull(json['cost_per_kg']) ?? toDoubleOrNull(fil['price']),
+      lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
+      storageLocation: toStringOrNull(json['storage_location']) ?? toStringOrNull(json['location']),
+      category: toStringOrNull(json['category']),
+      note: toStringOrNull(json['note']) ?? toStringOrNull(json['comment']),
+      tagUid: toStringOrNull(json['tag_uid']),
+      archivedAt: toStringOrNull(json['archived_at']) ?? toStringOrNull(json['archived']),
+      lastUsed: toStringOrNull(json['last_used']),
     );
   }
 
@@ -304,22 +306,22 @@ class SpoolAssignment {
 
   factory SpoolAssignment.fromNative(Map<String, dynamic> json) =>
       SpoolAssignment(
-        spoolId: _toInt(json['spool_id']) ?? -1,
-        printerId: _toInt(json['printer_id']) ?? -1,
-        amsId: _toInt(json['ams_id']) ?? -1,
-        trayId: _toInt(json['tray_id']) ?? -1,
-        printerName: _str(json['printer_name']),
-        amsLabel: _str(json['ams_label']),
+        spoolId: toIntOrNull(json['spool_id']) ?? -1,
+        printerId: toIntOrNull(json['printer_id']) ?? -1,
+        amsId: toIntOrNull(json['ams_id']) ?? -1,
+        trayId: toIntOrNull(json['tray_id']) ?? -1,
+        printerName: toStringOrNull(json['printer_name']),
+        amsLabel: toStringOrNull(json['ams_label']),
       );
 
   factory SpoolAssignment.fromSpoolman(Map<String, dynamic> json) =>
       SpoolAssignment(
-        spoolId: _toInt(json['spoolman_spool_id']) ?? -1,
-        printerId: _toInt(json['printer_id']) ?? -1,
-        amsId: _toInt(json['ams_id']) ?? -1,
-        trayId: _toInt(json['tray_id']) ?? -1,
-        printerName: _str(json['printer_name']),
-        amsLabel: _str(json['ams_label']),
+        spoolId: toIntOrNull(json['spoolman_spool_id']) ?? -1,
+        printerId: toIntOrNull(json['printer_id']) ?? -1,
+        amsId: toIntOrNull(json['ams_id']) ?? -1,
+        trayId: toIntOrNull(json['tray_id']) ?? -1,
+        printerName: toStringOrNull(json['printer_name']),
+        amsLabel: toStringOrNull(json['ams_label']),
       );
 
   final int spoolId;
@@ -394,13 +396,13 @@ class SpoolUsageEntry {
 
   factory SpoolUsageEntry.fromNative(Map<String, dynamic> json) =>
       SpoolUsageEntry(
-        id: _toInt(json['id']) ?? -1,
-        printName: _str(json['print_name']),
-        weightUsed: _toDouble(json['weight_used']) ?? 0,
-        percentUsed: _toInt(json['percent_used']) ?? 0,
-        status: _str(json['status']),
-        cost: _toDouble(json['cost']),
-        createdAt: _str(json['created_at']),
+        id: toIntOrNull(json['id']) ?? -1,
+        printName: toStringOrNull(json['print_name']),
+        weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
+        percentUsed: toIntOrNull(json['percent_used']) ?? 0,
+        status: toStringOrNull(json['status']),
+        cost: toDoubleOrNull(json['cost']),
+        createdAt: toStringOrNull(json['created_at']),
       );
 
   final int id;
@@ -423,10 +425,10 @@ class SpoolKProfile {
   });
 
   factory SpoolKProfile.fromJson(Map<String, dynamic> json) => SpoolKProfile(
-        id: _toInt(json['id']) ?? -1,
-        name: _str(json['name']),
-        kValue: _toDouble(json['k_value']),
-        nozzleDiameter: _str(json['nozzle_diameter']),
+        id: toIntOrNull(json['id']) ?? -1,
+        name: toStringOrNull(json['name']),
+        kValue: toDoubleOrNull(json['k_value']),
+        nozzleDiameter: toStringOrNull(json['nozzle_diameter']),
       );
 
   final int id;
@@ -435,35 +437,3 @@ class SpoolKProfile {
   final String? nozzleDiameter;
 }
 
-List<SpoolKProfile> _kProfiles(dynamic raw) {
-  if (raw is! List) return const [];
-  final out = <SpoolKProfile>[];
-  for (final e in raw) {
-    if (e is Map<String, dynamic>) {
-      try {
-        out.add(SpoolKProfile.fromJson(e));
-      } on Object {
-        continue;
-      }
-    }
-  }
-  return out;
-}
-
-String? _str(dynamic v) {
-  if (v is String) return v.isEmpty ? null : v;
-  return null;
-}
-
-int? _toInt(dynamic v) => switch (v) {
-      int i => i,
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
-
-double? _toDouble(dynamic v) => switch (v) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };

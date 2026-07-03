@@ -54,6 +54,12 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   bool _ready = false;
   bool _failed = false;
 
+  /// Guards [_onPageFinished] against re-entrancy: `onPageFinished` can fire
+  /// twice (redirect / reload) before the first call's `await` chain — auth
+  /// read + `runJavaScript` — has finished, and `_ready` alone doesn't catch
+  /// that since it's only set true at the very end of a successful run.
+  bool _injecting = false;
+
   @override
   void initState() {
     super.initState();
@@ -91,7 +97,16 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   /// until adapter viewmodel is ready, only then calls `loadArchive`/`loadLibraryFile` —
   /// otherwise G-code fetch won't trigger.
   Future<void> _onPageFinished(ServerProfile profile) async {
-    if (_ready) return; // Inject only once (first full load).
+    if (_ready || _injecting) return; // Inject only once (first full load).
+    _injecting = true;
+    try {
+      await _inject(profile);
+    } finally {
+      _injecting = false;
+    }
+  }
+
+  Future<void> _inject(ServerProfile profile) async {
     final controller = _controller;
     if (controller == null) return;
 

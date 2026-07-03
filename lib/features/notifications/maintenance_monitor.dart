@@ -27,6 +27,7 @@ class MaintenanceMonitor {
     required this._prefs,
     Set<int>? initialNotified,
     this.persist,
+    this.reload,
     AppLocalizations Function()? l10n,
   })  : _notified = {...?initialNotified},
         _l10n = l10n ?? systemAppLocalizations;
@@ -38,6 +39,16 @@ class MaintenanceMonitor {
 
   /// Persistence callback for dedup set (e.g., to SharedPreferences). `null` in tests.
   final Future<void> Function(Set<int>)? persist;
+
+  /// Reloads the persisted dedup set from disk. Needed because the
+  /// notification-action callback (a *separate* isolate — see
+  /// `handleMaintenanceAction`) also removes ids from the same persisted set
+  /// after "Mark Done", but can't reach this monitor's in-memory `_notified`
+  /// directly. Without re-syncing, this monitor would keep treating an item
+  /// as "already notified" and skip a legitimate re-alert if it becomes due
+  /// again before the self-healing `removeWhere` below next clears it (i.e.
+  /// before the server ever reports `is_due=false` for that item). `null` in tests.
+  final Future<Set<int>> Function()? reload;
   final AppLocalizations Function() _l10n;
 
   bool get _enabled => _prefs.isOn(NotifEvent.maintenanceDue);
@@ -46,6 +57,12 @@ class MaintenanceMonitor {
   /// (dedup set not cleared, service not crashed).
   Future<void> check() async {
     if (!_enabled) return;
+    final synced = await reload?.call();
+    if (synced != null) {
+      _notified
+        ..clear()
+        ..addAll(synced);
+    }
     final List<PrinterMaintenanceOverview> printers;
     try {
       printers = await _repo.fetchOverview();

@@ -39,27 +39,27 @@ class ProjectListResponse {
   final String? color;
   final String status;
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? targetCount;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? targetPartsCount;
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? budget;
 
   final String? createdAt;
 
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int archiveCount;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int totalItems;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int completedCount;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int failedCount;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int queueCount;
 
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? progressPercent;
 
   final String? url;
@@ -115,7 +115,7 @@ class ProjectChildPreview {
   final String? color;
   final String status;
 
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? progressPercent;
 }
 
@@ -146,41 +146,41 @@ class ProjectStats {
   factory ProjectStats.fromJson(Map<String, dynamic> json) =>
       _$ProjectStatsFromJson(json);
 
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int totalArchives;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int totalItems;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int completedPrints;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int failedPrints;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int queuedPrints;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int inProgressPrints;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double totalPrintTimeHours;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double totalFilamentGrams;
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? progressPercent;
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? partsProgressPercent;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double estimatedCost;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double totalEnergyKwh;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double totalEnergyCost;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? remainingPrints;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? remainingParts;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int bomTotalItems;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int bomCompletedItems;
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double bomCost;
 }
 
@@ -222,9 +222,9 @@ class ProjectResponse {
   final String? color;
   final String status;
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? targetCount;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? targetPartsCount;
 
   final String? notes;
@@ -240,7 +240,7 @@ class ProjectResponse {
   final String? dueDate;
   final String priority;
 
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? budget;
 
   @JsonKey(defaultValue: false)
@@ -297,18 +297,18 @@ class BomItem {
   final int projectId;
   final String name;
 
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int quantityNeeded;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int quantityAcquired;
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? unitPrice;
   final String? sourcingUrl;
   final int? archiveId;
   final String? archiveName;
   final String? stlFilename;
   final String? remarks;
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int sortOrder;
   @JsonKey(defaultValue: false)
   final bool isComplete;
@@ -447,10 +447,13 @@ class BomItemInput {
     this.quantityNeeded,
     this.quantityAcquired,
     this.unitPrice,
+    this.clearUnitPrice = false,
     this.sourcingUrl,
+    this.clearSourcingUrl = false,
     this.archiveId,
     this.stlFilename,
     this.remarks,
+    this.clearRemarks = false,
   });
 
   final String name;
@@ -462,16 +465,40 @@ class BomItemInput {
   final String? stlFilename;
   final String? remarks;
 
-  Map<String, dynamic> toMap() => <String, dynamic>{
-        'name': name,
-        'quantity_needed': ?quantityNeeded,
-        'quantity_acquired': ?quantityAcquired,
-        'unit_price': ?unitPrice,
-        'sourcing_url': ?sourcingUrl,
-        'archive_id': ?archiveId,
-        'stl_filename': ?stlFilename,
-        'remarks': ?remarks,
-      };
+  /// The backend's `update_bom_item` only clears `unit_price`/`sourcing_url`/
+  /// `remarks` on a "falsy but present" value (`0` / `""`) — a `null` or an
+  /// omitted key both read as "leave unchanged" server-side. So a cleared
+  /// text field can't be expressed via `unitPrice == null` (that already means
+  /// "untouched"); these flags request the explicit falsy sentinel instead.
+  final bool clearUnitPrice;
+  final bool clearSourcingUrl;
+  final bool clearRemarks;
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'name': name,
+      'quantity_needed': ?quantityNeeded,
+      'quantity_acquired': ?quantityAcquired,
+      'archive_id': ?archiveId,
+      'stl_filename': ?stlFilename,
+    };
+    if (clearUnitPrice) {
+      map['unit_price'] = 0;
+    } else if (unitPrice != null) {
+      map['unit_price'] = unitPrice;
+    }
+    if (clearSourcingUrl) {
+      map['sourcing_url'] = '';
+    } else if (sourcingUrl != null) {
+      map['sourcing_url'] = sourcingUrl;
+    }
+    if (clearRemarks) {
+      map['remarks'] = '';
+    } else if (remarks != null) {
+      map['remarks'] = remarks;
+    }
+    return map;
+  }
 }
 
 /// Attachments come either as bare filename strings or objects carrying a
@@ -495,20 +522,3 @@ List<ArchivePreview> _archivesFromJson(dynamic value) =>
 
 List<ProjectChildPreview> _childrenFromJson(dynamic value) =>
     parseJsonList(value, ProjectChildPreview.fromJson);
-
-double _toDouble(dynamic value) => _toDoubleOrNull(value) ?? 0;
-
-double? _toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
-
-int _toInt(dynamic value) => _toIntOrNull(value) ?? 0;
-
-int? _toIntOrNull(dynamic value) => switch (value) {
-      int n => n,
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };

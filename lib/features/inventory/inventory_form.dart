@@ -63,8 +63,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     };
     _coreWeightCatalogId = s?.coreWeightCatalogId;
     _effectType = s?.effectType;
-    // Swatch preview updates when hex changes.
-    _c['rgba']!.addListener(() => setState(() {}));
   }
 
   @override
@@ -80,6 +78,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     return v.isEmpty ? null : v;
   }
 
+  /// Parses an integer-typed weight field with the same tolerance as its
+  /// validator (`double.tryParse`) — a plain `int.tryParse` would silently
+  /// drop a value like "1000.5" (passes validation as a valid number, but
+  /// isn't a valid int), sending `null` instead of a rounded weight.
+  int? _parseIntField(String key) =>
+      double.tryParse(_c[key]!.text.trim())?.round();
+
   /// Measured weight is gross (filament + empty spool/core). After entering scale
   /// reading, calculate remaining filament: remaining = measured − empty spool weight.
   /// This ensures save (weight_used = label − remaining) actually changes spool state —
@@ -89,8 +94,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     if (measured == null) return;
     final core = double.tryParse(_c['coreWeight']!.text.trim()) ?? 0;
     final remaining = (measured - core).clamp(0, double.infinity);
+    // No setState needed: the bound TextFormField already rebuilds itself
+    // from its controller's own listener when `.text` changes programmatically.
     _c['remaining']!.text = remaining.round().toString();
-    setState(() {});
   }
 
   /// Sets color from database (hex + name + optional gradient/effect).
@@ -114,8 +120,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     // Server requires low-stock threshold in range 1..99 (outside = 422).
-    final lowStock = int.tryParse(_c['lowStock']!.text.trim())?.clamp(1, 99);
-    final label = int.tryParse(_c['labelWeight']!.text.trim());
+    final lowStock = _parseIntField('lowStock')?.clamp(1, 99);
+    final label = _parseIntField('labelWeight');
     final remaining = double.tryParse(_c['remaining']!.text.trim());
     // Remaining weight controls usage: weight_used = label − remaining.
     double? used;
@@ -134,9 +140,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       effectType: _effectType,
       labelWeight: label,
       weightUsed: used,
-      coreWeight: int.tryParse(_c['coreWeight']!.text.trim()),
+      coreWeight: _parseIntField('coreWeight'),
       coreWeightCatalogId: _coreWeightCatalogId,
-      lastScaleWeight: int.tryParse(_c['measured']!.text.trim()),
+      lastScaleWeight: _parseIntField('measured'),
       costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
@@ -181,7 +187,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final subtypes = ref.watch(subtypeOptionsProvider);
     final locations = ref.watch(locationOptionsProvider);
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
-    final labelInt = int.tryParse(_c['labelWeight']!.text.trim());
 
     return DraggableScrollableSheet(
       expand: false,
@@ -196,7 +201,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           children: [
             Row(
               children: [
-                SpoolSwatch(rgba: _c['rgba']!.text, size: 40),
+                ValueListenableBuilder(
+                  valueListenable: _c['rgba']!,
+                  builder: (context, _, _) =>
+                      SpoolSwatch(rgba: _c['rgba']!.text, size: 40),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -219,22 +228,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _combo('brand', l10n.inventoryFieldBrand, brands),
             _combo('subtype', l10n.inventoryFieldSubtype, subtypes),
-            _field(
-              'labelWeight',
-              l10n.inventoryFieldLabelWeight,
-              number: true,
-              onChanged: (_) => setState(() {}),
-            ),
+            _field('labelWeight', l10n.inventoryFieldLabelWeight, number: true),
 
             const SizedBox(height: 8),
 
             // --- COLOR ---
             _FormSection(label: l10n.inventorySectionColor),
-            _ColorPicker(
-              rgba: _c['rgba']!.text,
-              query: _colorQuery,
-              onQuery: (v) => setState(() => _colorQuery = v),
-              onPick: _applyColor,
+            ValueListenableBuilder(
+              valueListenable: _c['rgba']!,
+              builder: (context, _, _) => _ColorPicker(
+                rgba: _c['rgba']!.text,
+                query: _colorQuery,
+                onQuery: (v) => setState(() => _colorQuery = v),
+                onPick: _applyColor,
+              ),
             ),
             Row(
               children: [
@@ -242,7 +249,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   child: _field('colorName', l10n.inventoryFieldColorName),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: _hexColorPickerField(l10n)),
+                Expanded(
+                  child: ValueListenableBuilder(
+                    valueListenable: _c['rgba']!,
+                    builder: (context, _, _) => _hexColorPickerField(l10n),
+                  ),
+                ),
               ],
             ),
             _field(
@@ -257,13 +269,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             // --- ADDITIONAL ---
             _FormSection(label: l10n.inventorySectionAdditional),
             _emptySpoolField(l10n, cores),
-            _field(
-              'remaining',
-              l10n.inventoryFieldRemainingWeight,
-              number: true,
-              suffixText: labelInt != null
-                  ? l10n.inventoryRemainingOfLabel(labelInt)
-                  : null,
+            ValueListenableBuilder(
+              valueListenable: _c['labelWeight']!,
+              builder: (context, _, _) {
+                final labelInt = int.tryParse(_c['labelWeight']!.text.trim());
+                return _field(
+                  'remaining',
+                  l10n.inventoryFieldRemainingWeight,
+                  number: true,
+                  suffixText: labelInt != null
+                      ? l10n.inventoryRemainingOfLabel(labelInt)
+                      : null,
+                );
+              },
             ),
             _field(
               'measured',

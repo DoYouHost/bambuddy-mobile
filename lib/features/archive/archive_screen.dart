@@ -7,12 +7,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
-import '../../core/models/printer.dart';
 import '../../core/models/project.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
+import '../common/printer_picker.dart';
 import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_providers.dart';
@@ -413,7 +414,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
 
-    final printer = await _pickPrinter(l10n);
+    final printer = await pickPrinterSheet(context, ref, l10n);
     if (printer == null || !mounted) return;
 
     final confirmed = await showDialog<bool>(
@@ -453,7 +454,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
 
-    final printer = await _pickPrinter(l10n);
+    final printer = await pickPrinterSheet(context, ref, l10n);
     if (printer == null || !mounted) return;
 
     try {
@@ -466,49 +467,6 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     } on AppApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
     }
-  }
-
-  /// Bottom sheet with printer list. If exactly one — returns it without asking.
-  /// If zero — message and null.
-  Future<Printer?> _pickPrinter(AppLocalizations l10n) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final List<Printer> printers;
-    try {
-      printers = await ref.read(printersForPickerProvider.future);
-    } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
-      return null;
-    }
-    if (!mounted) return null;
-    if (printers.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.noPrintersAvailable)));
-      return null;
-    }
-    if (printers.length == 1) return printers.first;
-
-    return showModalBottomSheet<Printer>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(l10n.pickPrinterTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium),
-            ),
-            for (final p in printers)
-              ListTile(
-                leading: const Icon(Icons.print_outlined),
-                title: Text(p.name),
-                subtitle: p.model == null ? null : Text(p.model!),
-                onTap: () => Navigator.pop(ctx, p),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 
   String _errText(AppApiException e, AppLocalizations l10n) =>
@@ -845,7 +803,7 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
             data: (p) => Text(
               p.isEmpty
                   ? l10n.archivePurgeNothing
-                  : l10n.archivePurgePreview(p.count, _formatBytes(p.totalBytes)),
+                  : l10n.archivePurgePreview(p.count, formatBytes(p.totalBytes)),
               style: theme.textTheme.bodyMedium,
             ),
           ),
@@ -882,17 +840,4 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
       ],
     );
   }
-}
-
-/// Human-readable byte size (binary units), e.g. `12.3 MB`.
-String _formatBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  var size = bytes / 1024;
-  var unit = 0;
-  while (size >= 1024 && unit < units.length - 1) {
-    size /= 1024;
-    unit++;
-  }
-  return '${size.toStringAsFixed(1)} ${units[unit]}';
 }

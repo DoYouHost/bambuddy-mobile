@@ -40,10 +40,6 @@ abstract final class Endpoints {
   static String cameraStream(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/stream';
 
-  /// Single JPEG frame (fallback/refresh). Also via `?token=`.
-  static String cameraSnapshot(int printerId) =>
-      '$apiPrefix/printers/$printerId/camera/snapshot';
-
   // --- Control (M4) ---
   // All are POST; require `can_control_printer` permission on API key
   // (missing → 403). Body empty — parameters in query (see below).
@@ -280,9 +276,6 @@ abstract final class Endpoints {
   static String firmwareUpdate(int printerId) =>
       '$apiPrefix/firmware/updates/$printerId';
 
-  /// Latest firmware per model (`LatestFirmwareInfo[]`).
-  static const firmwareLatest = '$apiPrefix/firmware/latest';
-
   // Below for FUTURE — firmware update execution (not yet used in UI).
 
   /// Probe before firmware upload (`FirmwareUploadPrepareResponse`).
@@ -313,10 +306,6 @@ abstract final class Endpoints {
   /// Single file: `GET` (details), `PUT` (edit `FileUpdate`:
   /// filename/folder_id/notes), `DELETE` (to trash).
   static String libraryFile(int fileId) => '$apiPrefix/library/files/$fileId';
-
-  /// Download file (`GET`, byte stream). Auth via header.
-  static String libraryFileDownload(int fileId) =>
-      '$apiPrefix/library/files/$fileId/download';
 
   /// File thumbnail — authenticated via `?token=` (camera token), NOT
   /// header, similar to [archiveThumbnail].
@@ -421,9 +410,6 @@ abstract final class Endpoints {
   /// Create project from template (`POST`). Query `name` (new project name).
   static String projectFromTemplate(int templateId) =>
       '$apiPrefix/projects/from-template/$templateId';
-
-  /// Import project from JSON (`POST`, body `ProjectImport`) → `ProjectResponse`.
-  static const projectsImport = '$apiPrefix/projects/import';
 
   /// Import project from exported file (`POST`, multipart `{file}`).
   static const projectsImportFile = '$apiPrefix/projects/import/file';

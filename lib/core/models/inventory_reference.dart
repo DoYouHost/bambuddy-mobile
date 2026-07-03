@@ -3,6 +3,8 @@
 /// Defensive parsing (tolerant types, unknown keys ignored), like other inventory models.
 library;
 
+import 'json_utils.dart';
+
 /// Spool core weight catalog entry (`CatalogEntryResponse`) — "Empty Spool Weight"
 /// field. Selection sets `core_weight` + `core_weight_catalog_id`.
 class CoreWeightEntry {
@@ -14,9 +16,9 @@ class CoreWeightEntry {
   });
 
   factory CoreWeightEntry.fromJson(Map<String, dynamic> json) => CoreWeightEntry(
-        id: _toInt(json['id']) ?? -1,
-        name: _str(json['name']) ?? '?',
-        weight: _toInt(json['weight']) ?? 0,
+        id: toIntOrNull(json['id']) ?? -1,
+        name: toStringOrNull(json['name']) ?? '?',
+        weight: toIntOrNull(json['weight']) ?? 0,
         isDefault: json['is_default'] == true,
       );
 
@@ -44,14 +46,14 @@ class ColorEntry {
   });
 
   factory ColorEntry.fromJson(Map<String, dynamic> json) => ColorEntry(
-        id: _toInt(json['id']) ?? -1,
-        manufacturer: _str(json['manufacturer']) ?? '',
-        colorName: _str(json['color_name']) ?? '',
-        hexColor: _str(json['hex_color']) ?? '',
-        material: _str(json['material']),
+        id: toIntOrNull(json['id']) ?? -1,
+        manufacturer: toStringOrNull(json['manufacturer']) ?? '',
+        colorName: toStringOrNull(json['color_name']) ?? '',
+        hexColor: toStringOrNull(json['hex_color']) ?? '',
+        material: toStringOrNull(json['material']),
         isDefault: json['is_default'] == true,
-        extraColors: _str(json['extra_colors']),
-        effectType: _str(json['effect_type']),
+        extraColors: toStringOrNull(json['extra_colors']),
+        effectType: toStringOrNull(json['effect_type']),
       );
 
   final int id;
@@ -82,15 +84,15 @@ class FilamentPreset {
   });
 
   factory FilamentPreset.fromJson(Map<String, dynamic> json) => FilamentPreset(
-        id: _toInt(json['id']) ?? -1,
-        name: _str(json['name']) ?? '',
-        type: _str(json['type']) ?? '',
-        brand: _str(json['brand']),
-        colorHex: _str(json['color_hex']),
-        costPerKg: _toDouble(json['cost_per_kg']),
-        spoolWeightG: _toDouble(json['spool_weight_g']),
-        printTempMin: _toInt(json['print_temp_min']),
-        printTempMax: _toInt(json['print_temp_max']),
+        id: toIntOrNull(json['id']) ?? -1,
+        name: toStringOrNull(json['name']) ?? '',
+        type: toStringOrNull(json['type']) ?? '',
+        brand: toStringOrNull(json['brand']),
+        colorHex: toStringOrNull(json['color_hex']),
+        costPerKg: toDoubleOrNull(json['cost_per_kg']),
+        spoolWeightG: toDoubleOrNull(json['spool_weight_g']),
+        printTempMin: toIntOrNull(json['print_temp_min']),
+        printTempMax: toIntOrNull(json['print_temp_max']),
       );
 
   final int id;
@@ -106,20 +108,3 @@ class FilamentPreset {
   final int? printTempMax;
 }
 
-String? _str(dynamic v) {
-  if (v is String) return v.isEmpty ? null : v;
-  return null;
-}
-
-int? _toInt(dynamic v) => switch (v) {
-      int i => i,
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
-
-double? _toDouble(dynamic v) => switch (v) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };

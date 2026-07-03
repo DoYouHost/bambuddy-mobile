@@ -94,11 +94,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
     _hmsCatalog = catalog;
+    // Single authenticated client for this isolate's session — shared by the
+    // cover-token mint, the maintenance repo, and the WS handshake token
+    // below, instead of each independently rebuilding Dio + interceptors +
+    // a keystore read via its own `buildBackgroundApiClient` call.
+    final api = await buildBackgroundApiClient(prefs);
     // Print cover fetch for the widget: camera token minted with authenticated Dio,
     // image fetched with bare Dio using `?token=`.
-    final coverApi = await buildBackgroundApiClient(prefs);
-    _cameraToken =
-        coverApi != null ? CameraTokenService(coverApi.dio) : null;
+    _cameraToken = api != null ? CameraTokenService(api.dio) : null;
     _coverDio = createBareDio();
     // Load notification preferences once at startup; UI changes take effect
     // on the next background entry (service restarts from scratch then).
@@ -106,7 +109,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Maintenance: REST monitor (if enabled) + reminder after print.
     // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
-    await _setUpMaintenance(prefs, notifPrefs);
+    _setUpMaintenance(api, prefs, notifPrefs);
 
     _monitor = PrintMonitor(
       fgs,
@@ -119,7 +122,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     final creds = SecureCredentialsStore();
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
-    final wsToken = coverApi != null ? WsTokenService(coverApi.dio) : null;
+    final wsToken = api != null ? WsTokenService(api.dio) : null;
     final ws = WsClient(
       url: wsUrlFor(profile.baseUrl),
       authHeaders: () => wsAuthHeaders(profile.authMode, creds),
@@ -129,7 +132,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _ws = ws;
     _sub = ws.statuses.listen((status) {
       _statuses[status.id] = status;
-      _monitor?.update(Map.of(_statuses));
+      // Guard against a throw inside update (l10n / plugin call) escaping the
+      // stream callback as an uncaught zone error, which would otherwise drop
+      // processing of this frame's downstream effects (widget publish below).
+      try {
+        _monitor?.update(Map.of(_statuses));
+      } on Object {
+        // Swallow-and-continue, consistent with the publish guard below.
+      }
       // Also feed the native home screen widget — background isolate may be the only
       // live source of status when the app is closed. Errors don't break the stream.
       unawaited(
@@ -166,15 +176,15 @@ class PrintMonitorTaskHandler extends TaskHandler {
     refresher.start();
   }
 
-  /// Builds [MaintenanceMonitor] on authenticated Dio (if `maintenanceDue` event is enabled)
-  /// and starts periodic REST polling. Dedup set stored in SharedPreferences (re-armed after perform).
-  Future<void> _setUpMaintenance(
+  /// Builds [MaintenanceMonitor] on the shared authenticated client (if
+  /// `maintenanceDue` event is enabled) and starts periodic REST polling.
+  /// Dedup set stored in SharedPreferences (re-armed after perform).
+  void _setUpMaintenance(
+    ApiClient? api,
     SharedPreferences prefs,
     NotificationPrefs notifPrefs,
-  ) async {
-    if (!notifPrefs.isOn(NotifEvent.maintenanceDue)) return;
-    final api = await buildBackgroundApiClient(prefs);
-    if (api == null) return;
+  ) {
+    if (!notifPrefs.isOn(NotifEvent.maintenanceDue) || api == null) return;
 
     final settings = SettingsRepository(prefs);
     final maintenance = MaintenanceMonitor(
@@ -183,6 +193,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
+      reload: () async => settings.loadNotifiedMaintenanceDueIds(),
     );
     _maintenance = maintenance;
     unawaited(maintenance.check()); // First check immediately after startup
@@ -229,6 +240,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
     _maintenanceTimer?.cancel();
     _tokenRefresher?.stop();
+    _monitor?.dispose();
     await _sub?.cancel();
     await _plateSub?.cancel();
     await _ws?.dispose();

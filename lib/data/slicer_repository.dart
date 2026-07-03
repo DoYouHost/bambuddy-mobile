@@ -4,6 +4,7 @@ import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/archive_capabilities.dart';
 import '../core/models/filament_requirement.dart';
+import '../core/models/json_utils.dart';
 import '../core/models/slice_job.dart';
 import '../core/models/slicer_preset.dart';
 
@@ -32,17 +33,13 @@ class SlicerRepository {
   }
 
   /// GET /slicer/presets — printer/process/filament options across all tiers.
-  Future<UnifiedPresets> presets({bool refresh = false}) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.slicerPresets,
-        queryParameters: refresh ? {'refresh': true} : null,
-      );
-      return UnifiedPresets.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<UnifiedPresets> presets({bool refresh = false}) => guard(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.slicerPresets,
+          queryParameters: refresh ? {'refresh': true} : null,
+        );
+        return UnifiedPresets.fromJson(res.data ?? const {});
+      });
 
   /// Filament slots a model needs (one per color). Best-effort: any failure
   /// degrades to a single generic slot so the slice modal still works.
@@ -62,16 +59,12 @@ class SlicerRepository {
   }
 
   /// GET /archives/{id}/capabilities — used to gate the archive slice button.
-  Future<ArchiveCapabilities> archiveCapabilities(int archiveId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(
-        Endpoints.archiveCapabilities(archiveId),
-      );
-      return ArchiveCapabilities.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<ArchiveCapabilities> archiveCapabilities(int archiveId) => guard(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.archiveCapabilities(archiveId),
+        );
+        return ArchiveCapabilities.fromJson(res.data ?? const {});
+      });
 
   /// POST /archives/{id}/slice — enqueue. Returns the new job id.
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) =>
@@ -81,24 +74,16 @@ class SlicerRepository {
   Future<int> sliceLibraryFile(int fileId, Map<String, dynamic> request) =>
       _enqueue(Endpoints.libraryFileSlice(fileId), request);
 
-  Future<int> _enqueue(String path, Map<String, dynamic> request) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>(path, data: request);
-      final id = (res.data?['job_id'] as num?)?.toInt();
-      if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
-      return id;
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<int> _enqueue(String path, Map<String, dynamic> request) => guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(path, data: request);
+        final id = toIntOrNull(res.data?['job_id']);
+        if (id == null) throw const ApiException(AppErrorCode.malformedResponse);
+        return id;
+      });
 
   /// GET /slice-jobs/{id} — poll a job's status/progress/result.
-  Future<SliceJob> job(int jobId) async {
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(Endpoints.sliceJob(jobId));
-      return SliceJob.fromJson(res.data ?? const {});
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-  }
+  Future<SliceJob> job(int jobId) => guard(() async {
+        final res = await _dio.get<Map<String, dynamic>>(Endpoints.sliceJob(jobId));
+        return SliceJob.fromJson(res.data ?? const {});
+      });
 }

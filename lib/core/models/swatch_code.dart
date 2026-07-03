@@ -9,6 +9,8 @@ library;
 
 import 'dart:math';
 
+import 'json_utils.dart';
+
 /// Code alphabet: digits 2–9 and letters A–Z WITHOUT ambiguous chars
 /// (`0`, `1`, `I`, `L`, `O`). 31 chars → 31^6 ≈ 887M combinations.
 const String swatchCodeAlphabet = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -90,11 +92,11 @@ class SwatchCode {
         material: ((json['material'] as String?)?.trim().isNotEmpty == true)
             ? (json['material'] as String).trim()
             : 'Unknown',
-        brand: _str(json['brand']),
-        variant: _str(json['variant']),
-        colorName: _str(json['color_name']),
-        rgba: _str(json['rgba']),
-        createdAt: _str(json['created_at']),
+        brand: toStringOrNull(json['brand']),
+        variant: toStringOrNull(json['variant']),
+        colorName: toStringOrNull(json['color_name']),
+        rgba: toStringOrNull(json['rgba']),
+        createdAt: toStringOrNull(json['created_at']),
       );
 
   final String code;
@@ -129,11 +131,6 @@ class SwatchCode {
         if (rgba != null) 'rgba': rgba,
         if (createdAt != null) 'created_at': createdAt,
       };
-
-  static String? _str(dynamic v) {
-    if (v is String) return v.trim().isEmpty ? null : v.trim();
-    return null;
-  }
 }
 
 /// Light filament identity extracted from inventory (no specific spool) — for

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -56,20 +57,32 @@ final archiveProvider =
 class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
   int _searchGeneration = 0;
 
+  /// Cancels the previous in-flight `/archives/search` when a newer one
+  /// starts — search-as-you-type would otherwise let a stale request finish
+  /// on the wire even though [_searchGeneration] already discards its result.
+  CancelToken? _searchCancelToken;
+
   @override
   Future<ArchiveState> build() async {
     ref.watch(serverProfileProvider);
+    ref.onDispose(() => _searchCancelToken?.cancel());
     return _fetchPage(query: '', offset: 0);
   }
 
   Future<ArchiveState> _fetchPage({
     required String query,
     required int offset,
+    CancelToken? cancelToken,
   }) async {
     final repo = ref.read(archiveRepositoryProvider);
     final page = query.isEmpty
         ? await repo.list(limit: _pageSize, offset: offset)
-        : await repo.search(query, limit: _pageSize, offset: offset);
+        : await repo.search(
+            query,
+            limit: _pageSize,
+            offset: offset,
+            cancelToken: cancelToken,
+          );
     return ArchiveState(
       items: page,
       hasMore: page.length == _pageSize,
@@ -87,9 +100,12 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
     // clearing the box right after typing) — guard so the stale result can't
     // overwrite the newer one once it lands.
     final generation = ++_searchGeneration;
+    _searchCancelToken?.cancel();
+    final cancelToken = CancelToken();
+    _searchCancelToken = cancelToken;
     state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
     try {
-      final result = await _fetchPage(query: q, offset: 0);
+      final result = await _fetchPage(query: q, offset: 0, cancelToken: cancelToken);
       if (generation != _searchGeneration) return;
       state = AsyncValue.data(result);
     } on AppApiException {

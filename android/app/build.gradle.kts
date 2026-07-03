@@ -10,6 +10,18 @@ val keyPropertiesFile = rootProject.file("key.properties")
 val keyProperties = Properties().apply {
     if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
 }
+// Without key.properties, the "release" signingConfig below would be left with
+// all-null fields, and Gradle fails the release build with a cryptic
+// "keystore file not set" error. Fall back to the debug key instead, with a
+// clear warning — a contributor building locally still gets a working APK,
+// just not one suitable for distribution.
+val hasReleaseKeystore = keyPropertiesFile.exists()
+if (!hasReleaseKeystore) {
+    logger.warn(
+        "key.properties not found — release build will be signed with the " +
+            "debug key, not the real release keystore. Not suitable for distribution."
+    )
+}
 
 android {
     namespace = "page.codeberg.morganmlgman.bambuddy_mobile"
@@ -29,10 +41,12 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keyProperties["keyAlias"] as String?
-            keyPassword = keyProperties["keyPassword"] as String?
-            storeFile = keyProperties["storeFile"]?.let { file(it) }
-            storePassword = keyProperties["storePassword"] as String?
+            if (hasReleaseKeystore) {
+                keyAlias = keyProperties["keyAlias"] as String?
+                keyPassword = keyProperties["keyPassword"] as String?
+                storeFile = keyProperties["storeFile"]?.let { file(it) }
+                storePassword = keyProperties["storePassword"] as String?
+            }
         }
     }
 
@@ -49,7 +63,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(if (hasReleaseKeystore) "release" else "debug")
             // Flutter enables R8 for release; add our keep rules so ML Kit
             // (mobile_scanner's barcode backend) survives shrinking/obfuscation.
             // Without this the QR scanner crashes on start (black preview).

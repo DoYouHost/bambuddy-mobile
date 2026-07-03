@@ -52,11 +52,6 @@ class LocalNotificationService implements NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  /// Fixed ID for the ongoing notification — calling `show` with the same ID
-  /// updates the existing notification instead of creating a new one. Cannot be 0.
-  static const int _ongoingId = 1;
-
-  static const String _ongoingChannelId = 'ongoing_print';
   static const String _alertsChannelId = 'print_alerts';
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -79,14 +74,6 @@ class LocalNotificationService implements NotificationService {
 
     final android = _android;
     if (android == null) return;
-    // Create channels upfront: ongoing silent (LOW), alerts loud (HIGH).
-    await android.createNotificationChannel(const AndroidNotificationChannel(
-      _ongoingChannelId,
-      'Print progress',
-      description: 'Ongoing notification with print progress and ETA',
-      importance: Importance.low,
-      showBadge: false,
-    ));
     await android.createNotificationChannel(const AndroidNotificationChannel(
       _alertsChannelId,
       'Print alerts',
@@ -99,41 +86,23 @@ class LocalNotificationService implements NotificationService {
   Future<bool> requestPermission() async =>
       await _android?.requestNotificationsPermission() ?? false;
 
+  // No-ops: the only production `PrintMonitor` runs in the background
+  // isolate against `_FgsNotificationService` (see
+  // `print_monitor_task_handler.dart`), which routes the ongoing
+  // notification through `FlutterForegroundTask.updateService` instead — the
+  // foreground service's own notification is the "ongoing" one, and having a
+  // second, separate `ongoing_print`-channel notification alongside it would
+  // just be a duplicate. Kept here (rather than dropped from the
+  // [NotificationService] interface) only so this class still satisfies it.
   @override
   Future<void> showOngoing({
     required String title,
     required String body,
     required int progress,
-  }) async {
-    final clamped = progress.clamp(0, 100);
-    final details = AndroidNotificationDetails(
-      _ongoingChannelId,
-      'Print progress',
-      ongoing: true,
-      autoCancel: false,
-      onlyAlertOnce: true,
-      playSound: false,
-      enableVibration: false,
-      importance: Importance.low,
-      priority: Priority.low,
-      category: AndroidNotificationCategory.progress,
-      showProgress: true,
-      maxProgress: 100,
-      progress: clamped,
-    );
-
-    await _plugin.show(
-      _ongoingId,
-      title,
-      body,
-      NotificationDetails(android: details),
-    );
-  }
+  }) async {}
 
   @override
-  Future<void> clearOngoing() async {
-    await _plugin.cancel(_ongoingId);
-  }
+  Future<void> clearOngoing() async {}
 
   @override
   Future<void> showAlert({

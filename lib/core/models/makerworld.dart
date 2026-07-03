@@ -5,6 +5,8 @@
 /// tolerate missing fields; UI degrades to name/placeholder.
 library;
 
+import 'json_utils.dart';
+
 /// Integration status from `GET /makerworld/status`.
 class MakerWorldStatus {
   const MakerWorldStatus({
@@ -36,13 +38,8 @@ String? _pickString(Map<String, dynamic> json, List<String> keys) {
 
 int? _pickInt(Map<String, dynamic> json, List<String> keys) {
   for (final k in keys) {
-    final v = json[k];
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    if (v is String) {
-      final n = int.tryParse(v);
-      if (n != null) return n;
-    }
+    final n = toIntOrNull(json[k]);
+    if (n != null) return n;
   }
   return null;
 }

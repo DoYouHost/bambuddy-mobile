@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// Lightweight archive entry from `GET /archives/slim` — one row per print event,
 /// without heavy fields (thumbnails, gcode, etc.). Used for client-side rich
 /// statistics (heatmaps, records, color distribution, consumption over time,
@@ -23,18 +25,18 @@ class ArchiveSlim {
 
   factory ArchiveSlim.fromJson(Map<String, dynamic> json) => ArchiveSlim(
         status: (json['status'] as String?) ?? 'unknown',
-        createdAt: _date(json['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-        printerId: _int(json['printer_id']),
+        createdAt: dateTimeFromJson(json['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+        printerId: toIntOrNull(json['printer_id']),
         printName: json['print_name'] as String?,
-        printTimeSeconds: _int(json['print_time_seconds']),
-        actualTimeSeconds: _int(json['actual_time_seconds']),
-        filamentUsedGrams: _double(json['filament_used_grams']),
+        printTimeSeconds: toIntOrNull(json['print_time_seconds']),
+        actualTimeSeconds: toIntOrNull(json['actual_time_seconds']),
+        filamentUsedGrams: toDoubleOrNull(json['filament_used_grams']),
         filamentType: json['filament_type'] as String?,
         filamentColor: json['filament_color'] as String?,
-        startedAt: _date(json['started_at']),
-        completedAt: _date(json['completed_at']),
-        cost: _double(json['cost']),
-        quantity: _int(json['quantity']) ?? 1,
+        startedAt: dateTimeFromJson(json['started_at']),
+        completedAt: dateTimeFromJson(json['completed_at']),
+        cost: toDoubleOrNull(json['cost']),
+        quantity: toIntOrNull(json['quantity']) ?? 1,
       );
 
   final String status;
@@ -77,20 +79,3 @@ class ArchiveSlim {
   }
 }
 
-int? _int(Object? v) {
-  if (v is int) return v;
-  if (v is double) return v.round();
-  if (v is String) return int.tryParse(v);
-  return null;
-}
-
-double? _double(Object? v) {
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
-}
-
-DateTime? _date(Object? v) {
-  if (v is! String || v.isEmpty) return null;
-  return DateTime.tryParse(v);
-}

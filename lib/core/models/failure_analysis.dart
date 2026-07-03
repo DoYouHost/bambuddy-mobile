@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// Failure analysis from `GET /archives/analysis/failures`.
 ///
 /// Endpoint has no declared schema in OpenAPI — shape determined from live
@@ -15,14 +17,14 @@ class FailureAnalysis {
   });
 
   factory FailureAnalysis.fromJson(Map<String, dynamic> json) => FailureAnalysis(
-        periodDays: _int(json['period_days']),
-        totalPrints: _int(json['total_prints']),
-        failedPrints: _int(json['failed_prints']),
-        failureRate: _double(json['failure_rate']),
-        failuresByReason: _intMap(json['failures_by_reason']),
-        failuresByFilament: _intMap(json['failures_by_filament']),
-        failuresByPrinter: _intMap(json['failures_by_printer']),
-        failuresByHour: _intMap(json['failures_by_hour']),
+        periodDays: toInt(json['period_days']),
+        totalPrints: toInt(json['total_prints']),
+        failedPrints: toInt(json['failed_prints']),
+        failureRate: toDouble(json['failure_rate']),
+        failuresByReason: toIntMap(json['failures_by_reason']),
+        failuresByFilament: toIntMap(json['failures_by_filament']),
+        failuresByPrinter: toIntMap(json['failures_by_printer']),
+        failuresByHour: toIntMap(json['failures_by_hour']),
       );
 
   final int periodDays;
@@ -82,22 +84,3 @@ Map<String, int> _mergeCounts(Map<String, int> a, Map<String, int> b) {
   return out;
 }
 
-int _int(Object? v) {
-  if (v is int) return v;
-  if (v is double) return v.round();
-  if (v is String) return int.tryParse(v) ?? 0;
-  return 0;
-}
-
-double _double(Object? v) {
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v) ?? 0;
-  return 0;
-}
-
-Map<String, int> _intMap(Object? v) {
-  if (v is! Map) return const {};
-  final out = <String, int>{};
-  v.forEach((key, value) => out['$key'] = _int(value));
-  return out;
-}

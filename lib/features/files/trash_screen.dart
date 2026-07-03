@@ -7,8 +7,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/format_bytes.dart';
 import 'file_manager_providers.dart';
-import 'file_manager_screen.dart' show formatBytes;
 
 /// Library trash: list of deleted files with restore, permanent delete, and empty trash.
 class TrashScreen extends ConsumerWidget {
@@ -58,7 +58,7 @@ class TrashScreen extends ConsumerWidget {
           ),
         ),
         data: (items) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(libraryTrashProvider),
+          onRefresh: () => ref.refresh(libraryTrashProvider.future),
           child: items.isEmpty
               ? ListView(
                   children: [

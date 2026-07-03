@@ -158,6 +158,16 @@ class PrintMonitor {
     _updateOngoing(statuses);
   }
 
+  /// Cancels all pending per-printer offline-grace timers. Call when this
+  /// monitor is being torn down (e.g. `onDestroy` of the background isolate) —
+  /// without it, a timer scheduled just before teardown could still fire and
+  /// touch a notification service that's no longer valid.
+  void dispose() {
+    for (final memo in _memo.values) {
+      memo.offlineTimer?.cancel();
+    }
+  }
+
   /// "Plate not empty" event from separate WS frame `plate_not_empty` (camera
   /// detected objects on bed at print start → bambuddy held the print).
   /// Only correct source for this alert — see comment at step 5) in [_processPrinter].

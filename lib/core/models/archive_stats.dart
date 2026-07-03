@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// Archive statistics from `GET /archives/stats` (aggregate of `PrintLogEntry` —
 /// one row per print event, reprint adds new entry, #1378).
 ///
@@ -22,18 +24,18 @@ class ArchiveStats {
   });
 
   factory ArchiveStats.fromJson(Map<String, dynamic> json) => ArchiveStats(
-        totalPrints: _int(json['total_prints']),
-        successfulPrints: _int(json['successful_prints']),
-        failedPrints: _int(json['failed_prints']),
-        totalPrintTimeHours: _double(json['total_print_time_hours']),
-        totalFilamentGrams: _double(json['total_filament_grams']),
-        totalCost: _double(json['total_cost']),
-        printsByFilamentType: _intMap(json['prints_by_filament_type']),
-        printsByPrinter: _intMap(json['prints_by_printer']),
-        averageTimeAccuracy: _double(json['average_time_accuracy']),
-        timeAccuracyByPrinter: _doubleMap(json['time_accuracy_by_printer']),
-        totalEnergyKwh: _double(json['total_energy_kwh']),
-        totalEnergyCost: _double(json['total_energy_cost']),
+        totalPrints: toInt(json['total_prints']),
+        successfulPrints: toInt(json['successful_prints']),
+        failedPrints: toInt(json['failed_prints']),
+        totalPrintTimeHours: toDouble(json['total_print_time_hours']),
+        totalFilamentGrams: toDouble(json['total_filament_grams']),
+        totalCost: toDouble(json['total_cost']),
+        printsByFilamentType: toIntMap(json['prints_by_filament_type']),
+        printsByPrinter: toIntMap(json['prints_by_printer']),
+        averageTimeAccuracy: toDouble(json['average_time_accuracy']),
+        timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
+        totalEnergyKwh: toDouble(json['total_energy_kwh']),
+        totalEnergyCost: toDouble(json['total_energy_cost']),
         energyDataWarmingUp: json['energy_data_warming_up'] == true,
       );
 
@@ -89,29 +91,3 @@ class ArchiveStats {
   bool get isEmpty => totalPrints == 0;
 }
 
-int _int(Object? v) {
-  if (v is int) return v;
-  if (v is double) return v.round();
-  if (v is String) return int.tryParse(v) ?? 0;
-  return 0;
-}
-
-double _double(Object? v) {
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v) ?? 0;
-  return 0;
-}
-
-Map<String, int> _intMap(Object? v) {
-  if (v is! Map) return const {};
-  final out = <String, int>{};
-  v.forEach((key, value) => out['$key'] = _int(value));
-  return out;
-}
-
-Map<String, double> _doubleMap(Object? v) {
-  if (v is! Map) return const {};
-  final out = <String, double>{};
-  v.forEach((key, value) => out['$key'] = _double(value));
-  return out;
-}

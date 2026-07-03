@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/models/json_utils.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 
@@ -22,41 +23,21 @@ class PrintersRepository {
   final Dio _dio;
 
   Future<List<Printer>> fetchPrinters() async {
-    final List<dynamic> body;
-    try {
+    final body = await guard(() async {
       final res = await _dio.get<List<dynamic>>(Endpoints.printers);
-      body = res.data ?? const [];
-    } on DioException catch (e) {
-      throw mapDioException(e);
-    }
-    final printers = <Printer>[];
-    for (final item in body) {
-      if (item is! Map<String, dynamic>) continue;
-      try {
-        printers.add(Printer.fromJson(item));
-      } on Object {
-        continue;
-      }
-    }
-    return printers;
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, Printer.fromJson);
   }
 
-  Future<PrinterStatus?> fetchStatus(int printerId) async {
-    try {
-      final res = await _dio
-          .get<Map<String, dynamic>>(Endpoints.printerStatus(printerId));
-      final body = res.data;
-      return body == null ? null : PrinterStatus.fromJson(body);
-    } on DioException catch (e) {
-      final mapped = mapDioException(e);
-      // Auth must bubble up (UI redirects to config); others degrade to
-      // "status unavailable" card instead of breaking dashboard.
-      if (mapped is AuthException) throw mapped;
-      return null;
-    } on Object {
-      return null;
-    }
-  }
+  /// Auth must bubble up (UI redirects to config); others degrade to
+  /// "status unavailable" card instead of breaking dashboard.
+  Future<PrinterStatus?> fetchStatus(int printerId) => guardOrNull(() async {
+        final res =
+            await _dio.get<Map<String, dynamic>>(Endpoints.printerStatus(printerId));
+        final body = res.data;
+        return body == null ? null : PrinterStatus.fromJson(body);
+      });
 
   /// List and statuses fetched in parallel.
   Future<List<PrinterWithStatus>> fetchAll() async {

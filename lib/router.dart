@@ -38,7 +38,7 @@ final _inventoryNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'inventor
 final routerProvider = Provider<GoRouter>((ref) {
   final hasProfile =
       ref.watch(serverProfileProvider.select((p) => p != null));
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: hasProfile ? '/' : '/setup',
     redirect: (context, state) {
@@ -188,4 +188,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // "Change server" (profile set→null→set) rebuilds a new GoRouter — dispose
+  // the old one so its listeners don't leak.
+  ref.onDispose(router.dispose);
+  return router;
 });

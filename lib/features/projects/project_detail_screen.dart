@@ -536,6 +536,11 @@ class _OverflowMenu extends ConsumerWidget {
       await ref
           .read(projectsRepositoryProvider)
           .uploadCoverImage(project.id, filePath: picked.path, filename: picked.name);
+      // `ProjectListResponse` has no `updated_at` to cache-bust the list
+      // card's cover URL with, so a same-session reprint of a project whose
+      // cover URL is otherwise stable could show the old bitmap from cache —
+      // drop the whole image cache instead (cheap; cover changes are rare).
+      PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
@@ -549,6 +554,7 @@ class _OverflowMenu extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(projectsRepositoryProvider).deleteCoverImage(project.id);
+      PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));

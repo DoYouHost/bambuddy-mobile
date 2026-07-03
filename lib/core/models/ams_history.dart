@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// AMS sensor history (temperature + humidity) for a single AMS unit.
 ///
 /// Backend: `GET /ams-history/{printerId}/{amsId}?hours=1..168` (see reference
@@ -22,8 +24,8 @@ class AmsHistoryPoint {
   static AmsHistoryPoint fromJson(Map<String, dynamic> json) => AmsHistoryPoint(
         recordedAt: DateTime.tryParse('${json['recorded_at']}')?.toLocal() ??
             DateTime.fromMillisecondsSinceEpoch(0),
-        humidity: _toDouble(json['humidity']),
-        temperature: _toDouble(json['temperature']),
+        humidity: toDoubleOrNull(json['humidity']),
+        temperature: toDoubleOrNull(json['temperature']),
       );
 }
 
@@ -61,21 +63,15 @@ class AmsHistory {
           if (e is Map<String, dynamic>) AmsHistoryPoint.fromJson(e),
     ];
     return AmsHistory(
-      printerId: (json['printer_id'] as num?)?.toInt() ?? 0,
-      amsId: (json['ams_id'] as num?)?.toInt() ?? 0,
+      printerId: toInt(json['printer_id']),
+      amsId: toInt(json['ams_id']),
       points: points,
-      minHumidity: _toDouble(json['min_humidity']),
-      maxHumidity: _toDouble(json['max_humidity']),
-      avgHumidity: _toDouble(json['avg_humidity']),
-      minTemperature: _toDouble(json['min_temperature']),
-      maxTemperature: _toDouble(json['max_temperature']),
-      avgTemperature: _toDouble(json['avg_temperature']),
+      minHumidity: toDoubleOrNull(json['min_humidity']),
+      maxHumidity: toDoubleOrNull(json['max_humidity']),
+      avgHumidity: toDoubleOrNull(json['avg_humidity']),
+      minTemperature: toDoubleOrNull(json['min_temperature']),
+      maxTemperature: toDoubleOrNull(json['max_temperature']),
+      avgTemperature: toDoubleOrNull(json['avg_temperature']),
     );
   }
-}
-
-double? _toDouble(Object? v) {
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v);
-  return null;
 }

@@ -18,6 +18,7 @@ class FileManagerState {
     this.files = const [],
     this.allFiles,
     this.searching = false,
+    this.searchFailed = false,
     this.query = '',
     this.typeFilter,
     this.sort = FileSort.dateDesc,
@@ -41,6 +42,10 @@ class FileManagerState {
   /// Fetching [allFiles] for global search in progress.
   final bool searching;
 
+  /// The last [allFiles] fetch failed — UI shows a gentle message instead of
+  /// silently clearing the spinner into an empty-looking result.
+  final bool searchFailed;
+
   final String query;
 
   /// File type filter (e.g. "3mf"); `null` = all.
@@ -60,6 +65,7 @@ class FileManagerState {
     List<LibraryFile>? allFiles,
     bool clearAllFiles = false,
     bool? searching,
+    bool? searchFailed,
     String? query,
     String? typeFilter,
     bool clearTypeFilter = false,
@@ -74,6 +80,7 @@ class FileManagerState {
         files: files ?? this.files,
         allFiles: clearAllFiles ? null : (allFiles ?? this.allFiles),
         searching: searching ?? this.searching,
+        searchFailed: searchFailed ?? this.searchFailed,
         query: query ?? this.query,
         typeFilter: clearTypeFilter ? null : (typeFilter ?? this.typeFilter),
         sort: sort ?? this.sort,
@@ -241,27 +248,40 @@ class FileManagerNotifier extends AutoDisposeAsyncNotifier<FileManagerState> {
     });
   }
 
+  /// Whether a [listAllFiles] fetch is currently in flight — guards against
+  /// two quick queries (typed faster than the first fetch resolves) both
+  /// seeing `allFiles == null` and firing a redundant parallel fetch.
+  bool _fetchingAllFiles = false;
+
   /// Sets query. First non-empty query lazily fetches all library files
   /// (cache [FileManagerState.allFiles]) — search is global (all folders),
   /// not just current.
   Future<void> setQuery(String q) async {
     var current = state.valueOrNull;
     if (current == null) return;
-    final needsFetch = q.trim().isNotEmpty && current.allFiles == null;
+    final needsFetch =
+        q.trim().isNotEmpty && current.allFiles == null && !_fetchingAllFiles;
     state = AsyncValue.data(
-      current.copyWith(query: q, searching: needsFetch),
+      current.copyWith(query: q, searching: needsFetch || current.searching),
     );
     if (!needsFetch) return;
+    _fetchingAllFiles = true;
     try {
       final all = await ref.read(libraryRepositoryProvider).listAllFiles();
       current = state.valueOrNull;
       if (current == null) return;
-      state = AsyncValue.data(current.copyWith(allFiles: all, searching: false));
+      state = AsyncValue.data(
+        current.copyWith(allFiles: all, searching: false, searchFailed: false),
+      );
     } on Object {
       current = state.valueOrNull;
       if (current != null) {
-        state = AsyncValue.data(current.copyWith(searching: false));
+        state = AsyncValue.data(
+          current.copyWith(searching: false, searchFailed: true),
+        );
       }
+    } finally {
+      _fetchingAllFiles = false;
     }
   }
 
