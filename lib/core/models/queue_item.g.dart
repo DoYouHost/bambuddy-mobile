@@ -29,13 +29,7 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   beenJumped: json['been_jumped'] as bool? ?? false,
   errorMessage: json['error_message'] as String?,
   waitingReason: json['waiting_reason'] as String?,
-  createdAt: json['created_at'] == null
-      ? null
-      : DateTime.parse(json['created_at'] as String),
-  startedAt: json['started_at'] == null
-      ? null
-      : DateTime.parse(json['started_at'] as String),
-  completedAt: json['completed_at'] == null
-      ? null
-      : DateTime.parse(json['completed_at'] as String),
+  createdAt: dateTimeFromJson(json['created_at']),
+  startedAt: dateTimeFromJson(json['started_at']),
+  completedAt: dateTimeFromJson(json['completed_at']),
 );

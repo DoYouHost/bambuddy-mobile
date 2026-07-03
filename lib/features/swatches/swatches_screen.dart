@@ -45,9 +45,10 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
   // --- Eksport / import ---
 
   Future<void> _export() async {
+    final l10n = _l10n;
     final codes = ref.read(swatchCodesProvider);
     if (codes.isEmpty) {
-      _snack(_l10n.swatchExportEmpty);
+      _snack(l10n.swatchExportEmpty);
       return;
     }
     final payload = {
@@ -58,18 +59,20 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
     final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
     try {
       final path = await FilePicker.platform.saveFile(
-        dialogTitle: _l10n.swatchExport,
+        dialogTitle: l10n.swatchExport,
         fileName: 'swatch-codes.json',
         bytes: bytes,
       );
-      if (path == null) return; // Cancelled
-      _snack(_l10n.swatchExported(codes.length));
+      if (path == null || !mounted) return; // Cancelled
+      _snack(l10n.swatchExported(codes.length));
     } on Exception {
-      _snack(_l10n.swatchExportFailed);
+      if (!mounted) return;
+      _snack(l10n.swatchExportFailed);
     }
   }
 
   Future<void> _import() async {
+    final l10n = _l10n;
     final FilePickerResult? picked;
     try {
       picked = await FilePicker.platform.pickFiles(
@@ -78,9 +81,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         withData: true,
       );
     } on Exception {
-      _snack(_l10n.swatchImportFailed);
+      if (!mounted) return;
+      _snack(l10n.swatchImportFailed);
       return;
     }
+    if (!mounted) return;
     final bytes = picked?.files.single.bytes;
     if (bytes == null) return; // Cancelled
 
@@ -91,7 +96,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           ? decoded
           : (decoded is Map<String, dynamic> ? decoded['codes'] : null);
       if (list is! List) {
-        _snack(_l10n.swatchImportFailed);
+        _snack(l10n.swatchImportFailed);
         return;
       }
       incoming = [
@@ -99,45 +104,46 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           if (e is Map<String, dynamic>) SwatchCode.fromJson(e),
       ].where((c) => c.code.isNotEmpty).toList();
     } on Object {
-      _snack(_l10n.swatchImportFailed);
+      _snack(l10n.swatchImportFailed);
       return;
     }
 
     if (incoming.isEmpty) {
-      _snack(_l10n.swatchImportEmpty);
+      _snack(l10n.swatchImportEmpty);
       return;
     }
 
-    if (!mounted) return;
     final existing = ref.read(swatchCodesProvider).length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.warning_amber_rounded),
-        title: Text(_l10n.swatchImportTitle),
-        content: Text(_l10n.swatchImportWarning(existing, incoming.length)),
+        title: Text(l10n.swatchImportTitle),
+        content: Text(l10n.swatchImportWarning(existing, incoming.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(_l10n.cancel),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(_l10n.swatchImportConfirm),
+            child: Text(l10n.swatchImportConfirm),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     await ref.read(swatchCodesProvider.notifier).replaceAll(incoming);
-    _snack(_l10n.swatchImported(incoming.length));
+    if (!mounted) return;
+    _snack(l10n.swatchImported(incoming.length));
   }
 
   // --- Tworzenie / edycja / usuwanie ---
 
   /// Open create sheet (initial == null) or edit existing code.
   Future<void> _openForm({SwatchCode? initial}) async {
+    final l10n = _l10n;
     final result = await showModalBottomSheet<SwatchCode>(
       context: context,
       isScrollControlled: true,
@@ -145,23 +151,25 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
       showDragHandle: true,
       builder: (_) => _SwatchFormSheet(initial: initial),
     );
-    if (result == null) return;
+    if (result == null || !mounted) return;
     await ref
         .read(swatchCodesProvider.notifier)
         .save(result, replacingCode: initial?.code);
+    if (!mounted) return;
     _snack(initial == null
-        ? _l10n.swatchCreatedSnack(result.code)
-        : _l10n.swatchUpdatedSnack(result.code));
+        ? l10n.swatchCreatedSnack(result.code)
+        : l10n.swatchUpdatedSnack(result.code));
   }
 
   /// Quick code generation for inventory filament (no form).
   Future<void> _generateFor(FilamentIdentity identity) async {
+    final l10n = _l10n;
     final notifier = ref.read(swatchCodesProvider.notifier);
     final already = ref
         .read(swatchCodesProvider)
         .any((c) => c.identityKey == identity.key);
     if (already) {
-      _snack(_l10n.swatchExists);
+      _snack(l10n.swatchExists);
       return;
     }
     final created = await notifier.add(
@@ -171,7 +179,8 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
       colorName: identity.colorName,
       rgba: identity.rgba,
     );
-    _snack(_l10n.swatchCreatedSnack(created.code));
+    if (!mounted) return;
+    _snack(l10n.swatchCreatedSnack(created.code));
   }
 
   Future<void> _confirmDelete(SwatchCode c) async {
@@ -192,7 +201,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
     await ref.read(swatchCodesProvider.notifier).remove(c.code);
   }
 

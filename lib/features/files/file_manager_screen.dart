@@ -371,14 +371,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       title: _l10n.fmNewFolder,
       label: _l10n.fmFolderName,
     );
-    if (name == null || name.isEmpty) return;
+    if (name == null || name.isEmpty || !mounted) return;
     try {
       await ref
           .read(libraryRepositoryProvider)
           .createFolder(name, parentId: s.currentFolderId);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmFolderCreated);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -389,12 +392,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       label: _l10n.fmFolderName,
       initial: folder.name,
     );
-    if (name == null || name.isEmpty || name == folder.name) return;
+    if (name == null || name.isEmpty || name == folder.name || !mounted) {
+      return;
+    }
     try {
       await ref.read(libraryRepositoryProvider).renameFolder(folder.id, name);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -407,12 +415,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       confirmLabel: _l10n.fmDelete,
       destructive: true,
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     try {
       await ref.read(libraryRepositoryProvider).deleteFolder(folder.id);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -423,12 +434,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       label: _l10n.fmFileName,
       initial: file.filename,
     );
-    if (name == null || name.isEmpty || name == file.filename) return;
+    if (name == null || name.isEmpty || name == file.filename || !mounted) {
+      return;
+    }
     try {
       await ref.read(libraryRepositoryProvider).renameFile(file.id, name);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -437,14 +453,17 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final state = ref.read(fileManagerProvider).valueOrNull;
     if (state == null) return;
     final target = await _pickFolder(state, excludeFolderId: null);
-    if (target == null) return; // anulowano
+    if (target == null || !mounted) return; // anulowano
     try {
       await ref
           .read(libraryRepositoryProvider)
           .moveFiles([file.id], folderId: target.moveTargetId);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmMoved);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -456,12 +475,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       message: _l10n.fmDeleteFileConfirm(file.displayName),
       confirmLabel: _l10n.fmDelete,
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     try {
       await ref.read(libraryRepositoryProvider).deleteFile(file.id);
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -474,13 +496,16 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       message: _l10n.fmDeleteSelectedConfirm(ids.length),
       confirmLabel: _l10n.fmDelete,
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     try {
       await ref.read(libraryRepositoryProvider).bulkDelete(fileIds: ids);
+      if (!mounted) return;
       ref.read(fileManagerProvider.notifier).clearSelection();
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -489,9 +514,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final ids = s.selected.toList();
     try {
       await ref.read(libraryRepositoryProvider).addToQueue(ids);
+      if (!mounted) return;
       ref.read(fileManagerProvider.notifier).clearSelection();
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -499,8 +526,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _addToQueue(LibraryFile file) async {
     try {
       await ref.read(libraryRepositoryProvider).addToQueue([file.id]);
+      if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -515,13 +544,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
       confirmLabel: l10n.fmPrint,
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     try {
       await ref
           .read(libraryRepositoryProvider)
           .printFile(file.id, printerId: printer.id);
+      if (!mounted) return;
       _snack(l10n.fmPrintStarted);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -550,9 +581,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     try {
       picked = await FilePicker.platform.pickFiles(withReadStream: false);
     } on Exception {
+      if (!mounted) return;
       _snack(l10n.fmUploadFailed);
       return;
     }
+    if (!mounted) return;
     final path = picked?.files.single.path;
     final name = picked?.files.single.name;
     if (path == null || name == null) return; // anulowano
@@ -564,10 +597,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             filename: name,
             folderId: s.currentFolderId,
           );
+      if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
       ref.invalidate(libraryStatsProvider);
       _snack(l10n.fmUploaded(name));
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(_errText(e));
     }
   }
@@ -577,28 +613,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     required String label,
     String? initial,
   }) {
-    final controller = TextEditingController(text: initial);
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(_l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(_l10n.fmSave),
-          ),
-        ],
-      ),
+      builder: (_) =>
+          _PromptNameDialog(title: title, label: label, initial: initial),
     );
   }
 
@@ -688,6 +706,61 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 /// translate to `folderId=null` in move call.
 extension on LibraryFolder {
   int? get moveTargetId => id == -1 ? null : id;
+}
+
+/// Name-prompt dialog (new folder / rename folder or file) — a StatefulWidget
+/// so it owns and disposes its own controller in the State lifecycle, same as
+/// `_NotesEditDialog` in project_detail_screen.dart (disposing a
+/// function-local controller right after `await showDialog` races the
+/// dialog's exit animation).
+class _PromptNameDialog extends StatefulWidget {
+  const _PromptNameDialog({
+    required this.title,
+    required this.label,
+    this.initial,
+  });
+
+  final String title;
+  final String label;
+  final String? initial;
+
+  @override
+  State<_PromptNameDialog> createState() => _PromptNameDialogState();
+}
+
+class _PromptNameDialogState extends State<_PromptNameDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(labelText: widget.label),
+        onSubmitted: (v) => Navigator.pop(context, v.trim()),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(l10n.fmSave),
+        ),
+      ],
+    );
+  }
 }
 
 class _StatsBar extends ConsumerWidget {

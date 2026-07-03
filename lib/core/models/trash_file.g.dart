@@ -13,10 +13,6 @@ TrashFile _$TrashFileFromJson(Map<String, dynamic> json) => TrashFile(
   thumbnailPath: json['thumbnail_path'] as String?,
   folderName: json['folder_name'] as String?,
   createdByUsername: json['created_by_username'] as String?,
-  deletedAt: json['deleted_at'] == null
-      ? null
-      : DateTime.parse(json['deleted_at'] as String),
-  autoPurgeAt: json['auto_purge_at'] == null
-      ? null
-      : DateTime.parse(json['auto_purge_at'] as String),
+  deletedAt: dateTimeFromJson(json['deleted_at']),
+  autoPurgeAt: dateTimeFromJson(json['auto_purge_at']),
 );

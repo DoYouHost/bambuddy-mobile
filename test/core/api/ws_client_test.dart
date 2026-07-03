@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show WebSocketException;
 
 import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
@@ -6,6 +7,12 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+
+/// Mirrors what `dart:io`'s `WebSocket.connect` actually throws when the
+/// server responds but doesn't upgrade — the real anchor `_defaultIsAuthError`
+/// keys off (`WebSocketException.httpStatusCode`), not a substring match.
+WebSocketException _rejected(int httpStatusCode) =>
+    WebSocketException('not upgraded to websocket', httpStatusCode);
 
 /// Sterowalny fake połączenia: testy ręcznie domykają handshake, wpychają
 /// ramki i symulują zamknięcie przez serwer.
@@ -134,7 +141,7 @@ void main() {
       final (:client, :conns) = build();
       client.start();
       async.flushMicrotasks();
-      conns[0].connectFail('401');
+      conns[0].connectFail(_rejected(401));
       async.flushMicrotasks();
       expect(client.state, WsConnectionState.waitingRetry);
 
@@ -191,7 +198,7 @@ void main() {
         client.start();
         async.flushMicrotasks();
 
-        conns[0].connectFail('HTTP 401 Unauthorized');
+        conns[0].connectFail(_rejected(401));
         async.flushMicrotasks();
 
         expect(refreshCalls, 1);
@@ -220,7 +227,7 @@ void main() {
         client.start();
         async.flushMicrotasks();
 
-        conns[0].connectFail('401');
+        conns[0].connectFail(_rejected(401));
         async.flushMicrotasks();
 
         expect(refreshCalls, 1);
@@ -259,6 +266,34 @@ void main() {
       });
     });
 
+    test('port zawierający „403" w błędzie łączności nie wyzwala re-loginu', () {
+      // Regresja: serwer na porcie 8403 sprawia, że zwykły SocketException
+      // (adres w komunikacie) zawiera podciąg „403" — klasyfikator MUSI
+      // patrzeć na typ/kod, nie na goły substring `toString()`.
+      fakeAsync((async) {
+        var refreshCalls = 0;
+        final (:client, :conns) = build(
+          refreshAuth: () async {
+            refreshCalls++;
+            return true;
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        conns[0].connectFail(
+          'SocketException: Connection refused (host:8403)',
+        );
+        async.flushMicrotasks();
+
+        expect(refreshCalls, 0);
+        expect(client.state, WsConnectionState.waitingRetry);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
     test('re-login najwyżej raz na serię niepowodzeń', () {
       fakeAsync((async) {
         var refreshCalls = 0;
@@ -271,13 +306,13 @@ void main() {
         client.start();
         async.flushMicrotasks();
 
-        conns[0].connectFail('401');
+        conns[0].connectFail(_rejected(401));
         async.flushMicrotasks();
         expect(refreshCalls, 1);
         expect(conns, hasLength(2)); // re-login → reconnect
 
         // Druga próba też odrzucona — re-login się NIE powtarza (guard).
-        conns[1].connectFail('401');
+        conns[1].connectFail(_rejected(401));
         async.flushMicrotasks();
         expect(refreshCalls, 1);
         expect(client.state, WsConnectionState.waitingRetry);
@@ -334,6 +369,49 @@ void main() {
       });
     });
 
+    test(
+        'błąd mintu tokenu (rzucony, nie null) → backoff i retry, '
+        'NIE fallback header-only', () {
+      // WsTokenService.token() zwraca null TYLKO na 404 (stary serwer);
+      // rzucony wyjątek to przejściowa awaria mintu (5xx/sieć) — nie może
+      // być spłaszczony do połączenia header-only (na serwerze wymagającym
+      // ?token= takie połączenie i tak dostanie 401).
+      fakeAsync((async) {
+        var mintCalls = 0;
+        final urls = <Uri>[];
+        final client = WsClient(
+          url: Uri.parse('wss://example/api/v1/ws'),
+          authHeaders: () async => const {},
+          queryToken: () async {
+            mintCalls++;
+            if (mintCalls == 1) throw Exception('mint failed (5xx)');
+            return 'tok-fresh';
+          },
+          backoff: WsBackoff(random: () => 1.0),
+          connect: (url, _) {
+            urls.add(url);
+            return FakeConn()..connectOk();
+          },
+        );
+        client.start();
+        async.flushMicrotasks();
+
+        expect(urls, isEmpty); // brak próby połączenia header-only
+        expect(client.state, WsConnectionState.waitingRetry);
+        expect(mintCalls, 1);
+
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+
+        expect(urls, hasLength(1));
+        expect(urls.first.queryParameters['token'], 'tok-fresh');
+        expect(client.state, WsConnectionState.connected);
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+    });
+
     test('odrzucony handshake (401) unieważnia token przed ponowieniem', () {
       fakeAsync((async) {
         var invalidated = 0;
@@ -353,7 +431,7 @@ void main() {
         client.start();
         async.flushMicrotasks();
 
-        conns[0].connectFail('401');
+        conns[0].connectFail(_rejected(401));
         async.flushMicrotasks();
         expect(invalidated, 1);
 

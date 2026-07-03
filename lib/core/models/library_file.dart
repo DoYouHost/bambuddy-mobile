@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'library_file.g.dart';
 
 /// File in library file manager (`FileListResponse`).
@@ -60,6 +62,7 @@ class LibraryFile {
   /// Username who uploaded the file.
   final String? createdByUsername;
 
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? createdAt;
 
   /// Human-readable print name from slicer metadata (if different from [filename]).

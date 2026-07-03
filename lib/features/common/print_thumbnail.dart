@@ -58,6 +58,15 @@ class PrintThumbnail extends ConsumerWidget {
                 '$baseUrl${Endpoints.archiveThumbnail(id)}?token=$token',
                 width: size,
                 height: size,
+                // Server serves full-res renders; without this the decoder
+                // allocates a full bitmap for a tile scrolled at ~50dp — memory
+                // and jank multiply across a paginated list of these.
+                // `* zoom` matches the crop scale above so the cached
+                // resolution still covers the cropped-in content.
+                cacheWidth: (size *
+                        zoom *
+                        MediaQuery.devicePixelRatioOf(context))
+                    .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, _, _) =>

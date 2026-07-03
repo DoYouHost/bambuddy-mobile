@@ -19,9 +19,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   filamentColor: json['filament_color'] as String?,
   cost: (json['cost'] as num?)?.toDouble(),
   isFavorite: json['is_favorite'] as bool? ?? false,
-  createdAt: json['created_at'] == null
-      ? null
-      : DateTime.parse(json['created_at'] as String),
+  createdAt: dateTimeFromJson(json['created_at']),
   designer: json['designer'] as String?,
   makerworldUrl: json['makerworld_url'] as String?,
   totalLayers: (json['total_layers'] as num?)?.toInt(),

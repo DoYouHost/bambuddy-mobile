@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'queue_item.g.dart';
 
 /// Queue item status kinds — tolerant of unknown server values.
@@ -96,8 +98,12 @@ class QueueItem {
 
   final String? errorMessage;
   final String? waitingReason;
+
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? createdAt;
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? startedAt;
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? completedAt;
 
   /// Tile title: archive name, else library file name, else `#id`.

@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'trash_file.g.dart';
 
 /// File in library trash (`TrashFile`). Defensive parsing.
@@ -29,8 +31,10 @@ class TrashFile {
   final String? createdByUsername;
 
   /// When file was moved to trash.
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? deletedAt;
 
   /// When file will auto-purge (trash retention).
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? autoPurgeAt;
 }

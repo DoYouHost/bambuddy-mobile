@@ -152,6 +152,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           );
       _handleResult(res);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(e.localized(_l10n));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -175,6 +176,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           );
       _handleResult(res);
     } on AppApiException catch (e) {
+      if (!mounted) return;
       _snack(e.localized(_l10n));
     } finally {
       if (mounted) setState(() => _busy = false);

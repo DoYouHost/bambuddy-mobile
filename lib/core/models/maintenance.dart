@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'maintenance.g.dart';
 
 /// Urgency of maintenance task calculated from server flags.
@@ -31,6 +33,7 @@ class PrinterMaintenanceOverview {
   @JsonKey(fromJson: _toDouble)
   final double totalPrintHours;
 
+  @JsonKey(fromJson: _maintenanceItemsFromJson)
   final List<MaintenanceStatus> maintenanceItems;
 
   @JsonKey(fromJson: _toInt)
@@ -158,6 +161,9 @@ class MaintenanceHistoryEntry {
   DateTime? get performedAtDate =>
       performedAt == null ? null : DateTime.tryParse(performedAt!);
 }
+
+List<MaintenanceStatus> _maintenanceItemsFromJson(dynamic value) =>
+    parseJsonList(value, MaintenanceStatus.fromJson);
 
 double _toDouble(dynamic value) => _toDoubleOrNull(value) ?? 0;
 

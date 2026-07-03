@@ -168,6 +168,10 @@ class FailureAnalysisNotifier
   Future<FailureAnalysis> build() async {
     ref.watch(serverProfileProvider);
     final filter = ref.watch(statsFilterProvider);
+    // `onDispose` fires on every recompute (filter change), not just teardown —
+    // reset here so a later build's background refresh isn't discarded because
+    // an earlier build's dispose already flipped this to true for good.
+    _disposed = false;
     ref.onDispose(() => _disposed = true);
 
     final cached = ref.read(failureAnalysisCacheProvider).load(filter);

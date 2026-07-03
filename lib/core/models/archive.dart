@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'archive.g.dart';
 
 /// Archive entry from `ArchiveResponse`.
@@ -68,6 +70,7 @@ class Archive {
   @JsonKey(defaultValue: false)
   final bool isFavorite;
 
+  @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? createdAt;
 
   /// Model designer/author (e.g. from MakerWorld).

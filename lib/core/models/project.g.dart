@@ -31,11 +31,9 @@ ProjectListResponse _$ProjectListResponseFromJson(Map<String, dynamic> json) =>
       progressPercent: _toDoubleOrNull(json['progress_percent']),
       url: json['url'] as String?,
       coverImageFilename: json['cover_image_filename'] as String?,
-      archives:
-          (json['archives'] as List<dynamic>?)
-              ?.map((e) => ArchivePreview.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      archives: json['archives'] == null
+          ? const []
+          : _archivesFromJson(json['archives']),
     );
 
 ArchivePreview _$ArchivePreviewFromJson(Map<String, dynamic> json) =>
@@ -117,19 +115,15 @@ ProjectResponse _$ProjectResponseFromJson(Map<String, dynamic> json) =>
           : _attachmentsFromJson(json['attachments']),
       tags: json['tags'] as String?,
       dueDate: json['due_date'] as String?,
-      priority: json['priority'] as String? ?? 'medium',
+      priority: json['priority'] as String? ?? 'normal',
       budget: _toDoubleOrNull(json['budget']),
       isTemplate: json['is_template'] as bool? ?? false,
       templateSourceId: (json['template_source_id'] as num?)?.toInt(),
       parentId: (json['parent_id'] as num?)?.toInt(),
       parentName: json['parent_name'] as String?,
-      children:
-          (json['children'] as List<dynamic>?)
-              ?.map(
-                (e) => ProjectChildPreview.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          const [],
+      children: json['children'] == null
+          ? const []
+          : _childrenFromJson(json['children']),
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
       stats: json['stats'] == null

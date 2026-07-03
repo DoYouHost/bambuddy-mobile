@@ -1,6 +1,13 @@
+import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'printer_status.g.dart';
+
+const _listAmsUnitEquality = ListEquality<AmsUnit>();
+const _listAmsTrayEquality = ListEquality<AmsTray>();
+const _listHmsErrorEquality = ListEquality<HmsError>();
+const _mapStringDoubleEquality = MapEquality<String, double>();
+const _mapIntIntEquality = MapEquality<int, int>();
 
 /// Printer status from `GET /printers/{id}/status` (and eventually from WS
 /// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
@@ -152,6 +159,80 @@ class PrinterStatus {
   /// (see [HmsError]).
   @JsonKey(fromJson: _toHmsListOrNull)
   final List<HmsError>? hmsErrors;
+
+  /// Value equality — `ingestPoll` uses this to skip publishing a merged
+  /// status that's identical in content to the one already in state (REST
+  /// polling otherwise builds a fresh `PrinterStatus` every 5s via
+  /// `mergedWith`, so reference equality alone never matches even when
+  /// nothing on the server changed).
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PrinterStatus &&
+          other.id == id &&
+          other.name == name &&
+          other.connected == connected &&
+          other.state == state &&
+          other.currentPrint == currentPrint &&
+          other.gcodeFile == gcodeFile &&
+          other.progress == progress &&
+          other.remainingTime == remainingTime &&
+          other.layerNum == layerNum &&
+          other.totalLayers == totalLayers &&
+          _mapStringDoubleEquality.equals(other.temperatures, temperatures) &&
+          other.coverUrl == coverUrl &&
+          other.stgCurName == stgCurName &&
+          other.coolingFanSpeed == coolingFanSpeed &&
+          other.bigFan1Speed == bigFan1Speed &&
+          other.bigFan2Speed == bigFan2Speed &&
+          other.heatbreakFanSpeed == heatbreakFanSpeed &&
+          other.speedLevel == speedLevel &&
+          other.chamberLight == chamberLight &&
+          other.airductMode == airductMode &&
+          _listAmsUnitEquality.equals(other.ams, ams) &&
+          _listAmsTrayEquality.equals(other.vtTray, vtTray) &&
+          other.trayNow == trayNow &&
+          other.activeExtruder == activeExtruder &&
+          _mapIntIntEquality.equals(other.amsExtruderMap, amsExtruderMap) &&
+          other.model == model &&
+          other.wifiSignal == wifiSignal &&
+          other.doorOpen == doorOpen &&
+          other.awaitingPlateClear == awaitingPlateClear &&
+          _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        name,
+        connected,
+        state,
+        currentPrint,
+        gcodeFile,
+        progress,
+        remainingTime,
+        layerNum,
+        totalLayers,
+        temperatures == null ? null : _mapStringDoubleEquality.hash(temperatures),
+        coverUrl,
+        stgCurName,
+        coolingFanSpeed,
+        bigFan1Speed,
+        bigFan2Speed,
+        heatbreakFanSpeed,
+        speedLevel,
+        chamberLight,
+        airductMode,
+        ams == null ? null : _listAmsUnitEquality.hash(ams),
+        vtTray == null ? null : _listAmsTrayEquality.hash(vtTray),
+        trayNow,
+        activeExtruder,
+        amsExtruderMap == null ? null : _mapIntIntEquality.hash(amsExtruderMap),
+        model,
+        wifiSignal,
+        doorOpen,
+        awaitingPlateClear,
+        hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
+      ]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
   /// **never zero known value** — any field the new frame doesn't carry (`null`)
@@ -328,11 +409,16 @@ class PrinterStatus {
       );
     }
 
-    // AMS slot: global number = unit index * 4 + slot number.
+    // AMS slot: global number = unit's real hardware id * 4 + slot number
+    // (falling back to list position only when the unit reports no id —
+    // `tray_now` is the firmware's own numbering, which tracks unit id, not
+    // list position; see queue_mapping_sheet.dart / print_monitor.dart for
+    // the same convention).
     final units = ams ?? const [];
     for (var u = 0; u < units.length; u++) {
+      final unitId = units[u].id ?? u;
       for (final t in units[u].trays ?? const []) {
-        if (u * 4 + (t.id ?? -1) == now) return t;
+        if (unitId * 4 + (t.id ?? -1) == now) return t;
       }
     }
     return null;
@@ -374,6 +460,25 @@ class AmsUnit {
   /// Filament slots. Server key is `tray`.
   @JsonKey(name: 'tray', fromJson: _toTrayListOrNull)
   final List<AmsTray>? trays;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AmsUnit &&
+          other.id == id &&
+          other.isAmsHt == isAmsHt &&
+          other.humidity == humidity &&
+          other.temp == temp &&
+          _listAmsTrayEquality.equals(other.trays, trays);
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        isAmsHt,
+        humidity,
+        temp,
+        trays == null ? null : _listAmsTrayEquality.hash(trays),
+      );
 }
 
 /// Filament slot (AMS tray or external spool). Only fields needed for chips —
@@ -422,6 +527,20 @@ class AmsTray {
     final type = trayType?.trim();
     return (type == null || type.isEmpty) ? null : type;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AmsTray &&
+          other.id == id &&
+          other.trayColor == trayColor &&
+          other.trayType == trayType &&
+          other.traySubBrands == traySubBrands &&
+          other.remain == remain;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, trayColor, trayType, traySubBrands, remain);
 }
 
 /// Single printer HMS error from `hms_errors`. Server reports in two shapes per
@@ -455,6 +574,19 @@ class HmsError {
   /// Module/subsystem number (e.g. 5=mainboard, 7=AMS) — see `hmsModuleKey`.
   @JsonKey(fromJson: _toIntOrNull)
   final int? module;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HmsError &&
+          other.code == code &&
+          other.message == message &&
+          other.severity == severity &&
+          other.attr == attr &&
+          other.module == module;
+
+  @override
+  int get hashCode => Object.hash(code, message, severity, attr, module);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.

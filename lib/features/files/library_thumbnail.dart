@@ -54,6 +54,12 @@ class LibraryThumbnail extends ConsumerWidget {
                 '$baseUrl${Endpoints.libraryFileThumbnail(fileId)}?token=$token',
                 width: size,
                 height: size,
+                // Avoid decoding server's full-res render for a ~56dp tile —
+                // paginated lists of these otherwise spike memory/jank.
+                cacheWidth: (size *
+                        zoom *
+                        MediaQuery.devicePixelRatioOf(context))
+                    .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, _, _) => placeholder(),

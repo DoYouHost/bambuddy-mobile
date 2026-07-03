@@ -145,6 +145,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
         systemAppLocalizations(),
         describeHms: HmsCatalog.instance.describe,
         fetchCover: _fetchCover,
+        resetCover: WidgetCoverCache.reset,
       ).catchError((_) {}),
     );
   }
@@ -183,7 +184,13 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
       if (s == null) continue;
       // Merge on current state (might come from WS) so poll doesn't erase
       // fields REST doesn't carry (model/vt_tray/cover_url…) — see mergedWith.
-      next[p.printer.id] = s.mergedWith(next[p.printer.id]);
+      final merged = s.mergedWith(next[p.printer.id]);
+      // Skip the write when nothing actually changed — every poll tick
+      // otherwise replaces the whole map (mergedWith always builds a fresh
+      // instance), rebuilding every `printerStatusesProvider` consumer even
+      // when the server-side state is identical to what's already shown.
+      if (merged == next[p.printer.id]) continue;
+      next[p.printer.id] = merged;
       changed = true;
     }
     if (changed) {
@@ -212,5 +219,18 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 final wsConnectionStateProvider = StreamProvider<WsConnectionState>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) return const Stream.empty();
-  return ref.watch(wsClientProvider).connectionStates;
+  return _seededConnectionStates(ref.watch(wsClientProvider));
 });
+
+/// [WsClient.connectionStates] is a broadcast stream and doesn't replay past
+/// events — a subscriber that starts watching after the client is already
+/// `connected` (e.g. `DashboardNotifier`'s `ref.listen` in its `build()`,
+/// which can run after the socket connected) would see nothing until the
+/// NEXT transition, and `wsConnectionStateProvider.select(...).valueOrNull`
+/// stays `null` in the meantime — read as "not connected", keeping the
+/// dashboard on the fast 5s fallback poll instead of the slow one. Seed with
+/// the client's current state before forwarding the live stream.
+Stream<WsConnectionState> _seededConnectionStates(WsClient client) async* {
+  yield client.state;
+  yield* client.connectionStates;
+}

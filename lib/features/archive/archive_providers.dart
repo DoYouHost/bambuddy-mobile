@@ -54,6 +54,8 @@ final archiveProvider =
 /// Archive list with pagination (infinite scroll) and search (M5).
 /// Empty `query` → `GET /archives/` (paginated); non-empty → `/archives/search`.
 class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
+  int _searchGeneration = 0;
+
   @override
   Future<ArchiveState> build() async {
     ref.watch(serverProfileProvider);
@@ -81,10 +83,17 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
   /// we set [ArchiveState.searchFailed] and show a gentle message.
   Future<void> search(String query) async {
     final q = query.length >= _minQueryLength ? query : '';
+    // A slow `/archives/search` can resolve after a faster later call (e.g.
+    // clearing the box right after typing) — guard so the stale result can't
+    // overwrite the newer one once it lands.
+    final generation = ++_searchGeneration;
     state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
     try {
-      state = AsyncValue.data(await _fetchPage(query: q, offset: 0));
+      final result = await _fetchPage(query: q, offset: 0);
+      if (generation != _searchGeneration) return;
+      state = AsyncValue.data(result);
     } on AppApiException {
+      if (generation != _searchGeneration) return;
       state = AsyncValue.data(
         ArchiveState(items: const [], query: q, searchFailed: true),
       );

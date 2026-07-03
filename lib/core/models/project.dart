@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'project.g.dart';
 
 /// Print project from `GET /projects/` (list view — `ProjectListResponse`).
@@ -63,6 +65,7 @@ class ProjectListResponse {
   final String? url;
   final String? coverImageFilename;
 
+  @JsonKey(fromJson: _archivesFromJson)
   final List<ArchivePreview> archives;
 
   bool get hasCover => coverImageFilename != null && coverImageFilename!.isNotEmpty;
@@ -246,6 +249,7 @@ class ProjectResponse {
   final int? parentId;
   final String? parentName;
 
+  @JsonKey(fromJson: _childrenFromJson)
   final List<ProjectChildPreview> children;
 
   final String? createdAt;
@@ -485,6 +489,12 @@ List<String> _attachmentsFromJson(dynamic value) {
   }
   return out;
 }
+
+List<ArchivePreview> _archivesFromJson(dynamic value) =>
+    parseJsonList(value, ArchivePreview.fromJson);
+
+List<ProjectChildPreview> _childrenFromJson(dynamic value) =>
+    parseJsonList(value, ProjectChildPreview.fromJson);
 
 double _toDouble(dynamic value) => _toDoubleOrNull(value) ?? 0;
 

@@ -64,6 +64,14 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         (status?.ams ?? const []).map((u) => u.id ?? 0).toSet().toList()
           ..sort();
     final unitOptions = unitIds.isNotEmpty ? unitIds : const [0, 1, 2, 3];
+    // Keep the persisted selection in sync with the current printer's actual
+    // units — without this, switching to a printer with fewer AMS units only
+    // fixes the *displayed* value (see `_NumberDropdown` below) while
+    // `_amsUnit` itself stays stale, so `_assign()` would submit a unit id
+    // the printer doesn't have.
+    if (!unitOptions.contains(_amsUnit)) {
+      _amsUnit = unitOptions.first;
+    }
 
     return DraggableScrollableSheet(
       expand: false,
@@ -145,10 +153,14 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                 children: [
                   Expanded(
                     child: _NumberDropdown(
+                      // `_NumberDropdown` wraps `DropdownButtonFormField`,
+                      // whose `initialValue` only seeds state on first build —
+                      // force a fresh element when the printer (and thus the
+                      // valid unit range) changes, or the field would keep
+                      // showing the previous printer's selection.
+                      key: ValueKey(_printerId),
                       label: l10n.inventoryAssignUnit,
-                      value: unitOptions.contains(_amsUnit)
-                          ? _amsUnit
-                          : unitOptions.first,
+                      value: _amsUnit,
                       // Display 1-based, value is unit id.
                       items: {for (final u in unitOptions) u: '${u + 1}'},
                       onChanged: (v) => setState(() => _amsUnit = v),
@@ -220,6 +232,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
 /// Numeric dropdown (label above field) — int with display label map.
 class _NumberDropdown extends StatelessWidget {
   const _NumberDropdown({
+    super.key,
     required this.label,
     required this.value,
     required this.items,

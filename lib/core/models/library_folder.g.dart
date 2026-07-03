@@ -17,9 +17,7 @@ LibraryFolder _$LibraryFolderFromJson(Map<String, dynamic> json) =>
       externalPath: json['external_path'] as String?,
       externalReadonly: json['external_readonly'] as bool? ?? false,
       fileCount: (json['file_count'] as num?)?.toInt() ?? 0,
-      children:
-          (json['children'] as List<dynamic>?)
-              ?.map((e) => LibraryFolder.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      children: json['children'] == null
+          ? const []
+          : _childrenFromJson(json['children']),
     );

@@ -139,10 +139,33 @@ class AuthService {
     await _credentials.writeApiKey(apiKey);
   }
 
+  Future<String?>? _pendingSilentReLogin;
+
   /// Silent re-login with saved credentials. `null` if nothing was saved or
   /// login failed — then UI should gently redirect user to settings screen,
   /// never crash.
-  Future<String?> silentReLogin(String baseUrl) async {
+  ///
+  /// Memoized: `AuthInterceptor`, `WsClient` and `ProactiveTokenRefresher` can
+  /// all call this within the same window when a JWT expires. Without
+  /// coordination that's N parallel `POST /auth/login`, and a server that
+  /// invalidates the previous JWT on new login turns the retried request's
+  /// second 401 into a spurious logout. Concurrent callers share the same
+  /// in-flight future; it's cleared once that attempt settles so the next
+  /// expiry still triggers a fresh login.
+  Future<String?> silentReLogin(String baseUrl) {
+    final pending = _pendingSilentReLogin;
+    if (pending != null) return pending;
+    final future = _doSilentReLogin(baseUrl);
+    _pendingSilentReLogin = future;
+    future.whenComplete(() {
+      if (identical(_pendingSilentReLogin, future)) {
+        _pendingSilentReLogin = null;
+      }
+    });
+    return future;
+  }
+
+  Future<String?> _doSilentReLogin(String baseUrl) async {
     final saved = await _credentials.readRememberedLogin();
     if (saved == null) return null;
     try {

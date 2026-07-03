@@ -236,46 +236,18 @@ class _MaintenanceTile extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    // `null` = cancelled; otherwise the (possibly empty) trimmed notes text.
+    final notes = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(item.maintenanceTypeName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.maintenancePerformConfirm),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: l10n.maintenanceNotesHint,
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.maintenancePerform),
-          ),
-        ],
-      ),
+      builder: (_) => _PerformConfirmDialog(title: item.maintenanceTypeName),
     );
-    if (confirmed != true) return;
-    if (!context.mounted) return;
+    if (notes == null || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final notes = controller.text.trim();
     final result = await ref
         .read(maintenanceOverviewProvider.notifier)
         .perform(item.id, notes: notes.isEmpty ? null : notes);
+    if (!context.mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(switch (result) {
       MaintenanceActionResult.ok => l10n.maintenanceDone,
       MaintenanceActionResult.forbidden => l10n.errForbidden,
@@ -292,6 +264,63 @@ class _MaintenanceTile extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (ctx) => _HistorySheet(item: item),
+    );
+  }
+}
+
+/// "Perform maintenance" confirm dialog with optional notes — a StatefulWidget
+/// so it owns and disposes its own controller in the State lifecycle, same as
+/// `_NotesEditDialog` in project_detail_screen.dart (`_MaintenanceTile` is a
+/// plain `ConsumerWidget` with no dispose hook of its own to hang this off).
+/// Returns the trimmed notes text on confirm (possibly empty), `null` on cancel.
+class _PerformConfirmDialog extends StatefulWidget {
+  const _PerformConfirmDialog({required this.title});
+
+  final String title;
+
+  @override
+  State<_PerformConfirmDialog> createState() => _PerformConfirmDialogState();
+}
+
+class _PerformConfirmDialogState extends State<_PerformConfirmDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(l10n.maintenancePerformConfirm),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              labelText: l10n.maintenanceNotesHint,
+              border: const OutlineInputBorder(),
+            ),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(l10n.maintenancePerform),
+        ),
+      ],
     );
   }
 }

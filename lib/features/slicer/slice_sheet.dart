@@ -145,7 +145,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                         title: l10n.slicePrinter,
                         filtered: printers,
                         all: presets.printers);
-                    if (p != null) {
+                    if (p != null && mounted) {
                       // Printer change can invalidate process/filament compatibility.
                       setState(() {
                         _printer = p;
@@ -164,7 +164,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                         title: l10n.sliceProcess,
                         filtered: processes,
                         all: presets.processes);
-                    if (p != null) setState(() => _process = p);
+                    if (p != null && mounted) setState(() => _process = p);
                   },
                 ),
                 Card(
@@ -195,7 +195,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                               : l10n.sliceFilamentNumbered('${i + 1}'),
                           filtered: filaments,
                           all: presets.filaments);
-                      if (p != null) setState(() => _filaments[i] = p);
+                      if (p != null && mounted) setState(() => _filaments[i] = p);
                     },
                   ),
                 const SizedBox(height: 16),
@@ -289,7 +289,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
         ),
       ),
     );
-    if (picked == null) return; // dismissed
+    if (picked == null || !mounted) return; // dismissed
     setState(() => _bedType = picked.isEmpty ? null : picked);
   }
 

@@ -1,3 +1,5 @@
+import 'dart:io' show HttpException;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,7 +76,13 @@ class _CameraViewState extends ConsumerState<CameraView> {
       loading: (_) => _Loading(text: l10n.cameraConnecting),
       error: (context, error, _) {
         // 401 = token expired → once force re-mint and restart stream.
-        if (error.toString().contains('401') && _remintedFor != token) {
+        // Anchored on `flutter_mjpeg`'s own `HttpException('Stream returned
+        // $statusCode status')` — not a raw substring match on
+        // `error.toString()` — since a server on a port containing "401"
+        // (e.g. `host:8401`) would otherwise make a routine connectivity
+        // error (whose message embeds the address) look like an expired
+        // token, burning the one-shot re-mint on every hiccup.
+        if (_isTokenExpired(error) && _remintedFor != token) {
           _remintedFor = token;
           Future.microtask(() {
             if (!mounted) return;
@@ -87,6 +95,15 @@ class _CameraViewState extends ConsumerState<CameraView> {
       },
     );
   }
+}
+
+/// `flutter_mjpeg` throws `HttpException('Stream returned $statusCode
+/// status')` for any non-2xx response — matches only that shape, not any
+/// error whose `toString()` happens to contain "401".
+bool _isTokenExpired(Object error) {
+  if (error is! HttpException) return false;
+  final m = RegExp(r'^Stream returned (\d+) status$').firstMatch(error.message);
+  return m?.group(1) == '401';
 }
 
 class _Loading extends StatelessWidget {

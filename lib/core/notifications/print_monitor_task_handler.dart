@@ -62,10 +62,30 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     final prefs = await SharedPreferences.getInstance();
     final profile = SettingsRepository(prefs).loadProfile();
-    // Without a profile there's nothing to monitor — service stays running
-    // (UI will stop it), but we don't subscribe to anything.
-    if (profile == null) return;
+    if (profile == null) {
+      // Nothing to monitor (e.g. profile cleared while backgrounded) — don't
+      // leave an idle FGS + "monitoring active" notification running.
+      await FlutterForegroundTask.stopService();
+      return;
+    }
 
+    try {
+      await _startMonitoring(prefs, profile);
+    } catch (_) {
+      // A failure anywhere here (keystore access on some OEMs, Dio/client
+      // construction, HMS catalog load, ...) would otherwise abort startup
+      // right before `ws.start()` while the FGS notification still claims
+      // "monitoring active" — the worst failure mode for this feature: it
+      // looks fine but nothing is actually watched. Stop the service instead
+      // so the lie isn't left running silently.
+      await FlutterForegroundTask.stopService();
+    }
+  }
+
+  Future<void> _startMonitoring(
+    SharedPreferences prefs,
+    ServerProfile profile,
+  ) async {
     final l10n = systemAppLocalizations();
     final alerts = LocalNotificationService()..init();
     final fgs = _FgsNotificationService(alerts, l10n);
@@ -118,6 +138,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
           l10n,
           describeHms: _hmsCatalog?.describe,
           fetchCover: (picked) => _fetchCover(profile.baseUrl, picked),
+          resetCover: WidgetCoverCache.reset,
         ).catchError((_) {}),
       );
     });

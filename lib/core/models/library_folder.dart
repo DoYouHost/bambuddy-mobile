@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'library_folder.g.dart';
 
 /// Library folder tree node (`FolderTreeItem`). Nested via [children];
@@ -45,6 +47,9 @@ class LibraryFolder {
   final int fileCount;
 
   /// Subfolders.
-  @JsonKey(defaultValue: [])
+  @JsonKey(fromJson: _childrenFromJson)
   final List<LibraryFolder> children;
 }
+
+List<LibraryFolder> _childrenFromJson(dynamic value) =>
+    parseJsonList(value, LibraryFolder.fromJson);

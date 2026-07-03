@@ -40,18 +40,44 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
   Timer? _timer;
   late final AppLifecycleListener _lifecycle;
 
+  /// Whether this tab's branch is the one currently shown — see
+  /// [didChangeDependencies]. Starts false; the framework-guaranteed
+  /// `didChangeDependencies` call right after `initState` sets it correctly
+  /// before the first frame.
+  bool _visible = false;
+
   @override
   void initState() {
     super.initState();
-    _startTimer();
     _lifecycle = AppLifecycleListener(
       onPause: _stopTimer,
       onResume: () {
-        // Return to foreground: fetch immediately and resume cycle.
+        // Return to foreground on a different tab shouldn't resume polling
+        // for a screen the user isn't looking at.
+        if (!_visible) return;
         unawaited(ref.read(queueProvider.notifier).refresh());
         _startTimer();
       },
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // `StatefulShellRoute`'s IndexedStack keeps every branch mounted (see
+    // `root_scaffold.dart`) so this timer would otherwise tick on the
+    // foreground for the app's entire lifetime once the Queue tab was
+    // visited once, even while another tab is shown. go_router wraps each
+    // offstage branch in `TickerMode(enabled: false)` for exactly this kind
+    // of gating.
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible == _visible) return;
+    _visible = visible;
+    if (visible) {
+      _startTimer();
+    } else {
+      _stopTimer();
+    }
   }
 
   void _startTimer() {

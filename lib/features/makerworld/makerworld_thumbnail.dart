@@ -47,6 +47,9 @@ class MakerWorldThumbnail extends ConsumerWidget {
         src,
         width: size,
         height: size,
+        // MakerWorld covers arrive full-res — cap decode resolution for the
+        // tile size (models can list dozens of plates).
+        cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
         fit: BoxFit.cover,
         gaplessPlayback: true,
         errorBuilder: (_, _, _) => placeholder(Icons.broken_image_outlined),

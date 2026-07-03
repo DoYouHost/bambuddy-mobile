@@ -60,6 +60,12 @@ class ProjectCoverImage extends ConsumerWidget {
                 '$baseUrl${Endpoints.projectCoverImage(projectId)}?token=$token$bust',
                 width: width,
                 height: height,
+                // Server serves a full-res cover — cap decode resolution for
+                // the tile (project lists/cards render many of these).
+                cacheWidth:
+                    (width * MediaQuery.devicePixelRatioOf(context)).round(),
+                cacheHeight:
+                    (height * MediaQuery.devicePixelRatioOf(context)).round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (_, _, _) => placeholder(),

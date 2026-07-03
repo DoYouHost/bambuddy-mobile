@@ -15,11 +15,9 @@ PrinterMaintenanceOverview _$PrinterMaintenanceOverviewFromJson(
   totalPrintHours: json['total_print_hours'] == null
       ? 0
       : _toDouble(json['total_print_hours']),
-  maintenanceItems:
-      (json['maintenance_items'] as List<dynamic>?)
-          ?.map((e) => MaintenanceStatus.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
+  maintenanceItems: json['maintenance_items'] == null
+      ? const []
+      : _maintenanceItemsFromJson(json['maintenance_items']),
   dueCount: json['due_count'] == null ? 0 : _toInt(json['due_count']),
   warningCount: json['warning_count'] == null
       ? 0

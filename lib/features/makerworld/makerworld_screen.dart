@@ -68,6 +68,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
     if (status == null || !status.canDownload) {
       _snack(_l10n.mwLoginRequired);
       await context.push('/settings/cloud');
+      if (!mounted) return;
       // Refresh login/integration status after return.
       ref.invalidate(cloudAuthStatusProvider);
       ref.invalidate(makerworldStatusProvider);
@@ -121,6 +122,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
             const SizedBox(height: 16),
             _LoginBanner(onSignIn: () async {
               await context.push('/settings/cloud');
+              if (!mounted) return;
               ref.invalidate(cloudAuthStatusProvider);
               ref.invalidate(makerworldStatusProvider);
             }),

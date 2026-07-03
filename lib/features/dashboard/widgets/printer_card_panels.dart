@@ -418,6 +418,10 @@ class _CoverThumbnail extends ConsumerWidget {
               key: const ValueKey('cover_network'),
               width: _size,
               height: _size,
+              // Server serves a full-res render for a 64dp tile — cap decode
+              // resolution so an active print doesn't repeatedly spike memory.
+              cacheWidth:
+                  (_size * MediaQuery.devicePixelRatioOf(context)).round(),
               fit: BoxFit.cover,
               gaplessPlayback: true,
               errorBuilder: (_, _, _) => placeholder(),

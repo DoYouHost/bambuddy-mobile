@@ -359,6 +359,14 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         ),
       );
     }
+    // Catalog entry referenced by an edited spool may have been removed
+    // server-side since — keep the typed weight but drop the dangling id so
+    // the dropdown's value always matches one of `items` (else DropdownButton
+    // asserts "exactly zero or one item with [value]").
+    if (_coreWeightCatalogId != null &&
+        !cores.any((c) => c.id == _coreWeightCatalogId)) {
+      _coreWeightCatalogId = null;
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

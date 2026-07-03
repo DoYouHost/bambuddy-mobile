@@ -1,8 +1,53 @@
+import 'dart:async';
+
 import 'package:home_widget/home_widget.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
 import '../notifications/hms_catalog.dart';
+
+/// Snapshot of the fields that actually show up on the widget — mirrors
+/// `_OngoingKey` in `print_monitor.dart`. Callers publish on every WS frame
+/// and every poll tick; without this, an hours-long print would redo the
+/// full 9x `saveWidgetData` + native broadcast (and a cover re-fetch check)
+/// on every single frame even though nothing visible changed.
+class WidgetPublishKey {
+  const WidgetPublishKey({
+    required this.printerId,
+    required this.statusKey,
+    required this.progressPct,
+    required this.etaMinutes,
+    required this.layers,
+    required this.coverUrl,
+  });
+
+  final int? printerId;
+  final String statusKey;
+  final int progressPct;
+  final int? etaMinutes;
+  final String layers;
+  final String? coverUrl;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WidgetPublishKey &&
+      other.printerId == printerId &&
+      other.statusKey == statusKey &&
+      other.progressPct == progressPct &&
+      other.etaMinutes == etaMinutes &&
+      other.layers == layers &&
+      other.coverUrl == coverUrl;
+
+  @override
+  int get hashCode => Object.hash(
+        printerId,
+        statusKey,
+        progressPct,
+        etaMinutes,
+        layers,
+        coverUrl,
+      );
+}
 
 /// Publishes the state of one selected printer to the native home screen widget
 /// (`BambuddyWidgetProvider`). Fed from TWO sources: the UI provider in the foreground
@@ -28,8 +73,50 @@ class HomeWidgetPublisher {
   static const String _kOffline = 'offline';
   static const String _kError = 'error';
 
+  /// Last published key — static, so naturally per-isolate (foreground UI and
+  /// background service each have their own Dart heap and never share this).
+  static WidgetPublishKey? _lastKey;
+
+  /// Whether a publish is currently writing to `home_widget` storage.
+  static bool _publishing = false;
+
+  /// Computes the [WidgetPublishKey] for the printer [publish] would pick —
+  /// exposed so callers can also use it, though [publish] already no-ops
+  /// when nothing changed.
+  static WidgetPublishKey keyFor(
+    Map<int, PrinterStatus> statuses, {
+    String? Function(HmsError)? describeHms,
+  }) {
+    final picked = _select(statuses);
+    if (picked == null) {
+      return const WidgetPublishKey(
+        printerId: null,
+        statusKey: _kOffline,
+        progressPct: 0,
+        etaMinutes: null,
+        layers: '',
+        coverUrl: null,
+      );
+    }
+    final baseKey = _statusKey(picked);
+    final hms = _topHmsError(picked, describeHms);
+    final key = hms != null ? _kError : baseKey;
+    final printing = key == _kPrinting || key == _kPaused;
+    return WidgetPublishKey(
+      printerId: picked.id,
+      statusKey: key,
+      progressPct: _progressPct(picked),
+      etaMinutes: printing ? picked.remainingTime : null,
+      layers: _layers(picked, baseKey),
+      coverUrl: picked.coverUrl,
+    );
+  }
+
   /// Saves the selected printer's state and updates the widget. Safe to call frequently —
-  /// the plugin itself debounces writes, and `updateWidget` is cheap.
+  /// no-ops when nothing meaningful changed since the last call ([WidgetPublishKey]),
+  /// and drops the request outright if a publish is already writing (the isolate's next
+  /// frame will retry — a slow `fetchCover` completing after a newer publish must not
+  /// overwrite it with a stale `cover_path`).
   ///
   /// [describeHms] — HMS error description from catalog (foreground: `HmsCatalog.instance`,
   /// background: isolate's local catalog). [fetchCover] — fetches print cover to file
@@ -40,10 +127,40 @@ class HomeWidgetPublisher {
     AppLocalizations l10n, {
     String? Function(HmsError)? describeHms,
     Future<String?> Function(PrinterStatus picked)? fetchCover,
+    void Function()? resetCover,
+  }) async {
+    final key = keyFor(statuses, describeHms: describeHms);
+    if (key == _lastKey || _publishing) return;
+
+    _publishing = true;
+    try {
+      await _doPublish(
+        statuses,
+        l10n,
+        describeHms: describeHms,
+        fetchCover: fetchCover,
+        resetCover: resetCover,
+      );
+      _lastKey = key;
+    } finally {
+      _publishing = false;
+    }
+  }
+
+  static Future<void> _doPublish(
+    Map<int, PrinterStatus> statuses,
+    AppLocalizations l10n, {
+    String? Function(HmsError)? describeHms,
+    Future<String?> Function(PrinterStatus picked)? fetchCover,
+    void Function()? resetCover,
   }) async {
     final picked = _select(statuses);
 
     if (picked == null) {
+      // Nothing to show a cover for — drop the cache so the next print
+      // (even one reusing the same `cover_url` the server exposed before)
+      // re-fetches instead of short-circuiting to this stale bitmap.
+      resetCover?.call();
       await HomeWidget.saveWidgetData<String>('status_key', _kOffline);
       await HomeWidget.saveWidgetData<String>(
           'printer_name', l10n.widgetNoPrinter);
@@ -83,11 +200,14 @@ class HomeWidgetPublisher {
       // Skip during calibration phases (`auto_cali_*`) — those have no cover,
       // so otherwise the widget would show the previous print's thumbnail.
       var coverPath = '';
-      if (printing &&
-          picked.coverUrl != null &&
-          !picked.isCalibration &&
-          fetchCover != null) {
-        coverPath = await fetchCover(picked) ?? '';
+      if (printing && picked.coverUrl != null && !picked.isCalibration) {
+        if (fetchCover != null) coverPath = await fetchCover(picked) ?? '';
+      } else {
+        // Print ended (or no cover this phase) — drop the cache so a LATER
+        // print reusing the same `cover_url` (server exposes a stable
+        // "current print" path, not one keyed by job) doesn't short-circuit
+        // to this now-outdated bitmap.
+        resetCover?.call();
       }
       await HomeWidget.saveWidgetData<String>('cover_path', coverPath);
     }

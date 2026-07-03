@@ -61,9 +61,18 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
   final out = <_Tray>[];
   final units = status.ams ?? const <AmsUnit>[];
   for (var u = 0; u < units.length; u++) {
+    // Global AMS index is keyed by the unit's real hardware id (what the
+    // firmware/`ams_mapping` actually understands), falling back to list
+    // position only when the unit reports no id — same convention as
+    // `printer_card_details.dart` and `print_monitor.dart`'s `_trayRemains`.
+    // Keying by list position instead breaks as soon as `ams[].id` doesn't
+    // match position (e.g. a single remaining AMS unit reporting id=1 after
+    // the first one was unplugged), offering a global index the printer
+    // rejects with "unable to fetch AMS mapping".
+    final unitId = units[u].id ?? u;
     for (final t in units[u].trays ?? const <AmsTray>[]) {
       if (t.isEmpty) continue;
-      final int global = u * 4 + (t.id ?? 0);
+      final int global = unitId * 4 + (t.id ?? 0);
       out.add((
         global: global,
         type: t.trayType,

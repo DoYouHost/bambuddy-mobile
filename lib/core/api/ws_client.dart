@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show WebSocketException;
 
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -226,8 +227,18 @@ class WsClient {
       String? token;
       try {
         token = await _queryToken();
-      } catch (_) {
-        token = null;
+      } catch (e) {
+        // `_queryToken` (WsTokenService.token) returns `null` — no throw —
+        // specifically for "server lacks this endpoint" (404); anything it
+        // actually throws is a genuine transient mint failure (network blip,
+        // 5xx). Treat that like any other connect failure (backoff + retry,
+        // re-minting fresh next attempt) instead of silently falling back to
+        // header-only: on a server that REQUIRES `?token=`, a header-only
+        // handshake is certain to 401 and burns the one-shot re-login for
+        // nothing.
+        if (generation != _generation) return;
+        await _handleConnectError(e, generation);
+        return;
       }
       if (generation != _generation || !_running || _disposed) return;
       if (token != null && token.isNotEmpty) {
@@ -321,10 +332,22 @@ class WsClient {
 
   void _startHeartbeat() {
     _heartbeat?.cancel();
-    _heartbeat = Timer.periodic(
-      heartbeatInterval,
-      (_) => _conn?.send(jsonEncode({'type': 'ping'})),
-    );
+    _heartbeat = Timer.periodic(heartbeatInterval, (_) => _sendHeartbeat());
+  }
+
+  /// A remote close can land between the last frame and the stream's
+  /// `onDone`/`onError` callback actually firing — `_conn` stays non-null for
+  /// that window, so a ping can hit an already-closed sink and throw
+  /// straight out of the timer callback (uncaught, no recovery). Swallow it;
+  /// `_onClosed` runs once onDone/onError actually delivers and reconnects.
+  void _sendHeartbeat() {
+    final conn = _conn;
+    if (conn == null) return;
+    try {
+      conn.send(jsonEncode({'type': 'ping'}));
+    } on Object {
+      // Ignore — teardown/reconnect is already in flight.
+    }
   }
 
   void _resetWatchdog(int generation) {
@@ -354,15 +377,19 @@ class WsClient {
 }
 
 /// Default classifier: handshake error is auth rejection when server
-/// RESPONDED but didn't upgrade (401/403, "not upgraded") — unlike
-/// connectivity failure (SocketException, timeout) where re-login won't help.
-/// `dart:io` doesn't expose clean code on 401, so we also catch
-/// "not upgraded to websocket" message.
+/// RESPONDED but didn't upgrade (401/403) — unlike connectivity failure
+/// (SocketException, timeout) where re-login won't help.
+///
+/// Anchored on the real HTTP status `dart:io`'s `WebSocket.connect` attaches
+/// to the thrown `WebSocketException` (`response.statusCode` whenever a
+/// response came back but wasn't a 101 upgrade) — NOT a substring match on
+/// `error.toString()`. A plain connectivity failure's message can embed the
+/// target host/port (e.g. a server on `host:8403`), which would otherwise
+/// false-match "403" and misclassify a routine network hiccup as an auth
+/// rejection. `package:web_socket_channel` wraps the original exception in
+/// `WebSocketChannelException.inner`, so unwrap that first.
 bool _defaultIsAuthError(Object error) {
-  final s = error.toString().toLowerCase();
-  return s.contains('401') ||
-      s.contains('403') ||
-      s.contains('unauthorized') ||
-      s.contains('forbidden') ||
-      s.contains('not upgraded');
+  final inner = error is WebSocketChannelException ? error.inner : error;
+  final code = inner is WebSocketException ? inner.httpStatusCode : null;
+  return code == 401 || code == 403;
 }

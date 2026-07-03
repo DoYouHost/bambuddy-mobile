@@ -244,11 +244,27 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     // Cannot parent a project to itself.
     final options =
         projects.where((p) => p.id != widget.existing?.id).toList();
+    final parentId = _parentId;
+    // `projects` is status-filtered (and may still be loading) — the current
+    // parent can be absent from `options` (e.g. it's archived/completed while
+    // the active filter is "active"). Inject a synthetic entry so the
+    // dropdown's value always matches one of `items`, else DropdownButton
+    // asserts "exactly zero or one item with [value]" and the sheet crashes.
+    final missingParent =
+        parentId != null && !options.any((p) => p.id == parentId);
     return DropdownButtonFormField<int?>(
       initialValue: _parentId,
       decoration: InputDecoration(labelText: l10n.projectParent),
       items: [
         DropdownMenuItem(value: null, child: Text(l10n.projectParentNone)),
+        if (missingParent)
+          DropdownMenuItem(
+            value: parentId,
+            child: Text(
+              widget.existing?.parentName ?? '#$parentId',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         for (final p in options)
           DropdownMenuItem(value: p.id, child: Text(p.name)),
       ],

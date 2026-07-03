@@ -34,7 +34,17 @@ class WidgetCoverCache {
       if (bytes == null || bytes.isEmpty) return null;
       final dir = await getApplicationSupportDirectory();
       final file = File('${dir.path}/widget_cover.jpg');
-      await file.writeAsBytes(bytes, flush: true);
+      // Foreground app and background service both fetch to this same fixed
+      // path with no lock between them — a direct write could interleave with
+      // a concurrent one and leave a torn file the native widget then tries to
+      // decode. Write to a per-call temp file and rename into place: rename
+      // within the same directory is atomic, so a reader only ever sees a
+      // fully-written file, whichever isolate wrote it last.
+      final tmp = File(
+        '${file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp',
+      );
+      await tmp.writeAsBytes(bytes, flush: true);
+      await tmp.rename(file.path);
       _lastUrl = url;
       _lastPath = file.path;
       return file.path;

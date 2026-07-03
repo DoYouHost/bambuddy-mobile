@@ -17,9 +17,7 @@ LibraryFile _$LibraryFileFromJson(Map<String, dynamic> json) => LibraryFile(
   thumbnailPath: json['thumbnail_path'] as String?,
   duplicateCount: (json['duplicate_count'] as num?)?.toInt() ?? 0,
   createdByUsername: json['created_by_username'] as String?,
-  createdAt: json['created_at'] == null
-      ? null
-      : DateTime.parse(json['created_at'] as String),
+  createdAt: dateTimeFromJson(json['created_at']),
   printName: json['print_name'] as String?,
   printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
   filamentUsedGrams: (json['filament_used_grams'] as num?)?.toDouble(),
