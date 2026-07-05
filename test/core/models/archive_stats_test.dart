@@ -8,6 +8,7 @@ void main() {
         'total_prints': 83,
         'successful_prints': 77,
         'failed_prints': 3,
+        'cancelled_prints': 3,
         'total_print_time_hours': 175.6,
         'total_filament_grams': 6560.5,
         'total_cost': 194.73,
@@ -23,6 +24,7 @@ void main() {
       expect(stats.totalPrints, 83);
       expect(stats.successfulPrints, 77);
       expect(stats.failedPrints, 3);
+      expect(stats.cancelledPrints, 3);
       expect(stats.totalPrintTimeHours, 175.6);
       expect(stats.totalFilamentGrams, 6560.5);
       expect(stats.totalCost, 194.73);
@@ -44,9 +46,21 @@ void main() {
       expect(stats.successRate, closeTo(96.25, 0.001));
     });
 
+    test('anulowane wydruki nie wchodzą do mianownika successRate', () {
+      final stats = ArchiveStats.fromJson(const {
+        'successful_prints': 77,
+        'failed_prints': 3,
+        'cancelled_prints': 20,
+      });
+      expect(stats.cancelledPrints, 20);
+      // Ten sam wynik co bez anulowanych — mianownik to tylko sukces+porażka.
+      expect(stats.successRate, closeTo(96.25, 0.001));
+    });
+
     test('puste / brakujące pola → bezpieczne defaulty', () {
       final stats = ArchiveStats.fromJson(const {});
       expect(stats.totalPrints, 0);
+      expect(stats.cancelledPrints, 0);
       expect(stats.successRate, 0);
       expect(stats.isEmpty, isTrue);
       expect(stats.printsByFilamentType, isEmpty);

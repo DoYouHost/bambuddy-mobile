@@ -52,11 +52,16 @@ class FailureAnalysisCache {
 
   /// Filter signature → cache key. Relative ranges keyed by name (resolved dates
   /// change daily, but stale-while-revalidate fetches fresh anyway); custom range
-  /// keyed by explicit dates.
-  static String signature(StatsFilter f) => switch (f.range) {
-        StatsRange.custom => 'custom_${_ymd(f.from)}_${_ymd(f.to)}',
-        _ => f.range.name,
-      };
+  /// keyed by explicit dates. [StatsFilter.createdById] is included so switching
+  /// the user filter doesn't merge one user's banked "all time" aggregate with
+  /// another's — each (range, user) pair gets its own bucket.
+  static String signature(StatsFilter f) {
+    final range = switch (f.range) {
+      StatsRange.custom => 'custom_${_ymd(f.from)}_${_ymd(f.to)}',
+      _ => f.range.name,
+    };
+    return '${range}_u${f.createdById ?? 'all'}';
+  }
 
   FailureCacheEntry? load(StatsFilter filter) {
     final raw = _prefs.getString('$_prefix${signature(filter)}');

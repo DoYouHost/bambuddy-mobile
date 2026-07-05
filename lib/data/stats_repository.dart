@@ -5,6 +5,8 @@ import '../core/api/endpoints.dart';
 import '../core/models/archive_slim.dart';
 import '../core/models/archive_stats.dart';
 import '../core/models/failure_analysis.dart';
+import '../core/models/json_utils.dart';
+import '../core/models/user_summary.dart';
 
 /// REST data source for archive stats (`GET /archives/stats`).
 ///
@@ -109,6 +111,18 @@ class StatsRepository {
         queryParameters: query,
       );
       return FailureAnalysis.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      throw mapDioException(e);
+    }
+  }
+
+  /// Fetch all users, for the Stats "filter by user" picker. Permission-gated
+  /// server-side — a 403 is a normal outcome (caller hides the picker), not
+  /// an error to surface.
+  Future<List<UserSummary>> fetchUsers() async {
+    try {
+      final res = await _dio.get<List<dynamic>>(Endpoints.users);
+      return parseJsonList(res.data, UserSummary.fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     }

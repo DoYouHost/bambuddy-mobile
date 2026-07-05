@@ -11,6 +11,7 @@ class ArchiveStats {
     this.totalPrints = 0,
     this.successfulPrints = 0,
     this.failedPrints = 0,
+    this.cancelledPrints = 0,
     this.totalPrintTimeHours = 0,
     this.totalFilamentGrams = 0,
     this.totalCost = 0,
@@ -27,6 +28,7 @@ class ArchiveStats {
         totalPrints: toInt(json['total_prints']),
         successfulPrints: toInt(json['successful_prints']),
         failedPrints: toInt(json['failed_prints']),
+        cancelledPrints: toInt(json['cancelled_prints']),
         totalPrintTimeHours: toDouble(json['total_print_time_hours']),
         totalFilamentGrams: toDouble(json['total_filament_grams']),
         totalCost: toDouble(json['total_cost']),
@@ -47,6 +49,10 @@ class ArchiveStats {
 
   /// Failed prints.
   final int failedPrints;
+
+  /// User/system-cancelled prints (stopped/cancelled/skipped) — distinct from
+  /// quality failures, excluded from [successRate]'s denominator.
+  final int cancelledPrints;
 
   /// Total print time in hours.
   final double totalPrintTimeHours;

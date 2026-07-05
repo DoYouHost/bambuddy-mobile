@@ -475,4 +475,12 @@ abstract final class Endpoints {
   /// Library folders linked to a project (`GET` → `FolderTreeItem[]`).
   static String libraryFoldersByProject(int projectId) =>
       '$apiPrefix/library/folders/by-project/$projectId';
+
+  // --- Users ---
+
+  /// User list (`UserResponse[]`) — used only by the Stats "filter by user"
+  /// picker. Gated server-side on `USERS_READ`/`stats:filter_by_user`; 403
+  /// means this identity can't filter by user (caller hides the picker, not
+  /// an error). Trailing slash required (FastAPI), similar to `/printers/`.
+  static const users = '$apiPrefix/users/';
 }

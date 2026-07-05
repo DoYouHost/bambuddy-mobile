@@ -1528,6 +1528,17 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String statsCancelled(int count) {
+    return 'Anulowane: $count';
+  }
+
+  @override
+  String get statsAllUsers => 'Wszyscy użytkownicy';
+
+  @override
+  String get statsNoUser => 'Brak użytkownika (system)';
+
+  @override
   String get statsTimeAccuracy => 'Dokładność czasu';
 
   @override

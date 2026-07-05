@@ -1,5 +1,7 @@
 apk := "build/app/outputs/flutter-apk/app-release.apk"
 repo := "MorganMLGman/bambuddy-mobile"
+# Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
+emu := "192.168.2.208:5555"
 
 # show available commands
 default:
@@ -16,6 +18,18 @@ build:
 # clean build artifacts
 clean:
     flutter clean
+
+# connect to the remote GPU emulator on the nuc LXC (idempotent, needs LAN)
+emu-connect:
+    adb connect {{emu}}
+
+# run the app on the remote GPU emulator (screen view at http://192.168.2.208:8000)
+dev: emu-connect
+    flutter run -d {{emu}}
+
+# run integration tests on the remote GPU emulator
+itest: emu-connect
+    flutter test integration_test/
 
 # bump version in pubspec.yaml and commit
 # versionCode = major*10000 + minor*100 + patch (e.g. 1.2.3 → 10203)

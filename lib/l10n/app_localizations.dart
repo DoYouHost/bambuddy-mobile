@@ -2696,6 +2696,24 @@ abstract class AppLocalizations {
   /// **'Failed: {count}'**
   String statsFailed(int count);
 
+  /// No description provided for @statsCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled: {count}'**
+  String statsCancelled(int count);
+
+  /// No description provided for @statsAllUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'All Users'**
+  String get statsAllUsers;
+
+  /// No description provided for @statsNoUser.
+  ///
+  /// In en, this message translates to:
+  /// **'No User (System)'**
+  String get statsNoUser;
+
   /// No description provided for @statsTimeAccuracy.
   ///
   /// In en, this message translates to:

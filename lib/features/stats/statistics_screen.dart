@@ -28,7 +28,7 @@ class StatisticsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.statsTitle),
-        actions: [_RangeMenu(filter: filter)],
+        actions: [_UserFilterMenu(filter: filter), _RangeMenu(filter: filter)],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -48,6 +48,47 @@ class StatisticsScreen extends ConsumerWidget {
           data: (data) => _StatsBody(data: data),
         ),
       ),
+    );
+  }
+}
+
+/// "Filter by user" menu in AppBar. Hidden entirely when [statsUsersProvider]
+/// comes back empty — either no users to pick from, or (more commonly) the
+/// server rejected `GET /users/` because this identity lacks
+/// `stats:filter_by_user`/admin (see [statsUsersProvider]).
+class _UserFilterMenu extends ConsumerWidget {
+  const _UserFilterMenu({required this.filter});
+
+  final StatsFilter filter;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final users = ref.watch(statsUsersProvider).valueOrNull ?? const [];
+    if (users.isEmpty) return const SizedBox.shrink();
+
+    String labelFor(int? id) {
+      if (id == null) return l10n.statsAllUsers;
+      if (id == -1) return l10n.statsNoUser;
+      for (final u in users) {
+        if (u.id == id) return u.username;
+      }
+      return '?';
+    }
+
+    return PopupMenuButton<int?>(
+      icon: const Icon(Icons.people_outline),
+      tooltip: labelFor(filter.createdById),
+      initialValue: filter.createdById,
+      onSelected: (id) =>
+          ref.read(statsFilterProvider.notifier).setCreatedById(id),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: null, child: Text(l10n.statsAllUsers)),
+        PopupMenuItem(value: -1, child: Text(l10n.statsNoUser)),
+        const PopupMenuDivider(),
+        for (final u in users)
+          PopupMenuItem(value: u.id, child: Text(u.username)),
+      ],
     );
   }
 }
@@ -366,6 +407,11 @@ class _SuccessRateCard extends StatelessWidget {
             LegendDot(
               color: scheme.error,
               text: l10n.statsFailed(data.failedPrints),
+            ),
+            const SizedBox(height: 4),
+            LegendDot(
+              color: Colors.orange,
+              text: l10n.statsCancelled(data.cancelledPrints),
             ),
           ],
         ),

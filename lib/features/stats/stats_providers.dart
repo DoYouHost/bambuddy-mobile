@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive_slim.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/models/failure_analysis.dart';
+import '../../core/models/user_summary.dart';
 import '../../data/failure_analysis_cache.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -27,17 +29,27 @@ enum StatsRange { allTime, last7Days, last30Days, last90Days, thisYear, custom }
 /// Stats filter: time range (+ optional explicit dates for [StatsRange.custom]).
 @immutable
 class StatsFilter {
-  const StatsFilter({this.range = StatsRange.allTime, this.from, this.to});
+  const StatsFilter({
+    this.range = StatsRange.allTime,
+    this.from,
+    this.to,
+    this.createdById,
+  });
 
   final StatsRange range;
   final DateTime? from;
   final DateTime? to;
+
+  /// Print creator filter — `null` = all users (no filter sent), `-1` = no
+  /// assigned user (system/unauthenticated), positive = specific user id.
+  final int? createdById;
 
   StatsFilter copyWith({StatsRange? range, DateTime? from, DateTime? to}) =>
       StatsFilter(
         range: range ?? this.range,
         from: from ?? this.from,
         to: to ?? this.to,
+        createdById: createdById,
       );
 
   @override
@@ -45,10 +57,11 @@ class StatsFilter {
       other is StatsFilter &&
       other.range == range &&
       other.from == from &&
-      other.to == to;
+      other.to == to &&
+      other.createdById == createdById;
 
   @override
-  int get hashCode => Object.hash(range, from, to);
+  int get hashCode => Object.hash(range, from, to, createdById);
 }
 
 /// Active stats filter. Changing value reloads [statsProvider].
@@ -61,11 +74,26 @@ class StatsFilterNotifier extends Notifier<StatsFilter> {
 
   void setRange(StatsRange range) {
     if (range == StatsRange.custom) return; // custom uses setCustom
-    state = StatsFilter(range: range);
+    state = StatsFilter(range: range, createdById: state.createdById);
   }
 
   void setCustom(DateTime from, DateTime to) {
-    state = StatsFilter(range: StatsRange.custom, from: from, to: to);
+    state = StatsFilter(
+      range: StatsRange.custom,
+      from: from,
+      to: to,
+      createdById: state.createdById,
+    );
+  }
+
+  /// `null` = All Users, `-1` = No User (System), positive = specific user id.
+  void setCreatedById(int? createdById) {
+    state = StatsFilter(
+      range: state.range,
+      from: state.from,
+      to: state.to,
+      createdById: createdById,
+    );
   }
 }
 
@@ -83,7 +111,9 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
     ref.watch(serverProfileProvider);
     final filter = ref.watch(statsFilterProvider);
     final (from, to) = _resolveDates(filter);
-    return ref.read(statsRepositoryProvider).fetch(from: from, to: to);
+    return ref
+        .read(statsRepositoryProvider)
+        .fetch(from: from, to: to, createdById: filter.createdById);
   }
 
   /// Pull-to-refresh: refetch for current filter.
@@ -92,7 +122,9 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
     final filter = ref.read(statsFilterProvider);
     final (from, to) = _resolveDates(filter);
     state = await AsyncValue.guard(
-      () => ref.read(statsRepositoryProvider).fetch(from: from, to: to),
+      () => ref
+          .read(statsRepositoryProvider)
+          .fetch(from: from, to: to, createdById: filter.createdById),
     );
   }
 
@@ -128,7 +160,23 @@ final archiveSlimProvider =
   ref.watch(serverProfileProvider);
   final filter = ref.watch(statsFilterProvider);
   final (from, to) = StatsNotifier._resolveDates(filter);
-  return ref.read(statsRepositoryProvider).fetchSlim(from: from, to: to);
+  return ref
+      .read(statsRepositoryProvider)
+      .fetchSlim(from: from, to: to, createdById: filter.createdById);
+});
+
+/// Users for the Stats "filter by user" picker. Empty (including on 403 —
+/// no permission) hides the picker entirely; this mirrors server-side
+/// gating (`stats:filter_by_user`/admin) without the app needing its own
+/// permission model.
+final statsUsersProvider =
+    FutureProvider.autoDispose<List<UserSummary>>((ref) async {
+  ref.watch(serverProfileProvider);
+  try {
+    return await ref.read(statsRepositoryProvider).fetchUsers();
+  } on AppApiException {
+    return const [];
+  }
 });
 
 /// Computed aggregates from slim list (pure calculation, no I/O).
@@ -210,7 +258,8 @@ class FailureAnalysisNotifier
       var (from, to) = StatsNotifier._resolveDates(filter);
       from ??= DateTime(2000);
       to ??= today;
-      final full = await repo.fetchFailures(from: from, to: to);
+      final full = await repo.fetchFailures(
+          from: from, to: to, createdById: filter.createdById);
       await cache.save(filter,
           FailureCacheEntry(analysis: full, coveredThrough: null, fetchedAt: now));
       return full;
@@ -228,7 +277,8 @@ class FailureAnalysisNotifier
             coveredThrough.day + 1);
     // Bank days that closed since last time (typically 0–1 day).
     if (!bankStart.isAfter(yesterday)) {
-      final bank = await repo.fetchFailures(from: bankStart, to: yesterday);
+      final bank = await repo.fetchFailures(
+          from: bankStart, to: yesterday, createdById: filter.createdById);
       banked = banked.merge(bank);
       await cache.save(
         filter,
@@ -237,7 +287,8 @@ class FailureAnalysisNotifier
       );
     }
     // Today's incomplete day — separate, outside cache.
-    final todayPart = await repo.fetchFailures(from: today, to: today);
+    final todayPart = await repo.fetchFailures(
+        from: today, to: today, createdById: filter.createdById);
     return banked.merge(todayPart);
   }
 }
