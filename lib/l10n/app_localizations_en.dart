@@ -2898,4 +2898,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plateClearedSnack => 'Plate marked as cleared';
+
+  @override
+  String get pfmTitle => 'File Manager';
+
+  @override
+  String get pfmTooltip => 'Files on printer';
+
+  @override
+  String pfmStorageUsed(String size) {
+    return 'Used: $size';
+  }
+
+  @override
+  String get pfmTabRoot => 'Root';
+
+  @override
+  String get pfmTabCache => 'Cache';
+
+  @override
+  String get pfmTabModels => 'Models';
+
+  @override
+  String get pfmTabTimelapse => 'Timelapse';
+
+  @override
+  String get pfmSearchHint => 'Filter files…';
+
+  @override
+  String get pfmSortTooltip => 'Sort';
+
+  @override
+  String get pfmRefreshTooltip => 'Refresh';
+
+  @override
+  String get pfmSortNameAsc => 'Name (A–Z)';
+
+  @override
+  String get pfmSortNameDesc => 'Name (Z–A)';
+
+  @override
+  String get pfmSortSizeLargest => 'Size (largest)';
+
+  @override
+  String get pfmSortSizeSmallest => 'Size (smallest)';
+
+  @override
+  String get pfmSortDateNewest => 'Date (newest)';
+
+  @override
+  String get pfmSortDateOldest => 'Date (oldest)';
+
+  @override
+  String get pfmSelectAll => 'Select all';
+
+  @override
+  String get pfmDeselectAll => 'Deselect all';
+
+  @override
+  String pfmSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get pfmEmpty => 'This folder is empty';
+
+  @override
+  String get pfmNoMatches => 'No files match your filter';
+
+  @override
+  String get pfmDownload => 'Download';
+
+  @override
+  String get pfmDelete => 'Delete';
+
+  @override
+  String get pfmDownloadSaved => 'File saved';
+
+  @override
+  String get pfmDeleteConfirmTitle => 'Delete files?';
+
+  @override
+  String pfmDeleteConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return 'Permanently delete $count $_temp0 from the printer? This cannot be undone.';
+  }
+
+  @override
+  String pfmDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return 'Deleted $count $_temp0';
+  }
 }

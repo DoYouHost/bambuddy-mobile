@@ -5101,6 +5101,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plate marked as cleared'**
   String get plateClearedSnack;
+
+  /// No description provided for @pfmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File Manager'**
+  String get pfmTitle;
+
+  /// No description provided for @pfmTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Files on printer'**
+  String get pfmTooltip;
+
+  /// No description provided for @pfmStorageUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used: {size}'**
+  String pfmStorageUsed(String size);
+
+  /// No description provided for @pfmTabRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get pfmTabRoot;
+
+  /// No description provided for @pfmTabCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache'**
+  String get pfmTabCache;
+
+  /// No description provided for @pfmTabModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get pfmTabModels;
+
+  /// No description provided for @pfmTabTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get pfmTabTimelapse;
+
+  /// No description provided for @pfmSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter files…'**
+  String get pfmSearchHint;
+
+  /// No description provided for @pfmSortTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get pfmSortTooltip;
+
+  /// No description provided for @pfmRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get pfmRefreshTooltip;
+
+  /// No description provided for @pfmSortNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (A–Z)'**
+  String get pfmSortNameAsc;
+
+  /// No description provided for @pfmSortNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (Z–A)'**
+  String get pfmSortNameDesc;
+
+  /// No description provided for @pfmSortSizeLargest.
+  ///
+  /// In en, this message translates to:
+  /// **'Size (largest)'**
+  String get pfmSortSizeLargest;
+
+  /// No description provided for @pfmSortSizeSmallest.
+  ///
+  /// In en, this message translates to:
+  /// **'Size (smallest)'**
+  String get pfmSortSizeSmallest;
+
+  /// No description provided for @pfmSortDateNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Date (newest)'**
+  String get pfmSortDateNewest;
+
+  /// No description provided for @pfmSortDateOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Date (oldest)'**
+  String get pfmSortDateOldest;
+
+  /// No description provided for @pfmSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get pfmSelectAll;
+
+  /// No description provided for @pfmDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get pfmDeselectAll;
+
+  /// No description provided for @pfmSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String pfmSelected(int count);
+
+  /// No description provided for @pfmEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is empty'**
+  String get pfmEmpty;
+
+  /// No description provided for @pfmNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No files match your filter'**
+  String get pfmNoMatches;
+
+  /// No description provided for @pfmDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get pfmDownload;
+
+  /// No description provided for @pfmDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get pfmDelete;
+
+  /// No description provided for @pfmDownloadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved'**
+  String get pfmDownloadSaved;
+
+  /// No description provided for @pfmDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete files?'**
+  String get pfmDeleteConfirmTitle;
+
+  /// No description provided for @pfmDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete {count} {count, plural, one{file} other{files}} from the printer? This cannot be undone.'**
+  String pfmDeleteConfirmBody(int count);
+
+  /// No description provided for @pfmDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {count} {count, plural, one{file} other{files}}'**
+  String pfmDeleted(int count);
 }
 
 class _AppLocalizationsDelegate

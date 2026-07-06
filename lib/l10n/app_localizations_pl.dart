@@ -2946,4 +2946,107 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get plateClearedSnack => 'Oznaczono płytę jako pustą';
+
+  @override
+  String get pfmTitle => 'Menedżer plików';
+
+  @override
+  String get pfmTooltip => 'Pliki na drukarce';
+
+  @override
+  String pfmStorageUsed(String size) {
+    return 'Użyto: $size';
+  }
+
+  @override
+  String get pfmTabRoot => 'Główny';
+
+  @override
+  String get pfmTabCache => 'Cache';
+
+  @override
+  String get pfmTabModels => 'Modele';
+
+  @override
+  String get pfmTabTimelapse => 'Timelapse';
+
+  @override
+  String get pfmSearchHint => 'Filtruj pliki…';
+
+  @override
+  String get pfmSortTooltip => 'Sortuj';
+
+  @override
+  String get pfmRefreshTooltip => 'Odśwież';
+
+  @override
+  String get pfmSortNameAsc => 'Nazwa (A–Z)';
+
+  @override
+  String get pfmSortNameDesc => 'Nazwa (Z–A)';
+
+  @override
+  String get pfmSortSizeLargest => 'Rozmiar (największe)';
+
+  @override
+  String get pfmSortSizeSmallest => 'Rozmiar (najmniejsze)';
+
+  @override
+  String get pfmSortDateNewest => 'Data (najnowsze)';
+
+  @override
+  String get pfmSortDateOldest => 'Data (najstarsze)';
+
+  @override
+  String get pfmSelectAll => 'Zaznacz wszystko';
+
+  @override
+  String get pfmDeselectAll => 'Odznacz wszystko';
+
+  @override
+  String pfmSelected(int count) {
+    return 'Zaznaczono: $count';
+  }
+
+  @override
+  String get pfmEmpty => 'Ten folder jest pusty';
+
+  @override
+  String get pfmNoMatches => 'Brak plików pasujących do filtra';
+
+  @override
+  String get pfmDownload => 'Pobierz';
+
+  @override
+  String get pfmDelete => 'Usuń';
+
+  @override
+  String get pfmDownloadSaved => 'Zapisano plik';
+
+  @override
+  String get pfmDeleteConfirmTitle => 'Usunąć pliki?';
+
+  @override
+  String pfmDeleteConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plików',
+      few: '$count pliki',
+      one: '$count plik',
+    );
+    return 'Trwale usunąć $_temp0 z drukarki? Tej operacji nie można cofnąć.';
+  }
+
+  @override
+  String pfmDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plików',
+      few: '$count pliki',
+      one: '$count plik',
+    );
+    return 'Usunięto $_temp0';
+  }
 }

@@ -40,6 +40,31 @@ abstract final class Endpoints {
   static String cameraStream(int printerId) =>
       '$apiPrefix/printers/$printerId/camera/stream';
 
+  // --- Printer storage / file manager ---
+  // Browse the printer's own storage (SD/eMMC) over the server's FTP bridge.
+  // All require the `PRINTERS_FILES` permission. `path` is a query parameter.
+
+  /// List entries at `?path=` (default `/`). Response: `{path, files:[...]}`.
+  static String printerFiles(int printerId) =>
+      '$apiPrefix/printers/$printerId/files';
+
+  /// Download a single file (`?path=`) as a binary stream with
+  /// `Content-Disposition`. Same route as [printerFiles] but `/download`.
+  static String printerFileDownload(int printerId) =>
+      '$apiPrefix/printers/$printerId/files/download';
+
+  /// Download several files (`{"paths":[...]}` body) bundled as one ZIP.
+  static String printerFilesDownloadZip(int printerId) =>
+      '$apiPrefix/printers/$printerId/files/download-zip';
+
+  /// `DELETE ?path=` removes one file. Same route as [printerFiles].
+  static String printerFileDelete(int printerId) =>
+      '$apiPrefix/printers/$printerId/files';
+
+  /// Storage usage: `{used_bytes, free_bytes}` (both may be null).
+  static String printerStorage(int printerId) =>
+      '$apiPrefix/printers/$printerId/storage';
+
   // --- Control (M4) ---
   // All are POST; require `can_control_printer` permission on API key
   // (missing → 403). Body empty — parameters in query (see below).

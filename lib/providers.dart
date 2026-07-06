@@ -24,6 +24,7 @@ import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
 import 'data/printer_commands_repository.dart';
+import 'data/printer_files_repository.dart';
 import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
@@ -248,6 +249,11 @@ final firmwareRepositoryProvider = Provider<FirmwareRepository>(
 /// File manager / library. Shares authenticated Dio.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Printer on-device storage (file manager). Shares authenticated Dio.
+final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
+  (ref) => PrinterFilesRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Server-side slicing (sidecar). Shares authenticated Dio.

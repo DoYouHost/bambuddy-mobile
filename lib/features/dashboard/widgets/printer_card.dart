@@ -15,6 +15,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel;
@@ -187,8 +188,22 @@ class _PrinterCardState extends State<PrinterCard> {
                     ],
                   ),
                 ),
-                // Camera view only when connected (offline won't stream anyway).
-                if (connected)
+                // File manager + camera only when connected: both hit the
+                // printer over FTP/stream, which fails when it's offline.
+                if (connected) ...[
+                  IconButton(
+                    tooltip: l10n.pfmTooltip,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.folder_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => PrinterFileManagerScreen(
+                          printerId: widget.item.printer.id,
+                          printerName: widget.item.printer.name,
+                        ),
+                      ),
+                    ),
+                  ),
                   IconButton(
                     tooltip: l10n.cameraTooltip,
                     visualDensity: VisualDensity.compact,
@@ -202,6 +217,7 @@ class _PrinterCardState extends State<PrinterCard> {
                       ),
                     ),
                   ),
+                ],
                 _SmartPlugButton(
                   printerId: widget.item.printer.id,
                   printing: printing,
