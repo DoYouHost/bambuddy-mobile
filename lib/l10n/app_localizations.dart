@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
   /// No description provided for @change.
   ///
   /// In en, this message translates to:
@@ -1952,6 +1958,12 @@ abstract class AppLocalizations {
   /// **'Add spool'**
   String get inventoryAddSpool;
 
+  /// No description provided for @inventoryAddSpools.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryAddSpools(int count);
+
   /// No description provided for @inventoryNewSpool.
   ///
   /// In en, this message translates to:
@@ -1969,6 +1981,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save'**
   String get inventorySave;
+
+  /// No description provided for @inventoryFieldQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get inventoryFieldQuantity;
+
+  /// No description provided for @inventoryQuantityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create several identical spools at once'**
+  String get inventoryQuantityHint;
 
   /// No description provided for @inventoryEdit.
   ///
@@ -1999,6 +2023,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset usage'**
   String get inventoryResetUsage;
+
+  /// No description provided for @inventoryFieldSlicerPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicer preset'**
+  String get inventoryFieldSlicerPreset;
+
+  /// No description provided for @inventorySlicerPresetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print profile this spool is added with'**
+  String get inventorySlicerPresetHint;
+
+  /// No description provided for @inventorySlicerPresetNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset'**
+  String get inventorySlicerPresetNone;
+
+  /// No description provided for @inventorySlicerPresetSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search presets…'**
+  String get inventorySlicerPresetSearch;
+
+  /// No description provided for @inventorySlicerPresetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).'**
+  String get inventorySlicerPresetUnavailable;
 
   /// No description provided for @inventoryFieldMaterial.
   ///
@@ -2132,6 +2186,18 @@ abstract class AppLocalizations {
   /// **'Empty spool weight (g)'**
   String get inventoryFieldEmptySpoolWeight;
 
+  /// No description provided for @inventoryCoreWeightSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select…'**
+  String get inventoryCoreWeightSelect;
+
+  /// No description provided for @inventoryCoreWeightSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search spools…'**
+  String get inventoryCoreWeightSearch;
+
   /// No description provided for @inventoryFieldRemainingWeight.
   ///
   /// In en, this message translates to:
@@ -2239,6 +2305,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spool added'**
   String get inventorySpoolCreated;
+
+  /// No description provided for @inventorySpoolsCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{spool} other{spools}} added'**
+  String inventorySpoolsCreated(int count);
 
   /// No description provided for @inventorySpoolUpdated.
   ///
@@ -2515,6 +2587,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not update maintenance'**
   String get maintenanceFailed;
+
+  /// No description provided for @maintenanceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get maintenanceSaved;
+
+  /// No description provided for @maintenanceSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance settings'**
+  String get maintenanceSettingsTitle;
+
+  /// No description provided for @maintenanceOverridesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval overrides'**
+  String get maintenanceOverridesTitle;
+
+  /// No description provided for @maintenanceOverridesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute tasks or customize intervals per printer'**
+  String get maintenanceOverridesSubtitle;
+
+  /// No description provided for @maintenanceTabStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get maintenanceTabStatus;
+
+  /// No description provided for @maintenanceTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get maintenanceTabSettings;
+
+  /// No description provided for @maintenanceMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get maintenanceMute;
+
+  /// No description provided for @maintenanceUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get maintenanceUnmute;
+
+  /// No description provided for @maintenanceMuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Task muted'**
+  String get maintenanceMuted;
+
+  /// No description provided for @maintenanceUnmuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Task unmuted'**
+  String get maintenanceUnmuted;
+
+  /// No description provided for @maintenanceEditInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit interval'**
+  String get maintenanceEditInterval;
+
+  /// No description provided for @maintenanceResetInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to default'**
+  String get maintenanceResetInterval;
+
+  /// No description provided for @maintenanceTypesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance types'**
+  String get maintenanceTypesTitle;
+
+  /// No description provided for @maintenanceTypesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'System types and your custom tasks'**
+  String get maintenanceTypesSubtitle;
+
+  /// No description provided for @maintenanceRestoreDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get maintenanceRestoreDefaults;
+
+  /// No description provided for @maintenanceRestoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all hidden default maintenance types?'**
+  String get maintenanceRestoreConfirm;
+
+  /// No description provided for @maintenanceAddType.
+  ///
+  /// In en, this message translates to:
+  /// **'Add custom type'**
+  String get maintenanceAddType;
+
+  /// No description provided for @maintenanceEditType.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit type'**
+  String get maintenanceEditType;
+
+  /// No description provided for @maintenanceSystemType.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get maintenanceSystemType;
+
+  /// No description provided for @maintenanceEveryHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {count} h'**
+  String maintenanceEveryHours(int count);
+
+  /// No description provided for @maintenanceEveryDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {count} days'**
+  String maintenanceEveryDays(int count);
+
+  /// No description provided for @maintenanceDeleteTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete maintenance type?'**
+  String get maintenanceDeleteTypeTitle;
+
+  /// No description provided for @maintenanceDeleteTypeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This cannot be undone.'**
+  String maintenanceDeleteTypeConfirm(String name);
+
+  /// No description provided for @maintenanceHideTypeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the default type \"{name}\"? You can restore it later.'**
+  String maintenanceHideTypeConfirm(String name);
+
+  /// No description provided for @maintenanceFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get maintenanceFieldName;
+
+  /// No description provided for @maintenanceFieldNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Replace HEPA filter'**
+  String get maintenanceFieldNameHint;
+
+  /// No description provided for @maintenanceFieldIntervalType.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval type'**
+  String get maintenanceFieldIntervalType;
+
+  /// No description provided for @maintenanceFieldInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval'**
+  String get maintenanceFieldInterval;
+
+  /// No description provided for @maintenanceIntervalHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Print hours'**
+  String get maintenanceIntervalHours;
+
+  /// No description provided for @maintenanceIntervalDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get maintenanceIntervalDays;
+
+  /// No description provided for @maintenanceIntervalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value ≥ 1'**
+  String get maintenanceIntervalInvalid;
+
+  /// No description provided for @maintenanceFieldIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get maintenanceFieldIcon;
+
+  /// No description provided for @maintenanceFieldDocLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Documentation link (optional)'**
+  String get maintenanceFieldDocLink;
+
+  /// No description provided for @maintenanceAssignPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign to printers'**
+  String get maintenanceAssignPrinters;
+
+  /// No description provided for @maintenanceSelectPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one printer'**
+  String get maintenanceSelectPrinter;
 
   /// No description provided for @notifEvtMaintenance.
   ///

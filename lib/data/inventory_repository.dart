@@ -28,6 +28,9 @@ class InventoryRepository {
 
   Future<Spool> createSpool(SpoolDraft draft) => _source.createSpool(draft);
 
+  Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) =>
+      _source.bulkCreateSpools(draft, quantity);
+
   Future<Spool> updateSpool(int spoolId, SpoolDraft draft) =>
       _source.updateSpool(spoolId, draft);
 

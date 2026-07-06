@@ -64,6 +64,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get clear => 'Clear';
+
+  @override
   String get change => 'Change';
 
   @override
@@ -1101,6 +1104,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryAddSpool => 'Add spool';
 
   @override
+  String inventoryAddSpools(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Add $count $_temp0';
+  }
+
+  @override
   String get inventoryNewSpool => 'New spool';
 
   @override
@@ -1108,6 +1122,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySave => 'Save';
+
+  @override
+  String get inventoryFieldQuantity => 'Quantity';
+
+  @override
+  String get inventoryQuantityHint => 'Create several identical spools at once';
 
   @override
   String get inventoryEdit => 'Edit';
@@ -1123,6 +1143,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryResetUsage => 'Reset usage';
+
+  @override
+  String get inventoryFieldSlicerPreset => 'Slicer preset';
+
+  @override
+  String get inventorySlicerPresetHint =>
+      'Print profile this spool is added with';
+
+  @override
+  String get inventorySlicerPresetNone => 'No preset';
+
+  @override
+  String get inventorySlicerPresetSearch => 'Search presets…';
+
+  @override
+  String get inventorySlicerPresetUnavailable =>
+      'No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).';
 
   @override
   String get inventoryFieldMaterial => 'Material';
@@ -1191,6 +1228,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldEmptySpoolWeight => 'Empty spool weight (g)';
 
   @override
+  String get inventoryCoreWeightSelect => 'Select…';
+
+  @override
+  String get inventoryCoreWeightSearch => 'Search spools…';
+
+  @override
   String get inventoryFieldRemainingWeight => 'Remaining weight (g)';
 
   @override
@@ -1248,6 +1291,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySpoolCreated => 'Spool added';
+
+  @override
+  String inventorySpoolsCreated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return '$count $_temp0 added';
+  }
 
   @override
   String get inventorySpoolUpdated => 'Spool updated';
@@ -1403,6 +1457,121 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maintenanceFailed => 'Could not update maintenance';
+
+  @override
+  String get maintenanceSaved => 'Saved';
+
+  @override
+  String get maintenanceSettingsTitle => 'Maintenance settings';
+
+  @override
+  String get maintenanceOverridesTitle => 'Interval overrides';
+
+  @override
+  String get maintenanceOverridesSubtitle =>
+      'Mute tasks or customize intervals per printer';
+
+  @override
+  String get maintenanceTabStatus => 'Status';
+
+  @override
+  String get maintenanceTabSettings => 'Settings';
+
+  @override
+  String get maintenanceMute => 'Mute';
+
+  @override
+  String get maintenanceUnmute => 'Unmute';
+
+  @override
+  String get maintenanceMuted => 'Task muted';
+
+  @override
+  String get maintenanceUnmuted => 'Task unmuted';
+
+  @override
+  String get maintenanceEditInterval => 'Edit interval';
+
+  @override
+  String get maintenanceResetInterval => 'Reset to default';
+
+  @override
+  String get maintenanceTypesTitle => 'Maintenance types';
+
+  @override
+  String get maintenanceTypesSubtitle => 'System types and your custom tasks';
+
+  @override
+  String get maintenanceRestoreDefaults => 'Restore defaults';
+
+  @override
+  String get maintenanceRestoreConfirm =>
+      'Restore all hidden default maintenance types?';
+
+  @override
+  String get maintenanceAddType => 'Add custom type';
+
+  @override
+  String get maintenanceEditType => 'Edit type';
+
+  @override
+  String get maintenanceSystemType => 'System';
+
+  @override
+  String maintenanceEveryHours(int count) {
+    return 'Every $count h';
+  }
+
+  @override
+  String maintenanceEveryDays(int count) {
+    return 'Every $count days';
+  }
+
+  @override
+  String get maintenanceDeleteTypeTitle => 'Delete maintenance type?';
+
+  @override
+  String maintenanceDeleteTypeConfirm(String name) {
+    return 'Delete \"$name\"? This cannot be undone.';
+  }
+
+  @override
+  String maintenanceHideTypeConfirm(String name) {
+    return 'Hide the default type \"$name\"? You can restore it later.';
+  }
+
+  @override
+  String get maintenanceFieldName => 'Name';
+
+  @override
+  String get maintenanceFieldNameHint => 'e.g. Replace HEPA filter';
+
+  @override
+  String get maintenanceFieldIntervalType => 'Interval type';
+
+  @override
+  String get maintenanceFieldInterval => 'Interval';
+
+  @override
+  String get maintenanceIntervalHours => 'Print hours';
+
+  @override
+  String get maintenanceIntervalDays => 'Days';
+
+  @override
+  String get maintenanceIntervalInvalid => 'Enter a value ≥ 1';
+
+  @override
+  String get maintenanceFieldIcon => 'Icon';
+
+  @override
+  String get maintenanceFieldDocLink => 'Documentation link (optional)';
+
+  @override
+  String get maintenanceAssignPrinters => 'Assign to printers';
+
+  @override
+  String get maintenanceSelectPrinter => 'Select at least one printer';
 
   @override
   String get notifEvtMaintenance => 'Maintenance due';

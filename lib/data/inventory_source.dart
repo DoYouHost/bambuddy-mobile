@@ -36,6 +36,11 @@ abstract class SpoolInventorySource {
   /// Creates a new spool; returns the created, normalized record.
   Future<Spool> createSpool(SpoolDraft draft);
 
+  /// Bulk-creates [quantity] identical spools ("restock"). Returns how many
+  /// were actually created (Spoolman may create fewer than requested and
+  /// report partial success — see [SpoolmanInventorySource.bulkCreateSpools]).
+  Future<int> bulkCreateSpools(SpoolDraft draft, int quantity);
+
   /// Updates spool fields; returns the updated record.
   Future<Spool> updateSpool(int spoolId, SpoolDraft draft);
 
@@ -118,6 +123,17 @@ class NativeInventorySource implements SpoolInventorySource {
           data: draft.toNativeJson(),
         );
         return Spool.fromNative(res.data ?? const {});
+      });
+
+  @override
+  Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) =>
+      guard(() async {
+        final res = await _dio.post<List<dynamic>>(
+          Endpoints.inventorySpoolsBulk,
+          data: {'spool': draft.toNativeJson(), 'quantity': quantity},
+        );
+        // Endpoint returns the list of created spools.
+        return res.data?.length ?? 0;
       });
 
   @override
@@ -233,6 +249,23 @@ class SpoolmanInventorySource implements SpoolInventorySource {
           data: draft.toSpoolmanJson(),
         );
         return Spool.fromSpoolman(res.data ?? const {});
+      });
+
+  @override
+  Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) =>
+      guard(() async {
+        final res = await _dio.post<dynamic>(
+          Endpoints.spoolmanSpoolsBulk,
+          data: {'spool': draft.toSpoolmanJson(), 'quantity': quantity},
+        );
+        // 200 → JSON list of created spools; 207 → partial success object
+        // `{created: [...], requested_count, failed_count, failures}`.
+        final data = res.data;
+        if (data is List) return data.length;
+        if (data is Map && data['created'] is List) {
+          return (data['created'] as List).length;
+        }
+        return 0;
       });
 
   @override

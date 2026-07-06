@@ -29,9 +29,20 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   late final Map<String, TextEditingController> _c;
   int? _coreWeightCatalogId;
   String? _effectType;
+
+  /// Selected slicer filament preset: `slicer_filament` code + human name.
+  /// The print profile the spool is added with (bambuddy "Slicer Preset").
+  String? _slicerFilament;
+  String? _slicerFilamentName;
+
   String _colorQuery = '';
   bool _materialMissing = false;
   bool _saving = false;
+
+  /// How many identical spools to create at once ("restock"). Create mode only;
+  /// server caps the bulk endpoint at 100.
+  int _quantity = 1;
+  static const _maxQuantity = 100;
 
   bool get _isEdit => widget.existing != null;
 
@@ -63,6 +74,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     };
     _coreWeightCatalogId = s?.coreWeightCatalogId;
     _effectType = s?.effectType;
+    _slicerFilament = s?.slicerFilament;
+    _slicerFilamentName = s?.slicerFilamentName;
   }
 
   @override
@@ -147,25 +160,27 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
       storageLocation: _trim('location'),
+      slicerFilament: _slicerFilament,
+      slicerFilamentName: _slicerFilamentName,
       note: _trim('note'),
     );
     setState(() => _saving = true);
     final notifier = ref.read(inventoryProvider.notifier);
     try {
+      final String message;
       if (_isEdit) {
         await notifier.updateSpool(widget.existing!.id, draft);
+        message = l10n.inventorySpoolUpdated;
+      } else if (_quantity > 1) {
+        final created = await notifier.bulkCreateSpools(draft, _quantity);
+        message = l10n.inventorySpoolsCreated(created);
       } else {
         await notifier.createSpool(draft);
+        message = l10n.inventorySpoolCreated;
       }
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEdit ? l10n.inventorySpoolUpdated : l10n.inventorySpoolCreated,
-          ),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(message)));
     } on AppApiException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -213,12 +228,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                     style: theme.textTheme.titleLarge,
                   ),
                 ),
+                // Bulk "restock": how many identical spools to create. Header
+                // placement (create mode only) so it reads before the fields.
+                if (!_isEdit) ...[
+                  const SizedBox(width: 8),
+                  _quantityStepper(l10n),
+                ],
               ],
             ),
             const SizedBox(height: 12),
 
             // --- FILAMENT ---
             _FormSection(label: l10n.inventorySectionFilament),
+            _slicerPresetField(l10n),
             _combo(
               'material',
               l10n.inventoryFieldMaterial,
@@ -309,7 +331,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(l10n.inventorySave),
+                  : Text(
+                      !_isEdit && _quantity > 1
+                          ? l10n.inventoryAddSpools(_quantity)
+                          : l10n.inventorySave,
+                    ),
             ),
           ],
         ),
@@ -348,9 +374,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
   }
 
-  /// Empty Spool Weight field: dropdown from core catalog (sets weight + id)
-  /// beside editable weight in grams. If catalog empty — weight only.
+  /// Empty Spool Weight field: a searchable picker from the core catalog (sets
+  /// weight + id) beside an editable weight in grams. If catalog empty — weight
+  /// only.
   Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
+    final theme = Theme.of(context);
     final weightField = SizedBox(
       width: cores.isEmpty ? null : 110,
       child: TextFormField(
@@ -378,43 +406,40 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       );
     }
     // Catalog entry referenced by an edited spool may have been removed
-    // server-side since — keep the typed weight but drop the dangling id so
-    // the dropdown's value always matches one of `items` (else DropdownButton
-    // asserts "exactly zero or one item with [value]").
+    // server-side since — drop the dangling id so the field shows the typed
+    // weight as a manual value rather than a stale name.
     if (_coreWeightCatalogId != null &&
         !cores.any((c) => c.id == _coreWeightCatalogId)) {
       _coreWeightCatalogId = null;
     }
+    final selected =
+        cores.where((c) => c.id == _coreWeightCatalogId).firstOrNull;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: DropdownButtonFormField<int?>(
-              initialValue: _coreWeightCatalogId,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: l10n.inventoryFieldEmptySpoolWeight,
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final c in cores)
-                  DropdownMenuItem(
-                    value: c.id,
-                    child: Text(c.label, overflow: TextOverflow.ellipsis),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: () => _openCoreWeightPicker(l10n),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: l10n.inventoryFieldEmptySpoolWeight,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(
+                  selected?.name ?? l10n.inventoryCoreWeightSelect,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: selected == null
+                        ? theme.colorScheme.onSurfaceVariant
+                        : null,
                   ),
-              ],
-              onChanged: (id) {
-                final entry = cores.where((c) => c.id == id).firstOrNull;
-                setState(() {
-                  _coreWeightCatalogId = id;
-                  if (entry != null) {
-                    _c['coreWeight']!.text = entry.weight.toString();
-                  }
-                });
-              },
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -422,6 +447,22 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         ],
       ),
     );
+  }
+
+  /// Opens the searchable empty-spool (core weight) picker; on selection stores
+  /// the catalog id and fills the weight box from the chosen entry.
+  Future<void> _openCoreWeightPicker(AppLocalizations l10n) async {
+    final picked = await showModalBottomSheet<CoreWeightEntry>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _CoreWeightPicker(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _coreWeightCatalogId = picked.id;
+      _c['coreWeight']!.text = picked.weight.toString();
+    });
   }
 
   Widget _effectDropdown(AppLocalizations l10n) {
@@ -443,6 +484,113 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         onChanged: (v) => setState(() => _effectType = v),
       ),
     );
+  }
+
+  /// Compact quantity stepper for bulk "restock", sized to sit in the sheet
+  /// header (− [n] +). Clamped to 1..[_maxQuantity]; a tooltip explains it
+  /// creates N identical spools.
+  Widget _quantityStepper(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    void setQty(int v) => setState(() => _quantity = v.clamp(1, _maxQuantity));
+    Widget btn(IconData icon, VoidCallback? onTap) => IconButton(
+          onPressed: onTap,
+          icon: Icon(icon),
+          iconSize: 20,
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          padding: EdgeInsets.zero,
+        );
+    return Tooltip(
+      message: l10n.inventoryQuantityHint,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            btn(Icons.remove, _quantity > 1 ? () => setQty(_quantity - 1) : null),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 24),
+              child: Text(
+                '$_quantity',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            btn(
+              Icons.add,
+              _quantity < _maxQuantity ? () => setQty(_quantity + 1) : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Slicer preset field: the print profile the spool is added with
+  /// (`slicer_filament`). Tapping opens a searchable picker; the current
+  /// selection (or "None") shows inline, with a clear button once set.
+  Widget _slicerPresetField(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final selected = _slicerFilamentName ?? _slicerFilament;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => _openSlicerPresetPicker(l10n),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: l10n.inventoryFieldSlicerPreset,
+            helperText: l10n.inventorySlicerPresetHint,
+            border: const OutlineInputBorder(),
+            isDense: true,
+            prefixIcon: const Icon(Icons.tune),
+            suffixIcon: selected == null
+                ? const Icon(Icons.arrow_drop_down)
+                : IconButton(
+                    icon: const Icon(Icons.clear),
+                    tooltip: l10n.clear,
+                    onPressed: () => setState(() {
+                      _slicerFilament = null;
+                      _slicerFilamentName = null;
+                    }),
+                  ),
+          ),
+          child: Text(
+            selected ?? l10n.inventorySlicerPresetNone,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: selected == null
+                  ? theme.colorScheme.onSurfaceVariant
+                  : null,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Opens the preset picker; on selection stores id+name and, when material is
+  /// still blank, seeds it from the preset's filament type (cheap auto-fill).
+  Future<void> _openSlicerPresetPicker(AppLocalizations l10n) async {
+    final picked = await showModalBottomSheet<SlicerPreset>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _SlicerPresetPicker(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _slicerFilament = picked.id;
+      _slicerFilamentName = picked.name;
+      final mat = picked.filamentType?.trim();
+      if (_c['material']!.text.trim().isEmpty && mat != null && mat.isNotEmpty) {
+        _c['material']!.text = mat;
+        _materialMissing = false;
+      }
+    });
   }
 
   /// Color field: instead of manual hex entry, opens color picker (HSV wheel + hex bar).
@@ -682,6 +830,242 @@ class _ColorChip extends StatelessWidget {
                 )
               : null,
         ),
+      ),
+    );
+  }
+}
+
+/// Searchable slicer-filament preset picker (bottom sheet). Reuses the slice
+/// modal's [slicerPresetsProvider] (unified local/cloud/standard tiers). Returns
+/// the chosen [SlicerPreset] via `Navigator.pop`, or null on dismiss. Degrades
+/// with a clear message when slicing is disabled or presets are unavailable.
+class _SlicerPresetPicker extends ConsumerStatefulWidget {
+  const _SlicerPresetPicker();
+
+  @override
+  ConsumerState<_SlicerPresetPicker> createState() =>
+      _SlicerPresetPickerState();
+}
+
+class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final async = ref.watch(slicerPresetsProvider);
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (context, controller) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.inventoryFieldSlicerPreset,
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    hintText: l10n.inventorySlicerPresetSearch,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: async.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (_, _) => _message(
+                context,
+                controller,
+                l10n.inventorySlicerPresetUnavailable,
+              ),
+              data: (presets) {
+                final q = _query.trim().toLowerCase();
+                final items = [
+                  for (final p in presets.filaments)
+                    if (q.isEmpty ||
+                        p.name.toLowerCase().contains(q) ||
+                        p.id.toLowerCase().contains(q))
+                      p,
+                ];
+                if (items.isEmpty) {
+                  return _message(
+                    context,
+                    controller,
+                    presets.filaments.isEmpty
+                        ? l10n.inventorySlicerPresetUnavailable
+                        : l10n.inventoryNoMatches,
+                  );
+                }
+                return ListView.builder(
+                  controller: controller,
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final p = items[i];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.tune),
+                      title: Text(
+                        p.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        p.filamentType == null || p.filamentType!.isEmpty
+                            ? p.source
+                            : '${p.filamentType} · ${p.source}',
+                      ),
+                      onTap: () => Navigator.of(context).pop(p),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Empty/error placeholder that stays scrollable so the sheet's drag-to-resize
+  /// keeps working even with no list to scroll.
+  Widget _message(
+    BuildContext context,
+    ScrollController controller,
+    String text,
+  ) {
+    return ListView(
+      controller: controller,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Searchable empty-spool (core weight) picker (bottom sheet). Lists the
+/// server core-weight catalog from [coreWeightsProvider]; returns the chosen
+/// [CoreWeightEntry] via `Navigator.pop`, or null on dismiss.
+class _CoreWeightPicker extends ConsumerStatefulWidget {
+  const _CoreWeightPicker();
+
+  @override
+  ConsumerState<_CoreWeightPicker> createState() => _CoreWeightPickerState();
+}
+
+class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    final q = _query.trim().toLowerCase();
+    final items = [
+      for (final c in cores)
+        if (q.isEmpty ||
+            c.name.toLowerCase().contains(q) ||
+            c.weight.toString().contains(q))
+          c,
+    ];
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (context, controller) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.inventoryFieldEmptySpoolWeight,
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    hintText: l10n.inventoryCoreWeightSearch,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: items.isEmpty
+                ? ListView(
+                    controller: controller,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            l10n.inventoryNoMatches,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    controller: controller,
+                    itemCount: items.length,
+                    itemBuilder: (context, i) {
+                      final c = items[i];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.donut_large),
+                        title: Text(
+                          c.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text('${c.weight} g'),
+                        onTap: () => Navigator.of(context).pop(c),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

@@ -66,6 +66,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get cancel => 'Anuluj';
 
   @override
+  String get clear => 'Wyczyść';
+
+  @override
   String get change => 'Zmień';
 
   @override
@@ -1117,6 +1120,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryAddSpool => 'Dodaj szpulę';
 
   @override
+  String inventoryAddSpools(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpuli',
+      many: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Dodaj $count $_temp0';
+  }
+
+  @override
   String get inventoryNewSpool => 'Nowa szpula';
 
   @override
@@ -1124,6 +1140,12 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventorySave => 'Zapisz';
+
+  @override
+  String get inventoryFieldQuantity => 'Ilość';
+
+  @override
+  String get inventoryQuantityHint => 'Dodaj naraz kilka identycznych szpul';
 
   @override
   String get inventoryEdit => 'Edytuj';
@@ -1139,6 +1161,23 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryResetUsage => 'Resetuj zużycie';
+
+  @override
+  String get inventoryFieldSlicerPreset => 'Profil slicera';
+
+  @override
+  String get inventorySlicerPresetHint =>
+      'Profil druku, z jakim dodawana jest szpula';
+
+  @override
+  String get inventorySlicerPresetNone => 'Brak profilu';
+
+  @override
+  String get inventorySlicerPresetSearch => 'Szukaj profili…';
+
+  @override
+  String get inventorySlicerPresetUnavailable =>
+      'Brak dostępnych profili slicera. Włącz krojenie na serwerze (i połącz Bambu Cloud, aby mieć profile z chmury).';
 
   @override
   String get inventoryFieldMaterial => 'Materiał';
@@ -1207,6 +1246,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldEmptySpoolWeight => 'Waga pustej szpuli (g)';
 
   @override
+  String get inventoryCoreWeightSelect => 'Wybierz…';
+
+  @override
+  String get inventoryCoreWeightSearch => 'Szukaj szpul…';
+
+  @override
   String get inventoryFieldRemainingWeight => 'Pozostała waga (g)';
 
   @override
@@ -1264,6 +1309,19 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventorySpoolCreated => 'Dodano szpulę';
+
+  @override
+  String inventorySpoolsCreated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpuli',
+      many: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Dodano $count $_temp0';
+  }
 
   @override
   String get inventorySpoolUpdated => 'Zaktualizowano szpulę';
@@ -1419,6 +1477,121 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get maintenanceFailed => 'Nie udało się zaktualizować konserwacji';
+
+  @override
+  String get maintenanceSaved => 'Zapisano';
+
+  @override
+  String get maintenanceSettingsTitle => 'Ustawienia konserwacji';
+
+  @override
+  String get maintenanceOverridesTitle => 'Nadpisania interwałów';
+
+  @override
+  String get maintenanceOverridesSubtitle =>
+      'Wycisz zadania lub dostosuj interwały per drukarka';
+
+  @override
+  String get maintenanceTabStatus => 'Status';
+
+  @override
+  String get maintenanceTabSettings => 'Ustawienia';
+
+  @override
+  String get maintenanceMute => 'Wycisz';
+
+  @override
+  String get maintenanceUnmute => 'Wznów';
+
+  @override
+  String get maintenanceMuted => 'Zadanie wyciszone';
+
+  @override
+  String get maintenanceUnmuted => 'Zadanie wznowione';
+
+  @override
+  String get maintenanceEditInterval => 'Edytuj interwał';
+
+  @override
+  String get maintenanceResetInterval => 'Przywróć domyślny';
+
+  @override
+  String get maintenanceTypesTitle => 'Typy konserwacji';
+
+  @override
+  String get maintenanceTypesSubtitle => 'Typy systemowe i własne zadania';
+
+  @override
+  String get maintenanceRestoreDefaults => 'Przywróć domyślne';
+
+  @override
+  String get maintenanceRestoreConfirm =>
+      'Przywrócić wszystkie ukryte domyślne typy konserwacji?';
+
+  @override
+  String get maintenanceAddType => 'Dodaj własny typ';
+
+  @override
+  String get maintenanceEditType => 'Edytuj typ';
+
+  @override
+  String get maintenanceSystemType => 'Systemowy';
+
+  @override
+  String maintenanceEveryHours(int count) {
+    return 'Co $count h';
+  }
+
+  @override
+  String maintenanceEveryDays(int count) {
+    return 'Co $count dni';
+  }
+
+  @override
+  String get maintenanceDeleteTypeTitle => 'Usunąć typ konserwacji?';
+
+  @override
+  String maintenanceDeleteTypeConfirm(String name) {
+    return 'Usunąć „$name\"? Tej operacji nie można cofnąć.';
+  }
+
+  @override
+  String maintenanceHideTypeConfirm(String name) {
+    return 'Ukryć domyślny typ „$name\"? Możesz go później przywrócić.';
+  }
+
+  @override
+  String get maintenanceFieldName => 'Nazwa';
+
+  @override
+  String get maintenanceFieldNameHint => 'np. Wymiana filtra HEPA';
+
+  @override
+  String get maintenanceFieldIntervalType => 'Typ interwału';
+
+  @override
+  String get maintenanceFieldInterval => 'Interwał';
+
+  @override
+  String get maintenanceIntervalHours => 'Godziny druku';
+
+  @override
+  String get maintenanceIntervalDays => 'Dni';
+
+  @override
+  String get maintenanceIntervalInvalid => 'Podaj wartość ≥ 1';
+
+  @override
+  String get maintenanceFieldIcon => 'Ikona';
+
+  @override
+  String get maintenanceFieldDocLink => 'Link do dokumentacji (opcjonalnie)';
+
+  @override
+  String get maintenanceAssignPrinters => 'Przypisz do drukarek';
+
+  @override
+  String get maintenanceSelectPrinter => 'Wybierz co najmniej jedną drukarkę';
 
   @override
   String get notifEvtMaintenance => 'Konserwacja zaległa';

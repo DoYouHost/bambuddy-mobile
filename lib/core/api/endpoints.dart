@@ -179,6 +179,31 @@ abstract final class Endpoints {
   static String maintenancePrinter(int printerId) =>
       '$apiPrefix/maintenance/printers/$printerId';
 
+  /// Maintenance types catalog (`MaintenanceTypeResponse[]`). `GET` lists
+  /// (system + custom); `POST` creates a custom type (body
+  /// `MaintenanceTypeCreate`). Requires create permission on `POST`.
+  static const maintenanceTypes = '$apiPrefix/maintenance/types';
+
+  /// Single maintenance type: `PATCH` (edit, body `MaintenanceTypeUpdate`),
+  /// `DELETE` (custom → hard delete; system → soft-hidden, restorable).
+  static String maintenanceType(int typeId) =>
+      '$apiPrefix/maintenance/types/$typeId';
+
+  /// Restore soft-deleted default (system) maintenance types (`POST`, no body).
+  static const maintenanceRestoreDefaults =
+      '$apiPrefix/maintenance/types/restore-defaults';
+
+  /// Single printer maintenance item: `PATCH` (body `PrinterMaintenanceUpdate`:
+  /// `custom_interval_hours`, `custom_interval_type`, `enabled`), `DELETE`
+  /// (unassign a custom type from the printer). Requires update/delete permission.
+  static String maintenanceItem(int itemId) =>
+      '$apiPrefix/maintenance/items/$itemId';
+
+  /// Assign a maintenance type to a printer (`POST`, no body) — needed for
+  /// custom types to appear on that printer.
+  static String maintenanceAssign(int printerId, int typeId) =>
+      '$apiPrefix/maintenance/printers/$printerId/assign/$typeId';
+
   /// Mark task as performed (reset counter). Body
   /// `{"notes": string?}`. Requires control permission (missing → 403).
   static String maintenancePerform(int itemId) =>
@@ -197,6 +222,11 @@ abstract final class Endpoints {
   /// List spools. Query: `include_archived=true|false`. Also `POST` —
   /// create spool (body `SpoolCreate`, returns `SpoolResponse`).
   static const inventorySpools = '$apiPrefix/inventory/spools';
+
+  /// Bulk-create identical spools ("restock"). `POST` body
+  /// `SpoolBulkCreate` (`{spool: SpoolCreate, quantity: 1..100}`), returns
+  /// `SpoolResponse[]`.
+  static const inventorySpoolsBulk = '$apiPrefix/inventory/spools/bulk';
 
   /// Single spool: `GET` (details), `PATCH` (edit, body `SpoolUpdate`),
   /// `DELETE` (permanent deletion). Writes require permission on key (→ 403).
@@ -252,6 +282,8 @@ abstract final class Endpoints {
 
   // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
+  static const spoolmanSpoolsBulk =
+      '$apiPrefix/spoolman/inventory/spools/bulk';
   static String spoolmanSpool(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId';
   static String spoolmanSpoolArchive(int spoolId) =>

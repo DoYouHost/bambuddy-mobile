@@ -36,6 +36,7 @@ class Spool {
     this.tagUid,
     this.archivedAt,
     this.lastUsed,
+    this.slicerFilament,
     this.slicerFilamentName,
     this.kProfiles = const [],
   });
@@ -67,6 +68,7 @@ class Spool {
         tagUid: toStringOrNull(json['tag_uid']),
         archivedAt: toStringOrNull(json['archived_at']),
         lastUsed: toStringOrNull(json['last_used']),
+        slicerFilament: toStringOrNull(json['slicer_filament']),
         slicerFilamentName: toStringOrNull(json['slicer_filament_name']),
         kProfiles: parseJsonList(json['k_profiles'], SpoolKProfile.fromJson),
       );
@@ -145,6 +147,9 @@ class Spool {
   /// Slicer filament-preset name this spool maps to (e.g. "Bambu PLA Basic
   /// @BBL X2D"). Drives "owned filament" filtering in the slice modal. Native
   /// backend only — Spoolman has no equivalent.
+  /// Slicer filament preset id/code (`slicer_filament`) — the print profile the
+  /// spool is added with; pairs with [slicerFilamentName] (human-readable).
+  final String? slicerFilament;
   final String? slicerFilamentName;
   final List<SpoolKProfile> kProfiles;
 
@@ -203,6 +208,8 @@ class SpoolDraft {
     this.category,
     this.nozzleTempMin,
     this.nozzleTempMax,
+    this.slicerFilament,
+    this.slicerFilamentName,
     this.note,
   });
 
@@ -226,6 +233,8 @@ class SpoolDraft {
         category: s.category,
         nozzleTempMin: s.nozzleTempMin,
         nozzleTempMax: s.nozzleTempMax,
+        slicerFilament: s.slicerFilament,
+        slicerFilamentName: s.slicerFilamentName,
         note: s.note,
       );
 
@@ -247,6 +256,8 @@ class SpoolDraft {
   final String? category;
   final int? nozzleTempMin;
   final int? nozzleTempMax;
+  final String? slicerFilament;
+  final String? slicerFilamentName;
   final String? note;
 
   /// Body for native `/inventory/spools` (`SpoolCreate`/`SpoolUpdate` same fields;
@@ -272,6 +283,9 @@ class SpoolDraft {
         if (category != null) 'category': category,
         if (nozzleTempMin != null) 'nozzle_temp_min': nozzleTempMin,
         if (nozzleTempMax != null) 'nozzle_temp_max': nozzleTempMax,
+        if (slicerFilament != null) 'slicer_filament': slicerFilament,
+        if (slicerFilamentName != null)
+          'slicer_filament_name': slicerFilamentName,
         if (note != null) 'note': note,
       };
 

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
+import '../../data/maintenance_repository.dart';
 import '../../providers.dart';
 
 /// Maintenance action result returned to widget — it shows SnackBar
@@ -41,10 +42,103 @@ class MaintenanceOverviewNotifier
   }
 
   /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
-  Future<MaintenanceActionResult> perform(int itemId, {String? notes}) async {
+  Future<MaintenanceActionResult> perform(int itemId, {String? notes}) =>
+      _run(
+        (repo) => repo.perform(itemId, notes: notes),
+      );
+
+  /// Mutes/unmutes a task (server `enabled`). Disabled tasks stop counting and
+  /// alerting. Refreshes on success.
+  Future<MaintenanceActionResult> setEnabled(int itemId, bool enabled) =>
+      _run((repo) => repo.updateItem(itemId, enabled: enabled));
+
+  /// Sets a per-printer interval override (hours), or clears it (back to the
+  /// type default) when [hours] is null.
+  Future<MaintenanceActionResult> setInterval(int itemId, double? hours) =>
+      _run(
+        (repo) => repo.updateItem(
+          itemId,
+          customIntervalHours: hours,
+          clearInterval: hours == null,
+        ),
+      );
+
+  /// Runs a mutation, maps permission errors, and refreshes on success.
+  Future<MaintenanceActionResult> _run(
+    Future<void> Function(MaintenanceRepository) action,
+  ) async {
     try {
-      await ref.read(maintenanceRepositoryProvider).perform(itemId, notes: notes);
+      await action(ref.read(maintenanceRepositoryProvider));
       await refresh();
+      return MaintenanceActionResult.ok;
+    } on AppApiException catch (e) {
+      if (e is AuthException && e.code == AppErrorCode.forbidden) {
+        return MaintenanceActionResult.forbidden;
+      }
+      return MaintenanceActionResult.error;
+    }
+  }
+}
+
+final maintenanceTypesProvider = AutoDisposeAsyncNotifierProvider<
+    MaintenanceTypesNotifier, List<MaintenanceType>>(
+  MaintenanceTypesNotifier.new,
+);
+
+/// Maintenance types catalog (Settings tab): system defaults + custom tasks.
+/// CRUD mutates server-side and refreshes; type changes affect per-printer
+/// status too, so those actions also invalidate [maintenanceOverviewProvider].
+class MaintenanceTypesNotifier
+    extends AutoDisposeAsyncNotifier<List<MaintenanceType>> {
+  @override
+  Future<List<MaintenanceType>> build() async {
+    final profile = ref.watch(serverProfileProvider);
+    if (profile == null) return const [];
+    return ref.read(maintenanceRepositoryProvider).fetchTypes();
+  }
+
+  Future<void> refresh() async {
+    if (ref.read(serverProfileProvider) == null) return;
+    state = const AsyncValue<List<MaintenanceType>>.loading()
+        .copyWithPrevious(state);
+    state = await AsyncValue.guard(
+      () => ref.read(maintenanceRepositoryProvider).fetchTypes(),
+    );
+  }
+
+  /// Creates a custom type and assigns it to [printerIds] (custom types only
+  /// show on printers they're assigned to). Refreshes types + overview.
+  Future<MaintenanceActionResult> create(
+    MaintenanceTypeDraft draft,
+    List<int> printerIds,
+  ) =>
+      _run((repo) async {
+        final type = await repo.createType(draft);
+        for (final pid in printerIds) {
+          await repo.assignType(pid, type.id);
+        }
+      }, invalidateOverview: true);
+
+  Future<MaintenanceActionResult> editType(
+    int typeId,
+    MaintenanceTypeDraft draft,
+  ) =>
+      _run((repo) => repo.updateType(typeId, draft), invalidateOverview: true);
+
+  Future<MaintenanceActionResult> delete(int typeId) =>
+      _run((repo) => repo.deleteType(typeId), invalidateOverview: true);
+
+  Future<MaintenanceActionResult> restoreDefaults() =>
+      _run((repo) => repo.restoreDefaults(), invalidateOverview: true);
+
+  Future<MaintenanceActionResult> _run(
+    Future<void> Function(MaintenanceRepository) action, {
+    bool invalidateOverview = false,
+  }) async {
+    try {
+      await action(ref.read(maintenanceRepositoryProvider));
+      await refresh();
+      if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
       return MaintenanceActionResult.ok;
     } on AppApiException catch (e) {
       if (e is AuthException && e.code == AppErrorCode.forbidden) {

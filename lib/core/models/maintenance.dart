@@ -133,6 +133,81 @@ class MaintenanceStatus {
   }
 }
 
+/// Maintenance type in the catalog (`MaintenanceTypeResponse`) — a task
+/// definition (system default or user custom) with its default interval.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class MaintenanceType {
+  const MaintenanceType({
+    required this.id,
+    required this.name,
+    this.description,
+    this.defaultIntervalHours = 100,
+    this.intervalType = 'hours',
+    this.icon,
+    this.wikiUrl,
+    this.isSystem = false,
+  });
+
+  factory MaintenanceType.fromJson(Map<String, dynamic> json) =>
+      _$MaintenanceTypeFromJson(json);
+
+  final int id;
+  final String name;
+  final String? description;
+
+  @JsonKey(fromJson: _toDouble)
+  final double defaultIntervalHours;
+
+  /// "hours" (print hours) or "days" (calendar days).
+  final String intervalType;
+
+  /// Lucide-style icon name (mapped to Material in [maintenance_icons.dart]).
+  final String? icon;
+
+  /// Documentation link for the task (custom types).
+  final String? wikiUrl;
+
+  /// System (default) types can't be hard-deleted (only hidden/restored) and
+  /// apply to printers automatically; custom types are user-managed.
+  final bool isSystem;
+
+  bool get isDays => intervalType == 'days';
+
+  /// Compact interval label, e.g. "100h" or "30d".
+  String get intervalLabel =>
+      '${defaultIntervalHours.round()}${isDays ? 'd' : 'h'}';
+}
+
+/// Create/update body for a maintenance type (`MaintenanceTypeCreate`/`Update`).
+/// Null fields are omitted so a PATCH only touches what changed.
+class MaintenanceTypeDraft {
+  const MaintenanceTypeDraft({
+    required this.name,
+    this.description,
+    this.defaultIntervalHours,
+    this.intervalType,
+    this.icon,
+    this.wikiUrl,
+  });
+
+  final String name;
+  final String? description;
+  final double? defaultIntervalHours;
+  final String? intervalType;
+  final String? icon;
+  final String? wikiUrl;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        if (description != null) 'description': description,
+        if (defaultIntervalHours != null)
+          'default_interval_hours': defaultIntervalHours,
+        if (intervalType != null) 'interval_type': intervalType,
+        if (icon != null) 'icon': icon,
+        if (wikiUrl != null) 'wiki_url': wikiUrl,
+      };
+}
+
 /// Maintenance execution history entry (`MaintenanceHistoryResponse`).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class MaintenanceHistoryEntry {

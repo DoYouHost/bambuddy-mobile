@@ -91,6 +91,18 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   Future<Spool?> createSpool(SpoolDraft draft) =>
       _mutate((repo) => repo.createSpool(draft));
 
+  /// Bulk-creates [quantity] identical spools ("restock") and reloads the list.
+  /// Returns how many were actually created. Exceptions propagate to the UI,
+  /// but the list refreshes regardless (mirrors [_mutate]).
+  Future<int> bulkCreateSpools(SpoolDraft draft, int quantity) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    try {
+      return await repo.bulkCreateSpools(draft, quantity);
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+  }
+
   Future<Spool?> updateSpool(int spoolId, SpoolDraft draft) =>
       _mutate((repo) => repo.updateSpool(spoolId, draft));
 

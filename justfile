@@ -31,6 +31,26 @@ dev: emu-connect
 itest: emu-connect
     flutter test integration_test/
 
+# one-time setup: open the device list in emu-view's dedicated Chrome profile so
+# "Fit to screen" + Save settings persists there (localStorage, per player=mse).
+# Then `just emu-view` picks it up. Configure -> keep Fit to screen ON -> Save.
+emu-config:
+    flatpak run com.google.Chrome \
+      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
+      --app='http://192.168.2.208:8000' >/dev/null 2>&1 &
+
+# ws-scrcpy deep-link skips the device list (MSE player, fixed scrcpy port 8886,
+# stable across restarts). URL is single-quoted so the shell keeps the &/#/%.
+# A dedicated --user-data-dir forces a separate Chrome instance so --window-size
+# is actually honored (a window in an already-running Chrome ignores size flags).
+# open the emulator screen straight into a dedicated phone-sized browser window
+emu-view:
+    flatpak run com.google.Chrome \
+      --user-data-dir="$HOME/.config/chrome-emu" --no-first-run --no-default-browser-check \
+      --window-size=500,1000 \
+      --app='http://192.168.2.208:8000/#!action=stream&udid=android-emulator%3A5555&player=mse&ws=ws%3A%2F%2F192.168.2.208%3A8000%2F%3Faction%3Dproxy-adb%26remote%3Dtcp%253A8886%26udid%3Dandroid-emulator%253A5555' \
+      >/dev/null 2>&1 &
+
 # bump version in pubspec.yaml and commit
 # versionCode = major*10000 + minor*100 + patch (e.g. 1.2.3 → 10203)
 # Idempotent: safe to re-run after a partially-completed `ship` — it skips the

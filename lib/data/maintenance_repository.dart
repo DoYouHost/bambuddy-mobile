@@ -42,6 +42,72 @@ class MaintenanceRepository {
         data: {'notes': notes},
       ));
 
+  // --- Type management (Settings tab) ---
+
+  /// `GET /maintenance/types` — full catalog (system + custom, non-deleted).
+  Future<List<MaintenanceType>> fetchTypes() async {
+    final body = await guard(() async {
+      final res = await _dio.get<List<dynamic>>(Endpoints.maintenanceTypes);
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, MaintenanceType.fromJson);
+  }
+
+  /// `POST /maintenance/types` — create a custom type. Returns it (with new id).
+  Future<MaintenanceType> createType(MaintenanceTypeDraft draft) =>
+      guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.maintenanceTypes,
+          data: draft.toJson(),
+        );
+        return MaintenanceType.fromJson(res.data ?? const {});
+      });
+
+  /// `PATCH /maintenance/types/{id}` — edit a type (name, interval, icon, wiki).
+  Future<void> updateType(int typeId, MaintenanceTypeDraft draft) =>
+      guard(() => _dio.patch<dynamic>(
+            Endpoints.maintenanceType(typeId),
+            data: draft.toJson(),
+          ));
+
+  /// `DELETE /maintenance/types/{id}` — remove custom type (system → soft-hide).
+  Future<void> deleteType(int typeId) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.maintenanceType(typeId)));
+
+  /// `POST /maintenance/types/restore-defaults` — un-hide soft-deleted defaults.
+  Future<void> restoreDefaults() => guard(
+        () => _dio.post<dynamic>(Endpoints.maintenanceRestoreDefaults),
+      );
+
+  /// `POST /maintenance/printers/{printerId}/assign/{typeId}` — attach a custom
+  /// type to a printer so it shows up in that printer's status.
+  Future<void> assignType(int printerId, int typeId) => guard(
+        () => _dio.post<dynamic>(Endpoints.maintenanceAssign(printerId, typeId)),
+      );
+
+  // --- Per-printer item management (Status tab) ---
+
+  /// `PATCH /maintenance/items/{id}` — toggle mute ([enabled]) and/or set a
+  /// per-printer interval override ([customIntervalHours], null clears it).
+  Future<void> updateItem(
+    int itemId, {
+    bool? enabled,
+    double? customIntervalHours,
+    bool clearInterval = false,
+    String? customIntervalType,
+  }) =>
+      guard(() => _dio.patch<dynamic>(
+            Endpoints.maintenanceItem(itemId),
+            data: {
+              'enabled': ?enabled,
+              if (clearInterval)
+                'custom_interval_hours': null
+              else
+                'custom_interval_hours': ?customIntervalHours,
+              'custom_interval_type': ?customIntervalType,
+            },
+          ));
+
   /// `GET /maintenance/items/{id}/history` — execution history.
   Future<List<MaintenanceHistoryEntry>> fetchHistory(int itemId) async {
     final body = await guard(() async {

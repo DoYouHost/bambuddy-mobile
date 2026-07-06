@@ -336,6 +336,12 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 spool.costPerKg!.toStringAsFixed(2),
               ),
             ),
+          if (spool.slicerFilamentName != null || spool.slicerFilament != null)
+            _DetailRow(
+              icon: Icons.tune,
+              label: '${l10n.inventoryFieldSlicerPreset}: '
+                  '${spool.slicerFilamentName ?? spool.slicerFilament}',
+            ),
           if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
             _DetailRow(
               icon: Icons.thermostat_outlined,

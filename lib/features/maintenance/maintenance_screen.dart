@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
@@ -59,34 +60,42 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
     final async = ref.watch(maintenanceOverviewProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navMaintenance)),
+      appBar: AppBar(
+        title: Text(l10n.navMaintenance),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.maintenanceSettingsTitle,
+            onPressed: () => context.push('/settings/maintenance'),
+          ),
+        ],
+      ),
       body: async.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AsyncErrorView(
-          message: err is AppApiException
-              ? err.localized(l10n)
-              : l10n.connectFailed,
-          onRetry: () =>
-              ref.read(maintenanceOverviewProvider.notifier).refresh(),
-          retryLabel: l10n.retry,
-        ),
-        data: (printers) => RefreshIndicator(
-          onRefresh: () =>
-              ref.read(maintenanceOverviewProvider.notifier).refresh(),
-          child: printers.isEmpty
-              ? EmptyStateView(
-                  message: l10n.maintenanceEmpty,
-                  icon: Icons.build_circle_outlined,
-                )
-              : ListView(
-                  children: [
-                    for (final p in printers) _PrinterSection(printer: p),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-        ),
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => AsyncErrorView(
+        message: err is AppApiException
+            ? err.localized(l10n)
+            : l10n.connectFailed,
+        onRetry: () => ref.read(maintenanceOverviewProvider.notifier).refresh(),
+        retryLabel: l10n.retry,
+      ),
+      data: (printers) => RefreshIndicator(
+        onRefresh: () =>
+            ref.read(maintenanceOverviewProvider.notifier).refresh(),
+        child: printers.isEmpty
+            ? EmptyStateView(
+                message: l10n.maintenanceEmpty,
+                icon: Icons.build_circle_outlined,
+              )
+            : ListView(
+                children: [
+                  for (final p in printers) _PrinterSection(printer: p),
+                  const SizedBox(height: 16),
+                ],
+              ),
+      ),
       ),
     );
   }

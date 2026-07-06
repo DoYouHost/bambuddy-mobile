@@ -55,6 +55,20 @@ MaintenanceStatus _$MaintenanceStatusFromJson(Map<String, dynamic> json) =>
       lastPerformedAtRaw: json['last_performed_at'] as String?,
     );
 
+MaintenanceType _$MaintenanceTypeFromJson(Map<String, dynamic> json) =>
+    MaintenanceType(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      defaultIntervalHours: json['default_interval_hours'] == null
+          ? 100
+          : _toDouble(json['default_interval_hours']),
+      intervalType: json['interval_type'] as String? ?? 'hours',
+      icon: json['icon'] as String?,
+      wikiUrl: json['wiki_url'] as String?,
+      isSystem: json['is_system'] as bool? ?? false,
+    );
+
 MaintenanceHistoryEntry _$MaintenanceHistoryEntryFromJson(
   Map<String, dynamic> json,
 ) => MaintenanceHistoryEntry(

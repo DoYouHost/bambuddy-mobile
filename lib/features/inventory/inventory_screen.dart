@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
+import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
+import '../slicer/slice_providers.dart';
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 

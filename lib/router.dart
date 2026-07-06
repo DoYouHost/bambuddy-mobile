@@ -10,6 +10,7 @@ import 'features/files/trash_screen.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
+import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
 import 'features/projects/projects_screen.dart';
@@ -55,6 +56,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/notifications',
         builder: (_, _) => const NotificationSettingsScreen(),
+      ),
+
+      // Maintenance settings (types + per-printer overrides) — full screen
+      // outside shell (pushed from the Maintenance status screen's gear).
+      GoRoute(
+        path: '/settings/maintenance',
+        builder: (_, _) => const MaintenanceSettingsScreen(),
       ),
 
       // Archive statistics — full screen outside shell (pushed from drawer).
