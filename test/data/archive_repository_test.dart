@@ -40,16 +40,6 @@ void main() {
     expect(archives, hasLength(1));
   });
 
-  test('reprint: wysyła POST /archives/82/reprint i kończy się bez wyjątku',
-      () async {
-    adapter.onPost(
-      '/api/v1/archives/82/reprint',
-      (server) => server.reply(200, null),
-    );
-
-    await repo.reprint(82, printerId: 1);
-  });
-
   test('delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
       () async {
     adapter.onDelete(

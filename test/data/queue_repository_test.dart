@@ -84,4 +84,20 @@ void main() {
 
     await repo.addFromArchive(77, printerId: 1);
   });
+
+  test('addFromArchive z insertAtTop: dokłada insert_at_top=true (reprint)',
+      () async {
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(200, null),
+      data: {
+        'archive_id': 77,
+        'printer_id': 1,
+        'quantity': 1,
+        'insert_at_top': true,
+      },
+    );
+
+    await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
+  });
 }
