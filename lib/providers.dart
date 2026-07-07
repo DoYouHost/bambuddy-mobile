@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
@@ -13,6 +14,7 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
+import 'core/watch/watch_config_sync.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/makerworld.dart';
 import 'data/ams_history_repository.dart';
@@ -45,6 +47,21 @@ final notificationServiceProvider = Provider<NotificationService>(
 
 final credentialsStoreProvider =
     Provider<CredentialsStore>((ref) => SecureCredentialsStore());
+
+/// Wear OS Data Layer bridge. Cheap to construct on any platform; on the phone
+/// with no paired watch its calls simply no-op.
+final watchConnectivityProvider =
+    Provider<WatchConnectivity>((ref) => WatchConnectivity());
+
+/// Phone→watch config handoff. Phone pushes the active profile; the watch entry
+/// point overrides this with a `settings`-backed instance to apply it.
+final watchConfigSyncProvider = Provider<WatchConfigSync>(
+  (ref) => WatchConfigSync(
+    watch: ref.watch(watchConnectivityProvider),
+    credentials: ref.watch(credentialsStoreProvider),
+    settings: ref.watch(settingsRepositoryProvider),
+  ),
+);
 
 /// Background monitoring mechanism. Currently always foreground service; gate for
 /// push = swap implementation here (see [BackgroundMonitor]).

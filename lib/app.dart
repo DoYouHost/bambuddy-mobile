@@ -30,6 +30,12 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
     // (stream). Both carry deep-link `bambuddy://widget?...`.
     _widgetClickSub = HomeWidget.widgetClicked.listen(_onWidgetUri);
     unawaited(HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri));
+    // Hand the current profile to a paired Wear OS watch on launch so it can
+    // configure itself without the user typing anything. No-ops without a watch.
+    final profile = ref.read(serverProfileProvider);
+    if (profile != null) {
+      unawaited(ref.read(watchConfigSyncProvider).push(profile));
+    }
   }
 
   @override
@@ -70,6 +76,13 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Re-push to the watch whenever the profile changes (new server, login,
+    // "change server"). Best-effort; silently no-ops when no watch is paired.
+    ref.listen(serverProfileProvider, (_, next) {
+      if (next != null) {
+        unawaited(ref.read(watchConfigSyncProvider).push(next));
+      }
+    });
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
     return MaterialApp.router(
