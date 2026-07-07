@@ -118,8 +118,6 @@ abstract final class Endpoints {
   /// Failure analysis. Query: `days` or `date_from`/`date_to`,
   /// `printer_id`/`project_id`/`created_by_id`.
   static const archivesFailures = '$apiPrefix/archives/analysis/failures';
-  static String archiveReprint(int archiveId) =>
-      '$apiPrefix/archives/$archiveId/reprint';
 
   /// Delete an archive (`DELETE`). Soft by default (keeps aggregate stats);
   /// query `purge_stats=true` hard-deletes, removing the print from statistics.

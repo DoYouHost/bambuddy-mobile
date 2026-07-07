@@ -577,6 +577,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get widgetStatusOffline => 'Offline';
 
   @override
+  String get widgetStatusError => 'Błąd';
+
+  @override
   String remaining(String time) {
     return 'pozostało $time';
   }

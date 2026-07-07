@@ -51,6 +51,7 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
     ) {
         val printerName = widgetData.getString("printer_name", null) ?: "BambuBuddy"
         val statusLabel = widgetData.getString("status_label", null) ?: ""
+        val errorText = widgetData.getString("error_text", null) ?: ""
         val printName = widgetData.getString("print_name", null) ?: ""
         val statusKey = widgetData.getString("status_key", null) ?: "offline"
         val eta = widgetData.getString("eta", null) ?: ""
@@ -70,12 +71,24 @@ class BambuddyWidgetProvider : HomeWidgetProvider() {
             // Chip statusu: tło (obrys + lekkie wypełnienie) w kolorze statusu.
             setInt(R.id.widget_status_label, "setBackgroundResource", chipRes(statusKey))
 
-            // Wiersz 2 (miniatura + nazwa wydruku) tylko podczas druku.
-            setViewVisibility(R.id.widget_file_row, visIf(printName.isNotEmpty()))
+            // Błąd HMS ma pierwszeństwo w centralnym pasie: pełne zdanie (zawija
+            // się) zamiast podglądu/żartu; chip niesie tylko krótkie „Błąd".
+            val showError = statusKey == "error" && errorText.isNotEmpty()
+
+            // Wiersz 2 (miniatura + nazwa wydruku) tylko podczas druku (nie przy błędzie).
+            setViewVisibility(R.id.widget_file_row, visIf(!showError && printName.isNotEmpty()))
             setTextViewText(R.id.widget_print_name, printName)
 
-            // Zamiast podglądu: żartobliwy tekst, gdy drukarka idle/offline.
-            val showQuip = statusKey == "idle" || statusKey == "offline"
+            if (showError) {
+                setTextViewText(R.id.widget_error_text, errorText)
+                setTextColor(R.id.widget_error_text, statusColor)
+                setViewVisibility(R.id.widget_error_text, View.VISIBLE)
+            } else {
+                setViewVisibility(R.id.widget_error_text, View.GONE)
+            }
+
+            // Zamiast podglądu: żartobliwy tekst, gdy drukarka idle/offline (nie przy błędzie).
+            val showQuip = !showError && (statusKey == "idle" || statusKey == "offline")
             if (showQuip) {
                 setTextViewText(R.id.widget_quip, randomQuip(context))
                 setViewVisibility(R.id.widget_quip, View.VISIBLE)

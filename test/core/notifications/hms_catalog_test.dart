@@ -94,6 +94,12 @@ void main() {
       expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
     });
 
+    test('severity 1 z opisem → NIE powiadamiamy (bambuddy filtruje sev < 2)',
+        () {
+      const e = HmsError(code: 'x', severity: 1);
+      expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
+    });
+
     test('wiadomość z serwera → powiadamiamy', () {
       const e = HmsError(code: 'x', message: 'Filament runout');
       expect(hmsIsNotifiable(e), isTrue);

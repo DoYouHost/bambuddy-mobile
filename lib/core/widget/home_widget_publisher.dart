@@ -99,7 +99,10 @@ class HomeWidgetPublisher {
       );
     }
     final baseKey = _statusKey(picked);
-    final hms = _topHmsError(picked, describeHms);
+    // An offline printer can't be actively faulting — its `hms_errors` are just
+    // the last-known values carried forward by mergedWith. Keep OFFLINE, don't
+    // flip the widget to an error state. Parity with the notification path.
+    final hms = baseKey == _kOffline ? null : _topHmsError(picked, describeHms);
     final key = hms != null ? _kError : baseKey;
     final printing = key == _kPrinting || key == _kPaused;
     return WidgetPublishKey(
@@ -167,6 +170,7 @@ class HomeWidgetPublisher {
       await HomeWidget.saveWidgetData<String>('print_name', '');
       await HomeWidget.saveWidgetData<String>(
           'status_label', l10n.statusUnavailable);
+      await HomeWidget.saveWidgetData<String>('error_text', '');
       await HomeWidget.saveWidgetData<String>('eta', '');
       await HomeWidget.saveWidgetData<String>('layers', '');
       await HomeWidget.saveWidgetData<String>('cover_path', '');
@@ -178,11 +182,16 @@ class HomeWidgetPublisher {
 
       // Active HMS error overrides status (red dot + error content),
       // but we still show progress/ETA if the printer is printing anyway.
-      final hms = _topHmsError(picked, describeHms);
+      // Skip when offline — stale carried-forward errors must not mask OFFLINE.
+      final hms = baseKey == _kOffline ? null : _topHmsError(picked, describeHms);
       final key = hms != null ? _kError : baseKey;
-      final statusLabel = hms != null
+      // Chip is a short badge — the full HMS sentence goes to `error_text` (the
+      // body, which wraps), NOT the chip, or it overflows the widget's edge.
+      final statusLabel =
+          hms != null ? l10n.widgetStatusError : _statusLabel(l10n, key);
+      final errorText = hms != null
           ? hmsHumanText(hms, description: describeHms?.call(hms), l10n: l10n)
-          : _statusLabel(l10n, key);
+          : '';
 
       await HomeWidget.saveWidgetData<String>('status_key', key);
       await HomeWidget.saveWidgetData<String>(
@@ -190,6 +199,7 @@ class HomeWidgetPublisher {
       await HomeWidget.saveWidgetData<String>(
           'print_name', _printName(picked, l10n, baseKey));
       await HomeWidget.saveWidgetData<String>('status_label', statusLabel);
+      await HomeWidget.saveWidgetData<String>('error_text', errorText);
       await HomeWidget.saveWidgetData<String>(
           'eta', _eta(picked, l10n, baseKey));
       await HomeWidget.saveWidgetData<String>('layers', _layers(picked, baseKey));

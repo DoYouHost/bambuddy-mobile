@@ -561,6 +561,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetStatusOffline => 'Offline';
 
   @override
+  String get widgetStatusError => 'Error';
+
+  @override
   String remaining(String time) {
     return '$time left';
   }

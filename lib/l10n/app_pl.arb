@@ -169,6 +169,7 @@
   "widgetStatusFailed": "Błąd",
   "widgetStatusIdle": "Bezczynna",
   "widgetStatusOffline": "Offline",
+  "widgetStatusError": "Błąd",
   "remaining": "pozostało {time}",
   "eta": "ETA {time}",
   "durationMinutes": "{minutes} min",

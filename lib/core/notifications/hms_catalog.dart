@@ -66,6 +66,13 @@ bool hmsIsDisplayable(HmsError e, {String? description}) {
 /// on the looser [hmsIsDisplayable] so it can still list raw codes with a wiki
 /// link.
 bool hmsIsNotifiable(HmsError e, {String? description}) {
+  // Severity floor — parity with bambuddy's notification path, which alerts only
+  // for `severity >= 2` and drops severity-1 codes as "informational/status
+  // messages" (backend derives severity from `(attr >> 8) & 0xF`). Live WS frames
+  // always carry a severity, so this floor applies. A null severity only occurs on
+  // the legacy `{code, message}` shape — leave that to the message check below.
+  final sev = e.severity;
+  if (sev != null && sev < 2) return false;
   if (e.message?.trim().isNotEmpty ?? false) return true;
   return description?.trim().isNotEmpty ?? false;
 }

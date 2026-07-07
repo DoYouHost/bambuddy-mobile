@@ -74,16 +74,20 @@ class QueueRepository {
   /// POST /queue/ — add new item from archive.
   ///
   /// Body: `{"archive_id": .., "printer_id": .., "quantity": ..}`;
-  /// `printer_id` omitted if null.
+  /// `printer_id` omitted if null. [insertAtTop] jumps ahead of other pending
+  /// items in the same printer scope — used by "reprint" to print next
+  /// (the backend removed the direct `/reprint` endpoint; it's a queue item now).
   Future<void> addFromArchive(
     int archiveId, {
     int? printerId,
     int quantity = 1,
+    bool insertAtTop = false,
   }) {
     final body = <String, dynamic>{
       'archive_id': archiveId,
       'printer_id': printerId,
       'quantity': quantity,
+      if (insertAtTop) 'insert_at_top': true,
     }..removeWhere((_, v) => v == null);
     return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
   }

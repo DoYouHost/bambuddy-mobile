@@ -243,6 +243,7 @@
   "widgetStatusFailed": "Failed",
   "widgetStatusIdle": "Idle",
   "widgetStatusOffline": "Offline",
+  "widgetStatusError": "Error",
   "remaining": "{time} left",
   "@remaining": { "placeholders": { "time": { "type": "String" } } },
   "eta": "ETA {time}",

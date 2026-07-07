@@ -1034,6 +1034,12 @@ abstract class AppLocalizations {
   /// **'Offline'**
   String get widgetStatusOffline;
 
+  /// No description provided for @widgetStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get widgetStatusError;
+
   /// No description provided for @remaining.
   ///
   /// In en, this message translates to:

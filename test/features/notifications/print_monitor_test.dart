@@ -369,6 +369,32 @@ void main() {
     expect(errorAlerts(fake), hasLength(1));
   });
 
+  test('błąd HMS: drukarka offline nie alarmuje; kod znany sprzed rozłączenia '
+      'nie alarmuje po powrocie, świeży kod tak', () {
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+    const other = HmsError(code: 'B', severity: 3);
+    // Online z błędem A → jeden alert (edge). Potem zapamiętany.
+    m.update({1: _status(state: 'IDLE', connected: true)}); // priming
+    m.update({1: _status(state: 'IDLE', connected: true, hms: [err])});
+    expect(errorAlerts(fake), hasLength(1));
+    fake.alerts.clear();
+    // Offline: mergedWith niesie stary hms_errors dalej — brak alertu mimo że
+    // kod „zniknął i wrócił", i mimo upływu łaski (pamięć jest zamrożona).
+    m.update({1: _status(state: 'IDLE', connected: false, hms: const [])});
+    t = t.add(const Duration(seconds: 60));
+    m.update({1: _status(state: 'IDLE', connected: false, hms: [err])});
+    expect(errorAlerts(fake), isEmpty);
+    // Powrót online: ten sam kod A sprzed rozłączenia NIE alarmuje ponownie…
+    m.update({1: _status(state: 'IDLE', connected: true, hms: [err])});
+    expect(errorAlerts(fake), isEmpty);
+    // …ale genuinie nowy kod B po powrocie już tak.
+    m.update({1: _status(state: 'IDLE', connected: true, hms: [err, other])});
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
   test('błąd HMS: kilka nowych kodów w jednej ramce → osobne alerty (różne id)',
       () {
     final fake = _FakeNotifications();

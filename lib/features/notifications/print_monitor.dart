@@ -316,7 +316,12 @@ class PrintMonitor {
     memo.hmsLastSeen
         .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
 
-    final notify = _on(NotifEvent.printerError);
+    // An offline printer can't be actively faulting — its `hms_errors` are just
+    // the last-known values carried forward by mergedWith. Never alert while
+    // disconnected, but still REFRESH last-seen for present codes below: that
+    // pauses the clear-grace clock across the outage, so a fault known before
+    // the disconnect doesn't spuriously re-alert on reconnect.
+    final notify = status.connected != false && _on(NotifEvent.printerError);
     for (final e in errors) {
       final key = _hmsKey(e);
       if (key == null) continue;

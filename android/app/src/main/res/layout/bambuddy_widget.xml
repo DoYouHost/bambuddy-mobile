@@ -126,6 +126,25 @@
             android:text="" />
     </LinearLayout>
 
+    <!-- Pełna treść błędu HMS (zawija się) — pokazywana zamiast podglądu/żartu,
+         gdy status = error. Chip w nagłówku niesie tylko krótką etykietę „Błąd",
+         bo pełne zdanie nie mieści się w odznace. Ten sam centralny pas (weight=1)
+         co wiersz pliku i żart — naraz widoczny tylko jeden. -->
+    <TextView
+        android:id="@+id/widget_error_text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:gravity="center"
+        android:maxLines="4"
+        android:ellipsize="end"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:visibility="gone"
+        android:text="" />
+
     <!-- Żartobliwy tekst zamiast podglądu, gdy drukarka idle/offline. Zajmuje ten
          sam centralny pas (weight=1) co wiersz pliku — naraz widoczny jest tylko
          jeden (drugi GONE), więc waga działa poprawnie. -->

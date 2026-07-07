@@ -407,8 +407,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     context.push('/gcode-viewer?archive=${archive.id}&name=$name');
   }
 
-  /// Reprint: printer selection → confirmation → POST reprint. Initiates
-  /// physical print, so always behind confirmation dialog.
+  /// Reprint: printer selection → confirmation → enqueue at top of the
+  /// printer's queue (the scheduler starts it next). The direct `/reprint`
+  /// endpoint was removed server-side; a reprint is now a top-priority queue
+  /// item. Initiates a physical print, so always behind a confirmation dialog.
   Future<void> _reprint(Archive archive) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -438,8 +440,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
     try {
       await ref
-          .read(archiveRepositoryProvider)
-          .reprint(archive.id, printerId: printer.id);
+          .read(queueRepositoryProvider)
+          .addFromArchive(archive.id, printerId: printer.id, insertAtTop: true);
+      // Refresh queue list so the new top item is visible after tab switch.
+      await ref.read(queueProvider.notifier).refresh();
       messenger
           .showSnackBar(SnackBar(content: Text(l10n.archiveReprintStarted)));
     } on AppApiException catch (e) {

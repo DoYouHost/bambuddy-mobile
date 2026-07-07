@@ -60,13 +60,6 @@ class ArchiveRepository {
     return parseJsonList(body, Archive.fromJson);
   }
 
-  /// POST /archives/{id}/reprint?printer_id=PRINTER — resume print from archive
-  /// on the specified printer. Empty body; parameter goes in query.
-  Future<void> reprint(int archiveId, {required int printerId}) => guard(() => _dio.post<dynamic>(
-        Endpoints.archiveReprint(archiveId),
-        queryParameters: {'printer_id': printerId},
-      ));
-
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
   /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
   /// from aggregate statistics.
