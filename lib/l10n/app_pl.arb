@@ -962,5 +962,21 @@
   "pfmDeleteConfirmBody": "Trwale usunąć {count, plural, one{{count} plik} few{{count} pliki} other{{count} plików}} z drukarki? Tej operacji nie można cofnąć.",
   "@pfmDeleteConfirmBody": { "placeholders": { "count": { "type": "int" } } },
   "pfmDeleted": "Usunięto {count, plural, one{{count} plik} few{{count} pliki} other{{count} plików}}",
-  "@pfmDeleted": { "placeholders": { "count": { "type": "int" } } }
+  "@pfmDeleted": { "placeholders": { "count": { "type": "int" } } },
+
+  "wearConnectionFailed": "Błąd połączenia",
+  "wearNoPrinters": "Brak drukarek",
+  "wearPrinterUnavailable": "Drukarka niedostępna",
+  "wearNoActions": "Brak dostępnych akcji",
+  "wearClearPlate": "Zwolnij płytę",
+  "wearPlateCleared": "Płyta zwolniona",
+  "wearStarted": "Uruchomiono",
+  "wearPhoneUnreachable": "Telefon nieosiągalny",
+  "wearPhoneNoResponse": "Telefon nie odpowiedział",
+  "wearConfirm": "Potwierdź",
+  "wearServerUrl": "Adres serwera",
+  "wearConnect": "Połącz",
+  "wearAuthKey": "Klucz",
+  "wearAuthLogin": "Logowanie",
+  "wearUsername": "Użytkownik"
 }

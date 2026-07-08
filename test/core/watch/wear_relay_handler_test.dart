@@ -56,6 +56,39 @@ void main() {
     expect(second.containsKey('status'), isFalse);
   });
 
+  test('getFleet: queuePending counts only pending items (printing excluded)',
+      () async {
+    adapter
+      ..onGet('/api/v1/printers/', (s) => s.reply(200, <dynamic>[]))
+      ..onGet(
+          '/api/v1/queue/',
+          (s) => s.reply(200, [
+                {'id': 1, 'position': 1, 'status': 'pending'},
+                {'id': 2, 'position': 2, 'status': 'printing'},
+                {'id': 3, 'position': 3, 'status': 'completed'},
+                {'id': 4, 'position': 4, 'status': 'pending'},
+              ]));
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res =
+        await roundTrip(handler, WearRpcRequest.create(WearRpcAction.getFleet));
+
+    expect(res.data!['queuePending'], 2);
+  });
+
+  test('getFleet: failed queue fetch omits queuePending (unknown, not zero)',
+      () async {
+    adapter.onGet('/api/v1/printers/', (s) => s.reply(200, <dynamic>[]));
+    // /api/v1/queue/ is unmocked → the fetch fails → key absent.
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res =
+        await roundTrip(handler, WearRpcRequest.create(WearRpcAction.getFleet));
+
+    expect(res.ok, isTrue);
+    expect(res.data!.containsKey('queuePending'), isFalse);
+  });
+
   test('getFleet: liveStatus cache short-circuits the REST status fetch',
       () async {
     // Only the list route is mocked — a REST status fetch would 404 and the

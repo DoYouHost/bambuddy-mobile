@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/printers_repository.dart';
 import '../providers.dart';
 import 'wear_status.dart';
 import 'wear_transport.dart';
 
 /// Transport for everything the watch asks of the server: relay through the
 /// phone (Data Layer/BT) first, direct REST as fallback — see plan 05.
-final wearTransportProvider = Provider.autoDispose<HybridWearTransport>((ref) {
+///
+/// Deliberately NOT autoDispose: callers only ever `read` it, and an
+/// autoDispose provider with no listeners is disposed right after creation —
+/// which cancelled the relay's reply listener while a request was in flight
+/// (command executed on the phone, watch reported a timeout). It also has to
+/// keep [HybridWearTransport.lastMode] across polls for the adaptive cadence.
+final wearTransportProvider = Provider<HybridWearTransport>((ref) {
   final relay = RelayTransport(ref.watch(watchConnectivityProvider));
   ref.onDispose(relay.dispose);
   // REST needs a configured profile; without one (relay-only watch) the
@@ -31,17 +36,16 @@ final wearTransportProvider = Provider.autoDispose<HybridWearTransport>((ref) {
 /// No WebSocket or background service on the watch (deliberate — battery);
 /// the poll runs only while a screen watching it is mounted (autoDispose).
 final wearFleetProvider =
-    AsyncNotifierProvider.autoDispose<WearFleetNotifier, List<PrinterWithStatus>>(
+    AsyncNotifierProvider.autoDispose<WearFleetNotifier, WearFleet>(
   WearFleetNotifier.new,
 );
 
-class WearFleetNotifier
-    extends AutoDisposeAsyncNotifier<List<PrinterWithStatus>> {
+class WearFleetNotifier extends AutoDisposeAsyncNotifier<WearFleet> {
   Timer? _timer;
   bool _disposed = false;
 
   @override
-  Future<List<PrinterWithStatus>> build() async {
+  Future<WearFleet> build() async {
     ref.onDispose(() {
       _disposed = true;
       _timer?.cancel();
@@ -51,17 +55,16 @@ class WearFleetNotifier
     return fleet;
   }
 
-  Future<List<PrinterWithStatus>> _fetch() =>
-      ref.read(wearTransportProvider).getFleet();
+  Future<WearFleet> _fetch() => ref.read(wearTransportProvider).getFleet();
 
   /// Adaptive cadence: every relay poll wakes the phone over the bridge, so
   /// back off to 30 s when nothing is actively printing. Direct REST (or an
   /// active print) keeps the familiar 5 s.
-  void _scheduleNext(List<PrinterWithStatus>? fleet) {
+  void _scheduleNext(WearFleet? fleet) {
     if (_disposed) return;
     final relaying = ref.read(wearTransportProvider).lastMode ==
         WearTransportMode.relay;
-    final active = fleet?.any((p) => switch (wearStateOf(p.status)) {
+    final active = fleet?.printers.any((p) => switch (wearStateOf(p.status)) {
               WearState.printing || WearState.paused => true,
               _ => false,
             }) ??

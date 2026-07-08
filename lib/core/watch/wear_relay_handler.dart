@@ -12,6 +12,7 @@ import '../../data/queue_repository.dart';
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../models/json_utils.dart';
+import '../models/queue_item.dart';
 import 'wear_rpc.dart';
 
 /// PHONE side of the watch relay (plan 05, M-R3 "app alive" variant): answers
@@ -136,6 +137,16 @@ class WearRelayHandler {
         return null;
       }
     }));
+    // Waiting-to-print count for the watch's "start next" button. A failed
+    // queue fetch just omits the key (unknown on the watch), same tolerance
+    // as a failed status.
+    int? queuePending;
+    try {
+      final items = await QueueRepository(dio).fetch();
+      queuePending = items
+          .where((q) => q.statusKind == QueueItemStatusKind.pending)
+          .length;
+    } catch (_) {}
     return {
       'printers': [
         for (var i = 0; i < printers.length; i++)
@@ -144,6 +155,7 @@ class WearRelayHandler {
             if (statuses[i] != null) 'status': statuses[i],
           },
       ],
+      'queuePending': ?queuePending,
     };
   }
 }

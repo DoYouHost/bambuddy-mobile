@@ -5269,6 +5269,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deleted {count} {count, plural, one{file} other{files}}'**
   String pfmDeleted(int count);
+
+  /// No description provided for @wearConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get wearConnectionFailed;
+
+  /// No description provided for @wearNoPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers'**
+  String get wearNoPrinters;
+
+  /// No description provided for @wearPrinterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer unavailable'**
+  String get wearPrinterUnavailable;
+
+  /// No description provided for @wearNoActions.
+  ///
+  /// In en, this message translates to:
+  /// **'No actions available'**
+  String get wearNoActions;
+
+  /// No description provided for @wearClearPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear plate'**
+  String get wearClearPlate;
+
+  /// No description provided for @wearPlateCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate cleared'**
+  String get wearPlateCleared;
+
+  /// No description provided for @wearStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get wearStarted;
+
+  /// No description provided for @wearPhoneUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone unreachable'**
+  String get wearPhoneUnreachable;
+
+  /// No description provided for @wearPhoneNoResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone did not respond'**
+  String get wearPhoneNoResponse;
+
+  /// No description provided for @wearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get wearConfirm;
+
+  /// No description provided for @wearServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get wearServerUrl;
+
+  /// No description provided for @wearConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get wearConnect;
+
+  /// No description provided for @wearAuthKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get wearAuthKey;
+
+  /// No description provided for @wearAuthLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get wearAuthLogin;
+
+  /// No description provided for @wearUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get wearUsername;
 }
 
 class _AppLocalizationsDelegate

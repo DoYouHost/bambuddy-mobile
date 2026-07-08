@@ -1081,5 +1081,21 @@
   "pfmDeleteConfirmBody": "Permanently delete {count} {count, plural, one{file} other{files}} from the printer? This cannot be undone.",
   "@pfmDeleteConfirmBody": { "placeholders": { "count": { "type": "int" } } },
   "pfmDeleted": "Deleted {count} {count, plural, one{file} other{files}}",
-  "@pfmDeleted": { "placeholders": { "count": { "type": "int" } } }
+  "@pfmDeleted": { "placeholders": { "count": { "type": "int" } } },
+
+  "wearConnectionFailed": "Connection failed",
+  "wearNoPrinters": "No printers",
+  "wearPrinterUnavailable": "Printer unavailable",
+  "wearNoActions": "No actions available",
+  "wearClearPlate": "Clear plate",
+  "wearPlateCleared": "Plate cleared",
+  "wearStarted": "Started",
+  "wearPhoneUnreachable": "Phone unreachable",
+  "wearPhoneNoResponse": "Phone did not respond",
+  "wearConfirm": "Confirm",
+  "wearServerUrl": "Server URL",
+  "wearConnect": "Connect",
+  "wearAuthKey": "Key",
+  "wearAuthLogin": "Login",
+  "wearUsername": "Username"
 }

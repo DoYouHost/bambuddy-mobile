@@ -1,5 +1,4 @@
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
-import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,7 +20,8 @@ class FakeTransport implements WearTransport {
   }
 
   @override
-  Future<List<PrinterWithStatus>> getFleet() => _run('getFleet', const []);
+  Future<WearFleet> getFleet() =>
+      _run('getFleet', const WearFleet(printers: []));
 
   @override
   Future<void> pause(int printerId) => _run('pause', null);
@@ -64,15 +64,24 @@ void main() {
                 // no status → offline card
               },
             ],
+            'queuePending': 3,
           }).encode();
       final fleet = await relay.getFleet();
-      expect(fleet, hasLength(2));
-      expect(fleet.first.printer.name, 'X1C');
-      expect(fleet.first.status, isNotNull);
-      expect(fleet.last.status, isNull);
+      expect(fleet.printers, hasLength(2));
+      expect(fleet.printers.first.printer.name, 'X1C');
+      expect(fleet.printers.first.status, isNotNull);
+      expect(fleet.printers.last.status, isNull);
+      expect(fleet.queuePending, 3);
       // The wire request was a getFleet with the RPC envelope.
       expect(watch.sent.single['action'], 'getFleet');
       expect(watch.sent.single['kind'], 'req');
+    });
+
+    test('missing queuePending (older phone) → null, not zero', () async {
+      watch.autoRespond = (req) => WearRpcResponse.ok(
+          req['id'] as String, {'printers': <dynamic>[]}).encode();
+      final fleet = await relay.getFleet();
+      expect(fleet.queuePending, isNull);
     });
 
     test('command sends printerId and resolves on ok', () async {

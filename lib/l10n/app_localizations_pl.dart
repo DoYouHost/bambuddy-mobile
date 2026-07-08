@@ -3052,4 +3052,49 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return 'Usunięto $_temp0';
   }
+
+  @override
+  String get wearConnectionFailed => 'Błąd połączenia';
+
+  @override
+  String get wearNoPrinters => 'Brak drukarek';
+
+  @override
+  String get wearPrinterUnavailable => 'Drukarka niedostępna';
+
+  @override
+  String get wearNoActions => 'Brak dostępnych akcji';
+
+  @override
+  String get wearClearPlate => 'Zwolnij płytę';
+
+  @override
+  String get wearPlateCleared => 'Płyta zwolniona';
+
+  @override
+  String get wearStarted => 'Uruchomiono';
+
+  @override
+  String get wearPhoneUnreachable => 'Telefon nieosiągalny';
+
+  @override
+  String get wearPhoneNoResponse => 'Telefon nie odpowiedział';
+
+  @override
+  String get wearConfirm => 'Potwierdź';
+
+  @override
+  String get wearServerUrl => 'Adres serwera';
+
+  @override
+  String get wearConnect => 'Połącz';
+
+  @override
+  String get wearAuthKey => 'Klucz';
+
+  @override
+  String get wearAuthLogin => 'Logowanie';
+
+  @override
+  String get wearUsername => 'Użytkownik';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
 import 'wear_printer_control_screen.dart';
@@ -13,32 +14,42 @@ class WearPrinterListBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fleet = ref.watch(wearFleetProvider);
-    final printers = fleet.valueOrNull ?? const [];
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(8, 20, 8, 28),
-      children: [
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text('Printers', style: TextStyle(fontWeight: FontWeight.bold)),
+    final printers = fleet.valueOrNull?.printers ?? const [];
+    return RefreshIndicator(
+      onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
+      child: ListView(
+        // Always scrollable so the pull gesture works even when the short
+        // printer list doesn't fill the screen.
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(8, 20, 8, 28),
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(AppLocalizations.of(context).printersTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
           ),
-        ),
-        for (final p in printers)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: _PrinterRow(
-              name: p.printer.name,
-              state: wearStateOf(p.status),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => WearPrinterControlScreen(
-                    printerId: p.printer.id,
+          for (final p in printers)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: _PrinterRow(
+                name: p.printer.name,
+                stateLabel: wearStateOf(p.status).label(
+                  AppLocalizations.of(context),
+                ),
+                stateColor: wearStateOf(p.status).color,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => WearPrinterControlScreen(
+                      printerId: p.printer.id,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -46,12 +57,14 @@ class WearPrinterListBody extends ConsumerWidget {
 class _PrinterRow extends StatelessWidget {
   const _PrinterRow({
     required this.name,
-    required this.state,
+    required this.stateLabel,
+    required this.stateColor,
     required this.onTap,
   });
 
   final String name;
-  final WearState state;
+  final String stateLabel;
+  final Color stateColor;
   final VoidCallback onTap;
 
   @override
@@ -69,7 +82,7 @@ class _PrinterRow extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration:
-                      BoxDecoration(color: state.color, shape: BoxShape.circle),
+                      BoxDecoration(color: stateColor, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -81,8 +94,8 @@ class _PrinterRow extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600)),
-                      Text(state.label,
-                          style: TextStyle(fontSize: 11, color: state.color)),
+                      Text(stateLabel,
+                          style: TextStyle(fontSize: 11, color: stateColor)),
                     ],
                   ),
                 ),

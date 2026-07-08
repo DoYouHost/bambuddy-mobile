@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import 'providers.dart';
+import 'setup_error_text.dart';
 
 /// Connection setup: URL → auth mode probe → (optional) API key or login+password.
 /// API keys recommended: no expiry and scopes, unlike 24-hour JWT.
@@ -73,7 +72,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
-                  _setupErrorText(l10n, state.error!),
+                  setupErrorText(l10n, state.error!),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   ),
@@ -160,19 +159,4 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
         ],
       ];
-}
-
-/// Translate setup error: [AppApiException] from network or local
-/// [SetupErrorCode] validation.
-String _setupErrorText(AppLocalizations l10n, Object error) {
-  if (error is AppApiException) return error.localized(l10n);
-  if (error is SetupErrorCode) {
-    return switch (error) {
-      SetupErrorCode.missingUrl => l10n.errMissingUrl,
-      SetupErrorCode.missingApiKey => l10n.errMissingApiKey,
-      SetupErrorCode.missingCredentials => l10n.errMissingCredentials,
-      SetupErrorCode.requiresServerSetup => l10n.errRequiresServerSetup,
-    };
-  }
-  return error.toString();
 }

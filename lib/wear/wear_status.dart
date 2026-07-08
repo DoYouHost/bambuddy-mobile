@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models/printer_status.dart';
+import '../l10n/app_localizations.dart';
 
 /// Normalized printer state for the watch UI. Kept intentionally coarse — the
 /// watch only needs a glanceable label/color and which control buttons to show.
@@ -23,13 +24,14 @@ WearState wearStateOf(PrinterStatus? s) {
 }
 
 extension WearStateView on WearState {
-  String get label => switch (this) {
-        WearState.offline => 'Offline',
-        WearState.printing => 'Printing',
-        WearState.paused => 'Paused',
-        WearState.finished => 'Finished',
-        WearState.failed => 'Failed',
-        WearState.idle => 'Idle',
+  /// Same wording as the home-screen widget statuses.
+  String label(AppLocalizations l10n) => switch (this) {
+        WearState.offline => l10n.widgetStatusOffline,
+        WearState.printing => l10n.widgetStatusPrinting,
+        WearState.paused => l10n.widgetStatusPaused,
+        WearState.finished => l10n.widgetStatusFinished,
+        WearState.failed => l10n.widgetStatusFailed,
+        WearState.idle => l10n.widgetStatusIdle,
       };
 
   Color get color => switch (this) {

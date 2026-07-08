@@ -8,6 +8,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
+import '../core/models/queue_item.dart';
 import '../core/watch/wear_rpc.dart';
 import '../data/printer_commands_repository.dart';
 import '../data/printers_repository.dart';
@@ -38,11 +39,24 @@ class WearRelayRemoteError implements Exception {
   String toString() => code;
 }
 
+/// One watch poll: the printers plus the queue signal behind the
+/// "start next" button.
+class WearFleet {
+  const WearFleet({required this.printers, this.queuePending});
+
+  final List<PrinterWithStatus> printers;
+
+  /// Queue items still waiting to print (printing/paused/done don't count).
+  /// Null = unknown (older phone app relaying, or the queue fetch failed) —
+  /// the UI then keeps offering "start next" as before.
+  final int? queuePending;
+}
+
 /// What the watch needs from "the other side", regardless of whether that's
 /// the phone (relay) or the server directly (REST). Screens and [WearActions]
 /// only ever talk to this.
 abstract interface class WearTransport {
-  Future<List<PrinterWithStatus>> getFleet();
+  Future<WearFleet> getFleet();
   Future<void> pause(int printerId);
   Future<void> resume(int printerId);
   Future<void> stop(int printerId);
@@ -117,10 +131,14 @@ class RelayTransport implements WearTransport {
   }
 
   @override
-  Future<List<PrinterWithStatus>> getFleet() async {
+  Future<WearFleet> getFleet() async {
     final data = await _call(WearRpcAction.getFleet);
+    final pending = data?['queuePending'];
     final list = data?['printers'];
-    if (list is! List) return const [];
+    if (list is! List) {
+      return WearFleet(
+          printers: const [], queuePending: pending is int ? pending : null);
+    }
     final out = <PrinterWithStatus>[];
     // Tolerant per-entry parsing, mirroring parseJsonList: one malformed
     // printer drops that entry, not the whole fleet.
@@ -145,7 +163,8 @@ class RelayTransport implements WearTransport {
       }
       out.add(PrinterWithStatus(printer: printer, status: status));
     }
-    return out;
+    return WearFleet(
+        printers: out, queuePending: pending is int ? pending : null);
   }
 
   @override
@@ -185,7 +204,20 @@ class RestTransport implements WearTransport {
   final QueueRepository _queue;
 
   @override
-  Future<List<PrinterWithStatus>> getFleet() => _printers.fetchAll();
+  Future<WearFleet> getFleet() async {
+    final printers = _printers.fetchAll();
+    int? pending;
+    try {
+      final items = await _queue.fetch();
+      pending = items
+          .where((q) => q.statusKind == QueueItemStatusKind.pending)
+          .length;
+    } on Exception {
+      // A broken queue endpoint shouldn't take the whole fleet down.
+      pending = null;
+    }
+    return WearFleet(printers: await printers, queuePending: pending);
+  }
 
   @override
   Future<void> pause(int printerId) => _commands.pause(printerId);
@@ -246,7 +278,7 @@ class HybridWearTransport implements WearTransport {
   }
 
   @override
-  Future<List<PrinterWithStatus>> getFleet() =>
+  Future<WearFleet> getFleet() =>
       _run((t) => t.getFleet(), fallbackOnTimeout: true);
 
   @override

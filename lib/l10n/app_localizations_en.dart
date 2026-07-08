@@ -3002,4 +3002,49 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return 'Deleted $count $_temp0';
   }
+
+  @override
+  String get wearConnectionFailed => 'Connection failed';
+
+  @override
+  String get wearNoPrinters => 'No printers';
+
+  @override
+  String get wearPrinterUnavailable => 'Printer unavailable';
+
+  @override
+  String get wearNoActions => 'No actions available';
+
+  @override
+  String get wearClearPlate => 'Clear plate';
+
+  @override
+  String get wearPlateCleared => 'Plate cleared';
+
+  @override
+  String get wearStarted => 'Started';
+
+  @override
+  String get wearPhoneUnreachable => 'Phone unreachable';
+
+  @override
+  String get wearPhoneNoResponse => 'Phone did not respond';
+
+  @override
+  String get wearConfirm => 'Confirm';
+
+  @override
+  String get wearServerUrl => 'Server URL';
+
+  @override
+  String get wearConnect => 'Connect';
+
+  @override
+  String get wearAuthKey => 'Key';
+
+  @override
+  String get wearAuthLogin => 'Login';
+
+  @override
+  String get wearUsername => 'Username';
 }

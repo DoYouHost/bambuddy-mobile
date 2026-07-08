@@ -2,11 +2,16 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_status.dart';
 import '../../data/printers_repository.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_transport.dart';
+import '../widgets/wear_confirm_dialog.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
 /// Scaffold so it gets its own back-swipe route.
@@ -42,10 +47,12 @@ class _WearPrinterControlBodyState
 
   @override
   Widget build(BuildContext context) {
-    final printers = ref.watch(wearFleetProvider).valueOrNull ?? const [];
+    final fleet = ref.watch(wearFleetProvider).valueOrNull;
+    final printers = fleet?.printers ?? const <PrinterWithStatus>[];
+    final l10n = AppLocalizations.of(context);
     final item = _find(printers);
     if (item == null) {
-      return const Center(child: Text('Printer unavailable'));
+      return Center(child: Text(l10n.wearPrinterUnavailable));
     }
     final status = item.status;
     final state = wearStateOf(status);
@@ -54,31 +61,37 @@ class _WearPrinterControlBodyState
 
     return Stack(
       children: [
-        ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-          children: [
-            Center(
-              child: Text(
-                item.printer.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        RefreshIndicator(
+          onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
+          child: ListView(
+            // Always scrollable so the pull gesture works even when the few
+            // action buttons don't fill the screen.
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+            children: [
+              Center(
+                child: Text(
+                  item.printer.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Center(
-              child: Text(state.label,
-                  style: TextStyle(
-                      color: state.color, fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 10),
-            if (state == WearState.printing || state == WearState.paused)
-              _progress(status),
-            const SizedBox(height: 10),
-            ..._actions(state, status, requirePlateClear),
-          ],
+              const SizedBox(height: 2),
+              Center(
+                child: Text(state.label(l10n),
+                    style: TextStyle(
+                        color: state.color, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 10),
+              if (state == WearState.printing || state == WearState.paused)
+                _progress(status),
+              const SizedBox(height: 10),
+              ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+            ],
+          ),
         ),
         if (_busy)
           const Positioned.fill(
@@ -120,44 +133,59 @@ class _WearPrinterControlBodyState
     );
   }
 
-  List<Widget> _actions(
-      WearState state, PrinterStatus? status, bool requirePlateClear) {
+  List<Widget> _actions(PrinterWithStatus item, WearState state,
+      bool requirePlateClear, int? queuePending) {
+    final l10n = AppLocalizations.of(context);
+    final status = item.status;
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
     final buttons = <Widget>[];
 
     if (state == WearState.printing) {
-      buttons.add(_btn('Pause', Icons.pause, () => actions.pause(id)));
+      buttons.add(_btn(l10n.ctrlPause, Icons.pause, () => actions.pause(id)));
     } else if (state == WearState.paused) {
-      buttons.add(_btn('Resume', Icons.play_arrow, () => actions.resume(id)));
+      buttons.add(
+          _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)));
     }
 
     // Clear plate: only when the printer is waiting AND the server enforces it.
     if (requirePlateClear && (status?.awaitingPlateClear ?? false)) {
-      buttons.add(_btn('Clear plate', Icons.cleaning_services,
+      buttons.add(_btn(l10n.wearClearPlate, Icons.cleaning_services,
           () => actions.clearPlate(id),
-          okMsg: 'Plate cleared'));
+          okMsg: l10n.wearPlateCleared));
     }
 
-    // Start next from queue: offered whenever the printer isn't actively printing.
+    // Start next from queue: offered when the printer isn't actively printing
+    // AND something is actually waiting (null count = unknown → keep offering).
+    // Items already printing don't count as pending.
     if (state != WearState.printing && state != WearState.paused) {
-      buttons.add(_btn('Start next', Icons.playlist_play,
-          () => actions.startNext(id),
-          okMsg: 'Started'));
+      if (queuePending == null || queuePending > 0) {
+        buttons.add(_btn(l10n.queueStartNext, Icons.playlist_play,
+            () => actions.startNext(id),
+            okMsg: l10n.wearStarted));
+      } else {
+        buttons.add(Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(l10n.queueEmpty,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Colors.white54)),
+        ));
+      }
     }
 
     // Stop: destructive → behind a confirm dialog.
     if (state == WearState.printing || state == WearState.paused) {
-      buttons.add(_btn('Stop', Icons.stop, () => _confirmStop(actions, id),
+      buttons.add(_btn(l10n.ctrlStop, Icons.stop,
+          () => _confirmStop(actions, id, item.printer.name),
           color: const Color(0xFFB3261E)));
     }
 
     if (buttons.isEmpty) {
-      buttons.add(const Padding(
-        padding: EdgeInsets.only(top: 8),
-        child: Text('No actions available',
+      buttons.add(Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(l10n.wearNoActions,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.white54)),
+            style: const TextStyle(fontSize: 12, color: Colors.white54)),
       ));
     }
     return [
@@ -177,20 +205,14 @@ class _WearPrinterControlBodyState
             : null,
       );
 
-  Future<void> _confirmStop(WearActions actions, int id) async {
+  Future<void> _confirmStop(WearActions actions, int id, String name) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('Stop print?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('No')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Stop')),
-        ],
+      builder: (ctx) => WearConfirmDialog(
+        icon: Icons.stop_rounded,
+        title: AppLocalizations.of(ctx).ctrlStopConfirmTitle,
+        subtitle: name,
+        confirmColor: const Color(0xFFB3261E),
       ),
     );
     if (ok == true) await actions.stop(id);
@@ -205,7 +227,7 @@ class _WearPrinterControlBodyState
       await ref.read(wearFleetProvider.notifier).refresh();
       if (okMsg != null && mounted) _toast(okMsg);
     } catch (e) {
-      if (mounted) _toast(_shortError(e));
+      if (mounted) _toast(_shortError(AppLocalizations.of(context), e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -222,8 +244,17 @@ class _WearPrinterControlBodyState
   }
 }
 
-String _shortError(Object e) {
-  if (e is StateError && e.message == 'empty-queue') return 'Queue empty';
+String _shortError(AppLocalizations l10n, Object e) {
+  if (e is StateError && e.message == 'empty-queue') return l10n.queueEmpty;
+  if (e is WearRelayUnreachable) return l10n.wearPhoneUnreachable;
+  if (e is WearRelayTimeout) return l10n.wearPhoneNoResponse;
+  // Relayed server error: the phone forwards the AppErrorCode name.
+  if (e is WearRelayRemoteError) {
+    return e.code == AppErrorCode.forbidden.name
+        ? l10n.errForbidden
+        : l10n.ctrlFailed;
+  }
+  if (e is AppApiException) return e.localized(l10n);
   final s = e.toString();
   return s.length > 60 ? '${s.substring(0, 60)}…' : s;
 }
