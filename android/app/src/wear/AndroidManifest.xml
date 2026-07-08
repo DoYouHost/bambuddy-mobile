@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Marks this APK as a Wear OS app. Merged only into the `wear` flavor, so
+         Google Play offers it as the watch install under the shared listing
+         (same applicationId as the phone), and keeps it off phones/tablets. -->
+    <uses-feature android:name="android.hardware.type.watch" android:required="true" />
+</manifest>

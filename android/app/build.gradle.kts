@@ -61,6 +61,27 @@ android {
         versionName = flutter.versionName
     }
 
+    // Phone and watch ship as one Google Play listing (same applicationId),
+    // differentiated only by the merged manifest: the `wear` source set adds
+    // `uses-feature android.hardware.type.watch`, which routes that APK to
+    // watches. Both Dart entry points share this module; the flavor picks which
+    // manifest merges. NOTE: once flavors exist every `flutter build/run` must
+    // pass `--flavor` (see justfile).
+    flavorDimensions += "device"
+    productFlavors {
+        create("mobile") {
+            dimension = "device"
+            // Inherits versionCode/versionName from defaultConfig (pubspec).
+        }
+        create("wear") {
+            dimension = "device"
+            // Play requires a distinct versionCode per APK under one listing.
+            // Offset the wear series well clear of the phone one — the phone
+            // scheme (major*10000+minor*100+patch) never reaches 1_000_000.
+            versionCode = (flutter.versionCode ?: 0) + 1_000_000
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName(if (hasReleaseKeystore) "release" else "debug")

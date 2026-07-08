@@ -1,4 +1,5 @@
-apk := "build/app/outputs/flutter-apk/app-release.apk"
+apk := "build/app/outputs/flutter-apk/app-mobile-release.apk"
+wear_apk := "build/app/outputs/flutter-apk/app-wear-release.apk"
 repo := "MorganMLGman/bambuddy-mobile"
 # Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
 emu := "192.168.2.208:5555"
@@ -11,9 +12,13 @@ default:
 test:
     flutter test
 
-# build release APK
+# build phone release APK (flavors force an explicit --flavor)
 build:
-    flutter build apk --release
+    flutter build apk --release --flavor mobile
+
+# build watch release APK (Wear OS entry point + wear flavor/manifest)
+build-wear:
+    flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
 
 # clean build artifacts
 clean:
@@ -25,11 +30,11 @@ emu-connect:
 
 # run the app on the remote GPU emulator (screen view at http://192.168.2.208:8000)
 dev: emu-connect
-    flutter run -d {{emu}}
+    flutter run -d {{emu}} --flavor mobile
 
 # run integration tests on the remote GPU emulator
 itest: emu-connect
-    flutter test integration_test/
+    flutter test integration_test/ --flavor mobile
 
 # one-time setup: open the device list in emu-view's dedicated Chrome profile so
 # "Fit to screen" + Save settings persists there (localStorage, per player=mse).
@@ -76,7 +81,7 @@ _bump ver:
         git commit -m "chore: bump version to {{ver}}"
     fi
 
-# create Codeberg release and upload APK (assumes APK already built)
+# create Codeberg release and upload phone + watch APKs (assumes both built)
 # usage: just release 1.0.0
 release ver:
     #!/usr/bin/env bash
@@ -92,7 +97,18 @@ release ver:
     else
         tea releases create --remote origin --target master --tag v{{ver}} --title "v{{ver}}"
     fi
-    tea releases assets create --remote origin v{{ver}} {{apk}}
+    # Upload both APKs to the one release. Phone + watch share an applicationId
+    # but have distinct filenames (app-mobile/app-wear), so Obtainium picks the
+    # right one via a filename regex. Skip an asset that's already up so a
+    # resumed run doesn't duplicate it.
+    for f in {{apk}} {{wear_apk}}; do
+        name=$(basename "$f")
+        if tea releases assets list --remote origin v{{ver}} 2>/dev/null | grep -qw "$name"; then
+            echo "Asset $name already uploaded, skipping"
+        else
+            tea releases assets create --remote origin v{{ver}} "$f"
+        fi
+    done
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
 
@@ -102,4 +118,5 @@ ship ver:
     just _bump {{ver}}
     just test
     just build
+    just build-wear
     just release {{ver}}
