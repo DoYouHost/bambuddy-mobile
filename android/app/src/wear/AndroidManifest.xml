@@ -20,6 +20,19 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
 
     <application>
+        <!-- Hard-lock the watch UI upright. Must be "nosensor", not "portrait":
+             the display is square (450x450), so portrait and landscape share
+             dimensions and the system still rotates the whole display 90° when
+             the watch is physically turned (verified: requestedOrientation was
+             PORTRAIT yet display went to ROTATION_90). "nosensor" tells the
+             system to ignore the sensor and keep the natural orientation.
+             Merges the attribute onto the shared MainActivity for this flavor
+             only — the phone manifest declares no orientation, so no conflict. -->
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="nosensor"
+            tools:node="merge" />
+
         <!-- Required by Play for Wear OS distribution: the watch app is fully
              usable without the phone app installed (direct REST fallback). -->
         <meta-data
