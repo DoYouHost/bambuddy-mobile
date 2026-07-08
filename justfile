@@ -20,6 +20,12 @@ build:
 build-wear:
     flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
 
+# build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
+# Outputs: build/app/outputs/bundle/{mobileRelease,wearRelease}/
+build-aab:
+    flutter build appbundle --release --flavor mobile
+    flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart
+
 # clean build artifacts
 clean:
     flutter clean

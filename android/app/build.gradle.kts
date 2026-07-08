@@ -79,6 +79,9 @@ android {
             // Offset the wear series well clear of the phone one — the phone
             // scheme (major*10000+minor*100+patch) never reaches 1_000_000.
             versionCode = (flutter.versionCode ?: 0) + 1_000_000
+            // Wear OS 3+ only (API 30). Keeps Play from serving the watch APK
+            // to Wear OS 2 devices, where nothing has ever been tested.
+            minSdk = 30
         }
     }
 

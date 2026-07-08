@@ -1,6 +1,40 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Marks this APK as a Wear OS app. Merged only into the `wear` flavor, so
          Google Play offers it as the watch install under the shared listing
          (same applicationId as the phone), and keeps it off phones/tablets. -->
     <uses-feature android:name="android.hardware.type.watch" android:required="true" />
+
+    <!-- Strip phone-only permissions the wear Dart entry point never uses.
+         Play gates several of them behind extra review (foreground service
+         declaration + video, battery-optimization exemption), so declaring
+         them in an APK that can't exercise them only invites rejection. -->
+    <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
+    <!-- The watch never posts its own notifications (Wear OS bridges the
+         phone's), so neither the runtime permission nor the reboot
+         rescheduling hook (flutter_local_notifications) applies here. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
+
+    <application>
+        <!-- Required by Play for Wear OS distribution: the watch app is fully
+             usable without the phone app installed (direct REST fallback). -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- Phone-only components: home-screen widget, the FGS host for the
+             background monitor, and the notification-action receiver. The wear
+             entry point never starts them — drop them from the watch APK. -->
+        <receiver android:name=".BambuddyWidgetProvider" tools:node="remove" />
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            tools:node="remove" />
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            tools:node="remove" />
+    </application>
 </manifest>

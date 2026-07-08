@@ -6,4 +6,11 @@
           android:drawable="@drawable/ic_launcher_foreground"
           android:inset="16%" />
   </foreground>
+  <!-- Themed icons (Android 13+): the system tints the alpha silhouette of the
+       foreground PNG to match the user's wallpaper palette. -->
+  <monochrome>
+      <inset
+          android:drawable="@drawable/ic_launcher_foreground"
+          android:inset="16%" />
+  </monochrome>
 </adaptive-icon>
