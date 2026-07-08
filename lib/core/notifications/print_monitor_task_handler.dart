@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../../data/maintenance_repository.dart';
 import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders;
@@ -23,6 +24,7 @@ import '../auth/token_refresher.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import '../watch/wear_relay_handler.dart';
 import '../widget/home_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
@@ -45,7 +47,7 @@ void startCallback() {
 /// own [WsClient] and [PrintMonitor]. Shares no memory or providers with the UI isolate.
 class PrintMonitorTaskHandler extends TaskHandler {
   WsClient? _ws;
-  StreamSubscription<PrinterStatus>? _sub;
+  StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
   _FgsNotificationService? _fgs;
@@ -53,6 +55,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
   Timer? _maintenanceTimer;
   ProactiveTokenRefresher? _tokenRefresher;
   final Map<int, PrinterStatus> _statuses = {};
+  // Watch relay (plan 05 M-R4): while the app is backgrounded/swiped away this
+  // isolate is the phone-side responder. Raw WS frames are cached so getFleet
+  // answers from memory (server JSON pass-through) instead of a REST fan-out.
+  WearRelayHandler? _wearRelay;
+  StreamSubscription<WsConnectionState>? _connSub;
+  final Map<int, Map<String, dynamic>> _rawStatuses = {};
+  var _wsUp = false;
   // HMS catalog + cover fetch path for widget (separate from UI isolate).
   HmsCatalog? _hmsCatalog;
   CameraTokenService? _cameraToken;
@@ -130,8 +139,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
       invalidateQueryToken: wsToken?.invalidate,
     );
     _ws = ws;
-    _sub = ws.statuses.listen((status) {
+    _sub = ws.statusFrames.listen((frame) {
+      final status = frame.status;
       _statuses[status.id] = status;
+      _rawStatuses[status.id] = frame.raw;
       // Guard against a throw inside update (l10n / plugin call) escaping the
       // stream callback as an uncaught zone error, which would otherwise drop
       // processing of this frame's downstream effects (widget publish below).
@@ -158,6 +169,21 @@ class PrintMonitorTaskHandler extends TaskHandler {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
     ws.start();
+
+    // Watch relay: this isolate answers the watch while the app UI is gone
+    // (backgrounded/swiped). The UI-engine handler is stopped on pause, so at
+    // most one responder listens at a time (a command answered twice would
+    // execute twice — e.g. a double startNext). Live frames are served only
+    // while the socket is up; after a disconnect the cache may be stale, so
+    // getFleet falls back to REST statuses.
+    _connSub = ws.connectionStates.listen((s) {
+      _wsUp = s == WsConnectionState.connected;
+    });
+    _wearRelay = WearRelayHandler(
+      watch: WatchConnectivity(),
+      dio: () => api?.dio,
+      liveStatus: (id) => _wsUp ? _rawStatuses[id] : null,
+    )..start();
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
@@ -241,6 +267,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _maintenanceTimer?.cancel();
     _tokenRefresher?.stop();
     _monitor?.dispose();
+    _wearRelay?.stop();
+    await _connSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
     await _ws?.dispose();

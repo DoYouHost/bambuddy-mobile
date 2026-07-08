@@ -28,14 +28,22 @@ import 'wear_rpc.dart';
 class WearRelayHandler {
   /// [dio] returns the current authenticated client, or null when no server
   /// profile is configured (the watch is then told `phone-unconfigured`).
+  ///
+  /// [liveStatus] (FGS isolate only) returns the raw last-known WS status
+  /// frame for a printer, or null when there's nothing trustworthy (WS down /
+  /// printer never seen) — the handler then falls back to a REST status fetch
+  /// for that printer.
   WearRelayHandler({
     required WatchConnectivity watch,
     required Dio? Function() dio,
+    Map<String, dynamic>? Function(int printerId)? liveStatus,
   })  : _watch = watch,
-        _dio = dio;
+        _dio = dio,
+        _liveStatus = liveStatus;
 
   final WatchConnectivity _watch;
   final Dio? Function() _dio;
+  final Map<String, dynamic>? Function(int printerId)? _liveStatus;
 
   StreamSubscription<Map<String, dynamic>>? _sub;
 
@@ -108,7 +116,9 @@ class WearRelayHandler {
   /// Raw printers + statuses, same parallel fan-out as
   /// `PrintersRepository.fetchAll` but without parsing into models. A failed
   /// status fetch drops just that printer's status (offline card on the
-  /// watch), never the whole fleet.
+  /// watch), never the whole fleet. Statuses come from the live WS cache when
+  /// [_liveStatus] provides them — then a getFleet costs one REST call (the
+  /// printer list) instead of 1+N.
   Future<Map<String, dynamic>> _fleet(Dio dio) async {
     final res = await guard(() => dio.get<List<dynamic>>(Endpoints.printers));
     final printers =
@@ -116,6 +126,8 @@ class WearRelayHandler {
     final statuses = await Future.wait(printers.map((p) async {
       final id = toIntOrNull(p['id']);
       if (id == null) return null;
+      final live = _liveStatus?.call(id);
+      if (live != null) return live;
       try {
         final s =
             await dio.get<Map<String, dynamic>>(Endpoints.printerStatus(id));

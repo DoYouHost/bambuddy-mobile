@@ -18,8 +18,13 @@ sealed class WsMessage {
 /// where `data` has shape of REST status, but **WITHOUT `id` field**
 /// (identifier only in `printer_id`). [status] has id already injected.
 class WsPrinterStatus extends WsMessage {
-  const WsPrinterStatus(this.status);
+  const WsPrinterStatus(this.status, this.raw);
   final PrinterStatus status;
+
+  /// The merged frame `data` as received (id injected), REST-status shaped.
+  /// Kept so the watch relay can forward server JSON without re-serializing
+  /// [status] (models are parse-only).
+  final Map<String, dynamic> raw;
 }
 
 /// `plate_not_empty` frame — camera detection found objects on plate at
@@ -90,7 +95,7 @@ WsMessage? parseWsMessage(String raw) {
       // injection means if server ever adds `id` to `data`, it wins — payload
       // is source of truth.
       final merged = <String, dynamic>{'id': printerId, ...data};
-      return WsPrinterStatus(PrinterStatus.fromJson(merged));
+      return WsPrinterStatus(PrinterStatus.fromJson(merged), merged);
     case 'plate_not_empty':
       final printerId = _toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type); // without id, unclear whose

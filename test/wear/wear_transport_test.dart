@@ -1,42 +1,9 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 
-/// Fake Data Layer: records sent messages and lets the test script replies.
-/// `noSuchMethod` absorbs the plugin members the transport never touches.
-/// The plugin base is @immutable; this test double is deliberately mutable.
-// ignore: must_be_immutable
-class FakeWatchConnectivity implements WatchConnectivity {
-  final _incoming = StreamController<Map<String, dynamic>>.broadcast();
-  final sent = <Map<String, dynamic>>[];
-  bool reachable = true;
-
-  /// When set, every sent request is answered with this function's result.
-  Map<String, dynamic>? Function(Map<String, dynamic> request)? autoRespond;
-
-  @override
-  Stream<Map<String, dynamic>> get messageStream => _incoming.stream;
-
-  @override
-  Future<bool> get isReachable async => reachable;
-
-  @override
-  Future<void> sendMessage(Map<String, dynamic> message) async {
-    sent.add(message);
-    final reply = autoRespond?.call(message);
-    if (reply != null) _incoming.add(reply);
-  }
-
-  void deliver(Map<String, dynamic> message) => _incoming.add(message);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName}');
-}
+import '../helpers/fake_watch_connectivity.dart';
 
 /// Scriptable transport for hybrid-policy tests.
 class FakeTransport implements WearTransport {

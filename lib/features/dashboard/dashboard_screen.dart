@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -44,6 +46,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       onPause: () {
         if (ref.read(bgMonitoringEnabledProvider)) {
           ref.read(backgroundMonitorProvider).start();
+          // Hand the watch relay over to the FGS isolate. Exactly one
+          // responder may listen at a time — a request answered twice is a
+          // command executed twice (e.g. double startNext).
+          ref.read(wearRelayHandlerProvider).stop();
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
@@ -52,7 +58,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
       },
       onResume: () {
-        ref.read(backgroundMonitorProvider).stop();
+        // Take the watch relay back only once the FGS isolate is stopped, so
+        // the two responders never overlap (see onPause).
+        unawaited(ref
+            .read(backgroundMonitorProvider)
+            .stop()
+            .then((_) => ref.read(wearRelayHandlerProvider).start()));
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
         ref.read(smartPlugsProvider.notifier).resumePolling();
