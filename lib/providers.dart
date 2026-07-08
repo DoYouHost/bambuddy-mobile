@@ -15,6 +15,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
+import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/makerworld.dart';
 import 'data/ams_history_repository.dart';
@@ -62,6 +63,21 @@ final watchConfigSyncProvider = Provider<WatchConfigSync>(
     settings: ref.watch(settingsRepositoryProvider),
   ),
 );
+
+/// PHONE side of the watch relay: answers watch RPCs (fleet/commands) over the
+/// Data Layer using this phone's authenticated client. Started once from the
+/// phone app root; never read by the wear entry point. Reads (not watches) the
+/// profile/client so a server change doesn't tear the listener down.
+final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
+  final handler = WearRelayHandler(
+    watch: ref.watch(watchConnectivityProvider),
+    dio: () => ref.read(serverProfileProvider) == null
+        ? null
+        : ref.read(apiClientProvider).dio,
+  );
+  ref.onDispose(handler.stop);
+  return handler;
+});
 
 /// Background monitoring mechanism. Currently always foreground service; gate for
 /// push = swap implementation here (see [BackgroundMonitor]).

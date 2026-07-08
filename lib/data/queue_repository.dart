@@ -67,6 +67,32 @@ class QueueRepository {
   Future<void> start(int itemId) =>
       guard(() => _dio.post<dynamic>(Endpoints.queueItemStart(itemId)));
 
+  /// Start the next pending queue item on [printerId]. Assigns the printer
+  /// first if the item isn't already bound to it (server requires the printer
+  /// set before start). Throws [StateError] when the queue has nothing
+  /// pending. Shared by the watch ("start next" button) both directly (REST
+  /// fallback) and via the phone relay.
+  Future<void> startNextPending(int printerId) async {
+    final items = await fetch();
+    // Queue positions frequently all default to 1 (see queue notes), so sort
+    // by position then id for a stable "first" pick.
+    final pending = items
+        .where((q) => q.statusKind == QueueItemStatusKind.pending)
+        .toList()
+      ..sort((a, b) {
+        final byPos = a.position.compareTo(b.position);
+        return byPos != 0 ? byPos : a.id.compareTo(b.id);
+      });
+    if (pending.isEmpty) {
+      throw StateError('empty-queue');
+    }
+    final item = pending.first;
+    if (item.printerId != printerId) {
+      await assignPrinter(item.id, printerId);
+    }
+    await start(item.id);
+  }
+
   /// POST /queue/{id}/cancel — cancel queue item.
   Future<void> cancel(int itemId) =>
       guard(() => _dio.post<dynamic>(Endpoints.queueItemCancel(itemId)));

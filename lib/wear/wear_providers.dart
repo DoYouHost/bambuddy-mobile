@@ -2,13 +2,34 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/models/queue_item.dart';
 import '../data/printers_repository.dart';
 import '../providers.dart';
+import 'wear_status.dart';
+import 'wear_transport.dart';
 
-/// Fleet of printers with status, polled over REST. The watch has no WebSocket
-/// or background service (deliberate — battery), so this is a plain periodic
-/// poll that runs only while a screen watching it is mounted (autoDispose).
+/// Transport for everything the watch asks of the server: relay through the
+/// phone (Data Layer/BT) first, direct REST as fallback — see plan 05.
+final wearTransportProvider = Provider.autoDispose<HybridWearTransport>((ref) {
+  final relay = RelayTransport(ref.watch(watchConnectivityProvider));
+  ref.onDispose(relay.dispose);
+  // REST needs a configured profile; without one (relay-only watch) the
+  // repositories can't even be constructed (apiClientProvider throws).
+  final hasProfile = ref.watch(serverProfileProvider) != null;
+  return HybridWearTransport(
+    relay: relay,
+    rest: hasProfile
+        ? RestTransport(
+            printers: ref.watch(printersRepositoryProvider),
+            commands: ref.watch(printerCommandsRepositoryProvider),
+            queue: ref.watch(queueRepositoryProvider),
+          )
+        : null,
+  );
+});
+
+/// Fleet of printers with status, polled through [wearTransportProvider].
+/// No WebSocket or background service on the watch (deliberate — battery);
+/// the poll runs only while a screen watching it is mounted (autoDispose).
 final wearFleetProvider =
     AsyncNotifierProvider.autoDispose<WearFleetNotifier, List<PrinterWithStatus>>(
   WearFleetNotifier.new,
@@ -25,13 +46,33 @@ class WearFleetNotifier
       _disposed = true;
       _timer?.cancel();
     });
-    // Silent periodic refresh — doesn't flip the UI back to a spinner each tick.
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => refresh());
-    return _fetch();
+    final fleet = await _fetch();
+    _scheduleNext(fleet);
+    return fleet;
   }
 
   Future<List<PrinterWithStatus>> _fetch() =>
-      ref.read(printersRepositoryProvider).fetchAll();
+      ref.read(wearTransportProvider).getFleet();
+
+  /// Adaptive cadence: every relay poll wakes the phone over the bridge, so
+  /// back off to 30 s when nothing is actively printing. Direct REST (or an
+  /// active print) keeps the familiar 5 s.
+  void _scheduleNext(List<PrinterWithStatus>? fleet) {
+    if (_disposed) return;
+    final relaying = ref.read(wearTransportProvider).lastMode ==
+        WearTransportMode.relay;
+    final active = fleet?.any((p) => switch (wearStateOf(p.status)) {
+              WearState.printing || WearState.paused => true,
+              _ => false,
+            }) ??
+        // Unknown fleet (fetch failed) → poll fast to recover quickly.
+        true;
+    final interval = relaying && !active
+        ? const Duration(seconds: 30)
+        : const Duration(seconds: 5);
+    _timer?.cancel();
+    _timer = Timer(interval, refresh);
+  }
 
   /// Re-fetch in the background; keeps the last good data visible on transient
   /// errors instead of blanking the screen.
@@ -39,13 +80,15 @@ class WearFleetNotifier
     final next = await AsyncValue.guard(_fetch);
     if (_disposed) return;
     // Only surface an error if we have nothing to show; otherwise keep old data.
-    if (next.hasError && state.hasValue) return;
-    state = next;
+    if (!(next.hasError && state.hasValue)) {
+      state = next;
+    }
+    _scheduleNext(next.valueOrNull ?? state.valueOrNull);
   }
 }
 
-/// Controller for the four watch actions. Stateless facade over the shared
-/// repositories; callers manage their own in-flight/error UI.
+/// Controller for the watch actions. Stateless facade over the transport;
+/// callers manage their own in-flight/error UI.
 final wearActionsProvider = Provider.autoDispose<WearActions>(
   (ref) => WearActions(ref),
 );
@@ -55,40 +98,18 @@ class WearActions {
 
   final Ref _ref;
 
-  Future<void> pause(int printerId) =>
-      _ref.read(printerCommandsRepositoryProvider).pause(printerId);
+  WearTransport get _transport => _ref.read(wearTransportProvider);
 
-  Future<void> resume(int printerId) =>
-      _ref.read(printerCommandsRepositoryProvider).resume(printerId);
+  Future<void> pause(int printerId) => _transport.pause(printerId);
 
-  Future<void> stop(int printerId) =>
-      _ref.read(printerCommandsRepositoryProvider).stop(printerId);
+  Future<void> resume(int printerId) => _transport.resume(printerId);
 
-  Future<void> clearPlate(int printerId) =>
-      _ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
+  Future<void> stop(int printerId) => _transport.stop(printerId);
 
-  /// Start the next pending queue item on [printerId]. Assigns the printer first
-  /// if the item isn't already bound to it (server requires the printer set
-  /// before start). Throws [StateError] when the queue has nothing pending.
-  Future<void> startNext(int printerId) async {
-    final repo = _ref.read(queueRepositoryProvider);
-    final items = await repo.fetch();
-    // Queue positions frequently all default to 1 (see queue notes), so sort by
-    // position then id for a stable "first" pick.
-    final pending = items
-        .where((q) => q.statusKind == QueueItemStatusKind.pending)
-        .toList()
-      ..sort((a, b) {
-        final byPos = a.position.compareTo(b.position);
-        return byPos != 0 ? byPos : a.id.compareTo(b.id);
-      });
-    if (pending.isEmpty) {
-      throw StateError('empty-queue');
-    }
-    final item = pending.first;
-    if (item.printerId != printerId) {
-      await repo.assignPrinter(item.id, printerId);
-    }
-    await repo.start(item.id);
-  }
+  Future<void> clearPlate(int printerId) => _transport.clearPlate(printerId);
+
+  /// Start the next pending queue item on [printerId] (assign-then-start —
+  /// see [QueueRepository.startNextPending], relayed or direct). Surfaces
+  /// [StateError] `empty-queue` when the queue has nothing pending.
+  Future<void> startNext(int printerId) => _transport.startNext(printerId);
 }
