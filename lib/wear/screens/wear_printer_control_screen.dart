@@ -12,6 +12,7 @@ import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_status_chip.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
 /// Scaffold so it gets its own back-swipe route.
@@ -79,12 +80,8 @@ class _WearPrinterControlBodyState
                       fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 2),
-              Center(
-                child: Text(state.label(l10n),
-                    style: TextStyle(
-                        color: state.color, fontWeight: FontWeight.w600)),
-              ),
+              const SizedBox(height: 6),
+              Center(child: WearStatusChip(state: state)),
               const SizedBox(height: 10),
               if (state == WearState.printing || state == WearState.paused)
                 _progress(status),
@@ -164,12 +161,7 @@ class _WearPrinterControlBodyState
             () => actions.startNext(id),
             okMsg: l10n.wearStarted));
       } else {
-        buttons.add(Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(l10n.queueEmpty,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Colors.white54)),
-        ));
+        buttons.add(_hint(Icons.playlist_remove, l10n.queueEmpty));
       }
     }
 
@@ -181,12 +173,7 @@ class _WearPrinterControlBodyState
     }
 
     if (buttons.isEmpty) {
-      buttons.add(Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(l10n.wearNoActions,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Colors.white54)),
-      ));
+      buttons.add(_hint(Icons.block, l10n.wearNoActions));
     }
     return [
       for (final b in buttons)
@@ -203,6 +190,37 @@ class _WearPrinterControlBodyState
         style: color != null
             ? FilledButton.styleFrom(backgroundColor: color)
             : null,
+      );
+
+  /// Non-actionable placeholder (empty queue / no actions). Shares the button
+  /// row's height and shape so the layout doesn't jump, but reads as inert:
+  /// a muted fill instead of the accent, with an icon + brighter-than-white54
+  /// label so it's actually legible on the OLED black.
+  Widget _hint(IconData icon, String label) => Container(
+        height: 44,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2C),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: Colors.white70),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500)),
+            ),
+          ],
+        ),
       );
 
   Future<void> _confirmStop(WearActions actions, int id, String name) async {

@@ -12,18 +12,27 @@ default:
 test:
     flutter test
 
+# wipe build outputs + the Dart kernel snapshot so a release build can't pack a
+# stale snapshot (incremental release builds here repeatably reused an outdated
+# one — same code shipped, wrong bytes). Cheap insurance before any release build.
+_clean-artifacts:
+    rm -rf build/app .dart_tool/flutter_build
+
 # build phone release APK (flavors force an explicit --flavor)
-build:
+build: _clean-artifacts
     flutter build apk --release --flavor mobile
 
 # build watch release APK (Wear OS entry point + wear flavor/manifest)
-build-wear:
+build-wear: _clean-artifacts
     flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
 
 # build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
+# Clean before each flavor so neither packs the other's (or a stale) snapshot.
 # Outputs: build/app/outputs/bundle/{mobileRelease,wearRelease}/
 build-aab:
+    just _clean-artifacts
     flutter build appbundle --release --flavor mobile
+    just _clean-artifacts
     flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart
 
 # clean build artifacts
