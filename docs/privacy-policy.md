@@ -1,20 +1,20 @@
-# Bambuddy — Privacy Policy
+# Bambuddy mobile — Privacy Policy
 
 _Last updated: 9 July 2026_
 
-Bambuddy is an unofficial, open-source Android companion app for a **self-hosted
+Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
 endorsed by, or connected to Bambu Lab.**
 
-This policy explains what data the app handles. In short: **Bambuddy does not
+This policy explains what data the app handles. In short: **Bambuddy mobile does not
 collect, transmit, or share any personal data with the developer or any third
 party.** All data stays on your device and travels only to the bambuddy server
 address that **you** configure.
 
 ## Who the app talks to
 
-Bambuddy communicates **only** with the self-hosted bambuddy server whose address
-you enter during setup. There is no Bambuddy backend, no analytics service, and no
+Bambuddy mobile communicates **only** with the self-hosted bambuddy server whose address
+you enter during setup. There is no cloud backend, no analytics service, and no
 advertising SDK. The developer never receives your data.
 
 ## Data stored on your device
@@ -40,14 +40,14 @@ This data is removed when you uninstall the app or clear its storage.
 
 ## Wear OS companion
 
-If you use Bambuddy on a paired Wear OS watch, your server configuration can be sent
+If you use Bambuddy mobile on a paired Wear OS watch, your server configuration can be sent
 from the phone to the watch over Google's encrypted **Wear Data Layer** between your
 own paired devices. This transfer happens directly between your phone and your watch;
 the developer has no access to it.
 
 ## Children
 
-Bambuddy is a utility app for 3D-printer owners and is not directed at children.
+Bambuddy mobile is a utility app for 3D-printer owners and is not directed at children.
 
 ## Data deletion
 
