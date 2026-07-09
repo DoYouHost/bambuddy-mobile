@@ -21,11 +21,11 @@ Unofficial companion for your self-hosted bambuddy Bambu Lab printer manager.
 ## Full description (max 4000 chars)
 
 ```
-Bambuddy is an unofficial, open-source Android companion for a self-hosted
+Bambuddy mobile is an unofficial, open-source Android companion for a self-hosted
 "bambuddy" server that manages your Bambu Lab 3D printers. It is NOT an official
 Bambu Lab app and is not affiliated with or endorsed by Bambu Lab.
 
-IMPORTANT: Bambuddy requires your own running bambuddy server. It does not connect
+IMPORTANT: Bambuddy mobile requires your own running bambuddy server. It does not connect
 to Bambu Lab cloud on its own and will not work without a server to point it at.
 
 MONITOR YOUR PRINTS
@@ -51,15 +51,15 @@ MORE
 • Wear OS companion: check status and control prints from your watch
 
 PRIVACY
-Bambuddy talks only to the bambuddy server you configure. There is no analytics,
-no advertising and no Bambuddy cloud. Your credentials are stored in encrypted,
+Bambuddy mobile talks only to the bambuddy server you configure. There is no analytics,
+no advertising and no cloud service. Your credentials are stored in encrypted,
 Keystore-backed storage on your device and are only ever sent to your own server.
 
 OPEN SOURCE
-Bambuddy is free software under the AGPL-3.0 license.
+Bambuddy mobile is free software under the AGPL-3.0 license.
 Source: https://codeberg.org/MorganMLGman/bambuddy-mobile
 
-"Bambu Lab" and "Bambu" are trademarks of their respective owner. Bambuddy is an
+"Bambu Lab" and "Bambu" are trademarks of their respective owner. Bambuddy mobile is an
 independent, community-built companion app and is not affiliated with Bambu Lab.
 ```
 
@@ -74,11 +74,11 @@ Nieoficjalny towarzysz dla Twojego self-hostowanego menedżera drukarek Bambu La
 
 ### Full description
 ```
-Bambuddy to nieoficjalna aplikacja towarzysząca (open source) dla self-hostowanego
+Bambuddy mobile to nieoficjalna aplikacja towarzysząca (open source) dla self-hostowanego
 serwera „bambuddy", który zarządza drukarkami 3D Bambu Lab. To NIE jest oficjalna
 aplikacja Bambu Lab i nie jest z Bambu Lab powiązana ani przez nią wspierana.
 
-WAŻNE: Bambuddy wymaga własnego, działającego serwera bambuddy. Bez serwera, do
+WAŻNE: Bambuddy mobile wymaga własnego, działającego serwera bambuddy. Bez serwera, do
 którego ją skierujesz, aplikacja nie działa.
 
 MONITOROWANIE
@@ -103,14 +103,14 @@ WIĘCEJ
 • Wersja na Wear OS
 
 PRYWATNOŚĆ
-Bambuddy łączy się wyłącznie z serwerem bambuddy, który skonfigurujesz. Brak
-analityki, reklam i chmury Bambuddy. Dane logowania trzymane są w szyfrowanym
+Bambuddy mobile łączy się wyłącznie z serwerem bambuddy, który skonfigurujesz. Brak
+analityki, reklam i chmury. Dane logowania trzymane są w szyfrowanym
 magazynie (Keystore) na urządzeniu.
 
 OPEN SOURCE (AGPL-3.0):
 https://codeberg.org/MorganMLGman/bambuddy-mobile
 
-„Bambu Lab" i „Bambu" to znaki towarowe ich właściciela. Bambuddy jest niezależną
+„Bambu Lab" i „Bambu" to znaki towarowe ich właściciela. Bambuddy mobile jest niezależną
 aplikacją społecznościową, niepowiązaną z Bambu Lab.
 ```
 
