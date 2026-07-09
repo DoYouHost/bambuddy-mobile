@@ -43,7 +43,7 @@ Future<void> main() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         notificationServiceProvider.overrideWithValue(notifications),
       ],
-      child: const BambuBuddyApp(),
+      child: const BambuddyApp(),
     ),
   );
 }

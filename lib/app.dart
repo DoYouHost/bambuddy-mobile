@@ -10,14 +10,14 @@ import 'l10n/app_localizations.dart';
 import 'providers.dart';
 import 'router.dart';
 
-class BambuBuddyApp extends ConsumerStatefulWidget {
-  const BambuBuddyApp({super.key});
+class BambuddyApp extends ConsumerStatefulWidget {
+  const BambuddyApp({super.key});
 
   @override
-  ConsumerState<BambuBuddyApp> createState() => _BambuBuddyAppState();
+  ConsumerState<BambuddyApp> createState() => _BambuddyAppState();
 }
 
-class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
+class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   StreamSubscription<Uri?>? _widgetClickSub;
   // Guard against multiple scanner triggers from one widget tap (cold start may
   // get URI from both initiallyLaunched and stream).
@@ -88,7 +88,7 @@ class _BambuBuddyAppState extends ConsumerState<BambuBuddyApp> {
     // Notifications handled ONLY by background isolate (foreground service);
     // foreground status shown by UI itself, so no monitor here.
     return MaterialApp.router(
-      title: 'BambuBuddy',
+      title: 'Bambuddy',
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
       // App follows system setting; dark theme like PWA.

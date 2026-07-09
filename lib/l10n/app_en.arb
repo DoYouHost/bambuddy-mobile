@@ -378,14 +378,14 @@
   "hmsViewInWiki": "Open in Bambu wiki",
 
   "batteryOptTitle": "Reliable background notifications",
-  "batteryOptBody": "To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.",
+  "batteryOptBody": "To keep print notifications working when the app is in the background, allow Bambuddy to run without battery restrictions. On Samsung phones this is essential.",
   "batteryOptAllow": "Open settings",
   "batteryOptLater": "Later",
   "batteryOptMenu": "Background notifications",
   "notificationsReady": "Notifications are all set",
   "notificationsBlocked": "Notifications are off — enable them in system settings",
 
-  "bgServiceTitle": "BambuBuddy",
+  "bgServiceTitle": "Bambuddy",
   "bgServiceText": "Monitoring printers",
   "bgMonitoringToggle": "Background monitoring",
   "bgMonitoringSubtitle": "Keep watching prints while the app is closed. Shows a persistent notification.",

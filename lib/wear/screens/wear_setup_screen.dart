@@ -42,7 +42,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
           children: [
             const Center(
-              child: Text('BambuBuddy',
+              child: Text('Bambuddy',
                   style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 12),

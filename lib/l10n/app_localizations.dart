@@ -1667,7 +1667,7 @@ abstract class AppLocalizations {
   /// No description provided for @batteryOptBody.
   ///
   /// In en, this message translates to:
-  /// **'To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.'**
+  /// **'To keep print notifications working when the app is in the background, allow Bambuddy to run without battery restrictions. On Samsung phones this is essential.'**
   String get batteryOptBody;
 
   /// No description provided for @batteryOptAllow.
@@ -1703,7 +1703,7 @@ abstract class AppLocalizations {
   /// No description provided for @bgServiceTitle.
   ///
   /// In en, this message translates to:
-  /// **'BambuBuddy'**
+  /// **'Bambuddy'**
   String get bgServiceTitle;
 
   /// No description provided for @bgServiceText.

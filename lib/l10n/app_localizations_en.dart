@@ -935,7 +935,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get batteryOptBody =>
-      'To keep print notifications working when the app is in the background, allow BambuBuddy to run without battery restrictions. On Samsung phones this is essential.';
+      'To keep print notifications working when the app is in the background, allow Bambuddy to run without battery restrictions. On Samsung phones this is essential.';
 
   @override
   String get batteryOptAllow => 'Open settings';
@@ -954,7 +954,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Notifications are off — enable them in system settings';
 
   @override
-  String get bgServiceTitle => 'BambuBuddy';
+  String get bgServiceTitle => 'Bambuddy';
 
   @override
   String get bgServiceText => 'Monitoring printers';

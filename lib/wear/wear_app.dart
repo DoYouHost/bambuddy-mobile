@@ -79,7 +79,7 @@ class _WearAppState extends ConsumerState<WearApp>
     final hasProfile =
         ref.watch(serverProfileProvider.select((p) => p != null));
     return MaterialApp(
-      title: 'BambuBuddy Watch',
+      title: 'Bambuddy Watch',
       debugShowCheckedModeBanner: false,
       theme: _wearTheme(),
       // Follow the watch's system language (same l10n set as the phone app).

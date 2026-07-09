@@ -950,7 +950,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get batteryOptBody =>
-      'Aby powiadomienia o wydruku działały, gdy aplikacja jest w tle, zezwól BambuBuddy na pracę bez ograniczeń baterii. Na telefonach Samsung to konieczne.';
+      'Aby powiadomienia o wydruku działały, gdy aplikacja jest w tle, zezwól Bambuddy na pracę bez ograniczeń baterii. Na telefonach Samsung to konieczne.';
 
   @override
   String get batteryOptAllow => 'Otwórz ustawienia';
@@ -969,7 +969,7 @@ class AppLocalizationsPl extends AppLocalizations {
       'Powiadomienia są wyłączone — włącz je w ustawieniach systemu';
 
   @override
-  String get bgServiceTitle => 'BambuBuddy';
+  String get bgServiceTitle => 'Bambuddy';
 
   @override
   String get bgServiceText => 'Monitoruję drukarki';
