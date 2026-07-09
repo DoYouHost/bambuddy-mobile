@@ -40,7 +40,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('BamBuddy', style: theme.textTheme.headlineSmall),
+                Text('Bambuddy', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 4),
                 const _VersionLabel(),
                 const SizedBox(height: 12),
@@ -112,7 +112,7 @@ class AboutScreen extends StatelessWidget {
     if (!context.mounted) return;
     showLicensePage(
       context: context,
-      applicationName: 'BamBuddy',
+      applicationName: 'Bambuddy',
       applicationVersion: '${info.version}+${info.buildNumber}',
       applicationLegalese: '© MorganMLGman · AGPL-3.0',
     );

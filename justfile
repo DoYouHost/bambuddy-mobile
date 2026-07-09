@@ -27,13 +27,18 @@ build-wear: _clean-artifacts
     flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
 
 # build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
-# Clean before each flavor so neither packs the other's (or a stale) snapshot.
-# Outputs: build/app/outputs/bundle/{mobileRelease,wearRelease}/
+# Clean before each flavor so neither packs the other's (or a stale) snapshot;
+# the clean wipes build/app, so copy each AAB into build/dist/ before the next
+# build. Both end up side by side in build/dist/ for a single Play release.
 build-aab:
     just _clean-artifacts
     flutter build appbundle --release --flavor mobile
+    mkdir -p build/dist
+    cp build/app/outputs/bundle/mobileRelease/app-mobile-release.aab build/dist/
     just _clean-artifacts
     flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart
+    cp build/app/outputs/bundle/wearRelease/app-wear-release.aab build/dist/
+    @echo "AABs ready in build/dist/:" && ls -1 build/dist/*.aab
 
 # clean build artifacts
 clean:

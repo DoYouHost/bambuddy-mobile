@@ -3275,7 +3275,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLicenseBody.
   ///
   /// In en, this message translates to:
-  /// **'BamBuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.'**
+  /// **'Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.'**
   String get aboutLicenseBody;
 
   /// No description provided for @aboutViewLicense.

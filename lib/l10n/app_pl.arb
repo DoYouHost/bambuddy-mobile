@@ -594,7 +594,7 @@
   "aboutVersion": "Wersja {version}",
   "@aboutVersion": { "placeholders": { "version": { "type": "String" } } },
   "aboutLicenseHeader": "Licencja",
-  "aboutLicenseBody": "BamBuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.",
+  "aboutLicenseBody": "Bambuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.",
   "aboutViewLicense": "Przeczytaj licencję AGPL-3.0",
   "aboutSourceHeader": "Kod źródłowy",
   "aboutSourceBody": "Pełne źródła są dostępne na Codeberg.",

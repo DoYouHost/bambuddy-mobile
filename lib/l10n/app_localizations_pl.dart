@@ -1892,7 +1892,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get aboutLicenseBody =>
-      'BamBuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.';
+      'Bambuddy to wolne oprogramowanie wydane na licencji GNU Affero General Public License v3.0 (AGPL-3.0). Możesz go używać, badać, udostępniać i modyfikować; jeśli uruchamiasz zmodyfikowaną wersję jako usługę sieciową, musisz udostępnić jej źródła użytkownikom.';
 
   @override
   String get aboutViewLicense => 'Przeczytaj licencję AGPL-3.0';

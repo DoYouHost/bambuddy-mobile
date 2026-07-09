@@ -461,7 +461,7 @@ class _AppDrawer extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'BamBuddy',
+                                  'Bambuddy',
                                   style: theme.textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.2,
@@ -576,8 +576,8 @@ class _AppDrawer extends ConsumerWidget {
                     future: PackageInfo.fromPlatform(),
                     builder: (context, snap) => Text(
                       snap.hasData
-                          ? 'BamBuddy v${snap.data!.version}+${snap.data!.buildNumber}'
-                          : 'BamBuddy',
+                          ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
+                          : 'Bambuddy',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: scheme.onSurfaceVariant),
                     ),

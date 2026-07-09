@@ -21,7 +21,7 @@
     <!-- Self-hosted serwery bambuddy w LAN zwykle nie mają TLS; dostęp zdalny
          powinien iść przez HTTPS na reverse proxy (patrz README). -->
     <application
-        android:label="BambuBuddy"
+        android:label="Bambuddy"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
