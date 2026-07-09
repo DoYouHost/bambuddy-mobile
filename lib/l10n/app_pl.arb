@@ -125,6 +125,7 @@
   "cameraTooltip": "Kamera",
   "cameraConnecting": "Łączenie z kamerą…",
   "cameraError": "Nie udało się wczytać strumienia kamery",
+  "cameraDemoUnavailable": "Podgląd kamery nie jest dostępny w trybie demo",
   "amsUnit": "AMS {number}",
   "externalSpool": "Szpula zewnętrzna",
   "traySlotEmpty": "Pusty",

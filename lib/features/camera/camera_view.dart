@@ -42,7 +42,8 @@ class _CameraViewState extends ConsumerState<CameraView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
+    final profile = ref.watch(serverProfileProvider);
+    final baseUrl = profile?.baseUrl;
     final tokenAsync = ref.watch(cameraTokenProvider);
 
     return Scaffold(
@@ -53,13 +54,17 @@ class _CameraViewState extends ConsumerState<CameraView> {
         foregroundColor: Colors.white,
       ),
       body: Center(
-        child: baseUrl == null
-            ? _Message(text: l10n.cameraError, onRetry: _retry)
-            : tokenAsync.when(
-                loading: () => _Loading(text: l10n.cameraConnecting),
-                error: (_, _) => _Message(text: l10n.cameraError, onRetry: _retry),
-                data: (token) => _stream(baseUrl, token, l10n),
-              ),
+        // No MJPEG source exists in demo mode — explain instead of erroring.
+        child: profile?.isDemo == true
+            ? _DemoUnavailable(text: l10n.cameraDemoUnavailable)
+            : baseUrl == null
+                ? _Message(text: l10n.cameraError, onRetry: _retry)
+                : tokenAsync.when(
+                    loading: () => _Loading(text: l10n.cameraConnecting),
+                    error: (_, _) =>
+                        _Message(text: l10n.cameraError, onRetry: _retry),
+                    data: (token) => _stream(baseUrl, token, l10n),
+                  ),
       ),
     );
   }
@@ -104,6 +109,31 @@ bool _isTokenExpired(Object error) {
   if (error is! HttpException) return false;
   final m = RegExp(r'^Stream returned (\d+) status$').firstMatch(error.message);
   return m?.group(1) == '401';
+}
+
+class _DemoUnavailable extends StatelessWidget {
+  const _DemoUnavailable({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.videocam_off, color: Colors.white54, size: 48),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Loading extends StatelessWidget {

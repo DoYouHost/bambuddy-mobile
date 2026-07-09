@@ -1,3 +1,5 @@
+import '../demo/demo_config.dart';
+
 /// Server authentication mode. EVERY code path that touches auth
 /// (headers, token minting, re-login) MUST branch on this enum —
 /// auth-disabled servers are fully supported configurations.
@@ -23,6 +25,10 @@ class ServerProfile {
   final String baseUrl;
   final AuthMode authMode;
   final String? label;
+
+  /// Demo profile (store-review mode): all data comes from the in-process
+  /// `DemoBackend`, no network traffic. See [DemoConfig].
+  bool get isDemo => DemoConfig.isDemoUrl(baseUrl);
 
   Map<String, dynamic> toJson() => {
         'baseUrl': baseUrl,

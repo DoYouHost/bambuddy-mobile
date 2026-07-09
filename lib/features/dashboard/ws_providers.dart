@@ -6,6 +6,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/api/ws_client.dart';
 import '../../core/api/ws_token.dart';
 import '../../core/auth/credentials_store.dart';
+import '../../core/demo/demo_ws.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/settings/server_profile.dart';
@@ -56,6 +57,16 @@ final wsClientProvider = Provider<WsClient>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null) {
     throw StateError('wsClientProvider used without server profile');
+  }
+  if (profile.isDemo) {
+    // Demo: fake connection fed from DemoBackend — no token mint, no network.
+    final client = WsClient(
+      url: wsUrlFor(profile.baseUrl),
+      authHeaders: () async => const {},
+      connect: demoWsConnector,
+    );
+    ref.onDispose(client.dispose);
+    return client;
   }
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);

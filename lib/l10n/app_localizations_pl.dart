@@ -447,6 +447,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get cameraError => 'Nie udało się wczytać strumienia kamery';
 
   @override
+  String get cameraDemoUnavailable =>
+      'Podgląd kamery nie jest dostępny w trybie demo';
+
+  @override
   String amsUnit(int number) {
     return 'AMS $number';
   }

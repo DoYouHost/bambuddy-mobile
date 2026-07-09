@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../auth/credentials_store.dart';
+import '../demo/demo_http_adapter.dart';
 import '../settings/server_profile.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
@@ -22,6 +23,12 @@ class ApiClient {
     Dio? dio,
   }) : dio = dio ?? createBareDio() {
     this.dio.options.baseUrl = profile.baseUrl;
+    // Demo profile: serve everything from the in-process fake server. Doing it
+    // here covers every ApiClient construction site (providers, background
+    // isolate, wear transport) with a single branch.
+    if (profile.isDemo) {
+      this.dio.httpClientAdapter = DemoHttpClientAdapter();
+    }
     this.dio.interceptors.add(AuthInterceptor(
           authMode: profile.authMode,
           credentials: credentials,

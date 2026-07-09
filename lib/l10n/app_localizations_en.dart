@@ -431,6 +431,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraError => 'Couldn\'t load the camera stream';
 
   @override
+  String get cameraDemoUnavailable =>
+      'Camera preview is not available in demo mode';
+
+  @override
   String amsUnit(int number) {
     return 'AMS $number';
   }

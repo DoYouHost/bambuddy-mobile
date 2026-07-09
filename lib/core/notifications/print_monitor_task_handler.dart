@@ -21,6 +21,7 @@ import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/token_refresher.dart';
+import '../demo/demo_ws.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
@@ -132,12 +133,20 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;
-    final ws = WsClient(
-      url: wsUrlFor(profile.baseUrl),
-      authHeaders: () => wsAuthHeaders(profile.authMode, creds),
-      queryToken: wsToken?.token,
-      invalidateQueryToken: wsToken?.invalidate,
-    );
+    final ws = profile.isDemo
+        // Demo: fake connection fed from DemoBackend (its time-based print
+        // simulation keeps this isolate consistent with the UI isolate).
+        ? WsClient(
+            url: wsUrlFor(profile.baseUrl),
+            authHeaders: () async => const {},
+            connect: demoWsConnector,
+          )
+        : WsClient(
+            url: wsUrlFor(profile.baseUrl),
+            authHeaders: () => wsAuthHeaders(profile.authMode, creds),
+            queryToken: wsToken?.token,
+            invalidateQueryToken: wsToken?.invalidate,
+          );
     _ws = ws;
     _sub = ws.statusFrames.listen((frame) {
       final status = frame.status;

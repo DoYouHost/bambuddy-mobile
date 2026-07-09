@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/demo/demo_config.dart';
 import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
@@ -67,6 +68,19 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       state = state.copyWith(error: SetupErrorCode.missingUrl);
       return;
     }
+    // Demo mode (store review): recognized locally, no network probe.
+    // Present the login form; credentials are validated in connectWith*.
+    if (DemoConfig.isDemoUrl(url)) {
+      state = SetupState(
+        probe: (
+          authEnabled: true,
+          requiresSetup: false,
+          baseUrl: DemoConfig.baseUrl,
+        ),
+        baseUrl: DemoConfig.baseUrl,
+      );
+      return;
+    }
     state = const SetupState(busy: true);
     try {
       final probe =
@@ -96,6 +110,19 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       return;
     }
     state = state.copyWith(busy: true, error: null);
+    if (url == DemoConfig.baseUrl) {
+      // Demo accepts its password as an "API key" too, so the reviewer
+      // succeeds regardless of which auth tab they pick.
+      if (apiKey.trim() == DemoConfig.password) {
+        await _saveDemoProfile();
+      } else {
+        state = state.copyWith(
+          busy: false,
+          error: const AuthException(AppErrorCode.apiKeyRejected),
+        );
+      }
+      return;
+    }
     try {
       await ref.read(authServiceProvider).verifyAndStoreApiKey(
             baseUrl: url,
@@ -119,6 +146,17 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       return;
     }
     state = state.copyWith(busy: true, error: null);
+    if (url == DemoConfig.baseUrl) {
+      if (username == DemoConfig.username && password == DemoConfig.password) {
+        await _saveDemoProfile();
+      } else {
+        state = state.copyWith(
+          busy: false,
+          error: const AuthException(AppErrorCode.invalidCredentials),
+        );
+      }
+      return;
+    }
     try {
       await ref.read(authServiceProvider).login(
             baseUrl: url,
@@ -136,5 +174,16 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   Future<void> _saveProfile(String url, AuthMode mode) =>
       ref.read(serverProfileProvider.notifier).save(
             ServerProfile(baseUrl: url, authMode: mode),
+          );
+
+  /// Demo profile uses [AuthMode.none]: the fake backend needs no credentials,
+  /// and this keeps token refresh / silent re-login machinery fully off.
+  Future<void> _saveDemoProfile() =>
+      ref.read(serverProfileProvider.notifier).save(
+            const ServerProfile(
+              baseUrl: DemoConfig.baseUrl,
+              authMode: AuthMode.none,
+              label: 'Demo',
+            ),
           );
 }

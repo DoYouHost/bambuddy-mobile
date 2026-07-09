@@ -788,6 +788,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the camera stream'**
   String get cameraError;
 
+  /// No description provided for @cameraDemoUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera preview is not available in demo mode'**
+  String get cameraDemoUnavailable;
+
   /// No description provided for @amsUnit.
   ///
   /// In en, this message translates to:

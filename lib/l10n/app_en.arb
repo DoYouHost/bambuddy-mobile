@@ -197,6 +197,7 @@
   "cameraTooltip": "Camera",
   "cameraConnecting": "Connecting to camera…",
   "cameraError": "Couldn't load the camera stream",
+  "cameraDemoUnavailable": "Camera preview is not available in demo mode",
   "amsUnit": "AMS {number}",
   "@amsUnit": { "placeholders": { "number": { "type": "int" } } },
   "externalSpool": "External spool",

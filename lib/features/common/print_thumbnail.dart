@@ -42,8 +42,12 @@ class PrintThumbnail extends ConsumerWidget {
     );
 
     final id = archiveId;
-    final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (id == null || baseUrl == null) return placeholder();
+    final profile = ref.watch(serverProfileProvider);
+    final baseUrl = profile?.baseUrl;
+    // Demo mode has no thumbnail renders — placeholder beats a broken image.
+    if (id == null || baseUrl == null || profile?.isDemo == true) {
+      return placeholder();
+    }
 
     return ref
         .watch(cameraTokenProvider)
