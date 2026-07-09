@@ -1,49 +1,91 @@
-# BambuBuddy Mobile
+# Bambuddy mobile
 
-Natywna aplikacja mobilna (Flutter, Android) dla [bambuddy](https://github.com/maziggy/bambuddy) — self-hosted, bezchmurowego menedżera drukarek Bambu Lab.
+An unofficial, open-source mobile app (Flutter, Android + Wear OS) for [bambuddy](https://github.com/maziggy/bambuddy) — a self-hosted, cloud-free manager for Bambu Lab 3D printers.
 
-**Status: w budowie — milestone M1** (konfiguracja serwera, auth, dashboard z listą drukarek przez REST polling). Mapa drogowa M0–M7 w [docs/plans/02-plan-implementacji.md](docs/plans/02-plan-implementacji.md).
+> **This is NOT an official Bambu Lab app** and is not affiliated with or endorsed by Bambu Lab. "Bambu Lab" and "Bambu" are trademarks of their respective owner.
+>
+> **It requires your own running bambuddy server.** The app does not connect to Bambu Lab cloud on its own — without a server to point it at, it won't work.
 
-## Zgodność z serwerem
+## The bambuddy server
 
-Tworzono i testowano pod **bambuddy v0.2.4.6** (API `/api/v1`). API serwera jest młode i ruchliwe — nowsze wersje powinny działać, ale bez gwarancji; parsowanie jest defensywne (nieznane pola są ignorowane, brakujące nie wywalają aplikacji).
+This app is a companion to the bambuddy server — get and set it up here first:
 
-## Funkcje (M1)
+- **Source & install:** https://github.com/maziggy/bambuddy
+- **Website:** https://bambuddy.cool
+- **Documentation / wiki:** https://wiki.bambuddy.cool
+- **Live demo:** https://demo.bambuddy.cool
 
-- Konfiguracja serwera: URL + automatyczna detekcja trybu uwierzytelniania (`GET /api/v1/auth/status`)
-- Trzy tryby auth: wyłączony / login+hasło (JWT) / klucz API (`X-API-Key`) — **rekomendowane klucze API**: nie wygasają i są scope'owane
-- Poświadczenia w Android Keystore (`flutter_secure_storage`); hasło zapamiętywane tylko za zgodą
-- Dashboard: lista drukarek ze stanem, postępem, temperaturami i warstwą, odświeżana co 5 s + pull-to-refresh
-- Czytelne stany błędów: serwer nieosiągalny (baner, ostatnie dane zostają), wygaśnięcie sesji → powrót do konfiguracji
+## Distribution
+
+- **Google Play** *(planned — submission in progress)*
+- **Codeberg Releases** (for [Obtainium](https://github.com/ImranR98/Obtainium)) — [repository releases](https://codeberg.org/DoYouHost/bambuddy-mobile/releases); phone and watch ship as separate APKs (`app-mobile` / `app-wear`) in one release
+- **Project page:** https://doyouhost.codeberg.page/bambuddy-mobile/
+- **Privacy policy:** https://doyouhost.codeberg.page/bambuddy-mobile/privacy.html ([source](docs/privacy-policy.md))
+
+Phone and watch share one `applicationId` (a single Play listing) and differ only by flavor (`mobile` / `wear`).
+
+## Features
+
+**Monitor**
+- Live printer status: state, progress, layer, ETA and temperatures (WebSocket + REST polling)
+- Persistent print-progress notification via a foreground service, even when the app is in the background
+- Configurable alerts for print events and hardware (HMS) errors
+
+**Control**
+- Pause, resume and stop prints
+- Clear the plate and start the next job in the queue
+- Manage the queue (reordering, AMS mapping) and slice files via the server's slicer
+
+**Filament & hardware**
+- Track your spool inventory and assign spools to AMS slots
+- Scan spool QR codes with the camera
+- Smart-plug control and power monitoring
+- Maintenance tracker with reminders
+
+**More**
+- Print archive and statistics, projects (plates/parts), MakerWorld import
+- Home-screen widget (status + a quick spool-scan shortcut)
+- **Wear OS** companion: check status and control prints from your watch (relay through the phone + REST fallback)
+- Demo mode (the magic `demo` server) to explore without your own server
+
+## Privacy
+
+The app talks **only** to the bambuddy server you configure. There is no analytics, no advertising and no cloud service. Credentials are stored in encrypted, Android Keystore-backed storage (`flutter_secure_storage`) and are only ever sent to your own server.
+
+## Authentication
+
+Three modes, detected automatically (`GET /api/v1/auth/status`): disabled / username+password (JWT) / API key (`X-API-Key`). **API keys are recommended** — they don't expire and are scoped.
+
+## Server compatibility
+
+Built and tested against **bambuddy** with the `/api/v1` API. The server API is young and moves fast — newer versions should work but without guarantees; parsing is defensive (unknown fields are ignored, missing ones don't crash the app).
 
 ## Build
 
-Wymagany [Flutter](https://docs.flutter.dev/get-started/install) (stable) i Android SDK. Setup środowiska na Fedorze: [docs/plans/03-srodowisko-fedora.md](docs/plans/03-srodowisko-fedora.md).
+Requires [Flutter](https://docs.flutter.dev/get-started/install) (stable) and the Android SDK.
 
 ```sh
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
-flutter run            # na podłączonym urządzeniu
-flutter build apk      # release (niepodpisany do czasu M7)
+flutter run --flavor mobile                 # phone on a connected device
 ```
 
-Testy i lint:
+Release builds and releases go through [`just`](https://github.com/casey/just) (see [justfile](justfile)):
+
+```sh
+just build            # phone release APK (mobile flavor) -> build/dist/
+just build-wear       # watch release APK (wear flavor)   -> build/dist/
+just build-aab        # AABs for both flavors for Google Play -> build/dist/
+just ship X.Y.Z       # full pipeline: bump + test + build + Codeberg release
+```
+
+Tests and lint:
 
 ```sh
 flutter analyze
 flutter test
 ```
 
-Checklista testów manualnych przed tagiem: [MANUAL_TESTING.md](MANUAL_TESTING.md).
+## License
 
-> **Uwaga (HTTP po LAN):** aplikacja zezwala na cleartext HTTP (`usesCleartextTraffic`), bo self-hosted serwery w domowym LAN-ie zwykle nie mają TLS. Dla dostępu zdalnego użyj HTTPS przez reverse proxy.
-
-## Dokumentacja projektowa
-
-- [docs/plans/01-analiza-wykonalnosci.md](docs/plans/01-analiza-wykonalnosci.md) — analiza wykonalności, API bambuddy, wybór stacku
-- [docs/plans/02-plan-implementacji.md](docs/plans/02-plan-implementacji.md) — architektura, pakiety, milestone'y M0–M7, ryzyka
-- [docs/plans/03-srodowisko-fedora.md](docs/plans/03-srodowisko-fedora.md) — środowisko deweloperskie na Fedorze
-
-## Licencja
-
-[AGPL-3.0](LICENSE) — spójnie z bambuddy. Aplikacja nie zawiera kodu z innych projektów; architektonicznie inspirowana m.in. [Mobileraker](https://github.com/Clon1998/mobileraker) (bez kopiowania kodu) i [BamPocket](https://github.com/clabeuhtegrite/bambuddy-pocket).
+[AGPL-3.0](LICENSE) — consistent with bambuddy. The app contains no code from other projects; it is architecturally inspired by, among others, [Mobileraker](https://github.com/Clon1998/mobileraker) and [BamPocket](https://github.com/clabeuhtegrite/bambuddy-pocket).
