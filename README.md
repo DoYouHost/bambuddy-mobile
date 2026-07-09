@@ -48,6 +48,25 @@ Phone and watch share one `applicationId` (a single Play listing) and differ onl
 - **Wear OS** companion: check status and control prints from your watch (relay through the phone + REST fallback)
 - Demo mode (the magic `demo` server) to explore without your own server
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/store-assets/screenshots/phone/phone-01-dashboard.png" width="22%" alt="Dashboard">
+  <img src="docs/store-assets/screenshots/phone/phone-03-queue.png" width="22%" alt="Print queue">
+  <img src="docs/store-assets/screenshots/phone/phone-05-filaments.png" width="22%" alt="Filament inventory">
+  <img src="docs/store-assets/screenshots/phone/phone-08-statistics.png" width="22%" alt="Statistics">
+</p>
+
+Wear OS:
+
+<p align="center">
+  <img src="docs/store-assets/screenshots/wear/wear-02-printing.png" width="18%" alt="Watch — printing">
+  <img src="docs/store-assets/screenshots/wear/wear-03-idle.png" width="18%" alt="Watch — idle">
+  <img src="docs/store-assets/screenshots/wear/wear-04-stop-confirm.png" width="18%" alt="Watch — stop confirmation">
+</p>
+
+More in [docs/store-assets/screenshots](docs/store-assets/screenshots) (phone, 7"/10" tablet, Wear OS).
+
 ## Privacy
 
 The app talks **only** to the bambuddy server you configure. There is no analytics, no advertising and no cloud service. Credentials are stored in encrypted, Android Keystore-backed storage (`flutter_secure_storage`) and are only ever sent to your own server.
