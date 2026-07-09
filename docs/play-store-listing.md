@@ -57,7 +57,7 @@ Keystore-backed storage on your device and are only ever sent to your own server
 
 OPEN SOURCE
 Bambuddy mobile is free software under the AGPL-3.0 license.
-Source: https://codeberg.org/MorganMLGman/bambuddy-mobile
+Source: https://codeberg.org/DoYouHost/bambuddy-mobile
 
 "Bambu Lab" and "Bambu" are trademarks of their respective owner. Bambuddy mobile is an
 independent, community-built companion app and is not affiliated with Bambu Lab.
@@ -108,7 +108,7 @@ analityki, reklam i chmury. Dane logowania trzymane są w szyfrowanym
 magazynie (Keystore) na urządzeniu.
 
 OPEN SOURCE (AGPL-3.0):
-https://codeberg.org/MorganMLGman/bambuddy-mobile
+https://codeberg.org/DoYouHost/bambuddy-mobile
 
 „Bambu Lab" i „Bambu" to znaki towarowe ich właściciela. Bambuddy mobile jest niezależną
 aplikacją społecznościową, niepowiązaną z Bambu Lab.

@@ -6,7 +6,7 @@ import '../../l10n/app_localizations.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
-const String _sourceUrl = 'https://codeberg.org/MorganMLGman/bambuddy-mobile';
+const String _sourceUrl = 'https://codeberg.org/DoYouHost/bambuddy-mobile';
 const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
 
 /// "About" screen: name/version, AGPL-3.0 license notice, source link, and entry
@@ -77,7 +77,7 @@ class AboutScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.code),
             title: Text(l10n.aboutSourceLink),
-            subtitle: const Text('codeberg.org/MorganMLGman/bambuddy-mobile'),
+            subtitle: const Text('codeberg.org/DoYouHost/bambuddy-mobile'),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => _open(context, _sourceUrl, l10n),
           ),
@@ -114,7 +114,7 @@ class AboutScreen extends StatelessWidget {
       context: context,
       applicationName: 'Bambuddy',
       applicationVersion: '${info.version}+${info.buildNumber}',
-      applicationLegalese: '© MorganMLGman · AGPL-3.0',
+      applicationLegalese: '© DoYouHost · AGPL-3.0',
     );
   }
 }

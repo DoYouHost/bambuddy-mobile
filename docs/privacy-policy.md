@@ -65,4 +65,4 @@ by the "Last updated" date above.
 
 Questions about this policy: **info.doyouhost@gmail.com**
 
-Source code (AGPL-3.0): https://codeberg.org/MorganMLGman/bambuddy-mobile
+Source code (AGPL-3.0): https://codeberg.org/DoYouHost/bambuddy-mobile

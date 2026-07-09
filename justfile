@@ -1,6 +1,6 @@
 apk := "build/app/outputs/flutter-apk/app-mobile-release.apk"
 wear_apk := "build/app/outputs/flutter-apk/app-wear-release.apk"
-repo := "MorganMLGman/bambuddy-mobile"
+repo := "DoYouHost/bambuddy-mobile"
 # Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
 emu := "192.168.2.208:5555"
 
