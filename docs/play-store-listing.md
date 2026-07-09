@@ -121,8 +121,8 @@ aplikacją społecznościową, niepowiązaną z Bambu Lab.
 - **App category:** Tools (or House & Home)
 - **Tags:** 3D printing, printer, utility
 - **Email:** info.doyouhost@gmail.com
-- **Website:** https://morganmlgman.codeberg.page/bambuddy-mobile/ (landing page; Codeberg Pages)
-- **Privacy policy URL:** https://morganmlgman.codeberg.page/bambuddy-mobile/privacy.html
+- **Website:** https://doyouhost.codeberg.page/bambuddy-mobile/ (landing page; Codeberg Pages)
+- **Privacy policy URL:** https://doyouhost.codeberg.page/bambuddy-mobile/privacy.html
   (served from the `pages` branch via Codeberg Pages; source `docs/privacy-policy.md`)
 
 ## Graphics still required (you must create these)
