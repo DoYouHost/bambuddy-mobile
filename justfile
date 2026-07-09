@@ -1,5 +1,8 @@
-apk := "build/app/outputs/flutter-apk/app-mobile-release.apk"
-wear_apk := "build/app/outputs/flutter-apk/app-wear-release.apk"
+# Release artifacts live in build/dist (survives _clean-artifacts, which only
+# wipes build/app) so the phone build isn't destroyed by the later watch build's
+# clean — both flavors must coexist for `release` to upload them together.
+apk := "build/dist/app-mobile-release.apk"
+wear_apk := "build/dist/app-wear-release.apk"
 repo := "DoYouHost/bambuddy-mobile"
 # Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
 emu := "192.168.2.208:5555"
@@ -21,10 +24,14 @@ _clean-artifacts:
 # build phone release APK (flavors force an explicit --flavor)
 build: _clean-artifacts
     flutter build apk --release --flavor mobile
+    mkdir -p build/dist
+    cp build/app/outputs/flutter-apk/app-mobile-release.apk {{apk}}
 
 # build watch release APK (Wear OS entry point + wear flavor/manifest)
 build-wear: _clean-artifacts
     flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
+    mkdir -p build/dist
+    cp build/app/outputs/flutter-apk/app-wear-release.apk {{wear_apk}}
 
 # build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
 # Clean before each flavor so neither packs the other's (or a stale) snapshot;
@@ -112,7 +119,12 @@ release ver:
     git push origin HEAD:master
     # Skip creating the release if it already exists (e.g. a previous run got
     # this far before failing), so the pipeline can be resumed safely.
-    if tea releases list --remote origin | grep -qw "v{{ver}}"; then
+    # Capture the list first: piping straight into `grep -q` deadlocks against
+    # `set -o pipefail` — grep closes the pipe on the first match, tea dies with
+    # SIGPIPE (141), the pipeline returns non-zero, and the `if` wrongly takes
+    # the "not found" branch → a bogus re-create that aborts the run.
+    existing=$(tea releases list --remote origin --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+    if grep -qxF "v{{ver}}" <<<"$existing"; then
         echo "Release v{{ver}} already exists, skipping create"
     else
         tea releases create --remote origin --target master --tag v{{ver}} --title "v{{ver}}"
@@ -123,7 +135,8 @@ release ver:
     # resumed run doesn't duplicate it.
     for f in {{apk}} {{wear_apk}}; do
         name=$(basename "$f")
-        if tea releases assets list --remote origin v{{ver}} 2>/dev/null | grep -qw "$name"; then
+        assets=$(tea releases assets list --remote origin v{{ver}} --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+        if grep -qxF "$name" <<<"$assets"; then
             echo "Asset $name already uploaded, skipping"
         else
             tea releases assets create --remote origin v{{ver}} "$f"
