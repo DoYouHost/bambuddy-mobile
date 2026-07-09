@@ -17,7 +17,7 @@ This app is a companion to the bambuddy server — get and set it up here first:
 
 ## Distribution
 
-- **Google Play** *(planned — submission in progress)*
+- **[Google Play](https://play.google.com/store/apps/details?id=page.codeberg.morganmlgman.bambuddy_mobile)** *(testing — early access)*
 - **Codeberg Releases** (for [Obtainium](https://github.com/ImranR98/Obtainium)) — [repository releases](https://codeberg.org/DoYouHost/bambuddy-mobile/releases); phone and watch ship as separate APKs (`app-mobile` / `app-wear`) in one release
 - **Project page:** https://doyouhost.codeberg.page/bambuddy-mobile/
 - **Privacy policy:** https://doyouhost.codeberg.page/bambuddy-mobile/privacy.html ([source](docs/privacy-policy.md))
