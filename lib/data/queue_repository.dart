@@ -117,4 +117,23 @@ class QueueRepository {
     }..removeWhere((_, v) => v == null);
     return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
   }
+
+  /// POST /queue/ — add a library file (e.g. a sliced gcode) to the queue.
+  ///
+  /// Replaces the removed `POST /library/files/{id}/print` (now 410 Gone). Body
+  /// carries `library_file_id`; `printer_id` omitted if null (unassigned).
+  Future<void> addFromLibraryFile(
+    int fileId, {
+    int? printerId,
+    int quantity = 1,
+    bool insertAtTop = false,
+  }) {
+    final body = <String, dynamic>{
+      'library_file_id': fileId,
+      'printer_id': printerId,
+      'quantity': quantity,
+      if (insertAtTop) 'insert_at_top': true,
+    }..removeWhere((_, v) => v == null);
+    return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
+  }
 }

@@ -367,11 +367,6 @@ abstract final class Endpoints {
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
-  /// Send file to printer for printing. Query `printer_id`; body optional
-  /// (`FilePrintRequest`). Sliced files only (.gcode/.gcode.3mf).
-  static String libraryFilePrint(int fileId) =>
-      '$apiPrefix/library/files/$fileId/print';
-
   /// Move files to folder (`POST`, body `FileMoveRequest`:
   /// `{file_ids, folder_id}`; `folder_id=null` = root).
   static const libraryFilesMove = '$apiPrefix/library/files/move';

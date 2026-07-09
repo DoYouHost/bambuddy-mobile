@@ -118,13 +118,6 @@ class LibraryRepository {
 
   // --- Print / queue ---
 
-  /// POST /library/files/{id}/print?printer_id=… — send file to print. Empty body
-  /// (default slicer settings server-side).
-  Future<void> printFile(int fileId, {required int printerId}) => guard(() => _dio.post<dynamic>(
-        Endpoints.libraryFilePrint(fileId),
-        queryParameters: {'printer_id': printerId},
-      ));
-
   /// POST /library/files/add-to-queue — add files to queue.
   Future<void> addToQueue(List<int> fileIds) => guard(() => _dio.post<dynamic>(
         Endpoints.libraryFilesAddToQueue,

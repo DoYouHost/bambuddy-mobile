@@ -551,8 +551,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (!ok || !mounted) return;
     try {
       await ref
-          .read(libraryRepositoryProvider)
-          .printFile(file.id, printerId: printer.id);
+          .read(queueRepositoryProvider)
+          .addFromLibraryFile(file.id, printerId: printer.id);
       if (!mounted) return;
       _snack(l10n.fmPrintStarted);
     } on AppApiException catch (e) {

@@ -266,7 +266,9 @@ class ProjectFilesSection extends ConsumerWidget {
     );
     if (confirmed != true) return;
     try {
-      await ref.read(libraryRepositoryProvider).printFile(file.id, printerId: printer.id);
+      await ref
+          .read(queueRepositoryProvider)
+          .addFromLibraryFile(file.id, printerId: printer.id);
       messenger.showSnackBar(SnackBar(content: Text(l10n.fmPrintStarted)));
     } on AppApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
