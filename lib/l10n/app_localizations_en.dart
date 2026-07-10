@@ -568,6 +568,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetStatusError => 'Error';
 
   @override
+  String get widgetMultiTitle => 'Printers';
+
+  @override
+  String widgetMultiActive(int active, int total) {
+    return '$active/$total active';
+  }
+
+  @override
+  String widgetMultiMore(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String get widgetMultiGaugeLabel => 'printing';
+
+  @override
+  String widgetMultiIdleCount(int count) {
+    return '$count idle';
+  }
+
+  @override
+  String widgetMultiOfflineCount(int count) {
+    return '$count offline';
+  }
+
+  @override
+  String get widgetMultiName => 'Bambuddy · Printers';
+
+  @override
+  String get widgetMultiDescription => 'All printers at a glance';
+
+  @override
   String remaining(String time) {
     return '$time left';
   }

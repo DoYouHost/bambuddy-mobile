@@ -2,25 +2,31 @@
 <resources>
     <color name="ic_launcher_background">#1A2233</color>
 
-    <!-- Kolory widgetu ekranu głównego (ciemna karta jak motyw apki). -->
-    <color name="widget_background">#1A2233</color>
-    <!-- Diagonalny gradient tła karty: jaśniejszy lewy-górny → ciemniejszy prawy-dolny. -->
-    <color name="widget_bg_top">#3A4D74</color>
-    <color name="widget_bg_bottom">#0E1320</color>
-    <color name="widget_bg_stroke">#33FFFFFF</color>
-    <color name="widget_bg_glow">#9A6AAEEA</color>
-    <color name="widget_accent_light">#80D88A</color>
-    <color name="widget_text_primary">#FFFFFFFF</color>
-    <color name="widget_text_secondary">#B0BEC5</color>
-    <color name="widget_accent">#4CAF50</color>
-    <color name="widget_progress_track">#33FFFFFF</color>
+    <!-- Home screen widget colors. Design 2026-07: near-black card with a green
+         tint and a strong mint accent (#5FE08A). Offline/idle = neutral grey;
+         red is reserved for printer error ONLY (never for offline). -->
+    <!-- Background radial gradient: greenish glow in the top-left corner → black. -->
+    <color name="widget_bg_glow">#131A12</color>
+    <color name="widget_bg_mid">#07090A</color>
+    <color name="widget_bg_bottom">#050605</color>
+    <color name="widget_bg_stroke">#14FFFFFF</color>
+    <!-- Brand mint accent + darker shade for the progress bar gradient. -->
+    <color name="widget_accent">#5FE08A</color>
+    <color name="widget_accent_dark">#3FB86A</color>
+    <color name="widget_text_primary">#FBFCF9</color>
+    <color name="widget_text_secondary">#8C9089</color>
+    <color name="widget_progress_track">#14FFFFFF</color>
+    <!-- Surface of inner cards/rows (multi-widget) and their outline. -->
+    <color name="widget_surface">#08FFFFFF</color>
+    <color name="widget_surface_stroke">#10FFFFFF</color>
 
-    <!-- Kropka statusu — klucze zgodne z HomeWidgetPublisher (Dart). -->
-    <color name="widget_status_printing">#4CAF50</color>
-    <color name="widget_status_paused">#FFB300</color>
-    <color name="widget_status_finished">#42A5F5</color>
-    <color name="widget_status_failed">#EF5350</color>
-    <color name="widget_status_idle">#90A4AE</color>
-    <color name="widget_status_offline">#757575</color>
-    <color name="widget_status_error">#EF5350</color>
+    <!-- Status dot/label — keys must match HomeWidgetPublisher (Dart). Active
+         states are colored; idle/offline are neutral (grey text). -->
+    <color name="widget_status_printing">#5FE08A</color>
+    <color name="widget_status_paused">#FFC24B</color>
+    <color name="widget_status_finished">#5FE08A</color>
+    <color name="widget_status_failed">#FF8A8A</color>
+    <color name="widget_status_idle">#8C9089</color>
+    <color name="widget_status_offline">#8C9089</color>
+    <color name="widget_status_error">#FF8A8A</color>
 </resources>

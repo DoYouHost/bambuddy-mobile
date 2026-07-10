@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Poziomy pasek postępu widgetu: tor + wypełnienie akcentem. -->
+<!-- Widget horizontal progress bar: track + accent fill. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
         <shape android:shape="rectangle">
@@ -14,8 +14,8 @@
                 <gradient
                     android:type="linear"
                     android:angle="0"
-                    android:startColor="@color/widget_accent"
-                    android:endColor="@color/widget_accent_light" />
+                    android:startColor="@color/widget_accent_dark"
+                    android:endColor="@color/widget_accent" />
             </shape>
         </clip>
     </item>

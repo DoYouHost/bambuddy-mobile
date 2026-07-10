@@ -3,6 +3,8 @@
     <string name="widget_name">Bambuddy</string>
     <string name="widget_description">Printer status with a filament scan shortcut</string>
     <string name="widget_scan">Scan filament</string>
+    <string name="widget_multi_name">Bambuddy · Printers</string>
+    <string name="widget_multi_description">All printers at a glance</string>
 
     <!-- Idle/offline quips: recognizable pop-culture lines (films, memes, games)
          mapped onto 3D-printing reality. SEPARATE set from Polish (humour does not

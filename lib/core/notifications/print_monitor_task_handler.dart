@@ -28,6 +28,7 @@ import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
 import '../watch/wear_relay_handler.dart';
 import '../widget/home_widget_publisher.dart';
+import '../widget/multi_widget_publisher.dart';
 import '../widget/widget_cover_cache.dart';
 import 'notification_service.dart';
 
@@ -171,6 +172,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
           fetchCover: (picked) => _fetchCover(profile.baseUrl, picked),
           resetCover: WidgetCoverCache.reset,
         ).catchError((_) {}),
+      );
+      unawaited(
+        MultiWidgetPublisher.publish(Map.of(_statuses), l10n).catchError((_) {}),
       );
     });
     // "Plate not empty" event arrives as a separate frame (not in status) —

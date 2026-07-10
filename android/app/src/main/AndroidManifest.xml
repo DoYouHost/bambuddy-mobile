@@ -68,8 +68,8 @@
             android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
             android:exported="false" />
 
-        <!-- Widget ekranu głównego: status wybranej drukarki + skrót do skanera
-             szpuli. Aktualizowany przez apkę (home_widget), nie cyklicznie. -->
+        <!-- Home screen widget: selected printer status + a filament scan
+             shortcut. Pushed by the app (home_widget), not on a period. -->
         <receiver
             android:name=".BambuddyWidgetProvider"
             android:exported="true">
@@ -79,6 +79,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/bambuddy_widget_info" />
+        </receiver>
+
+        <!-- Multi-printer home screen widget: all printers at a glance. Same
+             app-pushed update mechanism (home_widget), separate provider/layout. -->
+        <receiver
+            android:name=".BambuddyMultiWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bambuddy_multi_widget_info" />
         </receiver>
 
         <!-- WorkManager wchodzi tranzytywnie przez androidx.glance (zależność

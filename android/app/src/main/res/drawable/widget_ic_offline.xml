@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Struck-through signal icon (white; tinted in code). Shown in offline state. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,4.27L3.28,3L21,20.72L19.73,22L16,18.27V20H12V16H12.73L10,13.27V20H6V15H2V13H6V11.73L2,7.73zM12,8V4h4v8.27l-4,-4zM18,4h4v16h-1.27L18,17.27z" />
+</vector>

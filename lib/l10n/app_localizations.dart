@@ -1046,6 +1046,54 @@ abstract class AppLocalizations {
   /// **'Error'**
   String get widgetStatusError;
 
+  /// No description provided for @widgetMultiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers'**
+  String get widgetMultiTitle;
+
+  /// No description provided for @widgetMultiActive.
+  ///
+  /// In en, this message translates to:
+  /// **'{active}/{total} active'**
+  String widgetMultiActive(int active, int total);
+
+  /// No description provided for @widgetMultiMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String widgetMultiMore(int count);
+
+  /// No description provided for @widgetMultiGaugeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'printing'**
+  String get widgetMultiGaugeLabel;
+
+  /// No description provided for @widgetMultiIdleCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} idle'**
+  String widgetMultiIdleCount(int count);
+
+  /// No description provided for @widgetMultiOfflineCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} offline'**
+  String widgetMultiOfflineCount(int count);
+
+  /// No description provided for @widgetMultiName.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy · Printers'**
+  String get widgetMultiName;
+
+  /// No description provided for @widgetMultiDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'All printers at a glance'**
+  String get widgetMultiDescription;
+
   /// No description provided for @remaining.
   ///
   /// In en, this message translates to:

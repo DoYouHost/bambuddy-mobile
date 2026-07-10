@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Scan button background (design 2026-07): subtle surface + outline, like the
-     camera-preview button in the reference. Icon is tinted with the accent in code. -->
+<!-- Inner row/card surface for the multi-printer widget: faint fill + hairline
+     outline, rounded 13dp (design 2026-07). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/widget_surface" />
     <stroke android:width="1dp" android:color="@color/widget_surface_stroke" />
-    <corners android:radius="14dp" />
+    <corners android:radius="13dp" />
 </shape>

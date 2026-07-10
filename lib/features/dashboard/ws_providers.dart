@@ -11,6 +11,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/widget/home_widget_publisher.dart';
+import '../../core/widget/multi_widget_publisher.dart';
 import '../../core/widget/widget_cover_cache.dart';
 import '../../data/printers_repository.dart';
 import '../../providers.dart';
@@ -150,15 +151,17 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
   /// after each [state] change (WS and poll). Localization from system — app
   /// follows system setting anyway. Publish error can't break stream.
   void _publishWidget() {
+    final l10n = systemAppLocalizations();
     unawaited(
       HomeWidgetPublisher.publish(
         state,
-        systemAppLocalizations(),
+        l10n,
         describeHms: HmsCatalog.instance.describe,
         fetchCover: _fetchCover,
         resetCover: WidgetCoverCache.reset,
       ).catchError((_) {}),
     );
+    unawaited(MultiWidgetPublisher.publish(state, l10n).catchError((_) {}));
   }
 
   /// Fetch cover of current print to file (auth via camera token). Raw Dio

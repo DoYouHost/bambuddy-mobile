@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Multi-printer widget (resizable). Design 2026-07: near-black card, mint
+     accent, Manrope + JetBrains Mono. Two mutually-exclusive containers toggled
+     by width in BambuddyMultiWidgetProvider:
+       - widget_multi_wide    : header + up to 3 printer rows + "+N more"
+       - widget_multi_compact : 2x2 summary (gauge with printing count + tallies)
+     RemoteViews has no <View>/<Space>, so spacers are empty weighted TextViews. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_multi_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="15dp">
+
+    <!-- ============================ LIST MODE ============================ -->
+    <LinearLayout
+        android:id="@+id/widget_multi_wide"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header: title + active count. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/widget_multi_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/manrope_800"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="15sp"
+                android:letterSpacing="-0.01"
+                android:text="Printers" />
+
+            <TextView
+                android:id="@+id/widget_multi_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:fontFamily="@font/jetbrains_mono_600"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:text="" />
+        </LinearLayout>
+
+        <!-- Row 0 -->
+        <LinearLayout
+            android:id="@+id/widget_multi_row_0"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/widget_row_bg"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:id="@+id/widget_multi_dot_0"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:layout_marginEnd="9dp"
+                android:src="@drawable/widget_status_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/widget_multi_name_0"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/manrope_700"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_sub_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:maxWidth="110dp"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/jetbrains_mono_500"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_pct_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:fontFamily="@font/jetbrains_mono_700"
+                android:textColor="@color/widget_accent"
+                android:textSize="12sp"
+                android:text="" />
+        </LinearLayout>
+
+        <!-- Row 1 -->
+        <LinearLayout
+            android:id="@+id/widget_multi_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/widget_row_bg"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:id="@+id/widget_multi_dot_1"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:layout_marginEnd="9dp"
+                android:src="@drawable/widget_status_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/widget_multi_name_1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/manrope_700"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_sub_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:maxWidth="110dp"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/jetbrains_mono_500"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_pct_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:fontFamily="@font/jetbrains_mono_700"
+                android:textColor="@color/widget_accent"
+                android:textSize="12sp"
+                android:text="" />
+        </LinearLayout>
+
+        <!-- Row 2 -->
+        <LinearLayout
+            android:id="@+id/widget_multi_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/widget_row_bg"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:id="@+id/widget_multi_dot_2"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:layout_marginEnd="9dp"
+                android:src="@drawable/widget_status_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/widget_multi_name_2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/manrope_700"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_sub_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:maxWidth="110dp"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/jetbrains_mono_500"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/widget_multi_pct_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:fontFamily="@font/jetbrains_mono_700"
+                android:textColor="@color/widget_accent"
+                android:textSize="12sp"
+                android:text="" />
+        </LinearLayout>
+
+        <!-- "+N more" — overflow beyond the 3 visible rows. GONE when 0. -->
+        <TextView
+            android:id="@+id/widget_multi_more"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="end"
+            android:maxLines="1"
+            android:fontFamily="@font/jetbrains_mono_600"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="10sp"
+            android:visibility="gone"
+            android:text="" />
+    </LinearLayout>
+
+    <!-- ========================= COMPACT MODE (2x2) ========================= -->
+    <LinearLayout
+        android:id="@+id/widget_multi_compact"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_multi_compact_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/manrope_800"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="12sp"
+            android:letterSpacing="-0.01"
+            android:text="Printers" />
+
+        <!-- Gauge + tallies group, centered in the space below the pinned title
+             (weight=1) so it fills the tile instead of leaving empty space. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+        <!-- Gauge: ring (printing/total) with the printing count + label centered. -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/widget_multi_gauge"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_multi_gauge_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/jetbrains_mono_700"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="22sp"
+                    android:includeFontPadding="false"
+                    android:text="0" />
+
+                <TextView
+                    android:id="@+id/widget_multi_gauge_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:fontFamily="@font/manrope_600"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="9sp"
+                    android:text="" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Idle tally -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/widget_multi_idle_dot"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/widget_status_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/widget_multi_idle_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/manrope_600"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="10sp"
+                android:text="" />
+        </LinearLayout>
+
+        <!-- Offline tally -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/widget_multi_offline_dot"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/widget_status_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/widget_multi_offline_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/manrope_600"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="10sp"
+                android:text="" />
+        </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

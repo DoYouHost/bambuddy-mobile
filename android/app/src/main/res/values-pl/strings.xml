@@ -3,6 +3,8 @@
     <string name="widget_name">Bambuddy</string>
     <string name="widget_description">Status drukarki ze skrótem do skanera filamentu</string>
     <string name="widget_scan">Skanuj filament</string>
+    <string name="widget_multi_name">Bambuddy · Drukarki</string>
+    <string name="widget_multi_description">Wszystkie drukarki na raz</string>
 
     <!-- Żartobliwe teksty (Walaszek - Kapitan Bomba / polskie komedie) 
          OSOBNY zestaw niż angielski — nie tłumaczyć! -->

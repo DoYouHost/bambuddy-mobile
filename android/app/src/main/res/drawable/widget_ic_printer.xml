@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3D printer icon (white; tinted in code). Shown in idle / compact states. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,4h12a2,2 0,0 1,2 2v6a2,2 0,0 1,-2 2H6a2,2 0,0 1,-2 -2V6A2,2 0,0 1,6 4zM6,6v6h12V6zM8,16h8v2a2,2 0,0 1,-2 2h-4a2,2 0,0 1,-2 -2zM8.5,8.5h7v1.5h-7z" />
+</vector>
