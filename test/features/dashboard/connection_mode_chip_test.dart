@@ -24,7 +24,8 @@ void main() {
 
     expect(find.text('Na żywo'), findsOneWidget);
     expect(find.text('Odświeżanie'), findsNothing);
-    expect(find.byIcon(Icons.bolt), findsOneWidget);
+    // Live pill uses a green status dot (no sync icon).
+    expect(find.byIcon(Icons.sync), findsNothing);
   });
 
   testWidgets('WS rozłączony → etykieta „Odświeżanie" (polling)',

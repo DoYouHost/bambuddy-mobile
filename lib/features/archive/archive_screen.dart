@@ -8,6 +8,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -87,115 +88,121 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(archiveProvider);
 
-    return Scaffold(
-      appBar: _selectionMode
-          ? AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: l10n.cancel,
-                onPressed: _clearSelection,
-              ),
-              title: Text(l10n.archiveSelectedCount(_selected.length)),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.select_all),
-                  tooltip: l10n.archiveSelectAll,
-                  onPressed: _selectAllVisible,
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _selectionMode
+            ? dashAppBar(
+                context,
+                title: l10n.archiveSelectedCount(_selected.length),
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: l10n.cancel,
+                  onPressed: _clearSelection,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.folder_special_outlined),
-                  tooltip: l10n.archiveAddToProject,
-                  onPressed: _addSelectedToProject,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: l10n.archiveDelete,
-                  onPressed: _deleteSelected,
-                ),
-              ],
-            )
-          : AppBar(
-              title: Text(l10n.navArchive),
-              actions: [
-                PopupMenuButton<String>(
-                  onSelected: (v) {
-                    if (v == 'purge') _purgeOlder();
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'purge',
-                      child: Text(l10n.archivePurgeOlder),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: SearchBar(
-              hintText: l10n.archiveSearchHint,
-              leading: const Icon(Icons.search),
-              onChanged: _onSearchChanged,
-            ),
-          ),
-          Expanded(
-            child: async.when(
-              skipLoadingOnReload: true,
-              skipLoadingOnRefresh: true,
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => AsyncErrorView(
-                message: err is AppApiException
-                    ? err.localized(l10n)
-                    : l10n.connectFailed,
-                retryLabel: l10n.retry,
-                onRetry: () => ref.read(archiveProvider.notifier).refresh(),
-              ),
-              data: (s) => RefreshIndicator(
-                onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
-                child: s.searchFailed
-                    ? EmptyStateView(
-                        message: l10n.archiveSearchFailed(s.query),
-                        icon: Icons.search_off,
-                      )
-                    : s.items.isEmpty
-                        ? EmptyStateView(
-                            message: l10n.archiveEmpty,
-                            icon: Icons.inventory_2_outlined,
-                          )
-                        : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        itemCount: s.items.length + (s.hasMore ? 1 : 0),
-                        itemBuilder: (context, i) {
-                          if (i >= s.items.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-                          final archive = s.items[i];
-                          final card = _ArchiveCard(
-                            archive: archive,
-                            selected: _selected.contains(archive.id),
-                            onTap: () => _selectionMode
-                                ? _toggleSelect(archive.id)
-                                : _openSheet(archive),
-                            onLongPress: () => _toggleSelect(archive.id),
-                          );
-                          // No swipe-to-delete while multi-selecting.
-                          return _selectionMode
-                              ? card
-                              : _deletable(archive, card);
-                        },
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.select_all),
+                    tooltip: l10n.archiveSelectAll,
+                    onPressed: _selectAllVisible,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.folder_special_outlined),
+                    tooltip: l10n.archiveAddToProject,
+                    onPressed: _addSelectedToProject,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: l10n.archiveDelete,
+                    onPressed: _deleteSelected,
+                  ),
+                ],
+              )
+            : dashAppBar(
+                context,
+                title: l10n.navArchive,
+                actions: [
+                  PopupMenuButton<String>(
+                    onSelected: (v) {
+                      if (v == 'purge') _purgeOlder();
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'purge',
+                        child: Text(l10n.archivePurgeOlder),
                       ),
+                    ],
+                  ),
+                ],
+              ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: _ArchiveSearchField(
+                tokens: t,
+                hintText: l10n.archiveSearchHint,
+                onChanged: _onSearchChanged,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: async.when(
+                skipLoadingOnReload: true,
+                skipLoadingOnRefresh: true,
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => AsyncErrorView(
+                  message: err is AppApiException
+                      ? err.localized(l10n)
+                      : l10n.connectFailed,
+                  retryLabel: l10n.retry,
+                  onRetry: () => ref.read(archiveProvider.notifier).refresh(),
+                ),
+                data: (s) => RefreshIndicator(
+                  onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+                  child: s.searchFailed
+                      ? EmptyStateView(
+                          message: l10n.archiveSearchFailed(s.query),
+                          icon: Icons.search_off,
+                        )
+                      : s.items.isEmpty
+                          ? EmptyStateView(
+                              message: l10n.archiveEmpty,
+                              icon: Icons.inventory_2_outlined,
+                            )
+                          : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          itemCount: s.items.length + (s.hasMore ? 1 : 0),
+                          itemBuilder: (context, i) {
+                            if (i >= s.items.length) {
+                              return const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final archive = s.items[i];
+                            final card = _ArchiveCard(
+                              archive: archive,
+                              selected: _selected.contains(archive.id),
+                              onTap: () => _selectionMode
+                                  ? _toggleSelect(archive.id)
+                                  : _openSheet(archive),
+                              onLongPress: () => _toggleSelect(archive.id),
+                            );
+                            // No swipe-to-delete while multi-selecting.
+                            return _selectionMode
+                                ? card
+                                : _deletable(archive, card);
+                          },
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -219,7 +226,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// in `confirmDismiss`; the actual delete runs in `onDismissed` so the
   /// notifier's optimistic removal stays in sync with the dismiss animation.
   Widget _deletable(Archive archive, Widget child) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Dismissible(
       key: ValueKey('archive_dismiss_${archive.id}'),
       direction: DismissDirection.endToStart,
@@ -228,11 +235,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         padding: const EdgeInsets.only(right: 24),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
+          color: t.danger.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: t.danger.withValues(alpha: 0.4)),
         ),
-        child: Icon(Icons.delete_outline,
-            color: theme.colorScheme.onErrorContainer),
+        child: Icon(Icons.delete_outline, color: t.danger),
       ),
       confirmDismiss: (_) async {
         final purge = await _askDelete(archive);
@@ -479,6 +486,60 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           : l10n.ctrlFailed;
 }
 
+/// Search field row (design "4a"): a rounded pill with a search glyph and a
+/// borderless text field. Purely visual — callbacks/debounce stay in the
+/// parent state, same as the `SearchBar` it replaces.
+class _ArchiveSearchField extends StatelessWidget {
+  const _ArchiveSearchField({
+    required this.tokens,
+    required this.hintText,
+    required this.onChanged,
+  });
+
+  final DashTokens tokens;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: tokens.subCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: tokens.subCardBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.search, size: 20, color: tokens.textTertiary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              onChanged: onChanged,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 15,
+                color: tokens.textPrimary,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 15,
+                  color: tokens.textTertiary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ArchiveCard extends StatelessWidget {
   const _ArchiveCard({
     required this.archive,
@@ -494,44 +555,92 @@ class _ArchiveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final meta = <String>[
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
       if (archive.createdAt != null) _date(archive.createdAt!),
     ];
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      color: selected ? theme.colorScheme.primaryContainer : null,
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-        leading: selected
-            ? CircleAvatar(
-                backgroundColor: theme.colorScheme.primary,
-                child: Icon(Icons.check, color: theme.colorScheme.onPrimary),
-              )
-            : PrintThumbnail(archiveId: archive.id, size: 56),
-        title: Text(
-          archive.displayName,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: meta.isEmpty
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(meta.join(' · '),
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: selected
+                  ? t.accentGreen.withValues(alpha: 0.14)
+                  : t.subCard,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected
+                    ? t.accentGreen.withValues(alpha: 0.5)
+                    : t.subCardBorder,
               ),
-        trailing: archive.isFavorite
-            ? Icon(Icons.star, size: 18, color: theme.colorScheme.tertiary)
-            : null,
-        onTap: onTap,
-        onLongPress: onLongPress,
-        selected: selected,
+            ),
+            child: Row(
+              children: [
+                selected
+                    ? Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: t.accentGreen.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.check,
+                          color: t.accentGreenInk,
+                        ),
+                      )
+                    : PrintThumbnail(archiveId: archive.id, size: 52),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        archive.displayName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          meta.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: t.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (archive.isFavorite) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.star, size: 18, color: t.accentOrange),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

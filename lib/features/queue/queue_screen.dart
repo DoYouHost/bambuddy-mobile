@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -103,6 +104,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(queueProvider);
 
     // Pending prints (excluding currently printing) — "start next" button
@@ -114,34 +116,55 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     ];
     final firstQueued = queued.isEmpty ? null : queued.first;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.navQueue)),
-      floatingActionButton: firstQueued == null
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _startNext(context, ref, firstQueued, l10n),
-              icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.queueStartNext),
-            ),
-      body: async.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AsyncErrorView(
-          message: err is AppApiException
-              ? err.localized(l10n)
-              : l10n.connectFailed,
-          onRetry: () => ref.read(queueProvider.notifier).refresh(),
-          retryLabel: l10n.retry,
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.navQueue,
+          actions: [
+            if (queued.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: DashPill(
+                    label: '${queued.length}',
+                    accent: t.accentGreen,
+                    accentInk: t.accentGreenInk,
+                  ),
+                ),
+              ),
+          ],
         ),
-        data: (items) => RefreshIndicator(
-          onRefresh: () => ref.read(queueProvider.notifier).refresh(),
-          child: items.isEmpty
-              ? EmptyStateView(
-                  message: l10n.queueEmpty,
-                  icon: Icons.playlist_add_check,
-                )
-              : _QueueList(items: items),
+        floatingActionButton: firstQueued == null
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => _startNext(context, ref, firstQueued, l10n),
+                backgroundColor: t.accentGreen,
+                foregroundColor: const Color(0xFF0A0C08),
+                icon: const Icon(Icons.play_arrow),
+                label: Text(l10n.queueStartNext),
+              ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message: err is AppApiException
+                ? err.localized(l10n)
+                : l10n.connectFailed,
+            onRetry: () => ref.read(queueProvider.notifier).refresh(),
+            retryLabel: l10n.retry,
+          ),
+          data: (items) => RefreshIndicator(
+            onRefresh: () => ref.read(queueProvider.notifier).refresh(),
+            child: items.isEmpty
+                ? EmptyStateView(
+                    message: l10n.queueEmpty,
+                    icon: Icons.playlist_add_check,
+                  )
+                : _QueueList(items: items),
+          ),
         ),
       ),
     );
@@ -237,6 +260,9 @@ class _QueueList extends ConsumerWidget {
               key: ValueKey(reorderable[i].id),
               item: reorderable[i],
               dragIndex: i,
+              // First item in the reorderable list is the one "start next"
+              // would launch — highlighted the same as the pinned/printing card.
+              nextUp: i == 0,
             ),
           ),
         ),
@@ -251,6 +277,7 @@ class _QueueCard extends ConsumerWidget {
     required this.item,
     this.pinned = false,
     this.dragIndex,
+    this.nextUp = false,
   });
 
   final QueueItem item;
@@ -263,54 +290,74 @@ class _QueueCard extends ConsumerWidget {
   /// (`ReorderableDragStartListener`). Null for pinned items.
   final int? dragIndex;
 
+  /// First (top) item of the reorderable queue — the one "start next" would
+  /// launch. Highlighted the same way as the pinned/printing card.
+  final bool nextUp;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final idx = dragIndex;
+    final highlighted = pinned || nextUp;
 
-    final card = Card(
+    final card = Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      // Printing distinguished by outline border, not background fill.
-      shape: pinned
-          ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-            )
-          : null,
-      child: ListTile(
-        contentPadding: EdgeInsets.fromLTRB(idx == null ? 12 : 0, 6, 4, 6),
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (idx != null)
-              ReorderableDragStartListener(
-                index: idx,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    Icons.drag_indicator,
-                    color: theme.colorScheme.primary,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(22),
+        // Printing/next-up distinguished by a green-tinted border, not a fill.
+        border: Border.all(
+          color: highlighted
+              ? t.accentGreen.withValues(alpha: 0.3)
+              : t.cardBorder,
+        ),
+      ),
+      child: Row(
+        children: [
+          if (idx != null)
+            ReorderableDragStartListener(
+              index: idx,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Icon(Icons.drag_indicator, color: t.textTertiary),
+              ),
+            ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: item.archiveId == null && item.libraryFileId != null
+                ? LibraryThumbnail(
+                    fileId: item.libraryFileId!,
+                    hasThumbnail: item.libraryFileThumbnail != null,
+                    size: 56,
+                  )
+                : PrintThumbnail(archiveId: item.archiveId, size: 56),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
                   ),
                 ),
-              ),
-            if (item.archiveId == null && item.libraryFileId != null)
-              LibraryThumbnail(
-                fileId: item.libraryFileId!,
-                hasThumbnail: item.libraryFileThumbnail != null,
-                size: 52,
-              )
-            else
-              PrintThumbnail(archiveId: item.archiveId),
-          ],
-        ),
-        title: Text(
-          item.displayName,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: _Subtitle(item: item),
-        trailing: _QueueActions(item: item),
+                const SizedBox(height: 6),
+                _Subtitle(item: item),
+              ],
+            ),
+          ),
+          _QueueActions(item: item),
+        ],
       ),
     );
 
@@ -326,11 +373,10 @@ class _QueueCard extends ConsumerWidget {
         padding: const EdgeInsets.only(right: 24),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
+          color: t.danger.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(22),
         ),
-        child: Icon(Icons.delete_outline,
-            color: theme.colorScheme.onErrorContainer),
+        child: Icon(Icons.delete_outline, color: t.danger),
       ),
       // Dialog here only; actual delete in onDismissed (notifier removes from state) —
       // else Dismissible conflicts with list rebuild.
@@ -348,7 +394,6 @@ class _QueueCard extends ConsumerWidget {
       child: card,
     );
   }
-
 }
 
 class _Subtitle extends StatelessWidget {
@@ -359,29 +404,32 @@ class _Subtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final parts = <String>[
       if (item.printerName != null) item.printerName!,
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
     ];
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StatusChip(item: item),
-          if (parts.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                parts.join(' · '),
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _StatusChip(item: item),
+        if (parts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              parts.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: t.textTertiary,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
@@ -400,32 +448,35 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    final (label, color) = switch (item.statusKind) {
-      QueueItemStatusKind.printing => (l10n.queueStatusPrinting, scheme.primary),
-      QueueItemStatusKind.paused => (l10n.queueStatusPaused, scheme.tertiary),
-      QueueItemStatusKind.scheduled => (
-          l10n.queueStatusScheduled,
-          scheme.secondary
-        ),
-      QueueItemStatusKind.pending => (
-          l10n.queueStatusPending,
-          scheme.onSurfaceVariant
-        ),
-      _ => (item.status, scheme.onSurfaceVariant),
+    final t = DashTokens.of(context);
+    final (label, accent) = switch (item.statusKind) {
+      QueueItemStatusKind.printing => (l10n.queueStatusPrinting, t.accentGreenInk),
+      QueueItemStatusKind.paused => (l10n.queueStatusPaused, t.accentOrange),
+      QueueItemStatusKind.scheduled => (l10n.queueStatusScheduled, t.accentBlue),
+      QueueItemStatusKind.pending => (l10n.queueStatusPending, t.textTertiary),
+      _ => (item.status, t.textTertiary),
     };
+    // Pending/unknown statuses get a subtle neutral pill instead of a
+    // colored one — there's nothing actionable to draw the eye to.
+    final neutral = accent == t.textTertiary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(6),
+        color: neutral ? t.subCard : accent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: neutral ? t.subCardBorder : accent.withValues(alpha: 0.4),
+        ),
       ),
       child: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
-            ?.copyWith(color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: accent,
+        ),
       ),
     );
   }
@@ -439,6 +490,7 @@ class _QueueActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     // Printing item doesn't make sense to "start"; any active item can cancel.
     final canStart = item.statusKind == QueueItemStatusKind.pending ||
         item.statusKind == QueueItemStatusKind.scheduled;
@@ -447,7 +499,7 @@ class _QueueActions extends ConsumerWidget {
     final canMap = canPreview && item.printerId != null;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
+      icon: Icon(Icons.more_vert, color: t.textSecondary),
       onSelected: (value) async {
         if (value == 'preview') {
           _previewGcode(context);

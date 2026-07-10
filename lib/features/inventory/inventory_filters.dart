@@ -15,6 +15,7 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -24,24 +25,40 @@ class _SearchBar extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: l10n.inventorySearchHint,
-                  border: const OutlineInputBorder(),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => onQuery(''),
-                        ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: t.subCard,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: t.subCardBorder),
                 ),
-                onChanged: onQuery,
+                child: TextField(
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 14,
+                    color: t.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 12,
+                    ),
+                    prefixIcon: Icon(Icons.search, color: t.textTertiary),
+                    hintText: l10n.inventorySearchHint,
+                    hintStyle: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      color: t.textTertiary,
+                    ),
+                    border: InputBorder.none,
+                    suffixIcon: query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: Icon(Icons.clear, color: t.textTertiary),
+                            onPressed: () => onQuery(''),
+                          ),
+                  ),
+                  onChanged: onQuery,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -63,29 +80,37 @@ class _FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     final active = count > 0;
     return Tooltip(
       message: AppLocalizations.of(context).inventoryFilters,
       child: Badge(
         isLabelVisible: active,
         label: Text('$count'),
+        backgroundColor: t.accentGreen,
+        textColor: _onAccentGreen,
         child: SizedBox(
           width: 48,
           height: 48,
           child: Material(
-            color: active
-                ? scheme.secondaryContainer
-                : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
+            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
+            borderRadius: BorderRadius.circular(16),
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               onTap: onTap,
-              child: Icon(
-                Icons.tune,
-                color: active
-                    ? scheme.onSecondaryContainer
-                    : scheme.onSurfaceVariant,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: active
+                        ? t.accentGreen.withValues(alpha: 0.4)
+                        : t.subCardBorder,
+                  ),
+                ),
+                child: Icon(
+                  Icons.tune,
+                  color: active ? t.accentGreenInk : t.textSecondary,
+                ),
               ),
             ),
           ),
@@ -127,7 +152,7 @@ class _FilterSheet extends ConsumerWidget {
       initialChildSize: 0.6,
       maxChildSize: 0.9,
       minChildSize: 0.35,
-      builder: (context, controller) => ListView(
+      builder: (context, controller) => _SheetSurface(child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
@@ -213,7 +238,7 @@ class _FilterSheet extends ConsumerWidget {
             ),
           ],
         ],
-      ),
+      )),
     );
   }
 }

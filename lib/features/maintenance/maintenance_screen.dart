@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -59,43 +60,49 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(maintenanceOverviewProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.navMaintenance),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: l10n.maintenanceSettingsTitle,
-            onPressed: () => context.push('/settings/maintenance'),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.navMaintenance,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l10n.maintenanceSettingsTitle,
+              onPressed: () => context.push('/settings/maintenance'),
+            ),
+          ],
+        ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message: err is AppApiException
+                ? err.localized(l10n)
+                : l10n.connectFailed,
+            onRetry: () =>
+                ref.read(maintenanceOverviewProvider.notifier).refresh(),
+            retryLabel: l10n.retry,
           ),
-        ],
-      ),
-      body: async.when(
-      skipLoadingOnReload: true,
-      skipLoadingOnRefresh: true,
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => AsyncErrorView(
-        message: err is AppApiException
-            ? err.localized(l10n)
-            : l10n.connectFailed,
-        onRetry: () => ref.read(maintenanceOverviewProvider.notifier).refresh(),
-        retryLabel: l10n.retry,
-      ),
-      data: (printers) => RefreshIndicator(
-        onRefresh: () =>
-            ref.read(maintenanceOverviewProvider.notifier).refresh(),
-        child: printers.isEmpty
-            ? EmptyStateView(
-                message: l10n.maintenanceEmpty,
-                icon: Icons.build_circle_outlined,
-              )
-            : ListView(
-                children: [
-                  for (final p in printers) _PrinterSection(printer: p),
-                  const SizedBox(height: 16),
-                ],
-              ),
-      ),
+          data: (printers) => RefreshIndicator(
+            onRefresh: () =>
+                ref.read(maintenanceOverviewProvider.notifier).refresh(),
+            child: printers.isEmpty
+                ? EmptyStateView(
+                    message: l10n.maintenanceEmpty,
+                    icon: Icons.build_circle_outlined,
+                  )
+                : ListView(
+                    children: [
+                      const SizedBox(height: 8),
+                      for (final p in printers) _PrinterSection(printer: p),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }
@@ -109,81 +116,72 @@ class _PrinterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final items = [...printer.maintenanceItems]
       ..sort((a, b) => a.hoursUntilDue.compareTo(b.hoursUntilDue));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      printer.printerName,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    Text(
-                      [
-                        if (printer.printerModel != null) printer.printerModel!,
-                        l10n.maintenanceTotalHours(
-                            printer.totalPrintHours.round()),
-                      ].join(' · '),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              gradient: t.cardGradient,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: t.cardBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        printer.printerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if (printer.printerModel != null)
+                            printer.printerModel!,
+                          l10n.maintenanceTotalHours(
+                              printer.totalPrintHours.round()),
+                        ].join(' · '),
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (printer.dueCount > 0)
-                _CountBadge(
-                  label: l10n.maintenanceDueBadge(printer.dueCount),
-                  color: theme.colorScheme.error,
-                ),
-              if (printer.warningCount > 0) ...[
-                const SizedBox(width: 6),
-                _CountBadge(
-                  label: l10n.maintenanceWarningBadge(printer.warningCount),
-                  color: Colors.orange.shade700,
-                ),
+                if (printer.dueCount > 0) ...[
+                  const SizedBox(width: 12),
+                  DashPill(
+                    label: l10n.maintenanceDueBadge(printer.dueCount),
+                    accent: t.accentOrange,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        for (final item in items) _MaintenanceTile(item: item),
-        const Divider(height: 16),
-      ],
-    );
-  }
-}
-
-class _CountBadge extends StatelessWidget {
-  const _CountBadge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    // Text color matched to background brightness — `colorScheme.error` in dark mode is
-    // bright salmon where white text disappears; black gives readable contrast.
-    final onColor = ThemeData.estimateBrightnessForColor(color) == Brightness.dark
-        ? Colors.white
-        : Colors.black;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            color: onColor, fontSize: 12, fontWeight: FontWeight.w600),
+          const SizedBox(height: 12),
+          for (final item in items) _MaintenanceTile(item: item),
+        ],
       ),
     );
   }
@@ -197,45 +195,115 @@ class _MaintenanceTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final accent = switch (item.severity) {
-      MaintenanceSeverity.due => theme.colorScheme.error,
-      MaintenanceSeverity.warning => Colors.orange.shade700,
-      MaintenanceSeverity.ok => theme.colorScheme.primary,
-    };
+    final t = DashTokens.of(context);
+    final due = item.isDue;
+    // Binary accent: due/overdue gets the urgent orange, everything else (ok
+    // and not-yet-due warning) shares the neutral green tier.
+    final tileAccent = due ? t.accentOrange : t.accentGreen;
+    final inkAccent = due ? t.accentOrange : t.accentGreenInk;
 
-  final dueText = item.isDue
-      ? l10n.maintenanceOverdueBy(item.hoursUntilDue.abs().round())
-      : l10n.maintenanceDueIn(item.hoursUntilDue.round());
+    final dueText = item.isDue
+        ? l10n.maintenanceOverdueBy(item.hoursUntilDue.abs().round())
+        : l10n.maintenanceDueIn(item.hoursUntilDue.round());
 
     return Opacity(
       opacity: item.enabled ? 1 : 0.5,
-      child: ListTile(
-        leading: Icon(maintenanceIcon(item.maintenanceTypeIcon), color: accent),
-        title: Text(item.maintenanceTypeName),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: item.progress,
-                color: accent,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _showHistory(context, ref, l10n),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: due
+                    ? t.accentOrange.withValues(alpha: 0.06)
+                    : t.subCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: due
+                      ? t.accentOrange.withValues(alpha: 0.35)
+                      : t.subCardBorder,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: tileAccent.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      maintenanceIcon(item.maintenanceTypeIcon),
+                      size: 18,
+                      color: inkAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.maintenanceTypeName,
+                                style: TextStyle(
+                                  fontFamily: DashTokens.fontUi,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.textPrimary,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                foregroundColor: t.accentGreenInk,
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 0),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () =>
+                                  _confirmPerform(context, ref, l10n),
+                              child: Text(l10n.maintenancePerform),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: item.progress,
+                            minHeight: 5,
+                            backgroundColor: t.gaugeTrack,
+                            valueColor: AlwaysStoppedAnimation(tileAccent),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          dueText,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: due ? t.accentOrange : t.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(dueText,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: accent, fontWeight: FontWeight.w600)),
-          ],
+          ),
         ),
-        trailing: TextButton(
-          onPressed: () => _confirmPerform(context, ref, l10n),
-          child: Text(l10n.maintenancePerform),
-        ),
-        onTap: () => _showHistory(context, ref, l10n),
       ),
     );
   }

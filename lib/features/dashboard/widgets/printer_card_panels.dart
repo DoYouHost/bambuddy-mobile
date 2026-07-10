@@ -1,7 +1,8 @@
 part of 'printer_card.dart';
 
-/// Connectivity metadata row: Wi-Fi signal, door state. Printer model intentionally
-/// omitted—printer name in header suffices for identification.
+/// Connectivity row (design "network & door"): a hairline top border with Wi-Fi
+/// signal on the left and door state on the right, in mono type. Auto-hides when
+/// the server provides neither reading.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.status});
 
@@ -9,36 +10,53 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final dbm = status.wifiSignal;
     final doorOpen = status.doorOpen;
+    if (dbm == null && doorOpen == null) return const SizedBox.shrink();
 
-    final items = <Widget>[
-      if (dbm != null)
-        _InfoChip(
-          icon: _wifiIcon(dbm),
-          text: '$dbm dBm',
-          color: _wifiColor(scheme, dbm),
-        ),
-      if (doorOpen != null)
-        _InfoChip(
-          icon: doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
-          text: doorOpen ? l10n.doorOpen : l10n.doorClosed,
-          // Open door highlighted in warning color; closed shown neutrally.
-          color: doorOpen ? const Color(0xFFFFB300) : scheme.onSurfaceVariant,
-        ),
-    ];
-    if (items.isEmpty) return const SizedBox.shrink();
+    Widget item(IconData icon, String text, Color color) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        );
 
-    // Distributed across full width (like fan chips)—clear, readable fields instead of tiny gray text.
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(child: items[i]),
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.only(top: 12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: t.hairline)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (dbm != null)
+            item(_wifiIcon(dbm), '$dbm dBm',
+                _wifiColor(t, Theme.of(context).colorScheme, dbm))
+          else
+            const SizedBox.shrink(),
+          if (doorOpen != null)
+            item(
+              doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
+              (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
+              doorOpen ? t.accentOrange : t.textTertiary,
+            )
+          else
+            const SizedBox.shrink(),
         ],
-      ],
+      ),
     );
   }
 
@@ -50,62 +68,17 @@ class _InfoRow extends StatelessWidget {
     return Icons.network_wifi_1_bar;
   }
 
-  /// Color based on signal quality: good → green, fair → amber, weak → error.
-  Color _wifiColor(ColorScheme scheme, int dbm) {
-    if (dbm >= -60) return const Color(0xFF66BB6A);
-    if (dbm >= -72) return const Color(0xFFFFB300);
+  /// Color by quality: good → green accent, fair → orange, weak → error.
+  Color _wifiColor(DashTokens t, ColorScheme scheme, int dbm) {
+    if (dbm >= -60) return t.accentGreenInk;
+    if (dbm >= -72) return t.accentOrange;
     return scheme.error;
   }
 }
 
-/// Readable metadata "pill": colored icon + text on container background,
-/// stretched to equal width share within a row.
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.text, this.color});
-
-  final IconData icon;
-  final String text;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final accent = color ?? scheme.onSurfaceVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 16, color: accent),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Firmware version under printer name (visible without expanding details,
-/// only when online). When update available—highlighted in tertiary color, bold,
-/// with update icon and target version (`current → latest`); when current—neutral.
-/// Tooltip explains state and carries release notes if server provides them.
-/// Auto-hides when no firmware data. Update action will come in future (repo ready).
+/// Firmware version under printer name (visible without expanding details).
+/// When an update is available — accent-colored with target version
+/// (`current → latest`); otherwise neutral mono. Auto-hides without data.
 class _FirmwareLine extends ConsumerWidget {
   const _FirmwareLine({required this.printerId});
 
@@ -116,12 +89,11 @@ class _FirmwareLine extends ConsumerWidget {
     final info = ref.watch(printerFirmwareProvider(printerId));
     if (info == null || !info.hasVersion) return const SizedBox.shrink();
 
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final update =
         info.updateAvailable && (info.latestVersion?.isNotEmpty ?? false);
-    final color = update ? scheme.tertiary : scheme.onSurfaceVariant;
+    final color = update ? t.accentGreenInk : t.textTertiary;
     final text = update
         ? '${info.currentVersion} → ${info.latestVersion}'
         : info.currentVersion!;
@@ -131,7 +103,7 @@ class _FirmwareLine extends ConsumerWidget {
     final notes = info.releaseNotes?.trim();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.only(top: 8),
       child: Tooltip(
         message: update && notes != null && notes.isNotEmpty
             ? '$tooltip\n\n$notes'
@@ -139,19 +111,19 @@ class _FirmwareLine extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              update ? Icons.system_update : Icons.memory,
-              size: 13,
-              color: color,
-            ),
-            const SizedBox(width: 4),
+            if (update) ...[
+              Icon(Icons.system_update, size: 12, color: color),
+              const SizedBox(width: 4),
+            ],
             Flexible(
               child: Text(
                 text,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 11.5,
+                  fontWeight: update ? FontWeight.w700 : FontWeight.w600,
                   color: color,
-                  fontWeight: update ? FontWeight.w600 : null,
                 ),
               ),
             ),
@@ -162,9 +134,8 @@ class _FirmwareLine extends ConsumerWidget {
   }
 }
 
-/// Total print time (hours, from maintenance review) under printer name.
-/// Data is historical and independent of WS, so we show it even when offline.
-/// Auto-hides when server provides no maintenance data.
+/// Total print time (hours) under printer name — historical, shown even offline.
+/// Rendered inline after firmware with a mono middle dot. Auto-hides without data.
 class _TotalPrintTimeLine extends ConsumerWidget {
   const _TotalPrintTimeLine({required this.printerId});
 
@@ -175,24 +146,19 @@ class _TotalPrintTimeLine extends ConsumerWidget {
     final hours = ref.watch(printerTotalPrintHoursProvider(printerId));
     if (hours == null || hours <= 0) return const SizedBox.shrink();
 
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.history, size: 13, color: color),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              l10n.maintenanceTotalHours(hours.round()),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(color: color),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        l10n.maintenanceTotalHours(hours.round()),
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: t.textTertiary,
+        ),
       ),
     );
   }
@@ -207,7 +173,8 @@ Color? _parseTrayColor(String? hex) {
   return Color((a << 24) | rgb);
 }
 
-/// Active print panel: name, progress bar with %, ETA, and layer count.
+/// Active print panel: cover, name, progress bar with %, ETA, and layer count.
+/// Restyled to a dark sub-card in the modernized card.
 class _PrintPanel extends StatelessWidget {
   const _PrintPanel({required this.status});
 
@@ -215,8 +182,7 @@ class _PrintPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final progress = status.progress;
     final name = status.currentPrint ?? status.gcodeFile;
@@ -245,7 +211,6 @@ class _PrintPanel extends StatelessWidget {
     final stage = status.stgCurName?.trim();
     final showStage = status.isPreparing && stage != null && stage.isNotEmpty;
 
-    // Row 1: file name + (when preparing) stage name.
     final nameBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -253,7 +218,12 @@ class _PrintPanel extends StatelessWidget {
         if (name != null)
           Text(
             name,
-            style: theme.textTheme.bodyMedium,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -262,13 +232,15 @@ class _PrintPanel extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.autorenew, size: 14, color: scheme.primary),
+              Icon(Icons.autorenew, size: 14, color: t.accentGreenInk),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   stage,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.primary,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 11.5,
+                    color: t.accentGreenInk,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -280,19 +252,17 @@ class _PrintPanel extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.subCardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: thumbnail + file name.
           Row(
             children: [
-              // Thumbnail always during print; without cover (or in calibration
-              // which has no cover)—placeholder instead of blank space.
               _CoverThumbnail(
                 coverUrl: status.isCalibration ? null : status.coverUrl,
               ),
@@ -300,21 +270,21 @@ class _PrintPanel extends StatelessWidget {
               Expanded(child: nameBlock),
             ],
           ),
-          const SizedBox(height: 10),
-          // Row 2: progress bar + rest—full width, from left edge.
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    // Prep phase → indeterminate bar (no 0%).
                     value: showStage
                         ? null
                         : (progress == null
-                              ? null
-                              : (progress / 100).clamp(0.0, 1.0)),
+                            ? null
+                            : (progress / 100).clamp(0.0, 1.0)),
                     minHeight: 6,
+                    backgroundColor: t.gaugeTrack,
+                    valueColor: AlwaysStoppedAnimation(t.accentGreen),
                   ),
                 ),
               ),
@@ -322,16 +292,19 @@ class _PrintPanel extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   '${progress.toStringAsFixed(0)}%',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontMono,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
                   ),
                 ),
               ],
             ],
           ),
           if (meta.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(spacing: 14, runSpacing: 4, children: meta),
+            const SizedBox(height: 10),
+            Wrap(spacing: 14, runSpacing: 6, children: meta),
           ],
         ],
       ),
@@ -339,66 +312,57 @@ class _PrintPanel extends StatelessWidget {
   }
 }
 
+/// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.
 class _MetaItem extends StatelessWidget {
-  const _MetaItem({required this.icon, required this.text, this.onTap});
+  const _MetaItem({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
 
-  /// When set, the item becomes tappable (e.g. AMS humidity/temp → history).
-  final VoidCallback? onTap;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
-    final row = Row(
+    final t = DashTokens.of(context);
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
+        Icon(icon, size: 14, color: t.textSecondary),
         const SizedBox(width: 4),
-        Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+        Text(
+          text,
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: t.textSecondary,
+          ),
+        ),
       ],
-    );
-    if (onTap == null) return row;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: row,
-      ),
     );
   }
 }
 
-/// Cover thumbnail for current print. Fetches image from `cover_url`
-/// with camera stream token (`?token=`). Placeholder instead of
-/// error—never crashes the card.
-///
-/// M2: proactive token refresh and reactive invalidation on 401
-/// (`ref.invalidate(cameraTokenProvider)`) will arrive with camera preview.
+/// Cover thumbnail for the current print (fetched with the camera stream token).
+/// Placeholder instead of error — never crashes the card.
 class _CoverThumbnail extends ConsumerWidget {
   const _CoverThumbnail({required this.coverUrl});
 
-  /// `null`/empty → immediate placeholder (e.g., calibration with no cover).
   final String? coverUrl;
 
   static const _size = 64.0;
-
-  /// Placeholder graphic (nozzle over table, rounded transparent corners)—
-  /// shown instead of cover when preview missing or calibration running.
   static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Widget placeholder() => Image.asset(
-      _placeholderAsset,
-      key: const ValueKey('cover_placeholder'),
-      width: _size,
-      height: _size,
-      fit: BoxFit.cover,
-    );
+    Widget placeholder() => ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.asset(
+            _placeholderAsset,
+            key: const ValueKey('cover_placeholder'),
+            width: _size,
+            height: _size,
+            fit: BoxFit.cover,
+          ),
+        );
 
     final url = coverUrl;
     if (url == null || url.isEmpty) return placeholder();
@@ -406,9 +370,7 @@ class _CoverThumbnail extends ConsumerWidget {
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
     if (baseUrl == null) return placeholder();
 
-    return ref
-        .watch(cameraTokenProvider)
-        .when(
+    return ref.watch(cameraTokenProvider).when(
           loading: placeholder,
           error: (_, _) => placeholder(),
           data: (token) => ClipRRect(
@@ -418,8 +380,6 @@ class _CoverThumbnail extends ConsumerWidget {
               key: const ValueKey('cover_network'),
               width: _size,
               height: _size,
-              // Server serves a full-res render for a 64dp tile — cap decode
-              // resolution so an active print doesn't repeatedly spike memory.
               cacheWidth:
                   (_size * MediaQuery.devicePixelRatioOf(context)).round(),
               fit: BoxFit.cover,
@@ -433,8 +393,7 @@ class _CoverThumbnail extends ConsumerWidget {
   }
 }
 
-/// Grid of temperature tiles (2 per row), each with icon and pair
-/// current value / target value.
+/// 2-column grid of temperature gauge tiles.
 class _TempGrid extends StatelessWidget {
   const _TempGrid({required this.readings});
 
@@ -451,13 +410,111 @@ class _TempGrid extends StatelessWidget {
           runSpacing: spacing,
           children: [
             for (final r in readings)
-              SizedBox(
-                width: tileWidth,
-                child: _TempTile(reading: r),
-              ),
+              SizedBox(width: tileWidth, child: _GaugeTile(reading: r)),
           ],
         );
       },
+    );
+  }
+}
+
+/// Always-visible fan readings as a 3-column grid (Hotend / Aux / Chamber),
+/// matching the design. Each cell shows the fan's short label and % in mono.
+/// Renders only when the server provides at least one fan reading.
+class _FansGrid extends StatelessWidget {
+  const _FansGrid({required this.status});
+
+  final PrinterStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    final cells = <Widget>[
+      if (status.coolingFanSpeed != null)
+        _FanCell(
+          label: l10n.ctrlFanPartShort,
+          value: status.coolingFanSpeed!,
+          tokens: t,
+        ),
+      if (status.bigFan1Speed != null)
+        _FanCell(
+          label: l10n.ctrlFanAuxShort,
+          value: status.bigFan1Speed!,
+          tokens: t,
+        ),
+      if (status.bigFan2Speed != null)
+        _FanCell(
+          label: l10n.ctrlFanChamberShort,
+          value: status.bigFan2Speed!,
+          tokens: t,
+        ),
+    ];
+    if (cells.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          for (var i = 0; i < cells.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: cells[i]),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FanCell extends StatelessWidget {
+  const _FanCell({
+    required this.label,
+    required this.value,
+    required this.tokens,
+  });
+
+  final String label;
+  final int value;
+  final DashTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    // Spinning fan gets the cool blue accent; idle stays neutral.
+    final valueColor = value > 0 ? tokens.accentBlue : tokens.textPrimary;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: tokens.subCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tokens.subCardBorder),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: tokens.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '$value%',
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: valueColor,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

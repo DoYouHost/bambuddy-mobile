@@ -14,6 +14,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import 'providers.dart';
 import 'smart_plugs_providers.dart';
+import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
 import 'widgets/printer_card.dart';
@@ -220,50 +221,76 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
+    final t = DashTokens.of(context);
 
     // Keep proactive JWT refresh alive while dashboard is on screen,
     // and start it (idempotently). Lifecycle pauses/resumes it.
     ref.watch(tokenRefresherProvider)?.start();
 
-    return Scaffold(
-      drawer: _AppDrawer(profileLabel: profile?.label),
-      appBar: AppBar(
-        title: Text(l10n.printersTitle),
-        actions: [
-          const Center(child: ConnectionModeChip()),
-          IconButton(
-            tooltip: l10n.batteryOptMenu,
-            icon: const Icon(Icons.notifications_active_outlined),
-            onPressed: () => _openNotificationMenu(context, l10n),
+    // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
+    // gives the seamless "designed screen" look through the app bar.
+    return Container(
+      decoration: BoxDecoration(gradient: t.backgroundGradient),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        drawer: _AppDrawer(profileLabel: profile?.label),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Text(
+            l10n.printersTitle,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              color: t.textPrimary,
+            ),
           ),
-        ],
-        // Only friendly profile label (if set) — no URL.
-        bottom: profile?.label == null
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(18),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    profile!.label!,
-                    style: Theme.of(context).textTheme.bodySmall,
+          iconTheme: IconThemeData(color: t.textPrimary),
+          actions: [
+            const Center(child: ConnectionModeChip()),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: l10n.batteryOptMenu,
+              color: t.textPrimary,
+              icon: const Icon(Icons.notifications_active_outlined),
+              onPressed: () => _openNotificationMenu(context, l10n),
+            ),
+          ],
+          // Only friendly profile label (if set) — no URL.
+          bottom: profile?.label == null
+              ? null
+              : PreferredSize(
+                  preferredSize: const Size.fromHeight(18),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      profile!.label!,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontMono,
+                        fontSize: 11.5,
+                        color: t.textTertiary,
+                      ),
+                    ),
                   ),
                 ),
+        ),
+        body: Column(
+          children: [
+            if (state.stale)
+              ConnectionBanner(message: l10n.serverUnreachableStale)
+            // WS resuming connection, but polling still provides fresh data —
+            // informational banner, not alarming. Don't duplicate "stale" banner.
+            else if (_wsReconnecting(wsState))
+              ConnectionBanner(
+                message: l10n.wsReconnecting,
+                tone: BannerTone.info,
               ),
-      ),
-      body: Column(
-        children: [
-          if (state.stale)
-            ConnectionBanner(message: l10n.serverUnreachableStale)
-          // WS resuming connection, but polling still provides fresh data —
-          // informational banner, not alarming. Don't duplicate "stale" banner.
-          else if (_wsReconnecting(wsState))
-            ConnectionBanner(
-              message: l10n.wsReconnecting,
-              tone: BannerTone.info,
-            ),
-          Expanded(child: _body(context, state, statuses, l10n)),
-        ],
+            Expanded(child: _body(context, state, statuses, l10n)),
+          ],
+        ),
       ),
     );
   }
@@ -731,8 +758,7 @@ class _SummaryHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     // Total power across farm from smart plugs (separate polling lane).
     final hasPlugs = ref.watch(smartPlugsProvider.select((s) => s.hasAnyPlug));
@@ -746,66 +772,73 @@ class _SummaryHeader extends ConsumerWidget {
           .compareTo(b.status!.remainingTime ?? 1 << 30));
 
     final next = active.isEmpty ? null : active.first;
+    final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.subCardBorder),
+      ),
       child: Row(
         children: [
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: active.isEmpty ? theme.disabledColor : scheme.primary,
-            ),
+            decoration:
+                BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Text(
             active.isEmpty
                 ? l10n.noActivePrints
                 : l10n.printingCount(active.length),
-            style: theme.textTheme.bodyMedium,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: active.isEmpty ? t.textSecondary : t.textPrimary,
+            ),
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
             Flexible(
               child: Text.rich(
                 TextSpan(children: [
-                  TextSpan(
-                    text: l10n.nextAvailableLabel,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
+                  TextSpan(text: l10n.nextAvailableLabel),
                   TextSpan(
                     text: next.printer.name,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  TextSpan(
-                    text: _nextSuffix(l10n, next),
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
+                  TextSpan(text: _nextSuffix(l10n, next)),
                 ]),
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12,
+                  color: t.textSecondary,
+                ),
               ),
             ),
           ],
           if (hasPlugs) ...[
-            // When there's "next available" printer, its Flexible takes space —
-            // then no Spacer; otherwise push power to right edge.
             if (next == null) const Spacer() else const SizedBox(width: 12),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.bolt, size: 16, color: scheme.onSurfaceVariant),
-                  const SizedBox(width: 2),
+                  Icon(Icons.bolt, size: 15, color: t.accentGreenInk),
+                  const SizedBox(width: 4),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontMono,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),

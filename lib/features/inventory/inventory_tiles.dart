@@ -8,116 +8,188 @@ class _SpoolTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final frac = spool.remainingFraction;
+    final low = spool.isLowStock && !spool.isArchived;
+    final fillColor = low ? t.danger : t.accentGreen;
 
-    return ListTile(
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (_) => _SpoolDetailSheet(spool: spool, assignment: assignment),
-      ),
-      leading: SpoolSwatch(rgba: spool.rgba),
-      title: Row(
-        children: [
-          _Badge(
-            label: spool.material,
-            color: spool.isArchived
-                ? theme.disabledColor
-                : theme.colorScheme.secondary,
+    final metaLine = Row(
+      children: [
+        Text(
+          '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
+          '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+            color: t.textTertiary,
           ),
-          const SizedBox(width: 6),
-          Expanded(
+        ),
+        if (assignment != null) ...[
+          const Spacer(),
+          Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
+          const SizedBox(width: 3),
+          Flexible(
             child: Text(
-              spool.displayName,
+              assignmentSlotLabel(l10n, assignment!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: spool.isArchived
-                  ? theme.textTheme.titleMedium?.copyWith(
-                      color: theme.disabledColor,
-                    )
-                  : theme.textTheme.titleMedium,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: t.textTertiary,
+              ),
             ),
           ),
-          if (spool.isLowStock && !spool.isArchived) ...[
-            const SizedBox(width: 6),
-            _Badge(
-              label: l10n.inventoryLowStock,
-              color: theme.colorScheme.error,
-            ),
-          ],
-          if (spool.isArchived) ...[
-            const SizedBox(width: 6),
-            _Badge(label: l10n.inventoryArchived, color: theme.disabledColor),
-          ],
         ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          if (frac != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: frac,
-                minHeight: 6,
-                color: spool.isLowStock
-                    ? theme.colorScheme.error
-                    : theme.colorScheme.primary,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: _sheetBarrier,
+            builder: (_) =>
+                _SpoolDetailSheet(spool: spool, assignment: assignment),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: low ? t.danger.withValues(alpha: 0.05) : t.subCard,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: low
+                    ? t.danger.withValues(alpha: 0.35)
+                    : t.subCardBorder,
               ),
             ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                '#${spool.id}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Opacity(
+                  opacity: spool.isArchived ? 0.5 : 1,
+                  child: SpoolSwatch(rgba: spool.rgba, size: 44, radius: 13),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                l10n.inventoryRemaining(
-                  spool.remainingWeight.toStringAsFixed(0),
-                ),
-                style: theme.textTheme.bodySmall,
-              ),
-              if (spool.labelWeight > 0) ...[
-                const SizedBox(width: 4),
-                Text(
-                  l10n.inventoryOfTotal(spool.labelWeight),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _MaterialTag(label: spool.material, tokens: t),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              spool.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontUi,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: spool.isArchived
+                                    ? t.textTertiary
+                                    : t.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (low) ...[
+                            const SizedBox(width: 6),
+                            _LowBadge(tokens: t),
+                          ],
+                          if (spool.isArchived) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.archive_outlined,
+                                size: 14, color: t.textTertiary),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: frac,
+                          minHeight: 4,
+                          backgroundColor: t.gaugeTrack,
+                          valueColor: AlwaysStoppedAnimation(fillColor),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      metaLine,
+                    ],
                   ),
                 ),
               ],
-              if (assignment != null) ...[
-                const Spacer(),
-                Icon(
-                  Icons.print_outlined,
-                  size: 13,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 3),
-                Flexible(
-                  child: Text(
-                    assignmentSlotLabel(l10n, assignment!),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
-        ],
+        ),
       ),
-      isThreeLine: true,
+    );
+  }
+}
+
+/// Bordered material-code pill on a spool row (e.g. "PLA").
+class _MaterialTag extends StatelessWidget {
+  const _MaterialTag({required this.label, required this.tokens});
+
+  final String label;
+  final DashTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.textSecondary.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          color: tokens.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+/// "LOW" stock badge on a spool row.
+class _LowBadge extends StatelessWidget {
+  const _LowBadge({required this.tokens});
+
+  final DashTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: tokens.danger.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        l10n.inventoryLowStock.toUpperCase(),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          color: tokens.danger,
+        ),
+      ),
     );
   }
 }
@@ -137,28 +209,29 @@ String assignmentSlotLabel(AppLocalizations l10n, SpoolAssignment a) {
 /// Square spool color swatch. `rgba` is typically hex `RRGGBBAA` (like AMS colors)
 /// or `#RRGGBB`; if unknown, show neutral placeholder.
 class SpoolSwatch extends StatelessWidget {
-  const SpoolSwatch({super.key, this.rgba, this.size = 36});
+  const SpoolSwatch({super.key, this.rgba, this.size = 36, this.radius = 8});
 
   final String? rgba;
   final double size;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     final color = parseSpoolColor(rgba);
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: scheme.outlineVariant),
+        color: color ?? t.subCard,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: t.subCardBorder),
       ),
       child: color == null
           ? Icon(
               Icons.question_mark,
               size: size * 0.5,
-              color: scheme.onSurfaceVariant,
+              color: t.textTertiary,
             )
           : null,
     );
@@ -198,33 +271,6 @@ Color? parseSpoolColor(String? raw) {
   return null;
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color, width: 1),
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
 class _SpoolDetailSheet extends ConsumerWidget {
   const _SpoolDetailSheet({required this.spool, this.assignment});
 
@@ -233,8 +279,8 @@ class _SpoolDetailSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final usage = ref.watch(spoolUsageProvider(spool.id));
 
     return DraggableScrollableSheet(
@@ -242,13 +288,13 @@ class _SpoolDetailSheet extends ConsumerWidget {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => ListView(
+      builder: (context, controller) => _SheetSurface(child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           Row(
             children: [
-              SpoolSwatch(rgba: spool.rgba, size: 48),
+              SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -261,15 +307,24 @@ class _SpoolDetailSheet extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             spool.displayName,
-                            style: theme.textTheme.titleLarge,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: t.textPrimary,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '#${spool.id}',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: t.accentGreenInk,
                           ),
                         ),
                       ],
@@ -277,8 +332,10 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     if (spool.colorName != null)
                       Text(
                         spool.colorName!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 13,
+                          color: t.textSecondary,
                         ),
                       ),
                   ],
@@ -286,7 +343,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           _SpoolActions(spool: spool, assignment: assignment),
           const SizedBox(height: 16),
@@ -296,88 +353,122 @@ class _SpoolDetailSheet extends ConsumerWidget {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: spool.remainingFraction,
-                minHeight: 10,
-                color: spool.isLowStock
-                    ? theme.colorScheme.error
-                    : theme.colorScheme.primary,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                minHeight: 8,
+                backgroundColor: t.gaugeTrack,
+                valueColor: AlwaysStoppedAnimation(
+                  spool.isLowStock ? t.danger : t.accentGreen,
+                ),
               ),
             ),
             const SizedBox(height: 6),
             Text(
               '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
               ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
-              style: theme.textTheme.bodyMedium,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: t.textSecondary,
+              ),
             ),
             const SizedBox(height: 16),
           ],
 
-          _DetailRow(
-            icon: Icons.print_outlined,
-            label: assignment != null
-                ? l10n.inventoryLoadedIn(
-                    [
-                      if (assignment!.printerName != null)
-                        assignment!.printerName!,
-                      assignmentSlotLabel(l10n, assignment!),
-                    ].join(' · '),
-                  )
-                : l10n.inventoryNotLoaded,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _DetailRow(
+                  icon: Icons.print_outlined,
+                  label: assignment != null
+                      ? l10n.inventoryLoadedIn(
+                          [
+                            if (assignment!.printerName != null)
+                              assignment!.printerName!,
+                            assignmentSlotLabel(l10n, assignment!),
+                          ].join(' · '),
+                        )
+                      : l10n.inventoryNotLoaded,
+                ),
+                if (spool.storageLocation != null)
+                  _DetailRow(
+                    icon: Icons.place_outlined,
+                    label:
+                        '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                  ),
+                if (spool.costPerKg != null)
+                  _DetailRow(
+                    icon: Icons.payments_outlined,
+                    label: l10n.inventoryCostPerKg(
+                      spool.costPerKg!.toStringAsFixed(2),
+                    ),
+                  ),
+                if (spool.slicerFilamentName != null ||
+                    spool.slicerFilament != null)
+                  _DetailRow(
+                    icon: Icons.tune,
+                    label: '${l10n.inventoryFieldSlicerPreset}: '
+                        '${spool.slicerFilamentName ?? spool.slicerFilament}',
+                  ),
+                if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
+                  _DetailRow(
+                    icon: Icons.thermostat_outlined,
+                    label:
+                        '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
+                  ),
+                if (spool.tagUid != null)
+                  _DetailRow(
+                    icon: Icons.nfc_outlined,
+                    label: '${l10n.inventoryTag}: ${spool.tagUid}',
+                  ),
+                if (spool.note != null)
+                  _DetailRow(
+                    icon: Icons.sticky_note_2_outlined,
+                    label: '${l10n.inventoryNote}: ${spool.note}',
+                  ),
+              ],
+            ),
           ),
-          if (spool.storageLocation != null)
-            _DetailRow(
-              icon: Icons.place_outlined,
-              label: '${l10n.inventoryLocation}: ${spool.storageLocation}',
-            ),
-          if (spool.costPerKg != null)
-            _DetailRow(
-              icon: Icons.payments_outlined,
-              label: l10n.inventoryCostPerKg(
-                spool.costPerKg!.toStringAsFixed(2),
-              ),
-            ),
-          if (spool.slicerFilamentName != null || spool.slicerFilament != null)
-            _DetailRow(
-              icon: Icons.tune,
-              label: '${l10n.inventoryFieldSlicerPreset}: '
-                  '${spool.slicerFilamentName ?? spool.slicerFilament}',
-            ),
-          if (spool.nozzleTempMin != null || spool.nozzleTempMax != null)
-            _DetailRow(
-              icon: Icons.thermostat_outlined,
-              label:
-                  '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
-            ),
-          if (spool.tagUid != null)
-            _DetailRow(
-              icon: Icons.nfc_outlined,
-              label: '${l10n.inventoryTag}: ${spool.tagUid}',
-            ),
-          if (spool.note != null)
-            _DetailRow(
-              icon: Icons.sticky_note_2_outlined,
-              label: '${l10n.inventoryNote}: ${spool.note}',
-            ),
 
           if (spool.kProfiles.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(l10n.inventoryKProfiles, style: theme.textTheme.titleMedium),
+            _SheetSectionTitle(label: l10n.inventoryKProfiles),
             const SizedBox(height: 4),
-            for (final k in spool.kProfiles)
-              _DetailRow(
-                icon: Icons.tune,
-                label: [
-                  if (k.name != null) k.name!,
-                  l10n.inventoryKProfileLine(
-                    k.nozzleDiameter ?? '?',
-                    k.kValue?.toStringAsFixed(3) ?? '?',
-                  ),
-                ].join(' · '),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: t.subCardBorder),
               ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final k in spool.kProfiles)
+                    _DetailRow(
+                      icon: Icons.tune,
+                      label: [
+                        if (k.name != null) k.name!,
+                        l10n.inventoryKProfileLine(
+                          k.nozzleDiameter ?? '?',
+                          k.kValue?.toStringAsFixed(3) ?? '?',
+                        ),
+                      ].join(' · '),
+                    ),
+                ],
+              ),
+            ),
           ],
 
           const SizedBox(height: 16),
-          Text(l10n.inventoryUsageHistory, style: theme.textTheme.titleMedium),
+          _SheetSectionTitle(label: l10n.inventoryUsageHistory),
           const SizedBox(height: 4),
           usage.when(
             loading: () => const Padding(
@@ -388,7 +479,11 @@ class _SpoolDetailSheet extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 l10n.inventoryUsageEmpty,
-                style: theme.textTheme.bodySmall,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12.5,
+                  color: t.textTertiary,
+                ),
               ),
             ),
             data: (entries) => entries.isEmpty
@@ -396,30 +491,115 @@ class _SpoolDetailSheet extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       l10n.inventoryUsageEmpty,
-                      style: theme.textTheme.bodySmall,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 12.5,
+                        color: t.textTertiary,
+                      ),
                     ),
                   )
                 : Column(
                     children: [
-                      for (final e in entries)
-                        ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.history, size: 20),
-                          title: Text(e.printName ?? '—'),
-                          subtitle: e.createdAt != null
-                              ? Text(e.createdAt!.split('T').first)
-                              : null,
-                          trailing: Text(
-                            l10n.inventoryUsageWeight(
-                              e.weightUsed.toStringAsFixed(0),
-                            ),
-                            style: theme.textTheme.bodyMedium,
-                          ),
+                      for (var i = 0; i < entries.length; i++)
+                        _UsageRow(
+                          entry: entries[i],
+                          last: i == entries.length - 1,
                         ),
                     ],
                   ),
           ),
+        ],
+      )),
+    );
+  }
+}
+
+/// Small uppercase section title inside the detail sheet (e.g. above usage
+/// history / K profiles) — mirrors the AMS section labels on the dashboard.
+class _SheetSectionTitle extends StatelessWidget {
+  const _SheetSectionTitle({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Text(
+      label,
+      style: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: t.textPrimary,
+      ),
+    );
+  }
+}
+
+/// One usage-history entry: print name + date on the left, weight used on the
+/// right, separated from the next entry by a dotted rule (as on the dashboard's
+/// filament rows).
+class _UsageRow extends StatelessWidget {
+  const _UsageRow({required this.entry, required this.last});
+
+  final SpoolUsageEntry entry;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.history, size: 16, color: t.textTertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.printName ?? '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                    if (entry.createdAt != null)
+                      Text(
+                        entry.createdAt!.split('T').first,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11,
+                          color: t.textTertiary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Text(
+                l10n.inventoryUsageWeight(entry.weightUsed.toStringAsFixed(0)),
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: t.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          if (!last) ...[
+            const SizedBox(height: 8),
+            _DashedLine(color: t.dottedRule),
+          ],
         ],
       ),
     );
@@ -434,17 +614,64 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          Icon(icon, size: 16, color: t.textSecondary),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: t.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+/// Thin dotted horizontal rule between rows (mirrors the dashboard filament
+/// row separator).
+class _DashedLine extends StatelessWidget {
+  const _DashedLine({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size(double.infinity, 1),
+        painter: _DashedPainter(color),
+      );
+}
+
+class _DashedPainter extends CustomPainter {
+  _DashedPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dash = 2.0;
+    const gap = 3.0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    var x = 0.0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + dash, 0), paint);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedPainter old) => old.color != color;
 }

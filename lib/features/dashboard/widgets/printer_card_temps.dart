@@ -1,74 +1,86 @@
 part of 'printer_card.dart';
 
-class _TempTile extends StatelessWidget {
-  const _TempTile({required this.reading});
+/// Temperature gauge tile (design "gauge card"): a circular gauge in the
+/// top-right, sensor label, and the current value in large mono type. Chamber
+/// additionally shows the air-duct heating/cooling badge; other sensors show
+/// their setpoint (→ target) when actively heating.
+class _GaugeTile extends StatelessWidget {
+  const _GaugeTile({required this.reading});
 
   final _TempReading reading;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final actual = reading.actual;
     final target = reading.target;
-
-    final iconColor = _tempIconColor(scheme, actual, target);
-    // Show target only if set (>0); 0 = heating off.
+    final accent = reading.gaugeColor(t);
     final hasTarget = target != null && target > 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.subCardBorder),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
         children: [
-          // Icon top-left + sensor label; for chamber, air duct indicator (heating/
-          // cooling) on right instead of separate chip.
-          Row(
+          Positioned(
+            top: 0,
+            right: 0,
+            // Target lives inside the ring ("-" when unset) → no extra row below.
+            child: TempGauge(
+              fraction: actual == null ? 0 : actual / reading.gaugeMax,
+              color: accent,
+              trackColor: t.gaugeTrack,
+              centerText: hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
+              centerColor: hasTarget ? accent : t.textTertiary,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(reading.icon, size: 16, color: iconColor),
-              const SizedBox(width: 6),
-              Expanded(
+              // Reserve the gauge's corner: pad the label so it never collides.
+              Padding(
+                padding: const EdgeInsets.only(right: 40),
                 child: Text(
-                  reading.label(l10n),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                  reading.label(l10n).toUpperCase(),
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                    color: t.textSecondary,
                   ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (reading.airductIsHeating != null)
-                _AirductBadge(heating: reading.airductIsHeating!),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Current: large, vivid color, left-aligned. Target: smaller, semi-
-          // transparent, right-aligned.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: iconColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (hasTarget) ...[
-                const Spacer(),
-                Text(
-                  '${target.toStringAsFixed(0)}°',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: iconColor.withValues(alpha: 0.5),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontMono,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                      color: t.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                  // Chamber cooling/heating sits inline, in the free space below
+                  // the ring — keeps every tile the same compact height.
+                  if (reading.airductIsHeating != null) ...[
+                    const Spacer(),
+                    _AirductBadge(heating: reading.airductIsHeating!),
+                  ],
+                ],
+              ),
             ],
           ),
         ],
@@ -77,8 +89,8 @@ class _TempTile extends StatelessWidget {
   }
 }
 
-/// Chamber air duct indicator pinned to chamber temp tile: icon +
-/// "Heating"/"Cooling". Replaces former separate chip to keep chamber info unified.
+/// Chamber air-duct indicator: snowflake+"Cooling" (blue) or flame+"Heating"
+/// (orange). Shown inside the chamber gauge tile.
 class _AirductBadge extends StatelessWidget {
   const _AirductBadge({required this.heating});
 
@@ -86,39 +98,34 @@ class _AirductBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final color = heating ? const Color(0xFFFF8A50) : const Color(0xFF4FC3F7);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          heating ? Icons.local_fire_department : Icons.ac_unit,
-          size: 13,
-          color: color,
-        ),
-        const SizedBox(width: 3),
-        Text(
-          heating ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-        ),
-      ],
+    final color = heating ? t.accentOrange : t.accentBlue;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(heating ? Icons.local_fire_department : Icons.ac_unit,
+              size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            heating ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Icon color for temperature tile depends on sensor state: white when target
-/// unset, blue when cooling (actual above target), orange when heating/holding high temp.
-Color _tempIconColor(ColorScheme scheme, double? actual, double? target) {
-  // Target unset (null or 0 = heating off)→neutral white.
-  if (target == null || target <= 0) return scheme.onSurface;
-  // Tolerance: minor fluctuations at target shouldn't flicker the color.
-  const tolerance = 2.0;
-  if (actual != null && actual > target + tolerance) {
-    return const Color(0xFF4FC3F7); // cooling—blue
-  }
-  return const Color(0xFFFF8A50); // heating/high temp—orange
-}
-
+/// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
+/// green; offline → red tinted with a vivid border.
 class _StateChip extends StatelessWidget {
   const _StateChip({
     required this.label,
@@ -130,31 +137,39 @@ class _StateChip extends StatelessWidget {
   final String label;
   final bool connected;
   final bool active;
-
-  /// OFFLINE variant: light red background + vivid red border so disconnected
-  /// printer stands out even in collapsed card.
   final bool offline;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      backgroundColor: offline
-          ? scheme.error.withValues(alpha: 0.12)
-          : (active
-                ? scheme.primaryContainer
-                : (connected
-                      ? scheme.secondaryContainer
-                      : scheme.surfaceContainerHighest)),
-      side: offline
-          ? BorderSide(color: scheme.error, width: 1.5)
-          : BorderSide.none,
-      label: Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: offline ? scheme.error : null,
+    final t = DashTokens.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final Color bg;
+    final Color fg;
+    final BoxBorder? border;
+    if (offline) {
+      bg = scheme.error.withValues(alpha: 0.14);
+      fg = scheme.error;
+      border = Border.all(color: scheme.error, width: 1.5);
+    } else {
+      bg = t.accentGreen.withValues(alpha: 0.16);
+      fg = t.accentGreenInk;
+      border = null;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: border,
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+          color: fg,
         ),
       ),
     );
@@ -182,23 +197,32 @@ class _TempReading {
   final double? target;
 
   /// Chamber air duct mode (heating/cooling); set ONLY for chamber tile where we
-  /// show it instead of separate chip. null = unknown/n.a.
+  /// show it instead of the setpoint. null = unknown/n.a.
   final bool? airductIsHeating;
 
   String label(AppLocalizations l10n) => switch (kind) {
-    _TempKind.nozzle =>
-      index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
-    _TempKind.bed => l10n.tempBed,
-    _TempKind.chamber => l10n.tempChamber,
-    _TempKind.unknown => raw,
-  };
+        _TempKind.nozzle =>
+          index == null ? l10n.tempNozzle : l10n.tempNozzleNumbered('$index'),
+        _TempKind.bed => l10n.tempBed,
+        _TempKind.chamber => l10n.tempChamber,
+        _TempKind.unknown => raw,
+      };
 
-  IconData get icon => switch (kind) {
-    _TempKind.nozzle => Icons.local_fire_department,
-    _TempKind.bed => Icons.wb_iridescent,
-    _TempKind.chamber => Icons.thermostat,
-    _TempKind.unknown => Icons.device_thermostat,
-  };
+  /// Upper bound of the gauge sweep per sensor (approx working range).
+  double get gaugeMax => switch (kind) {
+        _TempKind.nozzle => 300,
+        _TempKind.bed => 120,
+        _TempKind.chamber => 60,
+        _TempKind.unknown => 300,
+      };
+
+  /// Gauge fill color per sensor: nozzle→orange, bed→green, chamber→blue.
+  Color gaugeColor(DashTokens t) => switch (kind) {
+        _TempKind.nozzle => t.accentOrange,
+        _TempKind.bed => t.accentGreen,
+        _TempKind.chamber => t.accentBlue,
+        _TempKind.unknown => t.accentGreen,
+      };
 }
 
 /// Group raw temperature keys into current/target pairs and order known sensors

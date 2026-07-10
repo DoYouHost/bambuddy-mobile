@@ -5,7 +5,8 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: _sheetBarrier,
     builder: (_) => _SpoolFormSheet(existing: existing),
   );
 }
@@ -17,7 +18,8 @@ void _openAssignSheet(BuildContext context, Spool spool) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: _sheetBarrier,
     builder: (_) => _AssignSheet(spool: spool),
   );
 }
@@ -48,6 +50,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final roster = ref.watch(dashboardProvider).printers ?? const [];
 
     // Default printer: first from roster (once, while nothing chosen).
@@ -78,16 +81,26 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       initialChildSize: 0.55,
       maxChildSize: 0.9,
       minChildSize: 0.3,
-      builder: (context, controller) => ListView(
+      builder: (context, controller) => _SheetSurface(child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
+          Text(
+            l10n.inventoryAssignTitle,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: t.textPrimary,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
             widget.spool.displayName,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              color: t.textSecondary,
             ),
           ),
           const SizedBox(height: 16),
@@ -180,19 +193,35 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
             const SizedBox(height: 24),
 
             FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: t.accentGreen,
+                foregroundColor: _onAccentGreen,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _onAccentGreen,
+                      ),
                     )
                   : const Icon(Icons.add_link, size: 18),
-              label: Text(l10n.inventoryAssignConfirm),
+              label: Text(
+                l10n.inventoryAssignConfirm,
+                style: const TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ],
-      ),
+      )),
     );
   }
 
@@ -282,22 +311,25 @@ class _SpoolActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     return Wrap(
       spacing: 8,
-      runSpacing: 4,
+      runSpacing: 8,
       children: [
-        FilledButton.tonalIcon(
+        _ActionPill(
+          tokens: t,
+          variant: _ActionPillVariant.primary,
           onPressed: () {
             Navigator.of(context).pop();
             openSpoolForm(context, existing: spool);
           },
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          label: Text(l10n.inventoryEdit),
+          icon: Icons.edit_outlined,
+          label: l10n.inventoryEdit,
         ),
         if (!spool.isArchived)
           if (assignment != null)
-            OutlinedButton.icon(
+            _ActionPill(
+              tokens: t,
               onPressed: () => _run(
                 context,
                 ref,
@@ -311,26 +343,29 @@ class _SpoolActions extends ConsumerWidget {
                     ),
                 l10n.inventorySpoolUnassigned,
               ),
-              icon: const Icon(Icons.link_off, size: 18),
-              label: Text(l10n.inventoryUnassign),
+              icon: Icons.link_off,
+              label: l10n.inventoryUnassign,
             )
           else
-            OutlinedButton.icon(
+            _ActionPill(
+              tokens: t,
               onPressed: () {
                 Navigator.of(context).pop();
                 _openAssignSheet(context, spool);
               },
-              icon: const Icon(Icons.add_link, size: 18),
-              label: Text(l10n.inventoryAssign),
+              icon: Icons.add_link,
+              label: l10n.inventoryAssign,
             ),
         if (spool.weightUsed > 0)
-          OutlinedButton.icon(
+          _ActionPill(
+            tokens: t,
             onPressed: () => _resetUsage(context, ref, l10n),
-            icon: const Icon(Icons.refresh, size: 18),
-            label: Text(l10n.inventoryResetUsage),
+            icon: Icons.refresh,
+            label: l10n.inventoryResetUsage,
           ),
         if (spool.isArchived)
-          OutlinedButton.icon(
+          _ActionPill(
+            tokens: t,
             onPressed: () => _run(
               context,
               ref,
@@ -338,11 +373,12 @@ class _SpoolActions extends ConsumerWidget {
               ref.read(inventoryProvider.notifier).restoreSpool(spool.id),
               l10n.inventorySpoolRestored,
             ),
-            icon: const Icon(Icons.unarchive_outlined, size: 18),
-            label: Text(l10n.inventoryRestore),
+            icon: Icons.unarchive_outlined,
+            label: l10n.inventoryRestore,
           )
         else
-          OutlinedButton.icon(
+          _ActionPill(
+            tokens: t,
             onPressed: () => _run(
               context,
               ref,
@@ -350,16 +386,15 @@ class _SpoolActions extends ConsumerWidget {
               ref.read(inventoryProvider.notifier).archiveSpool(spool.id),
               l10n.inventorySpoolArchived,
             ),
-            icon: const Icon(Icons.archive_outlined, size: 18),
-            label: Text(l10n.inventoryArchive),
+            icon: Icons.archive_outlined,
+            label: l10n.inventoryArchive,
           ),
-        TextButton.icon(
+        _ActionPill(
+          tokens: t,
+          variant: _ActionPillVariant.destructive,
           onPressed: () => _delete(context, ref, l10n),
-          icon: Icon(Icons.delete_outline, size: 18, color: scheme.error),
-          label: Text(
-            l10n.inventoryDelete,
-            style: TextStyle(color: scheme.error),
-          ),
+          icon: Icons.delete_outline,
+          label: l10n.inventoryDelete,
         ),
       ],
     );
@@ -429,5 +464,71 @@ class _SpoolActions extends ConsumerWidget {
         SnackBar(content: Text(l10n.inventoryActionFailed)),
       );
     }
+  }
+}
+
+enum _ActionPillVariant { primary, outline, destructive }
+
+/// Small pill action button used in the spool detail sheet's action row.
+/// [primary] (Edit) is filled with a tinted accent; other actions are
+/// outlined; [destructive] (Delete) is text-only in the danger color.
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({
+    required this.tokens,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    this.variant = _ActionPillVariant.outline,
+  });
+
+  final DashTokens tokens;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final _ActionPillVariant variant;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = variant == _ActionPillVariant.destructive
+        ? tokens.danger
+        : tokens.accentGreenInk;
+    final fill = variant == _ActionPillVariant.primary
+        ? tokens.accentGreen.withValues(alpha: 0.16)
+        : Colors.transparent;
+    final border = variant == _ActionPillVariant.outline
+        ? Border.all(color: tokens.accentGreen.withValues(alpha: 0.4))
+        : null;
+
+    return Material(
+      color: fill,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: border,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

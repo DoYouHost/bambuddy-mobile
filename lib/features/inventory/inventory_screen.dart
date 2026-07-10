@@ -6,6 +6,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
@@ -20,6 +21,74 @@ part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
+
+/// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
+/// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
+/// this isn't theme-adaptive by design — the accent fill itself is a fixed
+/// vivid swatch in both brightnesses, so a near-black ink keeps it readable
+/// either way.
+const Color _onAccentGreen = Color(0xFF08150D);
+
+/// Opaque rounded-top surface for every Filaments bottom sheet. Pairs with
+/// `backgroundColor: Colors.transparent` on the enclosing
+/// `showModalBottomSheet` — that keeps the framework's drag handle, while
+/// this paints the actual dark (or light) sheet fill instead of the default
+/// Material `colorScheme.surface`, which doesn't match the "2a" backdrop.
+/// Rounded-top surface for a Filaments bottom sheet, with its own grab handle
+/// pinned at the top. Used INSIDE each `DraggableScrollableSheet` builder,
+/// wrapping the scroll view ([child]) — NOT the framework `showDragHandle`,
+/// which detaches from a partial-height draggable sheet and floats in the dim
+/// area above it. Gives a distinct top edge (hairline + lift shadow) so the
+/// sheet reads as its own surface above the dimmed backdrop.
+class _SheetSurface extends StatelessWidget {
+  const _SheetSurface({required this.child});
+
+  /// The scroll view (typically a `ListView` bound to the drag controller).
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: t.isDark ? const Color(0xFF0E1310) : const Color(0xFFF6F8F4),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(
+          top: BorderSide(
+            color: t.isDark ? const Color(0x24FFFFFF) : const Color(0x14000000),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: t.isDark ? 0.5 : 0.22),
+            blurRadius: 40,
+            offset: const Offset(0, -12),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: t.isDark ? const Color(0x40FFFFFF) : const Color(0x33000000),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// Darker scrim for Filaments sheets so the screen behind reads as "dimmed
+/// backdrop", not a half-rendered glitch bleeding through the top.
+const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode).
 /// Scanner returns id (parsed from URL `?spool=`); we find the spool in the loaded
@@ -62,7 +131,8 @@ Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: _sheetBarrier,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
   );
 }
@@ -75,96 +145,124 @@ class InventoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.navFilaments)),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'scanSpool',
-            onPressed: () => _scanSpool(context, ref),
-            tooltip: l10n.inventoryScanSpool,
-            child: const Icon(Icons.qr_code_scanner),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'addSpool',
-            onPressed: () => openSpoolForm(context),
-            icon: const Icon(Icons.add),
-            label: Text(l10n.inventoryAddSpool),
-          ),
-        ],
-      ),
-      body: async.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AsyncErrorView(
-          message: err is AppApiException
-              ? err.localized(l10n)
-              : l10n.connectFailed,
-          onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-          retryLabel: l10n.retry,
-          icon: null,
-          tonal: true,
-        ),
-        data: (inv) {
-          final spools = _filter(inv.spools, query, filters);
-          return Column(
-            children: [
-              _SearchBar(
-                query: query,
-                filterCount: filters.activeCount,
-                onQuery: (v) =>
-                    ref.read(inventoryQueryProvider.notifier).state = v,
-                onOpenFilters: () => _openFilters(context, inv.spools),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(context, title: l10n.navFilaments),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton.small(
+              heroTag: 'scanSpool',
+              backgroundColor: t.subCard,
+              foregroundColor: t.textPrimary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: t.subCardBorder),
               ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(inventoryProvider.notifier).refresh(),
-                  child: spools.isEmpty
-                      ? EmptyStateView(
-                          message: inv.spools.isEmpty
-                              ? l10n.inventoryEmpty
-                              : l10n.inventoryNoMatches,
-                          icon: Icons.inventory_2_outlined,
-                        )
-                      : ListView.builder(
-                          itemCount: spools.length + 1,
-                          itemBuilder: (context, i) {
-                            if (i == 0) {
-                              return Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  4,
-                                  16,
-                                  8,
-                                ),
-                                child: Text(
-                                  l10n.inventorySpoolCount(spools.length),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              );
-                            }
-                            final spool = spools[i - 1];
-                            return _SpoolTile(
-                              spool: spool,
-                              assignment: inv.assignmentFor(spool.id),
-                            );
-                          },
-                        ),
+              onPressed: () => _scanSpool(context, ref),
+              tooltip: l10n.inventoryScanSpool,
+              child: const Icon(Icons.qr_code_scanner),
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'addSpool',
+              backgroundColor: t.accentGreen,
+              foregroundColor: _onAccentGreen,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              onPressed: () => openSpoolForm(context),
+              icon: const Icon(Icons.add),
+              label: Text(
+                l10n.inventoryAddSpool,
+                style: const TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message: err is AppApiException
+                ? err.localized(l10n)
+                : l10n.connectFailed,
+            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+            retryLabel: l10n.retry,
+            icon: null,
+            tonal: true,
+          ),
+          data: (inv) {
+            final spools = _filter(inv.spools, query, filters);
+            return Column(
+              children: [
+                _SearchBar(
+                  query: query,
+                  filterCount: filters.activeCount,
+                  onQuery: (v) =>
+                      ref.read(inventoryQueryProvider.notifier).state = v,
+                  onOpenFilters: () => _openFilters(context, inv.spools),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () =>
+                        ref.read(inventoryProvider.notifier).refresh(),
+                    child: spools.isEmpty
+                        ? EmptyStateView(
+                            message: inv.spools.isEmpty
+                                ? l10n.inventoryEmpty
+                                : l10n.inventoryNoMatches,
+                            icon: Icons.inventory_2_outlined,
+                          )
+                        : ListView.builder(
+                            itemCount: spools.length + 1,
+                            itemBuilder: (context, i) {
+                              if (i == 0) {
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    4,
+                                    16,
+                                    8,
+                                  ),
+                                  child: Text(
+                                    l10n.inventorySpoolCount(spools.length),
+                                    style: TextStyle(
+                                      fontFamily: DashTokens.fontMono,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: t.textTertiary,
+                                    ),
+                                  ),
+                                );
+                              }
+                              final spool = spools[i - 1];
+                              return _SpoolTile(
+                                spool: spool,
+                                assignment: inv.assignmentFor(spool.id),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -204,7 +302,8 @@ class InventoryScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: _sheetBarrier,
       builder: (_) => _FilterSheet(
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),

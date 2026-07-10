@@ -99,8 +99,9 @@ Widget _scope(Widget child) => ProviderScope(
       child: plApp(child),
     );
 
-Widget _cardWithProviders(PrinterWithStatus item) =>
-    _scope(Scaffold(body: PrinterCard(item: item)));
+Widget _cardWithProviders(PrinterWithStatus item) => _scope(
+      Scaffold(body: SingleChildScrollView(child: PrinterCard(item: item))),
+    );
 
 /// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
 /// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
@@ -140,10 +141,10 @@ void main() {
     expect(find.textContaining('43%'), findsOneWidget);
     expect(find.textContaining('87/203'), findsOneWidget);
     expect(find.textContaining('pozostało 2 h 17 min'), findsOneWidget);
-    // Kafelek temperatury: etykieta i wartość to osobne teksty.
-    expect(find.text('Dysza'), findsOneWidget);
+    // Gauge tile: label (uppercase) and value are separate texts.
+    expect(find.text('DYSZA'), findsOneWidget);
     expect(find.text('220°'), findsOneWidget);
-    expect(find.text('Stół'), findsOneWidget);
+    expect(find.text('STÓŁ'), findsOneWidget);
     expect(find.text('60°'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
@@ -158,17 +159,22 @@ void main() {
 
     await tester.pumpWidget(_cardWithProviders(item));
 
+    // Zawsze widoczne: światło (wiersz-przełącznik), nawiew komory, pauza/stop.
+    expect(find.text('Światło komory'), findsOneWidget);
+    expect(find.text('Chłodzenie'), findsOneWidget); // nawiew (tryb 0)
+    expect(find.text('Pauza'), findsOneWidget);
+    expect(find.text('Zatrzymaj'), findsOneWidget);
+
+    // Wentylatory i prędkość są teraz pod „Szczegóły" — rozwiń, żeby je zobaczyć.
+    await tester.ensureVisible(find.text('Szczegóły'));
+    await tester.tap(find.text('Szczegóły'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
     expect(find.text('53%'), findsOneWidget); // wentylator części
     expect(find.text('73%'), findsOneWidget); // pomocniczy
     expect(find.text('60%'), findsOneWidget); // komory
-    // Prędkość i światło są teraz interaktywne: poziom 2 → „Standard",
-    // światło włączone → „Wł." na przełączniku.
     expect(find.text('Standard'), findsOneWidget); // prędkość (poziom 2)
-    expect(find.text('Wł.'), findsOneWidget); // światło komory włączone
-    expect(find.text('Chłodzenie'), findsOneWidget); // nawiew (tryb 0)
-    // Wydruk trwa (RUNNING) → dostępne pauza i stop.
-    expect(find.text('Pauza'), findsOneWidget);
-    expect(find.text('Zatrzymaj'), findsOneWidget);
   });
 
   testWidgets('pasek kontrolek nie renderuje się bez danych sterowania',
@@ -207,20 +213,21 @@ void main() {
 
     await tester.pumpWidget(_cardWithProviders(item));
 
-    // Aktualna i cel jako osobne teksty (aktualna duża, cel mniejszy).
-    expect(find.text('Stół'), findsOneWidget);
-    expect(find.text('70°'), findsNWidgets(2)); // stół: aktualna + cel
-    expect(find.text('Dysza'), findsOneWidget);
+    // Wartość aktualna duża; cel wewnątrz pierścienia (myślnik gdy brak celu).
+    expect(find.text('STÓŁ'), findsOneWidget);
+    // Stół: aktualna 70 i cel 70 → dwa teksty „70°" (wartość + środek gauge).
+    expect(find.text('70°'), findsNWidgets(2));
+    expect(find.text('DYSZA'), findsOneWidget);
     expect(find.text('244°'), findsOneWidget); // aktualna dyszy
-    expect(find.text('245°'), findsOneWidget); // cel dyszy
-    // Cel = 0 → pokazujemy tylko wartość aktualną.
-    expect(find.text('Dysza 2'), findsOneWidget);
+    expect(find.text('245°'), findsOneWidget); // cel dyszy w pierścieniu
+    // Cel = 0 → w pierścieniu myślnik, wartość aktualna widoczna.
+    expect(find.text('DYSZA 2'), findsOneWidget);
     expect(find.text('47°'), findsOneWidget);
     // Bez celu.
-    expect(find.text('Komora'), findsOneWidget);
+    expect(find.text('KOMORA'), findsOneWidget);
     expect(find.text('30°'), findsOneWidget);
-    // Nieznany klucz zostaje surowy.
-    expect(find.text('cośdziwnego'), findsOneWidget);
+    // Nieznany klucz zostaje surowy (wielkimi literami jako etykieta).
+    expect(find.text('COŚDZIWNEGO'), findsOneWidget);
     expect(find.text('12°'), findsOneWidget);
   });
 
@@ -286,6 +293,8 @@ void main() {
       expect(find.text('Szczegóły'), findsOneWidget);
       expect(find.text('AMS 1'), findsNothing);
 
+      // Karta jest wysoka — upewnij się, że przełącznik jest widoczny przed tapem.
+      await tester.ensureVisible(find.text('Szczegóły'));
       await tester.tap(find.text('Szczegóły'));
       // Nie pumpAndSettle — faza przygotowania ma nieoznaczony pasek postępu,
       // który animuje się bez końca. Przewijamy tylko czas rozwinięcia (200 ms).
@@ -295,12 +304,13 @@ void main() {
       // Rozwinięte: AMS, szpula zewnętrzna i metadane widoczne.
       expect(find.text('Ukryj szczegóły'), findsOneWidget);
       expect(find.text('AMS 1'), findsOneWidget);
-      expect(find.text('Szpula zewnętrzna'), findsOneWidget);
-      // Materiał slotu z wariantem marki + pozostała ilość.
-      expect(find.text('PLA Basic · 66%'), findsOneWidget);
+      expect(find.text('SZPULA ZEWNĘTRZNA'), findsOneWidget);
+      // Wiersz filamentu: materiał i pozostała ilość jako osobne teksty.
+      expect(find.text('PLA Basic'), findsWidgets);
+      expect(find.text('66%'), findsOneWidget);
       // Metadane łączności.
       expect(find.textContaining('-59 dBm'), findsOneWidget);
-      expect(find.text('Drzwiczki zamknięte'), findsOneWidget);
+      expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
     });
 
     testWidgets('brak danych AMS → brak przełącznika szczegółów',
@@ -620,7 +630,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('01.02.03'), findsOneWidget);
-      expect(find.byIcon(Icons.memory), findsOneWidget);
+      // Aktualna wersja: sama linia mono, bez ikony aktualizacji.
       expect(find.byIcon(Icons.system_update), findsNothing);
     });
 

@@ -194,8 +194,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final materials = ref.watch(materialOptionsProvider);
     final brands = ref.watch(brandOptionsProvider);
@@ -208,7 +208,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       initialChildSize: 0.9,
       maxChildSize: 0.95,
       minChildSize: 0.5,
-      builder: (context, controller) => Form(
+      builder: (context, controller) => _SheetSurface(child: Form(
         key: _formKey,
         child: ListView(
           controller: controller,
@@ -219,13 +219,18 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 ValueListenableBuilder(
                   valueListenable: _c['rgba']!,
                   builder: (context, _, _) =>
-                      SpoolSwatch(rgba: _c['rgba']!.text, size: 40),
+                      SpoolSwatch(rgba: _c['rgba']!.text, size: 40, radius: 12),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
-                    style: theme.textTheme.titleLarge,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: t.textPrimary,
+                    ),
                   ),
                 ),
                 // Bulk "restock": how many identical spools to create. Header
@@ -323,23 +328,42 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
 
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      !_isEdit && _quantity > 1
-                          ? l10n.inventoryAddSpools(_quantity)
-                          : l10n.inventorySave,
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: t.accentGreen,
+                  foregroundColor: _onAccentGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: _saving ? null : _save,
+                child: _saving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _onAccentGreen,
+                        ),
+                      )
+                    : Text(
+                        !_isEdit && _quantity > 1
+                            ? l10n.inventoryAddSpools(_quantity)
+                            : l10n.inventorySave,
+                        style: const TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              ),
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -352,6 +376,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     bool required = false,
     String? errorText,
   }) {
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownMenu<String>(
@@ -362,6 +387,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         requestFocusOnTap: true,
         menuHeight: 320,
         errorText: errorText,
+        textStyle: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
+        ),
+        inputDecorationTheme: _dashInputTheme(t),
         onSelected: (v) {
           if (required && v != null && v.isNotEmpty) {
             setState(() => _materialMissing = false);
@@ -378,17 +410,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
   /// only.
   Widget _emptySpoolField(AppLocalizations l10n, List<CoreWeightEntry> cores) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final weightField = SizedBox(
       width: cores.isEmpty ? null : 110,
       child: TextFormField(
         controller: _c['coreWeight'],
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          labelText: 'g',
-          border: OutlineInputBorder(),
-          isDense: true,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
         ),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: _dashDecoration(t, labelText: 'g'),
         onChanged: (_) => setState(() => _coreWeightCatalogId = null),
       ),
     );
@@ -421,21 +455,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         children: [
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(14),
               onTap: () => _openCoreWeightPicker(l10n),
               child: InputDecorator(
-                decoration: InputDecoration(
+                decoration: _dashDecoration(
+                  t,
                   labelText: l10n.inventoryFieldEmptySpoolWeight,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                  suffixIcon: Icon(Icons.arrow_drop_down, color: t.textTertiary),
                 ),
                 child: Text(
                   selected?.name ?? l10n.inventoryCoreWeightSelect,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: selected == null
-                        ? theme.colorScheme.onSurfaceVariant
-                        : null,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selected == null ? t.textTertiary : t.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -455,7 +489,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final picked = await showModalBottomSheet<CoreWeightEntry>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: _sheetBarrier,
       builder: (_) => const _CoreWeightPicker(),
     );
     if (picked == null || !mounted) return;
@@ -466,17 +501,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }
 
   Widget _effectDropdown(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
     final options = <String>{..._effectOptions, ?_effectType};
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String?>(
         initialValue: _effectType,
         isExpanded: true,
-        decoration: InputDecoration(
-          labelText: l10n.inventoryFieldEffect,
-          border: const OutlineInputBorder(),
-          isDense: true,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
         ),
+        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
+        decoration: _dashDecoration(t, labelText: l10n.inventoryFieldEffect),
         items: [
           DropdownMenuItem(value: null, child: Text(l10n.inventoryEffectNone)),
           for (final e in options) DropdownMenuItem(value: e, child: Text(e)),
@@ -490,11 +529,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// header (− [n] +). Clamped to 1..[_maxQuantity]; a tooltip explains it
   /// creates N identical spools.
   Widget _quantityStepper(AppLocalizations l10n) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     void setQty(int v) => setState(() => _quantity = v.clamp(1, _maxQuantity));
     Widget btn(IconData icon, VoidCallback? onTap) => IconButton(
           onPressed: onTap,
-          icon: Icon(icon),
+          icon: Icon(icon, color: t.textSecondary),
           iconSize: 20,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
@@ -504,7 +543,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       message: l10n.inventoryQuantityHint,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+          color: t.subCard,
+          border: Border.all(color: t.subCardBorder),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(
@@ -516,7 +556,12 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               child: Text(
                 '$_quantity',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: t.textPrimary,
+                ),
               ),
             ),
             btn(
@@ -533,24 +578,23 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// (`slicer_filament`). Tapping opens a searchable picker; the current
   /// selection (or "None") shows inline, with a clear button once set.
   Widget _slicerPresetField(AppLocalizations l10n) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final selected = _slicerFilamentName ?? _slicerFilament;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => _openSlicerPresetPicker(l10n),
         child: InputDecorator(
-          decoration: InputDecoration(
+          decoration: _dashDecoration(
+            t,
             labelText: l10n.inventoryFieldSlicerPreset,
             helperText: l10n.inventorySlicerPresetHint,
-            border: const OutlineInputBorder(),
-            isDense: true,
-            prefixIcon: const Icon(Icons.tune),
+            prefixIcon: Icon(Icons.tune, color: t.textTertiary),
             suffixIcon: selected == null
-                ? const Icon(Icons.arrow_drop_down)
+                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
                 : IconButton(
-                    icon: const Icon(Icons.clear),
+                    icon: Icon(Icons.clear, color: t.textTertiary),
                     tooltip: l10n.clear,
                     onPressed: () => setState(() {
                       _slicerFilament = null;
@@ -560,10 +604,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ),
           child: Text(
             selected ?? l10n.inventorySlicerPresetNone,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: selected == null
-                  ? theme.colorScheme.onSurfaceVariant
-                  : null,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected == null ? t.textTertiary : t.textPrimary,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -578,7 +623,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final picked = await showModalBottomSheet<SlicerPreset>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: _sheetBarrier,
       builder: (_) => const _SlicerPresetPicker(),
     );
     if (picked == null || !mounted) return;
@@ -597,29 +643,30 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// On selection, writes hex `RRGGBBAA` to `rgba` controller (alpha preserved
   /// from previous value, default `FF`).
   Widget _hexColorPickerField(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
     final hex = _c['rgba']!.text.trim();
     final color = parseSpoolColor(hex);
     return InkWell(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(14),
       onTap: () => _openColorPicker(l10n),
       child: InputDecorator(
-        decoration: InputDecoration(
+        decoration: _dashDecoration(
+          t,
           labelText: l10n.inventoryFieldColorHex,
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: const Icon(Icons.colorize),
+          suffixIcon: Icon(Icons.colorize, color: t.textTertiary),
         ),
         child: Row(
           children: [
-            SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24),
+            SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 hex.isEmpty ? l10n.inventoryColorNone : hex.toUpperCase(),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: color == null
-                      ? Theme.of(context).colorScheme.onSurfaceVariant
-                      : null,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color == null ? t.textTertiary : t.textPrimary,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -684,10 +731,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     ValueChanged<String>? onChanged,
   }) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
         controller: _c[key],
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
+        ),
         keyboardType: number
             ? const TextInputType.numberWithOptions(decimal: true)
             : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
@@ -696,12 +750,11 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ? TextCapitalization.none
             : TextCapitalization.sentences,
         onChanged: onChanged,
-        decoration: InputDecoration(
+        decoration: _dashDecoration(
+          t,
           labelText: label,
           hintText: hint,
           suffixText: suffixText,
-          border: const OutlineInputBorder(),
-          isDense: true,
         ),
         validator: (v) {
           final text = (v ?? '').trim();
@@ -713,6 +766,89 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       ),
     );
   }
+}
+
+/// Shared field chrome for the spool form's `InputDecorationTheme` (used by
+/// [DropdownMenu], which builds its own internal text field and doesn't take a
+/// plain [InputDecoration]).
+InputDecorationTheme _dashInputTheme(DashTokens t) {
+  final radius = BorderRadius.circular(14);
+  OutlineInputBorder border(Color color, [double width = 1]) =>
+      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+  return InputDecorationTheme(
+    isDense: true,
+    filled: true,
+    fillColor: t.subCard,
+    labelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      color: t.textSecondary,
+    ),
+    border: border(t.subCardBorder),
+    enabledBorder: border(t.subCardBorder),
+    focusedBorder: border(t.accentGreen, 1.5),
+    errorBorder: border(t.danger),
+  );
+}
+
+/// Shared field chrome for the spool form — rounded [DashTokens.subCard] fill
+/// with a hairline border, turning [DashTokens.accentGreen] on focus. Applied
+/// to every `TextFormField`/`InputDecorator`/`DropdownButtonFormField` in the
+/// form; only the decoration changes — controllers, validators and onChanged
+/// callbacks are untouched.
+InputDecoration _dashDecoration(
+  DashTokens t, {
+  String? labelText,
+  String? hintText,
+  String? suffixText,
+  String? errorText,
+  String? helperText,
+  Widget? suffixIcon,
+  Widget? prefixIcon,
+}) {
+  final radius = BorderRadius.circular(14);
+  OutlineInputBorder border(Color color, [double width = 1]) =>
+      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+  return InputDecoration(
+    isDense: true,
+    filled: true,
+    fillColor: t.subCard,
+    labelText: labelText,
+    hintText: hintText,
+    suffixText: suffixText,
+    errorText: errorText,
+    helperText: helperText,
+    suffixIcon: suffixIcon,
+    prefixIcon: prefixIcon,
+    labelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: t.textSecondary,
+    ),
+    floatingLabelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: t.accentGreenInk,
+    ),
+    hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+    helperStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 11,
+      color: t.textTertiary,
+    ),
+    suffixStyle: TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 11.5,
+      color: t.textTertiary,
+    ),
+    border: border(t.subCardBorder),
+    enabledBorder: border(t.subCardBorder),
+    focusedBorder: border(t.accentGreen, 1.5),
+    errorBorder: border(t.danger),
+    focusedErrorBorder: border(t.danger, 1.5),
+  );
 }
 
 /// Color picker: large preview + popular swatches from database + search.
@@ -733,9 +869,10 @@ class _ColorPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final colors = ref.watch(colorCatalogProvider).valueOrNull ?? const [];
     final preview = parseSpoolColor(rgba);
+    final selectedHex = normalizeRgba(rgba);
 
     final q = query.trim().toLowerCase();
     final List<ColorEntry> shown;
@@ -759,19 +896,23 @@ class _ColorPicker extends ConsumerWidget {
         Container(
           height: 40,
           decoration: BoxDecoration(
-            color: preview ?? theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
+            color: preview ?? t.subCard,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: t.subCardBorder),
           ),
         ),
         const SizedBox(height: 8),
         if (colors.isNotEmpty) ...[
           TextField(
-            decoration: InputDecoration(
-              isDense: true,
-              prefixIcon: const Icon(Icons.search, size: 20),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              color: t.textPrimary,
+            ),
+            decoration: _dashDecoration(
+              t,
               hintText: l10n.inventoryColorSearchHint,
-              border: const OutlineInputBorder(),
+              prefixIcon: Icon(Icons.search, size: 20, color: t.textTertiary),
             ),
             onChanged: onQuery,
           ),
@@ -779,8 +920,10 @@ class _ColorPicker extends ConsumerWidget {
           if (q.isEmpty)
             Text(
               l10n.inventoryColorCommon,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 11.5,
+                color: t.textTertiary,
               ),
             ),
           const SizedBox(height: 4),
@@ -789,7 +932,11 @@ class _ColorPicker extends ConsumerWidget {
             runSpacing: 8,
             children: [
               for (final c in shown)
-                _ColorChip(entry: c, onTap: () => onPick(c)),
+                _ColorChip(
+                  entry: c,
+                  selected: normalizeRgba(c.hexColor) == selectedHex,
+                  onTap: () => onPick(c),
+                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -800,14 +947,19 @@ class _ColorPicker extends ConsumerWidget {
 }
 
 class _ColorChip extends StatelessWidget {
-  const _ColorChip({required this.entry, required this.onTap});
+  const _ColorChip({
+    required this.entry,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final ColorEntry entry;
   final VoidCallback onTap;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     final color = parseSpoolColor(entry.hexColor);
     return Tooltip(
       message: entry.colorName,
@@ -818,15 +970,18 @@ class _ColorChip extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: color ?? scheme.surfaceContainerHighest,
+            color: color ?? t.subCard,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: scheme.outlineVariant),
+            border: Border.all(
+              color: selected ? t.accentGreen : t.subCardBorder,
+              width: selected ? 2 : 1,
+            ),
           ),
           child: color == null
               ? Icon(
                   Icons.question_mark,
                   size: 16,
-                  color: scheme.onSurfaceVariant,
+                  color: t.textTertiary,
                 )
               : null,
         ),
@@ -853,7 +1008,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(slicerPresetsProvider);
 
     return DraggableScrollableSheet(
@@ -861,7 +1016,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => Column(
+      builder: (context, controller) => _SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -870,16 +1025,26 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldSlicerPreset,
-                  style: theme.textTheme.titleLarge,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: t.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   autofocus: true,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    color: t.textPrimary,
+                  ),
+                  decoration: _dashDecoration(
+                    t,
                     hintText: l10n.inventorySlicerPresetSearch,
-                    border: const OutlineInputBorder(),
+                    prefixIcon:
+                        Icon(Icons.search, size: 20, color: t.textTertiary),
                   ),
                   onChanged: (v) => setState(() => _query = v),
                 ),
@@ -939,7 +1104,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -986,7 +1151,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
     final q = _query.trim().toLowerCase();
     final items = [
@@ -1002,7 +1167,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => Column(
+      builder: (context, controller) => _SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1011,16 +1176,26 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldEmptySpoolWeight,
-                  style: theme.textTheme.titleLarge,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: t.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   autofocus: true,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    color: t.textPrimary,
+                  ),
+                  decoration: _dashDecoration(
+                    t,
                     hintText: l10n.inventoryCoreWeightSearch,
-                    border: const OutlineInputBorder(),
+                    prefixIcon:
+                        Icon(Icons.search, size: 20, color: t.textTertiary),
                   ),
                   onChanged: (v) => setState(() => _query = v),
                 ),
@@ -1038,8 +1213,10 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                           child: Text(
                             l10n.inventoryNoMatches,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 13,
+                              color: t.textTertiary,
                             ),
                           ),
                         ),
@@ -1066,7 +1243,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                   ),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -1078,15 +1255,17 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Text(
         label.toUpperCase(),
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.primary,
-          letterSpacing: 0.8,
-          fontWeight: FontWeight.w600,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: t.accentGreenInk,
         ),
       ),
     );

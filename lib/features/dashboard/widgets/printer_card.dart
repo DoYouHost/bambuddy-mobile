@@ -23,7 +23,9 @@ import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
 import '../smart_plugs_providers.dart';
+import '../../../core/theme/dash_theme.dart';
 import 'ams_history_sheet.dart';
+import 'temp_gauge.dart';
 
 part 'printer_card_details.dart';
 part 'printer_card_panels.dart';
@@ -93,58 +95,44 @@ class _PrinterCardState extends State<PrinterCard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final status = widget.item.status;
     final connected = status?.connected ?? false;
+    final printerId = widget.item.printer.id;
+    final name = widget.item.printer.name;
 
-    // Printer unavailable (no status or disconnected): card collapses to header-only
-    // with OFFLINE label. Don't show stale temperatures, controls, or details—they'd
-    // be misleading on an inactive machine. Expansion state is preserved and returns
-    // when the printer wakes. Use debounced [_offline], not raw `connected`, to avoid
-    // flashing when the server momentarily flickers (see didUpdateWidget).
+    // Printer unavailable (no status or disconnected): card collapses to
+    // header-only with an OFFLINE chip. Don't show stale temperatures/controls —
+    // they'd mislead on an inactive machine. Expansion state is preserved and
+    // returns when it wakes. Uses debounced [_offline] (see didUpdateWidget).
     if (_offline) {
-      return Card(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+      return _CardShell(
+        tokens: t,
+        child: Row(
+          children: [
+            _IconSquare(tokens: t, offline: true),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.print, color: theme.disabledColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.item.printer.name,
-                      style: theme.textTheme.titleMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  // Smart plug remains controllable even when OFFLINE—the only way to
-                  // remotely power on and wake the printer. Auto-hides if none assigned.
-                  _SmartPlugButton(
-                    printerId: widget.item.printer.id,
-                    printing: false,
-                  ),
-                  const SizedBox(width: 4),
-                  _StateChip(
-                    label: l10n.statusOffline,
-                    connected: false,
-                    offline: true,
-                  ),
+                  _NameText(name: name, tokens: t),
+                  _TotalPrintTimeLine(printerId: printerId),
                 ],
               ),
-              // Total print time is from the server (maintenance), so we know it
-              // even when the card is collapsed—show it instead of blank space.
-              _TotalPrintTimeLine(printerId: widget.item.printer.id),
-              // No plate-clear here: the server's clear-plate endpoint rejects
-              // an offline printer (400 "Printer not connected"), so the ack can
-              // only be sent once it's back online.
-            ],
-          ),
+            ),
+            // Smart plug stays controllable even when OFFLINE — the only way to
+            // remotely power the printer back on. Auto-hides if none assigned.
+            _SmartPlugButton(printerId: printerId, printing: false),
+            const SizedBox(width: 8),
+            _StateChip(
+              label: l10n.statusOffline,
+              connected: false,
+              offline: true,
+            ),
+          ],
         ),
       );
     }
@@ -155,126 +143,244 @@ class _PrinterCardState extends State<PrinterCard> {
       status?.airductIsHeating,
     );
     final hasDetails = status?.hasDetails ?? false;
+    final hasFans = status != null &&
+        (status.coolingFanSpeed != null ||
+            status.bigFan1Speed != null ||
+            status.bigFan2Speed != null);
+    // The "Details" toggle now governs fans, the speed selector and the
+    // AMS/spool/connectivity section — so it appears whenever any of those has
+    // something to show (speed is only actionable while printing).
+    final showDetailsToggle =
+        status != null && (hasDetails || hasFans || printing);
     final hmsErrors = _displayableHmsErrors(status);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.print,
-                  color: connected
-                      ? theme.colorScheme.primary
-                      : theme.disabledColor,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.item.printer.name,
-                        style: theme.textTheme.titleMedium,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      _FirmwareLine(printerId: widget.item.printer.id),
-                      _TotalPrintTimeLine(printerId: widget.item.printer.id),
-                    ],
-                  ),
-                ),
-                // File manager + camera only when connected: both hit the
-                // printer over FTP/stream, which fails when it's offline.
-                if (connected) ...[
-                  IconButton(
-                    tooltip: l10n.pfmTooltip,
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.folder_outlined),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => PrinterFileManagerScreen(
-                          printerId: widget.item.printer.id,
-                          printerName: widget.item.printer.name,
-                        ),
-                      ),
+    return _CardShell(
+      tokens: t,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: icon + name + firmware/hours (left), status pill + action
+          // icons (right).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        _IconSquare(tokens: t),
+                        const SizedBox(width: 9),
+                        Flexible(child: _NameText(name: name, tokens: t)),
+                      ],
                     ),
-                  ),
-                  IconButton(
-                    tooltip: l10n.cameraTooltip,
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.videocam_outlined),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => CameraView(
-                          printerId: widget.item.printer.id,
-                          printerName: widget.item.printer.name,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                _SmartPlugButton(
-                  printerId: widget.item.printer.id,
-                  printing: printing,
+                    _FirmwareLine(printerId: printerId),
+                    _TotalPrintTimeLine(printerId: printerId),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                _StateChip(
-                  label: status == null
-                      ? l10n.statusUnavailable
-                      : (status.state ??
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _StateChip(
+                    label: status == null
+                        ? l10n.statusUnavailable
+                        : (status.state ??
                             (connected ? l10n.online : l10n.offline)),
-                  connected: connected,
-                  active: printing,
-                ),
-              ],
-            ),
-            if (status != null)
-              _PlateClearBanner(
-                printerId: widget.item.printer.id,
-                status: status,
-              ),
-            if (hmsErrors.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _HmsErrorsPanel(errors: hmsErrors),
-            ],
-            if (printing) ...[
-              const SizedBox(height: 10),
-              _PrintPanel(status: status!),
-            ],
-            if (readings.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _TempGrid(readings: readings),
-            ],
-            if (status != null) ...[
-              _ControlsActions(
-                printerId: widget.item.printer.id,
-                status: status,
-              ),
-              _ControlsRow(status: status),
-            ],
-            if (hasDetails) ...[
-              const SizedBox(height: 10),
-              _DetailsToggle(
-                expanded: _expanded,
-                onTap: () => setState(() => _expanded = !_expanded),
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                alignment: Alignment.topCenter,
-                child: _expanded
-                    ? _DetailsPanel(status: status!)
-                    : const SizedBox(width: double.infinity),
+                    connected: connected,
+                    active: printing,
+                  ),
+                  if (connected) ...[
+                    const SizedBox(height: 10),
+                    _HeaderActions(
+                      printerId: printerId,
+                      printerName: name,
+                      printing: printing,
+                    ),
+                  ],
+                ],
               ),
             ],
+          ),
+          if (status != null)
+            _PlateClearBanner(printerId: printerId, status: status),
+          if (hmsErrors.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _HmsErrorsPanel(errors: hmsErrors),
           ],
-        ),
+          if (printing) ...[
+            const SizedBox(height: 12),
+            _PrintPanel(status: status!),
+          ],
+          if (readings.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _TempGrid(readings: readings),
+          ],
+          if (status != null) ...[
+            // Primary lifecycle controls (pause/resume/stop) stay visible while
+            // printing; speed lives under "Details".
+            _ControlsActions(printerId: printerId, status: status),
+            // Chamber-light switch row (design accent panel).
+            _LightSwitchRow(printerId: printerId, status: status),
+          ],
+          if (showDetailsToggle) ...[
+            _DetailsToggle(
+              expanded: _expanded,
+              onTap: () => setState(() => _expanded = !_expanded),
+            ),
+            // Collapsible: speed selector, fans and AMS/spool/connectivity — all
+            // governed by the toggle.
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: _expanded
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (printing)
+                          _SpeedControlTile(
+                            printerId: printerId,
+                            status: status,
+                          ),
+                        if (hasFans) _FansGrid(status: status),
+                        if (hasDetails) _DetailsPanel(status: status),
+                      ],
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+/// Outer card container in the modernized visual language: translucent gradient
+/// fill, hairline border, generous radius. Holds the whole printer card.
+class _CardShell extends StatelessWidget {
+  const _CardShell({required this.tokens, required this.child});
+
+  final DashTokens tokens;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: tokens.cardGradient,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: tokens.cardBorder),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Rounded green-tinted square holding the printer glyph (design header icon).
+class _IconSquare extends StatelessWidget {
+  const _IconSquare({required this.tokens, this.offline = false});
+
+  final DashTokens tokens;
+  final bool offline;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = offline
+        ? tokens.textTertiary
+        : tokens.accentGreenInk;
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: (offline ? tokens.textTertiary : tokens.accentGreen)
+            .withValues(alpha: offline ? 0.10 : 0.14),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(Icons.print_outlined, size: 18, color: color),
+    );
+  }
+}
+
+/// Printer name in the header — bold, tight tracking, never wraps (a wrapping
+/// name would collide with the firmware line below, per the design note).
+class _NameText extends StatelessWidget {
+  const _NameText({required this.name, required this.tokens});
+
+  final String name;
+  final DashTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      name,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.3,
+        color: tokens.textPrimary,
+      ),
+    );
+  }
+}
+
+/// Header action icons (file manager, camera, smart plug) as compact ghost
+/// buttons. File/camera hit the printer directly, so only shown when connected.
+class _HeaderActions extends StatelessWidget {
+  const _HeaderActions({
+    required this.printerId,
+    required this.printerName,
+    required this.printing,
+  });
+
+  final int printerId;
+  final String printerName;
+  final bool printing;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _HeaderIconButton(
+          tooltip: l10n.pfmTooltip,
+          icon: Icons.folder_outlined,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PrinterFileManagerScreen(
+                printerId: printerId,
+                printerName: printerName,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _HeaderIconButton(
+          tooltip: l10n.cameraTooltip,
+          icon: Icons.videocam_outlined,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => CameraView(
+                printerId: printerId,
+                printerName: printerName,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _SmartPlugButton(printerId: printerId, printing: printing),
+      ],
     );
   }
 }
