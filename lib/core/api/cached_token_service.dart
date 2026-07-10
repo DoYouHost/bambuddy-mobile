@@ -19,6 +19,10 @@ abstract class CachedTokenService {
   String? _token;
   DateTime? _expiresAt;
 
+  /// When the currently cached token lapses (client-side TTL), or `null` if no
+  /// token is cached. Lets a proactive refresher schedule a re-mint before it.
+  DateTime? get expiresAt => _expiresAt;
+
   /// In-flight mint shared by concurrent callers instead of each starting
   /// their own request.
   Future<String?>? _pending;

@@ -8,6 +8,7 @@ import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
+import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
@@ -159,8 +160,37 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);
   final refresher = ProactiveTokenRefresher(
-    readJwt: creds.readJwt,
-    refresh: () => auth.silentReLogin(profile.baseUrl),
+    readExpiry: () async => jwtExpiry(await creds.readJwt()),
+    refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+  );
+  ref.onDispose(refresher.stop);
+  return refresher;
+});
+
+/// Proactive camera-token refresh: re-mints the shared camera token (thumbnails,
+/// covers, camera stream) just before its client TTL lapses, so foreground image
+/// loads don't hit a 401 first. Reactive re-mint on 401 stays the safety net
+/// ([PrintThumbnail], [CameraView]). UI-only (background cover fetch in the FGS
+/// isolate re-mints reactively); kept alive + lifecycle-controlled by the
+/// dashboard, like [tokenRefresherProvider]. Demo mode has no token to refresh.
+final cameraTokenRefresherProvider =
+    Provider<ProactiveTokenRefresher?>((ref) {
+  final profile = ref.watch(serverProfileProvider);
+  if (profile == null || profile.isDemo) return null;
+  final service = ref.watch(cameraTokenServiceProvider);
+  final refresher = ProactiveTokenRefresher(
+    readExpiry: () async => service.expiresAt,
+    refresh: () async {
+      try {
+        await service.token(forceRefresh: true);
+      } catch (_) {
+        return null; // Fall back; reactive 401 recovery still covers it.
+      }
+      // Consumers read the token via cameraTokenProvider, so push the fresh one
+      // to them. gaplessPlayback keeps already-shown thumbnails from flickering.
+      ref.invalidate(cameraTokenProvider);
+      return service.expiresAt;
+    },
   );
   ref.onDispose(refresher.stop);
   return refresher;

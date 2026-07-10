@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
+import '../common/camera_token_image_recovery.dart';
 
 /// Library file thumbnail. Authenticated via `?token=` (camera token) —
 /// auth header does NOT work for this resource, same as archive thumbnail
 /// (see `PrintThumbnail`). Placeholder instead of error.
-class LibraryThumbnail extends ConsumerWidget {
+class LibraryThumbnail extends ConsumerStatefulWidget {
   const LibraryThumbnail({
     super.key,
     required this.fileId,
@@ -25,8 +26,16 @@ class LibraryThumbnail extends ConsumerWidget {
   final double zoom;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibraryThumbnail> createState() => _LibraryThumbnailState();
+}
+
+class _LibraryThumbnailState extends ConsumerState<LibraryThumbnail>
+    with CameraTokenImageRecovery {
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final size = widget.size;
+    final zoom = widget.zoom;
     final radius = BorderRadius.circular(size < 64 ? 8 : 10);
 
     Widget placeholder([IconData icon = Icons.view_in_ar_outlined]) =>
@@ -41,7 +50,7 @@ class LibraryThumbnail extends ConsumerWidget {
         );
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (!hasThumbnail || baseUrl == null) return placeholder();
+    if (!widget.hasThumbnail || baseUrl == null) return placeholder();
 
     return ref.watch(cameraTokenProvider).when(
           loading: placeholder,
@@ -51,7 +60,7 @@ class LibraryThumbnail extends ConsumerWidget {
             child: Transform.scale(
               scale: zoom,
               child: Image.network(
-                '$baseUrl${Endpoints.libraryFileThumbnail(fileId)}?token=$token',
+                '$baseUrl${Endpoints.libraryFileThumbnail(widget.fileId)}?token=$token',
                 width: size,
                 height: size,
                 // Avoid decoding server's full-res render for a ~56dp tile —
@@ -62,7 +71,10 @@ class LibraryThumbnail extends ConsumerWidget {
                     .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                errorBuilder: (_, _, _) => placeholder(),
+                errorBuilder: (_, error, _) {
+                  recoverCameraTokenOnError(error, token);
+                  return placeholder();
+                },
                 loadingBuilder: (_, child, progress) =>
                     progress == null ? child : placeholder(),
               ),

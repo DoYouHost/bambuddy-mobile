@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../providers.dart';
+import '../common/camera_token_image_recovery.dart';
 
 /// Project cover image. Authenticated via `?token=` (camera token) — the auth
 /// header does NOT work for this resource, same as [LibraryThumbnail] / archive
@@ -11,7 +12,7 @@ import '../../providers.dart';
 ///
 /// [cacheBust] (e.g. the project `updated_at`) is appended to the URL so the
 /// image reloads after an upload/delete instead of serving the stale cache.
-class ProjectCoverImage extends ConsumerWidget {
+class ProjectCoverImage extends ConsumerStatefulWidget {
   const ProjectCoverImage({
     super.key,
     required this.projectId,
@@ -30,9 +31,17 @@ class ProjectCoverImage extends ConsumerWidget {
   final String? cacheBust;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProjectCoverImage> createState() => _ProjectCoverImageState();
+}
+
+class _ProjectCoverImageState extends ConsumerState<ProjectCoverImage>
+    with CameraTokenImageRecovery {
+  @override
+  Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final radius = borderRadius ?? BorderRadius.circular(12);
+    final width = widget.width;
+    final height = widget.height;
+    final radius = widget.borderRadius ?? BorderRadius.circular(12);
 
     Widget placeholder([IconData icon = Icons.folder_special_outlined]) =>
         Container(
@@ -49,17 +58,20 @@ class ProjectCoverImage extends ConsumerWidget {
         );
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
-    if (!hasCover || baseUrl == null) return placeholder();
+    if (!widget.hasCover || baseUrl == null) return placeholder();
 
     return ref.watch(cameraTokenProvider).when(
           loading: placeholder,
           error: (_, _) => placeholder(Icons.broken_image_outlined),
           data: (token) {
-            final bust = cacheBust == null ? '' : '&v=${Uri.encodeQueryComponent(cacheBust!)}';
+            final cacheBust = widget.cacheBust;
+            final bust = cacheBust == null
+                ? ''
+                : '&v=${Uri.encodeQueryComponent(cacheBust)}';
             return ClipRRect(
               borderRadius: radius,
               child: Image.network(
-                '$baseUrl${Endpoints.projectCoverImage(projectId)}?token=$token$bust',
+                '$baseUrl${Endpoints.projectCoverImage(widget.projectId)}?token=$token$bust',
                 width: width,
                 height: height,
                 // Server serves a full-res cover — cap decode resolution for
@@ -70,7 +82,10 @@ class ProjectCoverImage extends ConsumerWidget {
                     (height * MediaQuery.devicePixelRatioOf(context)).round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                errorBuilder: (_, _, _) => placeholder(),
+                errorBuilder: (_, error, _) {
+                  recoverCameraTokenOnError(error, token);
+                  return placeholder();
+                },
                 loadingBuilder: (_, child, progress) =>
                     progress == null ? child : placeholder(),
               ),

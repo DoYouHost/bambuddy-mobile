@@ -57,6 +57,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(smartPlugsProvider.notifier).pausePolling();
         // Token refresh in background is handled by FGS isolate — UI is silent.
         ref.read(tokenRefresherProvider)?.stop();
+        // No thumbnails render in background; FGS cover fetch re-mints reactively.
+        ref.read(cameraTokenRefresherProvider)?.stop();
       },
       onResume: () {
         // Take the watch relay back only once the FGS isolate is stopped, so
@@ -69,6 +71,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(printerStatusesProvider.notifier).resume();
         ref.read(smartPlugsProvider.notifier).resumePolling();
         ref.read(tokenRefresherProvider)?.start();
+        ref.read(cameraTokenRefresherProvider)?.start();
       },
     );
     // After first render: one-time notification onboarding (permission +
@@ -223,9 +226,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
 
-    // Keep proactive JWT refresh alive while dashboard is on screen,
-    // and start it (idempotently). Lifecycle pauses/resumes it.
+    // Keep proactive JWT + camera-token refresh alive while dashboard is on
+    // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
+    ref.watch(cameraTokenRefresherProvider)?.start();
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.

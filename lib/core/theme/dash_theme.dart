@@ -340,7 +340,9 @@ ButtonStyle dashPrimaryButtonStyle(DashTokens t) => FilledButton.styleFrom(
         fontSize: 14,
         fontWeight: FontWeight.w700,
       ),
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      // Horizontal padding matters for auto-width buttons (dialog actions);
+      // full-width CTAs center their label regardless, so this is safe there.
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
 
@@ -426,6 +428,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
         borderRadius: radius20,
         side: BorderSide(color: t.overlayBorder),
       ),
+      // The filled action button uses the heavy primary style (radius 14);
+      // keep it clear of the dialog's rounded corner/border.
+      actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       titleTextStyle: TextStyle(
         fontFamily: DashTokens.fontUi,
         fontSize: 18,
@@ -557,7 +562,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
       fillColor: WidgetStateProperty.resolveWith((states) =>
           states.contains(WidgetState.selected) ? t.accentGreen : null),
       checkColor: const WidgetStatePropertyAll(_onAccentGreenFill),
-      side: BorderSide(color: t.subCardBorder, width: 1.5),
+      // subCardBorder (~5% white) is invisible for an interactive control;
+      // use the mid-contrast outline Material itself uses (onSurfaceVariant).
+      side: BorderSide(color: t.textSecondary, width: 1.5),
     ),
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith((states) =>

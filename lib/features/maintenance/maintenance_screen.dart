@@ -97,7 +97,13 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
                 : ListView(
                     children: [
                       const SizedBox(height: 8),
-                      for (final p in printers) _PrinterSection(printer: p),
+                      for (final p in printers)
+                        _PrinterSection(
+                          printer: p,
+                          // Single printer: no point hiding its tasks. With
+                          // several, collapse by default so the list stays scannable.
+                          initiallyExpanded: printers.length == 1,
+                        ),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -108,15 +114,24 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
   }
 }
 
-class _PrinterSection extends StatelessWidget {
-  const _PrinterSection({required this.printer});
+class _PrinterSection extends StatefulWidget {
+  const _PrinterSection({required this.printer, required this.initiallyExpanded});
 
   final PrinterMaintenanceOverview printer;
+  final bool initiallyExpanded;
+
+  @override
+  State<_PrinterSection> createState() => _PrinterSectionState();
+}
+
+class _PrinterSectionState extends State<_PrinterSection> {
+  late bool _expanded = widget.initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final printer = widget.printer;
     final items = [...printer.maintenanceItems]
       ..sort((a, b) => a.hoursUntilDue.compareTo(b.hoursUntilDue));
 
@@ -125,62 +140,88 @@ class _PrinterSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              gradient: t.cardGradient,
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: t.cardBorder),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        printer.printerName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: t.textPrimary,
-                        ),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                decoration: BoxDecoration(
+                  gradient: t.cardGradient,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: t.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            printer.printerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: t.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            [
+                              if (printer.printerModel != null)
+                                printer.printerModel!,
+                              l10n.maintenanceTotalHours(
+                                  printer.totalPrintHours.round()),
+                            ].join(' · '),
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontMono,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: t.textTertiary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        [
-                          if (printer.printerModel != null)
-                            printer.printerModel!,
-                          l10n.maintenanceTotalHours(
-                              printer.totalPrintHours.round()),
-                        ].join(' · '),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: t.textTertiary,
-                        ),
+                    ),
+                    if (printer.dueCount > 0) ...[
+                      const SizedBox(width: 12),
+                      DashPill(
+                        label: l10n.maintenanceDueBadge(printer.dueCount),
+                        accent: t.accentOrange,
                       ),
                     ],
-                  ),
+                    const SizedBox(width: 8),
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(Icons.expand_more, color: t.textSecondary),
+                    ),
+                  ],
                 ),
-                if (printer.dueCount > 0) ...[
-                  const SizedBox(width: 12),
-                  DashPill(
-                    label: l10n.maintenanceDueBadge(printer.dueCount),
-                    accent: t.accentOrange,
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          for (final item in items) _MaintenanceTile(item: item),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _expanded
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      for (final item in items) _MaintenanceTile(item: item),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       ),
     );
@@ -332,16 +373,32 @@ class _MaintenanceTile extends ConsumerWidget {
     })));
   }
 
-  void _showHistory(
+  Future<void> _showHistory(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-  ) {
-    showModalBottomSheet<void>(
+  ) async {
+    final prov = maintenanceHistoryProvider(item.id);
+    // Prefetch before opening so the sheet slides up already populated —
+    // otherwise the autoDispose fetch resolves mid-animation and flashes a
+    // spinner, which reads like a bug. Hold a manual subscription so the
+    // provider isn't disposed+refetched when the sheet subscribes.
+    final sub = ref.listenManual(prov, (_, _) {});
+    try {
+      await ref.read(prov.future);
+    } catch (_) {
+      // Ignore — the sheet renders the error state itself.
+    }
+    if (!context.mounted) {
+      sub.close();
+      return;
+    }
+    await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (ctx) => _HistorySheet(item: item),
     );
+    sub.close();
   }
 }
 
@@ -420,6 +477,10 @@ class _HistorySheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Force full width so the sheet doesn't animate down to the
+            // intrinsic text width (unlike the archive sheet, whose Row/Expanded
+            // already fills the width). Keeps the slide-up matching other sheets.
+            const SizedBox(width: double.infinity),
             Text('${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),

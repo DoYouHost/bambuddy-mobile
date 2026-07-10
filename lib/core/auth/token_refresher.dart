@@ -1,22 +1,25 @@
 import 'dart:async';
 
-import 'jwt.dart';
-
 /// Timer factory — injectable so tests can control time flow instead of waiting
 /// real clock hours.
 typedef RefreshTimerFactory = Timer Function(Duration, void Function());
 
-/// Proactive JWT refresh: schedules silent re-login just BEFORE token expiry,
-/// instead of waiting for reactive 401 (which kills request/WS handshake and
-/// causes brief error before interceptor retries). No refresh token on server
-/// — we refresh with saved credentials (see [AuthService.silentReLogin]).
+/// Proactive token refresh: schedules a re-mint just BEFORE token expiry,
+/// instead of waiting for a reactive 401 (which kills a request/WS handshake
+/// and causes a brief error before the interceptor retries).
+///
+/// Expiry-agnostic: [readExpiry]/[refresh] return the token's expiry as a
+/// [DateTime], so the same machinery drives both the login JWT (expiry parsed
+/// from the token) and the camera token (a TTL-based server token). No refresh
+/// token on the server for JWT — that path refreshes with saved credentials
+/// (see [AuthService.silentReLogin]).
 ///
 /// Pure logic (clock and timer injected) — testable without Riverpod and
-/// plugins; used by both UI provider and foreground service isolate.
+/// plugins; used by both UI providers and the foreground service isolate.
 class ProactiveTokenRefresher {
   ProactiveTokenRefresher({
-    required Future<String?> Function() readJwt,
-    required Future<String?> Function() refresh,
+    required Future<DateTime?> Function() readExpiry,
+    required Future<DateTime?> Function() refresh,
     this.leadTime = const Duration(minutes: 5),
     this.minDelay = const Duration(seconds: 30),
     this.fallbackDelay = const Duration(hours: 6),
@@ -26,18 +29,19 @@ class ProactiveTokenRefresher {
         // Public parameter names + private fields — initializing formal
         // would require private parameter, so lint is unsatisfiable here.
         // ignore: prefer_initializing_formals
-        _readJwt = readJwt,
+        _readExpiry = readExpiry,
         // ignore: prefer_initializing_formals
         _refresh = refresh,
         _now = clock ?? DateTime.now,
         _timerFactory = timerFactory ?? Timer.new;
 
-  /// Read current JWT (to compute time until expiry).
-  final Future<String?> Function() _readJwt;
+  /// Read the current token's expiry (to compute time until it lapses).
+  /// `null` → expiry unknown, schedule [fallbackDelay].
+  final Future<DateTime?> Function() _readExpiry;
 
-  /// Silent re-login; returns fresh token (already stored) or `null` if failed
-  /// or no saved credentials.
-  final Future<String?> Function() _refresh;
+  /// Perform the refresh; returns the fresh token's expiry, or `null` if the
+  /// refresh failed (schedule [fallbackDelay] — reactive 401 is the safety net).
+  final Future<DateTime?> Function() _refresh;
 
   /// How far before expiry to refresh (margin for clock/network).
   final Duration leadTime;
@@ -77,9 +81,9 @@ class ProactiveTokenRefresher {
   }
 
   Future<void> _schedule(int generation) async {
-    final token = await _readJwt();
+    final expiry = await _readExpiry();
     if (!_running || generation != _generation) return;
-    _armTimer(_delayFor(token), generation);
+    _armTimer(_delayFor(expiry), generation);
   }
 
   void _armTimer(Duration delay, int generation) {
@@ -87,19 +91,20 @@ class ProactiveTokenRefresher {
     _timer = _timerFactory(delay, () => unawaited(_fire(generation)));
   }
 
-  Duration _delayFor(String? token) {
-    final exp = jwtExpiry(token);
-    if (exp == null) return fallbackDelay;
-    final delay = exp.difference(_now()) - leadTime;
+  Duration _delayFor(DateTime? expiry) {
+    if (expiry == null) return fallbackDelay;
+    final delay = expiry.difference(_now()) - leadTime;
     return delay < minDelay ? minDelay : delay;
   }
 
   Future<void> _fire(int generation) async {
     if (!_running || generation != _generation) return;
-    final fresh = await _refresh();
+    final freshExpiry = await _refresh();
     if (!_running || generation != _generation) return;
-    // Success → schedule per new token; failure → fallback (don't spin on
+    // Success → schedule per new expiry; failure → fallback (don't spin on an
     // expired token every [minDelay], reactive 401 will catch it).
-    _armTimer(fresh != null ? _delayFor(fresh) : fallbackDelay, generation);
+    _armTimer(
+        freshExpiry != null ? _delayFor(freshExpiry) : fallbackDelay,
+        generation);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../providers.dart';
+import 'camera_token_image_recovery.dart';
 
 /// Print thumbnail from archive (queue + archive). Auth via `?token=`
 /// (camera token) — auth header does NOT work for this resource, live-verified.
@@ -11,7 +12,7 @@ import '../../providers.dart';
 ///
 /// Rendered thumbnails have lots of empty margin around model, so we scale
 /// content ([zoom], default 140%) inside crop to "frame" the print and fill tile.
-class PrintThumbnail extends ConsumerWidget {
+class PrintThumbnail extends ConsumerStatefulWidget {
   const PrintThumbnail({
     super.key,
     required this.archiveId,
@@ -27,8 +28,16 @@ class PrintThumbnail extends ConsumerWidget {
   final double zoom;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PrintThumbnail> createState() => _PrintThumbnailState();
+}
+
+class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
+    with CameraTokenImageRecovery {
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final size = widget.size;
+    final zoom = widget.zoom;
     final radius = BorderRadius.circular(size < 64 ? 8 : 10);
 
     Widget placeholder([IconData icon = Icons.image_outlined]) => Container(
@@ -41,7 +50,7 @@ class PrintThumbnail extends ConsumerWidget {
       child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
     );
 
-    final id = archiveId;
+    final id = widget.archiveId;
     final profile = ref.watch(serverProfileProvider);
     final baseUrl = profile?.baseUrl;
     // Demo mode has no thumbnail renders — placeholder beats a broken image.
@@ -73,8 +82,10 @@ class PrintThumbnail extends ConsumerWidget {
                     .round(),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                errorBuilder: (_, _, _) =>
-                    placeholder(Icons.broken_image_outlined),
+                errorBuilder: (_, error, _) {
+                  recoverCameraTokenOnError(error, token);
+                  return placeholder(Icons.broken_image_outlined);
+                },
                 loadingBuilder: (_, child, progress) =>
                     progress == null ? child : placeholder(),
               ),

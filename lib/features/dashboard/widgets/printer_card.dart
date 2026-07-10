@@ -15,6 +15,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/error_messages.dart';
 import '../../../providers.dart';
 import '../../camera/camera_view.dart';
+import '../../common/camera_token_image_recovery.dart';
 import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'

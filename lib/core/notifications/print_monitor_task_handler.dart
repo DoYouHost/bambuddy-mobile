@@ -20,6 +20,7 @@ import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
+import '../auth/jwt.dart';
 import '../auth/token_refresher.dart';
 import '../demo/demo_ws.dart';
 import '../models/printer_status.dart';
@@ -204,8 +205,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
     if (profile.authMode != AuthMode.jwt) return;
     final auth = AuthService(bareDio: createBareDio(), credentials: creds);
     final refresher = ProactiveTokenRefresher(
-      readJwt: creds.readJwt,
-      refresh: () => auth.silentReLogin(profile.baseUrl),
+      readExpiry: () async => jwtExpiry(await creds.readJwt()),
+      refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
     );
     _tokenRefresher = refresher;
     refresher.start();

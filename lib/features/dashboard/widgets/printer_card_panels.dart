@@ -343,7 +343,7 @@ class _MetaItem extends StatelessWidget {
 
 /// Cover thumbnail for the current print (fetched with the camera stream token).
 /// Placeholder instead of error — never crashes the card.
-class _CoverThumbnail extends ConsumerWidget {
+class _CoverThumbnail extends ConsumerStatefulWidget {
   const _CoverThumbnail({required this.coverUrl});
 
   final String? coverUrl;
@@ -352,19 +352,25 @@ class _CoverThumbnail extends ConsumerWidget {
   static const _placeholderAsset = 'assets/icons/cover_placeholder.png';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CoverThumbnail> createState() => _CoverThumbnailState();
+}
+
+class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
+    with CameraTokenImageRecovery {
+  @override
+  Widget build(BuildContext context) {
     Widget placeholder() => ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Image.asset(
-            _placeholderAsset,
+            _CoverThumbnail._placeholderAsset,
             key: const ValueKey('cover_placeholder'),
-            width: _size,
-            height: _size,
+            width: _CoverThumbnail._size,
+            height: _CoverThumbnail._size,
             fit: BoxFit.cover,
           ),
         );
 
-    final url = coverUrl;
+    final url = widget.coverUrl;
     if (url == null || url.isEmpty) return placeholder();
 
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
@@ -378,13 +384,17 @@ class _CoverThumbnail extends ConsumerWidget {
             child: Image.network(
               '$baseUrl$url?token=$token',
               key: const ValueKey('cover_network'),
-              width: _size,
-              height: _size,
-              cacheWidth:
-                  (_size * MediaQuery.devicePixelRatioOf(context)).round(),
+              width: _CoverThumbnail._size,
+              height: _CoverThumbnail._size,
+              cacheWidth: (_CoverThumbnail._size *
+                      MediaQuery.devicePixelRatioOf(context))
+                  .round(),
               fit: BoxFit.cover,
               gaplessPlayback: true,
-              errorBuilder: (_, _, _) => placeholder(),
+              errorBuilder: (_, error, _) {
+                recoverCameraTokenOnError(error, token);
+                return placeholder();
+              },
               loadingBuilder: (_, child, progress) =>
                   progress == null ? child : placeholder(),
             ),
