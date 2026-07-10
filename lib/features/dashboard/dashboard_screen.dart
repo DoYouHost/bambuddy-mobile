@@ -358,12 +358,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _SummaryHeader(printers: printers),
         // Search bar only makes sense with multiple printers.
         if (printers.length > 1)
+          // Neighbors add asymmetric spacing: the header above has no bottom
+          // margin, but the first PrinterCard below has a 7px top margin. Pad
+          // more on top / less on bottom so the visible gaps match.
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
             child: SearchBar(
               hintText: l10n.searchPrinters,
               leading: const Icon(Icons.search),
               onChanged: (v) => setState(() => _query = v),
+              elevation: const WidgetStatePropertyAll(0),
             ),
           )
         else
@@ -387,7 +391,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ],
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.only(bottom: 6),
                     itemCount: filtered.length,
                     itemBuilder: (_, i) => PrinterCard(
                       key: ValueKey(filtered[i].printer.id),

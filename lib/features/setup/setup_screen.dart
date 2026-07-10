@@ -216,7 +216,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
                 fontSize: 12,
-                color: t.textTertiary,
+                color: t.textSecondary,
               ),
             ),
             activeColor: t.accentGreen,
