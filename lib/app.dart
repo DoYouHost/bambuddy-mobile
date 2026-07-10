@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'core/theme/dash_theme.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
 import 'l10n/app_localizations.dart';
 import 'providers.dart';
@@ -101,9 +102,4 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   }
 }
 
-ThemeData _theme(Brightness brightness) => ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.green,
-        brightness: brightness,
-      ),
-    );
+ThemeData _theme(Brightness brightness) => buildDashThemeData(brightness);

@@ -15,6 +15,7 @@ class TempGauge extends StatelessWidget {
     this.size = 38,
     this.strokeWidth = 3.2,
     this.centerText,
+    this.centerIcon,
     this.centerColor,
   });
 
@@ -25,8 +26,12 @@ class TempGauge extends StatelessWidget {
   final double strokeWidth;
 
   /// Optional small label drawn in the middle of the ring (e.g. the target
-  /// temperature, or "-" when unset).
+  /// temperature, or "-" when unset). Ignored when [centerIcon] is set.
   final String? centerText;
+
+  /// Optional glyph drawn in the middle of the ring instead of [centerText]
+  /// (e.g. chamber cooling/heating).
+  final IconData? centerIcon;
   final Color? centerColor;
 
   @override
@@ -49,7 +54,9 @@ class TempGauge extends StatelessWidget {
                 strokeWidth: strokeWidth,
               ),
             ),
-            if (centerText != null)
+            if (centerIcon != null)
+              Icon(centerIcon, size: 15, color: centerColor ?? color)
+            else if (centerText != null)
               Text(
                 centerText!,
                 textAlign: TextAlign.center,

@@ -1,9 +1,9 @@
 part of 'printer_card.dart';
 
 /// Temperature gauge tile (design "gauge card"): a circular gauge in the
-/// top-right, sensor label, and the current value in large mono type. Chamber
-/// additionally shows the air-duct heating/cooling badge; other sensors show
-/// their setpoint (→ target) when actively heating.
+/// top-right, sensor label, and the current value in large mono type. The ring
+/// center shows the setpoint ("-" when unset). Chamber prefixes the value with
+/// its air-duct glyph (flame = heating/orange, snowflake = cooling/blue).
 class _GaugeTile extends StatelessWidget {
   const _GaugeTile({required this.reading});
 
@@ -15,8 +15,15 @@ class _GaugeTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final actual = reading.actual;
     final target = reading.target;
-    final accent = reading.gaugeColor(t);
     final hasTarget = target != null && target > 0;
+    // One thermal-state color drives the whole tile — ring, setpoint and the
+    // chamber's air-duct glyph all use [accent] (orange = heating/holding,
+    // blue = cooling/idle). The ring center shows the setpoint ("-" when unset).
+    final accent = reading.gaugeColor(t);
+    final airduct = reading.airductIsHeating;
+    final airductIcon = airduct == null
+        ? null
+        : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -30,7 +37,6 @@ class _GaugeTile extends StatelessWidget {
           Positioned(
             top: 0,
             right: 0,
-            // Target lives inside the ring ("-" when unset) → no extra row below.
             child: TempGauge(
               fraction: actual == null ? 0 : actual / reading.gaugeMax,
               color: accent,
@@ -61,8 +67,13 @@ class _GaugeTile extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  if (airductIcon != null) ...[
+                    Icon(airductIcon, size: 20, color: accent),
+                    const SizedBox(width: 5),
+                  ],
                   Text(
                     actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
                     style: TextStyle(
@@ -73,50 +84,9 @@ class _GaugeTile extends StatelessWidget {
                       color: t.textPrimary,
                     ),
                   ),
-                  // Chamber cooling/heating sits inline, in the free space below
-                  // the ring — keeps every tile the same compact height.
-                  if (reading.airductIsHeating != null) ...[
-                    const Spacer(),
-                    _AirductBadge(heating: reading.airductIsHeating!),
-                  ],
                 ],
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Chamber air-duct indicator: snowflake+"Cooling" (blue) or flame+"Heating"
-/// (orange). Shown inside the chamber gauge tile.
-class _AirductBadge extends StatelessWidget {
-  const _AirductBadge({required this.heating});
-
-  final bool heating;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final color = heating ? t.accentOrange : t.accentBlue;
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(heating ? Icons.local_fire_department : Icons.ac_unit,
-              size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            heating ? l10n.ctrlAirductHeating : l10n.ctrlAirductCooling,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
           ),
         ],
       ),
@@ -216,13 +186,15 @@ class _TempReading {
         _TempKind.unknown => 300,
       };
 
-  /// Gauge fill color per sensor: nozzle→orange, bed→green, chamber→blue.
-  Color gaugeColor(DashTokens t) => switch (kind) {
-        _TempKind.nozzle => t.accentOrange,
-        _TempKind.bed => t.accentGreen,
-        _TempKind.chamber => t.accentBlue,
-        _TempKind.unknown => t.accentGreen,
-      };
+  /// Gauge/value color by thermal state (same for every sensor): heating or
+  /// holding at the setpoint → orange; already above the setpoint (cooling) or
+  /// no setpoint → blue. A small tolerance avoids color flicker around target.
+  Color gaugeColor(DashTokens t) {
+    const tolerance = 2.0;
+    if (target == null || target! <= 0) return t.accentBlue;
+    if (actual != null && actual! > target! + tolerance) return t.accentBlue;
+    return t.accentOrange;
+  }
 }
 
 /// Group raw temperature keys into current/target pairs and order known sensors

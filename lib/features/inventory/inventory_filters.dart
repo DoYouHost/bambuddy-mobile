@@ -250,12 +250,16 @@ class _FilterGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: t.textSecondary,
         ),
       ),
     );

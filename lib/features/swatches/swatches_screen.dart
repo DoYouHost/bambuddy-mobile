@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
@@ -213,6 +214,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final t = DashTokens.of(context);
     final query = ref.watch(swatchQueryProvider);
     final normalizedQuery = normalizeSwatchCode(query);
     final allCodes = ref.watch(swatchCodesProvider);
@@ -226,109 +228,121 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
                 c.displayName.toLowerCase().contains(query.trim().toLowerCase());
           }).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.swatchCodesTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined),
-            tooltip: l10n.swatchImport,
-            onPressed: _import,
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_upload_outlined),
-            tooltip: l10n.swatchExport,
-            onPressed: _export,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.swatchNewCode),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                hintText: l10n.swatchSearchHint,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(swatchQueryProvider.notifier).state = '';
-                        },
-                      ),
-                border: const OutlineInputBorder(),
-                isDense: true,
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.swatchCodesTitle,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined),
+              tooltip: l10n.swatchImport,
+              onPressed: _import,
+            ),
+            IconButton(
+              icon: const Icon(Icons.file_upload_outlined),
+              tooltip: l10n.swatchExport,
+              onPressed: _export,
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: t.accentGreen,
+          foregroundColor: const Color(0xFF0A0C08),
+          onPressed: () => _openForm(),
+          icon: const Icon(Icons.add),
+          label: Text(l10n.swatchNewCode),
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                textCapitalization: TextCapitalization.characters,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: t.textPrimary,
+                ),
+                decoration: dashFieldDecoration(
+                  t,
+                  hintText: l10n.swatchSearchHint,
+                ).copyWith(
+                  prefixIcon: Icon(Icons.search, color: t.textTertiary),
+                  suffixIcon: query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: Icon(Icons.clear, color: t.textTertiary),
+                          onPressed: () {
+                            _searchController.clear();
+                            ref.read(swatchQueryProvider.notifier).state = '';
+                          },
+                        ),
+                ),
+                onChanged: (v) =>
+                    ref.read(swatchQueryProvider.notifier).state = v,
               ),
-              onChanged: (v) =>
-                  ref.read(swatchQueryProvider.notifier).state = v,
             ),
-          ),
-          Expanded(
-            child: Builder(
-              builder: (_) {
-                // Flattened once per build (cheap widget construction); the
-                // list below only *lays out/mounts* items near the viewport
-                // instead of all of them eagerly (matters once the registry
-                // grows to hundreds of codes).
-                final items = <Widget>[
-                  _SectionHeader(
-                    label: l10n.swatchSectionCodes,
-                    count: codes.length,
-                  ),
-                  if (codes.isEmpty)
-                    _EmptyHint(
-                      icon: Icons.qr_code_2_rounded,
-                      title: allCodes.isEmpty
-                          ? l10n.swatchNoCodes
-                          : l10n.swatchNoMatch(query.trim()),
-                      subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
-                    )
-                  else
-                    for (final c in codes)
-                      _SwatchTile(
-                        code: c,
-                        onEdit: () => _openForm(initial: c),
-                        onCopy: () => _copy(c.code),
-                        onDelete: () => _confirmDelete(c),
-                      ),
-                  if (inventoryLoaded && uncoded.isNotEmpty) ...[
-                    const SizedBox(height: 10),
+            Expanded(
+              child: Builder(
+                builder: (_) {
+                  // Flattened once per build (cheap widget construction); the
+                  // list below only *lays out/mounts* items near the viewport
+                  // instead of all of them eagerly (matters once the registry
+                  // grows to hundreds of codes).
+                  final items = <Widget>[
                     _SectionHeader(
-                      label: l10n.swatchSectionUncoded,
-                      count: uncoded.length,
+                      label: l10n.swatchSectionCodes,
+                      count: codes.length,
                     ),
-                    for (final f in uncoded)
-                      _UncodedTile(
-                        identity: f,
-                        onGenerate: () => _generateFor(f),
+                    if (codes.isEmpty)
+                      _EmptyHint(
+                        icon: Icons.qr_code_2_rounded,
+                        title: allCodes.isEmpty
+                            ? l10n.swatchNoCodes
+                            : l10n.swatchNoMatch(query.trim()),
+                        subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
+                      )
+                    else
+                      for (final c in codes)
+                        _SwatchTile(
+                          code: c,
+                          onEdit: () => _openForm(initial: c),
+                          onCopy: () => _copy(c.code),
+                          onDelete: () => _confirmDelete(c),
+                        ),
+                    if (inventoryLoaded && uncoded.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _SectionHeader(
+                        label: l10n.swatchSectionUncoded,
+                        count: uncoded.length,
                       ),
-                  ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _EmptyHint(
-                      icon: Icons.check_circle_outline_rounded,
-                      title: l10n.swatchAllCoded,
-                    ),
-                  ],
-                ];
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 96),
-                  itemCount: items.length,
-                  itemBuilder: (context, i) => items[i],
-                );
-              },
+                      for (final f in uncoded)
+                        _UncodedTile(
+                          identity: f,
+                          onGenerate: () => _generateFor(f),
+                        ),
+                    ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _EmptyHint(
+                        icon: Icons.check_circle_outline_rounded,
+                        title: l10n.swatchAllCoded,
+                      ),
+                    ],
+                  ];
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 96),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) => items[i],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -342,32 +356,36 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Row(
         children: [
           Text(
             label.toUpperCase(),
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
+              color: t.accentGreenInk,
             ),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
             decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
+              color: t.subCard,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.subCardBorder),
             ),
             child: Text(
               '$count',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
+                color: t.textTertiary,
               ),
             ),
           ),
@@ -387,15 +405,15 @@ class _ColorSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     final color = parseSpoolColor(rgba);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? scheme.surfaceContainerHighest,
+        color: color ?? t.subCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant),
+        border: Border.all(color: t.subCardBorder),
         boxShadow: color == null
             ? null
             : [
@@ -407,14 +425,13 @@ class _ColorSwatch extends StatelessWidget {
               ],
       ),
       child: color == null
-          ? Icon(Icons.palette_outlined,
-              size: 20, color: scheme.onSurfaceVariant)
+          ? Icon(Icons.palette_outlined, size: 20, color: t.textTertiary)
           : null,
     );
   }
 }
 
-/// Code chip — highlighted monospace on primaryContainer background.
+/// Code chip — highlighted monospace on accent-tinted background.
 class _CodeChip extends StatelessWidget {
   const _CodeChip({required this.code});
 
@@ -422,21 +439,22 @@ class _CodeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
+        color: t.accentGreen.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: t.accentGreen.withValues(alpha: 0.4)),
       ),
       child: Text(
         code,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontFamily: 'monospace',
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 15,
           fontWeight: FontWeight.w800,
           letterSpacing: 3,
-          color: scheme.onPrimaryContainer,
+          color: t.accentGreenInk,
         ),
       ),
     );
@@ -458,53 +476,61 @@ class _SwatchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      color: scheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onEdit,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _ColorSwatch(rgba: code.rgba),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      code.displayName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 7),
-                    _CodeChip(code: code.code),
-                  ],
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onEdit,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+            decoration: BoxDecoration(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _ColorSwatch(rgba: code.rgba),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        code.displayName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      _CodeChip(code: code.code),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.copy_rounded),
-                tooltip: MaterialLocalizations.of(context).copyButtonLabel,
-                onPressed: onCopy,
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.delete_outline_rounded, color: scheme.error),
-                onPressed: onDelete,
-              ),
-            ],
+                const SizedBox(width: 4),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.copy_rounded, color: t.textSecondary),
+                  tooltip: MaterialLocalizations.of(context).copyButtonLabel,
+                  onPressed: onCopy,
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.delete_outline_rounded, color: t.danger),
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -520,39 +546,51 @@ class _UncodedTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      color: scheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onGenerate,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
-            children: [
-              _ColorSwatch(rgba: identity.rgba, size: 40),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  identity.displayName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w500),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onGenerate,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Row(
+              children: [
+                _ColorSwatch(rgba: identity.rgba, size: 40),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    identity.displayName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonalIcon(
-                onPressed: onGenerate,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(l10n.swatchGenerate),
-              ),
-            ],
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  style: dashPrimaryButtonStyle(t).copyWith(
+                    padding: const WidgetStatePropertyAll(
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+                  ),
+                  onPressed: onGenerate,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(l10n.swatchGenerate),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -569,27 +607,33 @@ class _EmptyHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: Column(
         children: [
-          Icon(icon, size: 40, color: scheme.onSurfaceVariant),
+          Icon(icon, size: 40, color: t.textTertiary),
           const SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: t.textSecondary,
+            ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                color: t.textTertiary,
+              ),
             ),
           ],
         ],

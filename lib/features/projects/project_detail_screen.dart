@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -26,62 +27,75 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(projectDetailProvider(projectId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(async.valueOrNull?.name ?? l10n.projectsTitle),
-        actions: [
-          if (async.hasValue) ...[
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: l10n.projectEdit,
-              onPressed: () => openProjectEdit(context, async.value!),
-            ),
-            _OverflowMenu(project: async.value!),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: async.valueOrNull?.name ?? l10n.projectsTitle,
+          actions: [
+            if (async.hasValue) ...[
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.projectEdit,
+                onPressed: () => openProjectEdit(context, async.value!),
+              ),
+              _OverflowMenu(project: async.value!),
+            ],
           ],
-        ],
-      ),
-      body: async.when(
-        skipLoadingOnReload: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off, size: 48),
-                const SizedBox(height: 12),
-                Text(
-                  err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () =>
-                      ref.read(projectDetailProvider(projectId).notifier).refresh(),
-                  child: Text(l10n.retry),
-                ),
-              ],
+        ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cloud_off, size: 48, color: t.textTertiary),
+                  const SizedBox(height: 12),
+                  Text(
+                    err is AppApiException
+                        ? err.localized(l10n)
+                        : l10n.connectFailed,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    style: dashPrimaryButtonStyle(t),
+                    onPressed: () => ref
+                        .read(projectDetailProvider(projectId).notifier)
+                        .refresh(),
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        data: (project) => RefreshIndicator(
-          onRefresh: () =>
-              ref.read(projectDetailProvider(projectId).notifier).refresh(),
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 32),
-            children: [
-              _Header(project: project),
-              if (project.stats != null) _ProgressCard(stats: project.stats!),
-              if (project.stats != null) _StatCards(stats: project.stats!),
-              _NotesSection(project: project),
-              ProjectFilesSection(projectId: projectId),
-              ProjectAttachmentsSection(project: project),
-              ProjectBomSection(projectId: projectId),
-              ProjectTimelineSection(projectId: projectId),
-            ],
+          data: (project) => RefreshIndicator(
+            onRefresh: () =>
+                ref.read(projectDetailProvider(projectId).notifier).refresh(),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 32),
+              children: [
+                _Header(project: project),
+                if (project.stats != null) _ProgressCard(stats: project.stats!),
+                if (project.stats != null) _StatCards(stats: project.stats!),
+                _NotesSection(project: project),
+                ProjectFilesSection(projectId: projectId),
+                ProjectAttachmentsSection(project: project),
+                ProjectBomSection(projectId: projectId),
+                ProjectTimelineSection(projectId: projectId),
+              ],
+            ),
           ),
         ),
       ),
@@ -99,7 +113,7 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -114,6 +128,7 @@ class _Header extends ConsumerWidget {
                 hasCover: project.hasCover,
                 width: 88,
                 height: 88,
+                borderRadius: BorderRadius.circular(18),
                 cacheBust: project.updatedAt,
               ),
               const SizedBox(width: 16),
@@ -126,7 +141,15 @@ class _Header extends ConsumerWidget {
                         ProjectColorDot(color: project.color),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(project.name, style: theme.textTheme.titleLarge),
+                          child: Text(
+                            project.name,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: t.textPrimary,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -137,13 +160,16 @@ class _Header extends ConsumerWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         ProjectStatusChip(status: project.status),
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text(projectPriorityLabel(l10n, project.priority)),
-                        ),
+                        _DashTag(label: projectPriorityLabel(l10n, project.priority)),
                         if (project.dueDateParsed != null)
-                          Text(l10n.projectDueOn(_fmtDate(project.dueDateParsed!)),
-                              style: theme.textTheme.bodySmall),
+                          Text(
+                            l10n.projectDueOn(_fmtDate(project.dueDateParsed!)),
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontMono,
+                              fontSize: 11.5,
+                              color: t.textTertiary,
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -153,7 +179,15 @@ class _Header extends ConsumerWidget {
           ),
           if (project.description != null && project.description!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(project.description!, style: theme.textTheme.bodyMedium),
+            Text(
+              project.description!,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                color: t.textSecondary,
+              ),
+            ),
           ],
           if (project.url != null && project.url!.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -162,14 +196,20 @@ class _Header extends ConsumerWidget {
                   mode: LaunchMode.externalApplication),
               child: Row(
                 children: [
-                  const Icon(Icons.link, size: 18),
+                  Icon(Icons.link, size: 18, color: t.accentGreenInk),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(project.url!,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: theme.colorScheme.primary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      project.url!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.accentGreenInk,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -181,21 +221,39 @@ class _Header extends ConsumerWidget {
               spacing: 6,
               runSpacing: 4,
               children: [
-                for (final tag in project.tagList)
-                  Chip(visualDensity: VisualDensity.compact, label: Text(tag)),
+                for (final tag in project.tagList) _DashTag(label: tag),
               ],
             ),
           ],
           if (project.parentId != null)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.subdirectory_arrow_right),
-              title: Text(project.parentName ?? '#${project.parentId}'),
-              onTap: () => context.push('/projects/${project.parentId}'),
+            Material(
+              color: Colors.transparent,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.subdirectory_arrow_right, color: t.textSecondary),
+                title: Text(
+                  project.parentName ?? '#${project.parentId}',
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
+                ),
+                onTap: () => context.push('/projects/${project.parentId}'),
+              ),
             ),
           if (project.children.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(l10n.projectChildren, style: theme.textTheme.titleSmall),
+            Text(
+              l10n.projectChildren,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
+            ),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
@@ -203,8 +261,18 @@ class _Header extends ConsumerWidget {
               children: [
                 for (final child in project.children)
                   ActionChip(
+                    backgroundColor: t.subCard,
+                    side: BorderSide(color: t.subCardBorder),
                     avatar: ProjectColorDot(color: child.color),
-                    label: Text(child.name),
+                    label: Text(
+                      child.name,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
                     onPressed: () => context.push('/projects/${child.id}'),
                   ),
               ],
@@ -217,6 +285,36 @@ class _Header extends ConsumerWidget {
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
+/// Neutral pill tag (priority, free-form tags) — same shape family as
+/// [ProjectStatusChip] but without a status accent color.
+class _DashTag extends StatelessWidget {
+  const _DashTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.subCardBorder),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: t.textSecondary,
+        ),
+      ),
+    );
+  }
 }
 
 /// Plates + parts progress bars (the project's two target metrics).
@@ -263,19 +361,32 @@ class _ProgressRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: theme.textTheme.bodyMedium),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+            ),
             Text(
               trailing == null
                   ? '${percent.toStringAsFixed(0)}%'
                   : '${percent.toStringAsFixed(0)}% · $trailing',
-              style: theme.textTheme.bodySmall,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: t.textTertiary,
+              ),
             ),
           ],
         ),
@@ -285,7 +396,8 @@ class _ProgressRow extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progressFraction(percent),
             minHeight: 8,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundColor: t.gaugeTrack,
+            valueColor: AlwaysStoppedAnimation(t.accentGreen),
           ),
         ),
       ],
@@ -361,30 +473,43 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+          Icon(icon, size: 20, color: t.accentGreenInk),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                Text(label,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: t.textTertiary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -403,11 +528,14 @@ class _NotesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final notes = project.notes;
+    final hasNotes = notes != null && notes.isNotEmpty;
     return SectionCard(
       icon: Icons.notes_outlined,
       title: l10n.projectNotes,
       action: TextButton.icon(
+        style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
         icon: const Icon(Icons.edit_outlined, size: 18),
         label: Text(l10n.projectEdit),
         onPressed: () => _editNotes(context, ref),
@@ -415,10 +543,13 @@ class _NotesSection extends ConsumerWidget {
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(
-          notes != null && notes.isNotEmpty ? notes : l10n.projectNotesEmpty,
-          style: notes != null && notes.isNotEmpty
-              ? null
-              : TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          hasNotes ? notes : l10n.projectNotesEmpty,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: hasNotes ? t.textPrimary : t.textTertiary,
+          ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/state_views.dart';
@@ -25,27 +26,32 @@ class StatisticsScreen extends ConsumerWidget {
     final stats = ref.watch(statsProvider);
     final filter = ref.watch(statsFilterProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.statsTitle),
-        actions: [_UserFilterMenu(filter: filter), _RangeMenu(filter: filter)],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(archiveSlimProvider);
-          ref.invalidate(failureAnalysisProvider);
-          await ref.read(statsProvider.notifier).refresh();
-        },
-        child: stats.when(
-          loading: () => const _Centered(child: CircularProgressIndicator()),
-          error: (e, _) => AsyncErrorView(
-            message:
-                e is AppApiException ? e.localized(l10n) : l10n.statsLoadFailed,
-            onRetry: () => ref.read(statsProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-            scrollable: true,
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.statsTitle,
+          actions: [_UserFilterMenu(filter: filter), _RangeMenu(filter: filter)],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(archiveSlimProvider);
+            ref.invalidate(failureAnalysisProvider);
+            await ref.read(statsProvider.notifier).refresh();
+          },
+          child: stats.when(
+            loading: () => const _Centered(child: CircularProgressIndicator()),
+            error: (e, _) => AsyncErrorView(
+              message: e is AppApiException
+                  ? e.localized(l10n)
+                  : l10n.statsLoadFailed,
+              onRetry: () => ref.read(statsProvider.notifier).refresh(),
+              retryLabel: l10n.retry,
+              scrollable: true,
+            ),
+            data: (data) => _StatsBody(data: data),
           ),
-          data: (data) => _StatsBody(data: data),
         ),
       ),
     );
@@ -77,7 +83,7 @@ class _UserFilterMenu extends ConsumerWidget {
     }
 
     return PopupMenuButton<int?>(
-      icon: const Icon(Icons.people_outline),
+      icon: Icon(Icons.people_outline, color: DashTokens.of(context).textSecondary),
       tooltip: labelFor(filter.createdById),
       initialValue: filter.createdById,
       onSelected: (id) =>
@@ -103,7 +109,7 @@ class _RangeMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     return PopupMenuButton<StatsRange>(
-      icon: const Icon(Icons.date_range),
+      icon: Icon(Icons.date_range, color: DashTokens.of(context).textSecondary),
       tooltip: statsRangeLabel(l10n, filter.range),
       initialValue: filter.range,
       onSelected: (range) async {
@@ -142,6 +148,7 @@ class _StatsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
 
     if (data.isEmpty) {
       return ListView(
@@ -152,9 +159,15 @@ class _StatsBody extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.bar_chart_outlined, size: 48),
+                  Icon(Icons.bar_chart_outlined, size: 48, color: t.textTertiary),
                   const SizedBox(height: 12),
-                  Text(l10n.statsEmpty),
+                  Text(
+                    l10n.statsEmpty,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      color: t.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -232,6 +245,7 @@ class _OverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     return SectionCard(
       title: l10n.statsOverview,
       child: Column(
@@ -296,35 +310,45 @@ class _OverviewCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.hourglass_empty, size: 14),
+                Icon(Icons.hourglass_empty, size: 14, color: t.textTertiary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     l10n.statsEnergyWarmingUp,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 11.5,
+                      color: t.textTertiary,
+                    ),
                   ),
                 ),
               ],
             ),
           ],
-          const Divider(height: 24),
+          Divider(height: 24, color: t.hairline),
           Row(
             children: [
-              Icon(Icons.summarize_outlined,
-                  size: 28, color: Theme.of(context).colorScheme.primary),
+              Icon(Icons.summarize_outlined, size: 28, color: t.accentGreenInk),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   l10n.statsTotalCost,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
                 ),
               ),
               Text(
                 fmtNum(data.totalCost + data.totalEnergyCost),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: t.textPrimary,
+                ),
               ),
             ],
           ),
@@ -343,10 +367,10 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Row(
       children: [
-        Icon(icon, size: 28, color: theme.colorScheme.primary),
+        Icon(icon, size: 28, color: t.accentGreenInk),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -354,17 +378,25 @@ class _StatTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: t.textTertiary,
+                ),
               ),
               Text(
                 value,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: t.textPrimary,
+                ),
               ),
             ],
           ),
@@ -384,7 +416,7 @@ class _SuccessRateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     final rate = data.successRate;
     return SectionCard(
       title: l10n.statsSuccessRate,
@@ -395,22 +427,22 @@ class _SuccessRateCard extends StatelessWidget {
           children: [
             RingGauge(
               percent: rate,
-              color: _rateColor(rate, scheme),
+              color: _rateColor(t, rate),
               label: '${rate.round()}%',
             ),
             const SizedBox(height: 12),
             LegendDot(
-              color: Colors.green,
+              color: t.accentGreen,
               text: l10n.statsSuccessful(data.successfulPrints),
             ),
             const SizedBox(height: 4),
             LegendDot(
-              color: scheme.error,
+              color: t.danger,
               text: l10n.statsFailed(data.failedPrints),
             ),
             const SizedBox(height: 4),
             LegendDot(
-              color: Colors.orange,
+              color: t.accentOrange,
               text: l10n.statsCancelled(data.cancelledPrints),
             ),
           ],
@@ -419,10 +451,10 @@ class _SuccessRateCard extends StatelessWidget {
     );
   }
 
-  Color _rateColor(double rate, ColorScheme scheme) {
-    if (rate >= 90) return Colors.green;
-    if (rate >= 70) return Colors.orange;
-    return scheme.error;
+  Color _rateColor(DashTokens t, double rate) {
+    if (rate >= 90) return t.accentGreen;
+    if (rate >= 70) return t.accentOrange;
+    return t.danger;
   }
 }
 
@@ -434,7 +466,7 @@ class _TimeAccuracyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final acc = data.averageTimeAccuracy;
     return SectionCard(
       title: l10n.statsTimeAccuracy,
@@ -445,15 +477,19 @@ class _TimeAccuracyCard extends StatelessWidget {
           children: [
             RingGauge(
               percent: acc.clamp(0, 100).toDouble(),
-              color: Colors.orange,
+              color: t.accentOrange,
               label: '${acc.round()}%',
             ),
             const SizedBox(height: 12),
             Text(
               l10n.statsTimeAccuracyHint,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: t.textTertiary,
+              ),
             ),
           ],
         ),

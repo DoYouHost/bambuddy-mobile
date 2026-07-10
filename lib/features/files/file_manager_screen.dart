@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -61,59 +62,70 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final t = DashTokens.of(context);
     final async = ref.watch(fileManagerProvider);
     // Warm the slice gate so the per-file sheet can read it synchronously.
     ref.watch(slicerEnabledProvider);
     final state = async.valueOrNull;
     final selectionMode = state?.selectionMode ?? false;
 
-    return Scaffold(
-      appBar: selectionMode
-          ? _selectionAppBar(state!)
-          : AppBar(
-              title: Text(l10n.fileManagerTitle),
-              actions: [
-                IconButton(
-                  tooltip: l10n.fmSortBy,
-                  icon: const Icon(Icons.sort),
-                  onPressed: state == null ? null : () => _openSortSheet(state),
-                ),
-                IconButton(
-                  tooltip: l10n.fmTrash,
-                  icon: const Icon(Icons.recycling),
-                  onPressed: () => context.push('/files/trash'),
-                ),
-              ],
-            ),
-      floatingActionButton: selectionMode
-          ? null
-          : FloatingActionButton(
-              onPressed: state == null ? null : () => _openCreateSheet(state),
-              child: const Icon(Icons.add),
-            ),
-      body: async.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AsyncErrorView(
-          message: err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-          retryLabel: l10n.retry,
-          onRetry: () => ref.invalidate(fileManagerProvider),
-        ),
-        data: (s) => Column(
-          children: [
-            const _StatsBar(),
-            _Breadcrumb(
-              state: s,
-              onOpen: (id) => ref.read(fileManagerProvider.notifier).openFolder(id),
-            ),
-            _FilterRow(
-              state: s,
-              controller: _searchController,
-              onSearch: _onSearchChanged,
-            ),
-            Expanded(child: _body(s)),
-          ],
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: selectionMode
+            ? _selectionAppBar(state!)
+            : dashAppBar(
+                context,
+                title: l10n.fileManagerTitle,
+                actions: [
+                  IconButton(
+                    tooltip: l10n.fmSortBy,
+                    icon: const Icon(Icons.sort),
+                    onPressed:
+                        state == null ? null : () => _openSortSheet(state),
+                  ),
+                  IconButton(
+                    tooltip: l10n.fmTrash,
+                    icon: const Icon(Icons.recycling),
+                    onPressed: () => context.push('/files/trash'),
+                  ),
+                ],
+              ),
+        floatingActionButton: selectionMode
+            ? null
+            : FloatingActionButton(
+                backgroundColor: t.accentGreen,
+                foregroundColor: const Color(0xFF0A0C08),
+                onPressed:
+                    state == null ? null : () => _openCreateSheet(state),
+                child: const Icon(Icons.add),
+              ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message:
+                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
+            retryLabel: l10n.retry,
+            onRetry: () => ref.invalidate(fileManagerProvider),
+          ),
+          data: (s) => Column(
+            children: [
+              const _StatsBar(),
+              _Breadcrumb(
+                state: s,
+                onOpen: (id) =>
+                    ref.read(fileManagerProvider.notifier).openFolder(id),
+              ),
+              _FilterRow(
+                state: s,
+                controller: _searchController,
+                onSearch: _onSearchChanged,
+              ),
+              Expanded(child: _body(s)),
+            ],
+          ),
         ),
       ),
     );
@@ -183,12 +195,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   AppBar _selectionAppBar(FileManagerState s) {
     final l10n = _l10n;
     final notifier = ref.read(fileManagerProvider.notifier);
-    return AppBar(
+    return dashAppBar(
+      context,
+      title: l10n.fmSelectedCount(s.selected.length),
       leading: IconButton(
         icon: const Icon(Icons.close),
         onPressed: notifier.clearSelection,
       ),
-      title: Text(l10n.fmSelectedCount(s.selected.length)),
       actions: [
         IconButton(
           tooltip: l10n.fmAddToQueue,
@@ -733,7 +746,7 @@ class _StatsBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final stats = ref.watch(libraryStatsProvider).valueOrNull;
     if (stats == null) return const SizedBox.shrink();
     final parts = <String>[
@@ -745,10 +758,18 @@ class _StatsBar extends ConsumerWidget {
     if (parts.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHigh,
+      color: t.subCard,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Text(parts.join('  ·  '),
-          style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
+      child: Text(
+        parts.join('  ·  '),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: t.textTertiary,
+        ),
+      ),
     );
   }
 }
@@ -762,8 +783,14 @@ class _Breadcrumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final crumbs = state.breadcrumb;
+    TextStyle crumbStyle(bool current) => TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: current ? t.textPrimary : t.accentGreenInk,
+        );
     return SizedBox(
       height: 44,
       child: ListView(
@@ -771,18 +798,19 @@ class _Breadcrumb extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8),
         children: [
           TextButton.icon(
-            icon: const Icon(Icons.home_outlined, size: 18),
-            label: Text(l10n.fmRoot),
+            icon: Icon(Icons.home_outlined,
+                size: 18, color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk),
+            label: Text(l10n.fmRoot, style: crumbStyle(crumbs.isEmpty)),
             onPressed: crumbs.isEmpty ? null : () => onOpen(null),
           ),
           for (var i = 0; i < crumbs.length; i++) ...[
-            Icon(Icons.chevron_right,
-                size: 18, color: theme.colorScheme.onSurfaceVariant),
+            Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
             TextButton(
               onPressed: i == crumbs.length - 1
                   ? null
                   : () => onOpen(crumbs[i].id),
-              child: Text(crumbs[i].name),
+              child: Text(crumbs[i].name,
+                  style: crumbStyle(i == crumbs.length - 1)),
             ),
           ],
         ],
@@ -805,6 +833,7 @@ class _FilterRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final types = state.availableTypes;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -814,7 +843,18 @@ class _FilterRow extends ConsumerWidget {
             child: SearchBar(
               controller: controller,
               hintText: l10n.fmSearchHint,
-              leading: const Icon(Icons.search),
+              hintStyle: WidgetStatePropertyAll(TextStyle(
+                fontFamily: DashTokens.fontUi,
+                color: t.textTertiary,
+              )),
+              textStyle: WidgetStatePropertyAll(TextStyle(
+                fontFamily: DashTokens.fontUi,
+                color: t.textPrimary,
+              )),
+              leading: Icon(Icons.search, color: t.textSecondary),
+              backgroundColor: WidgetStatePropertyAll(t.subCard),
+              elevation: const WidgetStatePropertyAll(0),
+              side: WidgetStatePropertyAll(BorderSide(color: t.subCardBorder)),
               padding: const WidgetStatePropertyAll(
                   EdgeInsets.symmetric(horizontal: 12)),
               onChanged: onSearch,
@@ -824,9 +864,12 @@ class _FilterRow extends ConsumerWidget {
             const SizedBox(width: 8),
             PopupMenuButton<String?>(
               tooltip: l10n.fmFilterType,
-              icon: Icon(state.typeFilter == null
-                  ? Icons.filter_list
-                  : Icons.filter_list_alt),
+              icon: Icon(
+                state.typeFilter == null
+                    ? Icons.filter_list
+                    : Icons.filter_list_alt,
+                color: t.textSecondary,
+              ),
               onSelected: (v) =>
                   ref.read(fileManagerProvider.notifier).setType(v),
               itemBuilder: (ctx) => [
@@ -835,11 +878,11 @@ class _FilterRow extends ConsumerWidget {
                   checked: state.typeFilter == null,
                   child: Text(l10n.fmAllTypes),
                 ),
-                for (final t in types)
+                for (final ft in types)
                   CheckedPopupMenuItem<String?>(
-                    value: t,
-                    checked: state.typeFilter == t,
-                    child: Text(t.toUpperCase()),
+                    value: ft,
+                    checked: state.typeFilter == ft,
+                    child: Text(ft.toUpperCase()),
                   ),
               ],
             ),
@@ -866,26 +909,82 @@ class _FolderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: ListTile(
-        leading: Icon(
-          folder.isExternal ? Icons.folder_special_outlined : Icons.folder,
-          color: theme.colorScheme.primary,
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onOpen,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: t.accentGreen.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    folder.isExternal
+                        ? Icons.folder_special_outlined
+                        : Icons.folder,
+                    color: t.accentGreenInk,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        folder.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.fmFolderItems(folder.fileCount),
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: t.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!folder.isExternal)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: t.textSecondary),
+                    onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                          value: 'rename', child: Text(l10n.fmRename)),
+                      PopupMenuItem(
+                          value: 'delete', child: Text(l10n.fmDelete)),
+                    ],
+                  ),
+              ],
+            ),
+          ),
         ),
-        title: Text(folder.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text(l10n.fmFolderItems(folder.fileCount)),
-        trailing: folder.isExternal
-            ? null
-            : PopupMenuButton<String>(
-                onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(value: 'rename', child: Text(l10n.fmRename)),
-                  PopupMenuItem(value: 'delete', child: Text(l10n.fmDelete)),
-                ],
-              ),
-        onTap: onOpen,
       ),
     );
   }
@@ -912,7 +1011,7 @@ class _FileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final meta = <String>[
       ?folderLabel,
       file.fileType.toUpperCase(),
@@ -920,35 +1019,86 @@ class _FileTile extends StatelessWidget {
       if (file.slicedForModel != null) file.slicedForModel!,
       if (file.createdByUsername != null) file.createdByUsername!,
     ];
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      color: selected ? theme.colorScheme.secondaryContainer : null,
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
-        leading: selectionMode
-            ? Icon(
-                selected ? Icons.check_circle : Icons.circle_outlined,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? t.accentGreen.withValues(alpha: 0.10)
+                  : t.subCard,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
                 color: selected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
-              )
-            : LibraryThumbnail(
-                fileId: file.id,
-                hasThumbnail: file.thumbnailPath != null,
-                size: 52,
+                    ? t.accentGreen.withValues(alpha: 0.4)
+                    : t.subCardBorder,
               ),
-        title: Text(file.displayName,
-            maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Text(meta.join(' · '),
-              style: theme.textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
+            ),
+            child: Row(
+              children: [
+                selectionMode
+                    ? SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: Icon(
+                          selected
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: selected ? t.accentGreenInk : t.textTertiary,
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: LibraryThumbnail(
+                          fileId: file.id,
+                          hasThumbnail: file.thumbnailPath != null,
+                          size: 52,
+                        ),
+                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        file.displayName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        meta.join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!selectionMode)
+                  Icon(Icons.more_vert, size: 20, color: t.textSecondary),
+              ],
+            ),
+          ),
         ),
-        trailing: selectionMode ? null : const Icon(Icons.more_vert, size: 20),
-        onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }

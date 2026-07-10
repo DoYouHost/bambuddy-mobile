@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
@@ -34,65 +35,93 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final state = ref.watch(setupControllerProvider);
     final controller = ref.read(setupControllerProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.connectToServer)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _url,
-              enabled: !state.busy,
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              decoration: InputDecoration(
-                labelText: l10n.serverAddressLabel,
-                hintText: l10n.serverAddressHint,
-                helperText: l10n.serverAddressHelper,
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (v) => controller.probe(v),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(context, title: l10n.connectToServer),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: t.cardGradient,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: t.cardBorder),
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed:
-                  state.busy ? null : () => controller.probe(_url.text),
-              child: Text(l10n.testConnection),
-            ),
-            if (state.busy)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (state.error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  setupErrorText(l10n, state.error!),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _url,
+                  enabled: !state.busy,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
                   ),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.serverAddressLabel,
+                    hintText: l10n.serverAddressHint,
+                    helperText: l10n.serverAddressHelper,
+                  ),
+                  onSubmitted: (v) => controller.probe(v),
                 ),
-              ),
-            if (state.needsAuth && !state.busy)
-              ..._authSection(l10n, controller),
-          ],
+                const SizedBox(height: 12),
+                FilledButton(
+                  style: dashPrimaryButtonStyle(t),
+                  onPressed:
+                      state.busy ? null : () => controller.probe(_url.text),
+                  child: Text(l10n.testConnection),
+                ),
+                if (state.busy)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (state.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      setupErrorText(l10n, state.error!),
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.danger,
+                      ),
+                    ),
+                  ),
+                if (state.needsAuth && !state.busy)
+                  ..._authSection(t, l10n, controller),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   List<Widget> _authSection(
-          AppLocalizations l10n, SetupController controller) =>
+          DashTokens t, AppLocalizations l10n, SetupController controller) =>
       [
         const SizedBox(height: 24),
         Text(
           l10n.serverRequiresAuth,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
         SegmentedButton<bool>(
@@ -105,51 +134,98 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
         const SizedBox(height: 16),
         if (!_useLogin) ...[
-          Text(l10n.apiKeyExplain),
+          Text(
+            l10n.apiKeyExplain,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: t.textSecondary,
+            ),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _apiKey,
             autocorrect: false,
-            decoration: InputDecoration(
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
+            ),
+            decoration: dashFieldDecoration(
+              t,
               labelText: l10n.apiKeyLabel,
               hintText: 'bb_…',
-              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           FilledButton(
+            style: dashPrimaryButtonStyle(t),
             onPressed: () => controller.connectWithApiKey(_apiKey.text),
             child: Text(l10n.saveAndConnect),
           ),
         ] else ...[
-          Text(l10n.loginExplain),
+          Text(
+            l10n.loginExplain,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: t.textSecondary,
+            ),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _username,
             autocorrect: false,
-            decoration: InputDecoration(
-              labelText: l10n.usernameLabel,
-              border: const OutlineInputBorder(),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
             ),
+            decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _password,
             obscureText: true,
-            decoration: InputDecoration(
-              labelText: l10n.passwordLabel,
-              border: const OutlineInputBorder(),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
             ),
+            decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
           ),
           CheckboxListTile(
             value: _remember,
             onChanged: (v) => setState(() => _remember = v ?? false),
-            title: Text(l10n.rememberMe),
-            subtitle: Text(l10n.rememberMeSubtitle),
+            title: Text(
+              l10n.rememberMe,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+            ),
+            subtitle: Text(
+              l10n.rememberMeSubtitle,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                color: t.textTertiary,
+              ),
+            ),
+            activeColor: t.accentGreen,
+            checkColor: const Color(0xFF0A0C08),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
           FilledButton(
+            style: dashPrimaryButtonStyle(t),
             onPressed: () => controller.connectWithLogin(
               username: _username.text.trim(),
               password: _password.text,

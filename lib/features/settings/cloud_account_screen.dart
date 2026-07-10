@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/cloud_auth.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -18,14 +19,17 @@ class CloudAccountScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(cloudAuthStatusProvider);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.cloudAccountTitle)),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const _LoginForm(),
-        data: (status) => status.isAuthenticated
-            ? _SignedIn(status: status)
-            : const _LoginForm(),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(context, title: l10n.cloudAccountTitle),
+        body: async.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => const _LoginForm(),
+          data: (status) => status.isAuthenticated
+              ? _SignedIn(status: status)
+              : const _LoginForm(),
+        ),
       ),
     );
   }
@@ -64,30 +68,88 @@ class _SignedInState extends ConsumerState<_SignedIn> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final status = widget.status;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.cloud_done),
-            title: Text(status.email ?? l10n.cloudSignedIn),
-            subtitle: status.region == null ? null : Text(_regionLabel(l10n)),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: t.cardGradient,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: t.cardBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: t.accentGreen.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.cloud_done, color: t.accentGreenInk),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      status.email ?? l10n.cloudSignedIn,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                    if (status.region != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        _regionLabel(l10n),
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: t.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
-        Text(l10n.cloudCredsNote,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          l10n.cloudCredsNote,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: t.textTertiary,
+          ),
+        ),
         const SizedBox(height: 24),
-        FilledButton.tonalIcon(
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: t.textPrimary,
+            side: BorderSide(color: t.cardBorder),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
           onPressed: _busy ? null : _signOut,
           icon: _busy
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: t.textPrimary),
                 )
               : const Icon(Icons.logout),
           label: Text(l10n.cloudSignOut),
@@ -207,81 +269,119 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
+    TextStyle fieldStyle() => TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
+        );
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(l10n.cloudCredsNote,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _email,
-          enabled: !_verifying && !_busy,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: l10n.cloudEmail,
-            border: const OutlineInputBorder(),
-            prefixIcon: const Icon(Icons.email_outlined),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: t.cardGradient,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: t.cardBorder),
           ),
-        ),
-        const SizedBox(height: 14),
-        TextField(
-          controller: _password,
-          enabled: !_verifying && !_busy,
-          obscureText: _obscure,
-          decoration: InputDecoration(
-            labelText: l10n.cloudPassword,
-            border: const OutlineInputBorder(),
-            prefixIcon: const Icon(Icons.lock_outline),
-            suffixIcon: IconButton(
-              icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.cloudCredsNote,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: t.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _email,
+                enabled: !_verifying && !_busy,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                style: fieldStyle(),
+                decoration: dashFieldDecoration(
+                  t,
+                  labelText: l10n.cloudEmail,
+                ).copyWith(prefixIcon: const Icon(Icons.email_outlined)),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _password,
+                enabled: !_verifying && !_busy,
+                obscureText: _obscure,
+                style: fieldStyle(),
+                decoration: dashFieldDecoration(
+                  t,
+                  labelText: l10n.cloudPassword,
+                ).copyWith(
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                        _obscure ? Icons.visibility : Icons.visibility_off,
+                        color: t.textTertiary),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                      value: 'global', label: Text(l10n.cloudRegionGlobal)),
+                  ButtonSegment(
+                      value: 'china', label: Text(l10n.cloudRegionChina)),
+                ],
+                selected: {_region},
+                onSelectionChanged: (_verifying || _busy)
+                    ? null
+                    : (sel) => setState(() => _region = sel.first),
+              ),
+              if (_verifying) ...[
+                const SizedBox(height: 20),
+                Text(
+                  _verificationPrompt.isNotEmpty
+                      ? _verificationPrompt
+                      : l10n.cloudVerificationPrompt,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: t.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _code,
+                  enabled: !_busy,
+                  keyboardType: TextInputType.number,
+                  style: fieldStyle(),
+                  decoration: dashFieldDecoration(
+                    t,
+                    labelText: l10n.cloudVerificationCode,
+                  ).copyWith(prefixIcon: const Icon(Icons.pin_outlined)),
+                ),
+              ],
+              const SizedBox(height: 24),
+              FilledButton(
+                style: dashPrimaryButtonStyle(t),
+                onPressed: _busy ? null : (_verifying ? _verify : _signIn),
+                child: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFF0A0C08)),
+                      )
+                    : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 14),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'global', label: Text(l10n.cloudRegionGlobal)),
-            ButtonSegment(value: 'china', label: Text(l10n.cloudRegionChina)),
-          ],
-          selected: {_region},
-          onSelectionChanged: (_verifying || _busy)
-              ? null
-              : (sel) => setState(() => _region = sel.first),
-        ),
-        if (_verifying) ...[
-          const SizedBox(height: 20),
-          Text(
-            _verificationPrompt.isNotEmpty
-                ? _verificationPrompt
-                : l10n.cloudVerificationPrompt,
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _code,
-            enabled: !_busy,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: l10n.cloudVerificationCode,
-              border: const OutlineInputBorder(),
-              prefixIcon: const Icon(Icons.pin_outlined),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _busy ? null : (_verifying ? _verify : _signIn),
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
         ),
       ],
     );

@@ -194,6 +194,7 @@ class _PrinterCandidateTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final p = candidate.printer;
     final offline = !candidate.online;
 
@@ -210,7 +211,7 @@ class _PrinterCandidateTile extends StatelessWidget {
         ),
       ),
       trailing: candidate.hasPlug
-          ? Icon(Icons.power, color: theme.colorScheme.tertiary, size: 20)
+          ? Icon(Icons.power, color: t.accentGreenInk, size: 20)
           : null,
       onTap: onTap,
     );

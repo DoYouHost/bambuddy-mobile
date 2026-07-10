@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
 import '../../core/settings/server_profile.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/state_views.dart';
@@ -199,10 +200,28 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = _controller;
+    // Fixed dark tokens regardless of system theme: the WebView canvas behind
+    // this bar is always black (matches the embedded viewer), so the bar must
+    // stay light-on-black even in light mode.
+    const t = DashTokens.dark();
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(title: Text(widget.title ?? l10n.gcodeViewerTitle)),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: t.textPrimary),
+        title: Text(
+          widget.title ?? l10n.gcodeViewerTitle,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: t.textPrimary,
+          ),
+        ),
+      ),
       body: _failed
           ? AsyncErrorView(
               message: l10n.gcodeViewerError,

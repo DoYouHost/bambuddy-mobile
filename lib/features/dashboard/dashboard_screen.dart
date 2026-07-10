@@ -412,14 +412,14 @@ class _AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Drawer(
+      backgroundColor: t.overlaySurface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Branded header: app icon in raised tile + name + profile,
-          // on gradient with soft glow in corner (instead of empty DrawerHeader rect).
+          // on a soft accent glow (instead of empty DrawerHeader rect).
           ClipRect(
             child: Container(
               decoration: BoxDecoration(
@@ -427,17 +427,14 @@ class _AppDrawer extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color.alphaBlend(
-                      scheme.primary.withValues(alpha: 0.18),
-                      scheme.primaryContainer,
-                    ),
-                    scheme.primaryContainer.withValues(alpha: 0.45),
+                    t.accentGreen.withValues(alpha: t.isDark ? 0.20 : 0.14),
+                    t.accentGreen.withValues(alpha: t.isDark ? 0.06 : 0.04),
                   ],
                 ),
               ),
               child: Stack(
                 children: [
-                  // Glow — primary circle blurred in top-right corner.
+                  // Glow — accent circle blurred in top-right corner.
                   Positioned(
                     top: -48,
                     right: -36,
@@ -446,7 +443,7 @@ class _AppDrawer extends ConsumerWidget {
                       height: 150,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: scheme.primary.withValues(alpha: 0.22),
+                        color: t.accentGreen.withValues(alpha: 0.18),
                       ),
                     ),
                   ),
@@ -466,10 +463,7 @@ class _AppDrawer extends ConsumerWidget {
                                   offset: const Offset(0, 4),
                                 ),
                               ],
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.30),
-                                width: 1,
-                              ),
+                              border: Border.all(color: t.subCardBorder),
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(15),
@@ -489,10 +483,12 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: theme.textTheme.titleLarge?.copyWith(
+                                  style: TextStyle(
+                                    fontFamily: DashTokens.fontUi,
+                                    fontSize: 21,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.2,
-                                    color: scheme.onPrimaryContainer,
+                                    color: t.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -596,8 +592,7 @@ class _AppDrawer extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               child: Row(
                 children: [
-                  Icon(Icons.print_rounded,
-                      size: 14, color: scheme.onSurfaceVariant),
+                  Icon(Icons.print_rounded, size: 14, color: t.textTertiary),
                   const SizedBox(width: 6),
                   FutureBuilder<PackageInfo>(
                     future: PackageInfo.fromPlatform(),
@@ -605,8 +600,11 @@ class _AppDrawer extends ConsumerWidget {
                       snap.hasData
                           ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
                           : 'Bambuddy',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 12,
+                        color: t.textTertiary,
+                      ),
                     ),
                   ),
                 ],
@@ -659,29 +657,29 @@ class _ProfileChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (label == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: scheme.onPrimaryContainer.withValues(alpha: 0.10),
+        color: t.subCard,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.dns_rounded,
-              size: 13,
-              color: scheme.onPrimaryContainer.withValues(alpha: 0.75)),
+          Icon(Icons.dns_rounded, size: 13, color: t.textSecondary),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               label!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: t.textSecondary,
               ),
             ),
           ),
@@ -707,8 +705,7 @@ class _DrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
@@ -725,21 +722,25 @@ class _DrawerTile extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.12),
+                    color: t.accentGreen.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 21, color: scheme.primary),
+                  child: Icon(icon, size: 21, color: t.accentGreenInk),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     label,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
                   ),
                 ),
                 Icon(Icons.chevron_right_rounded,
-                    size: 20, color: scheme.onSurfaceVariant),
+                    size: 20, color: t.textTertiary),
               ],
             ),
           ),

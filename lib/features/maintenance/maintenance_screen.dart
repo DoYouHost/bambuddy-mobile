@@ -218,15 +218,12 @@ class _MaintenanceTile extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: due
-                    ? t.accentOrange.withValues(alpha: 0.06)
-                    : t.subCard,
+                // Urgency reads from the icon tile, progress bar and "Overdue
+                // by" text alone — the card itself stays neutral so an
+                // overdue tile doesn't read as an error/alert box.
+                color: t.subCard,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: due
-                      ? t.accentOrange.withValues(alpha: 0.35)
-                      : t.subCardBorder,
-                ),
+                border: Border.all(color: t.subCardBorder),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +262,10 @@ class _MaintenanceTile extends ConsumerWidget {
                             ),
                             TextButton(
                               style: TextButton.styleFrom(
-                                foregroundColor: t.accentGreenInk,
+                                // Matches the tile's own urgency accent
+                                // (orange when overdue) instead of always
+                                // green, so it doesn't clash with the rest.
+                                foregroundColor: inkAccent,
                                 padding: EdgeInsets.zero,
                                 minimumSize: const Size(0, 0),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,

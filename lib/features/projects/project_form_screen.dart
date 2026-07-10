@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/project.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'project_common.dart';
@@ -79,133 +80,168 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEdit ? l10n.projectEdit : l10n.projectCreate),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _submit,
-            child: Text(l10n.projectSave),
-          ),
-        ],
-      ),
-      body: AbsorbPointer(
-        absorbing: _saving,
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              TextFormField(
-                controller: _name,
-                decoration: InputDecoration(labelText: l10n.projectName),
-                textInputAction: TextInputAction.next,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l10n.projectNameRequired : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _description,
-                decoration: InputDecoration(labelText: l10n.projectDescription),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _status,
-                      decoration: InputDecoration(labelText: l10n.projectStatus),
-                      items: [
-                        for (final s in projectStatusValues)
-                          DropdownMenuItem(
-                              value: s, child: Text(projectStatusLabel(l10n, s))),
-                      ],
-                      onChanged: (v) => setState(() => _status = v ?? _status),
+    final t = DashTokens.of(context);
+    final fieldStyle = TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: t.textPrimary,
+    );
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: widget.isEdit ? l10n.projectEdit : l10n.projectCreate,
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+              onPressed: _saving ? null : _submit,
+              child: Text(l10n.projectSave),
+            ),
+          ],
+        ),
+        body: AbsorbPointer(
+          absorbing: _saving,
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                TextFormField(
+                  controller: _name,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t, labelText: l10n.projectName),
+                  textInputAction: TextInputAction.next,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.projectNameRequired
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _description,
+                  style: fieldStyle,
+                  decoration:
+                      dashFieldDecoration(t, labelText: l10n.projectDescription),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _status,
+                        style: fieldStyle,
+                        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
+                        decoration:
+                            dashFieldDecoration(t, labelText: l10n.projectStatus),
+                        items: [
+                          for (final s in projectStatusValues)
+                            DropdownMenuItem(
+                                value: s, child: Text(projectStatusLabel(l10n, s))),
+                        ],
+                        onChanged: (v) => setState(() => _status = v ?? _status),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _priority,
-                      decoration: InputDecoration(labelText: l10n.projectPriority),
-                      items: [
-                        for (final s in projectPriorityValues)
-                          DropdownMenuItem(
-                              value: s, child: Text(projectPriorityLabel(l10n, s))),
-                      ],
-                      onChanged: (v) => setState(() => _priority = v ?? _priority),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _priority,
+                        style: fieldStyle,
+                        dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
+                        decoration:
+                            dashFieldDecoration(t, labelText: l10n.projectPriority),
+                        items: [
+                          for (final s in projectPriorityValues)
+                            DropdownMenuItem(
+                                value: s, child: Text(projectPriorityLabel(l10n, s))),
+                        ],
+                        onChanged: (v) => setState(() => _priority = v ?? _priority),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _colorRow(l10n),
-              const SizedBox(height: 12),
-              _dueDateRow(l10n),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _targetCount,
-                      decoration:
-                          InputDecoration(labelText: l10n.projectTargetCount),
-                      keyboardType: TextInputType.number,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _colorRow(l10n, t),
+                const SizedBox(height: 16),
+                _dueDateRow(l10n, t),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _targetCount,
+                        style: fieldStyle,
+                        decoration: dashFieldDecoration(t,
+                            labelText: l10n.projectTargetCount),
+                        keyboardType: TextInputType.number,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _targetParts,
-                      decoration: InputDecoration(
-                          labelText: l10n.projectTargetPartsCount),
-                      keyboardType: TextInputType.number,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _targetParts,
+                        style: fieldStyle,
+                        decoration: dashFieldDecoration(t,
+                            labelText: l10n.projectTargetPartsCount),
+                        keyboardType: TextInputType.number,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _budget,
-                decoration: InputDecoration(labelText: l10n.projectBudget),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _tags,
-                decoration: InputDecoration(labelText: l10n.projectTags),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _url,
-                decoration: InputDecoration(labelText: l10n.projectUrl),
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 12),
-              _parentDropdown(l10n),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _notes,
-                decoration: InputDecoration(labelText: l10n.projectNotes),
-                maxLines: 4,
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _budget,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t, labelText: l10n.projectBudget),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _tags,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t, labelText: l10n.projectTags),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _url,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t, labelText: l10n.projectUrl),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 12),
+                _parentDropdown(l10n, t, fieldStyle),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _notes,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t, labelText: l10n.projectNotes),
+                  maxLines: 4,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _colorRow(AppLocalizations l10n) {
+  Widget _colorRow(AppLocalizations l10n, DashTokens t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Align(
           alignment: AlignmentDirectional.centerStart,
-          child: Text(l10n.projectColor,
-              style: Theme.of(context).textTheme.bodySmall),
+          child: Text(
+            l10n.projectColor,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: t.textSecondary,
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         ProjectColorSelector(
@@ -216,22 +252,36 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     );
   }
 
-  Widget _dueDateRow(AppLocalizations l10n) {
+  Widget _dueDateRow(AppLocalizations l10n, DashTokens t) {
     final label = _dueDate == null
         ? l10n.projectDueDate
         : '${l10n.projectDueDate}: ${_fmtDate(_dueDate!)}';
     return Row(
       children: [
-        const Icon(Icons.event_outlined),
+        Icon(Icons.event_outlined, color: t.textSecondary),
         const SizedBox(width: 12),
-        Expanded(child: Text(label)),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
+            ),
+          ),
+        ),
         if (_dueDate != null)
           IconButton(
-            icon: const Icon(Icons.clear),
+            icon: Icon(Icons.clear, color: t.textSecondary),
             tooltip: l10n.projectDueDateClear,
             onPressed: () => setState(() => _dueDate = null),
           ),
         OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: t.textPrimary,
+            side: BorderSide(color: t.cardBorder),
+          ),
           onPressed: _pickDueDate,
           child: Text(l10n.projectDueDate),
         ),
@@ -239,7 +289,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     );
   }
 
-  Widget _parentDropdown(AppLocalizations l10n) {
+  Widget _parentDropdown(AppLocalizations l10n, DashTokens t, TextStyle fieldStyle) {
     final projects = ref.watch(projectsListProvider).valueOrNull ?? const [];
     // Cannot parent a project to itself.
     final options =
@@ -254,7 +304,9 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
         parentId != null && !options.any((p) => p.id == parentId);
     return DropdownButtonFormField<int?>(
       initialValue: _parentId,
-      decoration: InputDecoration(labelText: l10n.projectParent),
+      style: fieldStyle,
+      dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
+      decoration: dashFieldDecoration(t, labelText: l10n.projectParent),
       items: [
         DropdownMenuItem(value: null, child: Text(l10n.projectParentNone)),
         if (missingParent)

@@ -7,6 +7,7 @@ import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -38,38 +39,76 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
+    final t = DashTokens.of(context);
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(title, style: theme.textTheme.titleMedium),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 19, color: t.accentGreenInk),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
+                  ),
                 ),
-                ?action,
-              ],
-            ),
-            const SizedBox(height: 8),
-            child,
-          ],
-        ),
+              ),
+              ?action,
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
       ),
     );
   }
 }
 
-Widget _emptyHint(BuildContext context, String text) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(text,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-    );
+/// Green "ghost" action button used in a [SectionCard] header (link folder,
+/// upload attachment, add BOM item).
+Widget _dashAction({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required VoidCallback onPressed,
+}) {
+  final t = DashTokens.of(context);
+  return TextButton.icon(
+    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+    icon: Icon(icon, size: 18),
+    label: Text(label),
+    onPressed: onPressed,
+  );
+}
+
+Widget _emptyHint(BuildContext context, String text) {
+  final t = DashTokens.of(context);
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: t.textTertiary,
+      ),
+    ),
+  );
+}
 
 // --- Files section: linked File Manager folders + their printable files ---
 
@@ -87,9 +126,10 @@ class ProjectFilesSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.folder_open_outlined,
       title: l10n.projectTabFiles,
-      action: TextButton.icon(
-        icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-        label: Text(l10n.projectLinkFolder),
+      action: _dashAction(
+        context: context,
+        icon: Icons.create_new_folder_outlined,
+        label: l10n.projectLinkFolder,
         onPressed: () => _linkFolder(context, ref),
       ),
       child: foldersAsync.when(
@@ -296,17 +336,35 @@ class _FolderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     return Theme(
       // Remove the default ExpansionTile divider lines for a cleaner card.
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(left: 8, bottom: 8),
-        leading: const Icon(Icons.folder_outlined),
-        title: Text(folder.name),
-        subtitle: Text(l10n.projectFolderFileCount(folder.fileCount)),
+        iconColor: t.textSecondary,
+        collapsedIconColor: t.textSecondary,
+        leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
+        title: Text(
+          folder.name,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          l10n.projectFolderFileCount(folder.fileCount),
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 12,
+            color: t.textTertiary,
+          ),
+        ),
         trailing: IconButton(
-          icon: const Icon(Icons.link_off),
+          icon: Icon(Icons.link_off, color: t.textSecondary),
           tooltip: l10n.projectUnlinkFolder,
           onPressed: onUnlink,
         ),
@@ -323,11 +381,20 @@ class _FolderTile extends StatelessWidget {
                   hasThumbnail: f.thumbnailPath != null,
                   size: 44,
                 ),
-                title: Text(f.displayName,
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  f.displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
+                ),
                 trailing: f.isPrintable
                     ? IconButton(
-                        icon: const Icon(Icons.print_outlined),
+                        icon: Icon(Icons.print_outlined, color: t.accentGreenInk),
                         tooltip: l10n.fmPrint,
                         onPressed: () => onPrint(f),
                       )
@@ -349,13 +416,15 @@ class ProjectAttachmentsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final files = project.attachments;
     return SectionCard(
       icon: Icons.attach_file,
       title: l10n.projectTabAttachments,
-      action: TextButton.icon(
-        icon: const Icon(Icons.upload_file, size: 18),
-        label: Text(l10n.projectAttachmentUpload),
+      action: _dashAction(
+        context: context,
+        icon: Icons.upload_file,
+        label: l10n.projectAttachmentUpload,
         onPressed: () => _upload(context, ref),
       ),
       child: files.isEmpty
@@ -366,18 +435,30 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                   ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.insert_drive_file_outlined),
-                    title: Text(name, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    leading: Icon(Icons.insert_drive_file_outlined,
+                        color: t.textSecondary),
+                    title: Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.download_outlined),
+                          icon: Icon(Icons.download_outlined,
+                              color: t.accentGreenInk),
                           tooltip: l10n.projectAttachmentDownload,
                           onPressed: () => _download(context, ref, name),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline),
+                          icon: Icon(Icons.delete_outline, color: t.danger),
                           tooltip: l10n.projectAttachmentDelete,
                           onPressed: () => _delete(context, ref, name),
                         ),
@@ -452,9 +533,10 @@ class ProjectBomSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.shopping_cart_outlined,
       title: l10n.projectTabBom,
-      action: TextButton.icon(
-        icon: const Icon(Icons.add, size: 18),
-        label: Text(l10n.bomAdd),
+      action: _dashAction(
+        context: context,
+        icon: Icons.add,
+        label: l10n.bomAdd,
         onPressed: () => _editItem(context, ref, null),
       ),
       child: async.when(
@@ -475,7 +557,7 @@ class ProjectBomSection extends ConsumerWidget {
 
   Widget _bomTile(BuildContext context, WidgetRef ref, BomItem item) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final subtitle = <String>[
       '×${item.quantityNeeded}',
       if (item.unitPrice != null) item.unitPrice!.toStringAsFixed(2),
@@ -487,6 +569,8 @@ class ProjectBomSection extends ConsumerWidget {
       // checkbox sets acquired to needed (done) or 0 (not done).
       leading: Checkbox(
         value: item.isComplete,
+        activeColor: t.accentGreen,
+        checkColor: const Color(0xFF0A0C08),
         onChanged: (v) => ref.read(projectBomProvider(projectId).notifier).edit(
               item.id,
               BomItemInput(
@@ -495,14 +579,26 @@ class ProjectBomSection extends ConsumerWidget {
               ),
             ),
       ),
-      title: Text(item.name,
-          style: item.isComplete
-              ? TextStyle(
-                  decoration: TextDecoration.lineThrough,
-                  color: theme.colorScheme.onSurfaceVariant)
-              : null),
-      subtitle: Text(subtitle),
+      title: Text(
+        item.name,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+          decoration: item.isComplete ? TextDecoration.lineThrough : null,
+          color: item.isComplete ? t.textTertiary : t.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 11.5,
+          color: t.textTertiary,
+        ),
+      ),
       trailing: PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, color: t.textSecondary),
         onSelected: (v) {
           if (v == 'edit') _editItem(context, ref, item);
           if (v == 'open' && item.sourcingUrl != null) {
@@ -554,6 +650,7 @@ class ProjectTimelineSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(projectTimelineProvider(projectId));
     return SectionCard(
       icon: Icons.history,
@@ -572,12 +669,28 @@ class ProjectTimelineSection extends ConsumerWidget {
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(_eventIcon(e.eventType)),
-                      title: Text(e.title),
-                      subtitle: Text([
-                        if (e.description != null) e.description!,
-                        if (e.timestampParsed != null) _fmtDateTime(e.timestampParsed!),
-                      ].join('\n')),
+                      leading: Icon(_eventIcon(e.eventType), color: t.accentGreenInk),
+                      title: Text(
+                        e.title,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        [
+                          if (e.description != null) e.description!,
+                          if (e.timestampParsed != null)
+                            _fmtDateTime(e.timestampParsed!),
+                        ].join('\n'),
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11.5,
+                          color: t.textTertiary,
+                        ),
+                      ),
                       isThreeLine: e.description != null,
                     ),
                 ],

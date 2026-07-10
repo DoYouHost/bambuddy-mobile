@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_file.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -247,75 +248,87 @@ class _PrinterFileManagerScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final selectable = _selectableFiles;
     final allSelected =
         selectable.isNotEmpty && _selected.containsAll(selectable.map((f) => f.path));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.pfmTitle),
-            Text(
-              widget.printerName,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-        actions: [
-          if (_storage.usedBytes != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  l10n.pfmStorageUsed(_formatBytes(_storage.usedBytes!)),
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.pfmTitle,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(18),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                widget.printerName,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: t.textTertiary,
                 ),
               ),
             ),
-          PopupMenuButton<PrinterFileSort>(
-            icon: const Icon(Icons.sort),
-            tooltip: l10n.pfmSortTooltip,
-            initialValue: _sort,
-            onSelected: (s) => setState(() => _sort = s),
-            itemBuilder: (_) => [
-              _sortItem(PrinterFileSort.nameAsc, l10n.pfmSortNameAsc),
-              _sortItem(PrinterFileSort.nameDesc, l10n.pfmSortNameDesc),
-              _sortItem(PrinterFileSort.sizeDesc, l10n.pfmSortSizeLargest),
-              _sortItem(PrinterFileSort.sizeAsc, l10n.pfmSortSizeSmallest),
-              _sortItem(PrinterFileSort.dateDesc, l10n.pfmSortDateNewest),
-              _sortItem(PrinterFileSort.dateAsc, l10n.pfmSortDateOldest),
-            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: l10n.pfmRefreshTooltip,
-            onPressed: _loading ? null : _load,
-          ),
-        ],
+          actions: [
+            if (_storage.usedBytes != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    l10n.pfmStorageUsed(_formatBytes(_storage.usedBytes!)),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontMono,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: t.textTertiary,
+                    ),
+                  ),
+                ),
+              ),
+            PopupMenuButton<PrinterFileSort>(
+              icon: Icon(Icons.sort, color: t.textSecondary),
+              tooltip: l10n.pfmSortTooltip,
+              initialValue: _sort,
+              onSelected: (s) => setState(() => _sort = s),
+              itemBuilder: (_) => [
+                _sortItem(PrinterFileSort.nameAsc, l10n.pfmSortNameAsc),
+                _sortItem(PrinterFileSort.nameDesc, l10n.pfmSortNameDesc),
+                _sortItem(PrinterFileSort.sizeDesc, l10n.pfmSortSizeLargest),
+                _sortItem(PrinterFileSort.sizeAsc, l10n.pfmSortSizeSmallest),
+                _sortItem(PrinterFileSort.dateDesc, l10n.pfmSortDateNewest),
+                _sortItem(PrinterFileSort.dateAsc, l10n.pfmSortDateOldest),
+              ],
+            ),
+            IconButton(
+              icon: Icon(Icons.refresh, color: t.textSecondary),
+              tooltip: l10n.pfmRefreshTooltip,
+              onPressed: _loading ? null : _load,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            _quickNav(t, l10n),
+            _breadcrumb(t),
+            _searchAndSelectAll(t, l10n, selectable.isNotEmpty, allSelected),
+            Expanded(child: _list(l10n, t)),
+          ],
+        ),
+        bottomNavigationBar:
+            _selected.isEmpty ? null : _actionBar(l10n, t),
       ),
-      body: Column(
-        children: [
-          _quickNav(theme, l10n),
-          _breadcrumb(theme),
-          _searchAndSelectAll(l10n, selectable.isNotEmpty, allSelected),
-          Expanded(child: _list(l10n, theme)),
-        ],
-      ),
-      bottomNavigationBar:
-          _selected.isEmpty ? null : _actionBar(l10n, theme),
     );
   }
 
   PopupMenuItem<PrinterFileSort> _sortItem(PrinterFileSort s, String label) =>
       PopupMenuItem(value: s, child: Text(label));
 
-  Widget _quickNav(ThemeData theme, AppLocalizations l10n) => SizedBox(
+  Widget _quickNav(DashTokens t, AppLocalizations l10n) => SizedBox(
         height: 48,
         child: ListView(
           scrollDirection: Axis.horizontal,
@@ -328,6 +341,16 @@ class _PrinterFileManagerScreenState
                   label: Text(_quickLabel(tab, l10n)),
                   selected: _path == path,
                   onSelected: (_) => _navigateTo(path),
+                  showCheckmark: false,
+                  backgroundColor: t.subCard,
+                  side: BorderSide(color: t.subCardBorder),
+                  selectedColor: t.accentGreen.withValues(alpha: 0.18),
+                  labelStyle: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: _path == path ? t.accentGreenInk : t.textSecondary,
+                  ),
                 ),
               ),
           ],
@@ -341,25 +364,28 @@ class _PrinterFileManagerScreenState
         _QuickTab.timelapse => l10n.pfmTabTimelapse,
       };
 
-  Widget _breadcrumb(ThemeData theme) => Container(
+  Widget _breadcrumb(DashTokens t) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5)),
-          ),
+          border: Border(bottom: BorderSide(color: t.hairline)),
         ),
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: Icon(Icons.arrow_back, color: t.textSecondary),
               visualDensity: VisualDensity.compact,
               onPressed: _path == '/' ? null : _navigateUp,
             ),
             Expanded(
               child: Text(
                 _path,
-                style: theme.textTheme.bodyMedium,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: t.textPrimary,
+                ),
               ),
             ),
           ],
@@ -367,6 +393,7 @@ class _PrinterFileManagerScreenState
       );
 
   Widget _searchAndSelectAll(
+    DashTokens t,
     AppLocalizations l10n,
     bool hasSelectable,
     bool allSelected,
@@ -377,18 +404,22 @@ class _PrinterFileManagerScreenState
           children: [
             Expanded(
               child: TextField(
-                decoration: InputDecoration(
-                  isDense: true,
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: l10n.pfmSearchHint,
-                  border: const OutlineInputBorder(),
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13.5,
+                  color: t.textPrimary,
                 ),
+                decoration: dashFieldDecoration(
+                  t,
+                  hintText: l10n.pfmSearchHint,
+                ).copyWith(prefixIcon: Icon(Icons.search, color: t.textTertiary)),
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),
             if (hasSelectable)
               TextButton(
                 onPressed: _toggleSelectAll,
+                style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
                 child: Text(
                   allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
                 ),
@@ -397,7 +428,7 @@ class _PrinterFileManagerScreenState
         ),
       );
 
-  Widget _list(AppLocalizations l10n, ThemeData theme) {
+  Widget _list(AppLocalizations l10n, DashTokens t) {
     if (_loading && _files == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -405,8 +436,12 @@ class _PrinterFileManagerScreenState
       return _centered(
         icon: Icons.error_outline,
         message: _error!,
-        theme: theme,
-        action: FilledButton.tonal(onPressed: _load, child: Text(l10n.retry)),
+        tokens: t,
+        action: FilledButton(
+          style: dashPrimaryButtonStyle(t),
+          onPressed: _load,
+          child: Text(l10n.retry),
+        ),
       );
     }
     final items = _visible;
@@ -414,25 +449,36 @@ class _PrinterFileManagerScreenState
       return _centered(
         icon: Icons.folder_open,
         message: (_files?.isEmpty ?? true) ? l10n.pfmEmpty : l10n.pfmNoMatches,
-        theme: theme,
+        tokens: t,
       );
     }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: items.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (_, i) => _row(items[i], theme),
+        separatorBuilder: (_, _) =>
+            Divider(height: 1, indent: 16, endIndent: 16, color: t.hairline),
+        itemBuilder: (_, i) => _row(items[i], t),
       ),
     );
   }
 
-  Widget _row(PrinterFile file, ThemeData theme) {
+  Widget _row(PrinterFile file, DashTokens t) {
     if (file.isDirectory) {
       return ListTile(
-        leading: Icon(Icons.folder, color: theme.colorScheme.primary),
-        title: Text(file.name, overflow: TextOverflow.ellipsis),
-        trailing: const Icon(Icons.chevron_right),
+        leading: Icon(Icons.folder, color: t.accentGreenInk),
+        title: Text(
+          file.name,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        trailing: Icon(Icons.chevron_right, color: t.textTertiary),
         onTap: () => _navigateTo(file.path),
       );
     }
@@ -441,11 +487,29 @@ class _PrinterFileManagerScreenState
       leading: Checkbox(
         value: selected,
         onChanged: (_) => _toggleSelection(file.path),
+        activeColor: t.accentGreen,
+        checkColor: const Color(0xFF0A0C08),
       ),
-      title: Text(file.name, overflow: TextOverflow.ellipsis),
-      subtitle: Text(_subtitle(file)),
-      trailing: Icon(_iconFor(file.name),
-          color: theme.colorScheme.onSurfaceVariant),
+      title: Text(
+        file.name,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w700,
+          color: t.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        _subtitle(file),
+        style: TextStyle(
+          fontFamily: DashTokens.fontMono,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: t.textTertiary,
+        ),
+      ),
+      trailing: Icon(_iconFor(file.name), color: t.textSecondary),
       onTap: () => _toggleSelection(file.path),
     );
   }
@@ -460,38 +524,53 @@ class _PrinterFileManagerScreenState
     return '$size · $d';
   }
 
-  Widget _actionBar(AppLocalizations l10n, ThemeData theme) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(child: Text(l10n.pfmSelected(_selected.length))),
-              if (_busy)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+  Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: t.navBar,
+          border: Border(top: BorderSide(color: t.hairline)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.pfmSelected(_selected.length),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.textSecondary,
+                    ),
                   ),
-                )
-              else ...[
-                TextButton.icon(
-                  onPressed: _download,
-                  icon: const Icon(Icons.download),
-                  label: Text(l10n.pfmDownload),
                 ),
-                const SizedBox(width: 4),
-                TextButton.icon(
-                  onPressed: _delete,
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
+                if (_busy)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else ...[
+                  TextButton.icon(
+                    onPressed: _download,
+                    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+                    icon: const Icon(Icons.download),
+                    label: Text(l10n.pfmDownload),
                   ),
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(l10n.pfmDelete),
-                ),
+                  const SizedBox(width: 4),
+                  TextButton.icon(
+                    onPressed: _delete,
+                    style: TextButton.styleFrom(foregroundColor: t.danger),
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(l10n.pfmDelete),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       );
@@ -499,7 +578,7 @@ class _PrinterFileManagerScreenState
   Widget _centered({
     required IconData icon,
     required String message,
-    required ThemeData theme,
+    required DashTokens tokens,
     Widget? action,
   }) =>
       Center(
@@ -508,9 +587,18 @@ class _PrinterFileManagerScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
+              Icon(icon, size: 48, color: tokens.textTertiary),
               const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: tokens.textSecondary,
+                ),
+              ),
               if (action != null) ...[const SizedBox(height: 16), action],
             ],
           ),

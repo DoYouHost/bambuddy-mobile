@@ -34,6 +34,8 @@ class DashTokens {
     required this.hairline,
     required this.dottedRule,
     required this.navBar,
+    required this.overlaySurface,
+    required this.overlayBorder,
   });
 
   final Brightness brightness;
@@ -82,6 +84,13 @@ class DashTokens {
   /// Bottom navigation bar background.
   final Color navBar;
 
+  /// Opaque surface for floating overlays (dialogs, popup menus, snackbars,
+  /// bottom sheets) — unlike [cardGradient]/[subCard], which are translucent
+  /// washes meant to sit on [backgroundGradient], these overlays float above
+  /// whatever route is behind them and need a solid fill to stay legible.
+  final Color overlaySurface;
+  final Color overlayBorder;
+
   static const String fontUi = 'Manrope';
   static const String fontMono = 'JetBrainsMono';
 
@@ -121,7 +130,9 @@ class DashTokens {
         gaugeTrack = const Color(0x10FFFFFF),
         hairline = const Color(0x14FFFFFF),
         dottedRule = const Color(0x24FFFFFF),
-        navBar = const Color(0x59000000);
+        navBar = const Color(0x59000000),
+        overlaySurface = const Color(0xFF0E1310),
+        overlayBorder = const Color(0x24FFFFFF);
 
   const DashTokens.light()
       : brightness = Brightness.light,
@@ -152,7 +163,9 @@ class DashTokens {
         gaugeTrack = const Color(0x14000000),
         hairline = const Color(0x14000000),
         dottedRule = const Color(0x1F000000),
-        navBar = const Color(0x0A000000);
+        navBar = const Color(0x0A000000),
+        overlaySurface = const Color(0xFFF6F8F4),
+        overlayBorder = const Color(0x14000000);
 }
 
 /// Full-screen gradient backdrop for a "2a" screen. Wrap a transparent
@@ -261,4 +274,376 @@ class DashPill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shared field chrome for form screens: rounded [DashTokens.subCard] fill
+/// with a hairline border, turning [DashTokens.accentGreen] on focus. Same
+/// look as the inventory spool form's decoration.
+InputDecoration dashFieldDecoration(
+  DashTokens t, {
+  String? labelText,
+  String? hintText,
+  String? helperText,
+  String? errorText,
+  Widget? suffixIcon,
+  Widget? prefixIcon,
+}) {
+  final radius = BorderRadius.circular(14);
+  OutlineInputBorder border(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+          borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+  return InputDecoration(
+    isDense: true,
+    filled: true,
+    fillColor: t.subCard,
+    labelText: labelText,
+    hintText: hintText,
+    helperText: helperText,
+    errorText: errorText,
+    suffixIcon: suffixIcon,
+    prefixIcon: prefixIcon,
+    labelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: t.textSecondary,
+    ),
+    floatingLabelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: t.accentGreenInk,
+    ),
+    hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+    helperStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 11,
+      color: t.textTertiary,
+    ),
+    border: border(t.subCardBorder),
+    enabledBorder: border(t.subCardBorder),
+    focusedBorder: border(t.accentGreen, 1.5),
+    errorBorder: border(t.danger),
+    focusedErrorBorder: border(t.danger, 1.5),
+  );
+}
+
+/// Primary CTA button style for Dash screens: filled vivid green with dark
+/// ink, matching the queue screen's "start next" FAB.
+ButtonStyle dashPrimaryButtonStyle(DashTokens t) => FilledButton.styleFrom(
+      backgroundColor: t.accentGreen,
+      foregroundColor: const Color(0xFF0A0C08),
+      disabledBackgroundColor: t.accentGreen.withValues(alpha: 0.35),
+      disabledForegroundColor: const Color(0xFF0A0C08).withValues(alpha: 0.5),
+      textStyle: const TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+
+/// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
+/// fill — fixed regardless of brightness, since the green fill itself is a
+/// constant vivid swatch in both themes.
+const Color _onAccentGreenFill = Color(0xFF0A0C08);
+
+/// App-wide [ThemeData] for [brightness], built from [DashTokens] so every
+/// stock Material widget (dialogs, popup menus, bottom sheets, chips,
+/// snackbars, switches, ...) matches the "2a" screens without each call site
+/// having to opt in individually. Screens/widgets that already read
+/// [DashTokens.of] directly for bespoke layouts are unaffected — this only
+/// changes the *fallback* look of un-migrated stock widgets.
+ThemeData buildDashThemeData(Brightness brightness) {
+  final t = brightness == Brightness.dark
+      ? const DashTokens.dark()
+      : const DashTokens.light();
+
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: t.accentGreen,
+    brightness: brightness,
+  ).copyWith(
+    primary: t.accentGreenInk,
+    onPrimary: _onAccentGreenFill,
+    secondary: t.accentBlue,
+    error: t.danger,
+    onError: Colors.white,
+    surface: t.overlaySurface,
+    onSurface: t.textPrimary,
+    surfaceContainerHighest: t.overlaySurface,
+    surfaceContainerHigh: t.overlaySurface,
+    surfaceContainer: t.overlaySurface,
+    onSurfaceVariant: t.textSecondary,
+    outline: t.subCardBorder,
+    outlineVariant: t.hairline,
+  );
+
+  final baseText = ThemeData(brightness: brightness).textTheme.apply(
+        fontFamily: DashTokens.fontUi,
+        bodyColor: t.textPrimary,
+        displayColor: t.textPrimary,
+      );
+
+  final radius14 = BorderRadius.circular(14);
+  final radius16 = BorderRadius.circular(16);
+  final radius20 = BorderRadius.circular(20);
+
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor:
+        t.isDark ? const Color(0xFF07090A) : const Color(0xFFFDFEFC),
+    textTheme: baseText,
+    primaryTextTheme: baseText,
+    iconTheme: IconThemeData(color: t.textSecondary),
+    primaryIconTheme: IconThemeData(color: t.textPrimary),
+    dividerTheme: DividerThemeData(color: t.hairline, thickness: 1, space: 1),
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.transparent,
+      foregroundColor: t.textPrimary,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      iconTheme: IconThemeData(color: t.textPrimary),
+      titleTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: t.textPrimary,
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: t.overlaySurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: radius16),
+      margin: EdgeInsets.zero,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: t.overlaySurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius20,
+        side: BorderSide(color: t.overlayBorder),
+      ),
+      titleTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: t.textPrimary,
+      ),
+      contentTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 14,
+        color: t.textSecondary,
+      ),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: t.overlaySurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius16,
+        side: BorderSide(color: t.overlayBorder),
+      ),
+      textStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: t.textPrimary,
+      ),
+      iconColor: t.textSecondary,
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: t.overlaySurface,
+      surfaceTintColor: Colors.transparent,
+      modalBackgroundColor: t.overlaySurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        side: BorderSide(color: t.overlayBorder),
+      ),
+      dragHandleColor: t.textTertiary,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: t.overlaySurface,
+      contentTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13.5,
+        color: t.textPrimary,
+      ),
+      actionTextColor: t.accentGreenInk,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius14,
+        side: BorderSide(color: t.overlayBorder),
+      ),
+      behavior: SnackBarBehavior.floating,
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: t.overlaySurface,
+        borderRadius: radius14,
+        border: Border.all(color: t.overlayBorder),
+      ),
+      textStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textPrimary),
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: t.textSecondary,
+      textColor: t.textPrimary,
+      titleTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: t.textPrimary,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 12.5,
+        color: t.textSecondary,
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: t.subCard,
+      selectedColor: t.accentGreen.withValues(alpha: 0.18),
+      disabledColor: t.subCard.withValues(alpha: 0.5),
+      side: BorderSide(color: t.subCardBorder),
+      shape: StadiumBorder(side: BorderSide(color: t.subCardBorder)),
+      labelStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: t.textPrimary,
+      ),
+      secondaryLabelStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: t.accentGreenInk,
+      ),
+      checkmarkColor: t.accentGreenInk,
+      iconTheme: IconThemeData(color: t.textSecondary, size: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? t.accentGreen.withValues(alpha: 0.18)
+                : t.subCard),
+        foregroundColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? t.accentGreenInk
+                : t.textSecondary),
+        side: WidgetStateProperty.resolveWith((states) => BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? t.accentGreen.withValues(alpha: 0.4)
+                : t.subCardBorder)),
+        textStyle: const WidgetStatePropertyAll(TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        )),
+        shape: const WidgetStatePropertyAll(StadiumBorder()),
+      ),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected) ? t.accentGreen : null),
+      trackColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected)
+              ? t.accentGreen.withValues(alpha: 0.4)
+              : t.subCard),
+      trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected) ? t.accentGreen : null),
+      checkColor: const WidgetStatePropertyAll(_onAccentGreenFill),
+      side: BorderSide(color: t.subCardBorder, width: 1.5),
+    ),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected)
+              ? t.accentGreen
+              : t.textTertiary),
+    ),
+    sliderTheme: SliderThemeData(
+      activeTrackColor: t.accentGreen,
+      inactiveTrackColor: t.gaugeTrack,
+      thumbColor: t.accentGreen,
+      overlayColor: t.accentGreen.withValues(alpha: 0.16),
+      valueIndicatorColor: t.overlaySurface,
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: t.accentGreen,
+      linearTrackColor: t.gaugeTrack,
+      circularTrackColor: t.gaugeTrack,
+    ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textPrimary),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: radius16,
+            side: BorderSide(color: t.overlayBorder))),
+      ),
+    ),
+    menuTheme: MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: radius16,
+            side: BorderSide(color: t.overlayBorder))),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      isDense: true,
+      filled: true,
+      fillColor: t.subCard,
+      labelStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary),
+      hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+      border: OutlineInputBorder(
+          borderRadius: radius14, borderSide: BorderSide(color: t.subCardBorder)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: radius14, borderSide: BorderSide(color: t.subCardBorder)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: radius14,
+          borderSide: BorderSide(color: t.accentGreen, width: 1.5)),
+      errorBorder: OutlineInputBorder(
+          borderRadius: radius14, borderSide: BorderSide(color: t.danger)),
+      focusedErrorBorder: OutlineInputBorder(
+          borderRadius: radius14, borderSide: BorderSide(color: t.danger, width: 1.5)),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: dashPrimaryButtonStyle(t)),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: t.subCard,
+        foregroundColor: t.textPrimary,
+        textStyle: const TextStyle(
+            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: radius14),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: t.textPrimary,
+        side: BorderSide(color: t.subCardBorder),
+        textStyle: const TextStyle(
+            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: radius14),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: t.accentGreenInk,
+        textStyle: const TextStyle(
+            fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: radius14),
+      ),
+    ),
+    disabledColor: t.textTertiary,
+    hintColor: t.textTertiary,
+    splashColor: t.accentGreen.withValues(alpha: 0.08),
+    highlightColor: t.accentGreen.withValues(alpha: 0.05),
+  );
 }

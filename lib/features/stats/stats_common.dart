@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'stats_computed.dart';
 
@@ -40,30 +41,36 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
+    final t = DashTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
                   ),
                 ),
-                ?trailing,
-              ],
-            ),
-            const SizedBox(height: 14),
-            child,
-          ],
-        ),
+              ),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
       ),
     );
   }
@@ -110,7 +117,7 @@ class RingGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return SizedBox(
       width: 110,
       height: 110,
@@ -118,13 +125,17 @@ class RingGauge extends StatelessWidget {
         painter: _RingPainter(
           percent: percent.clamp(0, 100).toDouble(),
           color: color,
-          track: theme.colorScheme.surfaceContainerHighest,
+          track: t.gaugeTrack,
         ),
         child: Center(
           child: Text(
             label,
-            style: theme.textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: t.textPrimary,
+            ),
           ),
         ),
       ),
@@ -181,6 +192,7 @@ class LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -190,7 +202,18 @@ class LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
-        Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+        Flexible(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: t.textSecondary,
+            ),
+          ),
+        ),
       ],
     );
   }

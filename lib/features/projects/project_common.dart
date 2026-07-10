@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Known project statuses. The server stores a free string, so the UI offers
@@ -45,13 +46,13 @@ String projectPriorityLabel(AppLocalizations l10n, String priority) =>
       _ => priority,
     };
 
-/// Status accent color, derived from the theme scheme so it adapts to dark mode.
-Color projectStatusColor(ColorScheme scheme, String status) => switch (status) {
-      'active' => scheme.primary,
-      'completed' => scheme.tertiary,
-      'on_hold' => scheme.secondary,
-      'archived' => scheme.outline,
-      _ => scheme.onSurfaceVariant,
+/// Status accent color, from the Dash design tokens.
+Color projectStatusColor(DashTokens t, String status) => switch (status) {
+      'active' => t.accentGreenInk,
+      'completed' => t.accentBlue,
+      'on_hold' => t.accentOrange,
+      'archived' => t.textTertiary,
+      _ => t.textTertiary,
     };
 
 /// Parse a hex color string (`#RRGGBB`, `RRGGBB`, or `#RRGGBBAA`) to a [Color].
@@ -80,15 +81,15 @@ class ProjectColorDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final c = parseProjectColor(color) ?? scheme.surfaceContainerHighest;
+    final t = DashTokens.of(context);
+    final c = parseProjectColor(color) ?? t.textTertiary;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         color: c,
         shape: BoxShape.circle,
-        border: Border.all(color: scheme.outlineVariant, width: 1),
+        border: Border.all(color: t.cardBorder, width: 1),
       ),
     );
   }
@@ -111,7 +112,7 @@ class ProjectColorSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -119,11 +120,11 @@ class ProjectColorSelector extends StatelessWidget {
         // "None" option.
         _swatch(
           context,
-          color: scheme.surfaceContainerHighest,
+          color: t.subCard,
           isSelected: selected == null,
           onTap: () => onChanged(null),
           child: Icon(Icons.format_color_reset_outlined,
-              size: 18, color: scheme.onSurfaceVariant),
+              size: 18, color: t.textSecondary),
         ),
         for (final hex in projectColorPalette)
           _swatch(
@@ -143,7 +144,7 @@ class ProjectColorSelector extends StatelessWidget {
     required VoidCallback onTap,
     Widget? child,
   }) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -153,7 +154,7 @@ class ProjectColorSelector extends StatelessWidget {
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? scheme.onSurface : scheme.outlineVariant,
+            color: isSelected ? t.textPrimary : t.subCardBorder,
             width: isSelected ? 3 : 1,
           ),
         ),
@@ -172,20 +173,24 @@ class ProjectStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    final color = projectStatusColor(scheme, status);
+    final t = DashTokens.of(context);
+    final color = projectStatusColor(t, status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
         projectStatusLabel(l10n, status),
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
-            ?.copyWith(color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: color,
+        ),
       ),
     );
   }

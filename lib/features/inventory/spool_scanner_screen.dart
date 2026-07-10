@@ -3,7 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+
+/// Fixed dark tokens regardless of system theme: this screen is a full-screen
+/// camera overlay (always black chrome + light text for contrast on the live
+/// preview), so it doesn't follow light/dark system theme like other screens.
+const _kScanTokens = DashTokens.dark();
 
 /// Extracts spool id from bambuddy QR code content. Production format is URL
 /// `https://<host>/inventory?spool=24` (param `spool`), but parser is intentionally
@@ -88,14 +94,24 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = _kScanTokens;
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: t.textPrimary,
         elevation: 0,
-        title: Text(l10n.inventoryScanTitle),
+        title: Text(
+          l10n.inventoryScanTitle,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: t.textPrimary,
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: () => _controller.toggleTorch(),
@@ -105,6 +121,9 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
                 state.torchState == TorchState.on
                     ? Icons.flash_on
                     : Icons.flash_off,
+                color: state.torchState == TorchState.on
+                    ? t.accentGreen
+                    : t.textPrimary,
               ),
             ),
           ),
@@ -127,7 +146,7 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
                   width: 240,
                   height: 240,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 3),
+                    border: Border.all(color: t.accentGreen, width: 3),
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -137,10 +156,12 @@ class _SpoolScannerScreenState extends State<SpoolScannerScreen> {
                   child: Text(
                     l10n.inventoryScanHint,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      color: t.textPrimary,
                       fontSize: 16,
-                      shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                      fontWeight: FontWeight.w600,
+                      shadows: const [Shadow(blurRadius: 8, color: Colors.black)],
                     ),
                   ),
                 ),
@@ -163,6 +184,7 @@ class _ScannerError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = _kScanTokens;
     final denied =
         error.errorCode == MobileScannerErrorCode.permissionDenied;
     return Center(
@@ -173,7 +195,7 @@ class _ScannerError extends StatelessWidget {
           children: [
             Icon(
               denied ? Icons.no_photography_outlined : Icons.error_outline,
-              color: Colors.white70,
+              color: t.textSecondary,
               size: 56,
             ),
             const SizedBox(height: 16),
@@ -182,18 +204,25 @@ class _ScannerError extends StatelessWidget {
                   ? l10n.inventoryScanPermissionTitle
                   : l10n.inventoryScanTitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 18),
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                color: t.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             if (denied) ...[
               const SizedBox(height: 8),
               Text(
                 l10n.inventoryScanPermissionBody,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(
+                    fontFamily: DashTokens.fontUi, color: t.textSecondary),
               ),
             ],
             const SizedBox(height: 24),
             FilledButton(
+              style: dashPrimaryButtonStyle(t),
               onPressed: () => Navigator.of(context).maybePop(),
               child: Text(MaterialLocalizations.of(context).closeButtonLabel),
             ),

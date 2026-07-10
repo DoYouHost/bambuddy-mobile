@@ -159,9 +159,10 @@ void main() {
 
     await tester.pumpWidget(_cardWithProviders(item));
 
-    // Zawsze widoczne: światło (wiersz-przełącznik), nawiew komory, pauza/stop.
+    // Zawsze widoczne: światło (wiersz-przełącznik), pauza/stop.
     expect(find.text('Światło komory'), findsOneWidget);
-    expect(find.text('Chłodzenie'), findsOneWidget); // nawiew (tryb 0)
+    // Nawiew komory (tryb 0 = chłodzenie) → ikona płatka śniegu przed wartością.
+    expect(find.byIcon(Icons.ac_unit), findsOneWidget);
     expect(find.text('Pauza'), findsOneWidget);
     expect(find.text('Zatrzymaj'), findsOneWidget);
 

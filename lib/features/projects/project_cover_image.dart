@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../providers.dart';
 
 /// Project cover image. Authenticated via `?token=` (camera token) — the auth
@@ -30,7 +31,7 @@ class ProjectCoverImage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = DashTokens.of(context);
     final radius = borderRadius ?? BorderRadius.circular(12);
 
     Widget placeholder([IconData icon = Icons.folder_special_outlined]) =>
@@ -38,11 +39,12 @@ class ProjectCoverImage extends ConsumerWidget {
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
+            color: t.subCard,
             borderRadius: radius,
+            border: Border.all(color: t.subCardBorder),
           ),
           child: Icon(icon,
-              color: scheme.onSurfaceVariant,
+              color: t.textTertiary,
               size: (width < height ? width : height) * 0.4),
         );
 

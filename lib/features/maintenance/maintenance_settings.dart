@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/confirm_dialog.dart';
 import 'maintenance_icons.dart';
@@ -34,77 +35,96 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final typesAsync = ref.watch(maintenanceTypesProvider);
     final overview =
         ref.watch(maintenanceOverviewProvider).valueOrNull ?? const [];
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.maintenanceSettingsTitle)),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(maintenanceTypesProvider.notifier).refresh();
-          await ref.read(maintenanceOverviewProvider.notifier).refresh();
-        },
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            // --- Maintenance types ---
-            _SectionHeader(
-              title: l10n.maintenanceTypesTitle,
-              subtitle: l10n.maintenanceTypesSubtitle,
-              trailing: Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _restoreDefaults(context, ref, l10n),
-                    icon: const Icon(Icons.restart_alt),
-                    label: Text(l10n.maintenanceRestoreDefaults),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(context, title: l10n.maintenanceSettingsTitle),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(maintenanceTypesProvider.notifier).refresh();
+            await ref.read(maintenanceOverviewProvider.notifier).refresh();
+          },
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              // --- Maintenance types ---
+              _SectionHeader(
+                title: l10n.maintenanceTypesTitle,
+                subtitle: l10n.maintenanceTypesSubtitle,
+                trailing: Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: t.textPrimary,
+                        side: BorderSide(color: t.cardBorder),
+                      ),
+                      onPressed: () => _restoreDefaults(context, ref, l10n),
+                      icon: const Icon(Icons.restart_alt),
+                      label: Text(l10n.maintenanceRestoreDefaults),
+                    ),
+                    FilledButton.icon(
+                      style: dashPrimaryButtonStyle(t),
+                      onPressed: () => openTypeForm(context),
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.maintenanceAddType),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              typesAsync.when(
+                skipLoadingOnReload: true,
+                skipLoadingOnRefresh: true,
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l10n.connectFailed),
+                ),
+                data: (types) => _DashCard(
+                  children: [for (final ty in types) _TypeTile(type: ty)],
+                ),
+              ),
+
+              // --- Per-printer interval overrides + mute ---
+              if (overview.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _SectionHeader(
+                  title: l10n.maintenanceOverridesTitle,
+                  subtitle: l10n.maintenanceOverridesSubtitle,
+                ),
+                const SizedBox(height: 8),
+                for (final printer in overview) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+                    child: Text(
+                      printer.printerName,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: t.accentGreenInk,
+                      ),
+                    ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => openTypeForm(context),
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.maintenanceAddType),
+                  _DashCard(
+                    children: [
+                      for (final item in printer.maintenanceItems)
+                        _OverrideTile(item: item),
+                    ],
                   ),
                 ],
-              ),
-            ),
-            typesAsync.when(
-              skipLoadingOnReload: true,
-              skipLoadingOnRefresh: true,
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(l10n.connectFailed),
-              ),
-              data: (types) => Column(
-                children: [for (final t in types) _TypeTile(type: t)],
-              ),
-            ),
-
-            // --- Per-printer interval overrides + mute ---
-            if (overview.isNotEmpty) ...[
-              const Divider(height: 24),
-              _SectionHeader(
-                title: l10n.maintenanceOverridesTitle,
-                subtitle: l10n.maintenanceOverridesSubtitle,
-              ),
-              for (final printer in overview) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Text(
-                    printer.printerName,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                ),
-                for (final item in printer.maintenanceItems)
-                  _OverrideTile(item: item),
               ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -142,15 +162,60 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+    final t = DashTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: t.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
+            color: t.textTertiary,
+          ),
+        ),
+        if (trailing != null) ...[const SizedBox(height: 10), trailing!],
+      ],
+    );
+  }
+}
+
+/// Card grouping related rows — same container styling as the maintenance
+/// screen's printer cards.
+class _DashCard extends StatelessWidget {
+  const _DashCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.cardBorder),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          Text(subtitle, style: theme.textTheme.bodySmall),
-          if (trailing != null) ...[const SizedBox(height: 8), trailing!],
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, indent: 12, endIndent: 12, color: t.hairline),
+            children[i],
+          ],
         ],
       ),
     );
@@ -166,13 +231,26 @@ class _TypeTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-        child: Icon(maintenanceIcon(type.icon), size: 20),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: t.accentGreen.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(maintenanceIcon(type.icon), size: 18, color: t.accentGreenInk),
       ),
-      title: Text(type.name),
+      title: Text(
+        type.name,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w700,
+          color: t.textPrimary,
+        ),
+      ),
       subtitle: Text(
         [
           type.isDays
@@ -180,10 +258,16 @@ class _TypeTile extends ConsumerWidget {
               : l10n.maintenanceEveryHours(type.defaultIntervalHours.round()),
           if (type.isSystem) l10n.maintenanceSystemType,
         ].join(' · '),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: t.textTertiary,
+        ),
       ),
       onTap: () => openTypeForm(context, existing: type),
       trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
+        icon: Icon(Icons.delete_outline, color: t.textSecondary),
         tooltip: l10n.inventoryDelete,
         onPressed: () => _delete(context, ref, l10n),
       ),
@@ -222,6 +306,7 @@ class _OverrideTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final unit = item.intervalType == 'days'
         ? l10n.maintenanceEveryDays(item.intervalHours.round())
         : l10n.maintenanceEveryHours(item.intervalHours.round());
@@ -229,9 +314,26 @@ class _OverrideTile extends ConsumerWidget {
       opacity: item.enabled ? 1 : 0.5,
       child: ListTile(
         dense: true,
-        leading: Icon(maintenanceIcon(item.maintenanceTypeIcon)),
-        title: Text(item.maintenanceTypeName),
-        subtitle: Text(unit),
+        leading: Icon(maintenanceIcon(item.maintenanceTypeIcon),
+            color: t.textSecondary),
+        title: Text(
+          item.maintenanceTypeName,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: t.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          unit,
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: t.textTertiary,
+          ),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -240,12 +342,13 @@ class _OverrideTile extends ConsumerWidget {
                 item.enabled
                     ? Icons.notifications_active_outlined
                     : Icons.notifications_off_outlined,
+                color: t.textSecondary,
               ),
               tooltip: item.enabled ? l10n.maintenanceMute : l10n.maintenanceUnmute,
               onPressed: () => _toggleMute(context, ref, l10n),
             ),
             IconButton(
-              icon: const Icon(Icons.edit_outlined),
+              icon: Icon(Icons.edit_outlined, color: t.textSecondary),
               tooltip: l10n.maintenanceEditInterval,
               onPressed: () => _editInterval(context, ref, l10n),
             ),

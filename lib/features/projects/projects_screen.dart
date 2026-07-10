@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -22,65 +23,76 @@ class ProjectsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final async = ref.watch(projectsListProvider);
     final filter = ref.watch(projectStatusFilterProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.projectsTitle),
-        actions: [
-          PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_list),
-            tooltip: l10n.projectStatus,
-            initialValue: filter,
-            onSelected: (v) =>
-                ref.read(projectStatusFilterProvider.notifier).state =
-                    v == '' ? null : v,
-            itemBuilder: (_) => [
-              PopupMenuItem(value: '', child: Text(l10n.projectsFilterAll)),
-              for (final s in projectStatusValues)
-                PopupMenuItem(value: s, child: Text(projectStatusLabel(l10n, s))),
-            ],
-          ),
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              if (v == 'import') _importProject(context, ref);
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'import', child: Text(l10n.projectMenuImport)),
-            ],
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openCreate(context),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.projectCreate),
-      ),
-      body: async.when(
-        skipLoadingOnReload: true,
-        skipLoadingOnRefresh: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AsyncErrorView(
-          message: err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-          retryLabel: l10n.retry,
-          onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.projectsTitle,
+          actions: [
+            PopupMenuButton<String?>(
+              icon: Icon(Icons.filter_list, color: t.textSecondary),
+              tooltip: l10n.projectStatus,
+              initialValue: filter,
+              onSelected: (v) =>
+                  ref.read(projectStatusFilterProvider.notifier).state =
+                      v == '' ? null : v,
+              itemBuilder: (_) => [
+                PopupMenuItem(value: '', child: Text(l10n.projectsFilterAll)),
+                for (final s in projectStatusValues)
+                  PopupMenuItem(
+                      value: s, child: Text(projectStatusLabel(l10n, s))),
+              ],
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: t.textSecondary),
+              onSelected: (v) {
+                if (v == 'import') _importProject(context, ref);
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                    value: 'import', child: Text(l10n.projectMenuImport)),
+              ],
+            ),
+          ],
         ),
-        data: (projects) => RefreshIndicator(
-          onRefresh: () => ref.read(projectsListProvider.notifier).refresh(),
-          child: projects.isEmpty
-              ? EmptyStateView(
-                  message: l10n.projectsEmpty,
-                  icon: Icons.folder_special_outlined,
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
-                  itemCount: projects.length,
-                  itemBuilder: (_, i) => _ProjectCard(
-                    project: projects[i],
-                    onTap: () => context.push('/projects/${projects[i].id}'),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: t.accentGreen,
+          foregroundColor: const Color(0xFF0A0C08),
+          onPressed: () => _openCreate(context),
+          icon: const Icon(Icons.add),
+          label: Text(l10n.projectCreate),
+        ),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message:
+                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
+            retryLabel: l10n.retry,
+            onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
+          ),
+          data: (projects) => RefreshIndicator(
+            onRefresh: () => ref.read(projectsListProvider.notifier).refresh(),
+            child: projects.isEmpty
+                ? EmptyStateView(
+                    message: l10n.projectsEmpty,
+                    icon: Icons.folder_special_outlined,
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                    itemCount: projects.length,
+                    itemBuilder: (_, i) => _ProjectCard(
+                      project: projects[i],
+                      onTap: () => context.push('/projects/${projects[i].id}'),
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
     );
@@ -117,7 +129,7 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final fraction = progressFraction(project.progressPercent);
     final counts = <String>[
@@ -126,75 +138,99 @@ class _ProjectCard extends StatelessWidget {
       if (project.queueCount > 0) '${l10n.projectStatQueued} ${project.queueCount}',
     ];
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ProjectCoverImage(
-                projectId: project.id,
-                hasCover: project.hasCover,
-                width: 64,
-                height: 64,
-                cacheBust: project.createdAt,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ProjectColorDot(color: project.color),
-                        const SizedBox(width: 8),
-                        Expanded(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: t.cardGradient,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: t.cardBorder),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ProjectCoverImage(
+                  projectId: project.id,
+                  hasCover: project.hasCover,
+                  width: 64,
+                  height: 64,
+                  borderRadius: BorderRadius.circular(16),
+                  cacheBust: project.createdAt,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ProjectColorDot(color: project.color),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              project.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontUi,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                color: t.textPrimary,
+                              ),
+                            ),
+                          ),
+                          ProjectStatusChip(status: project.status),
+                        ],
+                      ),
+                      if (project.description != null &&
+                          project.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            project.name,
-                            style: theme.textTheme.titleMedium,
-                            maxLines: 1,
+                            project.description!,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: t.textSecondary,
+                            ),
                           ),
                         ),
-                        ProjectStatusChip(status: project.status),
+                      const SizedBox(height: 8),
+                      if (project.progressPercent != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: fraction,
+                            minHeight: 6,
+                            backgroundColor: t.gaugeTrack,
+                            valueColor: AlwaysStoppedAnimation(t.accentGreen),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                       ],
-                    ),
-                    if (project.description != null &&
-                        project.description!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          project.description!,
-                          style: theme.textTheme.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        counts.join(' · '),
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.textTertiary,
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    if (project.progressPercent != null) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: fraction,
-                          minHeight: 6,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
                     ],
-                    Text(
-                      counts.join(' · '),
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

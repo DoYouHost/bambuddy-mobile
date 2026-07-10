@@ -6,13 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/models/archive_stats.dart';
+import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
-
-/// Default chart green (consistent with app theme).
-const _accent = Color(0xFF22C55E);
 
 // ── Failure Analysis ────────────────────────────────────────────────────────
 
@@ -22,7 +20,7 @@ class FailureAnalysisCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final rangeLabel =
         statsRangeLabel(l10n, ref.watch(statsFilterProvider).range);
     final async = ref.watch(failureAnalysisProvider);
@@ -35,12 +33,15 @@ class FailureAnalysisCard extends ConsumerWidget {
         ),
         error: (_, _) => SizedBox(
           height: 60,
-          child: Center(child: Text(l10n.statsLoadFailed)),
+          child: Center(
+            child: Text(l10n.statsLoadFailed,
+                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
+          ),
         ),
         data: (f) {
           final rateColor = f.failureRate <= 5
-              ? _accent
-              : (f.failureRate <= 15 ? Colors.orange : theme.colorScheme.error);
+              ? t.accentGreen
+              : (f.failureRate <= 15 ? t.accentOrange : t.danger);
           final reasons = f.failuresByReason.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
           return Column(
@@ -51,34 +52,55 @@ class FailureAnalysisCard extends ConsumerWidget {
                 children: [
                   Text(
                     '${fmtNum(f.failureRate)}%',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontMono,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
                       color: rateColor,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(rangeLabel, style: theme.textTheme.bodySmall),
+                    child: Text(
+                      rangeLabel,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 12,
+                        color: t.textTertiary,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 l10n.statsFailedOfTotal(f.failedPrints, f.totalPrints),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: t.textTertiary,
+                ),
               ),
               if (reasons.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text(l10n.statsNoFailures),
+                  child: Text(
+                    l10n.statsNoFailures,
+                    style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary),
+                  ),
                 )
               else ...[
                 const SizedBox(height: 14),
                 Text(
                   l10n.statsTopFailureReasons,
-                  style: theme.textTheme.labelMedium,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: t.accentGreenInk,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 for (final e in reasons.take(5))
@@ -86,10 +108,27 @@ class FailureAnalysisCard extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
-                        Expanded(child: Text(e.key, overflow: TextOverflow.ellipsis)),
-                        Text('${e.value}',
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        Expanded(
+                          child: Text(
+                            e.key,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: t.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${e.value}',
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -122,7 +161,7 @@ class PrintActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final days = data.printsByDay;
     final maxCount = days.values.fold<int>(1, math.max);
 
@@ -138,14 +177,17 @@ class PrintActivityCard extends StatelessWidget {
         ? fullStartMonday.add(Duration(days: (fullWeeks - _maxWeeks) * 7))
         : fullStartMonday;
 
-    final track = theme.colorScheme.surfaceContainerHighest;
-    final labelStyle = theme.textTheme.bodySmall
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10);
+    final track = t.gaugeTrack;
+    final labelStyle = TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 10,
+      color: t.textTertiary,
+    );
 
     Color cellColor(DateTime day) {
       final n = days[day] ?? 0;
       if (n == 0) return track;
-      return Color.lerp(track, _accent, (n / maxCount).clamp(0.2, 1.0))!;
+      return Color.lerp(track, t.accentGreen, (n / maxCount).clamp(0.2, 1.0))!;
     }
 
     DateTime dayAt(int w, int d) => startMonday.add(Duration(days: w * 7 + d));
@@ -238,20 +280,20 @@ class PrintActivityCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(l10n.statsHeatmapLess, style: theme.textTheme.bodySmall),
+              Text(l10n.statsHeatmapLess, style: labelStyle),
               const SizedBox(width: 6),
-              for (final t in [0.0, 0.33, 0.66, 1.0])
+              for (final frac in [0.0, 0.33, 0.66, 1.0])
                 Container(
                   width: 13,
                   height: 13,
                   margin: const EdgeInsets.all(1.5),
                   decoration: BoxDecoration(
-                    color: t == 0 ? track : Color.lerp(track, _accent, t)!,
+                    color: frac == 0 ? track : Color.lerp(track, t.accentGreen, frac)!,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               const SizedBox(width: 6),
-              Text(l10n.statsHeatmapMore, style: theme.textTheme.bodySmall),
+              Text(l10n.statsHeatmapMore, style: labelStyle),
             ],
           ),
         ],
@@ -324,32 +366,51 @@ class _RecordRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 22, color: theme.colorScheme.primary),
+          Icon(icon, size: 22, color: t.accentGreenInk),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: theme.textTheme.bodySmall),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: t.textSecondary,
+                  ),
+                ),
                 if (sub != null)
-                  Text(sub!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    sub!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 11.5,
+                      color: t.textTertiary,
+                    ),
+                  ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text(value,
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: t.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -366,7 +427,7 @@ class BarList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Column(
       children: [
         for (var i = 0; i < rows.length; i++) ...[
@@ -376,13 +437,28 @@ class BarList extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(rows[i].label,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      rows[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Text(rows[i].value,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    rows[i].value,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontMono,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: t.textTertiary,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -391,8 +467,8 @@ class BarList extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: rows[i].fraction.clamp(0, 1).toDouble(),
                   minHeight: 8,
-                  color: rows[i].color,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  color: rows[i].color ?? t.accentGreen,
+                  backgroundColor: t.gaugeTrack,
                 ),
               ),
             ],
@@ -492,16 +568,28 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        Text(value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w500,
+            color: t.textTertiary,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: t.textPrimary,
+          ),
+        ),
       ],
     );
   }
@@ -518,14 +606,22 @@ class UsageOverTimeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
+    final axisStyle = TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 10.5,
+      color: t.textTertiary,
+    );
     final points = data.usageOverTime;
     if (points.length < 2) {
       return SectionCard(
         title: l10n.statsUsageOverTime,
         child: SizedBox(
           height: 60,
-          child: Center(child: Text(l10n.statsEmpty)),
+          child: Center(
+            child: Text(l10n.statsEmpty,
+                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
+          ),
         ),
       );
     }
@@ -555,7 +651,7 @@ class UsageOverTimeCard extends StatelessWidget {
                   reservedSize: 38,
                   getTitlesWidget: (v, meta) => Text(
                     v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
-                    style: theme.textTheme.bodySmall,
+                    style: axisStyle,
                   ),
                 ),
               ),
@@ -569,8 +665,7 @@ class UsageOverTimeCard extends StatelessWidget {
                     if (i < 0 || i >= points.length) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(df.format(points[i].key),
-                          style: theme.textTheme.bodySmall),
+                      child: Text(df.format(points[i].key), style: axisStyle),
                     );
                   },
                 ),
@@ -581,12 +676,12 @@ class UsageOverTimeCard extends StatelessWidget {
                 spots: spots,
                 isCurved: true,
                 preventCurveOverShooting: true,
-                color: _accent,
+                color: t.accentGreen,
                 barWidth: 2,
                 dotData: const FlDotData(show: false),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: _accent.withValues(alpha: 0.15),
+                  color: t.accentGreen.withValues(alpha: 0.15),
                 ),
               ),
             ],
@@ -669,7 +764,12 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                         ),
                         Text(
                           '${_metric.format(_metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: DashTokens.of(context).textTertiary,
+                          ),
                         ),
                       ],
                     ),
@@ -693,6 +793,7 @@ class SuccessByMaterialCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final entries = data.byMaterial.entries.toList()
       ..sort((a, b) => b.value.successRate.compareTo(a.value.successRate));
     return SectionCard(
@@ -704,7 +805,7 @@ class SuccessByMaterialCard extends StatelessWidget {
               label: e.key,
               value: '${e.value.successRate.round()}% (${e.value.prints})',
               fraction: e.value.successRate / 100,
-              color: _accent,
+              color: t.accentGreen,
             ),
         ],
       ),
@@ -722,13 +823,19 @@ class ColorDistributionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final entries = data.gramsByColor.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     if (entries.isEmpty) {
       return SectionCard(
         title: l10n.statsColorDistribution,
-        child: SizedBox(height: 50, child: Center(child: Text(l10n.statsEmpty))),
+        child: SizedBox(
+          height: 50,
+          child: Center(
+            child: Text(l10n.statsEmpty,
+                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
+          ),
+        ),
       );
     }
     final total = entries.fold<double>(0, (s, e) => s + e.value);
@@ -756,7 +863,7 @@ class ColorDistributionCard extends StatelessWidget {
                           for (final e in entries)
                             PieChartSectionData(
                               value: e.value,
-                              color: colorFromHex(e.key) ?? theme.disabledColor,
+                              color: colorFromHex(e.key) ?? t.textTertiary,
                               radius: 20,
                               showTitle: false,
                             ),
@@ -766,11 +873,23 @@ class ColorDistributionCard extends StatelessWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(fmtGrams(total),
-                            style: theme.textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                        Text(l10n.statsColorsCount(entries.length),
-                            style: theme.textTheme.bodySmall),
+                        Text(
+                          fmtGrams(total),
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          l10n.statsColorsCount(entries.length),
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 11,
+                            color: t.textTertiary,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -784,7 +903,7 @@ class ColorDistributionCard extends StatelessWidget {
                   children: [
                     for (final e in top)
                       _ColorChip(
-                        color: colorFromHex(e.key) ?? theme.disabledColor,
+                        color: colorFromHex(e.key) ?? t.textTertiary,
                         label: '${(e.value / total * 100).round()}%',
                       ),
                   ],
@@ -795,8 +914,14 @@ class ColorDistributionCard extends StatelessWidget {
           if (moreCount > 0)
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Text(l10n.statsMoreCount(moreCount),
-                  style: theme.textTheme.bodySmall),
+              child: Text(
+                l10n.statsMoreCount(moreCount),
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 11.5,
+                  color: t.textTertiary,
+                ),
+              ),
             ),
         ],
       ),
@@ -813,12 +938,13 @@ class _ColorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.subCardBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -829,11 +955,19 @@ class _ColorChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: theme.dividerColor),
+              border: Border.all(color: t.cardBorder),
             ),
           ),
           const SizedBox(width: 6),
-          Text(label, style: theme.textTheme.bodyMedium),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -854,7 +988,12 @@ class _BarHistogram extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = DashTokens.of(context);
+    final axisStyle = TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 10.5,
+      color: t.textTertiary,
+    );
     final maxY = values.fold<double>(1, math.max);
     return SizedBox(
       height: 170,
@@ -872,9 +1011,9 @@ class _BarHistogram extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 30,
-                getTitlesWidget: (v, meta) =>
-                    v == meta.max ? const SizedBox.shrink() : Text(v.toInt().toString(),
-                        style: theme.textTheme.bodySmall),
+                getTitlesWidget: (v, meta) => v == meta.max
+                    ? const SizedBox.shrink()
+                    : Text(v.toInt().toString(), style: axisStyle),
               ),
             ),
             bottomTitles: AxisTitles(
@@ -887,7 +1026,7 @@ class _BarHistogram extends StatelessWidget {
                   if (i % everyLabel != 0) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(labels[i], style: theme.textTheme.bodySmall),
+                    child: Text(labels[i], style: axisStyle),
                   );
                 },
               ),
@@ -898,7 +1037,7 @@ class _BarHistogram extends StatelessWidget {
               BarChartGroupData(x: i, barRods: [
                 BarChartRodData(
                   toY: values[i],
-                  color: _accent,
+                  color: t.accentGreen,
                   width: 10,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
                 ),
