@@ -23,6 +23,7 @@ import '../../inventory/inventory_screen.dart'
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
+import '../skip_objects_screen.dart';
 import '../smart_plugs_providers.dart';
 import '../../../core/theme/dash_theme.dart';
 import 'ams_history_sheet.dart';
@@ -379,6 +380,22 @@ class _HeaderActions extends StatelessWidget {
             ),
           ),
         ),
+        // Skip objects only makes sense during an active print.
+        if (printing) ...[
+          const SizedBox(width: 8),
+          _HeaderIconButton(
+            tooltip: l10n.skipObjectsTitle,
+            icon: Icons.layers_clear_outlined,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SkipObjectsScreen(
+                  printerId: printerId,
+                  printerName: printerName,
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(width: 8),
         _SmartPlugButton(printerId: printerId, printing: printing),
       ],

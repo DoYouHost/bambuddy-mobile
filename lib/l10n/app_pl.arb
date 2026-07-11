@@ -49,6 +49,36 @@
   "ctrlStopConfirmBody": "To anuluje bieżący wydruk. Nie da się go wznowić.",
   "ctrlForbidden": "Ten klucz API nie może sterować drukarką",
   "ctrlFailed": "Nie udało się wysłać polecenia",
+  "skipObjectsTitle": "Pomiń obiekty",
+  "skipObjectsSkip": "Pomiń",
+  "skipObjectsSkippedTag": "Pominięto",
+  "skipObjectsSkippedToast": "Pominięto „{name}”",
+  "@skipObjectsSkippedToast": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "skipObjectsConfirmTitle": "Pominąć ten obiekt?",
+  "skipObjectsConfirmBody": "„{name}” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.",
+  "@skipObjectsConfirmBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "skipObjectsMatchInfo": "Dopasuj ID do ekranu drukarki",
+  "skipObjectsMatchHint": "Ekran drukarki pokazuje ID obiektów na stole",
+  "skipObjectsCounter": "{skipped}/{total} pominięto",
+  "@skipObjectsCounter": {
+    "placeholders": { "skipped": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "skipObjectsActiveCount": "{count} aktywnych",
+  "@skipObjectsActiveCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsWaitForLayer": "Pomijanie dostępne od warstwy 2 (obecnie warstwa {layer})",
+  "@skipObjectsWaitForLayer": {
+    "placeholders": { "layer": { "type": "int" } }
+  },
+  "skipObjectsEmpty": "Brak obiektów do druku",
+  "skipObjectsEmptyHint": "Obiekty wczytują się po rozpoczęciu wydruku. Odśwież, jeśli druk trwa.",
+  "skipObjectsReload": "Odśwież",
+  "skipObjectsLoadFailed": "Nie udało się wczytać obiektów.",
   "speedSilent": "Cichy",
   "speedStandard": "Standard",
   "speedSport": "Sport",

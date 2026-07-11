@@ -374,6 +374,96 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the command'**
   String get ctrlFailed;
 
+  /// Skip-objects screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Skip objects'**
+  String get skipObjectsTitle;
+
+  /// Button: skip a single object
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skipObjectsSkip;
+
+  /// Status label on an already-skipped object
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get skipObjectsSkippedTag;
+
+  /// Snackbar after an object is skipped
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped \"{name}\"'**
+  String skipObjectsSkippedToast(String name);
+
+  /// Confirm dialog title before skipping
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this object?'**
+  String get skipObjectsConfirmTitle;
+
+  /// Confirm dialog body before skipping an object
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" will be skipped for the rest of this print. This can\'t be undone.'**
+  String skipObjectsConfirmBody(String name);
+
+  /// Info banner title on the skip screen
+  ///
+  /// In en, this message translates to:
+  /// **'Match IDs with your printer display'**
+  String get skipObjectsMatchInfo;
+
+  /// Info banner subtitle on the skip screen
+  ///
+  /// In en, this message translates to:
+  /// **'The printer screen shows object IDs on the build plate'**
+  String get skipObjectsMatchHint;
+
+  /// Skipped-of-total counter in the info banner
+  ///
+  /// In en, this message translates to:
+  /// **'{skipped}/{total} skipped'**
+  String skipObjectsCounter(int skipped, int total);
+
+  /// Active (not skipped) object count badge on the plate preview
+  ///
+  /// In en, this message translates to:
+  /// **'{count} active'**
+  String skipObjectsActiveCount(int count);
+
+  /// Warning: the first layer can't be skipped
+  ///
+  /// In en, this message translates to:
+  /// **'Skipping is available from layer 2 (currently layer {layer})'**
+  String skipObjectsWaitForLayer(int layer);
+
+  /// Empty state title on the skip screen
+  ///
+  /// In en, this message translates to:
+  /// **'No printable objects'**
+  String get skipObjectsEmpty;
+
+  /// Empty state hint on the skip screen
+  ///
+  /// In en, this message translates to:
+  /// **'Objects load when a print starts. Reload if a print is running.'**
+  String get skipObjectsEmptyHint;
+
+  /// Button: re-read objects from the print file
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get skipObjectsReload;
+
+  /// Error state on the skip screen
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load printable objects.'**
+  String get skipObjectsLoadFailed;
+
   /// No description provided for @speedSilent.
   ///
   /// In en, this message translates to:

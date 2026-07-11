@@ -57,6 +57,51 @@
   "ctrlStopConfirmBody": "This cancels the current print. It cannot be resumed.",
   "ctrlForbidden": "This API key can't control the printer",
   "ctrlFailed": "Couldn't send the command",
+  "skipObjectsTitle": "Skip objects",
+  "@skipObjectsTitle": { "description": "Skip-objects screen title" },
+  "skipObjectsSkip": "Skip",
+  "@skipObjectsSkip": { "description": "Button: skip a single object" },
+  "skipObjectsSkippedTag": "Skipped",
+  "@skipObjectsSkippedTag": { "description": "Status label on an already-skipped object" },
+  "skipObjectsSkippedToast": "Skipped \"{name}\"",
+  "@skipObjectsSkippedToast": {
+    "description": "Snackbar after an object is skipped",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "skipObjectsConfirmTitle": "Skip this object?",
+  "@skipObjectsConfirmTitle": { "description": "Confirm dialog title before skipping" },
+  "skipObjectsConfirmBody": "\"{name}\" will be skipped for the rest of this print. This can't be undone.",
+  "@skipObjectsConfirmBody": {
+    "description": "Confirm dialog body before skipping an object",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "skipObjectsMatchInfo": "Match IDs with your printer display",
+  "@skipObjectsMatchInfo": { "description": "Info banner title on the skip screen" },
+  "skipObjectsMatchHint": "The printer screen shows object IDs on the build plate",
+  "@skipObjectsMatchHint": { "description": "Info banner subtitle on the skip screen" },
+  "skipObjectsCounter": "{skipped}/{total} skipped",
+  "@skipObjectsCounter": {
+    "description": "Skipped-of-total counter in the info banner",
+    "placeholders": { "skipped": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "skipObjectsActiveCount": "{count} active",
+  "@skipObjectsActiveCount": {
+    "description": "Active (not skipped) object count badge on the plate preview",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsWaitForLayer": "Skipping is available from layer 2 (currently layer {layer})",
+  "@skipObjectsWaitForLayer": {
+    "description": "Warning: the first layer can't be skipped",
+    "placeholders": { "layer": { "type": "int" } }
+  },
+  "skipObjectsEmpty": "No printable objects",
+  "@skipObjectsEmpty": { "description": "Empty state title on the skip screen" },
+  "skipObjectsEmptyHint": "Objects load when a print starts. Reload if a print is running.",
+  "@skipObjectsEmptyHint": { "description": "Empty state hint on the skip screen" },
+  "skipObjectsReload": "Reload",
+  "@skipObjectsReload": { "description": "Button: re-read objects from the print file" },
+  "skipObjectsLoadFailed": "Couldn't load printable objects.",
+  "@skipObjectsLoadFailed": { "description": "Error state on the skip screen" },
   "speedSilent": "Silent",
   "speedStandard": "Standard",
   "speedSport": "Sport",

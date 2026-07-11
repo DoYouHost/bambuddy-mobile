@@ -33,6 +33,7 @@ import 'data/maintenance_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
@@ -265,6 +266,10 @@ final printersRepositoryProvider = Provider<PrintersRepository>(
 
 /// Printer commands (M4). Shares authenticated Dio with rest — rebuilt on
 /// profile change with [apiClientProvider].
+final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
+  (ref) => SkipObjectsRepository(ref.watch(apiClientProvider).dio),
+);
+
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );

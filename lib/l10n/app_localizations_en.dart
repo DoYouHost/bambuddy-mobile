@@ -162,6 +162,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlFailed => 'Couldn\'t send the command';
 
   @override
+  String get skipObjectsTitle => 'Skip objects';
+
+  @override
+  String get skipObjectsSkip => 'Skip';
+
+  @override
+  String get skipObjectsSkippedTag => 'Skipped';
+
+  @override
+  String skipObjectsSkippedToast(String name) {
+    return 'Skipped \"$name\"';
+  }
+
+  @override
+  String get skipObjectsConfirmTitle => 'Skip this object?';
+
+  @override
+  String skipObjectsConfirmBody(String name) {
+    return '\"$name\" will be skipped for the rest of this print. This can\'t be undone.';
+  }
+
+  @override
+  String get skipObjectsMatchInfo => 'Match IDs with your printer display';
+
+  @override
+  String get skipObjectsMatchHint =>
+      'The printer screen shows object IDs on the build plate';
+
+  @override
+  String skipObjectsCounter(int skipped, int total) {
+    return '$skipped/$total skipped';
+  }
+
+  @override
+  String skipObjectsActiveCount(int count) {
+    return '$count active';
+  }
+
+  @override
+  String skipObjectsWaitForLayer(int layer) {
+    return 'Skipping is available from layer 2 (currently layer $layer)';
+  }
+
+  @override
+  String get skipObjectsEmpty => 'No printable objects';
+
+  @override
+  String get skipObjectsEmptyHint =>
+      'Objects load when a print starts. Reload if a print is running.';
+
+  @override
+  String get skipObjectsReload => 'Reload';
+
+  @override
+  String get skipObjectsLoadFailed => 'Couldn\'t load printable objects.';
+
+  @override
   String get speedSilent => 'Silent';
 
   @override

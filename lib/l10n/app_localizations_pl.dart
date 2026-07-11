@@ -166,6 +166,63 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlFailed => 'Nie udało się wysłać polecenia';
 
   @override
+  String get skipObjectsTitle => 'Pomiń obiekty';
+
+  @override
+  String get skipObjectsSkip => 'Pomiń';
+
+  @override
+  String get skipObjectsSkippedTag => 'Pominięto';
+
+  @override
+  String skipObjectsSkippedToast(String name) {
+    return 'Pominięto „$name”';
+  }
+
+  @override
+  String get skipObjectsConfirmTitle => 'Pominąć ten obiekt?';
+
+  @override
+  String skipObjectsConfirmBody(String name) {
+    return '„$name” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.';
+  }
+
+  @override
+  String get skipObjectsMatchInfo => 'Dopasuj ID do ekranu drukarki';
+
+  @override
+  String get skipObjectsMatchHint =>
+      'Ekran drukarki pokazuje ID obiektów na stole';
+
+  @override
+  String skipObjectsCounter(int skipped, int total) {
+    return '$skipped/$total pominięto';
+  }
+
+  @override
+  String skipObjectsActiveCount(int count) {
+    return '$count aktywnych';
+  }
+
+  @override
+  String skipObjectsWaitForLayer(int layer) {
+    return 'Pomijanie dostępne od warstwy 2 (obecnie warstwa $layer)';
+  }
+
+  @override
+  String get skipObjectsEmpty => 'Brak obiektów do druku';
+
+  @override
+  String get skipObjectsEmptyHint =>
+      'Obiekty wczytują się po rozpoczęciu wydruku. Odśwież, jeśli druk trwa.';
+
+  @override
+  String get skipObjectsReload => 'Odśwież';
+
+  @override
+  String get skipObjectsLoadFailed => 'Nie udało się wczytać obiektów.';
+
+  @override
   String get speedSilent => 'Cichy';
 
   @override

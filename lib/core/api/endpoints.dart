@@ -91,6 +91,24 @@ abstract final class Endpoints {
   static String printSpeed(int printerId) =>
       '$apiPrefix/printers/$printerId/print-speed';
 
+  /// Printable objects for the current print (`GET`). Query `reload=true`
+  /// re-reads them from the 3MF (useful after a restart). Returns
+  /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,
+  /// bbox_all}`.
+  static String printObjects(int printerId) =>
+      '$apiPrefix/printers/$printerId/print/objects';
+
+  /// Skip objects during the current print (`POST`, JSON body is a bare array
+  /// of `identify_id` ints, e.g. `[683]`). Requires `can_control_printer`.
+  static String printSkipObjects(int printerId) =>
+      '$apiPrefix/printers/$printerId/print/skip-objects';
+
+  /// Current print cover image. Query `view=top` gives the top-down build-plate
+  /// render used for the skip-objects overlay. Auth via `?token=` (camera stream
+  /// token), NOT via header — same as [PrinterStatus.coverUrl].
+  static String printerCover(int printerId) =>
+      '$apiPrefix/printers/$printerId/cover';
+
   // --- Queue + archive (M5) ---
 
   // Trailing slash required: server (FastAPI) has route at `/queue/`,

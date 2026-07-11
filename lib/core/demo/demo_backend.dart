@@ -63,6 +63,46 @@ class DemoBackend {
     _paused = false;
     _stoppedUntil = _nowSec() + 90;
     _printAnchor = _stoppedUntil;
+    _skippedObjects.clear();
+  }
+
+  /// Printable objects for the skip-objects screen. Only the X1 (id 1) is
+  /// mid-print in demo; an idle/stopped printer has nothing to skip.
+  Map<String, dynamic> _printObjectsResponse(int pid) {
+    if (pid != 1 || _stopped) {
+      return const {
+        'objects': <Object>[],
+        'total': 0,
+        'skipped_count': 0,
+        'is_printing': false,
+        'bbox_all': null,
+      };
+    }
+    final objects = [
+      for (final o in _x1Objects)
+        {...o, 'skipped': _skippedObjects.contains(o['id'])},
+    ];
+    return {
+      'objects': objects,
+      'total': objects.length,
+      'skipped_count': _skippedObjects.length,
+      'is_printing': true,
+      'bbox_all': _x1BboxAll,
+    };
+  }
+
+  /// Marks the requested ids skipped (X1 only, while printing). Body is a bare
+  /// JSON array of identify_ids — [rawBody], not the coerced map.
+  DemoResult _skipObjects(int pid, Object? rawBody) {
+    if (pid != 1 || _stopped) {
+      return (status: 400, body: {'detail': 'Printer not printing'});
+    }
+    final ids = rawBody is List
+        ? rawBody.map((e) => e is int ? e : int.tryParse('$e')).nonNulls
+        : const <int>[];
+    final valid = ids.where((e) => _x1Objects.any((o) => o['id'] == e)).toList();
+    _skippedObjects.addAll(valid);
+    return _ok({'success': true, 'skipped_objects': valid});
   }
 
   // --- Mutable device state ---
@@ -70,6 +110,21 @@ class DemoBackend {
   final Map<int, bool> _chamberLight = {1: true, 2: false};
   final Map<int, int> _speedLevel = {1: 2, 2: 2};
   final Map<int, bool> _plugOn = {1: true, 2: false};
+
+  /// identify_ids skipped during the current X1 demo print. Reset on stop so a
+  /// fresh cycle shows every object again.
+  final Set<int> _skippedObjects = {};
+
+  /// Printable objects on the X1's current plate ("Drawer organizer x4"), laid
+  /// out 2×2 with plate coordinates (mm) inside [_x1BboxAll] so their markers
+  /// land on the right spots in the skip-objects overlay.
+  static const _x1Objects = [
+    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0},
+    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0},
+    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0},
+    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0},
+  ];
+  static const _x1BboxAll = [88.0, 88.0, 168.0, 168.0];
 
   // --- Routing ---
 
@@ -85,7 +140,7 @@ class DemoBackend {
     final body = requestBody is Map<String, dynamic> ? requestBody : const <String, dynamic>{};
 
     try {
-      return _route(method, seg, q, body) ?? _fallback(method);
+      return _route(method, seg, q, body, requestBody) ?? _fallback(method);
     } on Object {
       return (status: 500, body: {'detail': 'demo backend error'});
     }
@@ -101,6 +156,7 @@ class DemoBackend {
     List<String> s,
     Map<String, String> q,
     Map<String, dynamic> body,
+    Object? rawBody,
   ) {
     int? id(int i) => i < s.length ? int.tryParse(s[i]) : null;
     bool at(int i, String name) => i < s.length && s[i] == name;
@@ -128,12 +184,18 @@ class DemoBackend {
         }
         if (at(2, 'status')) return _ok(statusJson(pid));
         if (at(2, 'print')) {
+          if (at(3, 'objects')) return _ok(_printObjectsResponse(pid));
+          if (at(3, 'skip-objects')) return _skipObjects(pid, rawBody);
           if (pid == 1) {
             if (at(3, 'pause')) _pausePrint();
             if (at(3, 'resume')) _resumePrint();
             if (at(3, 'stop')) _stopPrint();
           }
           return _ok(const {'ok': true});
+        }
+        if (at(2, 'cover')) {
+          // No rendered images in demo; the skip screen falls back gracefully.
+          return _notFound();
         }
         if (at(2, 'chamber-light')) {
           _chamberLight[pid] = q['on'] == 'true';
