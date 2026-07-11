@@ -158,7 +158,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   : Icons.folder_open_outlined,
             )
           : ListView(
-              padding: const EdgeInsets.only(bottom: 88),
+              padding: const EdgeInsets.only(top: 8, bottom: 88),
               children: [
                 for (final f in folders)
                   _FolderTile(
