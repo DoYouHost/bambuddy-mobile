@@ -63,8 +63,8 @@ Point the app at the magic `demo` server and sign in with the credentials below 
 <p align="center">
   <img src="docs/store-assets/screenshots/phone/phone-01-dashboard.png" width="22%" alt="Dashboard">
   <img src="docs/store-assets/screenshots/phone/phone-03-queue.png" width="22%" alt="Print queue">
-  <img src="docs/store-assets/screenshots/phone/phone-05-filaments.png" width="22%" alt="Filament inventory">
-  <img src="docs/store-assets/screenshots/phone/phone-08-statistics.png" width="22%" alt="Statistics">
+  <img src="docs/store-assets/screenshots/phone/phone-04-filaments.png" width="22%" alt="Filament inventory">
+  <img src="docs/store-assets/screenshots/phone/phone-07-statistics.png" width="22%" alt="Statistics">
 </p>
 
 Wear OS:
