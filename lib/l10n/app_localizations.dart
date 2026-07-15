@@ -1310,6 +1310,36 @@ abstract class AppLocalizations {
   /// **'Sign in and connect'**
   String get signInAndConnect;
 
+  /// No description provided for @tryDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Try the demo'**
+  String get tryDemo;
+
+  /// No description provided for @scanApiKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan API key'**
+  String get scanApiKeyTitle;
+
+  /// No description provided for @scanApiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the API key QR code'**
+  String get scanApiKeyHint;
+
+  /// No description provided for @cameraPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access needed'**
+  String get cameraPermissionTitle;
+
+  /// No description provided for @cameraPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera access to scan QR codes.'**
+  String get cameraPermissionBody;
+
   /// No description provided for @errMissingUrl.
   ///
   /// In en, this message translates to:

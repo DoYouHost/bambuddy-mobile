@@ -328,6 +328,11 @@
   "rememberMe": "Remember me",
   "rememberMeSubtitle": "The password is stored in encrypted storage (Android Keystore)",
   "signInAndConnect": "Sign in and connect",
+  "tryDemo": "Try the demo",
+  "scanApiKeyTitle": "Scan API key",
+  "scanApiKeyHint": "Point the camera at the API key QR code",
+  "cameraPermissionTitle": "Camera access needed",
+  "cameraPermissionBody": "Allow camera access to scan QR codes.",
 
   "errMissingUrl": "Enter the server address",
   "errMissingApiKey": "Enter the API key",

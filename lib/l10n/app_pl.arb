@@ -235,6 +235,11 @@
   "rememberMe": "Zapamiętaj mnie",
   "rememberMeSubtitle": "Hasło trafi do szyfrowanego magazynu (Android Keystore)",
   "signInAndConnect": "Zaloguj i połącz",
+  "tryDemo": "Wypróbuj wersję demo",
+  "scanApiKeyTitle": "Zeskanuj klucz API",
+  "scanApiKeyHint": "Skieruj aparat na kod QR z kluczem API",
+  "cameraPermissionTitle": "Potrzebny dostęp do aparatu",
+  "cameraPermissionBody": "Zezwól na dostęp do aparatu, aby skanować kody QR.",
 
   "errMissingUrl": "Podaj adres serwera",
   "errMissingApiKey": "Podaj klucz API",

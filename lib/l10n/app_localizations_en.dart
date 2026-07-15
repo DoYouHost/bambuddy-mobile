@@ -732,6 +732,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInAndConnect => 'Sign in and connect';
 
   @override
+  String get tryDemo => 'Try the demo';
+
+  @override
+  String get scanApiKeyTitle => 'Scan API key';
+
+  @override
+  String get scanApiKeyHint => 'Point the camera at the API key QR code';
+
+  @override
+  String get cameraPermissionTitle => 'Camera access needed';
+
+  @override
+  String get cameraPermissionBody => 'Allow camera access to scan QR codes.';
+
+  @override
   String get errMissingUrl => 'Enter the server address';
 
   @override

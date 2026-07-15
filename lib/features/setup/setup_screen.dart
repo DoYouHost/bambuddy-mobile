@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/demo/demo_config.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/qr_scanner_screen.dart';
+import 'api_key_qr.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
 
@@ -30,6 +33,45 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     _username.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  /// Fill the fields with the demo credentials (store-review mode) and probe
+  /// right away — the user only has to tap "Sign in and connect" afterwards.
+  void _fillDemo() {
+    setState(() {
+      _url.text = 'demo';
+      _username.text = DemoConfig.username;
+      _password.text = DemoConfig.password;
+      _useLogin = true;
+    });
+    ref.read(setupControllerProvider.notifier).probe(_url.text);
+  }
+
+  /// Open the QR scanner and apply a scanned bambuddy config code. The code
+  /// carries the server URL + API key together, so we fill both and re-probe;
+  /// the user just reviews and taps "Save and connect".
+  Future<void> _scanApiKey() async {
+    final l10n = AppLocalizations.of(context);
+    final cfg = await Navigator.of(context).push<ScannedApiKeyConfig>(
+      MaterialPageRoute(
+        builder: (_) => QrScannerScreen<ScannedApiKeyConfig>(
+          title: l10n.scanApiKeyTitle,
+          hint: l10n.scanApiKeyHint,
+          extract: parseScannedApiKey,
+        ),
+      ),
+    );
+    if (cfg == null || !mounted) return;
+    setState(() {
+      _apiKey.text = cfg.apiKey;
+      _useLogin = false; // a scanned config is always an API key
+      if (cfg.baseUrl != null) _url.text = cfg.baseUrl!;
+    });
+    // A combined code carries the URL: probe it so the auth section appears with
+    // the key already filled. A key-only code leaves the current URL untouched.
+    if (cfg.baseUrl != null) {
+      await ref.read(setupControllerProvider.notifier).probe(cfg.baseUrl!);
+    }
   }
 
   @override
@@ -72,6 +114,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     labelText: l10n.serverAddressLabel,
                     hintText: l10n.serverAddressHint,
                     helperText: l10n.serverAddressHelper,
+                    suffixIcon: IconButton(
+                      onPressed: state.busy ? null : _scanApiKey,
+                      tooltip: l10n.scanApiKeyTitle,
+                      icon:
+                          Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                    ),
                   ),
                   onSubmitted: (v) => controller.probe(v),
                 ),
@@ -81,6 +129,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   onPressed:
                       state.busy ? null : () => controller.probe(_url.text),
                   child: Text(l10n.testConnection),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: state.busy ? null : _fillDemo,
+                    icon: Icon(
+                      Icons.play_circle_outline,
+                      size: 18,
+                      color: t.textSecondary,
+                    ),
+                    label: Text(l10n.tryDemo),
+                    style: TextButton.styleFrom(
+                      foregroundColor: t.textSecondary,
+                      textStyle: const TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
                 if (state.busy)
                   const Padding(
@@ -157,6 +225,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               t,
               labelText: l10n.apiKeyLabel,
               hintText: 'bb_…',
+              suffixIcon: IconButton(
+                onPressed: _scanApiKey,
+                tooltip: l10n.scanApiKeyTitle,
+                icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+              ),
             ),
           ),
           const SizedBox(height: 12),

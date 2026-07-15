@@ -748,6 +748,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get signInAndConnect => 'Zaloguj i połącz';
 
   @override
+  String get tryDemo => 'Wypróbuj wersję demo';
+
+  @override
+  String get scanApiKeyTitle => 'Zeskanuj klucz API';
+
+  @override
+  String get scanApiKeyHint => 'Skieruj aparat na kod QR z kluczem API';
+
+  @override
+  String get cameraPermissionTitle => 'Potrzebny dostęp do aparatu';
+
+  @override
+  String get cameraPermissionBody =>
+      'Zezwól na dostęp do aparatu, aby skanować kody QR.';
+
+  @override
   String get errMissingUrl => 'Podaj adres serwera';
 
   @override
