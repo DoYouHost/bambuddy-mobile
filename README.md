@@ -26,9 +26,13 @@ Phone and watch share one `applicationId` (a single Play listing) and differ onl
 
 ## Demo user
 
-- **URL**: demo
-- **User**: demo
-- **Pass**: demo1234
+Point the app at the magic `demo` server and sign in with the credentials below to explore without your own bambuddy server.
+
+| Field    | Value      |
+| -------- | ---------- |
+| URL      | `demo`     |
+| User     | `demo`     |
+| Password | `demo1234` |
 
 ## Features
 
