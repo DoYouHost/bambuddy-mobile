@@ -24,6 +24,12 @@ This app is a companion to the bambuddy server — get and set it up here first:
 
 Phone and watch share one `applicationId` (a single Play listing) and differ only by flavor (`mobile` / `wear`).
 
+## Demo user
+
+- **URL**: demo
+- **User**: demo
+- **Pass**: demo1234
+
 ## Features
 
 **Monitor**
