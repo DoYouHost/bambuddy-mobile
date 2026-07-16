@@ -6,9 +6,10 @@ wear_apk := "build/dist/app-wear-release.apk"
 repo := "DoYouHost/bambuddy-mobile"
 # Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
 emu := "192.168.2.208:5555"
-# Local AVD (Pixel 7, API 35) — boots as emulator-5554 (see dev-env-fedora).
+# Default local AVD (Pixel 7, API 35). Recipes below take an `avd=` argument, so
+# `just emu-list` shows the alternatives (e.g. small360, a 360dp narrow screen).
+# Serials are resolved by AVD name, not hardcoded — the port depends on boot order.
 avd := "pixel35"
-local_emu := "emulator-5554"
 
 # show available commands
 default:
@@ -66,34 +67,76 @@ dev: emu-connect
 itest: emu-connect
     flutter test integration_test/ --flavor mobile
 
-# Idempotent (no-op if emulator-5554 is already online); boots in the background
-# and blocks until Android finishes booting, so local recipes can depend on it.
-# boot the local pixel35 AVD
-emu-local:
+# list local AVDs, marking which are running and on which serial
+emu-list:
     #!/usr/bin/env bash
     set -euo pipefail
-    if adb devices | grep -q "^{{local_emu}}"; then
-        echo "{{local_emu}} already running"
+    for name in $("$HOME/Android/Sdk/emulator/emulator" -list-avds); do
+        serial=$(just _emu-serial "$name" 2>/dev/null || true)
+        if [ -n "$serial" ]; then
+            printf '  %-16s running   %s\n' "$name" "$serial"
+        else
+            printf '  %-16s stopped\n' "$name"
+        fi
+    done
+
+# print the adb serial of a running AVD (fails if it isn't running). An emulator
+# takes whatever port is free, so the serial is looked up by name via `emu avd
+# name` rather than assumed to be 5554.
+_emu-serial avd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for serial in $(adb devices | awk '/^emulator-/ {print $1}'); do
+        if [ "$(adb -s "$serial" emu avd name 2>/dev/null | head -1 | tr -d '\r')" = "{{avd}}" ]; then
+            echo "$serial"
+            exit 0
+        fi
+    done
+    exit 1
+
+# Idempotent (no-op if the AVD is already online); boots in the background and
+# blocks until Android finishes booting, so local recipes can depend on it.
+# boot a local AVD (default: pixel35) — `just emu-local small360`
+emu-local avd=avd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if serial=$(just _emu-serial {{avd}} 2>/dev/null); then
+        echo "{{avd}} already running ($serial)"
         exit 0
+    fi
+    if ! "$HOME/Android/Sdk/emulator/emulator" -list-avds | grep -qx "{{avd}}"; then
+        echo "No such AVD: {{avd}}. Available:" >&2
+        just emu-list >&2
+        exit 1
     fi
     "$HOME/Android/Sdk/emulator/emulator" -avd {{avd}} >/dev/null 2>&1 &
     disown
     echo "Booting {{avd}}..."
-    adb -s {{local_emu}} wait-for-device
-    until [ "$(adb -s {{local_emu}} shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+    for _ in $(seq 1 60); do
+        serial=$(just _emu-serial {{avd}} 2>/dev/null || true)
+        [ -n "${serial:-}" ] && break
         sleep 2
     done
-    echo "{{avd}} ready"
+    [ -n "${serial:-}" ] || { echo "{{avd}} did not come up" >&2; exit 1; }
+    adb -s "$serial" wait-for-device
+    until [ "$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+        sleep 2
+    done
+    echo "{{avd}} ready ($serial)"
 
 # Boots the emulator first if needed; builds, installs and runs with hot reload.
 # This is the primary pre-commit verify loop.
-# run the app (debug) on the local pixel35 AVD
-dev-local: emu-local
-    flutter run -d {{local_emu}} --flavor mobile
+# run the app (debug) on a local AVD (default: pixel35) — `just dev-local small360`
+dev-local avd=avd: (emu-local avd)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flutter run -d "$(just _emu-serial {{avd}})" --flavor mobile
 
-# run integration tests on the local pixel35 AVD (boots it first if needed)
-itest-local: emu-local
-    flutter test integration_test/ --flavor mobile
+# run integration tests on a local AVD (default: pixel35; boots it first if needed)
+itest-local avd=avd: (emu-local avd)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flutter test integration_test/ --flavor mobile -d "$(just _emu-serial {{avd}})"
 
 # one-time setup: open the device list in emu-view's dedicated Chrome profile so
 # "Fit to screen" + Save settings persists there (localStorage, per player=mse).

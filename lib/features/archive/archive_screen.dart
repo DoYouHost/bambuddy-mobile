@@ -218,6 +218,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // Content height varies (wrapped labels, stacked actions, text scale), so
+      // let the sheet grow past the default 9/16 cap instead of overflowing.
+      isScrollControlled: true,
       builder: (_) => _ArchiveSheet(
         archive: archive,
         onReprint: () => _reprint(archive),
@@ -631,68 +634,70 @@ class _ArchiveSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                PrintThumbnail(archiveId: archive.id, size: 72),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        archive.displayName,
-                        style: theme.textTheme.titleMedium,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (archive.designer != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            archive.designer!,
-                            style: theme.textTheme.bodySmall,
-                          ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PrintThumbnail(archiveId: archive.id, size: 72),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          archive.displayName,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                    ],
+                        if (archive.designer != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              archive.designer!,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _SheetPrimaryActions(
-              onAddToQueue: onAddToQueue,
-              onReprint: onReprint,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.view_in_ar_outlined),
-                label: Text(l10n.gcodeViewerOpen),
-                onPressed: onPreviewGcode,
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            _SliceArchiveButton(archive: archive, onSlice: onSlice),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.delete_outline),
-                label: Text(l10n.archiveDelete),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                ),
-                onPressed: onDelete,
+              const SizedBox(height: 16),
+              _SheetPrimaryActions(
+                onAddToQueue: onAddToQueue,
+                onReprint: onReprint,
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.view_in_ar_outlined),
+                  label: Text(l10n.gcodeViewerOpen),
+                  onPressed: onPreviewGcode,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _SliceArchiveButton(archive: archive, onSlice: onSlice),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.archiveDelete),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                  onPressed: onDelete,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -704,8 +709,10 @@ class _ArchiveSheet extends StatelessWidget {
 /// mismatched and taller than the full-width buttons below it, so on narrow
 /// screens they stack full-width instead (which also unwraps the labels).
 ///
-/// Whether a label fits depends on the locale and the user's text scale, so it
-/// is measured rather than guessed from a width breakpoint.
+/// Whether a label fits depends on the locale, the user's text scale and the
+/// button padding this app's theme sets, so the width each button needs for a
+/// single-line label is measured from that resolved style rather than guessed
+/// from a breakpoint.
 class _SheetPrimaryActions extends StatelessWidget {
   const _SheetPrimaryActions({
     required this.onAddToQueue,
@@ -715,15 +722,21 @@ class _SheetPrimaryActions extends StatelessWidget {
   final VoidCallback onAddToQueue;
   final VoidCallback onReprint;
 
-  /// Everything in an icon button that isn't the label: icon, gap, and the
-  /// horizontal padding on both sides.
-  static const double _buttonChrome = 18 + 8 + 16 * 2;
+  /// Icon box and icon-to-label gap of a Material `*.icon` button — the only
+  /// parts not exposed through [ButtonStyle].
+  static const double _iconWidth = 18;
+  static const double _iconGap = 8;
+
+  /// A label has to fit with room to spare, not by a hair — measurement and
+  /// rendering can round apart. Borderline pairs stack, which still looks
+  /// right; a wrapped one does not.
+  static const double _slack = 10;
+
   static const double _gap = 12;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final labelStyle = Theme.of(context).textTheme.labelLarge;
     final addToQueue = OutlinedButton.icon(
       icon: const Icon(Icons.playlist_add),
       label: Text(l10n.archiveAddToQueue),
@@ -734,16 +747,23 @@ class _SheetPrimaryActions extends StatelessWidget {
       label: Text(l10n.archiveReprint),
       onPressed: onReprint,
     );
+    final widthNeeded = [
+      _singleLineWidth(
+        context,
+        l10n.archiveReprint,
+        FilledButtonTheme.of(context).style,
+      ),
+      _singleLineWidth(
+        context,
+        l10n.archiveAddToQueue,
+        OutlinedButtonTheme.of(context).style,
+      ),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final half = (constraints.maxWidth - _gap) / 2;
-        final fitsSideBySide = [l10n.archiveAddToQueue, l10n.archiveReprint]
-            .every(
-              (label) =>
-                  _labelWidth(context, label, labelStyle) + _buttonChrome <=
-                  half,
-            );
+        final fitsSideBySide = widthNeeded.every((w) => w + _slack <= half);
         if (fitsSideBySide) {
           return Row(
             children: [
@@ -764,13 +784,26 @@ class _SheetPrimaryActions extends StatelessWidget {
     );
   }
 
-  double _labelWidth(BuildContext context, String text, TextStyle? style) {
+  /// Width the button needs to keep [label] on one line, taking the text style
+  /// and padding from [style] — the very [ButtonStyle] the button will render
+  /// with, so a theme tweak can't silently invalidate this.
+  double _singleLineWidth(
+    BuildContext context,
+    String label,
+    ButtonStyle? style,
+  ) {
+    const states = <WidgetState>{};
+    final theme = Theme.of(context);
+    final textStyle = (theme.textTheme.labelLarge ?? const TextStyle()).merge(
+      style?.textStyle?.resolve(states),
+    );
+    final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
     final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
+      text: TextSpan(text: label, style: textStyle),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    return painter.width;
+    return padding + _iconWidth + _iconGap + painter.width;
   }
 }
 
