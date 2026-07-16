@@ -76,7 +76,9 @@ class _SheetSurface extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: t.isDark ? const Color(0x40FFFFFF) : const Color(0x33000000),
+              color: t.isDark
+                  ? const Color(0x40FFFFFF)
+                  : const Color(0x33000000),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -234,29 +236,34 @@ class InventoryScreen extends ConsumerWidget {
                       ),
                     )
                   else
-                    SliverList.builder(
-                      itemCount: spools.length + 1,
-                      itemBuilder: (context, i) {
-                        if (i == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                            child: Text(
-                              l10n.inventorySpoolCount(spools.length),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: t.textTertiary,
+                    SliverPadding(
+                      // Clears the whole FAB stack (scan + add) plus its margin,
+                      // so the last spool stays reachable at the end of the list.
+                      padding: const EdgeInsets.only(bottom: 120),
+                      sliver: SliverList.builder(
+                        itemCount: spools.length + 1,
+                        itemBuilder: (context, i) {
+                          if (i == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                              child: Text(
+                                l10n.inventorySpoolCount(spools.length),
+                                style: TextStyle(
+                                  fontFamily: DashTokens.fontMono,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.textTertiary,
+                                ),
                               ),
-                            ),
+                            );
+                          }
+                          final spool = spools[i - 1];
+                          return _SpoolTile(
+                            spool: spool,
+                            assignment: inv.assignmentFor(spool.id),
                           );
-                        }
-                        final spool = spools[i - 1];
-                        return _SpoolTile(
-                          spool: spool,
-                          assignment: inv.assignmentFor(spool.id),
-                        );
-                      },
+                        },
+                      ),
                     ),
                 ],
               ),

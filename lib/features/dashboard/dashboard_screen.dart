@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,10 +64,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       onResume: () {
         // Take the watch relay back only once the FGS isolate is stopped, so
         // the two responders never overlap (see onPause).
-        unawaited(ref
-            .read(backgroundMonitorProvider)
-            .stop()
-            .then((_) => ref.read(wearRelayHandlerProvider).start()));
+        unawaited(
+          ref
+              .read(backgroundMonitorProvider)
+              .stop()
+              .then((_) => ref.read(wearRelayHandlerProvider).start()),
+        );
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
         ref.read(smartPlugsProvider.notifier).resumePolling();
@@ -99,8 +100,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _runNotificationOnboarding({bool manual = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final granted =
-        await ref.read(notificationServiceProvider).requestPermission();
+    final granted = await ref
+        .read(notificationServiceProvider)
+        .requestPermission();
     if (!mounted) return;
     if (!granted) {
       if (manual) {
@@ -215,9 +217,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Session expiry → graceful return to setup, never crash or dead dashboard.
     ref.listen(dashboardProvider.select((s) => s.authExpired), (_, expired) {
       if (expired) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.sessionExpired)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.sessionExpired)));
         context.go('/setup');
       }
     });
@@ -326,12 +328,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               const Icon(Icons.cloud_off, size: 48),
               const SizedBox(height: 12),
-              Text(state.error?.localized(l10n) ?? l10n.connectFailed,
-                  textAlign: TextAlign.center),
+              Text(
+                state.error?.localized(l10n) ?? l10n.connectFailed,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: () =>
-                    ref.read(dashboardProvider.notifier).refresh(),
+                onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
                 child: Text(l10n.retry),
               ),
             ],
@@ -356,8 +359,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final filtered = q.isEmpty
         ? printers
         : printers
-            .where((p) => p.printer.name.toLowerCase().contains(q))
-            .toList();
+              .where((p) => p.printer.name.toLowerCase().contains(q))
+              .toList();
 
     final hasSearch = printers.length > 1;
 
@@ -628,7 +631,10 @@ class _AppDrawer extends ConsumerWidget {
   /// Confirmation repeat for server change — clearing profile navigates to
   /// `/setup` via router. Kept with drawer to not depend on Dashboard state methods.
   Future<void> _confirmChangeServer(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
     // Read the notifier up front: the caller pops the drawer before calling us,
     // so this `_AppDrawer` (a ConsumerWidget) is disposed during the dialog
     // await — touching `ref` afterwards throws "Cannot use ref after dispose".
@@ -748,8 +754,11 @@ class _DrawerTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded,
-                    size: 20, color: t.textTertiary),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: t.textTertiary,
+                ),
               ],
             ),
           ),
@@ -788,17 +797,15 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
-    final t = DashTokens.of(context);
     final range = maxExtent - minExtent;
     final extent = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
-    final shrink =
-        range <= 0 ? 1.0 : ((maxExtent - extent) / range).clamp(0.0, 1.0);
+    final shrink = range <= 0
+        ? 1.0
+        : ((maxExtent - extent) / range).clamp(0.0, 1.0);
     final searchH = hasSearch ? _searchH * (1 - shrink) : 0.0;
     final statusH = extent - searchH;
-    // A solid fill can't match the screen gradient, so as the list scrolls
-    // under the pinned bar we frost it: blur + a light tint that sample the
-    // actual background (gradient at rest, list once scrolled), leaving nothing
-    // flat to clash with the gradient. At the very top it stays fully clear.
+    // Fades in as soon as the list starts sliding under the bar; at the very
+    // top it stays clear so the background gradient shows through untouched.
     final bgAlpha = (shrink * 2).clamp(0.0, 1.0);
     final column = Column(
       children: [
@@ -828,36 +835,17 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
       ],
     );
-    // At the very top the header is truly free — no save-layer, no tint — so
-    // the gradient shows through untouched.
     if (bgAlpha < 0.01) return ClipRect(child: column);
 
-    // Both the blur and the tint must fade in over the top edge, otherwise the
-    // frosted rectangle shows a hard seam against the app bar above. The tint
-    // fades via a gradient; the blur via [_TopFadeBlur] (a ShaderMask can't
-    // mask a BackdropFilter — it isolates the backdrop and the blur samples
-    // nothing). The content sits in front of both, untouched.
-    final feather = (14 / extent).clamp(0.0, 0.5);
+    // Fully opaque fill spanning the whole bar, edge to edge — the card alone
+    // can't hide the list, tiles would still slide through the gutters around
+    // it. It paints the screen's own background gradient (a flat color can't
+    // match it and shows as a patch against the transparent app bar above).
     return ClipRect(
       child: Stack(
         fit: StackFit.passthrough,
         children: [
-          Positioned.fill(child: _TopFadeBlur(maxSigma: 18 * bgAlpha)),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    t.overlaySurface.withValues(alpha: 0),
-                    t.overlaySurface.withValues(alpha: 0.5 * bgAlpha),
-                  ],
-                  stops: [0.0, feather],
-                ),
-              ),
-            ),
-          ),
+          Positioned.fill(child: _HeaderBackdrop(opacity: bgAlpha)),
           column,
         ],
       ),
@@ -871,41 +859,86 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.hint != hint;
 }
 
-/// A backdrop blur whose strength fades in over its top edge. Several
-/// [BackdropFilter] slices are stacked, each starting a little lower; because
-/// stacked backdrop filters compose (each samples the previous result), the
-/// bottom gets the full [maxSigma] while the very top gets only a fraction —
-/// so the frosted header meets the app bar without a hard blur seam. Confined
-/// to the top [_rampPx]; everything below is fully blurred.
-class _TopFadeBlur extends StatelessWidget {
-  const _TopFadeBlur({required this.maxSigma});
+/// Opaque backdrop for the pinned header. A flat color can't match the screen's
+/// radial [DashTokens.backgroundGradient] — it reads as a patch against the
+/// transparent app bar above it. So this paints that very gradient, shaded for
+/// the whole screen, letting the bar continue the backdrop seamlessly while
+/// still hiding the list scrolling behind it.
+class _HeaderBackdrop extends LeafRenderObjectWidget {
+  const _HeaderBackdrop({required this.opacity});
 
-  final double maxSigma;
-
-  static const int _slices = 4;
-  static const double _rampPx = 16;
+  /// Fades the fill in as the list starts sliding under; at 0 the bar is clear.
+  final double opacity;
 
   @override
-  Widget build(BuildContext context) {
-    final sigma = maxSigma / _slices;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var i = 0; i < _slices; i++)
-          Positioned(
-            top: _rampPx * i / _slices,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-      ],
-    );
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeaderBackdrop(
+        gradient: DashTokens.of(context).backgroundGradient,
+        screenSize: MediaQuery.sizeOf(context),
+        opacity: opacity,
+      );
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderHeaderBackdrop r) {
+    r
+      ..gradient = DashTokens.of(context).backgroundGradient
+      ..screenSize = MediaQuery.sizeOf(context)
+      ..opacity = opacity;
+  }
+}
+
+/// Aligning the gradient needs this box's position on screen, and that can't be
+/// derived up front: the app bar above varies in height (status bar inset, and
+/// the profile band that only some builds show). So measure it at paint time.
+class _RenderHeaderBackdrop extends RenderBox {
+  // Fields are private (they back repainting setters), so they take plain
+  // params rather than initializing formals.
+  // ignore_for_file: prefer_initializing_formals
+  _RenderHeaderBackdrop({
+    required Gradient gradient,
+    required Size screenSize,
+    required double opacity,
+  }) : _gradient = gradient,
+       _screenSize = screenSize,
+       _opacity = opacity;
+
+  Gradient _gradient;
+  set gradient(Gradient v) {
+    if (v == _gradient) return;
+    _gradient = v;
+    markNeedsPaint();
+  }
+
+  Size _screenSize;
+  set screenSize(Size v) {
+    if (v == _screenSize) return;
+    _screenSize = v;
+    markNeedsPaint();
+  }
+
+  double _opacity;
+  set opacity(double v) {
+    if (v == _opacity) return;
+    _opacity = v;
+    markNeedsPaint();
+  }
+
+  @override
+  bool get sizedByParent => true;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    // Screen origin in local paint coordinates: our own screen position maps
+    // back to where we are being painted.
+    final origin = offset - localToGlobal(Offset.zero);
+    final screenRect = origin & _screenSize;
+    final paint = Paint()..shader = _gradient.createShader(screenRect);
+    // Paint alpha modulates the shader — no save-layer needed.
+    if (_opacity < 1) paint.color = paint.color.withValues(alpha: _opacity);
+    context.canvas.drawRect(offset & size, paint);
   }
 }
 
@@ -928,14 +961,22 @@ class _SummaryHeader extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     // Total power across farm from smart plugs (separate polling lane).
     final hasPlugs = ref.watch(smartPlugsProvider.select((s) => s.hasAnyPlug));
-    final totalPowerW =
-        ref.watch(smartPlugsProvider.select((s) => s.totalPowerW));
-    final active = printers
-        .where((p) =>
-            (p.status?.connected ?? false) && (p.status?.isPrinting ?? false))
-        .toList()
-      ..sort((a, b) => (a.status!.remainingTime ?? 1 << 30)
-          .compareTo(b.status!.remainingTime ?? 1 << 30));
+    final totalPowerW = ref.watch(
+      smartPlugsProvider.select((s) => s.totalPowerW),
+    );
+    final active =
+        printers
+            .where(
+              (p) =>
+                  (p.status?.connected ?? false) &&
+                  (p.status?.isPrinting ?? false),
+            )
+            .toList()
+          ..sort(
+            (a, b) => (a.status!.remainingTime ?? 1 << 30).compareTo(
+              b.status!.remainingTime ?? 1 << 30,
+            ),
+          );
 
     final next = active.isEmpty ? null : active.first;
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
@@ -960,8 +1001,7 @@ class _SummaryHeader extends ConsumerWidget {
           Container(
             width: 8,
             height: 8,
-            decoration:
-                BoxDecoration(shape: BoxShape.circle, color: dotColor),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
           const SizedBox(width: 8),
           Text(
@@ -983,14 +1023,16 @@ class _SummaryHeader extends ConsumerWidget {
               child: Opacity(
                 opacity: nextOpacity,
                 child: Text.rich(
-                  TextSpan(children: [
-                    TextSpan(text: l10n.nextAvailableLabel),
-                    TextSpan(
-                      text: next.printer.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    TextSpan(text: _nextSuffix(l10n, next)),
-                  ]),
+                  TextSpan(
+                    children: [
+                      TextSpan(text: l10n.nextAvailableLabel),
+                      TextSpan(
+                        text: next.printer.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      TextSpan(text: _nextSuffix(l10n, next)),
+                    ],
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1003,10 +1045,7 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null)
-              const Spacer()
-            else
-              const SizedBox(width: 12),
+            if (next == null) const Spacer() else const SizedBox(width: 12),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: Row(

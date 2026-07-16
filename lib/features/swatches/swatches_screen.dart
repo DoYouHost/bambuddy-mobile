@@ -288,11 +288,6 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         floatingActionButton: FloatingActionButton.extended(
           backgroundColor: t.accentGreen,
           foregroundColor: const Color(0xFF0A0C08),
-          // Dark ring detaches the FAB from list content it floats over, so it
-          // never visually merges with an underlying green button.
-          shape: const StadiumBorder(
-            side: BorderSide(color: Color(0xFF0A0C08), width: 3),
-          ),
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add),
           label: Text(l10n.swatchNewCode),
@@ -311,7 +306,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.only(bottom: 96),
+              // FAB floats above the system nav bar, so its clearance is the
+              // button box plus that inset.
+              padding: EdgeInsets.only(
+                bottom: 96 + MediaQuery.viewPaddingOf(context).bottom,
+              ),
               sliver: SliverList.builder(
                 itemCount: items.length,
                 itemBuilder: (context, i) => items[i],

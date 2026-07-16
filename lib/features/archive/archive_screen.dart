@@ -295,9 +295,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final ok = await ref
         .read(archiveProvider.notifier)
         .delete(archive.id, purgeStats: purgeStats);
-    messenger.showSnackBar(SnackBar(
-      content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
+      ),
+    );
   }
 
   /// Delete all selected prints after one confirmation (with purge-stats
@@ -321,11 +323,15 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .deleteMany(ids, purgeStats: purge);
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(SnackBar(
-      content: Text(res.failed == 0
-          ? l10n.archiveDeletedCount(res.ok)
-          : l10n.archiveDeleteSomeFailed(res.ok, res.failed)),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          res.failed == 0
+              ? l10n.archiveDeletedCount(res.ok)
+              : l10n.archiveDeleteSomeFailed(res.ok, res.failed),
+        ),
+      ),
+    );
   }
 
   /// Add the selected prints to a project: pick a project from a sheet, then
@@ -355,8 +361,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(l10n.projectPickTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              child: Text(
+                l10n.projectPickTitle,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
             ),
             Flexible(
               child: ListView(
@@ -383,7 +391,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       await ref.read(projectsRepositoryProvider).addArchives(projectId, ids);
       if (!mounted) return;
       _clearSelection();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectArchivesAdded)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.projectArchivesAdded)),
+      );
     } on AppApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
     }
@@ -401,10 +411,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final deleted = await ref.read(archiveRepositoryProvider).purge(
-            olderThanDays: result.days,
-            purgeStats: result.purgeStats,
-          );
+      final deleted = await ref
+          .read(archiveRepositoryProvider)
+          .purge(olderThanDays: result.days, purgeStats: result.purgeStats);
       await ref.read(archiveProvider.notifier).refresh();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
@@ -458,8 +467,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           .addFromArchive(archive.id, printerId: printer.id, insertAtTop: true);
       // Refresh queue list so the new top item is visible after tab switch.
       await ref.read(queueProvider.notifier).refresh();
-      messenger
-          .showSnackBar(SnackBar(content: Text(l10n.archiveReprintStarted)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.archiveReprintStarted)),
+      );
     } on AppApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
     }
@@ -489,8 +499,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   String _errText(AppApiException e, AppLocalizations l10n) =>
       e is AuthException && e.code == AppErrorCode.forbidden
-          ? l10n.ctrlForbidden
-          : l10n.ctrlFailed;
+      ? l10n.ctrlForbidden
+      : l10n.ctrlFailed;
 }
 
 class _ArchiveCard extends StatelessWidget {
@@ -546,10 +556,7 @@ class _ArchiveCard extends StatelessWidget {
                           color: t.accentGreen.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(
-                          Icons.check,
-                          color: t.accentGreenInk,
-                        ),
+                        child: Icon(Icons.check, color: t.accentGreenInk),
                       )
                     : PrintThumbnail(archiveId: archive.id, size: 52),
                 const SizedBox(width: 12),
@@ -639,15 +646,19 @@ class _ArchiveSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(archive.displayName,
-                          style: theme.textTheme.titleMedium,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        archive.displayName,
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       if (archive.designer != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
-                          child: Text(archive.designer!,
-                              style: theme.textTheme.bodySmall),
+                          child: Text(
+                            archive.designer!,
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ),
                     ],
                   ),
@@ -655,24 +666,9 @@ class _ArchiveSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.playlist_add),
-                    label: Text(l10n.archiveAddToQueue),
-                    onPressed: onAddToQueue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.print),
-                    label: Text(l10n.archiveReprint),
-                    onPressed: onReprint,
-                  ),
-                ),
-              ],
+            _SheetPrimaryActions(
+              onAddToQueue: onAddToQueue,
+              onReprint: onReprint,
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -700,6 +696,81 @@ class _ArchiveSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The sheet's two primary actions, side by side — but only while both labels
+/// fit on one line. A wrapped label grows just its own button, leaving the pair
+/// mismatched and taller than the full-width buttons below it, so on narrow
+/// screens they stack full-width instead (which also unwraps the labels).
+///
+/// Whether a label fits depends on the locale and the user's text scale, so it
+/// is measured rather than guessed from a width breakpoint.
+class _SheetPrimaryActions extends StatelessWidget {
+  const _SheetPrimaryActions({
+    required this.onAddToQueue,
+    required this.onReprint,
+  });
+
+  final VoidCallback onAddToQueue;
+  final VoidCallback onReprint;
+
+  /// Everything in an icon button that isn't the label: icon, gap, and the
+  /// horizontal padding on both sides.
+  static const double _buttonChrome = 18 + 8 + 16 * 2;
+  static const double _gap = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final labelStyle = Theme.of(context).textTheme.labelLarge;
+    final addToQueue = OutlinedButton.icon(
+      icon: const Icon(Icons.playlist_add),
+      label: Text(l10n.archiveAddToQueue),
+      onPressed: onAddToQueue,
+    );
+    final reprint = FilledButton.icon(
+      icon: const Icon(Icons.print),
+      label: Text(l10n.archiveReprint),
+      onPressed: onReprint,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final half = (constraints.maxWidth - _gap) / 2;
+        final fitsSideBySide = [l10n.archiveAddToQueue, l10n.archiveReprint]
+            .every(
+              (label) =>
+                  _labelWidth(context, label, labelStyle) + _buttonChrome <=
+                  half,
+            );
+        if (fitsSideBySide) {
+          return Row(
+            children: [
+              Expanded(child: reprint),
+              const SizedBox(width: _gap),
+              Expanded(child: addToQueue),
+            ],
+          );
+        }
+        return Column(
+          children: [
+            SizedBox(width: double.infinity, child: reprint),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: addToQueue),
+          ],
+        );
+      },
+    );
+  }
+
+  double _labelWidth(BuildContext context, String text, TextStyle? style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    return painter.width;
   }
 }
 
@@ -814,10 +885,9 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   Future<void> _fetchPreview() async {
     setState(() => _preview = const AsyncValue.loading());
     try {
-      final preview = await ref.read(archiveRepositoryProvider).purgePreview(
-            olderThanDays: _days,
-            purgeStats: _purgeStats,
-          );
+      final preview = await ref
+          .read(archiveRepositoryProvider)
+          .purgePreview(olderThanDays: _days, purgeStats: _purgeStats);
       if (mounted) setState(() => _preview = AsyncValue.data(preview));
     } on AppApiException catch (e, st) {
       if (mounted) setState(() => _preview = AsyncValue.error(e, st));
@@ -869,7 +939,10 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
             data: (p) => Text(
               p.isEmpty
                   ? l10n.archivePurgeNothing
-                  : l10n.archivePurgePreview(p.count, formatBytes(p.totalBytes)),
+                  : l10n.archivePurgePreview(
+                      p.count,
+                      formatBytes(p.totalBytes),
+                    ),
               style: theme.textTheme.bodyMedium,
             ),
           ),
@@ -896,10 +969,10 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
             backgroundColor: theme.colorScheme.error,
           ),
           onPressed: canDelete
-              ? () => Navigator.pop(
-                    context,
-                    (days: _days, purgeStats: _purgeStats),
-                  )
+              ? () => Navigator.pop(context, (
+                  days: _days,
+                  purgeStats: _purgeStats,
+                ))
               : null,
           child: Text(l10n.archiveDelete),
         ),
