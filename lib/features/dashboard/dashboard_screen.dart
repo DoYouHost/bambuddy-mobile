@@ -800,49 +800,67 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
     // actual background (gradient at rest, list once scrolled), leaving nothing
     // flat to clash with the gradient. At the very top it stays fully clear.
     final bgAlpha = (shrink * 2).clamp(0.0, 1.0);
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        color: t.overlaySurface.withValues(alpha: 0.5 * bgAlpha),
-      ),
-      child: Column(
-        children: [
+    final column = Column(
+      children: [
+        SizedBox(
+          height: statusH,
+          child: _SummaryHeader(printers: printers, shrink: shrink),
+        ),
+        if (hasSearch)
           SizedBox(
-            height: statusH,
-            child: _SummaryHeader(printers: printers, shrink: shrink),
-          ),
-          if (hasSearch)
-            SizedBox(
-              height: searchH,
-              // Render the field at full size and clip as the row shrinks, so
-              // the field itself never reflows — only the reveal changes.
-              child: ClipRect(
-                child: OverflowBox(
-                  minHeight: _searchH,
-                  maxHeight: _searchH,
-                  alignment: Alignment.topCenter,
-                  child: Opacity(
-                    opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-                      child:
-                          DashSearchField(hintText: hint, onChanged: onQuery),
-                    ),
+            height: searchH,
+            // Render the field at full size and clip as the row shrinks, so
+            // the field itself never reflows — only the reveal changes.
+            child: ClipRect(
+              child: OverflowBox(
+                minHeight: _searchH,
+                maxHeight: _searchH,
+                alignment: Alignment.topCenter,
+                child: Opacity(
+                  opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
+                    child: DashSearchField(hintText: hint, onChanged: onQuery),
                   ),
                 ),
               ),
             ),
+          ),
+      ],
+    );
+    // At the very top the header is truly free — no save-layer, no tint — so
+    // the gradient shows through untouched.
+    if (bgAlpha < 0.01) return ClipRect(child: column);
+
+    // Both the blur and the tint must fade in over the top edge, otherwise the
+    // frosted rectangle shows a hard seam against the app bar above. The tint
+    // fades via a gradient; the blur via [_TopFadeBlur] (a ShaderMask can't
+    // mask a BackdropFilter — it isolates the backdrop and the blur samples
+    // nothing). The content sits in front of both, untouched.
+    final feather = (14 / extent).clamp(0.0, 0.5);
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Positioned.fill(child: _TopFadeBlur(maxSigma: 18 * bgAlpha)),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    t.overlaySurface.withValues(alpha: 0),
+                    t.overlaySurface.withValues(alpha: 0.5 * bgAlpha),
+                  ],
+                  stops: [0.0, feather],
+                ),
+              ),
+            ),
+          ),
+          column,
         ],
       ),
-    );
-    return ClipRect(
-      // Skip the blur layer entirely at the top so the header is truly free
-      // (no save-layer cost, no tint) and the gradient shows through untouched.
-      child: bgAlpha < 0.01
-          ? content
-          : BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18 * bgAlpha, sigmaY: 18 * bgAlpha),
-              child: content,
-            ),
     );
   }
 
@@ -851,6 +869,44 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.printers != printers ||
       old.hasSearch != hasSearch ||
       old.hint != hint;
+}
+
+/// A backdrop blur whose strength fades in over its top edge. Several
+/// [BackdropFilter] slices are stacked, each starting a little lower; because
+/// stacked backdrop filters compose (each samples the previous result), the
+/// bottom gets the full [maxSigma] while the very top gets only a fraction —
+/// so the frosted header meets the app bar without a hard blur seam. Confined
+/// to the top [_rampPx]; everything below is fully blurred.
+class _TopFadeBlur extends StatelessWidget {
+  const _TopFadeBlur({required this.maxSigma});
+
+  final double maxSigma;
+
+  static const int _slices = 4;
+  static const double _rampPx = 16;
+
+  @override
+  Widget build(BuildContext context) {
+    final sigma = maxSigma / _slices;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < _slices; i++)
+          Positioned(
+            top: _rampPx * i / _slices,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 /// Summary at top of list: how many printers are working and which

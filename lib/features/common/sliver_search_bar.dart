@@ -5,13 +5,18 @@ import 'package:flutter/material.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// A search bar that lives inside a [CustomScrollView] and rolls away as the
-/// list scrolls down, floating back in on any upward scroll (`floating` +
-/// `snap`). The motion is fully scroll-linked — no listeners, no setState —
-/// so it never stutters or jumps like a direction-driven header does.
+/// list scrolls down, sliding back in only once the list returns to the top.
 ///
-/// While floating it sits over list content, so instead of a solid fill (which
-/// would clash with the screen's background gradient) it frosts: a blur plus a
-/// light tint that sample whatever is behind it.
+/// It is a *pinned* [SliverPersistentHeader] that shrinks from [height] to zero
+/// — so, unlike a `floating` app bar, it reserves layout space and the list
+/// content is always positioned below it. That is what stops it from painting
+/// over the first rows when it re-expands on an upward scroll. Motion is fully
+/// scroll-linked (derived from the sliver's own `shrinkOffset`), so it tracks
+/// the finger exactly with no listeners or setState.
+///
+/// While it overlaps content mid-collapse it frosts (blur + light tint that
+/// sample whatever is behind it) instead of a solid fill that would clash with
+/// the screen's background gradient; at the very top it stays fully clear.
 class DashSliverSearchBar extends StatelessWidget {
   const DashSliverSearchBar({
     super.key,
@@ -29,31 +34,73 @@ class DashSliverSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _SearchBarDelegate(
+        child: child,
+        height: height,
+        padding: padding,
+      ),
+    );
+  }
+}
+
+class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
+  _SearchBarDelegate({
+    required this.child,
+    required this.height,
+    required this.padding,
+  });
+
+  final Widget child;
+  final double height;
+  final EdgeInsets padding;
+
+  @override
+  double get maxExtent => height;
+
+  // Collapses all the way to zero so nothing lingers pinned at the top.
+  @override
+  double get minExtent => 0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
     final t = DashTokens.of(context);
-    return SliverAppBar(
-      primary: false,
-      floating: true,
-      snap: true,
-      pinned: false,
-      automaticallyImplyLeading: false,
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      shadowColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      toolbarHeight: height,
-      titleSpacing: 0,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: t.overlaySurface.withValues(alpha: 0.5),
+    final extent = (height - shrinkOffset).clamp(0.0, height);
+    final shrink = height <= 0 ? 1.0 : (shrinkOffset / height).clamp(0.0, 1.0);
+    // Frost only once the list scrolls under the bar; at the very top it stays
+    // clear so the background gradient shows through untouched.
+    final bgAlpha = (shrink * 2).clamp(0.0, 1.0);
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18 * bgAlpha, sigmaY: 18 * bgAlpha),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: t.overlaySurface.withValues(alpha: 0.5 * bgAlpha),
+          ),
+          child: SizedBox(
+            height: extent,
+            width: double.infinity,
+            // Render the field at full size and clip as the bar shrinks, so the
+            // field itself never reflows — only how much of it shows changes.
+            child: ClipRect(
+              child: OverflowBox(
+                minHeight: height,
+                maxHeight: height,
+                alignment: Alignment.topCenter,
+                child: Opacity(
+                  opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
+                  child: Padding(padding: padding, child: child),
+                ),
+              ),
             ),
           ),
         ),
       ),
-      title: Padding(padding: padding, child: child),
     );
   }
+
+  @override
+  bool shouldRebuild(covariant _SearchBarDelegate old) =>
+      old.child != child || old.height != height || old.padding != padding;
 }
