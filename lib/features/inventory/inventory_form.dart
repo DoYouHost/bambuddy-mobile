@@ -903,17 +903,8 @@ class _ColorPicker extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         if (colors.isNotEmpty) ...[
-          TextField(
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              color: t.textPrimary,
-            ),
-            decoration: _dashDecoration(
-              t,
-              hintText: l10n.inventoryColorSearchHint,
-              prefixIcon: Icon(Icons.search, size: 20, color: t.textTertiary),
-            ),
+          DashSearchField(
+            hintText: l10n.inventoryColorSearchHint,
             onChanged: onQuery,
           ),
           const SizedBox(height: 8),
@@ -1033,19 +1024,9 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
+                DashSearchField(
                   autofocus: true,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    color: t.textPrimary,
-                  ),
-                  decoration: _dashDecoration(
-                    t,
-                    hintText: l10n.inventorySlicerPresetSearch,
-                    prefixIcon:
-                        Icon(Icons.search, size: 20, color: t.textTertiary),
-                  ),
+                  hintText: l10n.inventorySlicerPresetSearch,
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ],
@@ -1184,19 +1165,9 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
+                DashSearchField(
                   autofocus: true,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    color: t.textPrimary,
-                  ),
-                  decoration: _dashDecoration(
-                    t,
-                    hintText: l10n.inventoryCoreWeightSearch,
-                    prefixIcon:
-                        Icon(Icons.search, size: 20, color: t.textTertiary),
-                  ),
+                  hintText: l10n.inventoryCoreWeightSearch,
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ],

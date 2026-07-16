@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_search_field.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -250,6 +252,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         floatingActionButton: FloatingActionButton.extended(
           backgroundColor: t.accentGreen,
           foregroundColor: const Color(0xFF0A0C08),
+          // Dark ring detaches the FAB from list content it floats over, so it
+          // never visually merges with an underlying green button.
+          shape: const StadiumBorder(
+            side: BorderSide(color: Color(0xFF0A0C08), width: 3),
+          ),
           onPressed: () => _openForm(),
           icon: const Icon(Icons.add),
           label: Text(l10n.swatchNewCode),
@@ -258,30 +265,10 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: TextField(
+              child: DashSearchField(
                 controller: _searchController,
+                hintText: l10n.swatchSearchHint,
                 textCapitalization: TextCapitalization.characters,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
-                decoration: dashFieldDecoration(
-                  t,
-                  hintText: l10n.swatchSearchHint,
-                ).copyWith(
-                  prefixIcon: Icon(Icons.search, color: t.textTertiary),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: Icon(Icons.clear, color: t.textTertiary),
-                          onPressed: () {
-                            _searchController.clear();
-                            ref.read(swatchQueryProvider.notifier).state = '';
-                          },
-                        ),
-                ),
                 onChanged: (v) =>
                     ref.read(swatchQueryProvider.notifier).state = v,
               ),
@@ -580,10 +567,22 @@ class _UncodedTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton.icon(
-                  style: dashPrimaryButtonStyle(t).copyWith(
-                    padding: const WidgetStatePropertyAll(
-                        EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+                // Toned-down outlined style so the bold green FAB stays the
+                // single primary action and the two greens don't merge.
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: t.accentGreenInk,
+                    side: BorderSide(
+                        color: t.accentGreen.withValues(alpha: 0.55)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    textStyle: const TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   onPressed: onGenerate,
                   icon: const Icon(Icons.add, size: 18),
@@ -755,12 +754,17 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final preview = parseSpoolColor(_rgba.text);
+    final mq = MediaQuery.of(context);
+    // useSafeArea only guards top/left/right (SafeArea bottom:false), so the
+    // nav bar inset must be added here. Keyboard (viewInsets) and nav bar
+    // (viewPadding) never stack, so take the larger of the two.
+    final bottomInset = math.max(mq.viewInsets.bottom, mq.viewPadding.bottom);
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
         top: 4,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: bottomInset + 20,
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -942,12 +946,14 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
           .toList();
     }
 
+    final mq = MediaQuery.of(context);
+    final bottomInset = math.max(mq.viewInsets.bottom, mq.viewPadding.bottom);
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
         top: 4,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        bottom: bottomInset + 12,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -955,14 +961,8 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
         children: [
           Text(l10n.inventoryColorPickTitle, style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
-          TextField(
-            autofocus: false,
-            decoration: InputDecoration(
-              isDense: true,
-              prefixIcon: const Icon(Icons.search, size: 20),
-              hintText: l10n.inventoryColorSearchHint,
-              border: const OutlineInputBorder(),
-            ),
+          DashSearchField(
+            hintText: l10n.inventoryColorSearchHint,
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 12),

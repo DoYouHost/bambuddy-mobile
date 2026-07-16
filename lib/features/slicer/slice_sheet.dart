@@ -10,6 +10,7 @@ import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_search_field.dart';
 import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'slice_providers.dart';
 
@@ -529,9 +530,8 @@ class _PresetPickerState extends State<_PresetPicker> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SearchBar(
+              child: DashSearchField(
                 hintText: l10n.sliceSearchHint,
-                leading: const Icon(Icons.search),
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),

@@ -177,6 +177,49 @@ release ver:
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
 
+# Deletes uploaded artifacts (APKs) from every release older than the current
+# minor series — tags, titles and notes stay, only the binaries are stripped.
+# "Older" = a smaller major.minor than the newest release's, so the whole latest
+# minor (e.g. all of v0.2.x) keeps its APKs while v0.1.x and earlier lose theirs.
+# Irreversible on the server side.
+# free Codeberg release-storage quota: strip artifacts from old releases
+release-cleanup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Capture the list first (piping tea straight into a filter risks a pipefail
+    # abort). tea's TSV wraps the notes body onto extra lines, so keep only real
+    # vMAJOR.MINOR.PATCH tags. A high --limit grabs every release in one page.
+    releases=$(tea releases list --remote origin --limit 50 --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+    tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
+    if [ -z "$tags" ]; then
+        echo "No version releases found; nothing to clean."
+        exit 0
+    fi
+    # Latest minor = the max (major, minor) across all tags.
+    latest_major=-1; latest_minor=-1
+    for tag in $tags; do
+        v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
+        if (( major > latest_major )) || { (( major == latest_major )) && (( minor > latest_minor )); }; then
+            latest_major=$major; latest_minor=$minor
+        fi
+    done
+    echo "Latest minor: v${latest_major}.${latest_minor}.x (kept). Stripping artifacts from older releases:"
+    for tag in $tags; do
+        v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
+        # Keep the current minor (and anything newer); clean only older minors.
+        if (( major > latest_major )) || { (( major == latest_major )) && (( minor >= latest_minor )); }; then
+            continue
+        fi
+        mapfile -t assets < <(tea releases assets list --remote origin "$tag" --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+        if (( ${#assets[@]} == 0 )); then
+            echo "  $tag: no artifacts"
+            continue
+        fi
+        echo "  $tag: deleting ${assets[*]}"
+        tea releases assets delete --remote origin -y "$tag" "${assets[@]}"
+    done
+    echo "Cleanup done."
+
 # bump version, test, build and release — full pipeline
 # usage: just ship 1.0.0
 ship ver:

@@ -7,6 +7,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_search_field.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
@@ -403,16 +404,8 @@ class _PrinterFileManagerScreenState
         child: Row(
           children: [
             Expanded(
-              child: TextField(
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  color: t.textPrimary,
-                ),
-                decoration: dashFieldDecoration(
-                  t,
-                  hintText: l10n.pfmSearchHint,
-                ).copyWith(prefixIcon: Icon(Icons.search, color: t.textTertiary)),
+              child: DashSearchField(
+                hintText: l10n.pfmSearchHint,
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),

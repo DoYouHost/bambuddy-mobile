@@ -12,6 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_search_field.dart';
 import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
 import '../common/printer_picker.dart';
@@ -88,7 +89,6 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
     final async = ref.watch(archiveProvider);
 
     return DashBackground(
@@ -142,8 +142,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: _ArchiveSearchField(
-                tokens: t,
+              child: DashSearchField(
                 hintText: l10n.archiveSearchHint,
                 onChanged: _onSearchChanged,
               ),
@@ -484,60 +483,6 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       e is AuthException && e.code == AppErrorCode.forbidden
           ? l10n.ctrlForbidden
           : l10n.ctrlFailed;
-}
-
-/// Search field row (design "4a"): a rounded pill with a search glyph and a
-/// borderless text field. Purely visual — callbacks/debounce stay in the
-/// parent state, same as the `SearchBar` it replaces.
-class _ArchiveSearchField extends StatelessWidget {
-  const _ArchiveSearchField({
-    required this.tokens,
-    required this.hintText,
-    required this.onChanged,
-  });
-
-  final DashTokens tokens;
-  final String hintText;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: tokens.subCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: tokens.subCardBorder),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, size: 20, color: tokens.textTertiary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              onChanged: onChanged,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 15,
-                color: tokens.textPrimary,
-              ),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText: hintText,
-                hintStyle: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 15,
-                  color: tokens.textTertiary,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ArchiveCard extends StatelessWidget {

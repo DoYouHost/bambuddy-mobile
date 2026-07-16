@@ -93,10 +93,16 @@ class RootScaffold extends ConsumerWidget {
           color: t.navBar,
           border: Border(top: BorderSide(color: t.hairline)),
         ),
+        // Reserve the system nav bar inset via viewPadding (constant, unlike
+        // padding, which the keyboard collapses to 0) so the tab bar never
+        // overlaps the system nav buttons while a field is focused. SafeArea
+        // still guards the left/right edges (landscape notch).
         child: SafeArea(
           top: false,
+          bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
+            padding: EdgeInsets.fromLTRB(
+                8, 12, 8, 10 + MediaQuery.of(context).viewPadding.bottom),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [for (final it in items) Expanded(child: it)],

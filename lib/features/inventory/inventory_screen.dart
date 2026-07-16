@@ -9,6 +9,7 @@ import '../../core/models/slicer_preset.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/dash_search_field.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import '../dashboard/providers.dart';
@@ -211,7 +212,6 @@ class InventoryScreen extends ConsumerWidget {
             return Column(
               children: [
                 _SearchBar(
-                  query: query,
                   filterCount: filters.activeCount,
                   onQuery: (v) =>
                       ref.read(inventoryQueryProvider.notifier).state = v,

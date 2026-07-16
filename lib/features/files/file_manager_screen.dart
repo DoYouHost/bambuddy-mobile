@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_search_field.dart';
 import '../common/format_bytes.dart' show formatBytes;
 import '../common/printer_picker.dart';
 import '../common/state_views.dart';
@@ -840,23 +841,9 @@ class _FilterRow extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: SearchBar(
+            child: DashSearchField(
               controller: controller,
               hintText: l10n.fmSearchHint,
-              hintStyle: WidgetStatePropertyAll(TextStyle(
-                fontFamily: DashTokens.fontUi,
-                color: t.textTertiary,
-              )),
-              textStyle: WidgetStatePropertyAll(TextStyle(
-                fontFamily: DashTokens.fontUi,
-                color: t.textPrimary,
-              )),
-              leading: Icon(Icons.search, color: t.textSecondary),
-              backgroundColor: WidgetStatePropertyAll(t.subCard),
-              elevation: const WidgetStatePropertyAll(0),
-              side: WidgetStatePropertyAll(BorderSide(color: t.subCardBorder)),
-              padding: const WidgetStatePropertyAll(
-                  EdgeInsets.symmetric(horizontal: 12)),
               onChanged: onSearch,
             ),
           ),

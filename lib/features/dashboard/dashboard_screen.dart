@@ -12,6 +12,7 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_search_field.dart';
 import 'providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
@@ -367,11 +368,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // more on top / less on bottom so the visible gaps match.
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-            child: SearchBar(
+            child: DashSearchField(
               hintText: l10n.searchPrinters,
-              leading: const Icon(Icons.search),
               onChanged: (v) => setState(() => _query = v),
-              elevation: const WidgetStatePropertyAll(0),
             ),
           )
         else

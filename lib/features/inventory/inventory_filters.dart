@@ -2,20 +2,17 @@ part of 'inventory_screen.dart';
 
 class _SearchBar extends StatelessWidget {
   const _SearchBar({
-    required this.query,
     required this.filterCount,
     required this.onQuery,
     required this.onOpenFilters,
   });
 
-  final String query;
   final int filterCount;
   final ValueChanged<String> onQuery;
   final VoidCallback onOpenFilters;
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -25,40 +22,9 @@ class _SearchBar extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: t.subCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: t.subCardBorder),
-                ),
-                child: TextField(
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    color: t.textPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 12,
-                    ),
-                    prefixIcon: Icon(Icons.search, color: t.textTertiary),
-                    hintText: l10n.inventorySearchHint,
-                    hintStyle: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      color: t.textTertiary,
-                    ),
-                    border: InputBorder.none,
-                    suffixIcon: query.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: Icon(Icons.clear, color: t.textTertiary),
-                            onPressed: () => onQuery(''),
-                          ),
-                  ),
-                  onChanged: onQuery,
-                ),
+              child: DashSearchField(
+                hintText: l10n.inventorySearchHint,
+                onChanged: onQuery,
               ),
             ),
             const SizedBox(width: 8),

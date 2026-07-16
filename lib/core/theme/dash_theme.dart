@@ -628,6 +628,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
         foregroundColor: t.textPrimary,
         textStyle: const TextStyle(
             fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+        // Match the filled button padding so heights line up when buttons of
+        // different kinds sit side by side.
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: radius14),
       ),
     ),
@@ -637,6 +640,9 @@ ThemeData buildDashThemeData(Brightness brightness) {
         side: BorderSide(color: t.subCardBorder),
         textStyle: const TextStyle(
             fontFamily: DashTokens.fontUi, fontWeight: FontWeight.w700),
+        // Match the filled button padding so heights line up when buttons of
+        // different kinds sit side by side.
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: radius14),
       ),
     ),
