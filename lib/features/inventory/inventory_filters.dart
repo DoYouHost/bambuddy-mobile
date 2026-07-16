@@ -14,23 +14,21 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      // Common height for both elements so field and button align.
-      child: SizedBox(
-        height: 48,
-        child: Row(
-          children: [
-            Expanded(
-              child: DashSearchField(
-                hintText: l10n.inventorySearchHint,
-                onChanged: onQuery,
-              ),
+    // Common height for both elements so field and button align. Outer padding
+    // is supplied by the enclosing [DashSliverSearchBar].
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Expanded(
+            child: DashSearchField(
+              hintText: l10n.inventorySearchHint,
+              onChanged: onQuery,
             ),
-            const SizedBox(width: 8),
-            _FilterButton(count: filterCount, onTap: onOpenFilters),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          _FilterButton(count: filterCount, onTap: onOpenFilters),
+        ],
       ),
     );
   }

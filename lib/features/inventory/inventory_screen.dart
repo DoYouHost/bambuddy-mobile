@@ -10,6 +10,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/dash_search_field.dart';
+import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import '../dashboard/providers.dart';
@@ -209,57 +210,56 @@ class InventoryScreen extends ConsumerWidget {
           ),
           data: (inv) {
             final spools = _filter(inv.spools, query, filters);
-            return Column(
-              children: [
-                _SearchBar(
-                  filterCount: filters.activeCount,
-                  onQuery: (v) =>
-                      ref.read(inventoryQueryProvider.notifier).state = v,
-                  onOpenFilters: () => _openFilters(context, inv.spools),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () =>
-                        ref.read(inventoryProvider.notifier).refresh(),
-                    child: spools.isEmpty
-                        ? EmptyStateView(
-                            message: inv.spools.isEmpty
-                                ? l10n.inventoryEmpty
-                                : l10n.inventoryNoMatches,
-                            icon: Icons.inventory_2_outlined,
-                          )
-                        : ListView.builder(
-                            itemCount: spools.length + 1,
-                            itemBuilder: (context, i) {
-                              if (i == 0) {
-                                return Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    4,
-                                    16,
-                                    8,
-                                  ),
-                                  child: Text(
-                                    l10n.inventorySpoolCount(spools.length),
-                                    style: TextStyle(
-                                      fontFamily: DashTokens.fontMono,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: t.textTertiary,
-                                    ),
-                                  ),
-                                );
-                              }
-                              final spool = spools[i - 1];
-                              return _SpoolTile(
-                                spool: spool,
-                                assignment: inv.assignmentFor(spool.id),
-                              );
-                            },
-                          ),
+            return RefreshIndicator(
+              onRefresh: () => ref.read(inventoryProvider.notifier).refresh(),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  DashSliverSearchBar(
+                    child: _SearchBar(
+                      filterCount: filters.activeCount,
+                      onQuery: (v) =>
+                          ref.read(inventoryQueryProvider.notifier).state = v,
+                      onOpenFilters: () => _openFilters(context, inv.spools),
+                    ),
                   ),
-                ),
-              ],
+                  if (spools.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyStateView(
+                        message: inv.spools.isEmpty
+                            ? l10n.inventoryEmpty
+                            : l10n.inventoryNoMatches,
+                        icon: Icons.inventory_2_outlined,
+                      ),
+                    )
+                  else
+                    SliverList.builder(
+                      itemCount: spools.length + 1,
+                      itemBuilder: (context, i) {
+                        if (i == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: Text(
+                              l10n.inventorySpoolCount(spools.length),
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontMono,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: t.textTertiary,
+                              ),
+                            ),
+                          );
+                        }
+                        final spool = spools[i - 1];
+                        return _SpoolTile(
+                          spool: spool,
+                          assignment: inv.assignmentFor(spool.id),
+                        );
+                      },
+                    ),
+                ],
+              ),
             );
           },
         ),

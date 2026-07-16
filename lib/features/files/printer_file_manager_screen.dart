@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_search_field.dart';
+import '../common/sliver_search_bar.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
@@ -312,12 +313,15 @@ class _PrinterFileManagerScreenState
             ),
           ],
         ),
+        // Quick-nav + breadcrumb stay pinned (navigation); only the search row
+        // rolls away with the scrollable list below it.
         body: Column(
           children: [
             _quickNav(t, l10n),
             _breadcrumb(t),
-            _searchAndSelectAll(t, l10n, selectable.isNotEmpty, allSelected),
-            Expanded(child: _list(l10n, t)),
+            Expanded(
+              child: _content(l10n, t, selectable.isNotEmpty, allSelected),
+            ),
           ],
         ),
         bottomNavigationBar:
@@ -393,35 +397,38 @@ class _PrinterFileManagerScreenState
         ),
       );
 
+  // Outer padding is supplied by the enclosing [DashSliverSearchBar].
   Widget _searchAndSelectAll(
     DashTokens t,
     AppLocalizations l10n,
     bool hasSelectable,
     bool allSelected,
   ) =>
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: DashSearchField(
-                hintText: l10n.pfmSearchHint,
-                onChanged: (v) => setState(() => _query = v),
+      Row(
+        children: [
+          Expanded(
+            child: DashSearchField(
+              hintText: l10n.pfmSearchHint,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          if (hasSelectable)
+            TextButton(
+              onPressed: _toggleSelectAll,
+              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+              child: Text(
+                allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
               ),
             ),
-            if (hasSelectable)
-              TextButton(
-                onPressed: _toggleSelectAll,
-                style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-                child: Text(
-                  allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
-                ),
-              ),
-          ],
-        ),
+        ],
       );
 
-  Widget _list(AppLocalizations l10n, DashTokens t) {
+  Widget _content(
+    AppLocalizations l10n,
+    DashTokens t,
+    bool hasSelectable,
+    bool allSelected,
+  ) {
     if (_loading && _files == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -438,21 +445,37 @@ class _PrinterFileManagerScreenState
       );
     }
     final items = _visible;
-    if (items.isEmpty) {
-      return _centered(
-        icon: Icons.folder_open,
-        message: (_files?.isEmpty ?? true) ? l10n.pfmEmpty : l10n.pfmNoMatches,
-        tokens: t,
-      );
-    }
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        itemCount: items.length,
-        separatorBuilder: (_, _) =>
-            Divider(height: 1, indent: 16, endIndent: 16, color: t.hairline),
-        itemBuilder: (_, i) => _row(items[i], t),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          DashSliverSearchBar(
+            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+            child: _searchAndSelectAll(t, l10n, hasSelectable, allSelected),
+          ),
+          if (items.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _centered(
+                icon: Icons.folder_open,
+                message: (_files?.isEmpty ?? true)
+                    ? l10n.pfmEmpty
+                    : l10n.pfmNoMatches,
+                tokens: t,
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              sliver: SliverList.separated(
+                itemCount: items.length,
+                separatorBuilder: (_, _) => Divider(
+                    height: 1, indent: 16, endIndent: 16, color: t.hairline),
+                itemBuilder: (_, i) => _row(items[i], t),
+              ),
+            ),
+        ],
       ),
     );
   }

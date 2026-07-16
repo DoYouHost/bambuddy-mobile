@@ -11,6 +11,7 @@ import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_search_field.dart';
+import '../common/sliver_search_bar.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
 import '../inventory/inventory_screen.dart' show parseSpoolColor;
@@ -230,6 +231,41 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
                 c.displayName.toLowerCase().contains(query.trim().toLowerCase());
           }).toList();
 
+    // Flattened once per build (cheap widget construction); the sliver list
+    // below only lays out/mounts items near the viewport instead of all of
+    // them eagerly (matters once the registry grows to hundreds of codes).
+    final items = <Widget>[
+      _SectionHeader(label: l10n.swatchSectionCodes, count: codes.length),
+      if (codes.isEmpty)
+        _EmptyHint(
+          icon: Icons.qr_code_2_rounded,
+          title: allCodes.isEmpty
+              ? l10n.swatchNoCodes
+              : l10n.swatchNoMatch(query.trim()),
+          subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
+        )
+      else
+        for (final c in codes)
+          _SwatchTile(
+            code: c,
+            onEdit: () => _openForm(initial: c),
+            onCopy: () => _copy(c.code),
+            onDelete: () => _confirmDelete(c),
+          ),
+      if (inventoryLoaded && uncoded.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        _SectionHeader(label: l10n.swatchSectionUncoded, count: uncoded.length),
+        for (final f in uncoded)
+          _UncodedTile(identity: f, onGenerate: () => _generateFor(f)),
+      ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        _EmptyHint(
+          icon: Icons.check_circle_outline_rounded,
+          title: l10n.swatchAllCoded,
+        ),
+      ],
+    ];
+
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -261,10 +297,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           icon: const Icon(Icons.add),
           label: Text(l10n.swatchNewCode),
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            DashSliverSearchBar(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: DashSearchField(
                 controller: _searchController,
                 hintText: l10n.swatchSearchHint,
@@ -273,59 +310,11 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
                     ref.read(swatchQueryProvider.notifier).state = v,
               ),
             ),
-            Expanded(
-              child: Builder(
-                builder: (_) {
-                  // Flattened once per build (cheap widget construction); the
-                  // list below only *lays out/mounts* items near the viewport
-                  // instead of all of them eagerly (matters once the registry
-                  // grows to hundreds of codes).
-                  final items = <Widget>[
-                    _SectionHeader(
-                      label: l10n.swatchSectionCodes,
-                      count: codes.length,
-                    ),
-                    if (codes.isEmpty)
-                      _EmptyHint(
-                        icon: Icons.qr_code_2_rounded,
-                        title: allCodes.isEmpty
-                            ? l10n.swatchNoCodes
-                            : l10n.swatchNoMatch(query.trim()),
-                        subtitle: allCodes.isEmpty ? l10n.swatchNoCodesHint : null,
-                      )
-                    else
-                      for (final c in codes)
-                        _SwatchTile(
-                          code: c,
-                          onEdit: () => _openForm(initial: c),
-                          onCopy: () => _copy(c.code),
-                          onDelete: () => _confirmDelete(c),
-                        ),
-                    if (inventoryLoaded && uncoded.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      _SectionHeader(
-                        label: l10n.swatchSectionUncoded,
-                        count: uncoded.length,
-                      ),
-                      for (final f in uncoded)
-                        _UncodedTile(
-                          identity: f,
-                          onGenerate: () => _generateFor(f),
-                        ),
-                    ] else if (inventoryLoaded && allCodes.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      _EmptyHint(
-                        icon: Icons.check_circle_outline_rounded,
-                        title: l10n.swatchAllCoded,
-                      ),
-                    ],
-                  ];
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 96),
-                    itemCount: items.length,
-                    itemBuilder: (context, i) => items[i],
-                  );
-                },
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 96),
+              sliver: SliverList.builder(
+                itemCount: items.length,
+                itemBuilder: (context, i) => items[i],
               ),
             ),
           ],

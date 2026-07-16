@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -358,52 +359,53 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             .where((p) => p.printer.name.toLowerCase().contains(q))
             .toList();
 
-    return Column(
-      children: [
-        _SummaryHeader(printers: printers),
-        // Search bar only makes sense with multiple printers.
-        if (printers.length > 1)
-          // Neighbors add asymmetric spacing: the header above has no bottom
-          // margin, but the first PrinterCard below has a 7px top margin. Pad
-          // more on top / less on bottom so the visible gaps match.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-            child: DashSearchField(
-              hintText: l10n.searchPrinters,
-              onChanged: (v) => setState(() => _query = v),
+    final hasSearch = printers.length > 1;
+
+    // The header is a pinned, scroll-linked sliver: as the list scrolls the
+    // summary card compacts to a thin bar and the search field rolls away,
+    // reclaiming space; scrolling back to the top restores both. Being driven
+    // by the sliver's own shrinkOffset (not a scroll listener) keeps it smooth.
+    return RefreshIndicator(
+      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _DashHeaderDelegate(
+              printers: printers,
+              hasSearch: hasSearch,
+              hint: l10n.searchPrinters,
+              onQuery: (v) => setState(() => _query = v),
             ),
-          )
-        else
-          const SizedBox(height: 8),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
-            child: filtered.isEmpty
-                ? ListView(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Center(
-                          child: Text(
-                            printers.isEmpty
-                                ? l10n.noPrinters
-                                : l10n.noSearchResults(_query),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) => PrinterCard(
-                      key: ValueKey(filtered[i].printer.id),
-                      item: filtered[i],
-                    ),
-                  ),
           ),
-        ),
-      ],
+          if (filtered.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Text(
+                    printers.isEmpty
+                        ? l10n.noPrinters
+                        : l10n.noSearchResults(_query),
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 6),
+              sliver: SliverList.builder(
+                itemCount: filtered.length,
+                itemBuilder: (_, i) => PrinterCard(
+                  key: ValueKey(filtered[i].printer.id),
+                  item: filtered[i],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -757,12 +759,112 @@ class _DrawerTile extends StatelessWidget {
   }
 }
 
-/// Summary at top of list: how many printers are working and which
-/// will be free soonest (least remaining time).
-class _SummaryHeader extends ConsumerWidget {
-  const _SummaryHeader({required this.printers});
+/// Pinned, scroll-linked dashboard header: the summary card compacts and the
+/// search field rolls away as the list scrolls. All motion derives from the
+/// sliver's [shrinkOffset], so it tracks the finger exactly (no jank/jumps).
+class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _DashHeaderDelegate({
+    required this.printers,
+    required this.hasSearch,
+    required this.hint,
+    required this.onQuery,
+  });
 
   final List<PrinterWithStatus> printers;
+  final bool hasSearch;
+  final String hint;
+  final ValueChanged<String> onQuery;
+
+  // Heights carry generous slack; content is clipped, never overflowed.
+  static const double _statusFull = 60;
+  static const double _statusCompact = 44;
+  static const double _searchH = 66;
+
+  @override
+  double get maxExtent => _statusFull + (hasSearch ? _searchH : 0);
+
+  @override
+  double get minExtent => _statusCompact;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
+    final t = DashTokens.of(context);
+    final range = maxExtent - minExtent;
+    final extent = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
+    final shrink =
+        range <= 0 ? 1.0 : ((maxExtent - extent) / range).clamp(0.0, 1.0);
+    final searchH = hasSearch ? _searchH * (1 - shrink) : 0.0;
+    final statusH = extent - searchH;
+    // A solid fill can't match the screen gradient, so as the list scrolls
+    // under the pinned bar we frost it: blur + a light tint that sample the
+    // actual background (gradient at rest, list once scrolled), leaving nothing
+    // flat to clash with the gradient. At the very top it stays fully clear.
+    final bgAlpha = (shrink * 2).clamp(0.0, 1.0);
+    final content = DecoratedBox(
+      decoration: BoxDecoration(
+        color: t.overlaySurface.withValues(alpha: 0.5 * bgAlpha),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: statusH,
+            child: _SummaryHeader(printers: printers, shrink: shrink),
+          ),
+          if (hasSearch)
+            SizedBox(
+              height: searchH,
+              // Render the field at full size and clip as the row shrinks, so
+              // the field itself never reflows — only the reveal changes.
+              child: ClipRect(
+                child: OverflowBox(
+                  minHeight: _searchH,
+                  maxHeight: _searchH,
+                  alignment: Alignment.topCenter,
+                  child: Opacity(
+                    opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
+                      child:
+                          DashSearchField(hintText: hint, onChanged: onQuery),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    return ClipRect(
+      // Skip the blur layer entirely at the top so the header is truly free
+      // (no save-layer cost, no tint) and the gradient shows through untouched.
+      child: bgAlpha < 0.01
+          ? content
+          : BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18 * bgAlpha, sigmaY: 18 * bgAlpha),
+              child: content,
+            ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DashHeaderDelegate old) =>
+      old.printers != printers ||
+      old.hasSearch != hasSearch ||
+      old.hint != hint;
+}
+
+/// Summary at top of list: how many printers are working and which
+/// will be free soonest (least remaining time). A single card that morphs
+/// continuously via [shrink] (0 = full, 1 = compact) — no cross-fade, so the
+/// intermediate states stay clean (no doubled text).
+class _SummaryHeader extends ConsumerWidget {
+  const _SummaryHeader({required this.printers, this.shrink = 0});
+
+  final List<PrinterWithStatus> printers;
+
+  /// 0 = full card, 1 = compact. Drives the top margin and fades out the
+  /// "next available" detail; the card height itself is set by the parent.
+  final double shrink;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -782,9 +884,16 @@ class _SummaryHeader extends ConsumerWidget {
     final next = active.isEmpty ? null : active.first;
     final dotColor = active.isEmpty ? t.textTertiary : t.accentGreen;
 
+    final nextOpacity = (1 - shrink * 1.8).clamp(0.0, 1.0);
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      // The card fills the height its parent allots (which shrinks with the
+      // scroll); the row stays vertically centred, so there is no vertical
+      // padding to animate and never any overflow. The bottom margin grows as
+      // it collapses, adding a gap between the pinned bar and the list (when
+      // expanded the search field below provides that spacing instead).
+      margin: EdgeInsets.fromLTRB(16, 10 - 4 * shrink, 16, 8 * shrink),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: t.subCard,
         borderRadius: BorderRadius.circular(20),
@@ -812,27 +921,36 @@ class _SummaryHeader extends ConsumerWidget {
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
+            // Fades out as the card collapses (kept in the tree so its space
+            // stays reserved and the power chip doesn't jump).
             Flexible(
-              child: Text.rich(
-                TextSpan(children: [
-                  TextSpan(text: l10n.nextAvailableLabel),
-                  TextSpan(
-                    text: next.printer.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+              child: Opacity(
+                opacity: nextOpacity,
+                child: Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: l10n.nextAvailableLabel),
+                    TextSpan(
+                      text: next.printer.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(text: _nextSuffix(l10n, next)),
+                  ]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 12,
+                    color: t.textSecondary,
                   ),
-                  TextSpan(text: _nextSuffix(l10n, next)),
-                ]),
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textSecondary,
                 ),
               ),
             ),
           ],
           if (hasPlugs) ...[
-            if (next == null) const Spacer() else const SizedBox(width: 12),
+            if (next == null)
+              const Spacer()
+            else
+              const SizedBox(width: 12),
             Tooltip(
               message: l10n.totalPowerTooltip,
               child: Row(

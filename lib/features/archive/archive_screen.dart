@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_search_field.dart';
+import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
 import '../common/printer_picker.dart';
@@ -138,69 +139,76 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   ),
                 ],
               ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: DashSearchField(
-                hintText: l10n.archiveSearchHint,
-                onChanged: _onSearchChanged,
-              ),
-            ),
-            Expanded(
-              child: async.when(
-                skipLoadingOnReload: true,
-                skipLoadingOnRefresh: true,
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => AsyncErrorView(
-                  message: err is AppApiException
-                      ? err.localized(l10n)
-                      : l10n.connectFailed,
-                  retryLabel: l10n.retry,
-                  onRetry: () => ref.read(archiveProvider.notifier).refresh(),
+        body: async.when(
+          skipLoadingOnReload: true,
+          skipLoadingOnRefresh: true,
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => AsyncErrorView(
+            message: err is AppApiException
+                ? err.localized(l10n)
+                : l10n.connectFailed,
+            retryLabel: l10n.retry,
+            onRetry: () => ref.read(archiveProvider.notifier).refresh(),
+          ),
+          data: (s) => RefreshIndicator(
+            onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                DashSliverSearchBar(
+                  child: DashSearchField(
+                    hintText: l10n.archiveSearchHint,
+                    onChanged: _onSearchChanged,
+                  ),
                 ),
-                data: (s) => RefreshIndicator(
-                  onRefresh: () => ref.read(archiveProvider.notifier).refresh(),
-                  child: s.searchFailed
-                      ? EmptyStateView(
-                          message: l10n.archiveSearchFailed(s.query),
-                          icon: Icons.search_off,
-                        )
-                      : s.items.isEmpty
-                          ? EmptyStateView(
-                              message: l10n.archiveEmpty,
-                              icon: Icons.inventory_2_outlined,
-                            )
-                          : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: s.items.length + (s.hasMore ? 1 : 0),
-                          itemBuilder: (context, i) {
-                            if (i >= s.items.length) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(child: CircularProgressIndicator()),
-                              );
-                            }
-                            final archive = s.items[i];
-                            final card = _ArchiveCard(
-                              archive: archive,
-                              selected: _selected.contains(archive.id),
-                              onTap: () => _selectionMode
-                                  ? _toggleSelect(archive.id)
-                                  : _openSheet(archive),
-                              onLongPress: () => _toggleSelect(archive.id),
-                            );
-                            // No swipe-to-delete while multi-selecting.
-                            return _selectionMode
-                                ? card
-                                : _deletable(archive, card);
-                          },
-                        ),
-                ),
-              ),
+                if (s.searchFailed)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyStateView(
+                      message: l10n.archiveSearchFailed(s.query),
+                      icon: Icons.search_off,
+                    ),
+                  )
+                else if (s.items.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyStateView(
+                      message: l10n.archiveEmpty,
+                      icon: Icons.inventory_2_outlined,
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    sliver: SliverList.builder(
+                      itemCount: s.items.length + (s.hasMore ? 1 : 0),
+                      itemBuilder: (context, i) {
+                        if (i >= s.items.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        final archive = s.items[i];
+                        final card = _ArchiveCard(
+                          archive: archive,
+                          selected: _selected.contains(archive.id),
+                          onTap: () => _selectionMode
+                              ? _toggleSelect(archive.id)
+                              : _openSheet(archive),
+                          onLongPress: () => _toggleSelect(archive.id),
+                        );
+                        // No swipe-to-delete while multi-selecting.
+                        return _selectionMode
+                            ? card
+                            : _deletable(archive, card);
+                      },
+                    ),
+                  ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

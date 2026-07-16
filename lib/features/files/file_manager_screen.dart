@@ -14,6 +14,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
+import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart' show formatBytes;
 import '../common/printer_picker.dart';
 import '../common/state_views.dart';
@@ -111,6 +112,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
             retryLabel: l10n.retry,
             onRetry: () => ref.invalidate(fileManagerProvider),
           ),
+          // Stats + breadcrumb stay pinned; the search/filter row rolls away
+          // with the scrollable list below it.
           data: (s) => Column(
             children: [
               const _StatsBar(),
@@ -118,11 +121,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 state: s,
                 onOpen: (id) =>
                     ref.read(fileManagerProvider.notifier).openFolder(id),
-              ),
-              _FilterRow(
-                state: s,
-                controller: _searchController,
-                onSearch: _onSearchChanged,
               ),
               Expanded(child: _body(s)),
             ],
@@ -140,54 +138,76 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final files = s.visibleFiles;
     final notifier = ref.read(fileManagerProvider.notifier);
 
-    // Fetching search index, no results yet.
+    final Widget content;
     if (s.searching && files.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      // Fetching search index, no results yet.
+      content = const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (folders.isEmpty && files.isEmpty) {
+      content = SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyStateView(
+          message: s.searchFailed
+              ? l10n.connectFailed
+              : s.isSearching || s.typeFilter != null
+                  ? l10n.fmNoMatches
+                  : l10n.fmEmpty,
+          icon: s.searchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
+        ),
+      );
+    } else {
+      content = SliverPadding(
+        padding: const EdgeInsets.only(top: 8, bottom: 88),
+        sliver: SliverList.list(
+          children: [
+            for (final f in folders)
+              _FolderTile(
+                folder: f,
+                onOpen: () => notifier.openFolder(f.id),
+                onRename: () => _renameFolder(f),
+                onDelete: () => _deleteFolder(f),
+              ),
+            for (final f in files)
+              _FileTile(
+                file: f,
+                selected: s.selected.contains(f.id),
+                selectionMode: s.selectionMode,
+                // Show folder location in global search results (root when none).
+                folderLabel: s.isSearching
+                    ? (s.folderName(f.folderId) ?? l10n.fmRoot)
+                    : null,
+                onTap: () {
+                  if (s.selectionMode) {
+                    notifier.toggleSelect(f.id);
+                  } else {
+                    _openFileSheet(f);
+                  }
+                },
+                onLongPress: () => notifier.toggleSelect(f.id),
+              ),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: notifier.refresh,
-      child: (folders.isEmpty && files.isEmpty)
-          ? EmptyStateView(
-              message: s.searchFailed
-                  ? l10n.connectFailed
-                  : s.isSearching || s.typeFilter != null
-                      ? l10n.fmNoMatches
-                      : l10n.fmEmpty,
-              icon: s.searchFailed
-                  ? Icons.cloud_off
-                  : Icons.folder_open_outlined,
-            )
-          : ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 88),
-              children: [
-                for (final f in folders)
-                  _FolderTile(
-                    folder: f,
-                    onOpen: () => notifier.openFolder(f.id),
-                    onRename: () => _renameFolder(f),
-                    onDelete: () => _deleteFolder(f),
-                  ),
-                for (final f in files)
-                  _FileTile(
-                    file: f,
-                    selected: s.selected.contains(f.id),
-                    selectionMode: s.selectionMode,
-                    // Show folder location in search results (root when no folder).
-                    folderLabel: s.isSearching
-                        ? (s.folderName(f.folderId) ?? l10n.fmRoot)
-                        : null,  // Show folder location in global search results.
-                    onTap: () {
-                      if (s.selectionMode) {
-                        notifier.toggleSelect(f.id);
-                      } else {
-                        _openFileSheet(f);
-                      }
-                    },
-                    onLongPress: () => notifier.toggleSelect(f.id),
-                  ),
-              ],
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          DashSliverSearchBar(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+            child: _FilterRow(
+              state: s,
+              controller: _searchController,
+              onSearch: _onSearchChanged,
             ),
+          ),
+          content,
+        ],
+      ),
     );
   }
 
@@ -836,46 +856,43 @@ class _FilterRow extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final types = state.availableTypes;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: DashSearchField(
-              controller: controller,
-              hintText: l10n.fmSearchHint,
-              onChanged: onSearch,
-            ),
+    // Outer padding is supplied by the enclosing [DashSliverSearchBar].
+    return Row(
+      children: [
+        Expanded(
+          child: DashSearchField(
+            controller: controller,
+            hintText: l10n.fmSearchHint,
+            onChanged: onSearch,
           ),
-          if (types.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            PopupMenuButton<String?>(
-              tooltip: l10n.fmFilterType,
-              icon: Icon(
-                state.typeFilter == null
-                    ? Icons.filter_list
-                    : Icons.filter_list_alt,
-                color: t.textSecondary,
-              ),
-              onSelected: (v) =>
-                  ref.read(fileManagerProvider.notifier).setType(v),
-              itemBuilder: (ctx) => [
-                CheckedPopupMenuItem<String?>(
-                  value: null,
-                  checked: state.typeFilter == null,
-                  child: Text(l10n.fmAllTypes),
-                ),
-                for (final ft in types)
-                  CheckedPopupMenuItem<String?>(
-                    value: ft,
-                    checked: state.typeFilter == ft,
-                    child: Text(ft.toUpperCase()),
-                  ),
-              ],
+        ),
+        if (types.isNotEmpty) ...[
+          const SizedBox(width: 8),
+          PopupMenuButton<String?>(
+            tooltip: l10n.fmFilterType,
+            icon: Icon(
+              state.typeFilter == null
+                  ? Icons.filter_list
+                  : Icons.filter_list_alt,
+              color: t.textSecondary,
             ),
-          ],
+            onSelected: (v) => ref.read(fileManagerProvider.notifier).setType(v),
+            itemBuilder: (ctx) => [
+              CheckedPopupMenuItem<String?>(
+                value: null,
+                checked: state.typeFilter == null,
+                child: Text(l10n.fmAllTypes),
+              ),
+              for (final ft in types)
+                CheckedPopupMenuItem<String?>(
+                  value: ft,
+                  checked: state.typeFilter == ft,
+                  child: Text(ft.toUpperCase()),
+                ),
+            ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }
