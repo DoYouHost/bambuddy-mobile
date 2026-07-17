@@ -220,13 +220,16 @@ release ver:
     # Sync the server-created tag back to the local repo.
     git fetch --tags origin
 
-# Deletes uploaded artifacts (APKs) from every release older than the current
-# minor series — tags, titles and notes stay, only the binaries are stripped.
-# "Older" = a smaller major.minor than the newest release's, so the whole latest
-# minor (e.g. all of v0.2.x) keeps its APKs while v0.1.x and earlier lose theirs.
+# Deletes uploaded artifacts (APKs) from old releases — tags, titles and notes
+# stay, only the binaries are stripped. Without VER the cutoff is the current
+# minor series: "older" = a smaller major.minor than the newest release's, so the
+# whole latest minor (e.g. all of v0.2.x) keeps its APKs while v0.1.x and earlier
+# lose theirs. With VER (like release-purge) everything at or below that release
+# is stripped, the newest minor included.
 # Irreversible on the server side.
 # free Codeberg release-storage quota: strip artifacts from old releases
-release-cleanup:
+# usage: just release-cleanup [0.9.0]
+release-cleanup ver='':
     #!/usr/bin/env bash
     set -euo pipefail
     # Capture the list first (piping tea straight into a filter risks a pipefail
@@ -238,21 +241,51 @@ release-cleanup:
         echo "No version releases found; nothing to clean."
         exit 0
     fi
-    # Latest minor = the max (major, minor) across all tags.
-    latest_major=-1; latest_minor=-1
-    for tag in $tags; do
-        v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
-        if (( major > latest_major )) || { (( major == latest_major )) && (( minor > latest_minor )); }; then
-            latest_major=$major; latest_minor=$minor
+    if [ -n "{{ver}}" ]; then
+        # `sort -V` orders versions numerically (v0.9.0 < v0.10.0, which a plain
+        # lexical sort gets backwards). A tag is doomed when it sorts first
+        # against the cutoff — i.e. it is older than or equal to it.
+        doomed=$(for tag in $tags; do
+            v="${tag#v}"
+            if [ "$(printf '%s\n%s\n' "$v" "{{ver}}" | sort -V | head -1)" = "$v" ]; then
+                echo "$tag"
+            fi
+        done)
+        if [ -z "$doomed" ]; then
+            echo "No releases at or below v{{ver}}; nothing to clean."
+            exit 0
         fi
-    done
-    echo "Latest minor: v${latest_major}.${latest_minor}.x (kept). Stripping artifacts from older releases:"
-    for tag in $tags; do
-        v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
+        echo "About to strip artifacts from releases at or below v{{ver}} (irreversible; releases and tags stay):"
+    else
+        # Latest minor = the max (major, minor) across all tags.
+        latest_major=-1; latest_minor=-1
+        for tag in $tags; do
+            v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
+            if (( major > latest_major )) || { (( major == latest_major )) && (( minor > latest_minor )); }; then
+                latest_major=$major; latest_minor=$minor
+            fi
+        done
         # Keep the current minor (and anything newer); clean only older minors.
-        if (( major > latest_major )) || { (( major == latest_major )) && (( minor >= latest_minor )); }; then
-            continue
+        doomed=$(for tag in $tags; do
+            v="${tag#v}"; major="${v%%.*}"; rest="${v#*.}"; minor="${rest%%.*}"
+            if (( major < latest_major )) || { (( major == latest_major )) && (( minor < latest_minor )); }; then
+                echo "$tag"
+            fi
+        done)
+        if [ -z "$doomed" ]; then
+            echo "Only v${latest_major}.${latest_minor}.x releases exist; nothing to clean."
+            exit 0
         fi
+        echo "Latest minor: v${latest_major}.${latest_minor}.x (kept). About to strip artifacts from older releases (irreversible; releases and tags stay):"
+    fi
+    printf '  %s\n' $doomed
+    echo "Keeping: $(comm -23 <(sort <<<"$tags") <(sort <<<"$doomed") | tr '\n' ' ')"
+    read -r -p "Type 'yes' to confirm: " answer
+    if [ "$answer" != "yes" ]; then
+        echo "Aborted."
+        exit 1
+    fi
+    for tag in $doomed; do
         mapfile -t assets < <(tea releases assets list --remote origin "$tag" --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
         if (( ${#assets[@]} == 0 )); then
             echo "  $tag: no artifacts"
@@ -262,6 +295,47 @@ release-cleanup:
         tea releases assets delete --remote origin -y "$tag" "${assets[@]}"
     done
     echo "Cleanup done."
+
+# Deletes whole releases (entry, title, notes and artifacts) at VER and below —
+# unlike release-cleanup, which only strips artifacts. Tags are kept, so history
+# and `git describe` still work, and a release can be recreated from one; pass
+# --delete-tag to tea by hand if you really want the tags gone too.
+# Irreversible on the server side, hence the preview + typed confirmation.
+# delete whole releases from VER downwards: just release-purge 0.9.0
+release-purge ver:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Capture first (piping tea straight into a filter risks a pipefail abort);
+    # tea's TSV wraps notes onto extra lines, so keep only real version tags.
+    releases=$(tea releases list --remote origin --limit 100 --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+    tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
+    if [ -z "$tags" ]; then
+        echo "No version releases found; nothing to purge."
+        exit 0
+    fi
+    # `sort -V` orders versions numerically (v0.9.0 < v0.10.0, which a plain
+    # lexical sort gets backwards). A tag is doomed when it sorts first against
+    # the cutoff — i.e. it is older than or equal to it.
+    doomed=$(for tag in $tags; do
+        v="${tag#v}"
+        if [ "$(printf '%s\n%s\n' "$v" "{{ver}}" | sort -V | head -1)" = "$v" ]; then
+            echo "$tag"
+        fi
+    done)
+    if [ -z "$doomed" ]; then
+        echo "No releases at or below v{{ver}}; nothing to purge."
+        exit 0
+    fi
+    echo "About to DELETE these releases from Codeberg (irreversible; tags stay):"
+    printf '  %s\n' $doomed
+    echo "Keeping: $(comm -23 <(sort <<<"$tags") <(sort <<<"$doomed") | tr '\n' ' ')"
+    read -r -p "Type 'yes' to confirm: " answer
+    if [ "$answer" != "yes" ]; then
+        echo "Aborted."
+        exit 1
+    fi
+    tea releases delete --remote origin -y $doomed
+    echo "Purged $(wc -l <<<"$doomed") releases."
 
 # bump version, test, build and release — full pipeline
 # usage: just ship 1.0.0
