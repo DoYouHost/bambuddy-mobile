@@ -49,9 +49,15 @@ Write from the "USER-FACING" list. Rules:
   leak code identifiers, hex colors, file names, or Conventional-Commit prefixes.
 - **Merge & prioritize.** Fold tiny tweaks into one "UI polish" bullet; lead
   with the biggest change. Aim for 3–6 bullets.
+- **Keep it simple and short.** One short line per bullet, plain language. Name
+  the feature — don't enumerate its sub-options. Cut adjectives, marketing
+  ("fresh", "powerful"), and parenthetical lists. If a bullet spans more than
+  ~one line, it's too detailed: trim it or split the release into fewer bullets.
+  Fewer, shorter bullets beat a complete-but-bloated list.
 - **Bilingual, not machine-translated.** Write natural Polish and natural
   English independently. Keep app content PEGI-16 clean (see project rules).
-- **Length.** Play caps each language at **500 characters**. Stay well under.
+- **Length.** Play caps each language at **500 characters**. Aim for ≤ ~450 so
+  there's margin; the Step 4 length check is mandatory, not optional.
 - **Format** exactly as below (bullets with `•`); paste the whole block into the
   Play Console field.
 
@@ -65,6 +71,44 @@ Write from the "USER-FACING" list. Rules:
 • ...
 </pl-PL>
 ```
+
+## Step 3 — humanize (mandatory)
+
+Draft notes tend to read like an AI wrote them: inflated verbs, rule-of-three
+bullets, promotional adjectives, stiff phrasing. Before finalizing, run the
+draft through the **`humanizer`** skill (invoke `/humanizer` on the drafted
+bullets) and apply its fixes. Keep it plain and human: short bullets, real
+verbs, no marketing filler, no em-dash/curly-quote/emoji tells. This step is
+required, not optional — the notes users read should not sound machine-written.
+
+## Step 4 — check the length (mandatory)
+
+Play rejects a language over 500 characters, so **always** count both before
+handing the notes over. Write the final block to a file and count the content
+of each language (tags excluded):
+
+```bash
+cat > /tmp/relnotes.txt <<'EOF'
+<en-US>
+• ...
+• ...
+</en-US>
+<pl-PL>
+• ...
+• ...
+</pl-PL>
+EOF
+
+awk '
+  /<en-US>/{f="en-US";next} /<\/en-US>/{f="";next}
+  /<pl-PL>/{f="pl-PL";next} /<\/pl-PL>/{f="";next}
+  f{n[f]+=length($0)+1}
+  END{for(k in n) printf "%s: %d chars\n", k, n[k]}
+' /tmp/relnotes.txt
+```
+
+Report the per-language counts. If either is over 500 (or over your ~450
+target), cut detail and re-count — do not hand over notes you haven't measured.
 
 ## Worked example (v0.10.0 → v0.10.1)
 
