@@ -176,6 +176,7 @@ class DemoBackend {
       case 'printers':
         if (s.length == 1) return _ok(_printers);
         if (at(1, 'camera')) return _ok({'token': 'demo-camera-token'});
+        if (at(1, 'available-filaments')) return _ok(_availableFilaments());
         final pid = id(1);
         if (pid == null) return _notFound();
         if (s.length == 2) {
@@ -629,6 +630,16 @@ class DemoBackend {
       createdDaysAgo: 0,
     ),
   ];
+
+  /// Demo filaments "loaded on other printers of the model" — options for the
+  /// Edit Queue Item filament-override dropdowns. Static set covering the common
+  /// materials so the override UI is exercisable offline.
+  List<Map<String, dynamic>> _availableFilaments() => const [
+        {'type': 'PLA', 'color': '#FFFFFF', 'tray_info_idx': 'GFA00', 'tray_sub_brands': 'Bambu PLA Basic', 'extruder_id': null},
+        {'type': 'PLA', 'color': '#1F8F4D', 'tray_info_idx': 'GFA01', 'tray_sub_brands': 'Bambu PLA Matte', 'extruder_id': null},
+        {'type': 'PETG', 'color': '#F55A74', 'tray_info_idx': 'GFG00', 'tray_sub_brands': 'Bambu PETG HF', 'extruder_id': null},
+        {'type': 'TPU 95A', 'color': '#34C46E', 'tray_info_idx': 'GFU00', 'tray_sub_brands': 'Bambu TPU 95A', 'extruder_id': null},
+      ];
 
   Map<String, dynamic> _queueItem({
     required int id,

@@ -16,6 +16,7 @@ import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
 import '../files/library_thumbnail.dart';
+import 'queue_edit_screen.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 
@@ -506,6 +507,10 @@ class _QueueActions extends ConsumerWidget {
           _previewGcode(context);
           return;
         }
+        if (value == 'edit') {
+          await openQueueEdit(context, item);
+          return;
+        }
         // Start: shared flow (assign printer if none → mapping → start).
         if (value == 'start') {
           await _startQueueItem(context, ref, item, l10n);
@@ -541,6 +546,16 @@ class _QueueActions extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.play_arrow),
               title: Text(l10n.queueStart),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        // Only pending/scheduled items are editable server-side.
+        if (canStart)
+          PopupMenuItem(
+            value: 'edit',
+            child: ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l10n.queueEdit),
               contentPadding: EdgeInsets.zero,
             ),
           ),

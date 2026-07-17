@@ -5,6 +5,12 @@ import '../core/api/endpoints.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/queue_item.dart';
 
+/// Sentinel distinguishing "argument not passed" from an explicit `null` in
+/// [QueueRepository.updateItem], where `null` is a meaningful value that clears
+/// a nullable column server-side. Public so callers can request an explicit
+/// omission (e.g. keep `ams_mapping` untouched in model-based assignment).
+const Object kQueueUpdateUnset = Object();
+
 /// REST data source for print queue (M5).
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio.
@@ -62,6 +68,64 @@ class QueueRepository {
         Endpoints.queueItem(itemId),
         data: {'ams_mapping': mapping},
       ));
+
+  /// PATCH /queue/{id} — full edit of a pending item (Edit Queue Item screen).
+  ///
+  /// Mirrors the server's `PrintQueueItemUpdate`: every field is optional and
+  /// only applied when present, so `null` is meaningful — it clears a nullable
+  /// column (e.g. `scheduled_time: null` = ASAP/queue, `target_model: null` when
+  /// switching to a specific printer). For the `Object?` params, `null` is sent
+  /// as an explicit clear; pass [kQueueUpdateUnset] (their default) to omit the
+  /// key entirely and leave the server value untouched.
+  Future<void> updateItem(
+    int itemId, {
+    Object? printerId = kQueueUpdateUnset,
+    Object? targetModel = kQueueUpdateUnset,
+    Object? targetLocation = kQueueUpdateUnset,
+    Object? filamentOverrides = kQueueUpdateUnset,
+    Object? amsMapping = kQueueUpdateUnset,
+    Object? plateId = kQueueUpdateUnset,
+    Object? scheduledTime = kQueueUpdateUnset,
+    bool? requirePreviousSuccess,
+    bool? autoOffAfter,
+    bool? manualStart,
+    bool? bedLevelling,
+    bool? flowCali,
+    bool? vibrationCali,
+    bool? layerInspect,
+    bool? timelapse,
+    bool? useAms,
+    bool? nozzleOffsetCali,
+    bool? gcodeInjection,
+    String? preheatOverride,
+    Object? preheatChamberTargetOverride = kQueueUpdateUnset,
+  }) {
+    final body = <String, dynamic>{
+      if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
+      if (targetModel != kQueueUpdateUnset) 'target_model': targetModel,
+      if (targetLocation != kQueueUpdateUnset) 'target_location': targetLocation,
+      if (filamentOverrides != kQueueUpdateUnset) 'filament_overrides': filamentOverrides,
+      if (amsMapping != kQueueUpdateUnset) 'ams_mapping': amsMapping,
+      if (plateId != kQueueUpdateUnset) 'plate_id': plateId,
+      if (scheduledTime != kQueueUpdateUnset) 'scheduled_time': scheduledTime,
+      'require_previous_success': ?requirePreviousSuccess,
+      'auto_off_after': ?autoOffAfter,
+      'manual_start': ?manualStart,
+      'bed_levelling': ?bedLevelling,
+      'flow_cali': ?flowCali,
+      'vibration_cali': ?vibrationCali,
+      'layer_inspect': ?layerInspect,
+      'timelapse': ?timelapse,
+      'use_ams': ?useAms,
+      'nozzle_offset_cali': ?nozzleOffsetCali,
+      'gcode_injection': ?gcodeInjection,
+      'preheat_override': ?preheatOverride,
+      if (preheatChamberTargetOverride != kQueueUpdateUnset)
+        'preheat_chamber_target_override': preheatChamberTargetOverride,
+    };
+    return guard(
+        () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));
+  }
 
   /// POST /queue/{id}/start — manually start item.
   Future<void> start(int itemId) =>

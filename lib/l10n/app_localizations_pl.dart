@@ -3206,4 +3206,176 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get wearUsername => 'Użytkownik';
+
+  @override
+  String get commonOn => 'Wł.';
+
+  @override
+  String get commonOff => 'Wył.';
+
+  @override
+  String get queueEdit => 'Edytuj';
+
+  @override
+  String get queueEditTitle => 'Edytuj pozycję kolejki';
+
+  @override
+  String get queueEditSave => 'Zapisz';
+
+  @override
+  String get queueEditSaved => 'Zaktualizowano pozycję kolejki';
+
+  @override
+  String get queueEditPrintJob => 'Zadanie druku';
+
+  @override
+  String get queueEditTarget => 'Cel';
+
+  @override
+  String get queueEditSpecificPrinter => 'Konkretna drukarka';
+
+  @override
+  String queueEditAnyModel(String model) {
+    return 'Dowolna $model';
+  }
+
+  @override
+  String get queueEditAnyModelGeneric => 'Dowolny model';
+
+  @override
+  String get queueEditTargetModel => 'Model';
+
+  @override
+  String get queueEditTargetLocation => 'Lokalizacja';
+
+  @override
+  String get queueEditAnyLocation => 'Dowolna lokalizacja';
+
+  @override
+  String get queueEditMappingNeedsPrinter =>
+      'Wybierz drukarkę, aby zmapować filamenty';
+
+  @override
+  String queueEditMappingSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slotu',
+      many: '$count slotów',
+      few: '$count sloty',
+      one: '$count slot',
+    );
+    return 'Zmapowano $_temp0';
+  }
+
+  @override
+  String get queueEditMappingAuto => 'Automatycznie (bez ręcznego mapowania)';
+
+  @override
+  String get queueEditPrintOptions => 'Opcje druku';
+
+  @override
+  String get queueOptBedLevelling => 'Poziomowanie stołu';
+
+  @override
+  String get queueOptBedLevellingDesc =>
+      'Automatyczne poziomowanie przed drukiem';
+
+  @override
+  String get queueOptFlowCali => 'Kalibracja przepływu';
+
+  @override
+  String get queueOptFlowCaliDesc => 'Kalibracja przepływu ekstruzji';
+
+  @override
+  String get queueOptVibrationCali => 'Kalibracja drgań';
+
+  @override
+  String get queueOptVibrationCaliDesc => 'Redukcja artefaktów rezonansu';
+
+  @override
+  String get queueOptLayerInspect => 'Inspekcja pierwszej warstwy';
+
+  @override
+  String get queueOptLayerInspectDesc => 'Inspekcja AI pierwszej warstwy';
+
+  @override
+  String get queueOptTimelapse => 'Timelapse';
+
+  @override
+  String get queueOptTimelapseDesc => 'Nagrywanie filmu timelapse';
+
+  @override
+  String get queueOptNozzleOffset => 'Kalibracja offsetu dysz';
+
+  @override
+  String get queueOptNozzleOffsetDesc =>
+      'Kalibracja offsetów dysz między ekstruderami';
+
+  @override
+  String get queueEditPreheat => 'Nagrzewanie i wygrzewanie';
+
+  @override
+  String get queueEditPreheatDesc =>
+      'Nagrzej stół i komorę przed startem druku. Domyślnie z globalnego przełącznika Ustawienia → Workflow.';
+
+  @override
+  String get queuePreheatInherit => 'Dziedzicz';
+
+  @override
+  String get queueEditChamberTarget =>
+      'Nadpisanie temp. komory (°C, puste = domyślna filamentu)';
+
+  @override
+  String get queueEditWhenToPrint => 'Kiedy drukować';
+
+  @override
+  String get queueScheduleAsap => 'ASAP';
+
+  @override
+  String get queueScheduleQueue => 'Kolejka';
+
+  @override
+  String get queueScheduleSchedule => 'Zaplanuj';
+
+  @override
+  String get queueEditPickTime => 'Wybierz datę i godzinę';
+
+  @override
+  String get queueEditRequireManualStart => 'Wymagaj ręcznego startu';
+
+  @override
+  String get queueEditRequirePrevious =>
+      'Startuj tylko jeśli poprzedni druk się powiódł';
+
+  @override
+  String get queueEditPowerOff => 'Wyłącz drukarkę po zakończeniu';
+
+  @override
+  String get queueEditNoModel => 'Wybierz docelowy model';
+
+  @override
+  String get queueEditNoPrinter => 'Wybierz drukarkę';
+
+  @override
+  String get queueEditFilamentOverride => 'Nadpisanie filamentu';
+
+  @override
+  String get queueEditFilamentOverrideDesc =>
+      'Opcjonalnie nadpisz filamenty dla przypisania po modelu. Scheduler dopasuje wybrane filamenty zamiast oryginalnych wartości z 3MF.';
+
+  @override
+  String get queueEditNoFilamentReqs =>
+      'Brak wymagań filamentowych dla tego zadania.';
+
+  @override
+  String get queueEditOriginal => 'Oryginał';
+
+  @override
+  String queueEditSlotLabel(String slot, String type) {
+    return 'Slot $slot · $type';
+  }
+
+  @override
+  String get queueEditForceColorMatch => 'Wymuś zgodność koloru';
 }

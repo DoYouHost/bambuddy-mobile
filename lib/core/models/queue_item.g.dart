@@ -32,4 +32,29 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   createdAt: dateTimeFromJson(json['created_at']),
   startedAt: dateTimeFromJson(json['started_at']),
   completedAt: dateTimeFromJson(json['completed_at']),
+  targetModel: json['target_model'] as String?,
+  targetLocation: json['target_location'] as String?,
+  filamentOverrides: (json['filament_overrides'] as List<dynamic>?)
+      ?.map((e) => e as Map<String, dynamic>)
+      .toList(),
+  scheduledTime: dateTimeFromJson(json['scheduled_time']),
+  requirePreviousSuccess: json['require_previous_success'] as bool? ?? false,
+  autoOffAfter: json['auto_off_after'] as bool? ?? false,
+  manualStart: json['manual_start'] as bool? ?? false,
+  plateId: (json['plate_id'] as num?)?.toInt(),
+  bedLevelling: json['bed_levelling'] as bool? ?? true,
+  flowCali: json['flow_cali'] as bool? ?? false,
+  vibrationCali: json['vibration_cali'] as bool? ?? true,
+  layerInspect: json['layer_inspect'] as bool? ?? false,
+  timelapse: json['timelapse'] as bool? ?? false,
+  useAms: json['use_ams'] as bool? ?? true,
+  nozzleOffsetCali: json['nozzle_offset_cali'] as bool? ?? true,
+  preheatOverride: json['preheat_override'] as String? ?? 'inherit',
+  preheatChamberTargetOverride:
+      (json['preheat_chamber_target_override'] as num?)?.toInt(),
+  gcodeInjection: json['gcode_injection'] as bool? ?? false,
+  nozzleMapping: (json['nozzle_mapping'] as List<dynamic>?)
+      ?.map((e) => (e as num).toInt())
+      .toList(),
+  slicedForModel: json['sliced_for_model'] as String?,
 );

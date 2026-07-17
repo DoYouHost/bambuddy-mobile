@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/json_utils.dart';
+import '../core/models/available_filament.dart';
 import '../core/models/printer.dart';
 import '../core/models/printer_status.dart';
 
@@ -37,6 +38,24 @@ class PrintersRepository {
             await _dio.get<Map<String, dynamic>>(Endpoints.printerStatus(printerId));
         final body = res.data;
         return body == null ? null : PrinterStatus.fromJson(body);
+      });
+
+  /// Filaments loaded on active printers of [model] (optionally filtered by
+  /// [location]) — options for model-based filament overrides. Degrades to an
+  /// empty list on failure (the override UI just shows no alternatives).
+  Future<List<AvailableFilament>> fetchAvailableFilaments(
+    String model, {
+    String? location,
+  }) =>
+      guard(() async {
+        final res = await _dio.get<List<dynamic>>(
+          Endpoints.printersAvailableFilaments,
+          queryParameters: <String, dynamic>{
+            'model': model,
+            if (location != null && location.isNotEmpty) 'location': location,
+          },
+        );
+        return AvailableFilament.parseList(res.data ?? const []);
       });
 
   /// List and statuses fetched in parallel.

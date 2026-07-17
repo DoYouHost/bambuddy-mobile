@@ -1,0 +1,1294 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/models/available_filament.dart';
+import '../../core/models/filament_requirement.dart';
+import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_theme.dart';
+import '../../data/queue_repository.dart';
+import '../../l10n/app_localizations.dart';
+import '../common/print_thumbnail.dart';
+import '../files/library_thumbnail.dart';
+import '../slicer/slice_providers.dart';
+import '../stats/stats_common.dart' show colorFromHex;
+import 'queue_mapping_sheet.dart';
+import 'queue_providers.dart';
+
+/// Full "Edit Queue Item" screen — mirrors the web PrintModal in edit mode.
+/// Only pending items are editable (the server rejects the rest), so the entry
+/// point is gated on status; this screen assumes a pending [item].
+///
+/// Save maps to `PATCH /queue/{id}` via [QueueRepository.updateItem], following
+/// the web payload: printer mode clears `target_model`/`target_location`; model
+/// mode clears `printer_id`. `scheduled_time` is null for ASAP/Queue, an ISO
+/// timestamp only for Schedule. `manual_start` is honoured only in Queue mode.
+class QueueEditScreen extends ConsumerStatefulWidget {
+  const QueueEditScreen({super.key, required this.item});
+
+  final QueueItem item;
+
+  @override
+  ConsumerState<QueueEditScreen> createState() => _QueueEditScreenState();
+}
+
+/// Models with two nozzles — gate for the nozzle-offset-calibration option
+/// (matches the web `showDualNozzleOptions` model list).
+const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
+
+enum _ScheduleType { asap, queue, scheduled }
+
+/// Dark ink for text/icons painted on a solid [DashTokens.accentGreen] fill.
+/// `accentGreenInk` can't be used here: in the dark theme it equals
+/// `accentGreen`, so the label would vanish into the fill. Mirrors the app's
+/// on-accent ink (`dashPrimaryButtonStyle`).
+const Color _onGreenFill = Color(0xFF0A0C08);
+
+class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
+  // Target
+  late bool _modelMode; // false = specific printer, true = "Any <model>"
+  late int? _printerId;
+  late String? _targetModel;
+  late String? _targetLocation;
+
+  // Filament mapping (printer mode). Null = auto/unchanged.
+  late List<int>? _amsMapping;
+
+  // Filament overrides (model mode): slot_id → chosen filament, and per-slot
+  // force-color-match flags. Prefilled from the item's stored overrides.
+  final Map<int, ({String type, String color})> _overrides = {};
+  final Map<int, bool> _forceColorMatch = {};
+
+  // Print options
+  late bool _bedLevelling;
+  late bool _flowCali;
+  late bool _vibrationCali;
+  late bool _layerInspect;
+  late bool _timelapse;
+  late bool _nozzleOffsetCali;
+
+  // Preheat & heat soak
+  late String _preheatOverride; // inherit | on | off
+  late final TextEditingController _chamberTarget;
+
+  // When to print
+  late _ScheduleType _scheduleType;
+  DateTime? _scheduledTime;
+
+  // Flags
+  late bool _requireManualStart;
+  late bool _requirePreviousSuccess;
+  late bool _autoOffAfter;
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final it = widget.item;
+    _modelMode = it.targetModel != null;
+    _printerId = it.printerId;
+    _targetModel = it.targetModel;
+    _targetLocation = it.targetLocation;
+    _amsMapping = it.amsMapping;
+    _bedLevelling = it.bedLevelling;
+    _flowCali = it.flowCali;
+    _vibrationCali = it.vibrationCali;
+    _layerInspect = it.layerInspect;
+    _timelapse = it.timelapse;
+    _nozzleOffsetCali = it.nozzleOffsetCali;
+    _preheatOverride = it.preheatOverride;
+    _chamberTarget = TextEditingController(
+      text: it.preheatChamberTargetOverride?.toString() ?? '',
+    );
+    // Web maps a null/placeholder scheduled_time to Queue (ASAP is inert in
+    // edit — insert_at_top is create-only); only a real timestamp is Schedule.
+    _scheduledTime = it.scheduledTime;
+    _scheduleType =
+        it.scheduledTime != null ? _ScheduleType.scheduled : _ScheduleType.queue;
+    _requireManualStart = it.manualStart;
+    _requirePreviousSuccess = it.requirePreviousSuccess;
+    _autoOffAfter = it.autoOffAfter;
+    for (final o in it.filamentOverrides ?? const []) {
+      final slot = (o['slot_id'] as num?)?.toInt();
+      if (slot == null) continue;
+      final type = o['type'] as String?;
+      final color = o['color'] as String?;
+      if (type != null && color != null) {
+        _overrides[slot] = (type: type, color: color);
+      }
+      if (o['force_color_match'] == true) _forceColorMatch[slot] = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _chamberTarget.dispose();
+    super.dispose();
+  }
+
+  bool get _showNozzleOffset {
+    final m = widget.item.slicedForModel?.toUpperCase();
+    return m != null && _dualNozzleModels.contains(m);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    return DashBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: dashAppBar(
+          context,
+          title: l10n.queueEditTitle,
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+              onPressed: _saving ? null : _submit,
+              child: Text(l10n.queueEditSave),
+            ),
+          ],
+        ),
+        body: AbsorbPointer(
+          absorbing: _saving,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            children: [
+              _header(l10n, t),
+              const SizedBox(height: 16),
+              _targetSection(l10n, t),
+              const SizedBox(height: 16),
+              if (!_modelMode) ...[
+                _mappingSection(l10n, t),
+                const SizedBox(height: 16),
+              ] else ...[
+                _filamentOverrideSection(l10n, t),
+                const SizedBox(height: 16),
+              ],
+              _printOptionsSection(l10n, t),
+              const SizedBox(height: 16),
+              _preheatSection(l10n, t),
+              const SizedBox(height: 16),
+              _scheduleSection(l10n, t),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Header (print job name + thumbnail) ---
+  Widget _header(AppLocalizations l10n, DashTokens t) {
+    final it = widget.item;
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: it.archiveId == null && it.libraryFileId != null
+              ? LibraryThumbnail(
+                  fileId: it.libraryFileId!,
+                  hasThumbnail: it.libraryFileThumbnail != null,
+                  size: 52,
+                )
+              : PrintThumbnail(archiveId: it.archiveId, size: 52),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.queueEditPrintJob,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: t.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                it.displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: t.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- Target: Specific Printer / Any <model> ---
+  Widget _targetSection(AppLocalizations l10n, DashTokens t) {
+    final printers = ref.watch(allPrintersProvider).valueOrNull ?? const [];
+    final models = <String>{
+      for (final p in printers)
+        if (p.model != null && p.model!.isNotEmpty) p.model!,
+    }.toList()
+      ..sort();
+    final locations = <String>{
+      for (final p in printers)
+        if (p.location != null && p.location!.isNotEmpty) p.location!,
+    }.toList()
+      ..sort();
+    // Model dropdown mirrors web: hidden when the file has a known sliced model
+    // (the target is fixed to it), shown only for model-agnostic files.
+    final slicedModel = widget.item.slicedForModel;
+    final modelFixed = slicedModel != null && slicedModel.isNotEmpty;
+    final anyLabel = modelFixed
+        ? l10n.queueEditAnyModel(slicedModel)
+        : (_targetModel != null && _targetModel!.isNotEmpty
+            ? l10n.queueEditAnyModel(_targetModel!)
+            : l10n.queueEditAnyModelGeneric);
+
+    return _SectionCard(
+      title: l10n.queueEditTarget,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SegToggle<bool>(
+            selected: _modelMode,
+            segments: [
+              (value: false, label: l10n.queueEditSpecificPrinter, icon: Icons.print_outlined),
+              (value: true, label: anyLabel, icon: Icons.groups_outlined),
+            ],
+            onChanged: (v) => setState(() {
+              _modelMode = v;
+              if (v) {
+                _targetModel ??= modelFixed
+                    ? slicedModel
+                    : (models.isNotEmpty ? models.first : null);
+              }
+            }),
+          ),
+          const SizedBox(height: 12),
+          if (!_modelMode)
+            _printerList(l10n, t, printers)
+          else
+            _modelTarget(l10n, t, models, locations, modelFixed),
+        ],
+      ),
+    );
+  }
+
+  Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
+    if (printers.isEmpty) {
+      return Text(l10n.queueNoFreePrinters,
+          style: TextStyle(
+              fontFamily: DashTokens.fontUi, color: t.textTertiary, fontSize: 13));
+    }
+    return Column(
+      children: [
+        for (final p in printers)
+          _SelectableTile(
+            selected: _printerId == p.id,
+            title: p.name,
+            subtitle: [
+              if (p.model != null) p.model!,
+              if (p.ipAddress != null) p.ipAddress!,
+            ].join(' • '),
+            onTap: () => setState(() => _printerId = p.id),
+          ),
+      ],
+    );
+  }
+
+  Widget _modelTarget(AppLocalizations l10n, DashTokens t, List<String> models,
+      List<String> locations, bool modelFixed) {
+    return Column(
+      children: [
+        if (!modelFixed && models.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _Dropdown<String?>(
+              label: l10n.queueEditTargetModel,
+              value: models.contains(_targetModel) ? _targetModel : null,
+              placeholder: '—',
+              items: [
+                for (final m in models) (value: m, label: m, swatch: null),
+              ],
+              onChanged: (v) => setState(() => _targetModel = v),
+            ),
+          ),
+        _Dropdown<String?>(
+          label: l10n.queueEditTargetLocation,
+          value: locations.contains(_targetLocation) ? _targetLocation : null,
+          placeholder: l10n.queueEditAnyLocation,
+          items: [
+            (value: null, label: l10n.queueEditAnyLocation, swatch: null),
+            for (final loc in locations)
+              (value: loc, label: loc, swatch: null),
+          ],
+          onChanged: (v) => setState(() => _targetLocation = v),
+        ),
+      ],
+    );
+  }
+
+  // --- Filament mapping (printer mode) ---
+  Widget _mappingSection(AppLocalizations l10n, DashTokens t) {
+    final mapped = _amsMapping?.where((v) => v >= 0).length ?? 0;
+    final printerId = _printerId;
+    return _SectionCard(
+      title: l10n.queueFilamentMapping,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: printerId == null
+            ? null
+            : () async {
+                final mapping = await showQueueMappingSheet(
+                  context,
+                  item: widget.item,
+                  printerId: printerId,
+                  confirmLabel: l10n.fmSave,
+                );
+                if (mapping != null) setState(() => _amsMapping = mapping);
+              },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.bento_outlined, color: t.textSecondary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  printerId == null
+                      ? l10n.queueEditMappingNeedsPrinter
+                      : (mapped > 0
+                          ? l10n.queueEditMappingSummary(mapped)
+                          : l10n.queueEditMappingAuto),
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
+                ),
+              ),
+              if (printerId != null)
+                Icon(Icons.chevron_right, color: t.textTertiary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Filament override (model mode) ---
+
+  /// Required filament slots for the queued file. Prefers the parsed 3MF
+  /// requirements (archive/library source); falls back to the item's own
+  /// comma-separated `filament_type`/`filament_color` when there is no source
+  /// yet (e.g. a queued reprint whose archive is created only at print start).
+  List<({int slotId, String type, String color})> _requirements() {
+    final it = widget.item;
+    List<FilamentRequirement> reqs = const [];
+    if (it.archiveId != null) {
+      reqs = ref
+              .watch(filamentRequirementsProvider((true, it.archiveId!)))
+              .valueOrNull ??
+          const [];
+    } else if (it.libraryFileId != null) {
+      reqs = ref
+              .watch(filamentRequirementsProvider((false, it.libraryFileId!)))
+              .valueOrNull ??
+          const [];
+    }
+    if (reqs.isNotEmpty) {
+      return [
+        for (final r in reqs)
+          (slotId: r.slotId, type: r.type ?? '', color: r.color ?? ''),
+      ];
+    }
+    final types = (it.filamentType ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final colors =
+        (it.filamentColor ?? '').split(',').map((s) => s.trim()).toList();
+    return [
+      for (var i = 0; i < types.length; i++)
+        (
+          slotId: i + 1,
+          type: types[i],
+          color: i < colors.length ? colors[i] : '',
+        ),
+    ];
+  }
+
+  Widget _filamentOverrideSection(AppLocalizations l10n, DashTokens t) {
+    final model = _targetModel ?? '';
+    final available = model.isEmpty
+        ? const <AvailableFilament>[]
+        : (ref
+                .watch(availableFilamentsProvider((model, _targetLocation ?? '')))
+                .valueOrNull ??
+            const <AvailableFilament>[]);
+    final reqs = _requirements();
+    return _SectionCard(
+      title: l10n.queueEditFilamentOverride,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.queueEditFilamentOverrideDesc,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12.5,
+              color: t.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (reqs.isEmpty)
+            Text(
+              l10n.queueEditNoFilamentReqs,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                color: t.textTertiary,
+              ),
+            )
+          else
+            for (final r in reqs) _overrideRow(l10n, t, r, available),
+        ],
+      ),
+    );
+  }
+
+  Widget _overrideRow(
+    AppLocalizations l10n,
+    DashTokens t,
+    ({int slotId, String type, String color}) req,
+    List<AvailableFilament> available,
+  ) {
+    // Same-material options only (uppercase compare — good enough without the
+    // full canonical grouping the web does for CF families).
+    final canon = req.type.trim().toUpperCase();
+    final compatible = [
+      for (final f in available)
+        if (f.type.trim().toUpperCase() == canon) f,
+    ];
+    final override = _overrides[req.slotId];
+    final selected = override == null ? null : '${override.type}|${override.color}';
+    final typeLabel = req.type.isEmpty ? '—' : req.type;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Dropdown<String?>(
+            label: l10n.queueEditSlotLabel('${req.slotId}', typeLabel),
+            value: selected,
+            placeholder: l10n.queueEditOriginal,
+            items: [
+              (
+                value: null,
+                label: '${l10n.queueEditOriginal}: $typeLabel',
+                swatch: _swatch(req.color),
+              ),
+              for (final f in compatible)
+                (
+                  value: '${f.type}|${f.color}',
+                  label: f.label,
+                  swatch: _swatch(f.color),
+                ),
+            ],
+            onChanged: (v) => setState(() {
+              if (v == null) {
+                _overrides.remove(req.slotId);
+              } else {
+                final parts = v.split('|');
+                _overrides[req.slotId] =
+                    (type: parts[0], color: parts.length > 1 ? parts[1] : '');
+              }
+            }),
+          ),
+          _CheckRow(
+            icon: Icons.palette_outlined,
+            label: l10n.queueEditForceColorMatch,
+            value: _forceColorMatch[req.slotId] ?? false,
+            onChanged: (v) => setState(() {
+              if (v) {
+                _forceColorMatch[req.slotId] = true;
+              } else {
+                _forceColorMatch.remove(req.slotId);
+              }
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build the `filament_overrides` payload (model mode). Mirrors the web rule:
+  /// include a slot iff the user overrode it OR force-color-match is on; a
+  /// force-only slot carries the ORIGINAL type/color. Returns null when empty
+  /// (sent as an explicit clear). `color_name` has no catalogue on mobile, so
+  /// the hex stands in — the backend uses it only for display messages.
+  List<Map<String, dynamic>>? _buildFilamentOverrides() {
+    final entries = <Map<String, dynamic>>[];
+    for (final r in _requirements()) {
+      final ov = _overrides[r.slotId];
+      final force = _forceColorMatch[r.slotId] ?? false;
+      if (ov == null && !force) continue;
+      final type = ov?.type ?? r.type;
+      final color = ov?.color ?? r.color;
+      entries.add({
+        'slot_id': r.slotId,
+        'type': type,
+        'color': color,
+        'color_name': color,
+        'force_color_match': force,
+      });
+    }
+    return entries.isEmpty ? null : entries;
+  }
+
+  /// Parse a `#RRGGBB(AA)` hex to a swatch colour (alpha stripped for display).
+  Color? _swatch(String hex) {
+    if (hex.isEmpty) return null;
+    final h = hex.startsWith('#') ? hex.substring(1) : hex;
+    return colorFromHex('#${h.length >= 6 ? h.substring(0, 6) : h}');
+  }
+
+  // --- Print options ---
+  Widget _printOptionsSection(AppLocalizations l10n, DashTokens t) {
+    return _SectionCard(
+      title: l10n.queueEditPrintOptions,
+      child: Column(
+        children: [
+          _OptionSwitch(
+            title: l10n.queueOptBedLevelling,
+            subtitle: l10n.queueOptBedLevellingDesc,
+            value: _bedLevelling,
+            onChanged: (v) => setState(() => _bedLevelling = v),
+          ),
+          _OptionSwitch(
+            title: l10n.queueOptFlowCali,
+            subtitle: l10n.queueOptFlowCaliDesc,
+            value: _flowCali,
+            onChanged: (v) => setState(() => _flowCali = v),
+          ),
+          _OptionSwitch(
+            title: l10n.queueOptVibrationCali,
+            subtitle: l10n.queueOptVibrationCaliDesc,
+            value: _vibrationCali,
+            onChanged: (v) => setState(() => _vibrationCali = v),
+          ),
+          _OptionSwitch(
+            title: l10n.queueOptLayerInspect,
+            subtitle: l10n.queueOptLayerInspectDesc,
+            value: _layerInspect,
+            onChanged: (v) => setState(() => _layerInspect = v),
+          ),
+          _OptionSwitch(
+            title: l10n.queueOptTimelapse,
+            subtitle: l10n.queueOptTimelapseDesc,
+            value: _timelapse,
+            onChanged: (v) => setState(() => _timelapse = v),
+          ),
+          if (_showNozzleOffset)
+            _OptionSwitch(
+              title: l10n.queueOptNozzleOffset,
+              subtitle: l10n.queueOptNozzleOffsetDesc,
+              value: _nozzleOffsetCali,
+              onChanged: (v) => setState(() => _nozzleOffsetCali = v),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // --- Preheat & heat soak ---
+  Widget _preheatSection(AppLocalizations l10n, DashTokens t) {
+    return _SectionCard(
+      title: l10n.queueEditPreheat,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.queueEditPreheatDesc,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12.5,
+              color: t.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SegToggle<String>(
+            selected: _preheatOverride,
+            segments: [
+              (value: 'inherit', label: l10n.queuePreheatInherit, icon: null),
+              (value: 'on', label: l10n.commonOn, icon: null),
+              (value: 'off', label: l10n.commonOff, icon: null),
+            ],
+            onChanged: (v) => setState(() => _preheatOverride = v),
+          ),
+          if (_preheatOverride != 'off') ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _chamberTarget,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+              decoration: dashFieldDecoration(
+                t,
+                labelText: l10n.queueEditChamberTarget,
+                hintText: '—',
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- When to print ---
+  Widget _scheduleSection(AppLocalizations l10n, DashTokens t) {
+    return _SectionCard(
+      title: l10n.queueEditWhenToPrint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SegToggle<_ScheduleType>(
+            selected: _scheduleType,
+            segments: [
+              (value: _ScheduleType.asap, label: l10n.queueScheduleAsap, icon: Icons.schedule),
+              (value: _ScheduleType.queue, label: l10n.queueScheduleQueue, icon: Icons.list),
+              (value: _ScheduleType.scheduled, label: l10n.queueScheduleSchedule, icon: Icons.calendar_today),
+            ],
+            onChanged: (v) => setState(() {
+              _scheduleType = v;
+              // Manual start only makes sense in Queue mode (matches web).
+              if (v != _ScheduleType.queue) _requireManualStart = false;
+            }),
+          ),
+          if (_scheduleType == _ScheduleType.scheduled) ...[
+            const SizedBox(height: 12),
+            _scheduleTimeRow(l10n, t),
+          ],
+          const SizedBox(height: 8),
+          if (_scheduleType == _ScheduleType.queue)
+            _CheckRow(
+              icon: Icons.pan_tool_outlined,
+              label: l10n.queueEditRequireManualStart,
+              value: _requireManualStart,
+              onChanged: (v) => setState(() => _requireManualStart = v),
+            ),
+          _CheckRow(
+            icon: Icons.check_circle_outline,
+            label: l10n.queueEditRequirePrevious,
+            value: _requirePreviousSuccess,
+            onChanged: (v) => setState(() => _requirePreviousSuccess = v),
+          ),
+          _CheckRow(
+            icon: Icons.power_settings_new,
+            label: l10n.queueEditPowerOff,
+            value: _autoOffAfter,
+            onChanged: (v) => setState(() => _autoOffAfter = v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scheduleTimeRow(AppLocalizations l10n, DashTokens t) {
+    final label =
+        _scheduledTime == null ? l10n.queueEditPickTime : _fmtDateTime(_scheduledTime!);
+    return Row(
+      children: [
+        Icon(Icons.event_outlined, color: t.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: t.textPrimary,
+            ),
+          ),
+        ),
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: t.textPrimary,
+            side: BorderSide(color: t.cardBorder),
+          ),
+          onPressed: _pickScheduledTime,
+          child: Text(l10n.queueEditPickTime),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickScheduledTime() async {
+    final now = DateTime.now();
+    final base = _scheduledTime ?? now.add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: base,
+      firstDate: now.subtract(const Duration(days: 1)),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(base),
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      _scheduledTime =
+          DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  String _fmtDateTime(DateTime d) =>
+      '${d.year}-${_two(d.month)}-${_two(d.day)} ${_two(d.hour)}:${_two(d.minute)}';
+  String _two(int n) => n.toString().padLeft(2, '0');
+
+  // --- Save ---
+  Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (_modelMode && (_targetModel == null || _targetModel!.isEmpty)) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoModel)));
+      return;
+    }
+    if (!_modelMode && _printerId == null) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoPrinter)));
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    // scheduled_time: ISO (UTC) only when scheduling; null clears it otherwise.
+    final Object? scheduledTime =
+        _scheduleType == _ScheduleType.scheduled && _scheduledTime != null
+            ? _scheduledTime!.toUtc().toIso8601String()
+            : null;
+    final chamber =
+        _preheatOverride == 'off' ? null : int.tryParse(_chamberTarget.text.trim());
+    final chamberClamped = chamber?.clamp(0, 60);
+
+    final result = await ref.read(queueProvider.notifier).runAction(
+      (repo) => repo.updateItem(
+        widget.item.id,
+        printerId: _modelMode ? null : _printerId,
+        targetModel: _modelMode ? _targetModel : null,
+        targetLocation: _modelMode ? _targetLocation : null,
+        amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
+        filamentOverrides: _modelMode ? _buildFilamentOverrides() : kQueueUpdateUnset,
+        scheduledTime: scheduledTime,
+        requirePreviousSuccess: _requirePreviousSuccess,
+        autoOffAfter: _autoOffAfter,
+        manualStart:
+            _scheduleType == _ScheduleType.queue && _requireManualStart,
+        bedLevelling: _bedLevelling,
+        flowCali: _flowCali,
+        vibrationCali: _vibrationCali,
+        layerInspect: _layerInspect,
+        timelapse: _timelapse,
+        nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+        preheatOverride: _preheatOverride,
+        preheatChamberTargetOverride: chamberClamped,
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+    messenger.showSnackBar(SnackBar(
+      content: Text(switch (result) {
+        QueueActionResult.ok => l10n.queueEditSaved,
+        QueueActionResult.forbidden => l10n.ctrlForbidden,
+        QueueActionResult.error => l10n.ctrlFailed,
+      }),
+    ));
+    if (result == QueueActionResult.ok) navigator.pop();
+  }
+}
+
+/// Imperative entry: open the Edit Queue Item screen for [item].
+Future<void> openQueueEdit(BuildContext context, QueueItem item) =>
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => QueueEditScreen(item: item)),
+    );
+
+// ---------------------------------------------------------------------------
+// Local building blocks
+// ---------------------------------------------------------------------------
+
+/// Titled card wrapper matching the app's grouped-section look.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.subCardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+              color: t.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// A segment for [_SegToggle].
+typedef _Segment<T> = ({T value, String label, IconData? icon});
+
+/// Horizontal pill toggle (Specific/Any, Inherit/On/Off, ASAP/Queue/Schedule).
+/// Selected segment is green-filled; the rest are neutral.
+class _SegToggle<T> extends StatelessWidget {
+  const _SegToggle({
+    required this.selected,
+    required this.segments,
+    required this.onChanged,
+  });
+
+  final T selected;
+  final List<_Segment<T>> segments;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Row(
+      children: [
+        for (var i = 0; i < segments.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            child: _segButton(t, segments[i]),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _segButton(DashTokens t, _Segment<T> seg) {
+    final isSel = seg.value == selected;
+    return Material(
+      color: isSel ? t.accentGreen : t.groupCard,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onChanged(seg.value),
+        child: Container(
+          height: 44,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSel ? Colors.transparent : t.groupCardBorder,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (seg.icon != null) ...[
+                Icon(seg.icon,
+                    size: 16,
+                    color: isSel ? _onGreenFill : t.textSecondary),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  seg.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isSel ? _onGreenFill : t.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Title + subtitle row with a trailing [Switch] (print options).
+class _OptionSwitch extends StatelessWidget {
+  const _OptionSwitch({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 12,
+                    color: t.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: value,
+            activeThumbColor: Colors.white,
+            activeTrackColor: t.accentGreen,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Leading-icon checkbox row (schedule flags).
+class _CheckRow extends StatelessWidget {
+  const _CheckRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Checkbox(
+              value: value,
+              activeColor: t.accentGreen,
+              onChanged: (v) => onChanged(v ?? false),
+            ),
+            Icon(icon, size: 18, color: t.textSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: t.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Anchored dropdown built on [MenuAnchor] — a real popup below the field, with
+/// full control over shape/background/width so it matches the app instead of
+/// the default squared grey Material menu. `T` may be nullable (a null-valued
+/// item is a valid choice, unlike [PopupMenuButton] which treats null as
+/// cancel).
+class _Dropdown<T> extends StatelessWidget {
+  const _Dropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.placeholder = '—',
+  });
+
+  final String label;
+  final T value;
+  final String placeholder;
+  final List<({T value, String label, Color? swatch})> items;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final current = items.where((it) => it.value == value).firstOrNull;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return MenuAnchor(
+          crossAxisUnconstrained: false,
+          style: MenuStyle(
+            backgroundColor: WidgetStatePropertyAll(t.overlaySurface),
+            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+            elevation: const WidgetStatePropertyAll(8),
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(vertical: 6)),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: t.overlayBorder),
+              ),
+            ),
+            minimumSize:
+                WidgetStatePropertyAll(Size(constraints.maxWidth, 0)),
+            maximumSize: WidgetStatePropertyAll(
+                Size(constraints.maxWidth, double.infinity)),
+          ),
+          menuChildren: [
+            for (final it in items)
+              _menuItem(t, it.label, it.swatch, it.value == value,
+                  () => onChanged(it.value)),
+          ],
+          builder: (context, controller, _) => _field(
+            t,
+            current?.label ?? placeholder,
+            current?.swatch,
+            () => controller.isOpen ? controller.close() : controller.open(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _menuItem(DashTokens t, String label, Color? swatch, bool selected,
+      VoidCallback onTap) {
+    return MenuItemButton(
+      onPressed: onTap,
+      leadingIcon: swatch != null
+          ? _SwatchDot(color: swatch, ring: selected ? t.accentGreenInk : null)
+          : Icon(
+              selected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
+              size: 18,
+              color: selected ? t.accentGreenInk : t.textTertiary,
+            ),
+      style: MenuItemButton.styleFrom(
+        foregroundColor: t.textPrimary,
+        textStyle: const TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      child: Text(label),
+    );
+  }
+
+  Widget _field(DashTokens t, String text, Color? swatch, VoidCallback onTap) {
+    return Material(
+      color: t.groupCard,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: t.groupCardBorder),
+          ),
+          child: Row(
+            children: [
+              if (swatch != null) ...[
+                _SwatchDot(color: swatch),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.textTertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      text,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.expand_more, color: t.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small round colour swatch used in filament dropdowns.
+class _SwatchDot extends StatelessWidget {
+  const _SwatchDot({required this.color, this.ring});
+  final Color color;
+  final Color? ring;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: ring ?? t.hairline, width: ring != null ? 2 : 1),
+      ),
+    );
+  }
+}
+
+/// Selectable printer tile (specific-printer mode).
+class _SelectableTile extends StatelessWidget {
+  const _SelectableTile({
+    required this.selected,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? t.accentGreen.withValues(alpha: 0.14) : t.groupCard,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? t.accentGreen.withValues(alpha: 0.5) : t.groupCardBorder,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.print_outlined,
+                    size: 20, color: selected ? t.accentGreenInk : t.textSecondary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      if (subtitle.isNotEmpty)
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11.5,
+                            color: t.textTertiary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (selected) Icon(Icons.check_circle, color: t.accentGreenInk),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

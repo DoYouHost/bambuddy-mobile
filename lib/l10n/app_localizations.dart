@@ -5533,6 +5533,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Username'**
   String get wearUsername;
+
+  /// No description provided for @commonOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get commonOn;
+
+  /// No description provided for @commonOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get commonOff;
+
+  /// No description provided for @queueEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get queueEdit;
+
+  /// No description provided for @queueEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Queue Item'**
+  String get queueEditTitle;
+
+  /// No description provided for @queueEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get queueEditSave;
+
+  /// No description provided for @queueEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue item updated'**
+  String get queueEditSaved;
+
+  /// No description provided for @queueEditPrintJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Print Job'**
+  String get queueEditPrintJob;
+
+  /// No description provided for @queueEditTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get queueEditTarget;
+
+  /// No description provided for @queueEditSpecificPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Specific Printer'**
+  String get queueEditSpecificPrinter;
+
+  /// No description provided for @queueEditAnyModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Any {model}'**
+  String queueEditAnyModel(String model);
+
+  /// No description provided for @queueEditAnyModelGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Any Model'**
+  String get queueEditAnyModelGeneric;
+
+  /// No description provided for @queueEditTargetModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get queueEditTargetModel;
+
+  /// No description provided for @queueEditTargetLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get queueEditTargetLocation;
+
+  /// No description provided for @queueEditAnyLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Any location'**
+  String get queueEditAnyLocation;
+
+  /// No description provided for @queueEditMappingNeedsPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a printer to map filaments'**
+  String get queueEditMappingNeedsPrinter;
+
+  /// No description provided for @queueEditMappingSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{slot} other{slots}} mapped'**
+  String queueEditMappingSummary(int count);
+
+  /// No description provided for @queueEditMappingAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto (no manual mapping)'**
+  String get queueEditMappingAuto;
+
+  /// No description provided for @queueEditPrintOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Print Options'**
+  String get queueEditPrintOptions;
+
+  /// No description provided for @queueOptBedLevelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed Levelling'**
+  String get queueOptBedLevelling;
+
+  /// No description provided for @queueOptBedLevellingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-level bed before print'**
+  String get queueOptBedLevellingDesc;
+
+  /// No description provided for @queueOptFlowCali.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow Calibration'**
+  String get queueOptFlowCali;
+
+  /// No description provided for @queueOptFlowCaliDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibrate extrusion flow'**
+  String get queueOptFlowCaliDesc;
+
+  /// No description provided for @queueOptVibrationCali.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration Calibration'**
+  String get queueOptVibrationCali;
+
+  /// No description provided for @queueOptVibrationCaliDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce ringing artifacts'**
+  String get queueOptVibrationCaliDesc;
+
+  /// No description provided for @queueOptLayerInspect.
+  ///
+  /// In en, this message translates to:
+  /// **'First Layer Inspection'**
+  String get queueOptLayerInspect;
+
+  /// No description provided for @queueOptLayerInspectDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'AI inspection of first layer'**
+  String get queueOptLayerInspectDesc;
+
+  /// No description provided for @queueOptTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get queueOptTimelapse;
+
+  /// No description provided for @queueOptTimelapseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Record timelapse video'**
+  String get queueOptTimelapseDesc;
+
+  /// No description provided for @queueOptNozzleOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Nozzle Offset Calibration'**
+  String get queueOptNozzleOffset;
+
+  /// No description provided for @queueOptNozzleOffsetDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibrate nozzle offsets between extruders'**
+  String get queueOptNozzleOffsetDesc;
+
+  /// No description provided for @queueEditPreheat.
+  ///
+  /// In en, this message translates to:
+  /// **'Preheat & Heat Soak'**
+  String get queueEditPreheat;
+
+  /// No description provided for @queueEditPreheatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Heat the bed and chamber before this print starts. Defaults to the global Settings → Workflow toggle.'**
+  String get queueEditPreheatDesc;
+
+  /// No description provided for @queuePreheatInherit.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit'**
+  String get queuePreheatInherit;
+
+  /// No description provided for @queueEditChamberTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Chamber target override (°C, blank = filament default)'**
+  String get queueEditChamberTarget;
+
+  /// No description provided for @queueEditWhenToPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'When to print'**
+  String get queueEditWhenToPrint;
+
+  /// No description provided for @queueScheduleAsap.
+  ///
+  /// In en, this message translates to:
+  /// **'ASAP'**
+  String get queueScheduleAsap;
+
+  /// No description provided for @queueScheduleQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get queueScheduleQueue;
+
+  /// No description provided for @queueScheduleSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get queueScheduleSchedule;
+
+  /// No description provided for @queueEditPickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick date & time'**
+  String get queueEditPickTime;
+
+  /// No description provided for @queueEditRequireManualStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Require manual start'**
+  String get queueEditRequireManualStart;
+
+  /// No description provided for @queueEditRequirePrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Only start if previous print succeeded'**
+  String get queueEditRequirePrevious;
+
+  /// No description provided for @queueEditPowerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Power off printer when done'**
+  String get queueEditPowerOff;
+
+  /// No description provided for @queueEditNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a target model'**
+  String get queueEditNoModel;
+
+  /// No description provided for @queueEditNoPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a printer'**
+  String get queueEditNoPrinter;
+
+  /// No description provided for @queueEditFilamentOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament Override'**
+  String get queueEditFilamentOverride;
+
+  /// No description provided for @queueEditFilamentOverrideDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Optionally override filaments for model-based assignment. The scheduler matches against your selected filaments instead of the original 3MF values.'**
+  String get queueEditFilamentOverrideDesc;
+
+  /// No description provided for @queueEditNoFilamentReqs.
+  ///
+  /// In en, this message translates to:
+  /// **'No filament requirements for this job.'**
+  String get queueEditNoFilamentReqs;
+
+  /// No description provided for @queueEditOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get queueEditOriginal;
+
+  /// No description provided for @queueEditSlotLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} · {type}'**
+  String queueEditSlotLabel(String slot, String type);
+
+  /// No description provided for @queueEditForceColorMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Force color match'**
+  String get queueEditForceColorMatch;
 }
 
 class _AppLocalizationsDelegate

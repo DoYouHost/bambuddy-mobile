@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/available_filament.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
+import '../../data/queue_repository.dart';
 import '../../providers.dart';
 
 /// One-shot live status for a printer (AMS slots, connectivity), keyed by id.
@@ -145,6 +147,14 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
         await repo.start(itemId);
       });
 
+  /// Run an arbitrary repository mutation, then refresh on success. Used by the
+  /// Edit Queue Item screen, which builds its own `PATCH` body via
+  /// [QueueRepository.updateItem]. Error → mapped [QueueActionResult].
+  Future<QueueActionResult> runAction(
+    Future<void> Function(QueueRepository repo) action,
+  ) =>
+      _serverAction(() => action(ref.read(queueRepositoryProvider)));
+
   Future<QueueActionResult> _serverAction(Future<void> Function() send) async {
     try {
       await send();
@@ -167,6 +177,28 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 /// whether it's currently online and has smart plug assigned — so UI can mark
 /// OFFLINE printers (bambuddy will wake them before start).
 typedef PrinterCandidate = ({Printer printer, bool online, bool hasPlug});
+
+/// All printers regardless of state, for the Edit Queue Item target picker.
+/// Unlike [availablePrintersProvider] it does NOT drop busy/printing printers,
+/// so the item's currently-assigned printer is always present and selectable
+/// (mirrors the web edit modal's `showInactive`).
+final allPrintersProvider = FutureProvider.autoDispose<List<Printer>>(
+  (ref) async {
+    final all = await ref.watch(printersRepositoryProvider).fetchAll();
+    return [for (final p in all) p.printer];
+  },
+);
+
+/// Filaments loaded on active printers of a model, for the Edit Queue Item
+/// filament-override dropdowns. Keyed by `(model, location)` — location `''`
+/// means no filter.
+final availableFilamentsProvider = FutureProvider.autoDispose
+    .family<List<AvailableFilament>, (String, String)>(
+  (ref, key) => ref.watch(printersRepositoryProvider).fetchAvailableFilaments(
+        key.$1,
+        location: key.$2.isEmpty ? null : key.$2,
+      ),
+);
 
 /// Printers available to start next print on. Only exclude those ACTUALLY busy
 /// (printing/paused) — OFFLINE printers stay in list because bambuddy will wake

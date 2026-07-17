@@ -45,6 +45,28 @@ class QueueItem {
     this.createdAt,
     this.startedAt,
     this.completedAt,
+    // Editable fields (Edit Queue Item screen). Defaults mirror the server's
+    // `PrintQueueItemResponse` so an item missing them still edits sanely.
+    this.targetModel,
+    this.targetLocation,
+    this.filamentOverrides,
+    this.scheduledTime,
+    this.requirePreviousSuccess = false,
+    this.autoOffAfter = false,
+    this.manualStart = false,
+    this.plateId,
+    this.bedLevelling = true,
+    this.flowCali = false,
+    this.vibrationCali = true,
+    this.layerInspect = false,
+    this.timelapse = false,
+    this.useAms = true,
+    this.nozzleOffsetCali = true,
+    this.preheatOverride = 'inherit',
+    this.preheatChamberTargetOverride,
+    this.gcodeInjection = false,
+    this.nozzleMapping,
+    this.slicedForModel,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
@@ -105,6 +127,73 @@ class QueueItem {
   final DateTime? startedAt;
   @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? completedAt;
+
+  // --- Editable fields (Edit Queue Item screen) ---
+
+  /// Target printer model for model-based assignment (`Any <model>`). Mutually
+  /// exclusive with [printerId] server-side.
+  final String? targetModel;
+
+  /// Location filter, only meaningful together with [targetModel].
+  final String? targetLocation;
+
+  /// Sparse per-slot overrides for model-based assignment, e.g.
+  /// `[{"slot_id":1,"type":"PLA","color":"#FFFFFF","force_color_match":false}]`.
+  /// Null = use the file's original values.
+  final List<Map<String, dynamic>>? filamentOverrides;
+
+  /// Scheduled start time. Null = ASAP/queue (eligible immediately).
+  @JsonKey(fromJson: dateTimeFromJson)
+  final DateTime? scheduledTime;
+
+  /// Only start if the previous print succeeded.
+  @JsonKey(defaultValue: false)
+  final bool requirePreviousSuccess;
+
+  /// Power off the printer after this print finishes.
+  @JsonKey(defaultValue: false)
+  final bool autoOffAfter;
+
+  /// Requires a manual trigger to start (staged). Only settable in queue mode.
+  @JsonKey(defaultValue: false)
+  final bool manualStart;
+
+  /// 1-indexed plate for multi-plate 3MF; null = auto/plate 1.
+  final int? plateId;
+
+  /// Print options — defaults mirror the server model.
+  @JsonKey(defaultValue: true)
+  final bool bedLevelling;
+  @JsonKey(defaultValue: false)
+  final bool flowCali;
+  @JsonKey(defaultValue: true)
+  final bool vibrationCali;
+  @JsonKey(defaultValue: false)
+  final bool layerInspect;
+  @JsonKey(defaultValue: false)
+  final bool timelapse;
+  @JsonKey(defaultValue: true)
+  final bool useAms;
+  @JsonKey(defaultValue: true)
+  final bool nozzleOffsetCali;
+
+  /// Preheat & heat-soak override: `inherit` | `on` | `off`.
+  @JsonKey(defaultValue: 'inherit')
+  final String preheatOverride;
+
+  /// Chamber target override in °C (0–60). Null = derive from filament defaults.
+  final int? preheatChamberTargetOverride;
+
+  /// Auto-print G-code injection.
+  @JsonKey(defaultValue: false)
+  final bool gcodeInjection;
+
+  /// Dual-nozzle-rack physical pick (H2C/O1C2); opaque, forwarded verbatim.
+  final List<int>? nozzleMapping;
+
+  /// Model the file was sliced for, e.g. "X2D". Drives the `Any <model>` label
+  /// and dual-nozzle option visibility.
+  final String? slicedForModel;
 
   /// Tile title: archive name, else library file name, else `#id`.
   String get displayName => archiveName ?? libraryFileName ?? '#$id';

@@ -3155,4 +3155,173 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wearUsername => 'Username';
+
+  @override
+  String get commonOn => 'On';
+
+  @override
+  String get commonOff => 'Off';
+
+  @override
+  String get queueEdit => 'Edit';
+
+  @override
+  String get queueEditTitle => 'Edit Queue Item';
+
+  @override
+  String get queueEditSave => 'Save';
+
+  @override
+  String get queueEditSaved => 'Queue item updated';
+
+  @override
+  String get queueEditPrintJob => 'Print Job';
+
+  @override
+  String get queueEditTarget => 'Target';
+
+  @override
+  String get queueEditSpecificPrinter => 'Specific Printer';
+
+  @override
+  String queueEditAnyModel(String model) {
+    return 'Any $model';
+  }
+
+  @override
+  String get queueEditAnyModelGeneric => 'Any Model';
+
+  @override
+  String get queueEditTargetModel => 'Model';
+
+  @override
+  String get queueEditTargetLocation => 'Location';
+
+  @override
+  String get queueEditAnyLocation => 'Any location';
+
+  @override
+  String get queueEditMappingNeedsPrinter =>
+      'Select a printer to map filaments';
+
+  @override
+  String queueEditMappingSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'slots',
+      one: 'slot',
+    );
+    return '$count $_temp0 mapped';
+  }
+
+  @override
+  String get queueEditMappingAuto => 'Auto (no manual mapping)';
+
+  @override
+  String get queueEditPrintOptions => 'Print Options';
+
+  @override
+  String get queueOptBedLevelling => 'Bed Levelling';
+
+  @override
+  String get queueOptBedLevellingDesc => 'Auto-level bed before print';
+
+  @override
+  String get queueOptFlowCali => 'Flow Calibration';
+
+  @override
+  String get queueOptFlowCaliDesc => 'Calibrate extrusion flow';
+
+  @override
+  String get queueOptVibrationCali => 'Vibration Calibration';
+
+  @override
+  String get queueOptVibrationCaliDesc => 'Reduce ringing artifacts';
+
+  @override
+  String get queueOptLayerInspect => 'First Layer Inspection';
+
+  @override
+  String get queueOptLayerInspectDesc => 'AI inspection of first layer';
+
+  @override
+  String get queueOptTimelapse => 'Timelapse';
+
+  @override
+  String get queueOptTimelapseDesc => 'Record timelapse video';
+
+  @override
+  String get queueOptNozzleOffset => 'Nozzle Offset Calibration';
+
+  @override
+  String get queueOptNozzleOffsetDesc =>
+      'Calibrate nozzle offsets between extruders';
+
+  @override
+  String get queueEditPreheat => 'Preheat & Heat Soak';
+
+  @override
+  String get queueEditPreheatDesc =>
+      'Heat the bed and chamber before this print starts. Defaults to the global Settings → Workflow toggle.';
+
+  @override
+  String get queuePreheatInherit => 'Inherit';
+
+  @override
+  String get queueEditChamberTarget =>
+      'Chamber target override (°C, blank = filament default)';
+
+  @override
+  String get queueEditWhenToPrint => 'When to print';
+
+  @override
+  String get queueScheduleAsap => 'ASAP';
+
+  @override
+  String get queueScheduleQueue => 'Queue';
+
+  @override
+  String get queueScheduleSchedule => 'Schedule';
+
+  @override
+  String get queueEditPickTime => 'Pick date & time';
+
+  @override
+  String get queueEditRequireManualStart => 'Require manual start';
+
+  @override
+  String get queueEditRequirePrevious =>
+      'Only start if previous print succeeded';
+
+  @override
+  String get queueEditPowerOff => 'Power off printer when done';
+
+  @override
+  String get queueEditNoModel => 'Select a target model';
+
+  @override
+  String get queueEditNoPrinter => 'Select a printer';
+
+  @override
+  String get queueEditFilamentOverride => 'Filament Override';
+
+  @override
+  String get queueEditFilamentOverrideDesc =>
+      'Optionally override filaments for model-based assignment. The scheduler matches against your selected filaments instead of the original 3MF values.';
+
+  @override
+  String get queueEditNoFilamentReqs =>
+      'No filament requirements for this job.';
+
+  @override
+  String get queueEditOriginal => 'Original';
+
+  @override
+  String queueEditSlotLabel(String slot, String type) {
+    return 'Slot $slot · $type';
+  }
+
+  @override
+  String get queueEditForceColorMatch => 'Force color match';
 }
