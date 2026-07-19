@@ -139,6 +139,44 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     (repo) async =>
         repo.unassignSpool(printerId, amsId, trayId).then((_) => null),
   );
+
+  /// Applies [action] to every id in [spoolIds] for multi-select bulk
+  /// operations. Unlike [_mutate] this reloads ONCE at the end rather than per
+  /// id — a 20-spool archive would otherwise refetch the whole inventory 20
+  /// times. One failure doesn't abort the rest; the caller reports the tally.
+  Future<({int ok, int failed})> bulkApply(
+    Iterable<int> spoolIds,
+    Future<void> Function(InventoryRepository, int) action,
+  ) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    var ok = 0;
+    var failed = 0;
+    try {
+      for (final id in spoolIds) {
+        try {
+          await action(repo, id);
+          ok++;
+        } on Object {
+          failed++;
+        }
+      }
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+    return (ok: ok, failed: failed);
+  }
+
+  Future<({int ok, int failed})> archiveSpools(Iterable<int> ids) =>
+      bulkApply(ids, (repo, id) => repo.archiveSpool(id));
+
+  Future<({int ok, int failed})> restoreSpools(Iterable<int> ids) =>
+      bulkApply(ids, (repo, id) => repo.restoreSpool(id));
+
+  Future<({int ok, int failed})> deleteSpools(Iterable<int> ids) =>
+      bulkApply(ids, (repo, id) => repo.deleteSpool(id));
+
+  Future<({int ok, int failed})> resetUsageMany(Iterable<int> ids) =>
+      bulkApply(ids, (repo, id) => repo.resetUsage(id));
 }
 
 /// Resolves which spool from inventory sits in a given slot of a specific printer —

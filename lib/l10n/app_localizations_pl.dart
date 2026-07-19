@@ -1541,6 +1541,196 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String inventorySelectedCount(int count) {
+    return 'Zaznaczono: $count';
+  }
+
+  @override
+  String get inventorySelectAll => 'Zaznacz wszystkie';
+
+  @override
+  String inventoryBulkArchiveTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Zarchiwizować $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkArchiveBody =>
+      'Znikną z listy aktywnych. Możesz je później przywrócić.';
+
+  @override
+  String inventoryBulkRestoreTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Przywrócić $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkRestoreBody => 'Wrócą na listę aktywnych.';
+
+  @override
+  String inventoryBulkDeleteTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Usunąć $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkDeleteBody =>
+      'Trwale je usuwa — tej operacji nie da się cofnąć.';
+
+  @override
+  String inventoryBulkResetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Zresetować zużycie $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkResetBody => 'Będą liczone jako pełne.';
+
+  @override
+  String inventoryBulkDone(int count) {
+    return 'Zaktualizowano: $count';
+  }
+
+  @override
+  String inventoryBulkPartial(int ok, int failed) {
+    return 'Udało się: $ok, błędów: $failed';
+  }
+
+  @override
+  String get inventoryLabelsTitle => 'Drukuj etykiety szpul';
+
+  @override
+  String get inventoryLabelsPrint => 'Drukuj etykiety';
+
+  @override
+  String get inventoryLabelsPrintAll => 'Drukuj etykiety wszystkich';
+
+  @override
+  String get inventoryLabelsSearchHint => 'Szukaj: nazwa, marka lub #ID';
+
+  @override
+  String get inventoryLabelsPickSpools =>
+      'Wybierz szpule do wydrukowania etykiet:';
+
+  @override
+  String get inventoryLabelsMaterial => 'Materiał:';
+
+  @override
+  String get inventoryLabelsAllMaterials => 'Wszystkie';
+
+  @override
+  String get inventoryLabelsSort => 'Sortuj:';
+
+  @override
+  String get inventoryLabelsSortById => 'Po ID';
+
+  @override
+  String get inventoryLabelsSortByColor => 'Po kolorze';
+
+  @override
+  String get inventoryLabelsSelectVisible => 'Zaznacz widoczne';
+
+  @override
+  String get inventoryLabelsDeselectVisible => 'Odznacz widoczne';
+
+  @override
+  String get inventoryLabelsClearAll => 'Wyczyść';
+
+  @override
+  String get inventoryLabelsNoMatches =>
+      'Żadna szpula nie pasuje do wyszukiwania ani filtra.';
+
+  @override
+  String get inventoryLabelsMonochrome =>
+      'Monochromatycznie (drukarka czarno-biała)';
+
+  @override
+  String get inventoryLabelsMonochromeHint =>
+      'Pomija próbkę koloru i poszerza tekst';
+
+  @override
+  String get inventoryLabelsShare => 'Udostępnij PDF zamiast drukować';
+
+  @override
+  String get inventoryLabelsPickTemplate =>
+      'Wybierz rozmiar etykiety do druku:';
+
+  @override
+  String inventoryLabelsTooMany(int max) {
+    return 'Wybierz maksymalnie $max szpul na jeden wydruk';
+  }
+
+  @override
+  String get inventoryLabelsFailed => 'Nie udało się wygenerować etykiet';
+
+  @override
+  String get inventoryLabelsAmsSmall => 'Uchwyt AMS — mały (74 × 33 mm)';
+
+  @override
+  String get inventoryLabelsAmsSmallHint =>
+      'Jedna na stronę; pasuje do etykiety z modelu MakerWorld 752566.';
+
+  @override
+  String get inventoryLabelsAmsLarge => 'Uchwyt AMS — duży (75 × 55 mm)';
+
+  @override
+  String get inventoryLabelsAmsLargeHint =>
+      'Jedna na stronę; pasuje do wersji z wkładką z kartonu tego samego uchwytu.';
+
+  @override
+  String get inventoryLabelsBox40 => 'Etykieta pudełkowa (40 × 30 mm)';
+
+  @override
+  String get inventoryLabelsBox40Hint =>
+      'Jedna na stronę; typowy rozmiar rolki DK/Brother, dobra na woreczki i pojemniki.';
+
+  @override
+  String get inventoryLabelsBox62 => 'Etykieta pudełkowa (62 × 29 mm)';
+
+  @override
+  String get inventoryLabelsBox62Hint =>
+      'Jedna na stronę; pod Brother PT/QL i małe etykiety Dymo.';
+
+  @override
+  String get inventoryLabelsAveryL7160 =>
+      'Avery L7160 — arkusz A4 (38,1 × 63,5 mm × 21)';
+
+  @override
+  String get inventoryLabelsAveryL7160Hint =>
+      'Arkusze europejskie; 21 etykiet na stronie A4.';
+
+  @override
+  String get inventoryLabelsAvery5160 =>
+      'Avery 5160 — arkusz US Letter (25,4 × 66,7 mm × 30)';
+
+  @override
+  String get inventoryLabelsAvery5160Hint =>
+      'Arkusze amerykańskie; 30 etykiet na stronie Letter.';
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

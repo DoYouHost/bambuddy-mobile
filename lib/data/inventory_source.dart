@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -5,6 +7,7 @@ import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
+import '../core/models/spool_label.dart';
 
 /// Filament inventory backend. User has native, but app should also work on Spoolman —
 /// selected via setting (see `inventoryBackendProvider`).
@@ -63,7 +66,63 @@ abstract class SpoolInventorySource {
   /// Storage-location catalog names for the location picker. Native only;
   /// Spoolman degrades to empty (the picker still accepts free text).
   Future<List<String>> fetchLocations();
+
+  /// Renders labels for [spoolIds] onto [template] and returns the PDF bytes.
+  /// Label order follows [spoolIds], so a caller-chosen sort carries through to
+  /// a sheet print. [monochrome] drops the colour swatch for B&W thermal
+  /// printers.
+  Future<Uint8List> renderLabels(
+    List<int> spoolIds,
+    SpoolLabelTemplate template, {
+    bool monochrome = false,
+  });
 }
+
+/// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
+bool _looksLikePdf(Uint8List bytes) =>
+    bytes.length >= 4 &&
+    bytes[0] == 0x25 && // %
+    bytes[1] == 0x50 && // P
+    bytes[2] == 0x44 && // D
+    bytes[3] == 0x46; //  F
+
+/// Shared label-render call — the two backends differ only in path, since both
+/// routes take the same body and stream back a PDF.
+///
+/// The result is verified to actually BE a PDF before it reaches the caller.
+/// A server that answers 200 with something else (an older build without the
+/// label routes, a captive portal, the demo backend — whose catch-all answers
+/// every unrouted POST with `{}`) would otherwise reach the platform print
+/// dialog, and Android's print framework rejects malformed input by throwing
+/// on the main thread — a native crash Dart cannot catch.
+Future<Uint8List> _postLabels(
+  Dio dio,
+  String path,
+  List<int> spoolIds,
+  SpoolLabelTemplate template,
+  bool monochrome,
+) => guard(() async {
+  final res = await dio.post<List<int>>(
+    path,
+    data: {
+      'spool_ids': spoolIds,
+      'template': template.wire,
+      'monochrome': monochrome,
+    },
+    // The response is a PDF stream, not JSON — without this Dio's default
+    // JSON transformer would try to decode it and throw.
+    options: Options(responseType: ResponseType.bytes),
+  );
+  final bytes = Uint8List.fromList(res.data ?? const []);
+  if (!_looksLikePdf(bytes)) {
+    throw ApiException(
+      AppErrorCode.malformedResponse,
+      statusCode: res.statusCode,
+      detail: 'Expected a PDF from $path, got ${bytes.length} bytes',
+    );
+  }
+  return bytes;
+});
 
 /// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
 /// errors mapped to typed [AppApiException].
@@ -197,6 +256,19 @@ class NativeInventorySource implements SpoolInventorySource {
               (e['name'] as String).trim(),
         ];
       });
+
+  @override
+  Future<Uint8List> renderLabels(
+    List<int> spoolIds,
+    SpoolLabelTemplate template, {
+    bool monochrome = false,
+  }) => _postLabels(
+        _dio,
+        Endpoints.inventoryLabels,
+        spoolIds,
+        template,
+        monochrome,
+      );
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -308,4 +380,17 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   // back to free text + locations already used by spools.
   @override
   Future<List<String>> fetchLocations() async => const [];
+
+  @override
+  Future<Uint8List> renderLabels(
+    List<int> spoolIds,
+    SpoolLabelTemplate template, {
+    bool monochrome = false,
+  }) => _postLabels(
+        _dio,
+        Endpoints.spoolmanLabels,
+        spoolIds,
+        template,
+        monochrome,
+      );
 }

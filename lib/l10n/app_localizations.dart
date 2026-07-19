@@ -2690,6 +2690,270 @@ abstract class AppLocalizations {
   /// **'Spool #{id} not found'**
   String inventoryScanNotFound(int id);
 
+  /// No description provided for @inventorySelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String inventorySelectedCount(int count);
+
+  /// No description provided for @inventorySelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get inventorySelectAll;
+
+  /// No description provided for @inventoryBulkArchiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkArchiveTitle(int count);
+
+  /// No description provided for @inventoryBulkArchiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They will be hidden from the active list. You can restore them later.'**
+  String get inventoryBulkArchiveBody;
+
+  /// No description provided for @inventoryBulkRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkRestoreTitle(int count);
+
+  /// No description provided for @inventoryBulkRestoreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They will return to the active list.'**
+  String get inventoryBulkRestoreBody;
+
+  /// No description provided for @inventoryBulkDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkDeleteTitle(int count);
+
+  /// No description provided for @inventoryBulkDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently removes them and cannot be undone.'**
+  String get inventoryBulkDeleteBody;
+
+  /// No description provided for @inventoryBulkResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset usage on {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkResetTitle(int count);
+
+  /// No description provided for @inventoryBulkResetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They will count as full again.'**
+  String get inventoryBulkResetBody;
+
+  /// No description provided for @inventoryBulkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, one{spool} other{spools}} updated'**
+  String inventoryBulkDone(int count);
+
+  /// No description provided for @inventoryBulkPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {failed} failed'**
+  String inventoryBulkPartial(int ok, int failed);
+
+  /// No description provided for @inventoryLabelsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print spool labels'**
+  String get inventoryLabelsTitle;
+
+  /// No description provided for @inventoryLabelsPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print labels'**
+  String get inventoryLabelsPrint;
+
+  /// No description provided for @inventoryLabelsPrintAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Print labels for all'**
+  String get inventoryLabelsPrintAll;
+
+  /// No description provided for @inventoryLabelsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name, brand, or #ID'**
+  String get inventoryLabelsSearchHint;
+
+  /// No description provided for @inventoryLabelsPickSpools.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick which spools to print labels for:'**
+  String get inventoryLabelsPickSpools;
+
+  /// No description provided for @inventoryLabelsMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material:'**
+  String get inventoryLabelsMaterial;
+
+  /// No description provided for @inventoryLabelsAllMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get inventoryLabelsAllMaterials;
+
+  /// No description provided for @inventoryLabelsSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort:'**
+  String get inventoryLabelsSort;
+
+  /// No description provided for @inventoryLabelsSortById.
+  ///
+  /// In en, this message translates to:
+  /// **'By ID'**
+  String get inventoryLabelsSortById;
+
+  /// No description provided for @inventoryLabelsSortByColor.
+  ///
+  /// In en, this message translates to:
+  /// **'By colour'**
+  String get inventoryLabelsSortByColor;
+
+  /// No description provided for @inventoryLabelsSelectVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Select visible'**
+  String get inventoryLabelsSelectVisible;
+
+  /// No description provided for @inventoryLabelsDeselectVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect visible'**
+  String get inventoryLabelsDeselectVisible;
+
+  /// No description provided for @inventoryLabelsClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get inventoryLabelsClearAll;
+
+  /// No description provided for @inventoryLabelsNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No spools match the current search or filter.'**
+  String get inventoryLabelsNoMatches;
+
+  /// No description provided for @inventoryLabelsMonochrome.
+  ///
+  /// In en, this message translates to:
+  /// **'Monochrome (black & white printer)'**
+  String get inventoryLabelsMonochrome;
+
+  /// No description provided for @inventoryLabelsMonochromeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drops the colour swatch and widens the text'**
+  String get inventoryLabelsMonochromeHint;
+
+  /// No description provided for @inventoryLabelsShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share PDF instead of printing'**
+  String get inventoryLabelsShare;
+
+  /// No description provided for @inventoryLabelsPickTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a label size to print:'**
+  String get inventoryLabelsPickTemplate;
+
+  /// No description provided for @inventoryLabelsTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at most {max} spools per print'**
+  String inventoryLabelsTooMany(int max);
+
+  /// No description provided for @inventoryLabelsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not generate labels'**
+  String get inventoryLabelsFailed;
+
+  /// No description provided for @inventoryLabelsAmsSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS holder — small (74 × 33 mm)'**
+  String get inventoryLabelsAmsSmall;
+
+  /// No description provided for @inventoryLabelsAmsSmallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One per page; matches the printable label from MakerWorld model 752566.'**
+  String get inventoryLabelsAmsSmallHint;
+
+  /// No description provided for @inventoryLabelsAmsLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS holder — large (75 × 55 mm)'**
+  String get inventoryLabelsAmsLarge;
+
+  /// No description provided for @inventoryLabelsAmsLargeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One per page; fits the cardstock-insert variant of the same holder.'**
+  String get inventoryLabelsAmsLargeHint;
+
+  /// No description provided for @inventoryLabelsBox40.
+  ///
+  /// In en, this message translates to:
+  /// **'Box label (40 × 30 mm)'**
+  String get inventoryLabelsBox40;
+
+  /// No description provided for @inventoryLabelsBox40Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'One per page; common DK/Brother roll size, good for bags and bins.'**
+  String get inventoryLabelsBox40Hint;
+
+  /// No description provided for @inventoryLabelsBox62.
+  ///
+  /// In en, this message translates to:
+  /// **'Box label (62 × 29 mm)'**
+  String get inventoryLabelsBox62;
+
+  /// No description provided for @inventoryLabelsBox62Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'One per page; sized for Brother PT/QL and Dymo small labels.'**
+  String get inventoryLabelsBox62Hint;
+
+  /// No description provided for @inventoryLabelsAveryL7160.
+  ///
+  /// In en, this message translates to:
+  /// **'Avery L7160 — A4 sheet (38.1 × 63.5 mm × 21)'**
+  String get inventoryLabelsAveryL7160;
+
+  /// No description provided for @inventoryLabelsAveryL7160Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'EU sheet stock; 21 labels per A4 page.'**
+  String get inventoryLabelsAveryL7160Hint;
+
+  /// No description provided for @inventoryLabelsAvery5160.
+  ///
+  /// In en, this message translates to:
+  /// **'Avery 5160 — US Letter sheet (25.4 × 66.7 mm × 30)'**
+  String get inventoryLabelsAvery5160;
+
+  /// No description provided for @inventoryLabelsAvery5160Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'US sheet stock; 30 labels per Letter page.'**
+  String get inventoryLabelsAvery5160Hint;
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

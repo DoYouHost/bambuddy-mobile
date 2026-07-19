@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import '../core/models/inventory.dart';
 import '../core/models/inventory_reference.dart';
+import '../core/models/spool_label.dart';
 import 'inventory_source.dart';
 
 /// Facade for filament inventory over a selected [SpoolInventorySource]. A thin
@@ -50,4 +53,10 @@ class InventoryRepository {
       _source.fetchFilamentPresets();
 
   Future<List<String>> fetchLocations() => _source.fetchLocations();
+
+  Future<Uint8List> renderLabels(
+    List<int> spoolIds,
+    SpoolLabelTemplate template, {
+    bool monochrome = false,
+  }) => _source.renderLabels(spoolIds, template, monochrome: monochrome);
 }

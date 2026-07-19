@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
+import '../../core/models/spool_label.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../../providers.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
@@ -23,6 +26,7 @@ part 'inventory_filters.dart';
 part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
+part 'inventory_labels.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -141,62 +145,114 @@ Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
   );
 }
 
-/// Filaments tab (Phase 1, read-only): spool inventory with search, archived toggle,
-/// and details (usage history, AMS slot, calibration). Data from [inventoryProvider]
-/// via selected backend (native/Spoolman). Management (CRUD, assignments) comes in Phase 2.
-class InventoryScreen extends ConsumerWidget {
+/// Filaments tab: spool inventory with search, archived toggle, details (usage
+/// history, AMS slot, calibration) and management (CRUD, assignments). Data from
+/// [inventoryProvider] via the selected backend (native/Spoolman).
+///
+/// Long-pressing a spool enters multi-select mode for bulk reset-usage /
+/// archive / restore / delete / label printing, mirroring the Archive tab.
+class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends ConsumerState<InventoryScreen> {
+  /// Spool ids picked in multi-select mode. Non-empty → selection mode.
+  final Set<int> _selected = {};
+
+  bool get _selectionMode => _selected.isNotEmpty;
+
+  void _toggleSelect(int id) {
+    setState(() {
+      if (!_selected.remove(id)) _selected.add(id);
+    });
+  }
+
+  void _clearSelection() => setState(_selected.clear);
+
+  /// Selects everything currently passing search + filters — not the whole
+  /// inventory, so "select all" can't reach rows the user can't see.
+  void _selectAllVisible(List<Spool> visible) =>
+      setState(() => _selected.addAll(visible.map((s) => s.id)));
+
+  @override
+  Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
+    final visible = _filter(
+      async.valueOrNull?.spools ?? const [],
+      query,
+      filters,
+    );
+
+    // Drop ids that a filter/search change has scrolled out of reach — acting
+    // on invisible rows would be a surprise, and the count would lie.
+    final visibleIds = {for (final s in visible) s.id};
+    _selected.retainWhere(visibleIds.contains);
 
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.navFilaments),
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            FloatingActionButton.small(
-              heroTag: 'scanSpool',
-              backgroundColor: t.subCard,
-              foregroundColor: t.textPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: t.subCardBorder),
+        appBar: _selectionMode
+            ? _selectionAppBar(context, l10n, visible, filters)
+            : dashAppBar(
+                context,
+                title: l10n.navFilaments,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.print_outlined),
+                    tooltip: l10n.inventoryLabelsPrintAll,
+                    onPressed: visible.isEmpty
+                        ? null
+                        : () => _printLabels(visible, visibleIds),
+                  ),
+                ],
               ),
-              onPressed: () => _scanSpool(context, ref),
-              tooltip: l10n.inventoryScanSpool,
-              child: const Icon(Icons.qr_code_scanner),
-            ),
-            const SizedBox(height: 12),
-            FloatingActionButton.extended(
-              heroTag: 'addSpool',
-              backgroundColor: t.accentGreen,
-              foregroundColor: _onAccentGreen,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+        floatingActionButton: _selectionMode
+            ? null
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'scanSpool',
+                    backgroundColor: t.subCard,
+                    foregroundColor: t.textPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: t.subCardBorder),
+                    ),
+                    onPressed: () => _scanSpool(context, ref),
+                    tooltip: l10n.inventoryScanSpool,
+                    child: const Icon(Icons.qr_code_scanner),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.extended(
+                    heroTag: 'addSpool',
+                    backgroundColor: t.accentGreen,
+                    foregroundColor: _onAccentGreen,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    onPressed: () => openSpoolForm(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(
+                      l10n.inventoryAddSpool,
+                      style: const TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              onPressed: () => openSpoolForm(context),
-              icon: const Icon(Icons.add),
-              label: Text(
-                l10n.inventoryAddSpool,
-                style: const TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
@@ -211,7 +267,7 @@ class InventoryScreen extends ConsumerWidget {
             tonal: true,
           ),
           data: (inv) {
-            final spools = _filter(inv.spools, query, filters);
+            final spools = visible;
             return RefreshIndicator(
               onRefresh: () => ref.read(inventoryProvider.notifier).refresh(),
               child: CustomScrollView(
@@ -261,6 +317,14 @@ class InventoryScreen extends ConsumerWidget {
                           return _SpoolTile(
                             spool: spool,
                             assignment: inv.assignmentFor(spool.id),
+                            selected: _selected.contains(spool.id),
+                            selectionMode: _selectionMode,
+                            // Outside selection mode `onTap` stays null so the
+                            // tile keeps its own detail-sheet default.
+                            onTap: _selectionMode
+                                ? () => _toggleSelect(spool.id)
+                                : null,
+                            onLongPress: () => _toggleSelect(spool.id),
                           );
                         },
                       ),
@@ -269,6 +333,152 @@ class InventoryScreen extends ConsumerWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// Contextual app bar shown while spools are selected. Print and "select all"
+  /// stay as icons (the two non-destructive, most-used actions); the rest live
+  /// in an overflow menu so Delete can't be hit by a stray tap.
+  ///
+  /// The list filter is exclusive (active XOR archived), so the whole selection
+  /// is homogeneous and one archive/restore entry is always the right one.
+  AppBar _selectionAppBar(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<Spool> visible,
+    InventoryFilters filters,
+  ) {
+    final ids = Set<int>.from(_selected);
+    return dashAppBar(
+      context,
+      title: l10n.inventorySelectedCount(_selected.length),
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        tooltip: l10n.cancel,
+        onPressed: _clearSelection,
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.select_all),
+          tooltip: l10n.inventorySelectAll,
+          onPressed: () => _selectAllVisible(visible),
+        ),
+        IconButton(
+          icon: const Icon(Icons.print_outlined),
+          tooltip: l10n.inventoryLabelsPrint,
+          onPressed: () => _printLabels(visible, ids),
+        ),
+        PopupMenuButton<String>(
+          onSelected: (v) => switch (v) {
+            'reset' => _bulkResetUsage(ids),
+            'archive' => _bulkArchive(ids),
+            'restore' => _bulkRestore(ids),
+            _ => _bulkDelete(ids),
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'reset',
+              child: Text(l10n.inventoryResetUsage),
+            ),
+            if (filters.showArchived)
+              PopupMenuItem(
+                value: 'restore',
+                child: Text(l10n.inventoryRestore),
+              )
+            else
+              PopupMenuItem(
+                value: 'archive',
+                child: Text(l10n.inventoryArchive),
+              ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Text(l10n.inventoryDelete),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Opens the label sheet for [pool], pre-checking [preselected]. Called both
+  /// from selection mode (the picked spools) and from the app bar's print
+  /// action outside it (every visible spool — "print labels for all").
+  void _printLabels(List<Spool> pool, Set<int> preselected) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: _sheetBarrier,
+      builder: (_) => _LabelSheet(spools: pool, initialSelected: preselected),
+    );
+  }
+
+  Future<void> _bulkResetUsage(Set<int> ids) => _runBulk(
+    ids,
+    title: AppLocalizations.of(context).inventoryBulkResetTitle(ids.length),
+    message: AppLocalizations.of(context).inventoryBulkResetBody,
+    confirmLabel: AppLocalizations.of(context).inventoryResetUsage,
+    action: (n) => n.resetUsageMany(ids),
+  );
+
+  Future<void> _bulkArchive(Set<int> ids) => _runBulk(
+    ids,
+    title: AppLocalizations.of(context).inventoryBulkArchiveTitle(ids.length),
+    message: AppLocalizations.of(context).inventoryBulkArchiveBody,
+    confirmLabel: AppLocalizations.of(context).inventoryArchive,
+    action: (n) => n.archiveSpools(ids),
+  );
+
+  Future<void> _bulkRestore(Set<int> ids) => _runBulk(
+    ids,
+    title: AppLocalizations.of(context).inventoryBulkRestoreTitle(ids.length),
+    message: AppLocalizations.of(context).inventoryBulkRestoreBody,
+    confirmLabel: AppLocalizations.of(context).inventoryRestore,
+    action: (n) => n.restoreSpools(ids),
+  );
+
+  Future<void> _bulkDelete(Set<int> ids) => _runBulk(
+    ids,
+    title: AppLocalizations.of(context).inventoryBulkDeleteTitle(ids.length),
+    message: AppLocalizations.of(context).inventoryBulkDeleteBody,
+    confirmLabel: AppLocalizations.of(context).inventoryDelete,
+    destructive: true,
+    action: (n) => n.deleteSpools(ids),
+  );
+
+  /// Confirm → run a bulk mutation → report the tally. Selection is cleared
+  /// either way: the notifier has reloaded, so keeping stale ids around would
+  /// only invite a second action on rows that may no longer exist.
+  Future<void> _runBulk(
+    Set<int> ids, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Future<({int ok, int failed})> Function(InventoryNotifier) action,
+    bool destructive = false,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await confirmDialog(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      destructive: destructive,
+    );
+    if (!ok || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final res = await action(ref.read(inventoryProvider.notifier));
+    if (!mounted) return;
+    _clearSelection();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          res.failed == 0
+              ? l10n.inventoryBulkDone(res.ok)
+              : l10n.inventoryBulkPartial(res.ok, res.failed),
         ),
       ),
     );

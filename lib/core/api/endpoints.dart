@@ -326,6 +326,12 @@ abstract final class Endpoints {
   static String inventorySpoolKProfiles(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/k-profiles';
 
+  /// Render spool labels as a PDF stream (`POST`, body
+  /// `{spool_ids:[int], template:str, monochrome:bool}`). Response is the raw
+  /// PDF, not JSON — fetch with `ResponseType.bytes`. Server caps the batch at
+  /// 500 ids and 404s if any id is unknown.
+  static const inventoryLabels = '$apiPrefix/inventory/labels';
+
   // Backend Spoolman (drop-in replacement — different data shape).
   static const spoolmanSpools = '$apiPrefix/spoolman/inventory/spools';
   static const spoolmanSpoolsBulk =
@@ -340,6 +346,10 @@ abstract final class Endpoints {
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-usage';
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
+
+  /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
+  /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
+  static const spoolmanLabels = '$apiPrefix/spoolman/labels';
 
   // Filament catalog (definitions/profiles — `FilamentResponse[]`).
   static const filamentCatalog = '$apiPrefix/filament-catalog/';

@@ -1520,6 +1520,197 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventorySelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get inventorySelectAll => 'Select all';
+
+  @override
+  String inventoryBulkArchiveTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Archive $count $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkArchiveBody =>
+      'They will be hidden from the active list. You can restore them later.';
+
+  @override
+  String inventoryBulkRestoreTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Restore $count $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkRestoreBody => 'They will return to the active list.';
+
+  @override
+  String inventoryBulkDeleteTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Delete $count $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkDeleteBody =>
+      'This permanently removes them and cannot be undone.';
+
+  @override
+  String inventoryBulkResetTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Reset usage on $count $_temp0?';
+  }
+
+  @override
+  String get inventoryBulkResetBody => 'They will count as full again.';
+
+  @override
+  String inventoryBulkDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return '$count $_temp0 updated';
+  }
+
+  @override
+  String inventoryBulkPartial(int ok, int failed) {
+    return '$ok done, $failed failed';
+  }
+
+  @override
+  String get inventoryLabelsTitle => 'Print spool labels';
+
+  @override
+  String get inventoryLabelsPrint => 'Print labels';
+
+  @override
+  String get inventoryLabelsPrintAll => 'Print labels for all';
+
+  @override
+  String get inventoryLabelsSearchHint => 'Search name, brand, or #ID';
+
+  @override
+  String get inventoryLabelsPickSpools =>
+      'Pick which spools to print labels for:';
+
+  @override
+  String get inventoryLabelsMaterial => 'Material:';
+
+  @override
+  String get inventoryLabelsAllMaterials => 'All';
+
+  @override
+  String get inventoryLabelsSort => 'Sort:';
+
+  @override
+  String get inventoryLabelsSortById => 'By ID';
+
+  @override
+  String get inventoryLabelsSortByColor => 'By colour';
+
+  @override
+  String get inventoryLabelsSelectVisible => 'Select visible';
+
+  @override
+  String get inventoryLabelsDeselectVisible => 'Deselect visible';
+
+  @override
+  String get inventoryLabelsClearAll => 'Clear all';
+
+  @override
+  String get inventoryLabelsNoMatches =>
+      'No spools match the current search or filter.';
+
+  @override
+  String get inventoryLabelsMonochrome => 'Monochrome (black & white printer)';
+
+  @override
+  String get inventoryLabelsMonochromeHint =>
+      'Drops the colour swatch and widens the text';
+
+  @override
+  String get inventoryLabelsShare => 'Share PDF instead of printing';
+
+  @override
+  String get inventoryLabelsPickTemplate => 'Pick a label size to print:';
+
+  @override
+  String inventoryLabelsTooMany(int max) {
+    return 'Pick at most $max spools per print';
+  }
+
+  @override
+  String get inventoryLabelsFailed => 'Could not generate labels';
+
+  @override
+  String get inventoryLabelsAmsSmall => 'AMS holder — small (74 × 33 mm)';
+
+  @override
+  String get inventoryLabelsAmsSmallHint =>
+      'One per page; matches the printable label from MakerWorld model 752566.';
+
+  @override
+  String get inventoryLabelsAmsLarge => 'AMS holder — large (75 × 55 mm)';
+
+  @override
+  String get inventoryLabelsAmsLargeHint =>
+      'One per page; fits the cardstock-insert variant of the same holder.';
+
+  @override
+  String get inventoryLabelsBox40 => 'Box label (40 × 30 mm)';
+
+  @override
+  String get inventoryLabelsBox40Hint =>
+      'One per page; common DK/Brother roll size, good for bags and bins.';
+
+  @override
+  String get inventoryLabelsBox62 => 'Box label (62 × 29 mm)';
+
+  @override
+  String get inventoryLabelsBox62Hint =>
+      'One per page; sized for Brother PT/QL and Dymo small labels.';
+
+  @override
+  String get inventoryLabelsAveryL7160 =>
+      'Avery L7160 — A4 sheet (38.1 × 63.5 mm × 21)';
+
+  @override
+  String get inventoryLabelsAveryL7160Hint =>
+      'EU sheet stock; 21 labels per A4 page.';
+
+  @override
+  String get inventoryLabelsAvery5160 =>
+      'Avery 5160 — US Letter sheet (25.4 × 66.7 mm × 30)';
+
+  @override
+  String get inventoryLabelsAvery5160Hint =>
+      'US sheet stock; 30 labels per Letter page.';
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

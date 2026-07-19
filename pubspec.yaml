@@ -36,6 +36,7 @@ dependencies:
   webview_flutter: ^4.10.0
   file_picker: ^8.1.6
   watch_connectivity: ^0.2.9
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
