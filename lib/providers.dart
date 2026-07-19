@@ -22,6 +22,7 @@ import 'core/models/makerworld.dart';
 import 'data/ams_history_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
+import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/inventory_repository.dart';
@@ -262,6 +263,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Network discovery (SSDP + subnet scan) for the Add-Printer flow.
+final discoveryRepositoryProvider = Provider<DiscoveryRepository>(
+  (ref) => DiscoveryRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Printer commands (M4). Shares authenticated Dio with rest — rebuilt on

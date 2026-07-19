@@ -31,6 +31,37 @@ abstract final class Endpoints {
   static String printerStatus(int printerId) =>
       '$apiPrefix/printers/$printerId/status';
 
+  /// Pre-save connection diagnostic for the Add-Printer flow (`POST`, body
+  /// `{ip_address, serial_number?, access_code?}`). Returns
+  /// `PrinterDiagnosticResult` (`{overall, checks:[{id,status,params}]}`).
+  /// Requires the `PRINTERS_CREATE` permission.
+  static const printersDiagnostic = '$apiPrefix/printers/diagnostic';
+
+  // --- Discovery (SSDP + subnet scan) ---
+  // Requires the `DISCOVERY_SCAN` permission (missing → 403).
+
+  /// Environment info (`GET`): `{is_docker, ssdp_running, scan_running,
+  /// subnets:[cidr]}` — drives the subnet picker in the Add-Printer flow.
+  static const discoveryInfo = '$apiPrefix/discovery/info';
+
+  /// Start a subnet scan (`POST`, body `{subnet, timeout}`) → `SubnetScanStatus`
+  /// `{running, scanned, total}`. Runs in the background; poll [discoveryScanStatus].
+  static const discoveryScan = '$apiPrefix/discovery/scan';
+
+  /// Current subnet-scan progress (`GET`) → `{running, scanned, total}`.
+  static const discoveryScanStatus = '$apiPrefix/discovery/scan/status';
+
+  /// Printers found so far (`GET`, from both SSDP + subnet scan) →
+  /// `[{serial, name, ip_address, model, discovered_at}]`.
+  static const discoveryPrinters = '$apiPrefix/discovery/printers';
+
+  /// Start SSDP multicast discovery (`POST`, query `duration` seconds). Used on
+  /// native installs; poll [discoveryPrinters] and stop with [discoveryStop].
+  static const discoveryStart = '$apiPrefix/discovery/start';
+
+  /// Stop SSDP discovery (`POST`).
+  static const discoveryStop = '$apiPrefix/discovery/stop';
+
   /// AMS sensor history (temperature + humidity) for one AMS unit.
   /// Query `?hours=1..168`. Reference: bambuddy `ams_history.py`.
   static String amsHistory(int printerId, int amsId) =>

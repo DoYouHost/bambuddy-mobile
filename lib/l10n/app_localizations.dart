@@ -182,6 +182,342 @@ abstract class AppLocalizations {
   /// **'No results for “{query}”'**
   String noSearchResults(String query);
 
+  /// No description provided for @noPrintersMatchFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers match the current filters'**
+  String get noPrintersMatchFilters;
+
+  /// Title of the dashboard filter sheet / filter button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get dashboardFilters;
+
+  /// No description provided for @filterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get filterStatus;
+
+  /// No description provided for @filtersClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get filtersClear;
+
+  /// No description provided for @hideOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide offline'**
+  String get hideOffline;
+
+  /// No description provided for @statusAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get statusAll;
+
+  /// No description provided for @statusPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get statusPrinting;
+
+  /// No description provided for @statusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get statusIdle;
+
+  /// No description provided for @statusPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get statusPaused;
+
+  /// No description provided for @statusFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get statusFinished;
+
+  /// No description provided for @statusErrorFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get statusErrorFilter;
+
+  /// No description provided for @statusOfflineFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get statusOfflineFilter;
+
+  /// No description provided for @addPrinterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add printer'**
+  String get addPrinterTitle;
+
+  /// No description provided for @addPrinterName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get addPrinterName;
+
+  /// No description provided for @addPrinterIp.
+  ///
+  /// In en, this message translates to:
+  /// **'IP address'**
+  String get addPrinterIp;
+
+  /// No description provided for @addPrinterSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number'**
+  String get addPrinterSerial;
+
+  /// No description provided for @addPrinterAccessCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Access code'**
+  String get addPrinterAccessCode;
+
+  /// No description provided for @addPrinterModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get addPrinterModel;
+
+  /// No description provided for @addPrinterModelOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get addPrinterModelOptional;
+
+  /// No description provided for @addPrinterModelNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get addPrinterModelNone;
+
+  /// No description provided for @addPrinterLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get addPrinterLocation;
+
+  /// No description provided for @addPrinterLocationOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get addPrinterLocationOptional;
+
+  /// No description provided for @addPrinterSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add printer'**
+  String get addPrinterSubmit;
+
+  /// No description provided for @addPrinterConnectionNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The server verifies the connection before saving, so a wrong IP or access code is reported and nothing is created.'**
+  String get addPrinterConnectionNote;
+
+  /// No description provided for @addPrinterRequiredField.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get addPrinterRequiredField;
+
+  /// No description provided for @addPrinterSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer added'**
+  String get addPrinterSuccess;
+
+  /// No description provided for @addPrinterErrConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the printer. Check the IP address, serial number and access code, and make sure LAN-only mode is on.'**
+  String get addPrinterErrConnection;
+
+  /// No description provided for @addPrinterErrDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'A printer with this serial number already exists'**
+  String get addPrinterErrDuplicate;
+
+  /// No description provided for @addPrinterErrForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to add printers'**
+  String get addPrinterErrForbidden;
+
+  /// No description provided for @addPrinterErrGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add the printer. Try again.'**
+  String get addPrinterErrGeneric;
+
+  /// No description provided for @addPrinterAutoArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-archive completed prints'**
+  String get addPrinterAutoArchive;
+
+  /// No description provided for @addPrinterScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find printers on the network'**
+  String get addPrinterScanTitle;
+
+  /// No description provided for @addPrinterSubnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Subnet to scan'**
+  String get addPrinterSubnet;
+
+  /// No description provided for @addPrinterScanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan subnet for printers'**
+  String get addPrinterScanButton;
+
+  /// No description provided for @addPrinterDiscoverNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover printers on network'**
+  String get addPrinterDiscoverNetwork;
+
+  /// No description provided for @addPrinterScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning… {scanned}/{total}'**
+  String addPrinterScanning(int scanned, int total);
+
+  /// No description provided for @addPrinterScanningPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning…'**
+  String get addPrinterScanningPlain;
+
+  /// No description provided for @addPrinterScanNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No printers found'**
+  String get addPrinterScanNoResults;
+
+  /// No description provided for @addPrinterScanError.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan failed. Try again.'**
+  String get addPrinterScanError;
+
+  /// No description provided for @addPrinterSubnetCustomOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom subnet…'**
+  String get addPrinterSubnetCustomOption;
+
+  /// No description provided for @addPrinterSubnetCustomLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom subnet (CIDR)'**
+  String get addPrinterSubnetCustomLabel;
+
+  /// No description provided for @addPrinterSubnetDockerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Docker detected. Enter your printer\'s subnet in CIDR notation. Requires network_mode: host in docker-compose.yml.'**
+  String get addPrinterSubnetDockerNote;
+
+  /// No description provided for @addPrinterSubnetCustomNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a custom subnet if your printer is on a different network than the server. The FTP (990) and MQTT (8883) ports must be reachable across the routing boundary.'**
+  String get addPrinterSubnetCustomNote;
+
+  /// No description provided for @addPrinterDiagnostic.
+  ///
+  /// In en, this message translates to:
+  /// **'Run diagnostic'**
+  String get addPrinterDiagnostic;
+
+  /// No description provided for @addPrinterDiagnosticRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running diagnostic…'**
+  String get addPrinterDiagnosticRunning;
+
+  /// No description provided for @addPrinterDiagnosticError.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic failed. Try again.'**
+  String get addPrinterDiagnosticError;
+
+  /// No description provided for @diagOverallOk.
+  ///
+  /// In en, this message translates to:
+  /// **'All checks passed'**
+  String get diagOverallOk;
+
+  /// No description provided for @diagOverallWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed with warnings'**
+  String get diagOverallWarnings;
+
+  /// No description provided for @diagOverallProblems.
+  ///
+  /// In en, this message translates to:
+  /// **'Problems found'**
+  String get diagOverallProblems;
+
+  /// No description provided for @diagCheckPortMqtt.
+  ///
+  /// In en, this message translates to:
+  /// **'MQTT port (8883)'**
+  String get diagCheckPortMqtt;
+
+  /// No description provided for @diagCheckPortFtps.
+  ///
+  /// In en, this message translates to:
+  /// **'FTPS port (990)'**
+  String get diagCheckPortFtps;
+
+  /// No description provided for @diagCheckPortRtsps.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera port (322)'**
+  String get diagCheckPortRtsps;
+
+  /// No description provided for @diagCheckNetworkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Network mode'**
+  String get diagCheckNetworkMode;
+
+  /// No description provided for @diagCheckSubnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Subnet reachability'**
+  String get diagCheckSubnet;
+
+  /// No description provided for @diagCheckMqttAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'MQTT credentials'**
+  String get diagCheckMqttAuth;
+
+  /// No description provided for @diagCheckDeveloperMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer / LAN mode'**
+  String get diagCheckDeveloperMode;
+
   /// No description provided for @changeServerQuestion.
   ///
   /// In en, this message translates to:

@@ -56,6 +56,186 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get noPrintersMatchFilters => 'Żadna drukarka nie pasuje do filtrów';
+
+  @override
+  String get dashboardFilters => 'Filtry';
+
+  @override
+  String get filterStatus => 'Status';
+
+  @override
+  String get filtersClear => 'Wyczyść';
+
+  @override
+  String get hideOffline => 'Ukryj offline';
+
+  @override
+  String get statusAll => 'Wszystkie';
+
+  @override
+  String get statusPrinting => 'Drukuje';
+
+  @override
+  String get statusIdle => 'Bezczynna';
+
+  @override
+  String get statusPaused => 'Wstrzymana';
+
+  @override
+  String get statusFinished => 'Zakończone';
+
+  @override
+  String get statusErrorFilter => 'Błąd';
+
+  @override
+  String get statusOfflineFilter => 'Offline';
+
+  @override
+  String get addPrinterTitle => 'Dodaj drukarkę';
+
+  @override
+  String get addPrinterName => 'Nazwa';
+
+  @override
+  String get addPrinterIp => 'Adres IP';
+
+  @override
+  String get addPrinterSerial => 'Numer seryjny';
+
+  @override
+  String get addPrinterAccessCode => 'Kod dostępu';
+
+  @override
+  String get addPrinterModel => 'Model';
+
+  @override
+  String get addPrinterModelOptional => 'Opcjonalnie';
+
+  @override
+  String get addPrinterModelNone => 'Nie ustawiono';
+
+  @override
+  String get addPrinterLocation => 'Lokalizacja';
+
+  @override
+  String get addPrinterLocationOptional => 'Opcjonalnie';
+
+  @override
+  String get addPrinterSubmit => 'Dodaj drukarkę';
+
+  @override
+  String get addPrinterConnectionNote =>
+      'Serwer sprawdza połączenie przed zapisaniem, więc błędny adres IP lub kod dostępu zostanie zgłoszony i nic nie zostanie utworzone.';
+
+  @override
+  String get addPrinterRequiredField => 'Wymagane';
+
+  @override
+  String get addPrinterSuccess => 'Dodano drukarkę';
+
+  @override
+  String get addPrinterErrConnection =>
+      'Nie udało się połączyć z drukarką. Sprawdź adres IP, numer seryjny i kod dostępu oraz upewnij się, że tryb LAN-only jest włączony.';
+
+  @override
+  String get addPrinterErrDuplicate =>
+      'Drukarka o tym numerze seryjnym już istnieje';
+
+  @override
+  String get addPrinterErrForbidden =>
+      'Nie masz uprawnień do dodawania drukarek';
+
+  @override
+  String get addPrinterErrGeneric =>
+      'Nie udało się dodać drukarki. Spróbuj ponownie.';
+
+  @override
+  String get addPrinterAutoArchive =>
+      'Automatycznie archiwizuj ukończone wydruki';
+
+  @override
+  String get addPrinterScanTitle => 'Znajdź drukarki w sieci';
+
+  @override
+  String get addPrinterSubnet => 'Podsieć do skanowania';
+
+  @override
+  String get addPrinterScanButton => 'Skanuj podsieć w poszukiwaniu drukarek';
+
+  @override
+  String get addPrinterDiscoverNetwork => 'Wyszukaj drukarki w sieci';
+
+  @override
+  String addPrinterScanning(int scanned, int total) {
+    return 'Skanowanie… $scanned/$total';
+  }
+
+  @override
+  String get addPrinterScanningPlain => 'Skanowanie…';
+
+  @override
+  String get addPrinterScanNoResults => 'Nie znaleziono drukarek';
+
+  @override
+  String get addPrinterScanError =>
+      'Skanowanie nie powiodło się. Spróbuj ponownie.';
+
+  @override
+  String get addPrinterSubnetCustomOption => 'Własna podsieć…';
+
+  @override
+  String get addPrinterSubnetCustomLabel => 'Własna podsieć (CIDR)';
+
+  @override
+  String get addPrinterSubnetDockerNote =>
+      'Wykryto Docker. Podaj podsieć drukarki w notacji CIDR. Wymaga network_mode: host w docker-compose.yml.';
+
+  @override
+  String get addPrinterSubnetCustomNote =>
+      'Użyj własnej podsieci, jeśli drukarka jest w innej sieci niż serwer. Porty FTP (990) i MQTT (8883) muszą być osiągalne przez granicę routingu.';
+
+  @override
+  String get addPrinterDiagnostic => 'Uruchom diagnostykę';
+
+  @override
+  String get addPrinterDiagnosticRunning => 'Trwa diagnostyka…';
+
+  @override
+  String get addPrinterDiagnosticError =>
+      'Diagnostyka nie powiodła się. Spróbuj ponownie.';
+
+  @override
+  String get diagOverallOk => 'Wszystkie testy zaliczone';
+
+  @override
+  String get diagOverallWarnings => 'Ukończono z ostrzeżeniami';
+
+  @override
+  String get diagOverallProblems => 'Wykryto problemy';
+
+  @override
+  String get diagCheckPortMqtt => 'Port MQTT (8883)';
+
+  @override
+  String get diagCheckPortFtps => 'Port FTPS (990)';
+
+  @override
+  String get diagCheckPortRtsps => 'Port kamery (322)';
+
+  @override
+  String get diagCheckNetworkMode => 'Tryb sieci';
+
+  @override
+  String get diagCheckSubnet => 'Dostępność podsieci';
+
+  @override
+  String get diagCheckMqttAuth => 'Dane logowania MQTT';
+
+  @override
+  String get diagCheckDeveloperMode => 'Tryb deweloperski / LAN';
+
+  @override
   String get changeServerQuestion => 'Zmienić serwer?';
 
   @override

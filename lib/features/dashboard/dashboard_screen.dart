@@ -13,11 +13,13 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_search_field.dart';
+import 'dashboard_filters.dart';
 import 'providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/connection_mode_chip.dart';
+import 'widgets/dashboard_filter_sheet.dart';
 import 'widgets/printer_card.dart';
 import 'ws_providers.dart';
 
@@ -227,6 +229,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardProvider);
     final profile = ref.watch(serverProfileProvider);
     final statuses = ref.watch(printerStatusesProvider);
+    final filters = ref.watch(dashboardFiltersProvider);
     final wsState = ref.watch(wsConnectionStateProvider).valueOrNull;
     final t = DashTokens.of(context);
 
@@ -260,6 +263,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           actions: [
             const Center(child: ConnectionModeChip()),
             const SizedBox(width: 4),
+            IconButton(
+              tooltip: l10n.addPrinterTitle,
+              color: t.textPrimary,
+              icon: const Icon(Icons.add),
+              onPressed: () => context.push('/printers/add'),
+            ),
             IconButton(
               tooltip: l10n.batteryOptMenu,
               color: t.textPrimary,
@@ -296,7 +305,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 message: l10n.wsReconnecting,
                 tone: BannerTone.info,
               ),
-            Expanded(child: _body(context, state, statuses, l10n)),
+            Expanded(child: _body(context, state, statuses, filters, l10n)),
           ],
         ),
       ),
@@ -312,6 +321,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     BuildContext context,
     DashboardState state,
     Map<int, PrinterStatus> statuses,
+    DashboardFilters filters,
     AppLocalizations l10n,
   ) {
     if (state.loading) {
@@ -356,13 +366,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             : p,
     ];
     final q = _query.trim().toLowerCase();
-    final filtered = q.isEmpty
-        ? printers
-        : printers
-              .where((p) => p.printer.name.toLowerCase().contains(q))
-              .toList();
+    final filtered = [
+      for (final p in printers)
+        if ((q.isEmpty || p.printer.name.toLowerCase().contains(q)) &&
+            filters.matches(classifyPrinter(p.status)))
+          p,
+    ];
 
-    final hasSearch = printers.length > 1;
+    // Show the search + filter row whenever there is more than one printer, or
+    // filters are active (so the user can always clear a filter that hid them all).
+    final hasSearch = printers.length > 1 || filters.activeCount > 0;
+    final filtersActive = filters.activeCount > 0;
 
     // The header is a pinned, scroll-linked sliver: as the list scrolls the
     // summary card compacts to a thin bar and the search field rolls away,
@@ -379,7 +393,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               printers: printers,
               hasSearch: hasSearch,
               hint: l10n.searchPrinters,
+              filterCount: filters.activeCount,
               onQuery: (v) => setState(() => _query = v),
+              onOpenFilters: () => showDashboardFilterSheet(context),
             ),
           ),
           if (filtered.isEmpty)
@@ -391,7 +407,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: Text(
                     printers.isEmpty
                         ? l10n.noPrinters
-                        : l10n.noSearchResults(_query),
+                        : filtersActive
+                            ? l10n.noPrintersMatchFilters
+                            : l10n.noSearchResults(_query),
                   ),
                 ),
               ),
@@ -776,13 +794,17 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.printers,
     required this.hasSearch,
     required this.hint,
+    required this.filterCount,
     required this.onQuery,
+    required this.onOpenFilters,
   });
 
   final List<PrinterWithStatus> printers;
   final bool hasSearch;
   final String hint;
+  final int filterCount;
   final ValueChanged<String> onQuery;
+  final VoidCallback onOpenFilters;
 
   // Heights carry generous slack; content is clipped, never overflowed.
   static const double _statusFull = 60;
@@ -827,7 +849,24 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                   opacity: (1 - shrink * 1.4).clamp(0.0, 1.0),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 5),
-                    child: DashSearchField(hintText: hint, onChanged: onQuery),
+                    child: SizedBox(
+                      height: 48,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DashSearchField(
+                              hintText: hint,
+                              onChanged: onQuery,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterButton(
+                            count: filterCount,
+                            onTap: onOpenFilters,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -856,7 +895,59 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _DashHeaderDelegate old) =>
       old.printers != printers ||
       old.hasSearch != hasSearch ||
-      old.hint != hint;
+      old.hint != hint ||
+      old.filterCount != filterCount;
+}
+
+/// Square button opening the dashboard filter sheet; a badge shows the count of
+/// active filters. Mirrors the inventory screen's filter button.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final active = count > 0;
+    return Tooltip(
+      message: l10n.dashboardFilters,
+      child: Badge(
+        isLabelVisible: active,
+        label: Text('$count'),
+        backgroundColor: t.accentGreen,
+        textColor: const Color(0xFF08150D),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Material(
+            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: active
+                        ? t.accentGreen.withValues(alpha: 0.4)
+                        : t.subCardBorder,
+                  ),
+                ),
+                child: Icon(
+                  Icons.tune,
+                  color: active ? t.accentGreenInk : t.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Opaque backdrop for the pinned header. A flat color can't match the screen's

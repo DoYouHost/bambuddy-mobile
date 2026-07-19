@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
+import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/files/file_manager_screen.dart';
 import 'features/files/trash_screen.dart';
@@ -51,6 +52,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // Server setup screen — outside shell, no navigation bar.
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
+
+      // Add printer — full screen outside shell (pushed from the dashboard).
+      GoRoute(
+        path: '/printers/add',
+        builder: (_, _) => const AddPrinterScreen(),
+      ),
 
       // Notification settings — full screen outside shell (pushed from dashboard).
       GoRoute(
