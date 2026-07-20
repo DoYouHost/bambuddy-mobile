@@ -15,6 +15,9 @@ class _GaugeTile extends ConsumerWidget {
     required this.printerId,
     required this.model,
     required this.nozzleIndex,
+    required this.dualNozzle,
+    required this.activeExtruder,
+    required this.printing,
   });
 
   final _TempReading reading;
@@ -24,6 +27,15 @@ class _GaugeTile extends ConsumerWidget {
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
   /// non-nozzle sensors.
   final int? nozzleIndex;
+
+  /// True on dual-head printers — enables the nozzle switch in the sheet.
+  final bool dualNozzle;
+
+  /// Currently active extruder (0/1); drives the switch state in the sheet.
+  final int? activeExtruder;
+
+  /// Whether a print is active — the nozzle switch is disabled mid-print.
+  final bool printing;
 
   bool get _isEditable => switch (reading.kind) {
         _TempKind.nozzle || _TempKind.bed => true,
@@ -150,6 +162,9 @@ class _GaugeTile extends ConsumerWidget {
         model: model,
         nozzleIndex: nozzleIndex ?? 0,
         initialTarget: initialTarget,
+        dualNozzle: dualNozzle,
+        activeExtruder: activeExtruder,
+        printing: printing,
       ),
     );
   }
@@ -372,6 +387,9 @@ class _TempControlSheet extends ConsumerStatefulWidget {
     required this.model,
     required this.nozzleIndex,
     required this.initialTarget,
+    required this.dualNozzle,
+    required this.activeExtruder,
+    required this.printing,
   });
 
   final int printerId;
@@ -379,6 +397,9 @@ class _TempControlSheet extends ConsumerStatefulWidget {
   final String? model;
   final int nozzleIndex;
   final int initialTarget;
+  final bool dualNozzle;
+  final int? activeExtruder;
+  final bool printing;
 
   @override
   ConsumerState<_TempControlSheet> createState() => _TempControlSheetState();
@@ -389,6 +410,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
       widget.initialTarget.clamp(0, widget.reading.maxTarget).toInt();
   late bool? _airductHeating = widget.reading.airductIsHeating;
   bool _busy = false;
+
+  /// Nozzle we're switching to, until the live status confirms it. While set
+  /// (and not yet reflected) the switch shows a spinner and is locked.
+  int? _switchingTo;
 
   _TempReading get _reading => widget.reading;
 
@@ -445,6 +470,98 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     }
   }
 
+  /// Make this nozzle the active extruder (dual-head only). Keeps the sheet
+  /// open so the user can also set its temperature; state is optimistic.
+  Future<void> _switchNozzle() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    setState(() => _switchingTo = widget.nozzleIndex);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .setExtruder(widget.printerId, widget.nozzleIndex);
+    if (!mounted) return;
+    if (result == ControlResult.ok) return; // keep locked until live confirms
+    setState(() => _switchingTo = null); // command failed — release the lock
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(result == ControlResult.forbidden
+            ? l10n.ctrlForbidden
+            : l10n.ctrlFailed),
+      ));
+  }
+
+  /// Active-extruder control shown in the nozzle sheet on dual-head printers:
+  /// a compact tag when this nozzle is already active, else an "Activate"
+  /// button that selects it.
+  Widget _nozzleSwitch(
+    DashTokens t,
+    AppLocalizations l10n, {
+    required bool isActive,
+    required bool busy,
+    required bool enabled,
+  }) {
+    if (isActive) {
+      return Row(
+        children: [
+          Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
+          const SizedBox(width: 6),
+          Text(
+            l10n.ctrlNozzleActive,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: t.accentGreenInk,
+            ),
+          ),
+        ],
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? _switchNozzle : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.swap_horiz,
+                        size: 16,
+                        color: enabled ? t.textPrimary : t.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.ctrlActivate,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? t.textPrimary : t.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -454,6 +571,23 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final accent = _reading.gaugeColor(t, target: _target.toDouble());
     final showAirduct =
         _reading.kind == _TempKind.chamber && supportsAirduct(widget.model);
+    // Nozzle switch (dual-head only): the active extruder comes from LIVE
+    // status (poll/WS), so the lock persists through the physical switch.
+    final showNozzleSwitch =
+        _reading.kind == _TempKind.nozzle && widget.dualNozzle;
+    final liveExtruder = ref.watch(printerStatusesProvider
+            .select((m) => m[widget.printerId]?.activeExtruder)) ??
+        widget.activeExtruder;
+    // Confirmed once live status reports the requested nozzle — release the
+    // lock (post-frame to avoid setState during build).
+    if (_switchingTo != null && liveExtruder == _switchingTo) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _switchingTo = null);
+      });
+    }
+    final switching =
+        _switchingTo == widget.nozzleIndex && liveExtruder != widget.nozzleIndex;
+    final isActiveNozzle = liveExtruder == widget.nozzleIndex;
     // With the airduct in Cooling, M141 does nothing, so a chamber target can
     // only be set once the flap is switched to Heating.
     final chamberGated = _reading.kind == _TempKind.chamber && showAirduct;
@@ -510,6 +644,16 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                       ),
                     ],
                   ),
+                  if (showNozzleSwitch) ...[
+                    const SizedBox(height: 12),
+                    _nozzleSwitch(
+                      t,
+                      l10n,
+                      isActive: isActiveNozzle,
+                      busy: switching,
+                      enabled: !widget.printing && !switching,
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   // Dim + block the target editor when a chamber target can't
                   // take effect (airduct not in Heating).

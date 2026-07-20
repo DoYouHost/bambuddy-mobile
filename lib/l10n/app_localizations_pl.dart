@@ -330,6 +330,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlSet => 'Ustaw';
 
   @override
+  String get ctrlActivate => 'Aktywuj';
+
+  @override
+  String get ctrlNozzleActive => 'Aktywna';
+
+  @override
   String get ctrlDry => 'Suszenie';
 
   @override

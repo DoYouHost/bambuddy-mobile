@@ -8,7 +8,18 @@ import '../../providers.dart';
 
 /// Control actions — key for marking what is "in flight" (spinner +
 /// button lock).
-enum ControlAction { pause, resume, stop, light, speed, temp, airduct, fan, dry }
+enum ControlAction {
+  pause,
+  resume,
+  stop,
+  light,
+  speed,
+  temp,
+  airduct,
+  fan,
+  dry,
+  extruder,
+}
 
 /// Command result returned to the widget that initiated the action — it
 /// displays the SnackBar (notifier has no [BuildContext]).
@@ -280,6 +291,15 @@ class ControlsNotifier extends Notifier<ControlsState> {
         id,
         ControlAction.dry,
         () => _repo.stopDrying(id, amsId: amsId),
+      );
+
+  /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
+  /// No optimistic override — the caller keeps the switch locked until the live
+  /// status reports the new active extruder (the physical switch takes time).
+  Future<ControlResult> setExtruder(int id, int extruder) => _run(
+        id,
+        ControlAction.extruder,
+        () => _repo.selectExtruder(id, extruder),
       );
 
   /// Runs a command with optimistic apply + rollback-on-error. [apply] overlays

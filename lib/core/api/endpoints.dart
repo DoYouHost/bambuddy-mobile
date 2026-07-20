@@ -151,6 +151,11 @@ abstract final class Endpoints {
   static String fanSpeed(int printerId) =>
       '$apiPrefix/printers/$printerId/fan-speed';
 
+  /// Select the active extruder on dual-nozzle printers. Query: `extruder=0|1`
+  /// (0=right, 1=left).
+  static String selectExtruder(int printerId) =>
+      '$apiPrefix/printers/$printerId/select-extruder';
+
   /// Start AMS drying. Query: `ams_id`, `temp` 45–85, `duration` 1–24 (hours),
   /// optional `filament` (backfilled server-side) and `rotate_tray`. Gated on
   /// [PrinterStatus.supportsDrying]; server may 409 with a blocking reason.

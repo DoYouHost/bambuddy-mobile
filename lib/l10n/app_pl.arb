@@ -104,6 +104,8 @@
   "ctrlAirductHeating": "Grzanie",
   "ctrlOff": "Wył.",
   "ctrlSet": "Ustaw",
+  "ctrlActivate": "Aktywuj",
+  "ctrlNozzleActive": "Aktywna",
   "ctrlDry": "Suszenie",
   "ctrlDrying": "Suszenie",
   "ctrlDryStart": "Start",

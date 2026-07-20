@@ -114,6 +114,8 @@
   "ctrlAirductHeating": "Heating",
   "ctrlOff": "Off",
   "ctrlSet": "Set",
+  "ctrlActivate": "Activate",
+  "ctrlNozzleActive": "Active",
   "ctrlDry": "Dry",
   "ctrlDrying": "Drying",
   "ctrlDryStart": "Start",

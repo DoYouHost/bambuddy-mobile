@@ -411,11 +411,15 @@ class _TempGrid extends StatelessWidget {
     required this.readings,
     required this.printerId,
     required this.model,
+    required this.activeExtruder,
+    required this.printing,
   });
 
   final List<_TempReading> readings;
   final int printerId;
   final String? model;
+  final int? activeExtruder;
+  final bool printing;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +448,9 @@ class _TempGrid extends StatelessWidget {
                   nozzleIndex: r.kind != _TempKind.nozzle
                       ? null
                       : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0)),
+                  dualNozzle: hasSecondNozzle,
+                  activeExtruder: activeExtruder,
+                  printing: printing,
                 ),
               ),
           ],

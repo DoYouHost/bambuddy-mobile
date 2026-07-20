@@ -73,6 +73,13 @@ class PrinterCommandsRepository {
         query: {'fan': fan, 'speed': speed});
   }
 
+  /// Select active extruder (0=right, 1=left) on dual-nozzle printers.
+  Future<void> selectExtruder(int printerId, int extruder) {
+    assert(extruder == 0 || extruder == 1, 'extruder must be 0 or 1');
+    return _post(Endpoints.selectExtruder(printerId),
+        query: {'extruder': extruder});
+  }
+
   /// Start AMS drying. [temp] 45–85 °C, [duration] 1–24 hours. Filament is
   /// backfilled server-side from the loaded tray when omitted.
   Future<void> startDrying(

@@ -680,6 +680,18 @@ abstract class AppLocalizations {
   /// **'Set'**
   String get ctrlSet;
 
+  /// No description provided for @ctrlActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get ctrlActivate;
+
+  /// No description provided for @ctrlNozzleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get ctrlNozzleActive;
+
   /// No description provided for @ctrlDry.
   ///
   /// In en, this message translates to:

@@ -322,6 +322,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlSet => 'Set';
 
   @override
+  String get ctrlActivate => 'Activate';
+
+  @override
+  String get ctrlNozzleActive => 'Active';
+
+  @override
   String get ctrlDry => 'Dry';
 
   @override

@@ -24,6 +24,7 @@ import '../../inventory/inventory_screen.dart'
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
+import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
 import '../smart_plugs_providers.dart';
 import '../../../core/theme/dash_theme.dart';
@@ -224,6 +225,8 @@ class _PrinterCardState extends State<PrinterCard> {
               readings: readings,
               printerId: printerId,
               model: status?.model,
+              activeExtruder: status?.activeExtruder,
+              printing: printing,
             ),
           ],
           if (status != null) ...[
