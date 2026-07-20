@@ -668,6 +668,60 @@ abstract class AppLocalizations {
   /// **'Heating'**
   String get ctrlAirductHeating;
 
+  /// No description provided for @ctrlOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get ctrlOff;
+
+  /// No description provided for @ctrlSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get ctrlSet;
+
+  /// No description provided for @ctrlDry.
+  ///
+  /// In en, this message translates to:
+  /// **'Dry'**
+  String get ctrlDry;
+
+  /// No description provided for @ctrlDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying'**
+  String get ctrlDrying;
+
+  /// No description provided for @ctrlDryStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get ctrlDryStart;
+
+  /// No description provided for @ctrlDryFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get ctrlDryFilament;
+
+  /// No description provided for @ctrlDryTemp.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get ctrlDryTemp;
+
+  /// No description provided for @ctrlDryDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get ctrlDryDuration;
+
+  /// No description provided for @ctrlDryHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{h} h'**
+  String ctrlDryHours(int h);
+
   /// No description provided for @ctrlPause.
   ///
   /// In en, this message translates to:

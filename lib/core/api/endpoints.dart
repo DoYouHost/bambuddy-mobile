@@ -127,6 +127,40 @@ abstract final class Endpoints {
   static String printSpeed(int printerId) =>
       '$apiPrefix/printers/$printerId/print-speed';
 
+  /// Nozzle target temperature. Query: `target` 0–320 (0 = off),
+  /// `nozzle` 0|1 (0 = right/default, 1 = left on dual-head H2D/X2D).
+  static String nozzleTemperature(int printerId) =>
+      '$apiPrefix/printers/$printerId/temperature/nozzle';
+
+  /// Bed target temperature. Query: `target` 0–140 (0 = off).
+  static String bedTemperature(int printerId) =>
+      '$apiPrefix/printers/$printerId/temperature/bed';
+
+  /// Chamber target temperature. Query: `target` 0–60 (0 = off). Server returns
+  /// 400 unless the model has an active chamber heater (H2C/H2D/H2D Pro/H2S/X2D)
+  /// — gate client-side via `supportsChamberHeater` before calling.
+  static String chamberTemperature(int printerId) =>
+      '$apiPrefix/printers/$printerId/temperature/chamber';
+
+  /// Airduct flap mode. Query: `mode=cooling|heating`. Supported on
+  /// P2S/X2D/H2* — gate via `supportsAirduct` first.
+  static String airductMode(int printerId) =>
+      '$apiPrefix/printers/$printerId/airduct-mode';
+
+  /// Fan speed. Query: `fan=part|aux|chamber`, `speed` 0–100 (%).
+  static String fanSpeed(int printerId) =>
+      '$apiPrefix/printers/$printerId/fan-speed';
+
+  /// Start AMS drying. Query: `ams_id`, `temp` 45–85, `duration` 1–24 (hours),
+  /// optional `filament` (backfilled server-side) and `rotate_tray`. Gated on
+  /// [PrinterStatus.supportsDrying]; server may 409 with a blocking reason.
+  static String dryingStart(int printerId) =>
+      '$apiPrefix/printers/$printerId/drying/start';
+
+  /// Stop AMS drying. Query: `ams_id`.
+  static String dryingStop(int printerId) =>
+      '$apiPrefix/printers/$printerId/drying/stop';
+
   /// Printable objects for the current print (`GET`). Query `reload=true`
   /// re-reads them from the 3MF (useful after a restart). Returns
   /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,

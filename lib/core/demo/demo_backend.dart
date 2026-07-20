@@ -109,6 +109,15 @@ class DemoBackend {
 
   final Map<int, bool> _chamberLight = {1: true, 2: false};
   final Map<int, int> _speedLevel = {1: 2, 2: 2};
+  // Optimistic temperature/airduct overrides set via control endpoints; when
+  // present they win over the status generator's defaults so demo reflects them.
+  final Map<int, double> _nozzleTarget = {};
+  final Map<int, double> _bedTarget = {};
+  final Map<int, int> _airductMode = {};
+  // Fan overrides for the primary demo printer, keyed by fan id.
+  final Map<String, int> _fanSpeeds = {};
+  // AMS drying: minutes remaining keyed by ams id (demo doesn't count down).
+  final Map<int, int> _dryTime = {};
   final Map<int, bool> _plugOn = {1: true, 2: false};
 
   /// identify_ids skipped during the current X1 demo print. Reset on stop so a
@@ -205,6 +214,42 @@ class DemoBackend {
         if (at(2, 'print-speed')) {
           _speedLevel[pid] = int.tryParse(q['mode'] ?? '') ?? 2;
           return _ok(const {'ok': true});
+        }
+        if (at(2, 'temperature') && s.length >= 4) {
+          final target = double.tryParse(q['target'] ?? '') ?? 0;
+          switch (s[3]) {
+            case 'nozzle':
+              _nozzleTarget[pid] = target;
+              return _ok(const {'ok': true});
+            case 'bed':
+              _bedTarget[pid] = target;
+              return _ok(const {'ok': true});
+            case 'chamber':
+              return _ok(const {'ok': true});
+          }
+        }
+        if (at(2, 'airduct-mode')) {
+          _airductMode[pid] = q['mode'] == 'heating' ? 1 : 0;
+          return _ok(const {'ok': true});
+        }
+        if (at(2, 'fan-speed')) {
+          final fan = q['fan'] ?? '';
+          final sp = int.tryParse(q['speed'] ?? '');
+          if (sp != null && const ['part', 'aux', 'chamber'].contains(fan)) {
+            _fanSpeeds[fan] = sp;
+            return _ok(const {'ok': true});
+          }
+        }
+        if (at(2, 'drying') && s.length >= 4) {
+          final amsId = int.tryParse(q['ams_id'] ?? '') ?? 0;
+          if (s[3] == 'start') {
+            _dryTime[amsId] = (int.tryParse(q['duration'] ?? '') ?? 4) * 60;
+            return _ok(const {'status': 'drying_started'});
+          }
+          if (s[3] == 'stop') {
+            _dryTime[amsId] = 0;
+            return _ok(const {'status': 'drying_stopped'});
+          }
         }
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
@@ -401,21 +446,21 @@ class DemoBackend {
       'total_layers': printing ? _totalLayers : 0,
       'temperatures': {
         'nozzle': _r1(heating ? 220 + _wiggle(1.4) : 152),
-        'nozzle_target': heating ? 220.0 : 0.0,
+        'nozzle_target': _nozzleTarget[1] ?? (heating ? 220.0 : 0.0),
         'bed': _r1(heating ? 65 + _wiggle(0.6, phase: 30) : 48),
-        'bed_target': heating ? 65.0 : 0.0,
+        'bed_target': _bedTarget[1] ?? (heating ? 65.0 : 0.0),
         'chamber': _r1(33 + _wiggle(0.8, phase: 60)),
         'nozzle_heating': false,
         'bed_heating': false,
         'chamber_heating': false,
       },
-      'cooling_fan_speed': moving ? 70 : 0,
-      'big_fan1_speed': moving ? 40 : 0,
-      'big_fan2_speed': moving ? 60 : 0,
+      'cooling_fan_speed': _fanSpeeds['part'] ?? (moving ? 70 : 0),
+      'big_fan1_speed': _fanSpeeds['aux'] ?? (moving ? 40 : 0),
+      'big_fan2_speed': _fanSpeeds['chamber'] ?? (moving ? 60 : 0),
       'heatbreak_fan_speed': heating ? 90 : 0,
       'speed_level': _speedLevel[1] ?? 2,
       'chamber_light': _chamberLight[1] ?? true,
-      'airduct_mode': 0,
+      'airduct_mode': _airductMode[1] ?? 0,
       'wifi_signal': -52,
       'door_open': false,
       'ams_exists': true,
@@ -503,9 +548,9 @@ class DemoBackend {
         'humidity': 21 + (_wiggle(1.5, periodSec: 600)).round(),
         'temp': _r1(28.5 + _wiggle(0.5, periodSec: 300)),
         'is_ams_ht': false,
-        'module_type': 'ams',
-        'dry_time': 0,
-        'dry_status': 0,
+        'module_type': 'n3f', // AMS 2 Pro — drying-capable
+        'dry_time': _dryTime[0] ?? 0,
+        'dry_status': (_dryTime[0] ?? 0) > 0 ? 2 : 0,
         'tray': [
           _tray(0, '000000FF', 'PLA',
               subBrand: 'PLA Basic', idName: 'A00-K0', infoIdx: 'GFA00', remain: 66),

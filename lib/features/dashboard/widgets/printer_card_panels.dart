@@ -403,14 +403,29 @@ class _CoverThumbnailState extends ConsumerState<_CoverThumbnail>
   }
 }
 
-/// 2-column grid of temperature gauge tiles.
+/// 2-column grid of temperature gauge tiles. Tiles are tappable to set targets
+/// (see [_GaugeTile]); [printerId]/[model] are threaded down for the command
+/// and capability gating.
 class _TempGrid extends StatelessWidget {
-  const _TempGrid({required this.readings});
+  const _TempGrid({
+    required this.readings,
+    required this.printerId,
+    required this.model,
+  });
 
   final List<_TempReading> readings;
+  final int printerId;
+  final String? model;
 
   @override
   Widget build(BuildContext context) {
+    // Dual-head printers (H2D/X2D) report a second nozzle as `nozzle_2` (RIGHT)
+    // while the plain `nozzle` key is the LEFT one. Map each to the server's
+    // hardware index (0=right/default, 1=left). On single-nozzle machines the
+    // plain `nozzle` is the default → index 0.
+    final hasSecondNozzle =
+        readings.any((r) => r.kind == _TempKind.nozzle && r.index != null);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 8.0;
@@ -420,7 +435,17 @@ class _TempGrid extends StatelessWidget {
           runSpacing: spacing,
           children: [
             for (final r in readings)
-              SizedBox(width: tileWidth, child: _GaugeTile(reading: r)),
+              SizedBox(
+                width: tileWidth,
+                child: _GaugeTile(
+                  reading: r,
+                  printerId: printerId,
+                  model: model,
+                  nozzleIndex: r.kind != _TempKind.nozzle
+                      ? null
+                      : (r.index != null ? 0 : (hasSecondNozzle ? 1 : 0)),
+                ),
+              ),
           ],
         );
       },
@@ -432,33 +457,41 @@ class _TempGrid extends StatelessWidget {
 /// matching the design. Each cell shows the fan's short label and % in mono.
 /// Renders only when the server provides at least one fan reading.
 class _FansGrid extends StatelessWidget {
-  const _FansGrid({required this.status});
+  const _FansGrid({required this.status, required this.printerId});
 
   final PrinterStatus status;
+  final int printerId;
 
   @override
   Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
 
+    // Fan id → server key mapping mirrors the backend fan-speed route:
+    // part=cooling, aux=big fan 1, chamber=big fan 2.
     final cells = <Widget>[
       if (status.coolingFanSpeed != null)
         _FanCell(
+          fan: 'part',
           label: l10n.ctrlFanPartShort,
+          sheetLabel: l10n.ctrlFanPart,
           value: status.coolingFanSpeed!,
-          tokens: t,
+          printerId: printerId,
         ),
       if (status.bigFan1Speed != null)
         _FanCell(
+          fan: 'aux',
           label: l10n.ctrlFanAuxShort,
+          sheetLabel: l10n.ctrlFanAux,
           value: status.bigFan1Speed!,
-          tokens: t,
+          printerId: printerId,
         ),
       if (status.bigFan2Speed != null)
         _FanCell(
+          fan: 'chamber',
           label: l10n.ctrlFanChamberShort,
+          sheetLabel: l10n.ctrlFanChamber,
           value: status.bigFan2Speed!,
-          tokens: t,
+          printerId: printerId,
         ),
     ];
     if (cells.isEmpty) return const SizedBox.shrink();
@@ -477,22 +510,34 @@ class _FansGrid extends StatelessWidget {
   }
 }
 
-class _FanCell extends StatelessWidget {
+class _FanCell extends ConsumerWidget {
   const _FanCell({
+    required this.fan,
     required this.label,
+    required this.sheetLabel,
     required this.value,
-    required this.tokens,
+    required this.printerId,
   });
 
+  /// Fan id sent to the server ('part'/'aux'/'chamber').
+  final String fan;
   final String label;
+  final String sheetLabel;
   final int value;
-  final DashTokens tokens;
+  final int printerId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = DashTokens.of(context);
+    final pending =
+        ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
+    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    // Optimistic overlay until real status catches up.
+    final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
-    final valueColor = value > 0 ? tokens.accentBlue : tokens.textPrimary;
-    return Container(
+    final valueColor = shown > 0 ? tokens.accentBlue : tokens.textPrimary;
+
+    final cell = Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: tokens.subCard,
@@ -514,7 +559,7 @@ class _FanCell extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '$value%',
+            '$shown%',
             style: TextStyle(
               fontFamily: DashTokens.fontMono,
               fontSize: 15,
@@ -524,6 +569,192 @@ class _FanCell extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (forbidden) return cell;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _FanControlSheet(
+            printerId: printerId,
+            fan: fan,
+            label: sheetLabel,
+            initialSpeed: shown,
+          ),
+        ),
+        child: cell,
+      ),
+    );
+  }
+}
+
+/// Bottom sheet to set a fan's speed (%): slider with fine −/+ steppers,
+/// quick-pick presets, and Off/Set. Mirrors [_TempControlSheet]; applying
+/// closes the sheet and the optimistic value shows on the fan cell right away.
+class _FanControlSheet extends ConsumerStatefulWidget {
+  const _FanControlSheet({
+    required this.printerId,
+    required this.fan,
+    required this.label,
+    required this.initialSpeed,
+  });
+
+  final int printerId;
+  final String fan;
+  final String label;
+  final int initialSpeed;
+
+  @override
+  ConsumerState<_FanControlSheet> createState() => _FanControlSheetState();
+}
+
+class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
+  static const _presets = [25, 50, 75, 100];
+
+  late int _speed = widget.initialSpeed.clamp(0, 100);
+  bool _busy = false;
+
+  void _bump(int delta) =>
+      setState(() => _speed = (_speed + delta).clamp(0, 100));
+
+  Future<void> _apply(int speed) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .setFanSpeed(widget.printerId, widget.fan, speed);
+    if (!mounted) return;
+    navigator.pop();
+    final msg = switch (result) {
+      ControlResult.ok => null,
+      ControlResult.forbidden => l10n.ctrlForbidden,
+      ControlResult.error => l10n.ctrlFailed,
+    };
+    if (msg != null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final accent = _speed > 0 ? t.accentBlue : t.textSecondary;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: t.overlaySurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border(top: BorderSide(color: t.subCardBorder)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: t.textTertiary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      _speed == 0 ? l10n.ctrlOff : '$_speed%',
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontMono,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _StepButton(icon: Icons.remove, onTap: () => _bump(-1)),
+                      Expanded(
+                        child: Slider(
+                          value: _speed.toDouble(),
+                          max: 100,
+                          activeColor: accent,
+                          onChanged: (v) => setState(() => _speed = v.round()),
+                        ),
+                      ),
+                      _StepButton(icon: Icons.add, onTap: () => _bump(1)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final p in _presets)
+                        _PresetChip(
+                          label: '$p%',
+                          selected: _speed == p,
+                          onTap: () => setState(() => _speed = p),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SheetButton(
+                          label: l10n.ctrlOff,
+                          onTap: _busy ? null : () => _apply(0),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SheetButton(
+                          label: l10n.ctrlSet,
+                          filled: true,
+                          busy: _busy,
+                          onTap: _busy ? null : () => _apply(_speed),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -46,6 +46,7 @@ class PrinterStatus {
     this.doorOpen,
     this.awaitingPlateClear,
     this.hmsErrors,
+    this.supportsDrying,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -160,6 +161,10 @@ class PrinterStatus {
   @JsonKey(fromJson: _toHmsListOrNull)
   final List<HmsError>? hmsErrors;
 
+  /// Whether this printer model/firmware supports AMS drying commands
+  /// (`supports_drying`, printer-level). Gates the AMS Dry action.
+  final bool? supportsDrying;
+
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
   /// status that's identical in content to the one already in state (REST
   /// polling otherwise builds a fresh `PrinterStatus` every 5s via
@@ -198,6 +203,7 @@ class PrinterStatus {
           other.wifiSignal == wifiSignal &&
           other.doorOpen == doorOpen &&
           other.awaitingPlateClear == awaitingPlateClear &&
+          other.supportsDrying == supportsDrying &&
           _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
 
   @override
@@ -232,6 +238,7 @@ class PrinterStatus {
         doorOpen,
         awaitingPlateClear,
         hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
+        supportsDrying,
       ]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
@@ -291,6 +298,7 @@ class PrinterStatus {
       doorOpen: doorOpen ?? previous.doorOpen,
       awaitingPlateClear: awaitingPlateClear ?? previous.awaitingPlateClear,
       hmsErrors: hmsErrors ?? previous.hmsErrors,
+      supportsDrying: supportsDrying ?? previous.supportsDrying,
     );
   }
 
@@ -437,7 +445,16 @@ class PrinterStatus {
 /// Single AMS unit: humidity, temperature, and slots (trays).
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class AmsUnit {
-  const AmsUnit({this.id, this.humidity, this.temp, this.trays, this.isAmsHt});
+  const AmsUnit({
+    this.id,
+    this.humidity,
+    this.temp,
+    this.trays,
+    this.isAmsHt,
+    this.dryTime,
+    this.dryStatus,
+    this.moduleType,
+  });
 
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
       _$AmsUnitFromJson(json);
@@ -461,6 +478,29 @@ class AmsUnit {
   @JsonKey(name: 'tray', fromJson: _toTrayListOrNull)
   final List<AmsTray>? trays;
 
+  /// Minutes of drying remaining (`dry_time`); 0/null = not drying.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? dryTime;
+
+  /// Drying status (`dry_status`): 0=Off, 1=Checking, 2=Drying, 3=Cooling,
+  /// 4=Stopping, 5=Error.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? dryStatus;
+
+  /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
+  /// Only the drying-capable modules ('n3f'/'n3s') accept dry commands.
+  final String? moduleType;
+
+  /// Whether this AMS module can dry filament (AMS 2 Pro or AMS-HT).
+  bool get canDry => moduleType == 'n3f' || moduleType == 'n3s';
+
+  /// AMS-HT (high-temp) module — dries hotter (up to 85 °C vs 65 °C).
+  bool get isHtDryModule => moduleType == 'n3s';
+
+  /// Whether a drying cycle is currently running (time remaining or an active
+  /// status phase).
+  bool get isDrying => (dryTime ?? 0) > 0 || (dryStatus ?? 0) == 2;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -469,6 +509,9 @@ class AmsUnit {
           other.isAmsHt == isAmsHt &&
           other.humidity == humidity &&
           other.temp == temp &&
+          other.dryTime == dryTime &&
+          other.dryStatus == dryStatus &&
+          other.moduleType == moduleType &&
           _listAmsTrayEquality.equals(other.trays, trays);
 
   @override
@@ -477,6 +520,9 @@ class AmsUnit {
         isAmsHt,
         humidity,
         temp,
+        dryTime,
+        dryStatus,
+        moduleType,
         trays == null ? null : _listAmsTrayEquality.hash(trays),
       );
 }

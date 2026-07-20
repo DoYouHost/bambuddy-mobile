@@ -324,6 +324,35 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlAirductHeating => 'Grzanie';
 
   @override
+  String get ctrlOff => 'Wył.';
+
+  @override
+  String get ctrlSet => 'Ustaw';
+
+  @override
+  String get ctrlDry => 'Suszenie';
+
+  @override
+  String get ctrlDrying => 'Suszenie';
+
+  @override
+  String get ctrlDryStart => 'Start';
+
+  @override
+  String get ctrlDryFilament => 'Filament';
+
+  @override
+  String get ctrlDryTemp => 'Temperatura';
+
+  @override
+  String get ctrlDryDuration => 'Czas';
+
+  @override
+  String ctrlDryHours(int h) {
+    return '$h godz';
+  }
+
+  @override
   String get ctrlPause => 'Pauza';
 
   @override

@@ -38,6 +38,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       doorOpen: json['door_open'] as bool?,
       awaitingPlateClear: json['awaiting_plate_clear'] as bool?,
       hmsErrors: _toHmsListOrNull(json['hms_errors']),
+      supportsDrying: json['supports_drying'] as bool?,
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
@@ -46,6 +47,9 @@ AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
   temp: _toDoubleOrNull(json['temp']),
   trays: _toTrayListOrNull(json['tray']),
   isAmsHt: json['is_ams_ht'] as bool?,
+  dryTime: _toIntOrNull(json['dry_time']),
+  dryStatus: _toIntOrNull(json['dry_status']),
+  moduleType: json['module_type'] as String?,
 );
 
 AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(

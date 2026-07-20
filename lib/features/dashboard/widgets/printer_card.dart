@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/models/inventory.dart';
+import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_catalog.dart';
@@ -219,7 +220,11 @@ class _PrinterCardState extends State<PrinterCard> {
           ],
           if (readings.isNotEmpty) ...[
             const SizedBox(height: 14),
-            _TempGrid(readings: readings),
+            _TempGrid(
+              readings: readings,
+              printerId: printerId,
+              model: status?.model,
+            ),
           ],
           if (status != null) ...[
             // Primary lifecycle controls (pause/resume/stop) stay visible while
@@ -249,7 +254,8 @@ class _PrinterCardState extends State<PrinterCard> {
                             printerId: printerId,
                             status: status,
                           ),
-                        if (hasFans) _FansGrid(status: status),
+                        if (hasFans)
+                          _FansGrid(status: status, printerId: printerId),
                         if (hasDetails) _DetailsPanel(status: status),
                       ],
                     )

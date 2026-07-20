@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 
-/// Printer control commands (M4): pause/resume/stop, chamber light, speed.
+/// Printer control commands: pause/resume/stop, chamber light, speed, and
+/// temperatures (nozzle/bed/chamber) + airduct mode.
 /// All are `POST` with empty body; parameters go in query.
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio (X-API-Key or Bearer).
@@ -33,9 +34,67 @@ class PrinterCommandsRepository {
   /// Print speed: `mode` 1–4 (1 Silent … 4 Ludicrous). Out-of-range values
   /// rejected locally — server would return 422 anyway.
   Future<void> setPrintSpeed(int printerId, int mode) {
-    assert(mode >= 1 && mode <= 4, 'speed mode poza zakresem 1..4: $mode');
+    assert(mode >= 1 && mode <= 4, 'speed mode out of range 1..4: $mode');
     return _post(Endpoints.printSpeed(printerId), query: {'mode': mode});
   }
+
+  /// Nozzle target temperature (°C, 0 turns heating off). [nozzle] 0=right/
+  /// default, 1=left (dual-head only).
+  Future<void> setNozzleTemperature(int printerId, int target,
+      {int nozzle = 0}) {
+    assert(target >= 0 && target <= 320, 'nozzle target out of range: $target');
+    return _post(Endpoints.nozzleTemperature(printerId),
+        query: {'target': target, 'nozzle': nozzle});
+  }
+
+  /// Bed target temperature (°C, 0 turns heating off).
+  Future<void> setBedTemperature(int printerId, int target) {
+    assert(target >= 0 && target <= 140, 'bed target out of range: $target');
+    return _post(Endpoints.bedTemperature(printerId), query: {'target': target});
+  }
+
+  /// Chamber target temperature (°C, 0 turns heating off). Only call for models
+  /// with an active chamber heater — the server 400s otherwise.
+  Future<void> setChamberTemperature(int printerId, int target) {
+    assert(target >= 0 && target <= 60, 'chamber target out of range: $target');
+    return _post(Endpoints.chamberTemperature(printerId),
+        query: {'target': target});
+  }
+
+  /// Airduct flap mode. Only call for models with an airduct (P2S/X2D/H2*).
+  Future<void> setAirductMode(int printerId, {required bool heating}) =>
+      _post(Endpoints.airductMode(printerId),
+          query: {'mode': heating ? 'heating' : 'cooling'});
+
+  /// Fan speed as a percentage. [fan] is 'part', 'aux', or 'chamber'.
+  Future<void> setFanSpeed(int printerId, String fan, int speed) {
+    assert(speed >= 0 && speed <= 100, 'fan speed out of range: $speed');
+    return _post(Endpoints.fanSpeed(printerId),
+        query: {'fan': fan, 'speed': speed});
+  }
+
+  /// Start AMS drying. [temp] 45–85 °C, [duration] 1–24 hours. Filament is
+  /// backfilled server-side from the loaded tray when omitted.
+  Future<void> startDrying(
+    int printerId, {
+    required int amsId,
+    required int temp,
+    required int duration,
+    String filament = '',
+  }) {
+    assert(temp >= 45 && temp <= 85, 'dry temp out of range: $temp');
+    assert(duration >= 1 && duration <= 24, 'dry duration out of range');
+    return _post(Endpoints.dryingStart(printerId), query: {
+      'ams_id': amsId,
+      'temp': temp,
+      'duration': duration,
+      if (filament.isNotEmpty) 'filament': filament,
+    });
+  }
+
+  /// Stop AMS drying for one unit.
+  Future<void> stopDrying(int printerId, {required int amsId}) =>
+      _post(Endpoints.dryingStop(printerId), query: {'ams_id': amsId});
 
   Future<void> _post(String path, {Map<String, dynamic>? query}) async {
     try {

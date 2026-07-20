@@ -293,6 +293,7 @@ class _DetailsPanel extends ConsumerWidget {
           assigned: assigned,
           printerId: printerId,
           printerName: printerName,
+          supportsDrying: status.supportsDrying ?? false,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -356,6 +357,7 @@ class _AmsSection extends StatelessWidget {
     required this.assigned,
     required this.printerId,
     required this.printerName,
+    required this.supportsDrying,
   });
 
   final AmsUnit unit;
@@ -366,6 +368,7 @@ class _AmsSection extends StatelessWidget {
   final AssignedSpools assigned;
   final int printerId;
   final String? printerName;
+  final bool supportsDrying;
 
   @override
   Widget build(BuildContext context) {
@@ -425,6 +428,17 @@ class _AmsSection extends StatelessWidget {
             for (var i = 0; i < metaParts.length; i++) ...[
               if (i > 0) const SizedBox(width: 12),
               metaParts[i],
+            ],
+            // Only AMS 2 Pro / AMS-HT modules can dry — hide the control on
+            // regular AMS even when the printer supports drying.
+            if (supportsDrying && unit.canDry) ...[
+              const SizedBox(width: 12),
+              _AmsDryControl(
+                printerId: printerId,
+                amsId: unit.id ?? unitIndex,
+                amsLabel: l10n.amsUnit(unitIndex + 1),
+                unit: unit,
+              ),
             ],
           ],
         ),
@@ -669,6 +683,433 @@ class _AmsMeta extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// AMS header dry control: a compact chip. While drying it shows the remaining
+/// time in the accent-orange heat colour; idle it reads "Dry". Tapping opens
+/// [_DryingSheet]. Hidden when control is forbidden.
+class _AmsDryControl extends ConsumerWidget {
+  const _AmsDryControl({
+    required this.printerId,
+    required this.amsId,
+    required this.amsLabel,
+    required this.unit,
+  });
+
+  final int printerId;
+  final int amsId;
+  final String amsLabel;
+  final AmsUnit unit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    if (forbidden) return const SizedBox.shrink();
+
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final drying = unit.isDrying;
+    final remain = unit.dryTime ?? 0;
+    final color = drying ? t.accentOrange : t.textTertiary;
+    final label =
+        drying && remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDry;
+
+    return InkWell(
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _DryingSheet(
+          printerId: printerId,
+          amsId: amsId,
+          amsLabel: amsLabel,
+          unit: unit,
+        ),
+      ),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              drying ? Icons.local_fire_department : Icons.wb_sunny_outlined,
+              size: 13,
+              color: color,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet to start/stop AMS drying for one unit. While a cycle runs it
+/// shows the remaining time and a Stop button; idle it offers temperature
+/// (45–85 °C) and duration (1–24 h) pickers and a Start button. Filament is
+/// backfilled server-side from the loaded tray.
+class _DryingSheet extends ConsumerStatefulWidget {
+  const _DryingSheet({
+    required this.printerId,
+    required this.amsId,
+    required this.amsLabel,
+    required this.unit,
+  });
+
+  final int printerId;
+  final int amsId;
+  final String amsLabel;
+  final AmsUnit unit;
+
+  @override
+  ConsumerState<_DryingSheet> createState() => _DryingSheetState();
+}
+
+/// Recommended drying temp/duration per filament, mirroring the bambuddy
+/// frontend's DRYING_PRESETS. `n3*` = regular AMS module, `ht*` = AMS-HT
+/// (high-temp) module; picked via [AmsUnit.isAmsHt].
+typedef _DryPreset = ({int temp, int htTemp, int hours, int htHours});
+const _dryingPresets = <String, _DryPreset>{
+  'PLA': (temp: 45, htTemp: 45, hours: 12, htHours: 12),
+  'PETG': (temp: 65, htTemp: 65, hours: 12, htHours: 12),
+  'TPU': (temp: 65, htTemp: 75, hours: 12, htHours: 18),
+  'ABS': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
+  'ASA': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
+  'PA': (temp: 65, htTemp: 85, hours: 12, htHours: 12),
+  'PC': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
+  'PVA': (temp: 65, htTemp: 85, hours: 12, htHours: 18),
+};
+
+class _DryingSheetState extends ConsumerState<_DryingSheet> {
+  static const _durationPresets = [4, 6, 8, 12];
+
+  String _filament = 'PLA';
+  int _temp = 55;
+  int _hours = 4;
+  bool _busy = false;
+
+  /// AMS-HT tops out at 85 °C; AMS 2 Pro at 65 °C.
+  bool get _isHt => widget.unit.isHtDryModule;
+  int get _maxTemp => _isHt ? 85 : 65;
+  List<int> get _tempPresets => _isHt ? const [45, 65, 75, 85] : const [45, 55, 65];
+
+  @override
+  void initState() {
+    super.initState();
+    _applyFilament(_filament); // seed temp/duration from the default filament
+  }
+
+  /// Selecting a filament sets the recommended temp + duration for this AMS
+  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the sliders.
+  void _applyFilament(String filament) {
+    final p = _dryingPresets[filament];
+    setState(() {
+      _filament = filament;
+      if (p != null) {
+        _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
+        _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
+      }
+    });
+  }
+
+  Future<void> _run(Future<ControlResult> Function() action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final result = await action();
+    if (!mounted) return;
+    navigator.pop();
+    final msg = switch (result) {
+      ControlResult.ok => null,
+      ControlResult.forbidden => l10n.ctrlForbidden,
+      ControlResult.error => l10n.ctrlFailed,
+    };
+    if (msg != null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final drying = widget.unit.isDrying;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: t.overlaySurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border(top: BorderSide(color: t.subCardBorder)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: t.textTertiary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        l10n.ctrlDry,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        widget.amsLabel,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (drying)
+                    ..._runningBody(t, l10n)
+                  else
+                    ..._setupBody(t, l10n),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _runningBody(DashTokens t, AppLocalizations l10n) {
+    final remain = widget.unit.dryTime ?? 0;
+    return [
+      Center(
+        child: Column(
+          children: [
+            Icon(Icons.local_fire_department, size: 32, color: t.accentOrange),
+            const SizedBox(height: 8),
+            Text(
+              remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDrying,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+                color: t.accentOrange,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      _SheetButton(
+        label: l10n.ctrlStop,
+        busy: _busy,
+        onTap: _busy
+            ? null
+            : () => _run(() => ref
+                .read(controlsProvider.notifier)
+                .stopDrying(widget.printerId, amsId: widget.amsId)),
+      ),
+    ];
+  }
+
+  List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
+        DropdownMenu<String>(
+          initialSelection: _filament,
+          expandedInsets: EdgeInsets.zero,
+          menuHeight: 280,
+          requestFocusOnTap: false,
+          label: Text(l10n.ctrlDryFilament),
+          textStyle: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: t.textPrimary,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: t.subCard,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.subCardBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.subCardBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.accentGreen),
+            ),
+          ),
+          onSelected: (v) {
+            if (v != null) _applyFilament(v);
+          },
+          dropdownMenuEntries: [
+            for (final f in _dryingPresets.keys)
+              DropdownMenuEntry(value: f, label: f),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _DrySlider(
+          label: l10n.ctrlDryTemp,
+          valueText: '$_temp°',
+          value: _temp,
+          min: 45,
+          max: _maxTemp,
+          presets: _tempPresets,
+          presetLabel: (p) => '$p°',
+          onChanged: (v) => setState(() => _temp = v),
+        ),
+        const SizedBox(height: 16),
+        _DrySlider(
+          label: l10n.ctrlDryDuration,
+          valueText: l10n.ctrlDryHours(_hours),
+          value: _hours,
+          min: 1,
+          max: 24,
+          presets: _durationPresets,
+          presetLabel: (p) => l10n.ctrlDryHours(p),
+          onChanged: (v) => setState(() => _hours = v),
+        ),
+        const SizedBox(height: 20),
+        _SheetButton(
+          label: l10n.ctrlDryStart,
+          filled: true,
+          busy: _busy,
+          onTap: _busy
+              ? null
+              : () => _run(() => ref.read(controlsProvider.notifier).startDrying(
+                    widget.printerId,
+                    amsId: widget.amsId,
+                    temp: _temp,
+                    duration: _hours,
+                    filament: _filament,
+                  )),
+        ),
+      ];
+}
+
+/// Labelled value + slider (with −/+ steppers and presets) used twice in the
+/// drying sheet (temperature and duration).
+class _DrySlider extends StatelessWidget {
+  const _DrySlider({
+    required this.label,
+    required this.valueText,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.presets,
+    required this.presetLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String valueText;
+  final int value;
+  final int min;
+  final int max;
+  final List<int> presets;
+  final String Function(int) presetLabel;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    int clamp(int v) => v.clamp(min, max);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.textSecondary,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              valueText,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            _StepButton(icon: Icons.remove, onTap: () => onChanged(clamp(value - 1))),
+            Expanded(
+              child: Slider(
+                value: value.clamp(min, max).toDouble(),
+                min: min.toDouble(),
+                max: max.toDouble(),
+                activeColor: t.accentOrange,
+                onChanged: (v) => onChanged(v.round()),
+              ),
+            ),
+            _StepButton(icon: Icons.add, onTap: () => onChanged(clamp(value + 1))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final p in presets)
+              _PresetChip(
+                label: presetLabel(p),
+                selected: value == p,
+                onTap: () => onChanged(p),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
