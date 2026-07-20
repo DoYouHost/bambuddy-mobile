@@ -114,10 +114,38 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 
   ControlsNotifier get _notifier => ref.read(controlsProvider.notifier);
 
+  /// Fire the full auto-home (`G28`) and confirm with a toast. A manual home has
+  /// no reliable "done" signal — bambuddy's own web UI is fire-and-forget too, so
+  /// we don't lock the button waiting on completion (see the release-notes note).
+  Future<void> _home() async {
+    if (_busy) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _busy = true;
+      _spin = 'home';
+    });
+    final result = await _notifier.homeAxes(widget.printerId);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _spin = null;
+    });
+    final msg = switch (result) {
+      ControlResult.ok => l10n.ctrlMoveHomeStarted,
+      ControlResult.forbidden => l10n.ctrlForbidden,
+      ControlResult.error => l10n.ctrlFailed,
+    };
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
+    final locked = _busy;
 
     return SafeArea(
       top: false,
@@ -162,10 +190,8 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                         icon: Icons.home_outlined,
                         label: l10n.ctrlMoveHome,
                         busy: _spin == 'home',
-                        enabled: !_busy,
-                        onTap: () => _send('home', () => _notifier.homeAxes(
-                              widget.printerId,
-                            )),
+                        enabled: !locked,
+                        onTap: _home,
                       ),
                     ],
                   ),
@@ -177,9 +203,9 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     onChanged: (v) => setState(() => _step = v),
                   ),
                   const SizedBox(height: 18),
-                  _buildXyPad(t),
+                  _buildXyPad(t, locked),
                   const SizedBox(height: 20),
-                  _buildZRow(t, l10n),
+                  _buildZRow(t, l10n, locked),
                   const SizedBox(height: 20),
                   Divider(color: t.subCardBorder, height: 1),
                   const SizedBox(height: 20),
@@ -190,7 +216,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     onChanged: (v) => setState(() => _length = v),
                   ),
                   const SizedBox(height: 14),
-                  _buildExtruderRow(t, l10n),
+                  _buildExtruderRow(t, l10n, locked),
                 ],
               ),
             ),
@@ -201,7 +227,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
   }
 
   /// Directional X/Y pad. The center cell shows the active step for feedback.
-  Widget _buildXyPad(DashTokens t) {
+  Widget _buildXyPad(DashTokens t, bool locked) {
     Widget spacer() => const SizedBox(width: 56, height: 56);
 
     Widget center() => SizedBox(
@@ -230,7 +256,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             _JogButton(
               icon: Icons.keyboard_arrow_up,
               busy: _spin == 'y+',
-              enabled: !_busy,
+              enabled: !locked,
               onTap: () => _send(
                   'y+', () => _notifier.xyJog(widget.printerId, y: _step.toDouble())),
             ),
@@ -244,7 +270,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             _JogButton(
               icon: Icons.keyboard_arrow_left,
               busy: _spin == 'x-',
-              enabled: !_busy,
+              enabled: !locked,
               onTap: () => _send('x-',
                   () => _notifier.xyJog(widget.printerId, x: -_step.toDouble())),
             ),
@@ -254,7 +280,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             _JogButton(
               icon: Icons.keyboard_arrow_right,
               busy: _spin == 'x+',
-              enabled: !_busy,
+              enabled: !locked,
               onTap: () => _send('x+',
                   () => _notifier.xyJog(widget.printerId, x: _step.toDouble())),
             ),
@@ -268,7 +294,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             _JogButton(
               icon: Icons.keyboard_arrow_down,
               busy: _spin == 'y-',
-              enabled: !_busy,
+              enabled: !locked,
               onTap: () => _send('y-',
                   () => _notifier.xyJog(widget.printerId, y: -_step.toDouble())),
             ),
@@ -281,7 +307,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 
   /// Z (bed-gap) up/down pair. "Up" decreases the gap → negative distance; the
   /// server flips the sign per model so the direction stays intuitive.
-  Widget _buildZRow(DashTokens t, AppLocalizations l10n) {
+  Widget _buildZRow(DashTokens t, AppLocalizations l10n, bool locked) {
     return Row(
       children: [
         Icon(Icons.height, size: 16, color: t.textSecondary),
@@ -300,7 +326,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           icon: Icons.keyboard_arrow_up,
           label: l10n.ctrlMoveZUp,
           busy: _spin == 'z+',
-          enabled: !_busy,
+          enabled: !locked,
           onTap: () => _send('z+',
               () => _notifier.bedJog(widget.printerId, -_step.toDouble())),
         ),
@@ -309,7 +335,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           icon: Icons.keyboard_arrow_down,
           label: l10n.ctrlMoveZDown,
           busy: _spin == 'z-',
-          enabled: !_busy,
+          enabled: !locked,
           onTap: () => _send('z-',
               () => _notifier.bedJog(widget.printerId, _step.toDouble())),
         ),
@@ -317,7 +343,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     );
   }
 
-  Widget _buildExtruderRow(DashTokens t, AppLocalizations l10n) {
+  Widget _buildExtruderRow(DashTokens t, AppLocalizations l10n, bool locked) {
     return Row(
       children: [
         Expanded(
@@ -325,7 +351,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             icon: Icons.arrow_upward,
             label: l10n.ctrlMoveRetract,
             busy: _spin == 'retract',
-            enabled: !_busy,
+            enabled: !locked,
             onTap: () => _send('retract',
                 () => _notifier.extruderJog(widget.printerId, -_length.toDouble())),
           ),
@@ -336,7 +362,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
             icon: Icons.arrow_downward,
             label: l10n.ctrlMoveExtrude,
             busy: _spin == 'extrude',
-            enabled: !_busy,
+            enabled: !locked,
             onTap: () => _send('extrude',
                 () => _notifier.extruderJog(widget.printerId, _length.toDouble())),
           ),

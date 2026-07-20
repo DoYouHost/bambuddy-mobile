@@ -116,6 +116,7 @@
   "@ctrlDryHours": { "placeholders": { "h": { "type": "int" } } },
   "ctrlMove": "Ruch",
   "ctrlMoveHome": "Bazuj osie",
+  "ctrlMoveHomeStarted": "Rozpoczęto bazowanie",
   "ctrlMoveStep": "Krok",
   "ctrlMoveZ": "Z (szczelina)",
   "ctrlMoveZUp": "W górę",

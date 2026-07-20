@@ -746,6 +746,12 @@ abstract class AppLocalizations {
   /// **'Home all'**
   String get ctrlMoveHome;
 
+  /// No description provided for @ctrlMoveHomeStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Homing started'**
+  String get ctrlMoveHomeStarted;
+
   /// No description provided for @ctrlMoveStep.
   ///
   /// In en, this message translates to:

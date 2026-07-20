@@ -357,6 +357,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlMoveHome => 'Home all';
 
   @override
+  String get ctrlMoveHomeStarted => 'Homing started';
+
+  @override
   String get ctrlMoveStep => 'Step';
 
   @override

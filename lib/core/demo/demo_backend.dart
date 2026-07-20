@@ -251,7 +251,7 @@ class DemoBackend {
             return _ok(const {'status': 'drying_stopped'});
           }
         }
-        // Movement jogs are momentary — no persistent demo state to update.
+        // Movement jogs + homing are momentary — no persistent demo state.
         if (at(2, 'bed-jog') ||
             at(2, 'xy-jog') ||
             at(2, 'extruder-jog') ||

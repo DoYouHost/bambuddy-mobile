@@ -365,6 +365,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlMoveHome => 'Bazuj osie';
 
   @override
+  String get ctrlMoveHomeStarted => 'Rozpoczęto bazowanie';
+
+  @override
   String get ctrlMoveStep => 'Krok';
 
   @override

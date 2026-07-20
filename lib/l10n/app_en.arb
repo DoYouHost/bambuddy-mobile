@@ -126,6 +126,7 @@
   "@ctrlDryHours": { "placeholders": { "h": { "type": "int" } } },
   "ctrlMove": "Move",
   "ctrlMoveHome": "Home all",
+  "ctrlMoveHomeStarted": "Homing started",
   "ctrlMoveStep": "Step",
   "ctrlMoveZ": "Z (bed gap)",
   "ctrlMoveZUp": "Up",
