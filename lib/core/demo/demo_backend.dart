@@ -251,6 +251,13 @@ class DemoBackend {
             return _ok(const {'status': 'drying_stopped'});
           }
         }
+        // Movement jogs are momentary — no persistent demo state to update.
+        if (at(2, 'bed-jog') ||
+            at(2, 'xy-jog') ||
+            at(2, 'extruder-jog') ||
+            at(2, 'home-axes')) {
+          return _ok(const {'success': true});
+        }
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') return _ok(_printerFiles(q['path'] ?? '/'));

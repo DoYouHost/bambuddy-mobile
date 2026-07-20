@@ -351,6 +351,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ctrlMove => 'Move';
+
+  @override
+  String get ctrlMoveHome => 'Home all';
+
+  @override
+  String get ctrlMoveStep => 'Step';
+
+  @override
+  String get ctrlMoveZ => 'Z (bed gap)';
+
+  @override
+  String get ctrlMoveZUp => 'Up';
+
+  @override
+  String get ctrlMoveZDown => 'Down';
+
+  @override
+  String get ctrlMoveExtruder => 'Extruder';
+
+  @override
+  String get ctrlMoveExtrude => 'Extrude';
+
+  @override
+  String get ctrlMoveRetract => 'Retract';
+
+  @override
+  String get ctrlMoveLength => 'Length';
+
+  @override
+  String ctrlMoveMm(int d) {
+    return '$d mm';
+  }
+
+  @override
   String get ctrlPause => 'Pause';
 
   @override

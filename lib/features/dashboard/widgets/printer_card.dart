@@ -35,6 +35,7 @@ part 'printer_card_details.dart';
 part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
+part 'printer_card_movement.dart';
 
 class PrinterCard extends StatefulWidget {
   const PrinterCard({super.key, required this.item});
@@ -151,11 +152,14 @@ class _PrinterCardState extends State<PrinterCard> {
         (status.coolingFanSpeed != null ||
             status.bigFan1Speed != null ||
             status.bigFan2Speed != null);
-    // The "Details" toggle now governs fans, the speed selector and the
-    // AMS/spool/connectivity section — so it appears whenever any of those has
-    // something to show (speed is only actionable while printing).
+    // Manual movement (jog/home) is offered while idle — it must not run during
+    // a print (raw G-code would corrupt it).
+    final canMove = status != null && connected && !printing;
+    // The "Details" toggle now governs fans, the speed selector, movement and
+    // the AMS/spool/connectivity section — so it appears whenever any of those
+    // has something to show (speed is only actionable while printing).
     final showDetailsToggle =
-        status != null && (hasDetails || hasFans || printing);
+        status != null && (hasDetails || hasFans || printing || canMove);
     final hmsErrors = _displayableHmsErrors(status);
 
     return _CardShell(
@@ -257,6 +261,7 @@ class _PrinterCardState extends State<PrinterCard> {
                             printerId: printerId,
                             status: status,
                           ),
+                        if (canMove) _MovementTile(printerId: printerId),
                         if (hasFans)
                           _FansGrid(status: status, printerId: printerId),
                         if (hasDetails) _DetailsPanel(status: status),

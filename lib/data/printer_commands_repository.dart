@@ -103,6 +103,35 @@ class PrinterCommandsRepository {
   Future<void> stopDrying(int printerId, {required int amsId}) =>
       _post(Endpoints.dryingStop(printerId), query: {'ams_id': amsId});
 
+  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
+  /// [force] bypasses soft endstops (use when Z is not homed). The server
+  /// inverts the Z sign on A1 bed-slingers so "up" is consistent across models.
+  Future<void> bedJog(int printerId, double distance, {bool force = false}) {
+    assert(distance != 0 && distance.abs() <= 200, 'bed jog out of range');
+    return _post(Endpoints.bedJog(printerId),
+        query: {'distance': distance, 'force': force});
+  }
+
+  /// Relative toolhead X/Y jog (mm).
+  Future<void> xyJog(int printerId, {double x = 0, double y = 0}) {
+    assert((x != 0 || y != 0) && x.abs() <= 200 && y.abs() <= 200,
+        'xy jog out of range');
+    return _post(Endpoints.xyJog(printerId), query: {'x': x, 'y': y});
+  }
+
+  /// Relative extrusion (mm). Positive extrudes, negative retracts. Firmware
+  /// refuses extrusion below the min-extrude temperature, so a cold call is
+  /// rejected at the printer.
+  Future<void> extruderJog(int printerId, double distance) {
+    assert(distance != 0 && distance.abs() <= 100, 'extruder jog out of range');
+    return _post(Endpoints.extruderJog(printerId),
+        query: {'distance': distance});
+  }
+
+  /// Run the printer's full auto-home sequence (`G28`).
+  Future<void> homeAxes(int printerId) =>
+      _post(Endpoints.homeAxes(printerId), query: {'axes': 'all'});
+
   Future<void> _post(String path, {Map<String, dynamic>? query}) async {
     try {
       await _dio.post<dynamic>(path, queryParameters: query);

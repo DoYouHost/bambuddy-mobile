@@ -734,6 +734,72 @@ abstract class AppLocalizations {
   /// **'{h} h'**
   String ctrlDryHours(int h);
 
+  /// No description provided for @ctrlMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get ctrlMove;
+
+  /// No description provided for @ctrlMoveHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home all'**
+  String get ctrlMoveHome;
+
+  /// No description provided for @ctrlMoveStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Step'**
+  String get ctrlMoveStep;
+
+  /// No description provided for @ctrlMoveZ.
+  ///
+  /// In en, this message translates to:
+  /// **'Z (bed gap)'**
+  String get ctrlMoveZ;
+
+  /// No description provided for @ctrlMoveZUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Up'**
+  String get ctrlMoveZUp;
+
+  /// No description provided for @ctrlMoveZDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Down'**
+  String get ctrlMoveZDown;
+
+  /// No description provided for @ctrlMoveExtruder.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruder'**
+  String get ctrlMoveExtruder;
+
+  /// No description provided for @ctrlMoveExtrude.
+  ///
+  /// In en, this message translates to:
+  /// **'Extrude'**
+  String get ctrlMoveExtrude;
+
+  /// No description provided for @ctrlMoveRetract.
+  ///
+  /// In en, this message translates to:
+  /// **'Retract'**
+  String get ctrlMoveRetract;
+
+  /// No description provided for @ctrlMoveLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get ctrlMoveLength;
+
+  /// No description provided for @ctrlMoveMm.
+  ///
+  /// In en, this message translates to:
+  /// **'{d} mm'**
+  String ctrlMoveMm(int d);
+
   /// No description provided for @ctrlPause.
   ///
   /// In en, this message translates to:

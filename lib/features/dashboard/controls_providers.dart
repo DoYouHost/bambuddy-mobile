@@ -19,6 +19,7 @@ enum ControlAction {
   fan,
   dry,
   extruder,
+  move,
 }
 
 /// Command result returned to the widget that initiated the action — it
@@ -301,6 +302,27 @@ class ControlsNotifier extends Notifier<ControlsState> {
         ControlAction.extruder,
         () => _repo.selectExtruder(id, extruder),
       );
+
+  /// Manual movement jogs + homing. No optimistic overlay — these are momentary
+  /// actions with no persistent status field to preview. All share
+  /// [ControlAction.move], so the movement sheet locks while one is in flight.
+
+  /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
+  Future<ControlResult> bedJog(int id, double distance, {bool force = false}) =>
+      _run(id, ControlAction.move,
+          () => _repo.bedJog(id, distance, force: force));
+
+  /// Relative toolhead X/Y jog (mm).
+  Future<ControlResult> xyJog(int id, {double x = 0, double y = 0}) =>
+      _run(id, ControlAction.move, () => _repo.xyJog(id, x: x, y: y));
+
+  /// Relative extrusion (mm). Positive extrudes, negative retracts.
+  Future<ControlResult> extruderJog(int id, double distance) =>
+      _run(id, ControlAction.move, () => _repo.extruderJog(id, distance));
+
+  /// Full auto-home sequence (`G28`).
+  Future<ControlResult> homeAxes(int id) =>
+      _run(id, ControlAction.move, () => _repo.homeAxes(id));
 
   /// Runs a command with optimistic apply + rollback-on-error. [apply] overlays
   /// the optimistic override; [rollback] restores the touched field from

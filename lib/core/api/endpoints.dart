@@ -166,6 +166,30 @@ abstract final class Endpoints {
   static String dryingStop(int printerId) =>
       '$apiPrefix/printers/$printerId/drying/stop';
 
+  // --- Movement / jog (manual control; idle only) ---
+  // All POST, empty body, params in query. Relative moves; the server maps the
+  // Z sign per model (A1 bed-slingers are inverted). Require `can_control_printer`.
+
+  /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200;
+  /// negative = decrease gap / "up"), `force` (bypass soft endstops when Z is
+  /// not homed). Server flips the Z sign on A1 bed-slingers so "up" stays "up".
+  static String bedJog(int printerId) =>
+      '$apiPrefix/printers/$printerId/bed-jog';
+
+  /// Relative toolhead X/Y jog. Query: `x`, `y` (signed mm, |·|≤200 each).
+  static String xyJog(int printerId) =>
+      '$apiPrefix/printers/$printerId/xy-jog';
+
+  /// Relative extrusion. Query: `distance` (signed mm, |d|≤100; +extrude,
+  /// −retract). Firmware refuses extrusion below the min-extrude temperature.
+  static String extruderJog(int printerId) =>
+      '$apiPrefix/printers/$printerId/extruder-jog';
+
+  /// Full auto-home (bare `G28`). Query `axes` is accepted but ignored — the
+  /// server always runs the safe park → home-XY → home-Z sequence.
+  static String homeAxes(int printerId) =>
+      '$apiPrefix/printers/$printerId/home-axes';
+
   /// Printable objects for the current print (`GET`). Query `reload=true`
   /// re-reads them from the 3MF (useful after a restart). Returns
   /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,

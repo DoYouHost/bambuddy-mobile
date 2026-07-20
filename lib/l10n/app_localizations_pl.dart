@@ -359,6 +359,41 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get ctrlMove => 'Ruch';
+
+  @override
+  String get ctrlMoveHome => 'Bazuj osie';
+
+  @override
+  String get ctrlMoveStep => 'Krok';
+
+  @override
+  String get ctrlMoveZ => 'Z (szczelina)';
+
+  @override
+  String get ctrlMoveZUp => 'W górę';
+
+  @override
+  String get ctrlMoveZDown => 'W dół';
+
+  @override
+  String get ctrlMoveExtruder => 'Ekstruder';
+
+  @override
+  String get ctrlMoveExtrude => 'Wytłocz';
+
+  @override
+  String get ctrlMoveRetract => 'Wycofaj';
+
+  @override
+  String get ctrlMoveLength => 'Długość';
+
+  @override
+  String ctrlMoveMm(int d) {
+    return '$d mm';
+  }
+
+  @override
   String get ctrlPause => 'Pauza';
 
   @override
