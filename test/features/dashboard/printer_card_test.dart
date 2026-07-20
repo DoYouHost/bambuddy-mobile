@@ -314,7 +314,8 @@ void main() {
       expect(find.text('DRZWICZKI ZAMKNIĘTE'), findsOneWidget);
     });
 
-    testWidgets('brak danych AMS → brak przełącznika szczegółów',
+    testWidgets(
+        'brak danych AMS, ale bezczynna drukarka → przełącznik szczegółów z ruchem',
         (tester) async {
       final item = PrinterWithStatus(
         printer: const Printer(id: 9, name: 'A1'),
@@ -323,7 +324,17 @@ void main() {
 
       await tester.pumpWidget(_cardWithProviders(item));
 
-      expect(find.text('Szczegóły'), findsNothing);
+      // Bezczynna drukarka udostępnia ruch osi, więc przełącznik „Szczegóły"
+      // pojawia się nawet bez danych AMS/wentylatorów.
+      expect(find.text('Szczegóły'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // Rozwinięte: kafelek ruchu osi.
+      expect(find.text('Ruch'), findsOneWidget);
     });
   });
 

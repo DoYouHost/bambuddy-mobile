@@ -43,6 +43,44 @@ class _FakeCommands implements PrinterCommandsRepository {
       _do('light:$id:$on');
   @override
   Future<void> setPrintSpeed(int id, int mode) => _do('speed:$id:$mode');
+  @override
+  Future<void> setNozzleTemperature(int id, int target, {int nozzle = 0}) =>
+      _do('nozzle:$id:$target:$nozzle');
+  @override
+  Future<void> setBedTemperature(int id, int target) => _do('bed:$id:$target');
+  @override
+  Future<void> setChamberTemperature(int id, int target) =>
+      _do('chamber:$id:$target');
+  @override
+  Future<void> setAirductMode(int id, {required bool heating}) =>
+      _do('airduct:$id:$heating');
+  @override
+  Future<void> setFanSpeed(int id, String fan, int speed) =>
+      _do('fan:$id:$fan:$speed');
+  @override
+  Future<void> selectExtruder(int id, int extruder) =>
+      _do('extruder:$id:$extruder');
+  @override
+  Future<void> startDrying(int id,
+          {required int amsId,
+          required int temp,
+          required int duration,
+          String filament = ''}) =>
+      _do('dryStart:$id:$amsId:$temp:$duration:$filament');
+  @override
+  Future<void> stopDrying(int id, {required int amsId}) =>
+      _do('dryStop:$id:$amsId');
+  @override
+  Future<void> bedJog(int id, double distance, {bool force = false}) =>
+      _do('bedJog:$id:$distance:$force');
+  @override
+  Future<void> xyJog(int id, {double x = 0, double y = 0}) =>
+      _do('xyJog:$id:$x:$y');
+  @override
+  Future<void> extruderJog(int id, double distance) =>
+      _do('extruderJog:$id:$distance');
+  @override
+  Future<void> homeAxes(int id) => _do('homeAxes:$id');
 }
 
 ProviderContainer _container(_FakeCommands fake) {
