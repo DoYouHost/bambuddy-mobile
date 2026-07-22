@@ -30,6 +30,9 @@ class Archive {
     this.nozzleDiameter,
     this.slicedForModel,
     this.quantity,
+    this.fileSize,
+    this.duplicateCount = 0,
+    this.duplicateSequence = 0,
   });
 
   factory Archive.fromJson(Map<String, dynamic> json) =>
@@ -94,6 +97,66 @@ class Archive {
   /// Print quantity.
   final int? quantity;
 
+  /// File size in bytes (for size sorting).
+  final int? fileSize;
+
+  /// How many other archives duplicate this one (server-computed). 0 = unique.
+  @JsonKey(defaultValue: 0)
+  final int duplicateCount;
+
+  /// Position of this archive within its duplicate group, oldest first.
+  /// 0 marks the original (kept when "hide duplicates" is on); >0 are copies.
+  @JsonKey(defaultValue: 0)
+  final int duplicateSequence;
+
   /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
+
+  /// Copy with a flipped/overridden favorite flag — for optimistic UI updates
+  /// (the only field the app mutates locally). Everything else is carried over.
+  Archive withFavorite(bool value) => Archive(
+    id: id,
+    filename: filename,
+    status: status,
+    printerId: printerId,
+    printName: printName,
+    thumbnailPath: thumbnailPath,
+    printTimeSeconds: printTimeSeconds,
+    filamentUsedGrams: filamentUsedGrams,
+    filamentType: filamentType,
+    filamentColor: filamentColor,
+    cost: cost,
+    isFavorite: value,
+    createdAt: createdAt,
+    designer: designer,
+    makerworldUrl: makerworldUrl,
+    totalLayers: totalLayers,
+    layerHeight: layerHeight,
+    nozzleDiameter: nozzleDiameter,
+    slicedForModel: slicedForModel,
+    quantity: quantity,
+    fileSize: fileSize,
+    duplicateCount: duplicateCount,
+    duplicateSequence: duplicateSequence,
+  );
+
+  /// Whether this archive is a sliced/printable file rather than a source
+  /// project. Mirrors bambuddy's `isSlicedFile`: a `.gcode`/`.gcode.*` name, or
+  /// any file carrying sliced metadata (layer count / print-time estimate).
+  bool get isSliced {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.gcode') || lower.contains('.gcode.')) return true;
+    return (totalLayers ?? 0) > 0 || (printTimeSeconds ?? 0) > 0;
+  }
+
+  /// Filament colors as a list of hex tokens (a print can use several).
+  /// Empty when no color is recorded. Values are kept verbatim (may include a
+  /// leading `#`); callers normalize as needed.
+  List<String> get filamentColors =>
+      filamentColor
+          ?.split(',')
+          .map((c) => c.trim())
+          .where((c) => c.isNotEmpty)
+          .toList() ??
+      const [];
 }

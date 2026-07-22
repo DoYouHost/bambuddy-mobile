@@ -240,6 +240,10 @@ abstract final class Endpoints {
   /// query `purge_stats=true` hard-deletes, removing the print from statistics.
   static String archive(int archiveId) => '$apiPrefix/archives/$archiveId';
 
+  /// Toggle an archive's favorite flag (`POST`, no body) → updated archive.
+  static String archiveFavorite(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/favorite';
+
   /// Bulk-delete prints older than a threshold (`POST`, body
   /// `{older_than_days, purge_stats}`) → `{deleted, purge_stats}`. Soft by
   /// default; `purge_stats=true` also drops them from /stats (irreversible).

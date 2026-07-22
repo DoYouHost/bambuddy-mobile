@@ -60,6 +60,15 @@ class ArchiveRepository {
     return parseJsonList(body, Archive.fromJson);
   }
 
+  /// POST /archives/{id}/favorite — toggle the favorite flag server-side and
+  /// return the updated archive (defensively parsed).
+  Future<Archive> toggleFavorite(int archiveId) => guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.archiveFavorite(archiveId),
+        );
+        return Archive.fromJson(res.data ?? const {});
+      });
+
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
   /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
   /// from aggregate statistics.

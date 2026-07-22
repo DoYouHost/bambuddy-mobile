@@ -1130,6 +1130,162 @@ abstract class AppLocalizations {
   /// **'Couldn\'t search for \"{query}\". Try a different term.'**
   String archiveSearchFailed(String query);
 
+  /// No description provided for @archiveNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No prints match your filters'**
+  String get archiveNoMatches;
+
+  /// No description provided for @archiveFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get archiveFilters;
+
+  /// No description provided for @archiveFiltersClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get archiveFiltersClear;
+
+  /// No description provided for @archiveSortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get archiveSortLabel;
+
+  /// No description provided for @archiveSortDateDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get archiveSortDateDesc;
+
+  /// No description provided for @archiveSortDateAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get archiveSortDateAsc;
+
+  /// No description provided for @archiveSortNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name A–Z'**
+  String get archiveSortNameAsc;
+
+  /// No description provided for @archiveSortNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Z–A'**
+  String get archiveSortNameDesc;
+
+  /// No description provided for @archiveSortSizeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest first'**
+  String get archiveSortSizeDesc;
+
+  /// No description provided for @archiveSortSizeAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Smallest first'**
+  String get archiveSortSizeAsc;
+
+  /// No description provided for @archiveFilterFileType.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get archiveFilterFileType;
+
+  /// No description provided for @archiveFileTypeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All files'**
+  String get archiveFileTypeAll;
+
+  /// No description provided for @archiveFileTypeGcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Sliced'**
+  String get archiveFileTypeGcode;
+
+  /// No description provided for @archiveFileTypeSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get archiveFileTypeSource;
+
+  /// No description provided for @archiveFilterFlags.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get archiveFilterFlags;
+
+  /// No description provided for @archiveFilterFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get archiveFilterFavorites;
+
+  /// No description provided for @archiveFilterHideFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide failed'**
+  String get archiveFilterHideFailed;
+
+  /// No description provided for @archiveFilterHideDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide duplicates'**
+  String get archiveFilterHideDuplicates;
+
+  /// No description provided for @archiveFilterPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get archiveFilterPrinter;
+
+  /// No description provided for @archiveFilterMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get archiveFilterMaterial;
+
+  /// No description provided for @archiveFilterColors.
+  ///
+  /// In en, this message translates to:
+  /// **'Colors'**
+  String get archiveFilterColors;
+
+  /// No description provided for @archiveColorModeAny.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get archiveColorModeAny;
+
+  /// No description provided for @archiveColorModeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get archiveColorModeAll;
+
+  /// No description provided for @archiveFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get archiveFavorite;
+
+  /// No description provided for @archiveUnfavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get archiveUnfavorite;
+
+  /// No description provided for @archiveFavoriteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update favorite'**
+  String get archiveFavoriteFailed;
+
   /// No description provided for @archiveReprint.
   ///
   /// In en, this message translates to:

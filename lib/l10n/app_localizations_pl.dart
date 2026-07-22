@@ -578,6 +578,84 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get archiveNoMatches => 'Żaden wydruk nie pasuje do filtrów';
+
+  @override
+  String get archiveFilters => 'Filtry';
+
+  @override
+  String get archiveFiltersClear => 'Wyczyść filtry';
+
+  @override
+  String get archiveSortLabel => 'Sortuj wg';
+
+  @override
+  String get archiveSortDateDesc => 'Najnowsze';
+
+  @override
+  String get archiveSortDateAsc => 'Najstarsze';
+
+  @override
+  String get archiveSortNameAsc => 'Nazwa A–Z';
+
+  @override
+  String get archiveSortNameDesc => 'Nazwa Z–A';
+
+  @override
+  String get archiveSortSizeDesc => 'Największe';
+
+  @override
+  String get archiveSortSizeAsc => 'Najmniejsze';
+
+  @override
+  String get archiveFilterFileType => 'Pliki';
+
+  @override
+  String get archiveFileTypeAll => 'Wszystkie';
+
+  @override
+  String get archiveFileTypeGcode => 'Pocięte';
+
+  @override
+  String get archiveFileTypeSource => 'Źródłowe';
+
+  @override
+  String get archiveFilterFlags => 'Pokaż';
+
+  @override
+  String get archiveFilterFavorites => 'Ulubione';
+
+  @override
+  String get archiveFilterHideFailed => 'Ukryj nieudane';
+
+  @override
+  String get archiveFilterHideDuplicates => 'Ukryj duplikaty';
+
+  @override
+  String get archiveFilterPrinter => 'Drukarka';
+
+  @override
+  String get archiveFilterMaterial => 'Materiał';
+
+  @override
+  String get archiveFilterColors => 'Kolory';
+
+  @override
+  String get archiveColorModeAny => 'Dowolny';
+
+  @override
+  String get archiveColorModeAll => 'Wszystkie';
+
+  @override
+  String get archiveFavorite => 'Dodaj do ulubionych';
+
+  @override
+  String get archiveUnfavorite => 'Usuń z ulubionych';
+
+  @override
+  String get archiveFavoriteFailed => 'Nie udało się zmienić ulubionego';
+
+  @override
   String get archiveReprint => 'Drukuj ponownie';
 
   @override

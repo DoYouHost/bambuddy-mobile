@@ -569,6 +569,84 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get archiveNoMatches => 'No prints match your filters';
+
+  @override
+  String get archiveFilters => 'Filters';
+
+  @override
+  String get archiveFiltersClear => 'Clear filters';
+
+  @override
+  String get archiveSortLabel => 'Sort by';
+
+  @override
+  String get archiveSortDateDesc => 'Newest first';
+
+  @override
+  String get archiveSortDateAsc => 'Oldest first';
+
+  @override
+  String get archiveSortNameAsc => 'Name A–Z';
+
+  @override
+  String get archiveSortNameDesc => 'Name Z–A';
+
+  @override
+  String get archiveSortSizeDesc => 'Largest first';
+
+  @override
+  String get archiveSortSizeAsc => 'Smallest first';
+
+  @override
+  String get archiveFilterFileType => 'Files';
+
+  @override
+  String get archiveFileTypeAll => 'All files';
+
+  @override
+  String get archiveFileTypeGcode => 'Sliced';
+
+  @override
+  String get archiveFileTypeSource => 'Source';
+
+  @override
+  String get archiveFilterFlags => 'Show';
+
+  @override
+  String get archiveFilterFavorites => 'Favorites';
+
+  @override
+  String get archiveFilterHideFailed => 'Hide failed';
+
+  @override
+  String get archiveFilterHideDuplicates => 'Hide duplicates';
+
+  @override
+  String get archiveFilterPrinter => 'Printer';
+
+  @override
+  String get archiveFilterMaterial => 'Material';
+
+  @override
+  String get archiveFilterColors => 'Colors';
+
+  @override
+  String get archiveColorModeAny => 'Any';
+
+  @override
+  String get archiveColorModeAll => 'All';
+
+  @override
+  String get archiveFavorite => 'Add to favorites';
+
+  @override
+  String get archiveUnfavorite => 'Remove from favorites';
+
+  @override
+  String get archiveFavoriteFailed => 'Couldn\'t update favorite';
+
+  @override
   String get archiveReprint => 'Reprint';
 
   @override

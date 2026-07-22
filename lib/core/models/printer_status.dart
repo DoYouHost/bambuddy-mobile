@@ -254,8 +254,12 @@ class PrinterStatus {
   ///
   /// `temperatures` merged PER-KEY (overlay): missing sensor in frame doesn't
   /// blank its tile, present sensors get fresh reads.
+  ///
+  /// Exception to the whole "never zero" rule: a `connected:false` result is
+  /// normalised by [_clearedIfOffline] — a disconnected printer has no live
+  /// state, and its frame's telemetry is only the server's stale cache.
   PrinterStatus mergedWith(PrinterStatus? previous) {
-    if (previous == null) return this;
+    if (previous == null) return _clearedIfOffline();
     // Exception to inheritance rule: cover is tied to SPECIFIC file. When frame
     // carries different `gcode_file`/`current_print` than previous (new print or
     // entering calibration phase "auto_cali_for_user_param.gcode"), previous
@@ -299,6 +303,37 @@ class PrinterStatus {
       awaitingPlateClear: awaitingPlateClear ?? previous.awaitingPlateClear,
       hmsErrors: hmsErrors ?? previous.hmsErrors,
       supportsDrying: supportsDrying ?? previous.supportsDrying,
+    )._clearedIfOffline();
+  }
+
+  /// Blank runtime telemetry when the printer is disconnected. On the backend an
+  /// MQTT drop flips `connected:false` but never clears the last-known state
+  /// (see bambu_mqtt `_on_disconnect`), so a disconnected frame still carries
+  /// "printing at 60%, nozzle 210°C". Left alone, [mergedWith]'s inheritance
+  /// then pins that stale snapshot forever — the card/widget keep showing a
+  /// ghost job, a wrong state label, and frozen temps. An offline printer has no
+  /// live state, so drop it: `state`, the job, progress, temps, fans, lights,
+  /// door, wifi, speed, airduct, stage.
+  ///
+  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`), the physical AMS
+  /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
+  /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
+  /// clear-grace clock on the carried-forward codes so a fault known before the
+  /// outage doesn't re-alert on reconnect.
+  PrinterStatus _clearedIfOffline() {
+    if (connected != false) return this;
+    return PrinterStatus(
+      id: id,
+      name: name,
+      connected: false,
+      model: model,
+      supportsDrying: supportsDrying,
+      ams: ams,
+      vtTray: vtTray,
+      amsExtruderMap: amsExtruderMap,
+      trayNow: trayNow,
+      activeExtruder: activeExtruder,
+      hmsErrors: hmsErrors,
     );
   }
 

@@ -27,4 +27,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   nozzleDiameter: (json['nozzle_diameter'] as num?)?.toDouble(),
   slicedForModel: json['sliced_for_model'] as String?,
   quantity: (json['quantity'] as num?)?.toInt(),
+  fileSize: (json['file_size'] as num?)?.toInt(),
+  duplicateCount: (json['duplicate_count'] as num?)?.toInt() ?? 0,
+  duplicateSequence: (json['duplicate_sequence'] as num?)?.toInt() ?? 0,
 );

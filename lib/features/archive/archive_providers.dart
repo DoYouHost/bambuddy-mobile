@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
@@ -6,150 +5,212 @@ import '../../core/models/archive.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 
-/// Page size during archive scrolling.
-const _pageSize = 50;
+/// Upper bound on how many archives we load in one shot. Filtering/sorting runs
+/// client-side over the full set (matching bambuddy), so we fetch everything
+/// once rather than paginating on the wire. Mirrors bambuddy's `limit=10000`.
+const _fullListLimit = 10000;
 
-/// Minimum query length required by server (shorter → 422).
-const _minQueryLength = 2;
+/// How archives are ordered in the list. Values match bambuddy's sort options.
+enum ArchiveSort { dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc }
 
-/// Archive list state: items + whether there's next page + active query.
-class ArchiveState {
-  const ArchiveState({
-    this.items = const [],
-    this.hasMore = true,
-    this.loadingMore = false,
+/// File-kind filter: all files, sliced (gcode) only, or source projects only.
+enum ArchiveFileType { all, gcode, source }
+
+/// Whether multiple selected colors are combined with OR (any match) or
+/// AND (must have all). Mirrors bambuddy's `colorFilterMode`.
+enum ColorFilterMode { or, and }
+
+/// Client-side archive filters, all applied over the full loaded list.
+/// Empty collections / falsey flags mean "no constraint". [sort] is a view
+/// preference, not a filter, so it is excluded from [activeCount].
+class ArchiveFilters {
+  const ArchiveFilters({
     this.query = '',
-    this.searchFailed = false,
+    this.printerId,
+    this.material,
+    this.colors = const {},
+    this.colorMode = ColorFilterMode.or,
+    this.favoritesOnly = false,
+    this.hideFailed = false,
+    this.hideDuplicates = false,
+    this.fileType = ArchiveFileType.all,
+    this.sort = ArchiveSort.dateDesc,
   });
 
-  final List<Archive> items;
-  final bool hasMore;
-  final bool loadingMore;
   final String query;
+  final int? printerId;
+  final String? material;
+  final Set<String> colors;
+  final ColorFilterMode colorMode;
+  final bool favoritesOnly;
+  final bool hideFailed;
+  final bool hideDuplicates;
+  final ArchiveFileType fileType;
+  final ArchiveSort sort;
 
-  /// Search returned an error (server is unstable on short, frequent queries —
-  /// see `_fetchPage`). UI shows a gentle message instead of crashing the screen.
-  final bool searchFailed;
+  /// Number of active filters — drives the badge on the filter button. Search
+  /// and sort are surfaced separately, so they don't count here.
+  int get activeCount =>
+      (printerId != null ? 1 : 0) +
+      (material != null ? 1 : 0) +
+      (colors.isNotEmpty ? 1 : 0) +
+      (favoritesOnly ? 1 : 0) +
+      (hideFailed ? 1 : 0) +
+      (hideDuplicates ? 1 : 0) +
+      (fileType != ArchiveFileType.all ? 1 : 0);
 
-  ArchiveState copyWith({
-    List<Archive>? items,
-    bool? hasMore,
-    bool? loadingMore,
+  /// Nullable fields (`printerId`, `material`) can't be cleared through the
+  /// usual `?? this` idiom, so each takes an explicit "clear" flag.
+  ArchiveFilters copyWith({
     String? query,
-    bool? searchFailed,
-  }) =>
-      ArchiveState(
-        items: items ?? this.items,
-        hasMore: hasMore ?? this.hasMore,
-        loadingMore: loadingMore ?? this.loadingMore,
-        query: query ?? this.query,
-        searchFailed: searchFailed ?? this.searchFailed,
-      );
+    int? printerId,
+    bool clearPrinter = false,
+    String? material,
+    bool clearMaterial = false,
+    Set<String>? colors,
+    ColorFilterMode? colorMode,
+    bool? favoritesOnly,
+    bool? hideFailed,
+    bool? hideDuplicates,
+    ArchiveFileType? fileType,
+    ArchiveSort? sort,
+  }) => ArchiveFilters(
+    query: query ?? this.query,
+    printerId: clearPrinter ? null : (printerId ?? this.printerId),
+    material: clearMaterial ? null : (material ?? this.material),
+    colors: colors ?? this.colors,
+    colorMode: colorMode ?? this.colorMode,
+    favoritesOnly: favoritesOnly ?? this.favoritesOnly,
+    hideFailed: hideFailed ?? this.hideFailed,
+    hideDuplicates: hideDuplicates ?? this.hideDuplicates,
+    fileType: fileType ?? this.fileType,
+    sort: sort ?? this.sort,
+  );
+}
+
+final archiveFiltersProvider = StateProvider.autoDispose<ArchiveFilters>(
+  (_) => const ArchiveFilters(),
+);
+
+/// Apply [filters] to [archives] client-side: search, printer, material, color,
+/// favorites, hide-failed, hide-duplicates and file-type, then sort. Pure so it
+/// can be unit-tested in isolation. Matches bambuddy's filtering semantics.
+List<Archive> applyArchiveFilters(
+  List<Archive> archives,
+  ArchiveFilters filters,
+) {
+  final q = filters.query.trim().toLowerCase();
+  final result = archives.where((a) {
+    if (q.isNotEmpty && !a.displayName.toLowerCase().contains(q)) return false;
+    if (filters.printerId != null && a.printerId != filters.printerId) {
+      return false;
+    }
+    // Material is stored as a comma+space list for multi-material prints.
+    if (filters.material != null) {
+      final types = a.filamentType?.split(', ') ?? const [];
+      if (!types.contains(filters.material)) return false;
+    }
+    if (filters.colors.isNotEmpty) {
+      final archiveColors = a.filamentColors;
+      final matches = filters.colorMode == ColorFilterMode.or
+          ? archiveColors.any(filters.colors.contains)
+          : filters.colors.every(archiveColors.contains);
+      if (!matches) return false;
+    }
+    if (filters.favoritesOnly && !a.isFavorite) return false;
+    if (filters.hideFailed && (a.status == 'failed' || a.status == 'aborted')) {
+      return false;
+    }
+    // Keep the original of each duplicate group (sequence 0), drop the copies.
+    if (filters.hideDuplicates &&
+        a.duplicateCount > 0 &&
+        a.duplicateSequence > 0) {
+      return false;
+    }
+    switch (filters.fileType) {
+      case ArchiveFileType.gcode:
+        if (!a.isSliced) return false;
+      case ArchiveFileType.source:
+        if (a.isSliced) return false;
+      case ArchiveFileType.all:
+        break;
+    }
+    return true;
+  }).toList();
+
+  int byDate(Archive a, Archive b) => (a.createdAt?.millisecondsSinceEpoch ?? 0)
+      .compareTo(b.createdAt?.millisecondsSinceEpoch ?? 0);
+  int byName(Archive a, Archive b) =>
+      a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+  int bySize(Archive a, Archive b) =>
+      (a.fileSize ?? 0).compareTo(b.fileSize ?? 0);
+
+  switch (filters.sort) {
+    case ArchiveSort.dateDesc:
+      result.sort((a, b) => byDate(b, a));
+    case ArchiveSort.dateAsc:
+      result.sort(byDate);
+    case ArchiveSort.nameAsc:
+      result.sort(byName);
+    case ArchiveSort.nameDesc:
+      result.sort((a, b) => byName(b, a));
+    case ArchiveSort.sizeDesc:
+      result.sort((a, b) => bySize(b, a));
+    case ArchiveSort.sizeAsc:
+      result.sort(bySize);
+  }
+  return result;
 }
 
 final archiveProvider =
-    AutoDisposeAsyncNotifierProvider<ArchiveNotifier, ArchiveState>(
-  ArchiveNotifier.new,
-);
+    AutoDisposeAsyncNotifierProvider<ArchiveNotifier, List<Archive>>(
+      ArchiveNotifier.new,
+    );
 
-/// Archive list with pagination (infinite scroll) and search (M5).
-/// Empty `query` → `GET /archives/` (paginated); non-empty → `/archives/search`.
-class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
-  int _searchGeneration = 0;
-
-  /// Cancels the previous in-flight `/archives/search` when a newer one
-  /// starts — search-as-you-type would otherwise let a stale request finish
-  /// on the wire even though [_searchGeneration] already discards its result.
-  CancelToken? _searchCancelToken;
-
+/// Full archive list, loaded once and filtered client-side (M5, filters M7).
+/// All filtering/sorting lives in [applyArchiveFilters] over this list.
+class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
   @override
-  Future<ArchiveState> build() async {
+  Future<List<Archive>> build() async {
     ref.watch(serverProfileProvider);
-    ref.onDispose(() => _searchCancelToken?.cancel());
-    return _fetchPage(query: '', offset: 0);
+    return ref
+        .read(archiveRepositoryProvider)
+        .list(limit: _fullListLimit, offset: 0);
   }
 
-  Future<ArchiveState> _fetchPage({
-    required String query,
-    required int offset,
-    CancelToken? cancelToken,
-  }) async {
-    final repo = ref.read(archiveRepositoryProvider);
-    final page = query.isEmpty
-        ? await repo.list(limit: _pageSize, offset: offset)
-        : await repo.search(
-            query,
-            limit: _pageSize,
-            offset: offset,
-            cancelToken: cancelToken,
-          );
-    return ArchiveState(
-      items: page,
-      hasMore: page.length == _pageSize,
-      query: query,
+  /// Pull-to-refresh: reload the full list.
+  Future<void> refresh() async {
+    state = const AsyncValue<List<Archive>>.loading().copyWithPrevious(state);
+    state = await AsyncValue.guard(
+      () => ref
+          .read(archiveRepositoryProvider)
+          .list(limit: _fullListLimit, offset: 0),
     );
   }
 
-  /// New search / clear — resets list to first page.
-  /// Query shorter than [_minQueryLength] is treated as empty (full list):
-  /// server rejects <2 chars anyway (422). Search error doesn't crash the screen —
-  /// we set [ArchiveState.searchFailed] and show a gentle message.
-  Future<void> search(String query) async {
-    final q = query.length >= _minQueryLength ? query : '';
-    // A slow `/archives/search` can resolve after a faster later call (e.g.
-    // clearing the box right after typing) — guard so the stale result can't
-    // overwrite the newer one once it lands.
-    final generation = ++_searchGeneration;
-    _searchCancelToken?.cancel();
-    final cancelToken = CancelToken();
-    _searchCancelToken = cancelToken;
-    state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
-    try {
-      final result = await _fetchPage(query: q, offset: 0, cancelToken: cancelToken);
-      if (generation != _searchGeneration) return;
-      state = AsyncValue.data(result);
-    } on AppApiException {
-      if (generation != _searchGeneration) return;
-      state = AsyncValue.data(
-        ArchiveState(items: const [], query: q, searchFailed: true),
-      );
-    }
-  }
-
-  /// Pull-to-refresh: re-fetch the first page of the current query.
-  Future<void> refresh() async {
-    final query = state.valueOrNull?.query ?? '';
-    state = const AsyncValue<ArchiveState>.loading().copyWithPrevious(state);
-    state = await AsyncValue.guard(() => _fetchPage(query: query, offset: 0));
-  }
-
-  /// Loads the next page and appends to list. No throwing — fetch error cannot
-  /// break already-shown items (halts pagination).
-  Future<void> loadMore() async {
+  /// Toggle an archive's favorite flag. Flips locally at once for instant
+  /// feedback, then reconciles with the server's returned value; on error the
+  /// previous list is restored and `false` is returned.
+  Future<bool> toggleFavorite(int archiveId) async {
     final current = state.valueOrNull;
-    if (current == null || !current.hasMore || current.loadingMore) return;
+    if (current == null) return false;
 
-    state = AsyncValue.data(current.copyWith(loadingMore: true));
+    state = AsyncValue.data([
+      for (final a in current)
+        a.id == archiveId ? a.withFavorite(!a.isFavorite) : a,
+    ]);
     try {
-      final repo = ref.read(archiveRepositoryProvider);
-      final next = current.query.isEmpty
-          ? await repo.list(limit: _pageSize, offset: current.items.length)
-          : await repo.search(
-              current.query,
-              limit: _pageSize,
-              offset: current.items.length,
-            );
-      state = AsyncValue.data(current.copyWith(
-        items: [...current.items, ...next],
-        hasMore: next.length == _pageSize,
-        loadingMore: false,
-      ));
+      final updated = await ref
+          .read(archiveRepositoryProvider)
+          .toggleFavorite(archiveId);
+      state = AsyncValue.data([
+        for (final a in state.valueOrNull ?? current)
+          a.id == archiveId ? updated : a,
+      ]);
+      return true;
     } on AppApiException {
-      // Halt pagination, preserve what we have.
-      state = AsyncValue.data(current.copyWith(
-        hasMore: false,
-        loadingMore: false,
-      ));
+      state = AsyncValue.data(current); // rollback
+      return false;
     }
   }
 
@@ -159,9 +220,7 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
     final current = state.valueOrNull;
     if (current == null) return false;
 
-    state = AsyncValue.data(current.copyWith(
-      items: current.items.where((a) => a.id != archiveId).toList(),
-    ));
+    state = AsyncValue.data(current.where((a) => a.id != archiveId).toList());
     try {
       await ref
           .read(archiveRepositoryProvider)
@@ -194,9 +253,9 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<ArchiveState> {
         failed++;
       }
     }
-    state = AsyncValue.data(current.copyWith(
-      items: current.items.where((a) => !deleted.contains(a.id)).toList(),
-    ));
+    state = AsyncValue.data(
+      current.where((a) => !deleted.contains(a.id)).toList(),
+    );
     return (ok: deleted.length, failed: failed);
   }
 }

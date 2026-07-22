@@ -343,6 +343,81 @@ void main() {
       expect(fresh.mergedWith(prev).connected, isFalse);
     });
 
+    test('offline gasi żywą telemetrię (backend niesie stary cache)', () {
+      // Drukarka drukowała, potem padła: backend flipuje connected:false, ale
+      // NIE czyści stanu — ramka niesie stary RUNNING/postęp/temperatury.
+      const prev = PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 60,
+        remainingTime: 42,
+        gcodeFile: 'benchy.gcode',
+        coverUrl: 'http://c/cover.png',
+        temperatures: {'nozzle': 210.0, 'bed': 60.0},
+        coolingFanSpeed: 70,
+        chamberLight: true,
+      );
+      const offline = PrinterStatus(
+        id: 1,
+        connected: false,
+        state: 'RUNNING', // serwer trzyma ostatni stan mimo rozłączenia
+        progress: 60,
+        temperatures: {'nozzle': 208.0},
+      );
+
+      final merged = offline.mergedWith(prev);
+      expect(merged.connected, isFalse);
+      expect(merged.state, isNull); // brak żywego stanu → OFFLINE, nie RUNNING
+      expect(merged.isPrinting, isFalse);
+      expect(merged.progress, isNull);
+      expect(merged.remainingTime, isNull);
+      expect(merged.gcodeFile, isNull);
+      expect(merged.coverUrl, isNull);
+      expect(merged.temperatures, isNull);
+      expect(merged.coolingFanSpeed, isNull);
+      expect(merged.chamberLight, isNull);
+    });
+
+    test('offline zachowuje tożsamość, sprzęt, magazyn AMS i hms_errors', () {
+      const prev = PrinterStatus(
+        id: 1,
+        connected: true,
+        name: 'X2D',
+        model: 'X2D',
+        supportsDrying: true,
+        ams: [AmsUnit(id: 0)],
+        hmsErrors: [HmsError(code: '0300')],
+      );
+      const offline = PrinterStatus(id: 1, connected: false);
+
+      final merged = offline.mergedWith(prev);
+      expect(merged.name, 'X2D');
+      expect(merged.model, 'X2D');
+      expect(merged.supportsDrying, isTrue);
+      expect(merged.ams, isNotNull);
+      // hms_errors przenoszone: PrintMonitor pauzuje na nich zegar clear-grace.
+      expect(merged.hmsErrors, isNotNull);
+    });
+
+    test('powrót online repopuluje telemetrię ze świeżej ramki', () {
+      const offline = PrinterStatus(id: 1, connected: false, model: 'P1S');
+      const online = PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'RUNNING',
+        progress: 5,
+        temperatures: {'nozzle': 200.0},
+      );
+
+      final merged = online.mergedWith(offline);
+      expect(merged.connected, isTrue);
+      expect(merged.state, 'RUNNING');
+      expect(merged.progress, 5);
+      expect(merged.temperatures, {'nozzle': 200.0});
+      expect(merged.model, 'P1S'); // sprzęt przetrwał przerwę
+    });
+
     test('zmiana pliku (wejście w kalibrację) NIE dziedziczy starej okładki', () {
       // Drukował model z okładką, teraz wchodzi w kalibrację bez własnej okładki
       // — podgląd poprzedniego modelu nie może się przenieść.

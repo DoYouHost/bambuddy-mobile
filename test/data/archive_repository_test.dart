@@ -40,6 +40,23 @@ void main() {
     expect(archives, hasLength(1));
   });
 
+  test('toggleFavorite: POST /archives/82/favorite zwraca zaktualizowany wpis',
+      () async {
+    final favorited = {
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      'is_favorite': true,
+    };
+    adapter.onPost(
+      '/api/v1/archives/82/favorite',
+      (server) => server.reply(200, favorited),
+    );
+
+    final archive = await repo.toggleFavorite(82);
+
+    expect(archive.id, 82);
+    expect(archive.isFavorite, isTrue);
+  });
+
   test('delete: wysyła DELETE /archives/82 z purge_stats=false domyślnie',
       () async {
     adapter.onDelete(
