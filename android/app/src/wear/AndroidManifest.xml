@@ -19,7 +19,14 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
 
-    <application>
+    <application
+        android:enableOnBackInvokedCallback="false"
+        tools:replace="android:enableOnBackInvokedCallback">
+        <!-- Keep the watch on the legacy back path. The phone manifest opts into
+             predictive back, but on Wear OS the back gesture is swipe-to-dismiss
+             and the system-driven dismiss animation is not verified against it —
+             don't change watch navigation as a side effect of a phone fix. -->
+
         <!-- Hard-lock the watch UI upright. Must be "nosensor", not "portrait":
              the display is square (450x450), so portrait and landscape share
              dimensions and the system still rotates the whole display 90° when

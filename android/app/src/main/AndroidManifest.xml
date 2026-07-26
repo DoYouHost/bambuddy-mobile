@@ -1,29 +1,35 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Wiszące powiadomienie o wydruku + alerty w tle (Android 13+ wymaga
-         uprawnienia runtime). -->
+    <!-- Ongoing print notification + background alerts (Android 13+ needs the
+         runtime permission). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Foreground service trzyma proces przy życiu w tle, by WebSocket dalej
-         dostawał statusy i aktualizował powiadomienie podczas wydruku. -->
+    <!-- The foreground service keeps the process alive in the background so the
+         WebSocket keeps receiving statuses and updating the print notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
-    <!-- flutter_foreground_task trzyma wakelock, by isolate tła (WebSocket) nie
-         usnął razem z CPU podczas Doze. -->
+    <!-- flutter_foreground_task holds a wakelock so the background isolate
+         (WebSocket) doesn't fall asleep with the CPU during Doze. -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <!-- Prośba o zwolnienie z optymalizacji baterii: na Samsungu kluczowe dla
-         przeżywalności w tle i odblokowuje start foreground service z tła. -->
+    <!-- Battery optimization exemption request: critical for background survival
+         on Samsung, and it unblocks starting a foreground service from the
+         background. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
-    <!-- Skaner kodów QR szpul (mobile_scanner) — aparat tylko na żądanie,
-         uprawnienie runtime proszone przy otwarciu skanera. -->
+    <!-- Spool QR scanner (mobile_scanner) — camera on demand only, runtime
+         permission requested when the scanner opens. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <!-- Self-hosted serwery bambuddy w LAN zwykle nie mają TLS; dostęp zdalny
-         powinien iść przez HTTPS na reverse proxy (patrz README). -->
+    <!-- Self-hosted bambuddy servers on a LAN usually have no TLS; remote access
+         should go over HTTPS through a reverse proxy (see README). -->
+    <!-- Predictive back (Android 13+): opt in so the system animates the back
+         gesture instead of logging "OnBackInvokedCallback is not enabled". Safe
+         here because no route intercepts the pop (no PopScope in lib/) — Flutter
+         registers the callback itself and keeps handling back as before. -->
     <application
         android:label="Bambuddy"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -47,23 +53,24 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Foreground service flutter_foreground_task — hostuje osobny isolate
-             Dart, który w tle trzyma WebSocket i wystawia powiadomienia o
-             wydruku. NIE zmieniać nazwy serwisu (wymóg pluginu). Typ dataSync
-             wymagany od Androida 14. stopWithTask=false: serwis (a z nim
-             monitoring WS) przeżywa zmiecenie aplikacji z listy ostatnich. -->
+        <!-- flutter_foreground_task's foreground service — hosts a separate Dart
+             isolate that keeps the WebSocket open and posts print notifications
+             in the background. Do NOT rename the service (plugin requirement).
+             The dataSync type is required from Android 14 on. stopWithTask=false:
+             the service (and with it WS monitoring) survives the app being
+             swiped away from recents. -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
-        <!-- flutter_local_notifications: odbiornik tapnięć przycisków akcji
-             powiadomień (np. „Oznacz wykonane" przy konserwacji). Wymagany przez
-             plugin, by akcje z showsUserInterface=false były obsłużone w tle
-             (osobny silnik Dart) bez otwierania apki. Bez tej deklaracji Android
-             gubi broadcast akcji — handler nigdy nie odpala, powiadomienie się
-             nie zamyka ani nie resetuje licznika. -->
+        <!-- flutter_local_notifications: receiver for taps on notification action
+             buttons (e.g. "Mark done" for maintenance). Required by the plugin so
+             actions with showsUserInterface=false are handled in the background
+             (separate Dart engine) without opening the app. Without this
+             declaration Android drops the action broadcast — the handler never
+             fires, the notification neither closes nor resets the counter. -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
             android:exported="false" />
@@ -94,12 +101,13 @@
                 android:resource="@xml/bambuddy_multi_widget_info" />
         </receiver>
 
-        <!-- WorkManager wchodzi tranzytywnie przez androidx.glance (zależność
-             home_widget). Używamy RemoteViews, NIE Glance, więc WorkManager nie
-             jest potrzebny — a jego auto-inicjalizacja przez androidx.startup
-             wywala CAŁĄ apkę na starcie w release (R8): „Unable to get provider
-             androidx.startup.InitializationProvider … Failed to create
-             WorkDatabase". Usuwamy auto-init WorkManagera (resztę startup zostawiamy). -->
+        <!-- WorkManager comes in transitively through androidx.glance (a
+             home_widget dependency). We use RemoteViews, NOT Glance, so
+             WorkManager isn't needed — and its auto-initialization via
+             androidx.startup crashes the WHOLE app on launch in release (R8):
+             "Unable to get provider androidx.startup.InitializationProvider …
+             Failed to create WorkDatabase". Remove WorkManager's auto-init (keep
+             the rest of startup). -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -110,6 +118,22 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- mobile_scanner pulls in ML Kit, which ships Google's datatransport
+             backend and periodically POSTs scanner usage telemetry to
+             firebaselogging.googleapis.com. Dropping the "cct" backend
+             registration leaves the transport runtime with no backend to
+             resolve, so those events are discarded locally instead of uploaded.
+             The schedulers stay declared on purpose — jobs are scheduled before
+             the backend lookup, and removing their services would crash it.
+             Barcode scanning itself runs fully on-device and is unaffected. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
