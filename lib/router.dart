@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
+import 'features/bug_report/bug_report_screen.dart';
+import 'features/bug_report/recording_banner.dart';
 import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/files/file_manager_screen.dart';
@@ -70,6 +72,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/maintenance',
         builder: (_, _) => const MaintenanceSettingsScreen(),
+      ),
+
+      // Bug report — full screen outside shell (pushed from drawer, and from
+      // the recording bar when a session is finished elsewhere).
+      GoRoute(
+        path: bugReportRoute,
+        builder: (_, _) => const BugReportScreen(),
       ),
 
       // Archive statistics — full screen outside shell (pushed from drawer).

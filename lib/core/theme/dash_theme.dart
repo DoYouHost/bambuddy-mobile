@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../diagnostics/log_tag.dart';
+
 /// Visual design tokens for the modernized "2a" screens (Printers, Queue,
 /// Archive, Maintenance, Filaments) and the shared bottom navigation.
 ///
@@ -187,7 +189,13 @@ class DashBackground extends StatelessWidget {
 
 /// Transparent app bar with the design's bold, tightly-tracked title. Use inside
 /// a [DashBackground] + transparent [Scaffold].
-AppBar dashAppBar(
+///
+/// Named `chrome.appbar` for the diagnostic log. The back button is built by
+/// [AppBar] itself, so it cannot be tagged directly without taking over the
+/// "is there anything to go back to" logic and shifting the title on screens
+/// with no back button; naming the bar reaches it through inheritance, and
+/// tagged actions inside keep their own names.
+PreferredSizeWidget dashAppBar(
   BuildContext context, {
   required String title,
   List<Widget>? actions,
@@ -196,7 +204,7 @@ AppBar dashAppBar(
   bool automaticallyImplyLeading = true,
 }) {
   final t = DashTokens.of(context);
-  return AppBar(
+  final bar = AppBar(
     backgroundColor: Colors.transparent,
     elevation: 0,
     scrolledUnderElevation: 0,
@@ -215,6 +223,10 @@ AppBar dashAppBar(
     ),
     actions: actions,
     bottom: bottom,
+  );
+  return PreferredSize(
+    preferredSize: bar.preferredSize,
+    child: logTag('chrome.appbar', bar),
   );
 }
 

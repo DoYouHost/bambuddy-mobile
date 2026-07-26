@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/demo/demo_config.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -119,7 +120,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       tooltip: l10n.scanApiKeyTitle,
                       icon:
                           Icon(Icons.qr_code_scanner, color: t.textSecondary),
-                    ),
+                    ).tagged('setup.scan_api_key'),
                   ),
                   onSubmitted: (v) => controller.probe(v),
                 ),
@@ -129,23 +130,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   onPressed:
                       state.busy ? null : () => controller.probe(_url.text),
                   child: Text(l10n.testConnection),
-                ),
+                ).tagged('setup.test_connection'),
                 const SizedBox(height: 4),
                 Center(
-                  child: TextButton.icon(
-                    onPressed: state.busy ? null : _fillDemo,
-                    icon: Icon(
-                      Icons.play_circle_outline,
-                      size: 18,
-                      color: t.textSecondary,
-                    ),
-                    label: Text(l10n.tryDemo),
-                    style: TextButton.styleFrom(
-                      foregroundColor: t.textSecondary,
-                      textStyle: const TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                  child: logTag(
+                    'setup.demo',
+                    TextButton.icon(
+                      onPressed: state.busy ? null : _fillDemo,
+                      icon: Icon(
+                        Icons.play_circle_outline,
+                        size: 18,
+                        color: t.textSecondary,
+                      ),
+                      label: Text(l10n.tryDemo),
+                      style: TextButton.styleFrom(
+                        foregroundColor: t.textSecondary,
+                        textStyle: const TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -199,7 +203,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
           selected: {_useLogin},
           onSelectionChanged: (s) => setState(() => _useLogin = s.first),
-        ),
+        ).tagged('setup.auth_mode'),
         const SizedBox(height: 16),
         if (!_useLogin) ...[
           Text(
@@ -229,7 +233,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 onPressed: _scanApiKey,
                 tooltip: l10n.scanApiKeyTitle,
                 icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
-              ),
+              ).tagged('setup.scan_api_key'),
             ),
           ),
           const SizedBox(height: 12),
@@ -237,7 +241,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             style: dashPrimaryButtonStyle(t),
             onPressed: () => controller.connectWithApiKey(_apiKey.text),
             child: Text(l10n.saveAndConnect),
-          ),
+          ).tagged('setup.connect_api_key'),
         ] else ...[
           Text(
             l10n.loginExplain,
@@ -296,7 +300,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             checkColor: const Color(0xFF0A0C08),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
-          ),
+          ).tagged('setup.remember_me'),
           FilledButton(
             style: dashPrimaryButtonStyle(t),
             onPressed: () => controller.connectWithLogin(
@@ -305,7 +309,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               remember: _remember,
             ),
             child: Text(l10n.signInAndConnect),
-          ),
+          ).tagged('setup.connect_login'),
         ],
       ];
 }

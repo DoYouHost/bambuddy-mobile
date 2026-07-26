@@ -125,6 +125,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                   ),
                   const SizedBox(height: 12),
                   DashSearchField(
+                    id: 'spool_labels.search',
                     hintText: l10n.inventoryLabelsSearchHint,
                     onChanged: (v) => setState(() => _query = v),
                   ),

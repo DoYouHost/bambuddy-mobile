@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
@@ -101,26 +102,38 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
             ? dashAppBar(
                 context,
                 title: l10n.archiveSelectedCount(_selected.length),
-                leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  tooltip: l10n.cancel,
-                  onPressed: _clearSelection,
+                leading: logTag(
+                  'archive.selection_clear',
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: l10n.cancel,
+                    onPressed: _clearSelection,
+                  ),
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.select_all),
-                    tooltip: l10n.archiveSelectAll,
-                    onPressed: _selectAllVisible,
+                  logTag(
+                    'archive.select_all',
+                    IconButton(
+                      icon: const Icon(Icons.select_all),
+                      tooltip: l10n.archiveSelectAll,
+                      onPressed: _selectAllVisible,
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.folder_special_outlined),
-                    tooltip: l10n.archiveAddToProject,
-                    onPressed: _addSelectedToProject,
+                  logTag(
+                    'archive.add_to_project',
+                    IconButton(
+                      icon: const Icon(Icons.folder_special_outlined),
+                      tooltip: l10n.archiveAddToProject,
+                      onPressed: _addSelectedToProject,
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: l10n.archiveDelete,
-                    onPressed: _deleteSelected,
+                  logTag(
+                    'archive.delete_selected',
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: l10n.archiveDelete,
+                      onPressed: _deleteSelected,
+                    ),
                   ),
                 ],
               )
@@ -166,6 +179,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                         children: [
                           Expanded(
                             child: DashSearchField(
+                              id: 'archive.search',
                               hintText: l10n.archiveSearchHint,
                               onChanged: _onSearchChanged,
                             ),
@@ -570,90 +584,96 @@ class _ArchiveCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.14)
-                  : t.subCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
+        child: logTag(
+          'archive.card',
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.5)
-                    : t.subCardBorder,
+                    ? t.accentGreen.withValues(alpha: 0.14)
+                    : t.subCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: selected
+                      ? t.accentGreen.withValues(alpha: 0.5)
+                      : t.subCardBorder,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                selected
-                    ? Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: t.accentGreen.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(Icons.check, color: t.accentGreenInk),
-                      )
-                    : PrintThumbnail(archiveId: archive.id, size: 52),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        archive.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
-                      ),
-                      if (meta.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+              child: Row(
+                children: [
+                  selected
+                      ? Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: t.accentGreen.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(Icons.check, color: t.accentGreenInk),
+                        )
+                      : PrintThumbnail(archiveId: archive.id, size: 52),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          meta.join(' · '),
-                          maxLines: 1,
+                          archive.displayName,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
                           ),
                         ),
+                        if (meta.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            meta.join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontMono,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: t.textTertiary,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-                if (onToggleFavorite != null)
-                  IconButton(
-                    icon: Icon(
-                      archive.isFavorite ? Icons.star : Icons.star_border,
-                      size: 20,
-                      color: archive.isFavorite
-                          ? t.accentOrange
-                          : t.textTertiary,
                     ),
-                    tooltip: archive.isFavorite
-                        ? AppLocalizations.of(context).archiveUnfavorite
-                        : AppLocalizations.of(context).archiveFavorite,
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onToggleFavorite,
-                  )
-                else if (archive.isFavorite) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.star, size: 18, color: t.accentOrange),
+                  ),
+                  if (onToggleFavorite != null)
+                    logTag(
+                      'archive.favorite',
+                      IconButton(
+                        icon: Icon(
+                          archive.isFavorite ? Icons.star : Icons.star_border,
+                          size: 20,
+                          color: archive.isFavorite
+                              ? t.accentOrange
+                              : t.textTertiary,
+                        ),
+                        tooltip: archive.isFavorite
+                            ? AppLocalizations.of(context).archiveUnfavorite
+                            : AppLocalizations.of(context).archiveFavorite,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onToggleFavorite,
+                      ),
+                    )
+                  else if (archive.isFavorite) ...[
+                    const SizedBox(width: 8),
+                    Icon(Icons.star, size: 18, color: t.accentOrange),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -686,73 +706,82 @@ class _ArchiveSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  PrintThumbnail(archiveId: archive.id, size: 72),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          archive.displayName,
-                          style: theme.textTheme.titleMedium,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (archive.designer != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              archive.designer!,
-                              style: theme.textTheme.bodySmall,
-                            ),
+    return logTag(
+      'sheet.archive_detail',
+      SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PrintThumbnail(archiveId: archive.id, size: 72),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            archive.displayName,
+                            style: theme.textTheme.titleMedium,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                      ],
+                          if (archive.designer != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                archive.designer!,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _SheetPrimaryActions(
+                  onAddToQueue: onAddToQueue,
+                  onReprint: onReprint,
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: logTag(
+                    'archive.preview_gcode',
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.view_in_ar_outlined),
+                      label: Text(l10n.gcodeViewerOpen),
+                      onPressed: onPreviewGcode,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _SheetPrimaryActions(
-                onAddToQueue: onAddToQueue,
-                onReprint: onReprint,
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.view_in_ar_outlined),
-                  label: Text(l10n.gcodeViewerOpen),
-                  onPressed: onPreviewGcode,
                 ),
-              ),
-              const SizedBox(height: 8),
-              _SliceArchiveButton(archive: archive, onSlice: onSlice),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(l10n.archiveDelete),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
+                const SizedBox(height: 8),
+                _SliceArchiveButton(archive: archive, onSlice: onSlice),
+                SizedBox(
+                  width: double.infinity,
+                  child: logTag(
+                    'archive.delete',
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(l10n.archiveDelete),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                      ),
+                      onPressed: onDelete,
+                    ),
                   ),
-                  onPressed: onDelete,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
+      )
     );
   }
 }
@@ -790,15 +819,21 @@ class _SheetPrimaryActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final addToQueue = OutlinedButton.icon(
-      icon: const Icon(Icons.playlist_add),
-      label: Text(l10n.archiveAddToQueue),
-      onPressed: onAddToQueue,
+    final addToQueue = logTag(
+      'archive.add_to_queue',
+      OutlinedButton.icon(
+        icon: const Icon(Icons.playlist_add),
+        label: Text(l10n.archiveAddToQueue),
+        onPressed: onAddToQueue,
+      ),
     );
-    final reprint = FilledButton.icon(
-      icon: const Icon(Icons.print),
-      label: Text(l10n.archiveReprint),
-      onPressed: onReprint,
+    final reprint = logTag(
+      'archive.reprint',
+      FilledButton.icon(
+        icon: const Icon(Icons.print),
+        label: Text(l10n.archiveReprint),
+        onPressed: onReprint,
+      ),
     );
     final widthNeeded = [
       _singleLineWidth(
@@ -1153,21 +1188,24 @@ class _FilterButton extends StatelessWidget {
           child: Material(
             color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
             borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: active
-                        ? t.accentGreen.withValues(alpha: 0.4)
-                        : t.subCardBorder,
+            child: logTag(
+              'archive.filters',
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: onTap,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: active
+                          ? t.accentGreen.withValues(alpha: 0.4)
+                          : t.subCardBorder,
+                    ),
                   ),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: active ? t.accentGreenInk : t.textSecondary,
+                  child: Icon(
+                    Icons.tune,
+                    color: active ? t.accentGreenInk : t.textSecondary,
+                  ),
                 ),
               ),
             ),
@@ -1210,177 +1248,180 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         if (a.printerId != null) a.printerId!,
     };
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      minChildSize: 0.35,
-      builder: (context, controller) => _SheetSurface(
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            // Fixed height so the header never resizes when the Clear button
-            // toggles; the button keeps its slot via Visibility.maintainSize so
-            // its appearance can't reflow the sheet content.
-            SizedBox(
-              height: 48,
-              child: Row(
-                children: [
-                  Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
-                  const Spacer(),
-                  Visibility(
-                    visible: filters.activeCount > 0,
-                    maintainSize: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: TextButton(
-                      onPressed: () => notifier.state = ArchiveFilters(
-                        // Keep the current search + sort; only clear filters.
-                        query: filters.query,
-                        sort: filters.sort,
+    return logTag(
+      'sheet.archive_filters',
+      DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.35,
+        builder: (context, controller) => _SheetSurface(
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            children: [
+              // Fixed height so the header never resizes when the Clear button
+              // toggles; the button keeps its slot via Visibility.maintainSize so
+              // its appearance can't reflow the sheet content.
+              SizedBox(
+                height: 48,
+                child: Row(
+                  children: [
+                    Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
+                    const Spacer(),
+                    Visibility(
+                      visible: filters.activeCount > 0,
+                      maintainSize: true,
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: TextButton(
+                        onPressed: () => notifier.state = ArchiveFilters(
+                          // Keep the current search + sort; only clear filters.
+                          query: filters.query,
+                          sort: filters.sort,
+                        ),
+                        child: Text(l10n.archiveFiltersClear),
                       ),
-                      child: Text(l10n.archiveFiltersClear),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              _FilterGroup(label: l10n.archiveSortLabel),
+              _ChipWrap(
+                children: [
+                  for (final s in ArchiveSort.values)
+                    ChoiceChip(
+                      label: Text(_sortLabel(l10n, s)),
+                      selected: filters.sort == s,
+                      onSelected: (_) =>
+                          notifier.state = filters.copyWith(sort: s),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              _FilterGroup(label: l10n.archiveFilterFileType),
+              _ChipWrap(
+                children: [
+                  for (final f in ArchiveFileType.values)
+                    ChoiceChip(
+                      label: Text(_fileTypeLabel(l10n, f)),
+                      selected: filters.fileType == f,
+                      onSelected: (_) =>
+                          notifier.state = filters.copyWith(fileType: f),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              _FilterGroup(label: l10n.archiveFilterFlags),
+              _ChipWrap(
+                children: [
+                  FilterChip(
+                    avatar: Icon(
+                      filters.favoritesOnly ? Icons.star : Icons.star_border,
+                      size: 18,
+                    ),
+                    label: Text(l10n.archiveFilterFavorites),
+                    selected: filters.favoritesOnly,
+                    onSelected: (v) =>
+                        notifier.state = filters.copyWith(favoritesOnly: v),
+                  ),
+                  FilterChip(
+                    label: Text(l10n.archiveFilterHideFailed),
+                    selected: filters.hideFailed,
+                    onSelected: (v) =>
+                        notifier.state = filters.copyWith(hideFailed: v),
+                  ),
+                  FilterChip(
+                    label: Text(l10n.archiveFilterHideDuplicates),
+                    selected: filters.hideDuplicates,
+                    onSelected: (v) =>
+                        notifier.state = filters.copyWith(hideDuplicates: v),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 8),
 
-            _FilterGroup(label: l10n.archiveSortLabel),
-            _ChipWrap(
-              children: [
-                for (final s in ArchiveSort.values)
-                  ChoiceChip(
-                    label: Text(_sortLabel(l10n, s)),
-                    selected: filters.sort == s,
-                    onSelected: (_) =>
-                        notifier.state = filters.copyWith(sort: s),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _FilterGroup(label: l10n.archiveFilterFileType),
-            _ChipWrap(
-              children: [
-                for (final f in ArchiveFileType.values)
-                  ChoiceChip(
-                    label: Text(_fileTypeLabel(l10n, f)),
-                    selected: filters.fileType == f,
-                    onSelected: (_) =>
-                        notifier.state = filters.copyWith(fileType: f),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _FilterGroup(label: l10n.archiveFilterFlags),
-            _ChipWrap(
-              children: [
-                FilterChip(
-                  avatar: Icon(
-                    filters.favoritesOnly ? Icons.star : Icons.star_border,
-                    size: 18,
-                  ),
-                  label: Text(l10n.archiveFilterFavorites),
-                  selected: filters.favoritesOnly,
-                  onSelected: (v) =>
-                      notifier.state = filters.copyWith(favoritesOnly: v),
-                ),
-                FilterChip(
-                  label: Text(l10n.archiveFilterHideFailed),
-                  selected: filters.hideFailed,
-                  onSelected: (v) =>
-                      notifier.state = filters.copyWith(hideFailed: v),
-                ),
-                FilterChip(
-                  label: Text(l10n.archiveFilterHideDuplicates),
-                  selected: filters.hideDuplicates,
-                  onSelected: (v) =>
-                      notifier.state = filters.copyWith(hideDuplicates: v),
+              if (usedPrinterIds.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _FilterGroup(label: l10n.archiveFilterPrinter),
+                _ChipWrap(
+                  children: [
+                    for (final p in printers)
+                      if (usedPrinterIds.contains(p.id))
+                        FilterChip(
+                          label: Text(p.name),
+                          selected: filters.printerId == p.id,
+                          onSelected: (v) => notifier.state = v
+                              ? filters.copyWith(printerId: p.id)
+                              : filters.copyWith(clearPrinter: true),
+                        ),
+                  ],
                 ),
               ],
-            ),
 
-            if (usedPrinterIds.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _FilterGroup(label: l10n.archiveFilterPrinter),
-              _ChipWrap(
-                children: [
-                  for (final p in printers)
-                    if (usedPrinterIds.contains(p.id))
+              if (sortedMaterials.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _FilterGroup(label: l10n.archiveFilterMaterial),
+                _ChipWrap(
+                  children: [
+                    for (final m in sortedMaterials)
                       FilterChip(
-                        label: Text(p.name),
-                        selected: filters.printerId == p.id,
+                        label: Text(m),
+                        selected: filters.material == m,
                         onSelected: (v) => notifier.state = v
-                            ? filters.copyWith(printerId: p.id)
-                            : filters.copyWith(clearPrinter: true),
+                            ? filters.copyWith(material: m)
+                            : filters.copyWith(clearMaterial: true),
                       ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
 
-            if (sortedMaterials.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _FilterGroup(label: l10n.archiveFilterMaterial),
-              _ChipWrap(
-                children: [
-                  for (final m in sortedMaterials)
-                    FilterChip(
-                      label: Text(m),
-                      selected: filters.material == m,
-                      onSelected: (v) => notifier.state = v
-                          ? filters.copyWith(material: m)
-                          : filters.copyWith(clearMaterial: true),
-                    ),
-                ],
-              ),
-            ],
-
-            if (colors.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  _FilterGroup(label: l10n.archiveFilterColors),
-                  const Spacer(),
-                  if (filters.colors.length > 1)
-                    // OR/AND only matters once several colors are picked.
-                    SegmentedButton<ColorFilterMode>(
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
+              if (colors.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _FilterGroup(label: l10n.archiveFilterColors),
+                    const Spacer(),
+                    if (filters.colors.length > 1)
+                      // OR/AND only matters once several colors are picked.
+                      SegmentedButton<ColorFilterMode>(
+                        style: const ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        segments: [
+                          ButtonSegment(
+                            value: ColorFilterMode.or,
+                            label: Text(l10n.archiveColorModeAny),
+                          ),
+                          ButtonSegment(
+                            value: ColorFilterMode.and,
+                            label: Text(l10n.archiveColorModeAll),
+                          ),
+                        ],
+                        selected: {filters.colorMode},
+                        onSelectionChanged: (s) =>
+                            notifier.state = filters.copyWith(colorMode: s.first),
                       ),
-                      segments: [
-                        ButtonSegment(
-                          value: ColorFilterMode.or,
-                          label: Text(l10n.archiveColorModeAny),
-                        ),
-                        ButtonSegment(
-                          value: ColorFilterMode.and,
-                          label: Text(l10n.archiveColorModeAll),
-                        ),
-                      ],
-                      selected: {filters.colorMode},
-                      onSelectionChanged: (s) =>
-                          notifier.state = filters.copyWith(colorMode: s.first),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              _ColorSwatchWrap(
-                colors: colors.toList(),
-                selected: filters.colors,
-                onToggle: (c) {
-                  final next = {...filters.colors};
-                  if (!next.remove(c)) next.add(c);
-                  notifier.state = filters.copyWith(colors: next);
-                },
-              ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                _ColorSwatchWrap(
+                  colors: colors.toList(),
+                  selected: filters.colors,
+                  onToggle: (c) {
+                    final next = {...filters.colors};
+                    if (!next.remove(c)) next.add(c);
+                    notifier.state = filters.copyWith(colors: next);
+                  },
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
+      )
     );
   }
 

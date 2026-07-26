@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
@@ -42,7 +43,7 @@ class ProjectDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: l10n.projectEdit,
                 onPressed: () => openProjectEdit(context, async.value!),
-              ),
+              ).tagged('project.edit'),
               _OverflowMenu(project: async.value!),
             ],
           ],
@@ -539,7 +540,7 @@ class _NotesSection extends ConsumerWidget {
         icon: const Icon(Icons.edit_outlined, size: 18),
         label: Text(l10n.projectEdit),
         onPressed: () => _editNotes(context, ref),
-      ),
+      ).tagged('project.edit_notes'),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(

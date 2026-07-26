@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_theme.dart';
@@ -67,10 +68,13 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
           context,
           title: l10n.navMaintenance,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              tooltip: l10n.maintenanceSettingsTitle,
-              onPressed: () => context.push('/settings/maintenance'),
+            logTag(
+              'maintenance.settings',
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: l10n.maintenanceSettingsTitle,
+                onPressed: () => context.push('/settings/maintenance'),
+              ),
             ),
           ],
         ),
@@ -142,68 +146,71 @@ class _PrinterSectionState extends State<_PrinterSection> {
         children: [
           Material(
             type: MaterialType.transparency,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(22),
-              onTap: () => setState(() => _expanded = !_expanded),
-              child: Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                decoration: BoxDecoration(
-                  gradient: t.cardGradient,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: t.cardBorder),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            printer.printerName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: t.textPrimary,
+            child: logTag(
+              'maintenance.printer_toggle',
+              InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: BoxDecoration(
+                    gradient: t.cardGradient,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: t.cardBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              printer.printerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontUi,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: t.textPrimary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            [
-                              if (printer.printerModel != null)
-                                printer.printerModel!,
-                              l10n.maintenanceTotalHours(
-                                  printer.totalPrintHours.round()),
-                            ].join(' · '),
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: t.textTertiary,
+                            const SizedBox(height: 4),
+                            Text(
+                              [
+                                if (printer.printerModel != null)
+                                  printer.printerModel!,
+                                l10n.maintenanceTotalHours(
+                                    printer.totalPrintHours.round()),
+                              ].join(' · '),
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontMono,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: t.textTertiary,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    if (printer.dueCount > 0) ...[
-                      const SizedBox(width: 12),
-                      DashPill(
-                        label: l10n.maintenanceDueBadge(printer.dueCount),
-                        accent: t.accentOrange,
+                      if (printer.dueCount > 0) ...[
+                        const SizedBox(width: 12),
+                        DashPill(
+                          label: l10n.maintenanceDueBadge(printer.dueCount),
+                          accent: t.accentOrange,
+                        ),
+                      ],
+                      const SizedBox(width: 8),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(Icons.expand_more, color: t.textSecondary),
                       ),
                     ],
-                    const SizedBox(width: 8),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Icon(Icons.expand_more, color: t.textSecondary),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -253,94 +260,97 @@ class _MaintenanceTile extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: 10),
         child: Material(
           type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => _showHistory(context, ref, l10n),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                // Urgency reads from the icon tile, progress bar and "Overdue
-                // by" text alone — the card itself stays neutral so an
-                // overdue tile doesn't read as an error/alert box.
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: t.subCardBorder),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: tileAccent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
+          child: logTag(
+            'maintenance.task',
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _showHistory(context, ref, l10n),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  // Urgency reads from the icon tile, progress bar and "Overdue
+                  // by" text alone — the card itself stays neutral so an
+                  // overdue tile doesn't read as an error/alert box.
+                  color: t.subCard,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: t.subCardBorder),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: tileAccent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        maintenanceIcon(item.maintenanceTypeIcon),
+                        size: 18,
+                        color: inkAccent,
+                      ),
                     ),
-                    child: Icon(
-                      maintenanceIcon(item.maintenanceTypeIcon),
-                      size: 18,
-                      color: inkAccent,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.maintenanceTypeName,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.maintenanceTypeName,
+                                  style: TextStyle(
+                                    fontFamily: DashTokens.fontUi,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            TextButton(
-                              style: TextButton.styleFrom(
-                                // Matches the tile's own urgency accent
-                                // (orange when overdue) instead of always
-                                // green, so it doesn't clash with the rest.
-                                foregroundColor: inkAccent,
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(0, 0),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: () =>
-                                  _confirmPerform(context, ref, l10n),
-                              child: Text(l10n.maintenancePerform),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: LinearProgressIndicator(
-                            value: item.progress,
-                            minHeight: 5,
-                            backgroundColor: t.gaugeTrack,
-                            valueColor: AlwaysStoppedAnimation(tileAccent),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  // Matches the tile's own urgency accent
+                                  // (orange when overdue) instead of always
+                                  // green, so it doesn't clash with the rest.
+                                  foregroundColor: inkAccent,
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(0, 0),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () =>
+                                    _confirmPerform(context, ref, l10n),
+                                child: Text(l10n.maintenancePerform),
+                              ).tagged('maintenance.perform'),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          dueText,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: due ? t.accentOrange : t.textTertiary,
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: item.progress,
+                              minHeight: 5,
+                              backgroundColor: t.gaugeTrack,
+                              valueColor: AlwaysStoppedAnimation(tileAccent),
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            dueText,
+                            style: TextStyle(
+                              fontFamily: DashTokens.fontMono,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: due ? t.accentOrange : t.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

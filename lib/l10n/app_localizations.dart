@@ -6727,6 +6727,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Force color match'**
   String get queueEditForceColorMatch;
+
+  /// No description provided for @bugReportMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug'**
+  String get bugReportMenu;
+
+  /// No description provided for @bugReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug'**
+  String get bugReportTitle;
+
+  /// No description provided for @bugReportIntroHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get bugReportIntroHeader;
+
+  /// No description provided for @bugReportIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start recording, reproduce the problem, then come back and finish. The app writes down what it does — screens you open, buttons you press, requests to the server and errors — so the report says more than \"it does not work\".'**
+  String get bugReportIntroBody;
+
+  /// No description provided for @bugReportPrivacyHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'What ends up in the log'**
+  String get bugReportPrivacyHeader;
+
+  /// No description provided for @bugReportPrivacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Never your API key, password or the text you type. Your server address is reduced to its shape: whether it is http or https, a name or an IP, and the port. You review everything before anything leaves the phone.'**
+  String get bugReportPrivacyBody;
+
+  /// No description provided for @bugReportStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start recording'**
+  String get bugReportStart;
+
+  /// No description provided for @bugReportRecordingHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get bugReportRecordingHeader;
+
+  /// No description provided for @bugReportRecordingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back to the app and reproduce the problem. The recording bar stays with you — drag it aside or collapse it if it gets in the way, and use it to mark the moment it breaks and to finish.'**
+  String get bugReportRecordingBody;
+
+  /// No description provided for @bugReportMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark the moment'**
+  String get bugReportMark;
+
+  /// No description provided for @bugReportMarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Moment marked'**
+  String get bugReportMarked;
+
+  /// No description provided for @bugReportStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish recording'**
+  String get bugReportStop;
+
+  /// No description provided for @bugReportStopShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get bugReportStopShort;
+
+  /// No description provided for @bugReportBannerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get bugReportBannerLabel;
+
+  /// No description provided for @bugReportBarMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the recording bar'**
+  String get bugReportBarMove;
+
+  /// No description provided for @bugReportBarCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse the recording bar'**
+  String get bugReportBarCollapse;
+
+  /// No description provided for @bugReportBarExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand the recording bar'**
+  String get bugReportBarExpand;
+
+  /// No description provided for @bugReportReviewHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Review before sending'**
+  String get bugReportReviewHeader;
+
+  /// No description provided for @bugReportReviewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is everything that was recorded. Sending it to an issue comes in a later version — for now copy it and attach it yourself.'**
+  String get bugReportReviewBody;
+
+  /// No description provided for @bugReportSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{records} records · {errors} errors · {warnings} warnings'**
+  String bugReportSummary(int records, int errors, int warnings);
+
+  /// No description provided for @bugReportMarkers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 marked moment} other{{count} marked moments}}'**
+  String bugReportMarkers(int count);
+
+  /// No description provided for @bugReportTruncated.
+  ///
+  /// In en, this message translates to:
+  /// **'The session was long — the oldest records were dropped.'**
+  String get bugReportTruncated;
+
+  /// No description provided for @bugReportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was recorded.'**
+  String get bugReportEmpty;
+
+  /// No description provided for @bugReportShowRaw.
+  ///
+  /// In en, this message translates to:
+  /// **'Show raw log'**
+  String get bugReportShowRaw;
+
+  /// No description provided for @bugReportHideRaw.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide raw log'**
+  String get bugReportHideRaw;
+
+  /// No description provided for @bugReportCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy log'**
+  String get bugReportCopy;
+
+  /// No description provided for @bugReportCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Log copied to clipboard'**
+  String get bugReportCopied;
+
+  /// No description provided for @bugReportDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get bugReportDiscard;
+
+  /// No description provided for @bugReportDiscardQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this recording?'**
+  String get bugReportDiscardQuestion;
+
+  /// No description provided for @bugReportDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The log will be deleted from the phone.'**
+  String get bugReportDiscardBody;
+
+  /// No description provided for @bugReportPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Not wired up yet: HTTP, WebSocket, crashes, navigation and the background service. For now the log holds your taps and session markers.'**
+  String get bugReportPending;
 }
 
 class _AppLocalizationsDelegate

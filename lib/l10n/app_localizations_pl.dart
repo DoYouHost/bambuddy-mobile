@@ -3899,4 +3899,114 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Wymuś zgodność koloru';
+
+  @override
+  String get bugReportMenu => 'Zgłoś błąd';
+
+  @override
+  String get bugReportTitle => 'Zgłoś błąd';
+
+  @override
+  String get bugReportIntroHeader => 'Jak to działa';
+
+  @override
+  String get bugReportIntroBody =>
+      'Włącz nagrywanie, odtwórz problem i wróć tutaj, żeby je zakończyć. Aplikacja zapisuje, co robi — otwierane ekrany, naciskane przyciski, zapytania do serwera i błędy — żeby zgłoszenie mówiło więcej niż „nie działa\".';
+
+  @override
+  String get bugReportPrivacyHeader => 'Co trafia do logu';
+
+  @override
+  String get bugReportPrivacyBody =>
+      'Nigdy klucz API, hasło ani tekst, który wpisujesz. Adres serwera zostaje sprowadzony do kształtu: czy to http czy https, nazwa czy IP, i port. Wszystko przeglądasz, zanim cokolwiek opuści telefon.';
+
+  @override
+  String get bugReportStart => 'Rozpocznij nagrywanie';
+
+  @override
+  String get bugReportRecordingHeader => 'Nagrywanie trwa';
+
+  @override
+  String get bugReportRecordingBody =>
+      'Wróć do aplikacji i odtwórz problem. Pasek nagrywania zostaje z Tobą — przesuń go albo zwiń, jeśli zasłania. Oznacz nim moment awarii i zakończ nagrywanie.';
+
+  @override
+  String get bugReportMark => 'Oznacz moment';
+
+  @override
+  String get bugReportMarked => 'Moment oznaczony';
+
+  @override
+  String get bugReportStop => 'Zakończ nagrywanie';
+
+  @override
+  String get bugReportStopShort => 'Zakończ';
+
+  @override
+  String get bugReportBannerLabel => 'Nagrywanie';
+
+  @override
+  String get bugReportBarMove => 'Przesuń pasek nagrywania';
+
+  @override
+  String get bugReportBarCollapse => 'Zwiń pasek nagrywania';
+
+  @override
+  String get bugReportBarExpand => 'Rozwiń pasek nagrywania';
+
+  @override
+  String get bugReportReviewHeader => 'Przejrzyj przed wysłaniem';
+
+  @override
+  String get bugReportReviewBody =>
+      'To wszystko, co zostało nagrane. Wysyłka do issue pojawi się w kolejnej wersji — na razie skopiuj log i dołącz go samodzielnie.';
+
+  @override
+  String bugReportSummary(int records, int errors, int warnings) {
+    return '$records rekordów · $errors błędów · $warnings ostrzeżeń';
+  }
+
+  @override
+  String bugReportMarkers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oznaczonych momentów',
+      few: '$count oznaczone momenty',
+      one: '1 oznaczony moment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bugReportTruncated =>
+      'Sesja była długa — najstarsze rekordy zostały odrzucone.';
+
+  @override
+  String get bugReportEmpty => 'Nic nie zostało nagrane.';
+
+  @override
+  String get bugReportShowRaw => 'Pokaż surowy log';
+
+  @override
+  String get bugReportHideRaw => 'Ukryj surowy log';
+
+  @override
+  String get bugReportCopy => 'Kopiuj log';
+
+  @override
+  String get bugReportCopied => 'Log skopiowany do schowka';
+
+  @override
+  String get bugReportDiscard => 'Odrzuć';
+
+  @override
+  String get bugReportDiscardQuestion => 'Odrzucić to nagranie?';
+
+  @override
+  String get bugReportDiscardBody => 'Log zostanie usunięty z telefonu.';
+
+  @override
+  String get bugReportPending =>
+      'Jeszcze niepodpięte: HTTP, WebSocket, awarie, nawigacja i usługa w tle. Na razie log zawiera Twoje kliknięcia i znaczniki sesji.';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/inventory.dart';
@@ -160,10 +161,13 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         );
 
     if (sourceId == null) {
-      return wrap(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Text(l10n.mappingNoSlots),
-      ));
+      return logTag(
+        'sheet.queue_mapping',
+        wrap(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(l10n.mappingNoSlots),
+        ))
+      );
     }
 
     final reqsAsync =

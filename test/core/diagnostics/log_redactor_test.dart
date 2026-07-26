@@ -1,0 +1,188 @@
+import 'package:bambuddy_mobile/core/diagnostics/log_redactor.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  late LogRedactor redactor;
+
+  setUp(() => redactor = LogRedactor());
+
+  group('known values', () {
+    test('replaces a remembered secret wherever it appears', () {
+      redactor.remember('sk-super-secret-key', '[APIKEY]');
+
+      expect(
+        redactor.scrubString('auth failed for sk-super-secret-key (401)'),
+        'auth failed for [APIKEY] (401)',
+      );
+    });
+
+    test('replaces the longest match first', () {
+      redactor
+        ..remember('printer.lan', '[HOST]')
+        ..remember('printer.lan.example.com', '[HOST]');
+
+      expect(
+        redactor.scrubString('GET https://printer.lan.example.com/api'),
+        'GET https://[HOST]/api',
+      );
+    });
+
+    test('rememberServerUrl masks the host where it appears bare', () {
+      redactor.rememberServerUrl('https://bambuddy.local:8443');
+
+      expect(
+        redactor.scrubString("Failed host lookup: 'bambuddy.local'"),
+        "Failed host lookup: '[HOST]'",
+      );
+    });
+
+    test('rememberServerUrl leaves the port for the authority pass to keep',
+        () {
+      redactor.rememberServerUrl('https://bambuddy.local:8443');
+
+      expect(
+        redactor.scrubString('GET https://bambuddy.local:8443/api/v1/printers'),
+        'GET https://[HOST]:8443/api/v1/printers',
+      );
+    });
+
+    test('rememberServerUrl ignores junk instead of throwing', () {
+      redactor
+        ..rememberServerUrl(null)
+        ..rememberServerUrl('')
+        ..rememberServerUrl('not a url');
+
+      expect(redactor.scrubString('not a url'), 'not a url');
+    });
+
+    test('ignores null and very short values to avoid over-redaction', () {
+      redactor
+        ..remember(null, '[X]')
+        ..remember('ok', '[X]');
+
+      expect(redactor.scrubString('ok, everything is ok'),
+          'ok, everything is ok');
+    });
+
+    test('forget removes a value that is no longer held', () {
+      redactor.remember('rotating-token', '[TOKEN]');
+      redactor.forget('rotating-token');
+
+      expect(redactor.scrubString('rotating-token'), 'rotating-token');
+    });
+  });
+
+  group('shape-based passes', () {
+    test('masks an unknown host but keeps scheme and port', () {
+      expect(
+        redactor.scrubString('GET http://192.168.1.9:8080/api/v1/status'),
+        'GET http://[HOST]:8080/api/v1/status',
+      );
+      expect(
+        redactor.scrubString('ws upgrade wss://home.example.com/api/v1/ws'),
+        'ws upgrade wss://[HOST]/api/v1/ws',
+      );
+    });
+
+    test('keeps http and https distinguishable — that is the point', () {
+      expect(redactor.scrubString('https://a.example.com/x'),
+          isNot(contains('http://')));
+      expect(redactor.scrubString('http://a.example.com/x'),
+          startsWith('http://'));
+    });
+
+    test('masks credentials embedded in a url, host and all', () {
+      expect(
+        redactor.scrubString('connect rtsps://bblp:12345678@camera.lan/stream'),
+        'connect rtsps://[CREDENTIALS]@[HOST]/stream',
+      );
+    });
+
+    test('masks a jwt anywhere in the text', () {
+      const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abc-def_123';
+
+      expect(redactor.scrubString('Bearer $jwt'), 'Bearer [JWT]');
+    });
+
+    test('masks token query parameters but keeps the parameter name', () {
+      expect(
+        redactor.scrubString('/archives/7/thumbnail?token=abcdef123456'),
+        '/archives/7/thumbnail?token=[REDACTED]',
+      );
+      expect(
+        redactor.scrubString('/stream?fps=5&api_key=zzz&x=1'),
+        '/stream?fps=5&api_key=[REDACTED]&x=1',
+      );
+    });
+
+    test('masks emails and Bambu serials', () {
+      expect(redactor.scrubString('user@example.com'), '[EMAIL]');
+      expect(redactor.scrubString('printer 01P00A123456789 ready'),
+          'printer [SERIAL] ready');
+    });
+
+    test('masks IPv4 addresses', () {
+      expect(redactor.scrubString('connecting to 192.168.1.50:8080'),
+          'connecting to [IP]:8080');
+    });
+
+    test('leaves firmware versions alone', () {
+      // Leading-zero octets are not valid IPv4 — that is what separates a
+      // firmware string from an address.
+      expect(redactor.scrubString('firmware 01.09.01.00'),
+          'firmware 01.09.01.00');
+    });
+  });
+
+  group('fields', () {
+    test('redacts values by field name whatever their shape', () {
+      final out = redactor.scrubFields(const {
+        'method': 'GET',
+        'api_key': 'plain-looking-value',
+        'access_code': '11223344',
+        'serial': 'not-a-serial-shape',
+      });
+
+      expect(out['method'], 'GET');
+      expect(out['api_key'], '[REDACTED]');
+      expect(out['access_code'], '[REDACTED]');
+      expect(out['serial'], '[REDACTED]');
+    });
+
+    test('walks nested maps and lists', () {
+      final out = redactor.scrubFields(const {
+        'body': {
+          'printers': ['192.168.0.7', '10.0.0.1'],
+          'nested': {'token': 'deep-secret'},
+        },
+      });
+
+      expect(out['body'], {
+        'printers': ['[IP]', '[IP]'],
+        'nested': {'token': '[REDACTED]'},
+      });
+    });
+
+    test('non-string scalars pass through untouched', () {
+      final out = redactor.scrubFields(const {'status': 502, 'ok': false});
+
+      expect(out, {'status': 502, 'ok': false});
+    });
+
+    test('clips a long value so one stack trace cannot fill the buffer', () {
+      final short = LogRedactor(maxStringLength: 10);
+
+      expect(short.scrubString('abcdefghijklmnop'), 'abcdefghij…[clipped]');
+    });
+
+    test('clipping happens after redaction, never mid-secret', () {
+      final short = LogRedactor(maxStringLength: 12)
+        ..remember('long-secret-value-here', '[APIKEY]');
+
+      // Clipping the raw string first would have left a secret fragment in
+      // the record; redacting first means the label survives instead.
+      expect(short.scrubString('key long-secret-value-here rejected'),
+          'key [APIKEY]…[clipped]');
+    });
+  });
+}

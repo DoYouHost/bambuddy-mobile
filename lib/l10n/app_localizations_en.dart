@@ -3842,4 +3842,113 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditForceColorMatch => 'Force color match';
+
+  @override
+  String get bugReportMenu => 'Report a bug';
+
+  @override
+  String get bugReportTitle => 'Report a bug';
+
+  @override
+  String get bugReportIntroHeader => 'How it works';
+
+  @override
+  String get bugReportIntroBody =>
+      'Start recording, reproduce the problem, then come back and finish. The app writes down what it does — screens you open, buttons you press, requests to the server and errors — so the report says more than \"it does not work\".';
+
+  @override
+  String get bugReportPrivacyHeader => 'What ends up in the log';
+
+  @override
+  String get bugReportPrivacyBody =>
+      'Never your API key, password or the text you type. Your server address is reduced to its shape: whether it is http or https, a name or an IP, and the port. You review everything before anything leaves the phone.';
+
+  @override
+  String get bugReportStart => 'Start recording';
+
+  @override
+  String get bugReportRecordingHeader => 'Recording';
+
+  @override
+  String get bugReportRecordingBody =>
+      'Go back to the app and reproduce the problem. The recording bar stays with you — drag it aside or collapse it if it gets in the way, and use it to mark the moment it breaks and to finish.';
+
+  @override
+  String get bugReportMark => 'Mark the moment';
+
+  @override
+  String get bugReportMarked => 'Moment marked';
+
+  @override
+  String get bugReportStop => 'Finish recording';
+
+  @override
+  String get bugReportStopShort => 'Finish';
+
+  @override
+  String get bugReportBannerLabel => 'Recording';
+
+  @override
+  String get bugReportBarMove => 'Move the recording bar';
+
+  @override
+  String get bugReportBarCollapse => 'Collapse the recording bar';
+
+  @override
+  String get bugReportBarExpand => 'Expand the recording bar';
+
+  @override
+  String get bugReportReviewHeader => 'Review before sending';
+
+  @override
+  String get bugReportReviewBody =>
+      'This is everything that was recorded. Sending it to an issue comes in a later version — for now copy it and attach it yourself.';
+
+  @override
+  String bugReportSummary(int records, int errors, int warnings) {
+    return '$records records · $errors errors · $warnings warnings';
+  }
+
+  @override
+  String bugReportMarkers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count marked moments',
+      one: '1 marked moment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bugReportTruncated =>
+      'The session was long — the oldest records were dropped.';
+
+  @override
+  String get bugReportEmpty => 'Nothing was recorded.';
+
+  @override
+  String get bugReportShowRaw => 'Show raw log';
+
+  @override
+  String get bugReportHideRaw => 'Hide raw log';
+
+  @override
+  String get bugReportCopy => 'Copy log';
+
+  @override
+  String get bugReportCopied => 'Log copied to clipboard';
+
+  @override
+  String get bugReportDiscard => 'Discard';
+
+  @override
+  String get bugReportDiscardQuestion => 'Discard this recording?';
+
+  @override
+  String get bugReportDiscardBody => 'The log will be deleted from the phone.';
+
+  @override
+  String get bugReportPending =>
+      'Not wired up yet: HTTP, WebSocket, crashes, navigation and the background service. For now the log holds your taps and session markers.';
 }

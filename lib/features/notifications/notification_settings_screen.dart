@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -198,47 +199,50 @@ class _DashSwitchRow extends StatelessWidget {
     final enabled = onChanged != null;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: enabled ? () => onChanged!(!value) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
+      child: logTag(
+        'notification_settings.event',
+        InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: enabled ? () => onChanged!(!value) : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: t.textTertiary,
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: t.textTertiary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Switch(
-                value: value,
-                onChanged: onChanged,
-                activeThumbColor: t.accentGreen,
-              ),
-            ],
+                const SizedBox(width: 12),
+                Switch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeThumbColor: t.accentGreen,
+                ),
+              ],
+            ),
           ),
         ),
       ),

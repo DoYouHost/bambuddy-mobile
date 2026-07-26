@@ -585,19 +585,22 @@ class _FanCell extends ConsumerWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => _FanControlSheet(
-            printerId: printerId,
-            fan: fan,
-            label: sheetLabel,
-            initialSpeed: shown,
+      child: logTag(
+        'printer.fan',
+        InkWell(
+          onTap: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _FanControlSheet(
+              printerId: printerId,
+              fan: fan,
+              label: sheetLabel,
+              initialSpeed: shown,
+            ),
           ),
+          child: cell,
         ),
-        child: cell,
       ),
     );
   }
@@ -660,109 +663,112 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     final l10n = AppLocalizations.of(context);
     final accent = _speed > 0 ? t.accentBlue : t.textSecondary;
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: t.overlaySurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: t.subCardBorder)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.textTertiary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
+    return logTag(
+      'sheet.fan',
+      SafeArea(
+        top: false,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: t.overlaySurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: t.subCardBorder)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.textTertiary.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: t.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      _speed == 0 ? l10n.ctrlOff : '$_speed%',
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.label,
                       style: TextStyle(
-                        fontFamily: DashTokens.fontMono,
-                        fontSize: 44,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: t.textPrimary,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _StepButton(icon: Icons.remove, onTap: () => _bump(-1)),
-                      Expanded(
-                        child: Slider(
-                          value: _speed.toDouble(),
-                          max: 100,
-                          activeColor: accent,
-                          onChanged: (v) => setState(() => _speed = v.round()),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        _speed == 0 ? l10n.ctrlOff : '$_speed%',
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 44,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
                         ),
                       ),
-                      _StepButton(icon: Icons.add, onTap: () => _bump(1)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final p in _presets)
-                        _PresetChip(
-                          label: '$p%',
-                          selected: _speed == p,
-                          onTap: () => setState(() => _speed = p),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _StepButton(icon: Icons.remove, onTap: () => _bump(-1)),
+                        Expanded(
+                          child: Slider(
+                            value: _speed.toDouble(),
+                            max: 100,
+                            activeColor: accent,
+                            onChanged: (v) => setState(() => _speed = v.round()),
+                          ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlOff,
-                          onTap: _busy ? null : () => _apply(0),
+                        _StepButton(icon: Icons.add, onTap: () => _bump(1)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final p in _presets)
+                          _PresetChip(
+                            label: '$p%',
+                            selected: _speed == p,
+                            onTap: () => setState(() => _speed = p),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SheetButton(
+                            label: l10n.ctrlOff,
+                            onTap: _busy ? null : () => _apply(0),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _SheetButton(
-                          label: l10n.ctrlSet,
-                          filled: true,
-                          busy: _busy,
-                          onTap: _busy ? null : () => _apply(_speed),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _SheetButton(
+                            label: l10n.ctrlSet,
+                            filled: true,
+                            busy: _busy,
+                            onTap: _busy ? null : () => _apply(_speed),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }

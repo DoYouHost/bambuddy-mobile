@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -46,6 +47,7 @@ class RootScaffold extends ConsumerWidget {
         selected: index == 0,
         tokens: t,
         onTap: () => go(0),
+        id: 'nav.dashboard',
       ),
       _NavItem(
         icon: const Icon(Icons.list_outlined, size: 22),
@@ -55,6 +57,7 @@ class RootScaffold extends ConsumerWidget {
         badge: queueCount,
         tokens: t,
         onTap: () => go(1),
+        id: 'nav.queue',
       ),
       _NavItem(
         icon: const Icon(Icons.inventory_2_outlined, size: 22),
@@ -63,6 +66,7 @@ class RootScaffold extends ConsumerWidget {
         selected: index == 2,
         tokens: t,
         onTap: () => go(2),
+        id: 'nav.archive',
       ),
       _NavItem(
         icon: const Icon(Icons.build_outlined, size: 22),
@@ -72,6 +76,7 @@ class RootScaffold extends ConsumerWidget {
         badge: maintenanceCount,
         tokens: t,
         onTap: () => go(3),
+        id: 'nav.maintenance',
       ),
       _NavItem(
         icon: _svgIcon('assets/icons/filament_spool.svg'),
@@ -79,6 +84,7 @@ class RootScaffold extends ConsumerWidget {
         selected: index == 4,
         tokens: t,
         onTap: () => go(4),
+        id: 'nav.filaments',
       ),
     ];
 
@@ -147,6 +153,7 @@ class _NavItem extends StatelessWidget {
     required this.selected,
     required this.tokens,
     required this.onTap,
+    required this.id,
     this.selectedIcon,
     this.badge = 0,
   });
@@ -159,69 +166,76 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
   final int badge;
 
+  /// Name for the diagnostic log — the visible label is localized and is not
+  /// recorded.
+  final String id;
+
   @override
   Widget build(BuildContext context) {
     final color = selected ? tokens.accentGreenInk : tokens.textTertiary;
     final glyph = selected ? (selectedIcon ?? icon) : icon;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 24,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  IconTheme.merge(
-                    data: IconThemeData(color: color, size: 22),
-                    child: glyph,
-                  ),
-                  if (badge > 0)
-                    Positioned(
-                      top: -5,
-                      right: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        constraints:
-                            const BoxConstraints(minWidth: 15, minHeight: 15),
-                        decoration: BoxDecoration(
-                          color: tokens.danger,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$badge',
-                            style: const TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: 1.2,
+    return logTag(
+      id,
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 24,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconTheme.merge(
+                      data: IconThemeData(color: color, size: 22),
+                      child: glyph,
+                    ),
+                    if (badge > 0)
+                      Positioned(
+                        top: -5,
+                        right: -8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          constraints:
+                              const BoxConstraints(minWidth: 15, minHeight: 15),
+                          decoration: BoxDecoration(
+                            color: tokens.danger,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$badge',
+                              style: const TextStyle(
+                                fontFamily: DashTokens.fontUi,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color: color,
+              const SizedBox(height: 5),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 10,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: color,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

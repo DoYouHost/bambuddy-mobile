@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,13 +68,13 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                       onPressed: () => _restoreDefaults(context, ref, l10n),
                       icon: const Icon(Icons.restart_alt),
                       label: Text(l10n.maintenanceRestoreDefaults),
-                    ),
+                    ).tagged('maintenance_settings.restore_defaults'),
                     FilledButton.icon(
                       style: dashPrimaryButtonStyle(t),
                       onPressed: () => openTypeForm(context),
                       icon: const Icon(Icons.add),
                       label: Text(l10n.maintenanceAddType),
-                    ),
+                    ).tagged('maintenance_settings.add_type'),
                   ],
                 ),
               ),
@@ -137,6 +138,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'maintenance.restore_defaults_confirm',
       title: l10n.maintenanceRestoreDefaults,
       message: l10n.maintenanceRestoreConfirm,
       confirmLabel: l10n.maintenanceRestoreDefaults,
@@ -270,8 +272,8 @@ class _TypeTile extends ConsumerWidget {
         icon: Icon(Icons.delete_outline, color: t.textSecondary),
         tooltip: l10n.inventoryDelete,
         onPressed: () => _delete(context, ref, l10n),
-      ),
-    );
+      ).tagged('maintenance_settings.delete_type'),
+    ).tagged('maintenance_settings.type');
   }
 
   Future<void> _delete(
@@ -281,6 +283,7 @@ class _TypeTile extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'maintenance.delete_type_confirm',
       title: l10n.maintenanceDeleteTypeTitle,
       // System types are only hidden (restorable); custom ones are removed.
       message: type.isSystem
@@ -346,12 +349,12 @@ class _OverrideTile extends ConsumerWidget {
               ),
               tooltip: item.enabled ? l10n.maintenanceMute : l10n.maintenanceUnmute,
               onPressed: () => _toggleMute(context, ref, l10n),
-            ),
+            ).tagged('maintenance_settings.mute'),
             IconButton(
               icon: Icon(Icons.edit_outlined, color: t.textSecondary),
               tooltip: l10n.maintenanceEditInterval,
               onPressed: () => _editInterval(context, ref, l10n),
-            ),
+            ).tagged('maintenance_settings.interval'),
           ],
         ),
       ),
@@ -631,7 +634,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(l10n.inventorySave),
-            ),
+            ).tagged('maintenance_type_form.save'),
           ],
         ),
       ),

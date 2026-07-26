@@ -18,6 +18,7 @@ class SettingsRepository {
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
   static const _swatchCodesKey = 'swatch_codes';
+  static const _diagnosticsSessionKey = 'diagnostics_session';
 
   final SharedPreferences _prefs;
 
@@ -114,4 +115,15 @@ class SettingsRepository {
         _swatchCodesKey,
         jsonEncode([for (final c in codes) c.toJson()]),
       );
+
+  /// Session id of a bug-report recording in progress, or null when none is.
+  /// The id doubles as the on/off flag — the background isolate reads it to
+  /// decide whether to write its own log stream, and a separate bool would be
+  /// a second thing to keep in sync across isolates. Callers in the isolate
+  /// must `reload()` first: the write came from the UI isolate.
+  String? loadDiagnosticsSession() => _prefs.getString(_diagnosticsSessionKey);
+
+  Future<void> saveDiagnosticsSession(String? session) => session == null
+      ? _prefs.remove(_diagnosticsSessionKey)
+      : _prefs.setString(_diagnosticsSessionKey, session);
 }

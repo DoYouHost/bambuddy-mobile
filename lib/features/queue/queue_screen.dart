@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
@@ -139,12 +140,15 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         ),
         floatingActionButton: firstQueued == null
             ? null
-            : FloatingActionButton.extended(
-                onPressed: () => _startNext(context, ref, firstQueued, l10n),
-                backgroundColor: t.accentGreen,
-                foregroundColor: const Color(0xFF0A0C08),
-                icon: const Icon(Icons.play_arrow),
-                label: Text(l10n.queueStartNext),
+            : logTag(
+                'queue.start_next',
+                FloatingActionButton.extended(
+                  onPressed: () => _startNext(context, ref, firstQueued, l10n),
+                  backgroundColor: t.accentGreen,
+                  foregroundColor: const Color(0xFF0A0C08),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(l10n.queueStartNext),
+                ),
               ),
         body: async.when(
           skipLoadingOnReload: true,
@@ -303,63 +307,69 @@ class _QueueCard extends ConsumerWidget {
     final idx = dragIndex;
     final highlighted = pinned || nextUp;
 
-    final card = Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        // Printing/next-up distinguished by a green-tinted border, not a fill.
-        border: Border.all(
-          color: highlighted
-              ? t.accentGreen.withValues(alpha: 0.3)
-              : t.cardBorder,
-        ),
-      ),
-      child: Row(
-        children: [
-          if (idx != null)
-            ReorderableDragStartListener(
-              index: idx,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Icon(Icons.drag_indicator, color: t.textTertiary),
-              ),
-            ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: item.archiveId == null && item.libraryFileId != null
-                ? LibraryThumbnail(
-                    fileId: item.libraryFileId!,
-                    hasThumbnail: item.libraryFileThumbnail != null,
-                    size: 56,
-                  )
-                : PrintThumbnail(archiveId: item.archiveId, size: 56),
+    final card = logTag(
+      'queue.card',
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: t.cardGradient,
+          borderRadius: BorderRadius.circular(22),
+          // Printing/next-up distinguished by a green-tinted border, not a fill.
+          border: Border.all(
+            color: highlighted
+                ? t.accentGreen.withValues(alpha: 0.3)
+                : t.cardBorder,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
+        ),
+        child: Row(
+          children: [
+            if (idx != null)
+              logTag(
+                'queue.reorder',
+                ReorderableDragStartListener(
+                  index: idx,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Icon(Icons.drag_indicator, color: t.textTertiary),
                   ),
                 ),
-                const SizedBox(height: 6),
-                _Subtitle(item: item),
-              ],
+              ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: item.archiveId == null && item.libraryFileId != null
+                  ? LibraryThumbnail(
+                      fileId: item.libraryFileId!,
+                      hasThumbnail: item.libraryFileThumbnail != null,
+                      size: 56,
+                    )
+                  : PrintThumbnail(archiveId: item.archiveId, size: 56),
             ),
-          ),
-          _QueueActions(item: item),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _Subtitle(item: item),
+                ],
+              ),
+            ),
+            _QueueActions(item: item),
+          ],
+        ),
       ),
     );
 
@@ -384,6 +394,7 @@ class _QueueCard extends ConsumerWidget {
       // else Dismissible conflicts with list rebuild.
       confirmDismiss: (_) => confirmDialog(
         context,
+        id: 'queue.swipe_delete_confirm',
         title: l10n.queueDeleteTitle,
         message: l10n.queueDeleteBody,
         confirmLabel: l10n.queueDeleteConfirm,
@@ -500,92 +511,110 @@ class _QueueActions extends ConsumerWidget {
     // Filament mapping needs a printer (for its AMS) and a source file.
     final canMap = canPreview && item.printerId != null;
 
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: t.textSecondary),
-      onSelected: (value) async {
-        if (value == 'preview') {
-          _previewGcode(context);
-          return;
-        }
-        if (value == 'edit') {
-          await openQueueEdit(context, item);
-          return;
-        }
-        // Start: shared flow (assign printer if none → mapping → start).
-        if (value == 'start') {
-          await _startQueueItem(context, ref, item, l10n);
-          return;
-        }
-        final messenger = ScaffoldMessenger.of(context);
-        final notifier = ref.read(queueProvider.notifier);
-        final printerId = item.printerId;
+    return logTag(
+      'queue.actions',
+      PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, color: t.textSecondary),
+        onSelected: (value) async {
+          if (value == 'preview') {
+            _previewGcode(context);
+            return;
+          }
+          if (value == 'edit') {
+            await openQueueEdit(context, item);
+            return;
+          }
+          // Start: shared flow (assign printer if none → mapping → start).
+          if (value == 'start') {
+            await _startQueueItem(context, ref, item, l10n);
+            return;
+          }
+          final messenger = ScaffoldMessenger.of(context);
+          final notifier = ref.read(queueProvider.notifier);
+          final printerId = item.printerId;
 
-        // Standalone mapping (save without starting) — needs a known printer.
-        if (value == 'ams' && printerId != null) {
-          final mapping = await showQueueMappingSheet(context,
-              item: item, printerId: printerId, confirmLabel: l10n.fmSave);
-          if (mapping == null) return;
-          final r = await notifier.saveMapping(item.id, mapping);
-          messenger.showSnackBar(SnackBar(
-              content: Text(r == QueueActionResult.ok
-                  ? l10n.mappingSaved
-                  : l10n.ctrlFailed)));
-          return;
-        }
+          // Standalone mapping (save without starting) — needs a known printer.
+          if (value == 'ams' && printerId != null) {
+            final mapping = await showQueueMappingSheet(context,
+                item: item, printerId: printerId, confirmLabel: l10n.fmSave);
+            if (mapping == null) return;
+            final r = await notifier.saveMapping(item.id, mapping);
+            messenger.showSnackBar(SnackBar(
+                content: Text(r == QueueActionResult.ok
+                    ? l10n.mappingSaved
+                    : l10n.ctrlFailed)));
+            return;
+          }
 
-        final result = switch (value) {
-          'cancel' => await notifier.cancel(item.id),
-          _ => QueueActionResult.error,
-        };
-        _snackForResult(messenger, l10n, result);
-      },
-      itemBuilder: (_) => [
-        if (canStart)
+          final result = switch (value) {
+            'cancel' => await notifier.cancel(item.id),
+            _ => QueueActionResult.error,
+          };
+          _snackForResult(messenger, l10n, result);
+        },
+        itemBuilder: (_) => [
+          if (canStart)
+            PopupMenuItem(
+              value: 'start',
+              child: logTag(
+                'queue.action.start',
+                ListTile(
+                  leading: const Icon(Icons.play_arrow),
+                  title: Text(l10n.queueStart),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+          // Only pending/scheduled items are editable server-side.
+          if (canStart)
+            PopupMenuItem(
+              value: 'edit',
+              child: logTag(
+                'queue.action.edit',
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(l10n.queueEdit),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+          if (canPreview)
+            PopupMenuItem(
+              value: 'preview',
+              child: logTag(
+                'queue.action.preview',
+                ListTile(
+                  leading: const Icon(Icons.view_in_ar_outlined),
+                  title: Text(l10n.gcodeViewerOpen),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+          if (canMap)
+            PopupMenuItem(
+              value: 'ams',
+              child: logTag(
+                'queue.action.mapping',
+                ListTile(
+                  leading: const Icon(Icons.bento_outlined),
+                  title: Text(l10n.queueFilamentMapping),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
           PopupMenuItem(
-            value: 'start',
-            child: ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: Text(l10n.queueStart),
-              contentPadding: EdgeInsets.zero,
+            value: 'cancel',
+            child: logTag(
+              'queue.action.cancel',
+              ListTile(
+                leading: const Icon(Icons.stop_circle_outlined),
+                title: Text(l10n.queueCancel),
+                contentPadding: EdgeInsets.zero,
+              ),
             ),
           ),
-        // Only pending/scheduled items are editable server-side.
-        if (canStart)
-          PopupMenuItem(
-            value: 'edit',
-            child: ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(l10n.queueEdit),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        if (canPreview)
-          PopupMenuItem(
-            value: 'preview',
-            child: ListTile(
-              leading: const Icon(Icons.view_in_ar_outlined),
-              title: Text(l10n.gcodeViewerOpen),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        if (canMap)
-          PopupMenuItem(
-            value: 'ams',
-            child: ListTile(
-              leading: const Icon(Icons.bento_outlined),
-              title: Text(l10n.queueFilamentMapping),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        PopupMenuItem(
-          value: 'cancel',
-          child: ListTile(
-            leading: const Icon(Icons.stop_circle_outlined),
-            title: Text(l10n.queueCancel),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -635,6 +664,7 @@ Future<void> _startQueueItem(
     if (!context.mounted) return;
     final confirmed = await confirmDialog(
       context,
+      id: 'queue.start_confirm',
       title: l10n.plateClearTitle,
       message: l10n.plateClearBody,
       confirmLabel: l10n.plateClearConfirm,

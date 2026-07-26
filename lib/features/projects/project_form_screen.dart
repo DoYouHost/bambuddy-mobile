@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -98,7 +99,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
               style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
               onPressed: _saving ? null : _submit,
               child: Text(l10n.projectSave),
-            ),
+            ).tagged('project_form.save'),
           ],
         ),
         body: AbsorbPointer(
@@ -284,7 +285,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           ),
           onPressed: _pickDueDate,
           child: Text(l10n.projectDueDate),
-        ),
+        ).tagged('project_form.due_date'),
       ],
     );
   }

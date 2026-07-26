@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
@@ -80,27 +81,36 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 context,
                 title: l10n.fileManagerTitle,
                 actions: [
-                  IconButton(
-                    tooltip: l10n.fmSortBy,
-                    icon: const Icon(Icons.sort),
-                    onPressed:
-                        state == null ? null : () => _openSortSheet(state),
+                  logTag(
+                    'files.sort',
+                    IconButton(
+                      tooltip: l10n.fmSortBy,
+                      icon: const Icon(Icons.sort),
+                      onPressed:
+                          state == null ? null : () => _openSortSheet(state),
+                    ),
                   ),
-                  IconButton(
-                    tooltip: l10n.fmTrash,
-                    icon: const Icon(Icons.recycling),
-                    onPressed: () => context.push('/files/trash'),
+                  logTag(
+                    'files.trash',
+                    IconButton(
+                      tooltip: l10n.fmTrash,
+                      icon: const Icon(Icons.recycling),
+                      onPressed: () => context.push('/files/trash'),
+                    ),
                   ),
                 ],
               ),
         floatingActionButton: selectionMode
             ? null
-            : FloatingActionButton(
-                backgroundColor: t.accentGreen,
-                foregroundColor: const Color(0xFF0A0C08),
-                onPressed:
-                    state == null ? null : () => _openCreateSheet(state),
-                child: const Icon(Icons.add),
+            : logTag(
+                'files.create',
+                FloatingActionButton(
+                  backgroundColor: t.accentGreen,
+                  foregroundColor: const Color(0xFF0A0C08),
+                  onPressed:
+                      state == null ? null : () => _openCreateSheet(state),
+                  child: const Icon(Icons.add),
+                ),
               ),
         body: async.when(
           skipLoadingOnReload: true,
@@ -213,26 +223,35 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   // --- AppBar trybu zaznaczania ---
 
-  AppBar _selectionAppBar(FileManagerState s) {
+  PreferredSizeWidget _selectionAppBar(FileManagerState s) {
     final l10n = _l10n;
     final notifier = ref.read(fileManagerProvider.notifier);
     return dashAppBar(
       context,
       title: l10n.fmSelectedCount(s.selected.length),
-      leading: IconButton(
-        icon: const Icon(Icons.close),
-        onPressed: notifier.clearSelection,
+      leading: logTag(
+        'files.selection_clear',
+        IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: notifier.clearSelection,
+        ),
       ),
       actions: [
-        IconButton(
-          tooltip: l10n.fmAddToQueue,
-          icon: const Icon(Icons.playlist_add),
-          onPressed: s.selected.isEmpty ? null : () => _addSelectedToQueue(s),
+        logTag(
+          'files.add_to_queue',
+          IconButton(
+            tooltip: l10n.fmAddToQueue,
+            icon: const Icon(Icons.playlist_add),
+            onPressed: s.selected.isEmpty ? null : () => _addSelectedToQueue(s),
+          ),
         ),
-        IconButton(
-          tooltip: l10n.fmDelete,
-          icon: const Icon(Icons.delete_outline),
-          onPressed: s.selected.isEmpty ? null : () => _deleteSelected(s),
+        logTag(
+          'files.delete_selected',
+          IconButton(
+            tooltip: l10n.fmDelete,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: s.selected.isEmpty ? null : () => _deleteSelected(s),
+          ),
         ),
       ],
     );
@@ -448,6 +467,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _deleteFolder(LibraryFolder folder) async {
     final ok = await confirmDialog(
       context,
+      id: 'files.delete_confirm',
       title: _l10n.fmDeleteFolder,
       message: _l10n.fmDeleteFolderConfirm(folder.name),
       confirmLabel: _l10n.fmDelete,
@@ -509,6 +529,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _deleteFile(LibraryFile file) async {
     final ok = await confirmDialog(
       context,
+      id: 'files.folder_delete_confirm',
       title: _l10n.fmDeleteFile,
       message: _l10n.fmDeleteFileConfirm(file.displayName),
       confirmLabel: _l10n.fmDelete,
@@ -530,6 +551,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final ids = s.selected.toList();
     final ok = await confirmDialog(
       context,
+      id: 'files.move_confirm',
       title: _l10n.fmDelete,
       message: _l10n.fmDeleteSelectedConfirm(ids.length),
       confirmLabel: _l10n.fmDelete,
@@ -578,6 +600,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (printer == null || !mounted) return;
     final ok = await confirmDialog(
       context,
+      id: 'files.bulk_delete_confirm',
       title: l10n.fmPrint,
       message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
       confirmLabel: l10n.fmPrint,
@@ -861,6 +884,7 @@ class _FilterRow extends ConsumerWidget {
       children: [
         Expanded(
           child: DashSearchField(
+            id: 'files.search',
             controller: controller,
             hintText: l10n.fmSearchHint,
             onChanged: onSearch,
@@ -918,74 +942,86 @@ class _FolderTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onOpen,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.subCardBorder),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+        child: logTag(
+          'files.folder',
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onOpen,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: t.accentGreen.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      folder.isExternal
+                          ? Icons.folder_special_outlined
+                          : Icons.folder,
+                      color: t.accentGreenInk,
+                    ),
                   ),
-                  child: Icon(
-                    folder.isExternal
-                        ? Icons.folder_special_outlined
-                        : Icons.folder,
-                    color: t.accentGreenInk,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        folder.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          folder.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.fmFolderItems(folder.fileCount),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: t.textTertiary,
+                        const SizedBox(height: 2),
+                        Text(
+                          l10n.fmFolderItems(folder.fileCount),
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: t.textTertiary,
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  if (!folder.isExternal)
+                    logTag(
+                      'files.folder_actions',
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: t.textSecondary),
+                        onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem(
+                            value: 'rename',
+                            child: logTag('files.folder.rename',
+                                Text(l10n.fmRename)),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: logTag('files.folder.delete',
+                                Text(l10n.fmDelete)),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                if (!folder.isExternal)
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: t.textSecondary),
-                    onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
-                    itemBuilder: (ctx) => [
-                      PopupMenuItem(
-                          value: 'rename', child: Text(l10n.fmRename)),
-                      PopupMenuItem(
-                          value: 'delete', child: Text(l10n.fmDelete)),
-                    ],
-                  ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1027,79 +1063,82 @@ class _FileTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.10)
-                  : t.subCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+        child: logTag(
+          'files.file',
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.4)
-                    : t.subCardBorder,
-              ),
-            ),
-            child: Row(
-              children: [
-                selectionMode
-                    ? SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: Icon(
-                          selected
-                              ? Icons.check_circle
-                              : Icons.circle_outlined,
-                          color: selected ? t.accentGreenInk : t.textTertiary,
-                        ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: LibraryThumbnail(
-                          fileId: file.id,
-                          hasThumbnail: file.thumbnailPath != null,
-                          size: 52,
-                        ),
-                      ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        file.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        meta.join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: t.textTertiary,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ? t.accentGreen.withValues(alpha: 0.10)
+                    : t.subCard,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: selected
+                      ? t.accentGreen.withValues(alpha: 0.4)
+                      : t.subCardBorder,
                 ),
-                if (!selectionMode)
-                  Icon(Icons.more_vert, size: 20, color: t.textSecondary),
-              ],
+              ),
+              child: Row(
+                children: [
+                  selectionMode
+                      ? SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Icon(
+                            selected
+                                ? Icons.check_circle
+                                : Icons.circle_outlined,
+                            color: selected ? t.accentGreenInk : t.textTertiary,
+                          ),
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: LibraryThumbnail(
+                            fileId: file.id,
+                            hasThumbnail: file.thumbnailPath != null,
+                            size: 52,
+                          ),
+                        ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          file.displayName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          meta.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: t.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!selectionMode)
+                    Icon(Icons.more_vert, size: 20, color: t.textSecondary),
+                ],
+              ),
             ),
           ),
         ),

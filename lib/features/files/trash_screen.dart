@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/trash_file.dart';
 import '../../core/theme/dash_theme.dart';
@@ -96,6 +97,7 @@ class TrashScreen extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'trash.restore_confirm',
       title: l10n.fmHardDelete,
       message: l10n.fmHardDeleteConfirm(file.filename),
       confirmLabel: l10n.fmHardDelete,
@@ -118,6 +120,7 @@ class TrashScreen extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'trash.purge_confirm',
       title: l10n.fmEmptyTrash,
       message: l10n.fmEmptyTrashConfirm,
       confirmLabel: l10n.fmHardDelete,
@@ -193,12 +196,12 @@ class _TrashTile extends StatelessWidget {
                 tooltip: l10n.fmRestore,
                 icon: Icon(Icons.restore_from_trash_outlined, color: t.accentGreenInk),
                 onPressed: onRestore,
-              ),
+              ).tagged('trash.restore'),
               IconButton(
                 tooltip: l10n.fmHardDelete,
                 icon: Icon(Icons.delete_forever_outlined, color: t.danger),
                 onPressed: onDelete,
-              ),
+              ).tagged('trash.delete'),
             ],
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
@@ -242,6 +243,7 @@ class _PrinterCardState extends State<PrinterCard> {
           ],
           if (showDetailsToggle) ...[
             _DetailsToggle(
+              id: 'printer.details_toggle',
               expanded: _expanded,
               onTap: () => setState(() => _expanded = !_expanded),
             ),
@@ -286,15 +288,20 @@ class _CardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: tokens.cardGradient,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: tokens.cardBorder),
+    // Names the card as a whole. Anything inside it without a tag of its own is
+    // still reported as "somewhere on a printer card", which beats a bare role.
+    return logTag(
+      'dashboard.printer_card',
+      Container(
+        margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: tokens.cardGradient,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: tokens.cardBorder),
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 }
@@ -370,6 +377,7 @@ class _HeaderActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _HeaderIconButton(
+          id: 'printer.files',
           tooltip: l10n.pfmTooltip,
           icon: Icons.folder_outlined,
           onPressed: () => Navigator.of(context).push(
@@ -383,6 +391,7 @@ class _HeaderActions extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         _HeaderIconButton(
+          id: 'printer.camera',
           tooltip: l10n.cameraTooltip,
           icon: Icons.videocam_outlined,
           onPressed: () => Navigator.of(context).push(
@@ -398,6 +407,7 @@ class _HeaderActions extends StatelessWidget {
         if (printing) ...[
           const SizedBox(width: 8),
           _HeaderIconButton(
+            id: 'printer.skip_objects',
             tooltip: l10n.skipObjectsTitle,
             icon: Icons.layers_clear_outlined,
             onPressed: () => Navigator.of(context).push(

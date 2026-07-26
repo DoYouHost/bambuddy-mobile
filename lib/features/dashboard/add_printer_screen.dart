@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/discovery.dart';
 import '../../core/models/printer_create.dart';
@@ -404,7 +405,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(l10n.addPrinterSubmit),
-                    ),
+                    ).tagged('add_printer.submit'),
                     const SizedBox(height: 10),
                     Text(
                       l10n.addPrinterConnectionNote,
@@ -504,7 +505,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                 )
               : const Icon(Icons.search),
           label: Text(_scanButtonLabel(l10n, progress)),
-        ),
+        ).tagged('add_printer.scan_network'),
         if (_scanError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -589,7 +590,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               ],
             ),
           ),
-        ),
+        ).tagged('add_printer.discovered'),
       ),
     );
   }
@@ -615,7 +616,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                 ? l10n.addPrinterDiagnosticRunning
                 : l10n.addPrinterDiagnostic,
           ),
-        ),
+        ).tagged('add_printer.diagnose'),
         if (_diagnosticError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),

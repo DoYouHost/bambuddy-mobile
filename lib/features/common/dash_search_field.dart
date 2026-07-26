@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// Unified search field for list screens (inventory, archive, …): a rounded
@@ -19,6 +20,7 @@ class DashSearchField extends StatefulWidget {
     this.controller,
     this.autofocus = false,
     this.textCapitalization = TextCapitalization.none,
+    this.id = 'search',
   });
 
   final String hintText;
@@ -29,6 +31,10 @@ class DashSearchField extends StatefulWidget {
 
   final bool autofocus;
   final TextCapitalization textCapitalization;
+
+  /// Name for the diagnostic log. Typed text is never recorded — the id is all
+  /// that says which screen's search this was.
+  final String id;
 
   @override
   State<DashSearchField> createState() => _DashSearchFieldState();
@@ -53,47 +59,50 @@ class _DashSearchFieldState extends State<DashSearchField> {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.subCardBorder),
-      ),
-      child: TextField(
-        controller: _controller,
-        autofocus: widget.autofocus,
-        textCapitalization: widget.textCapitalization,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 14,
-          color: t.textPrimary,
+    return logTag(
+      widget.id,
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: t.subCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: t.subCardBorder),
         ),
-        decoration: InputDecoration(
-          isDense: true,
-          filled: false,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-          prefixIcon: Icon(Icons.search, color: t.textTertiary),
-          hintText: widget.hintText,
-          hintStyle:
-              TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          errorBorder: InputBorder.none,
-          focusedErrorBorder: InputBorder.none,
-          disabledBorder: InputBorder.none,
-          suffixIcon: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _controller,
-            builder: (_, value, child) =>
-                value.text.isEmpty ? const SizedBox.shrink() : child!,
-            child: IconButton(
-              icon: Icon(Icons.clear, color: t.textTertiary),
-              onPressed: _clear,
+        child: TextField(
+          controller: _controller,
+          autofocus: widget.autofocus,
+          textCapitalization: widget.textCapitalization,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 14,
+            color: t.textPrimary,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: false,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            prefixIcon: Icon(Icons.search, color: t.textTertiary),
+            hintText: widget.hintText,
+            hintStyle:
+                TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            suffixIcon: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _controller,
+              builder: (_, value, child) =>
+                  value.text.isEmpty ? const SizedBox.shrink() : child!,
+              child: IconButton(
+                icon: Icon(Icons.clear, color: t.textTertiary),
+                onPressed: _clear,
+              ),
             ),
           ),
+          onChanged: widget.onChanged,
         ),
-        onChanged: widget.onChanged,
       ),
     );
   }

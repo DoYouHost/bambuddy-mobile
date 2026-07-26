@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/endpoints.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -176,7 +177,10 @@ class _Message extends StatelessWidget {
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
+          FilledButton(
+            onPressed: onRetry,
+            child: Text(l10n.retry),
+          ).tagged('camera.retry'),
         ],
       ),
     );

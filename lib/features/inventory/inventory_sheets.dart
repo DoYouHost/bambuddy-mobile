@@ -127,7 +127,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   ),
               ],
               onChanged: (v) => setState(() => _printerId = v),
-            ),
+            ).tagged('spool_assign.printer'),
             const SizedBox(height: 16),
 
             SegmentedButton<bool>(
@@ -137,7 +137,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               ],
               selected: {_external},
               onSelectionChanged: (s) => setState(() => _external = s.first),
-            ),
+            ).tagged('spool_assign.slot_kind'),
             const SizedBox(height: 16),
 
             if (_external) ...[
@@ -177,7 +177,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       // Display 1-based, value is unit id.
                       items: {for (final u in unitOptions) u: '${u + 1}'},
                       onChanged: (v) => setState(() => _amsUnit = v),
-                    ),
+                    ).tagged('spool_assign.unit'),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -186,7 +186,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       value: _amsSlot,
                       items: {for (var s = 0; s < 4; s++) s: '${s + 1}'},
                       onChanged: (v) => setState(() => _amsSlot = v),
-                    ),
+                    ).tagged('spool_assign.slot'),
                   ),
                 ],
               ),
@@ -218,7 +218,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
+            ).tagged('spool_assign.save'),
           ],
         ],
       )),
@@ -325,7 +325,7 @@ class _SpoolActions extends ConsumerWidget {
           },
           icon: Icons.edit_outlined,
           label: l10n.inventoryEdit,
-        ),
+        ).tagged('spool_actions.edit'),
         if (!spool.isArchived)
           if (assignment != null)
             _ActionPill(
@@ -345,7 +345,7 @@ class _SpoolActions extends ConsumerWidget {
               ),
               icon: Icons.link_off,
               label: l10n.inventoryUnassign,
-            )
+            ).tagged('spool_actions.unassign')
           else
             _ActionPill(
               tokens: t,
@@ -355,14 +355,14 @@ class _SpoolActions extends ConsumerWidget {
               },
               icon: Icons.add_link,
               label: l10n.inventoryAssign,
-            ),
+            ).tagged('spool_actions.assign'),
         if (spool.weightUsed > 0)
           _ActionPill(
             tokens: t,
             onPressed: () => _resetUsage(context, ref, l10n),
             icon: Icons.refresh,
             label: l10n.inventoryResetUsage,
-          ),
+          ).tagged('spool_actions.reset_usage'),
         if (spool.isArchived)
           _ActionPill(
             tokens: t,
@@ -375,7 +375,7 @@ class _SpoolActions extends ConsumerWidget {
             ),
             icon: Icons.unarchive_outlined,
             label: l10n.inventoryRestore,
-          )
+          ).tagged('spool_actions.restore')
         else
           _ActionPill(
             tokens: t,
@@ -388,14 +388,14 @@ class _SpoolActions extends ConsumerWidget {
             ),
             icon: Icons.archive_outlined,
             label: l10n.inventoryArchive,
-          ),
+          ).tagged('spool_actions.archive'),
         _ActionPill(
           tokens: t,
           variant: _ActionPillVariant.destructive,
           onPressed: () => _delete(context, ref, l10n),
           icon: Icons.delete_outline,
           label: l10n.inventoryDelete,
-        ),
+        ).tagged('spool_actions.delete'),
       ],
     );
   }
@@ -407,6 +407,7 @@ class _SpoolActions extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'spool.reset_usage_confirm',
       title: l10n.inventoryResetUsage,
       message: l10n.inventoryResetUsageConfirm,
       confirmLabel: l10n.inventoryResetUsage,
@@ -428,6 +429,7 @@ class _SpoolActions extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
+      id: 'spool.delete_confirm',
       title: l10n.inventoryDeleteTitle,
       message: l10n.inventoryDeleteConfirm(spool.displayName),
       confirmLabel: l10n.inventoryDelete,

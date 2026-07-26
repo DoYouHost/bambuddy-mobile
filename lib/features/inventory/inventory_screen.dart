@@ -3,6 +3,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
@@ -204,12 +205,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 context,
                 title: l10n.navFilaments,
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.print_outlined),
-                    tooltip: l10n.inventoryLabelsPrintAll,
-                    onPressed: visible.isEmpty
-                        ? null
-                        : () => _printLabels(visible, visibleIds),
+                  logTag(
+                    'inventory.print_labels_all',
+                    IconButton(
+                      icon: const Icon(Icons.print_outlined),
+                      tooltip: l10n.inventoryLabelsPrintAll,
+                      onPressed: visible.isEmpty
+                          ? null
+                          : () => _printLabels(visible, visibleIds),
+                    ),
                   ),
                 ],
               ),
@@ -219,35 +223,41 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  FloatingActionButton.small(
-                    heroTag: 'scanSpool',
-                    backgroundColor: t.subCard,
-                    foregroundColor: t.textPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: t.subCardBorder),
+                  logTag(
+                    'inventory.scan_spool',
+                    FloatingActionButton.small(
+                      heroTag: 'scanSpool',
+                      backgroundColor: t.subCard,
+                      foregroundColor: t.textPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: t.subCardBorder),
+                      ),
+                      onPressed: () => _scanSpool(context, ref),
+                      tooltip: l10n.inventoryScanSpool,
+                      child: const Icon(Icons.qr_code_scanner),
                     ),
-                    onPressed: () => _scanSpool(context, ref),
-                    tooltip: l10n.inventoryScanSpool,
-                    child: const Icon(Icons.qr_code_scanner),
                   ),
                   const SizedBox(height: 12),
-                  FloatingActionButton.extended(
-                    heroTag: 'addSpool',
-                    backgroundColor: t.accentGreen,
-                    foregroundColor: _onAccentGreen,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    onPressed: () => openSpoolForm(context),
-                    icon: const Icon(Icons.add),
-                    label: Text(
-                      l10n.inventoryAddSpool,
-                      style: const TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontWeight: FontWeight.w700,
+                  logTag(
+                    'inventory.add_spool',
+                    FloatingActionButton.extended(
+                      heroTag: 'addSpool',
+                      backgroundColor: t.accentGreen,
+                      foregroundColor: _onAccentGreen,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      onPressed: () => openSpoolForm(context),
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        l10n.inventoryAddSpool,
+                        style: const TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -344,7 +354,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   ///
   /// The list filter is exclusive (active XOR archived), so the whole selection
   /// is homogeneous and one archive/restore entry is always the right one.
-  AppBar _selectionAppBar(
+  PreferredSizeWidget _selectionAppBar(
     BuildContext context,
     AppLocalizations l10n,
     List<Spool> visible,
@@ -354,21 +364,30 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return dashAppBar(
       context,
       title: l10n.inventorySelectedCount(_selected.length),
-      leading: IconButton(
-        icon: const Icon(Icons.close),
-        tooltip: l10n.cancel,
-        onPressed: _clearSelection,
+      leading: logTag(
+        'inventory.selection_clear',
+        IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: l10n.cancel,
+          onPressed: _clearSelection,
+        ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.select_all),
-          tooltip: l10n.inventorySelectAll,
-          onPressed: () => _selectAllVisible(visible),
+        logTag(
+          'inventory.select_all',
+          IconButton(
+            icon: const Icon(Icons.select_all),
+            tooltip: l10n.inventorySelectAll,
+            onPressed: () => _selectAllVisible(visible),
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.print_outlined),
-          tooltip: l10n.inventoryLabelsPrint,
-          onPressed: () => _printLabels(visible, ids),
+        logTag(
+          'inventory.print_labels',
+          IconButton(
+            icon: const Icon(Icons.print_outlined),
+            tooltip: l10n.inventoryLabelsPrint,
+            onPressed: () => _printLabels(visible, ids),
+          ),
         ),
         PopupMenuButton<String>(
           onSelected: (v) => switch (v) {
@@ -462,6 +481,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await confirmDialog(
       context,
+      id: 'inventory.bulk_confirm',
       title: title,
       message: message,
       confirmLabel: confirmLabel,

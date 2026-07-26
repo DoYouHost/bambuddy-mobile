@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -112,7 +113,7 @@ class _QrScannerScreenState<T extends Object>
                     : t.textPrimary,
               ),
             ),
-          ),
+          ).tagged('scanner.torch'),
         ],
       ),
       body: Stack(
@@ -214,7 +215,7 @@ class _ScannerError extends StatelessWidget {
               style: dashPrimaryButtonStyle(t),
               onPressed: () => Navigator.of(context).maybePop(),
               child: Text(MaterialLocalizations.of(context).closeButtonLabel),
-            ),
+            ).tagged('scanner.cancel'),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -74,6 +75,7 @@ class AboutScreen extends StatelessWidget {
                   icon: Icons.gavel_outlined,
                   title: l10n.aboutViewLicense,
                   onTap: () => _open(context, _licenseUrl, l10n),
+                  id: 'about.license',
                 ),
               ],
             ),
@@ -87,6 +89,7 @@ class AboutScreen extends StatelessWidget {
                   title: l10n.aboutSourceLink,
                   subtitle: 'codeberg.org/DoYouHost/bambuddy-mobile',
                   onTap: () => _open(context, _sourceUrl, l10n),
+                  id: 'about.source',
                 ),
               ],
             ),
@@ -98,6 +101,7 @@ class AboutScreen extends StatelessWidget {
                   title: l10n.aboutThirdParty,
                   subtitle: l10n.aboutThirdPartySubtitle,
                   onTap: () => _showLicenses(context),
+                  id: 'about.licenses',
                 ),
               ],
             ),
@@ -233,6 +237,7 @@ class _AboutRow extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.onTap,
+    required this.id,
   });
 
   final IconData icon;
@@ -240,64 +245,71 @@ class _AboutRow extends StatelessWidget {
   final String? subtitle;
   final VoidCallback onTap;
 
+  /// Name for the diagnostic log; the visible title is localized and is not
+  /// recorded.
+  final String id;
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     return Material(
       type: MaterialType.transparency,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: t.subCardBorder),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: t.accentGreen.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(11),
+      child: logTag(
+        id,
+        InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.subCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: t.accentGreen.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, size: 17, color: t.accentGreenInk),
                 ),
-                child: Icon(icon, size: 17, color: t.accentGreenInk),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 3),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        subtitle!,
+                        title,
                         style: TextStyle(
                           fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: t.textTertiary,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
                         ),
                       ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle!,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: t.textTertiary,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
-            ],
+                Icon(Icons.chevron_right, size: 20, color: t.textTertiary),
+              ],
+            ),
           ),
         ),
       ),

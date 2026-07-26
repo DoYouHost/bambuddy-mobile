@@ -10,6 +10,8 @@ import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
+import 'core/diagnostics/diagnostic_recorder.dart';
+import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
@@ -137,6 +139,19 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(sharedPreferencesProvider)),
+);
+
+/// Bug-report log recorder. Holding it in a provider keeps one instance per
+/// app, which matters: [DiagnosticRecorder.active] is process-wide state and
+/// two recorders would fight over it.
+final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
+  (ref) => DiagnosticRecorder(
+    settings: ref.watch(settingsRepositoryProvider),
+    loadFacts: () => loadSessionFacts(
+      profile: ref.read(serverProfileProvider),
+      credentials: ref.read(credentialsStoreProvider),
+    ),
+  ),
 );
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());

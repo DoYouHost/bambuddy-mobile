@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'core/theme/dash_theme.dart';
+import 'features/bug_report/recording_banner.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
 import 'l10n/app_localizations.dart';
 import 'providers.dart';
@@ -98,6 +99,11 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
+      // Recording controls have to outlive the report screen — the bug gets
+      // reproduced on the dashboard, not there. Wrapping here puts the bar
+      // above every route, pushed ones included.
+      builder: (context, child) =>
+          RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
     );
   }
 }

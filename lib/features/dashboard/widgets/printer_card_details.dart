@@ -73,7 +73,9 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
                 ),
               ),
             ),
-            TextButton(
+            logTag(
+              'printer.plate_clear',
+              TextButton(
               onPressed: _busy ? null : _clear,
               child: _busy
                   ? const SizedBox(
@@ -82,6 +84,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(l10n.plateClearAction),
+              ),
             ),
           ],
         ),
@@ -212,10 +215,18 @@ class _HmsErrorRow extends StatelessWidget {
 
 /// Full-width "Details ▾ / ▴" toggle button expanding the AMS/connectivity section.
 class _DetailsToggle extends StatelessWidget {
-  const _DetailsToggle({required this.expanded, required this.onTap});
+  const _DetailsToggle({
+    required this.expanded,
+    required this.onTap,
+    required this.id,
+  });
 
   final bool expanded;
   final VoidCallback onTap;
+
+  /// Name for the diagnostic log; the visible label is localized and is not
+  /// recorded.
+  final String id;
 
   @override
   Widget build(BuildContext context) {
@@ -227,34 +238,37 @@ class _DetailsToggle extends StatelessWidget {
         color: t.subCard,
         borderRadius: BorderRadius.circular(14),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: t.subCardBorder),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  expanded ? l10n.detailsHide : l10n.detailsShow,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: t.textSecondary,
+        child: logTag(
+          id,
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    expanded ? l10n.detailsHide : l10n.detailsShow,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: t.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                AnimatedRotation(
-                  turns: expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.expand_more,
-                      size: 18, color: t.textSecondary),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(Icons.expand_more,
+                        size: 18, color: t.textSecondary),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -633,15 +647,18 @@ class _FilamentRow extends StatelessWidget {
     final slot = this.slot;
     final tappable = slot == null
         ? content
-        : InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => showModalBottomSheet<void>(
-              context: context,
-              isScrollControlled: true,
-              showDragHandle: true,
-              builder: (_) => _AssignSlotSheet(slot: slot),
+        : logTag(
+            'printer.ams_slot',
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => _AssignSlotSheet(slot: slot),
+              ),
+              child: content,
             ),
-            child: content,
           );
 
     return spool == null
@@ -850,67 +867,70 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final l10n = AppLocalizations.of(context);
     final drying = widget.unit.isDrying;
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: t.overlaySurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: t.subCardBorder)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.textTertiary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
+    return logTag(
+      'sheet.drying',
+      SafeArea(
+        top: false,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: t.overlaySurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: t.subCardBorder)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.textTertiary.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        l10n.ctrlDry,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: t.textPrimary,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          l10n.ctrlDry,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: t.textPrimary,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        widget.amsLabel,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: t.textSecondary,
+                        const Spacer(),
+                        Text(
+                          widget.amsLabel,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: t.textSecondary,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (drying)
-                    ..._runningBody(t, l10n)
-                  else
-                    ..._setupBody(t, l10n),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (drying)
+                      ..._runningBody(t, l10n)
+                    else
+                      ..._setupBody(t, l10n),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 
@@ -1205,85 +1225,88 @@ class _AssignSlotSheet extends ConsumerWidget {
         return a.remainingWeight.compareTo(b.remainingWeight);
       });
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, controller) => ListView(
-        controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        children: [
-          Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(
-            [?slot.printerName, slot.label].join(' · '),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (current != null) ...[
-            Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
+    return logTag(
+      'sheet.assign_spool',
+      DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Text(l10n.inventoryAssignTitle, style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: SpoolSwatch(rgba: current.rgba),
-              title: Text(current.displayName),
-              subtitle: current.remainingFraction != null
-                  ? Text(
-                      l10n.inventoryRemaining(
-                        current.remainingWeight.toStringAsFixed(0),
-                      ),
-                    )
-                  : null,
-              trailing: TextButton.icon(
-                onPressed: () => _unassign(context, ref, l10n),
-                icon: const Icon(Icons.link_off, size: 18),
-                label: Text(l10n.inventoryUnassign),
+            Text(
+              [?slot.printerName, slot.label].join(' · '),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const Divider(height: 24),
-          ],
-          Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-          const SizedBox(height: 4),
-          if (options.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(l10n.inventoryEmpty, style: theme.textTheme.bodyMedium),
-            )
-          else
-            for (final s in options)
-              Builder(
-                builder: (context) {
-                  final from = inv?.assignmentFor(s.id);
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: SpoolSwatch(rgba: s.rgba),
-                    title: Text(s.displayName),
-                    subtitle: Text(
-                      [
-                        if (s.remainingFraction != null)
-                          l10n.inventoryRemaining(
-                            s.remainingWeight.toStringAsFixed(0),
-                          ),
-                        '#${s.id}',
-                        if (from != null)
-                          [
-                            ?from.printerName,
-                            assignmentSlotLabel(l10n, from),
-                          ].join(' '),
-                      ].join(' · '),
-                    ),
-                    trailing: from != null
-                        ? const Icon(Icons.swap_horiz, size: 20)
-                        : null,
-                    onTap: () => _assign(context, ref, l10n, s, from: from),
-                  );
-                },
+            const SizedBox(height: 16),
+            if (current != null) ...[
+              Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: SpoolSwatch(rgba: current.rgba),
+                title: Text(current.displayName),
+                subtitle: current.remainingFraction != null
+                    ? Text(
+                        l10n.inventoryRemaining(
+                          current.remainingWeight.toStringAsFixed(0),
+                        ),
+                      )
+                    : null,
+                trailing: TextButton.icon(
+                  onPressed: () => _unassign(context, ref, l10n),
+                  icon: const Icon(Icons.link_off, size: 18),
+                  label: Text(l10n.inventoryUnassign),
+                ),
               ),
-        ],
-      ),
+              const Divider(height: 24),
+            ],
+            Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            if (options.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(l10n.inventoryEmpty, style: theme.textTheme.bodyMedium),
+              )
+            else
+              for (final s in options)
+                Builder(
+                  builder: (context) {
+                    final from = inv?.assignmentFor(s.id);
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: SpoolSwatch(rgba: s.rgba),
+                      title: Text(s.displayName),
+                      subtitle: Text(
+                        [
+                          if (s.remainingFraction != null)
+                            l10n.inventoryRemaining(
+                              s.remainingWeight.toStringAsFixed(0),
+                            ),
+                          '#${s.id}',
+                          if (from != null)
+                            [
+                              ?from.printerName,
+                              assignmentSlotLabel(l10n, from),
+                            ].join(' '),
+                        ].join(' · '),
+                      ),
+                      trailing: from != null
+                          ? const Icon(Icons.swap_horiz, size: 20)
+                          : null,
+                      onTap: () => _assign(context, ref, l10n, s, from: from),
+                    );
+                  },
+                ),
+          ],
+        ),
+      )
     );
   }
 

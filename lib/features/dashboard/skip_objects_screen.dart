@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printable_object.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -646,7 +647,7 @@ class _ObjectTile extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(l10n.skipObjectsSkip),
-              ),
+              ).tagged('skip_objects.skip'),
             ),
         ],
       ),
@@ -687,7 +688,7 @@ class _EmptyState extends StatelessWidget {
               onPressed: onReload,
               icon: const Icon(Icons.refresh, size: 18),
               label: Text(l10n.skipObjectsReload),
-            ),
+            ).tagged('skip_objects.reload'),
           ],
         ),
       ),

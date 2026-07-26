@@ -144,9 +144,12 @@ class _GaugeTile extends ConsumerWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openSheet(context, target?.round() ?? 0),
-        child: tile,
+      child: logTag(
+        'printer.temperature',
+        InkWell(
+          onTap: () => _openSheet(context, target?.round() ?? 0),
+          child: tile,
+        ),
       ),
     );
   }
@@ -502,20 +505,23 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     required bool enabled,
   }) {
     if (isActive) {
-      return Row(
-        children: [
-          Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
-          const SizedBox(width: 6),
-          Text(
-            l10n.ctrlNozzleActive,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: t.accentGreenInk,
+      return logTag(
+        'sheet.temperature',
+        Row(
+          children: [
+            Icon(Icons.check_circle, size: 15, color: t.accentGreenInk),
+            const SizedBox(width: 6),
+            Text(
+              l10n.ctrlNozzleActive,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: t.accentGreenInk,
+              ),
             ),
-          ),
-        ],
+          ],
+        )
       );
     }
     return Align(

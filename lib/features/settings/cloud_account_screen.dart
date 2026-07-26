@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/cloud_auth.dart';
 import '../../core/theme/dash_theme.dart';
@@ -153,7 +154,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
                 )
               : const Icon(Icons.logout),
           label: Text(l10n.cloudSignOut),
-        ),
+        ).tagged('cloud.sign_out'),
       ],
     );
   }
@@ -379,7 +380,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                             strokeWidth: 2, color: Color(0xFF0A0C08)),
                       )
                     : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
-              ),
+              ).tagged('cloud.sign_in'),
             ],
           ),
         ),

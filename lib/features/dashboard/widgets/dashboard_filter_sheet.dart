@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../dashboard_filters.dart';
@@ -27,95 +28,98 @@ class _DashboardFilterSheet extends ConsumerWidget {
     final filters = ref.watch(dashboardFiltersProvider);
     final notifier = ref.read(dashboardFiltersProvider.notifier);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: t.overlaySurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: t.subCardBorder)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.textTertiary.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
+    return logTag(
+      'sheet.dashboard_filters',
+      SafeArea(
+        top: false,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: t.overlaySurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: t.subCardBorder)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.textTertiary.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Fixed height so the header never resizes the sheet or
-                  // shifts the title when the Clear button toggles.
-                  SizedBox(
-                    height: 48,
-                    child: Row(
-                      children: [
-                        Text(l10n.dashboardFilters,
-                            style: theme.textTheme.titleLarge),
-                        const Spacer(),
-                        // Keep the button's slot laid out even when inactive,
-                        // so it can't reflow the row.
-                        Visibility(
-                          visible: filters.activeCount > 0,
-                          maintainSize: true,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: TextButton(
-                            onPressed: () => notifier.state =
-                                const DashboardFilters(),
-                            child: Text(l10n.filtersClear),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Fixed height so the header never resizes the sheet or
+                    // shifts the title when the Clear button toggles.
+                    SizedBox(
+                      height: 48,
+                      child: Row(
+                        children: [
+                          Text(l10n.dashboardFilters,
+                              style: theme.textTheme.titleLarge),
+                          const Spacer(),
+                          // Keep the button's slot laid out even when inactive,
+                          // so it can't reflow the row.
+                          Visibility(
+                            visible: filters.activeCount > 0,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: TextButton(
+                              onPressed: () => notifier.state =
+                                  const DashboardFilters(),
+                              child: Text(l10n.filtersClear),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _GroupLabel(label: l10n.filterStatus),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      for (final bucket in PrinterStatusBucket.values)
-                        ChoiceChip(
-                          label: Text(_statusLabel(l10n, bucket)),
-                          selected: filters.status == bucket,
-                          onSelected: (_) => notifier.state =
-                              filters.copyWith(status: bucket),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: filters.hideOffline,
-                    onChanged: (v) =>
-                        notifier.state = filters.copyWith(hideOffline: v),
-                    title: Text(
-                      l10n.hideOffline,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
+                        ],
                       ),
                     ),
-                    activeThumbColor: t.accentGreen,
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    _GroupLabel(label: l10n.filterStatus),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final bucket in PrinterStatusBucket.values)
+                          ChoiceChip(
+                            label: Text(_statusLabel(l10n, bucket)),
+                            selected: filters.status == bucket,
+                            onSelected: (_) => notifier.state =
+                                filters.copyWith(status: bucket),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: filters.hideOffline,
+                      onChanged: (v) =>
+                          notifier.state = filters.copyWith(hideOffline: v),
+                      title: Text(
+                        l10n.hideOffline,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
+                      ),
+                      activeThumbColor: t.accentGreen,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slice_job.dart';
@@ -178,7 +179,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                         style: theme.textTheme.bodyMedium),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _pickBedType,
-                  ),
+                  ).tagged('slice.bed_type'),
                 ),
                 for (var i = 0; i < slotCount; i++)
                   _slotTile(
@@ -209,7 +210,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                       : const Icon(Icons.layers_outlined),
                   label: Text(l10n.sliceStart),
                   onPressed: ready ? _submit : null,
-                ),
+                ).tagged('slice.submit'),
               ],
             );
           },
@@ -531,6 +532,7 @@ class _PresetPickerState extends State<_PresetPicker> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: DashSearchField(
+                id: 'slice.search',
                 hintText: l10n.sliceSearchHint,
                 onChanged: (v) => setState(() => _query = v),
               ),

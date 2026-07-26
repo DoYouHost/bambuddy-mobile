@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../../providers.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
@@ -130,13 +132,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         title: Text(l10n.batteryOptTitle),
         content: Text(l10n.batteryOptBody),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.batteryOptLater),
+          logTag(
+            'battery_opt.later',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.batteryOptLater),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.batteryOptAllow),
+          logTag(
+            'battery_opt.allow',
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.batteryOptAllow),
+            ),
           ),
         ],
       ),
@@ -156,30 +164,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Consumer(
               builder: (ctx, ref, _) {
                 final enabled = ref.watch(bgMonitoringEnabledProvider);
-                return SwitchListTile(
-                  secondary: const Icon(Icons.sync),
-                  title: Text(l10n.bgMonitoringToggle),
-                  subtitle: Text(l10n.bgMonitoringSubtitle),
-                  value: enabled,
-                  onChanged: (v) => _setBgMonitoring(sheetCtx, ref, l10n, v),
+                return logTag(
+                  'notifications_menu.background',
+                  SwitchListTile(
+                    secondary: const Icon(Icons.sync),
+                    title: Text(l10n.bgMonitoringToggle),
+                    subtitle: Text(l10n.bgMonitoringSubtitle),
+                    value: enabled,
+                    onChanged: (v) => _setBgMonitoring(sheetCtx, ref, l10n, v),
+                  ),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.tune),
-              title: Text(l10n.notifEventsMenu),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                context.push('/settings/notifications');
-              },
+            logTag(
+              'notifications_menu.events',
+              ListTile(
+                leading: const Icon(Icons.tune),
+                title: Text(l10n.notifEventsMenu),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  context.push('/settings/notifications');
+                },
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.battery_saver),
-              title: Text(l10n.batteryOptMenu),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _runNotificationOnboarding(manual: true);
-              },
+            logTag(
+              'notifications_menu.battery',
+              ListTile(
+                leading: const Icon(Icons.battery_saver),
+                title: Text(l10n.batteryOptMenu),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _runNotificationOnboarding(manual: true);
+                },
+              ),
             ),
           ],
         ),
@@ -249,6 +266,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
+          // Same button AppBar would build implicitly, but named for the log —
+          // this screen always has a drawer, so there is no condition to keep.
+          leading: logTag('chrome.drawer', const DrawerButton()),
           title: Text(
             l10n.printersTitle,
             style: TextStyle(
@@ -263,17 +283,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           actions: [
             const Center(child: ConnectionModeChip()),
             const SizedBox(width: 4),
-            IconButton(
-              tooltip: l10n.addPrinterTitle,
-              color: t.textPrimary,
-              icon: const Icon(Icons.add),
-              onPressed: () => context.push('/printers/add'),
+            logTag(
+              'dashboard.add_printer',
+              IconButton(
+                tooltip: l10n.addPrinterTitle,
+                color: t.textPrimary,
+                icon: const Icon(Icons.add),
+                onPressed: () => context.push('/printers/add'),
+              ),
             ),
-            IconButton(
-              tooltip: l10n.batteryOptMenu,
-              color: t.textPrimary,
-              icon: const Icon(Icons.notifications_active_outlined),
-              onPressed: () => _openNotificationMenu(context, l10n),
+            logTag(
+              'dashboard.notifications_menu',
+              IconButton(
+                tooltip: l10n.batteryOptMenu,
+                color: t.textPrimary,
+                icon: const Icon(Icons.notifications_active_outlined),
+                onPressed: () => _openNotificationMenu(context, l10n),
+              ),
             ),
           ],
           // Only friendly profile label (if set) — no URL.
@@ -545,6 +571,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/files');
                   },
+                  id: 'drawer.files',
                 ),
                 _DrawerTile(
                   icon: Icons.travel_explore_rounded,
@@ -553,6 +580,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/makerworld');
                   },
+                  id: 'drawer.makerworld',
                 ),
                 _DrawerTile(
                   icon: Icons.qr_code_2_rounded,
@@ -561,6 +589,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/swatches');
                   },
+                  id: 'drawer.swatches',
                 ),
                 _DrawerTile(
                   icon: Icons.folder_special_outlined,
@@ -569,6 +598,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/projects');
                   },
+                  id: 'drawer.projects',
                 ),
                 _DrawerTile(
                   icon: Icons.bar_chart_rounded,
@@ -577,6 +607,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/stats');
                   },
+                  id: 'drawer.stats',
                 ),
                 _DrawerTile(
                   icon: Icons.tune_rounded,
@@ -585,6 +616,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/settings/notifications');
                   },
+                  id: 'drawer.notifications',
                 ),
                 const Divider(indent: 16, endIndent: 16, height: 16),
                 _DrawerTile(
@@ -594,6 +626,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/settings/cloud');
                   },
+                  id: 'drawer.cloud',
                 ),
                 _DrawerTile(
                   icon: Icons.swap_horiz_rounded,
@@ -602,6 +635,16 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     _confirmChangeServer(context, ref, l10n);
                   },
+                  id: 'drawer.change_server',
+                ),
+                _DrawerTile(
+                  icon: Icons.bug_report_outlined,
+                  label: l10n.bugReportMenu,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(bugReportRoute);
+                  },
+                  id: 'drawer.bug_report',
                 ),
                 _DrawerTile(
                   icon: Icons.info_outline_rounded,
@@ -610,6 +653,7 @@ class _AppDrawer extends ConsumerWidget {
                     Navigator.pop(context);
                     context.push('/about');
                   },
+                  id: 'drawer.about',
                 ),
               ],
             ),
@@ -663,13 +707,19 @@ class _AppDrawer extends ConsumerWidget {
         title: Text(l10n.changeServerQuestion),
         content: Text(l10n.changeServerWarning),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
+          logTag(
+            'change_server.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.change),
+          logTag(
+            'change_server.confirm',
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.change),
+            ),
           ),
         ],
       ),
@@ -730,11 +780,16 @@ class _DrawerTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.id,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Name for the diagnostic log; the visible label is localized and is not
+  /// recorded.
+  final String id;
 
   @override
   Widget build(BuildContext context) {
@@ -745,39 +800,42 @@ class _DrawerTile extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: t.accentGreen.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+        child: logTag(
+          id,
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: t.accentGreen.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, size: 21, color: t.accentGreenInk),
                   ),
-                  child: Icon(icon, size: 21, color: t.accentGreenInk),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: t.textTertiary,
-                ),
-              ],
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: t.textTertiary,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -855,6 +913,7 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                         children: [
                           Expanded(
                             child: DashSearchField(
+                              id: 'dashboard.search',
                               hintText: hint,
                               onChanged: onQuery,
                             ),

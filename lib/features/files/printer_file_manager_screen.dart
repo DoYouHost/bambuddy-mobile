@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_file.dart';
 import '../../core/theme/dash_theme.dart';
@@ -306,10 +307,13 @@ class _PrinterFileManagerScreenState
                 _sortItem(PrinterFileSort.dateAsc, l10n.pfmSortDateOldest),
               ],
             ),
-            IconButton(
-              icon: Icon(Icons.refresh, color: t.textSecondary),
-              tooltip: l10n.pfmRefreshTooltip,
-              onPressed: _loading ? null : _load,
+            logTag(
+              'printer_files.refresh',
+              IconButton(
+                icon: Icon(Icons.refresh, color: t.textSecondary),
+                tooltip: l10n.pfmRefreshTooltip,
+                onPressed: _loading ? null : _load,
+              ),
             ),
           ],
         ),
@@ -376,10 +380,13 @@ class _PrinterFileManagerScreenState
         ),
         child: Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back, color: t.textSecondary),
-              visualDensity: VisualDensity.compact,
-              onPressed: _path == '/' ? null : _navigateUp,
+            logTag(
+              'printer_files.up',
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: t.textSecondary),
+                visualDensity: VisualDensity.compact,
+                onPressed: _path == '/' ? null : _navigateUp,
+              ),
             ),
             Expanded(
               child: Text(
@@ -408,16 +415,20 @@ class _PrinterFileManagerScreenState
         children: [
           Expanded(
             child: DashSearchField(
+              id: 'printer_files.search',
               hintText: l10n.pfmSearchHint,
               onChanged: (v) => setState(() => _query = v),
             ),
           ),
           if (hasSelectable)
-            TextButton(
-              onPressed: _toggleSelectAll,
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              child: Text(
-                allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
+            logTag(
+              'printer_files.select_all',
+              TextButton(
+                onPressed: _toggleSelectAll,
+                style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+                child: Text(
+                  allSelected ? l10n.pfmDeselectAll : l10n.pfmSelectAll,
+                ),
               ),
             ),
         ],
@@ -482,8 +493,35 @@ class _PrinterFileManagerScreenState
 
   Widget _row(PrinterFile file, DashTokens t) {
     if (file.isDirectory) {
-      return ListTile(
-        leading: Icon(Icons.folder, color: t.accentGreenInk),
+      return logTag(
+        'printer_files.folder',
+        ListTile(
+          leading: Icon(Icons.folder, color: t.accentGreenInk),
+          title: Text(
+            file.name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
+          trailing: Icon(Icons.chevron_right, color: t.textTertiary),
+          onTap: () => _navigateTo(file.path),
+        )
+      );
+    }
+    final selected = _selected.contains(file.path);
+    return logTag(
+      'printer_files.file',
+      ListTile(
+        leading: Checkbox(
+          value: selected,
+          onChanged: (_) => _toggleSelection(file.path),
+          activeColor: t.accentGreen,
+          checkColor: const Color(0xFF0A0C08),
+        ),
         title: Text(
           file.name,
           overflow: TextOverflow.ellipsis,
@@ -494,39 +532,18 @@ class _PrinterFileManagerScreenState
             color: t.textPrimary,
           ),
         ),
-        trailing: Icon(Icons.chevron_right, color: t.textTertiary),
-        onTap: () => _navigateTo(file.path),
-      );
-    }
-    final selected = _selected.contains(file.path);
-    return ListTile(
-      leading: Checkbox(
-        value: selected,
-        onChanged: (_) => _toggleSelection(file.path),
-        activeColor: t.accentGreen,
-        checkColor: const Color(0xFF0A0C08),
-      ),
-      title: Text(
-        file.name,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w700,
-          color: t.textPrimary,
+        subtitle: Text(
+          _subtitle(file),
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: t.textTertiary,
+          ),
         ),
-      ),
-      subtitle: Text(
-        _subtitle(file),
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          color: t.textTertiary,
-        ),
-      ),
-      trailing: Icon(_iconFor(file.name), color: t.textSecondary),
-      onTap: () => _toggleSelection(file.path),
+        trailing: Icon(_iconFor(file.name), color: t.textSecondary),
+        onTap: () => _toggleSelection(file.path),
+      )
     );
   }
 
@@ -571,18 +588,25 @@ class _PrinterFileManagerScreenState
                     ),
                   )
                 else ...[
-                  TextButton.icon(
-                    onPressed: _download,
-                    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-                    icon: const Icon(Icons.download),
-                    label: Text(l10n.pfmDownload),
+                  logTag(
+                    'printer_files.download',
+                    TextButton.icon(
+                      onPressed: _download,
+                      style:
+                          TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+                      icon: const Icon(Icons.download),
+                      label: Text(l10n.pfmDownload),
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  TextButton.icon(
-                    onPressed: _delete,
-                    style: TextButton.styleFrom(foregroundColor: t.danger),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(l10n.pfmDelete),
+                  logTag(
+                    'printer_files.delete',
+                    TextButton.icon(
+                      onPressed: _delete,
+                      style: TextButton.styleFrom(foregroundColor: t.danger),
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(l10n.pfmDelete),
+                    ),
                   ),
                 ],
               ],

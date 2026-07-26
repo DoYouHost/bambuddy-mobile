@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
@@ -207,18 +208,21 @@ class _UrlBar extends StatelessWidget {
         const SizedBox(width: 12),
         SizedBox(
           height: 56,
-          child: FilledButton.icon(
-            style: dashPrimaryButtonStyle(t),
-            onPressed: loading ? null : onResolve,
-            icon: loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Color(0xFF0A0C08)),
-                  )
-                : const Icon(Icons.arrow_forward),
-            label: Text(l10n.mwResolve),
+          child: logTag(
+            'makerworld.resolve',
+            FilledButton.icon(
+              style: dashPrimaryButtonStyle(t),
+              onPressed: loading ? null : onResolve,
+              icon: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFF0A0C08)),
+                    )
+                  : const Icon(Icons.arrow_forward),
+              label: Text(l10n.mwResolve),
+            ),
           ),
         ),
       ],
@@ -259,10 +263,13 @@ class _LoginBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          FilledButton(
-            style: dashPrimaryButtonStyle(t),
-            onPressed: onSignIn,
-            child: Text(l10n.cloudSignIn),
+          logTag(
+            'makerworld.sign_in',
+            FilledButton(
+              style: dashPrimaryButtonStyle(t),
+              onPressed: onSignIn,
+              child: Text(l10n.cloudSignIn),
+            ),
           ),
         ],
       ),
@@ -388,14 +395,17 @@ class _ResolvedModelState extends State<_ResolvedModel> {
             if (overflowing)
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                  icon: Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more),
-                  label: Text(_expanded
-                      ? l10n.mwShowLess
-                      : l10n.mwShowAllPlates(total)),
+                child: logTag(
+                  'makerworld.toggle_plates',
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
+                    onPressed: () => setState(() => _expanded = !_expanded),
+                    icon: Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more),
+                    label: Text(_expanded
+                        ? l10n.mwShowLess
+                        : l10n.mwShowAllPlates(total)),
+                  ),
                 ),
               ),
           ],
@@ -455,21 +465,24 @@ class _PlateRow extends StatelessWidget {
               label: Text(l10n.mwInLibrary),
             )
           else
-            FilledButton.icon(
-              style: dashPrimaryButtonStyle(t).copyWith(
-                padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+            logTag(
+              'makerworld.import_plate',
+              FilledButton.icon(
+                style: dashPrimaryButtonStyle(t).copyWith(
+                  padding: const WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+                ),
+                onPressed: importing ? null : onImport,
+                icon: importing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFF0A0C08)),
+                      )
+                    : const Icon(Icons.download, size: 18),
+                label: Text(l10n.mwImport),
               ),
-              onPressed: importing ? null : onImport,
-              icon: importing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Color(0xFF0A0C08)),
-                    )
-                  : const Icon(Icons.download, size: 18),
-              label: Text(l10n.mwImport),
             ),
         ],
       ),
@@ -536,50 +549,57 @@ class _RecentRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push('/files'),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: t.subCardBorder),
-            ),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: LibraryThumbnail(
-                    fileId: item.libraryFileId,
-                    hasThumbnail: item.hasThumbnail,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item.filename,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
+        child: logTag(
+          'makerworld.recent_import',
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => context.push('/files'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: LibraryThumbnail(
+                      fileId: item.libraryFileId,
+                      hasThumbnail: item.hasThumbnail,
+                      size: 48,
                     ),
                   ),
-                ),
-                if (source != null)
-                  IconButton(
-                    tooltip: l10n.mwOpenOnMakerworld,
-                    icon: Icon(Icons.open_in_new, size: 18, color: t.textSecondary),
-                    onPressed: () => launchUrl(
-                      Uri.parse(source),
-                      mode: LaunchMode.externalApplication,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      item.filename,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
                     ),
                   ),
-              ],
+                  if (source != null)
+                    logTag(
+                      'makerworld.open_source',
+                      IconButton(
+                        tooltip: l10n.mwOpenOnMakerworld,
+                        icon: Icon(Icons.open_in_new,
+                            size: 18, color: t.textSecondary),
+                        onPressed: () => launchUrl(
+                          Uri.parse(source),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

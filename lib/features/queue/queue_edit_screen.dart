@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/queue_item.dart';
@@ -147,7 +148,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
               onPressed: _saving ? null : _submit,
               child: Text(l10n.queueEditSave),
-            ),
+            ).tagged('queue_edit.save'),
           ],
         ),
         body: AbsorbPointer(
@@ -296,7 +297,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               if (p.ipAddress != null) p.ipAddress!,
             ].join(' • '),
             onTap: () => setState(() => _printerId = p.id),
-          ),
+          ).tagged('queue_edit.printer'),
       ],
     );
   }
@@ -731,7 +732,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           onPressed: _pickScheduledTime,
           child: Text(l10n.queueEditPickTime),
-        ),
+        ).tagged('queue_edit.pick_time'),
       ],
     );
   }

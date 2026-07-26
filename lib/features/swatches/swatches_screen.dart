@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
@@ -273,24 +274,33 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
           context,
           title: l10n.swatchCodesTitle,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.file_download_outlined),
-              tooltip: l10n.swatchImport,
-              onPressed: _import,
+            logTag(
+              'swatches.import',
+              IconButton(
+                icon: const Icon(Icons.file_download_outlined),
+                tooltip: l10n.swatchImport,
+                onPressed: _import,
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.file_upload_outlined),
-              tooltip: l10n.swatchExport,
-              onPressed: _export,
+            logTag(
+              'swatches.export',
+              IconButton(
+                icon: const Icon(Icons.file_upload_outlined),
+                tooltip: l10n.swatchExport,
+                onPressed: _export,
+              ),
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: t.accentGreen,
-          foregroundColor: const Color(0xFF0A0C08),
-          onPressed: () => _openForm(),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.swatchNewCode),
+        floatingActionButton: logTag(
+          'swatches.create',
+          FloatingActionButton.extended(
+            backgroundColor: t.accentGreen,
+            foregroundColor: const Color(0xFF0A0C08),
+            onPressed: () => _openForm(),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.swatchNewCode),
+          ),
         ),
         body: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -298,6 +308,7 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
             DashSliverSearchBar(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: DashSearchField(
+                id: 'swatches.search',
                 controller: _searchController,
                 hintText: l10n.swatchSearchHint,
                 textCapitalization: TextCapitalization.characters,
@@ -456,55 +467,58 @@ class _SwatchTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onEdit,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.subCardBorder),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _ColorSwatch(rgba: code.rgba),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        code.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
+        child: logTag(
+          'swatches.card',
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onEdit,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _ColorSwatch(rgba: code.rgba),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          code.displayName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 7),
-                      _CodeChip(code: code.code),
-                    ],
+                        const SizedBox(height: 7),
+                        _CodeChip(code: code.code),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.copy_rounded, color: t.textSecondary),
-                  tooltip: MaterialLocalizations.of(context).copyButtonLabel,
-                  onPressed: onCopy,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.delete_outline_rounded, color: t.danger),
-                  onPressed: onDelete,
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.copy_rounded, color: t.textSecondary),
+                    tooltip: MaterialLocalizations.of(context).copyButtonLabel,
+                    onPressed: onCopy,
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.delete_outline_rounded, color: t.danger),
+                    onPressed: onDelete,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -950,6 +964,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
           Text(l10n.inventoryColorPickTitle, style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
           DashSearchField(
+            id: 'swatches.color_search',
             hintText: l10n.inventoryColorSearchHint,
             onChanged: (v) => setState(() => _query = v),
           ),

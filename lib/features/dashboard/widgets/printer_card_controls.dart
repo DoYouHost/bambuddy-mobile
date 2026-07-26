@@ -54,6 +54,7 @@ class _ControlsActions extends ConsumerWidget {
     final buttons = <Widget>[
       if (activePrint)
         _LifecycleButton(
+          id: 'controls.pause',
           icon: Icons.pause,
           label: l10n.ctrlPause,
           busy: pending.isBusy(ControlAction.pause),
@@ -61,6 +62,7 @@ class _ControlsActions extends ConsumerWidget {
         ),
       if (paused)
         _LifecycleButton(
+          id: 'controls.resume',
           icon: Icons.play_arrow,
           label: l10n.ctrlResume,
           busy: pending.isBusy(ControlAction.resume),
@@ -68,6 +70,7 @@ class _ControlsActions extends ConsumerWidget {
         ),
       if (printing)
         _LifecycleButton(
+          id: 'controls.stop',
           icon: Icons.stop,
           label: l10n.ctrlStop,
           danger: true,
@@ -107,16 +110,22 @@ class _ControlsActions extends ConsumerWidget {
         title: Text(l10n.ctrlStopConfirmTitle),
         content: Text(l10n.ctrlStopConfirmBody),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          logTag(
+            'controls.stop_confirm.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.ctrlStop),
+          ),
+          logTag(
+            'controls.stop_confirm.confirm',
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.ctrlStop),
+            ),
           ),
         ],
       ),
@@ -169,43 +178,46 @@ class _LightSwitchRow extends ConsumerWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: busy ? null : () => _toggle(context, ref, on: !on),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            decoration: BoxDecoration(
-              color: t.accentGreen.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.accentGreen.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(on ? Icons.lightbulb : Icons.lightbulb_outline,
-                        size: 18, color: t.accentGreenInk),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.ctrlLight,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: t.accentGreenInk,
+        child: logTag(
+          'controls.light',
+          InkWell(
+            onTap: busy ? null : () => _toggle(context, ref, on: !on),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              decoration: BoxDecoration(
+                color: t.accentGreen.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: t.accentGreen.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(on ? Icons.lightbulb : Icons.lightbulb_outline,
+                          size: 18, color: t.accentGreenInk),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.ctrlLight,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: t.accentGreenInk,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                busy
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : _PillSwitch(on: on, tokens: t),
-              ],
+                    ],
+                  ),
+                  busy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : _PillSwitch(on: on, tokens: t),
+                ],
+              ),
             ),
           ),
         ),
@@ -319,6 +331,7 @@ class _SmartPlugButton extends ConsumerWidget {
         : (on ? t.accentGreenInk : t.textSecondary);
 
     return _HeaderIconButton(
+      id: 'printer.smart_plug',
       tooltip: tip,
       icon: on ? Icons.power : Icons.power_off,
       color: fg,
@@ -344,18 +357,24 @@ class _SmartPlugButton extends ConsumerWidget {
           want ? l10n.smartPlugOnConfirmBody : l10n.smartPlugOffConfirmBody,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
+          logTag(
+            'smart_plug.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
           ),
-          FilledButton(
-            style: want
-                ? null
-                : FilledButton.styleFrom(
-                    backgroundColor: Theme.of(ctx).colorScheme.error,
-                  ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff),
+          logTag(
+            'smart_plug.confirm',
+            FilledButton(
+              style: want
+                  ? null
+                  : FilledButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.error,
+                    ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff),
+            ),
           ),
         ],
       ),
@@ -384,6 +403,7 @@ class _SmartPlugButton extends ConsumerWidget {
 /// [IconButton] so `onPressed: null` reads as disabled (grayed) consistently.
 class _HeaderIconButton extends StatelessWidget {
   const _HeaderIconButton({
+    required this.id,
     required this.icon,
     required this.onPressed,
     required this.tooltip,
@@ -391,6 +411,9 @@ class _HeaderIconButton extends StatelessWidget {
     this.borderColor,
   });
 
+  /// Name for the diagnostic log; the tooltip is user-facing text and is not
+  /// recorded.
+  final String id;
   final IconData icon;
   final VoidCallback? onPressed;
   final String tooltip;
@@ -401,21 +424,24 @@ class _HeaderIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final fg = color ?? t.textSecondary;
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      visualDensity: VisualDensity.compact,
-      style: IconButton.styleFrom(
-        backgroundColor: t.subCard,
-        foregroundColor: fg,
-        disabledForegroundColor: fg.withValues(alpha: 0.4),
-        fixedSize: const Size(34, 34),
-        minimumSize: const Size(34, 34),
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderColor ?? t.subCardBorder),
+    return logTag(
+      id,
+      IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        visualDensity: VisualDensity.compact,
+        style: IconButton.styleFrom(
+          backgroundColor: t.subCard,
+          foregroundColor: fg,
+          disabledForegroundColor: fg.withValues(alpha: 0.4),
+          fixedSize: const Size(34, 34),
+          minimumSize: const Size(34, 34),
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: borderColor ?? t.subCardBorder),
+          ),
         ),
       ),
     );
@@ -468,6 +494,7 @@ class _ControlsGrid extends StatelessWidget {
 /// fill + hairline border; `danger` colors stop red. Spinner + lock when busy.
 class _LifecycleButton extends StatelessWidget {
   const _LifecycleButton({
+    required this.id,
     required this.icon,
     required this.label,
     required this.busy,
@@ -475,6 +502,9 @@ class _LifecycleButton extends StatelessWidget {
     this.danger = false,
   });
 
+  /// Name for the diagnostic log; the visible label is localized and is not
+  /// recorded.
+  final String id;
   final IconData icon;
   final String label;
   final bool busy;
@@ -491,29 +521,32 @@ class _LifecycleButton extends StatelessWidget {
       color: t.subCard,
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: busy ? null : onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: fg,
+      child: logTag(
+        id,
+        InkWell(
+          onTap: busy ? null : onPressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                busy ? _btnSpinner : Icon(icon, size: 18, color: fg),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

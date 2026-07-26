@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
@@ -119,69 +120,72 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     final fair =
         isHumidity ? thresholds.humidityFair : thresholds.tempFair;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.amsHistoryTitle(widget.amsLabel),
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<AmsHistoryMetric>(
-              segments: [
-                ButtonSegment(
-                  value: AmsHistoryMetric.humidity,
-                  icon: const Icon(Icons.water_drop_outlined, size: 18),
-                  label: Text(l10n.amsHistoryHumidity),
+    return logTag(
+      'sheet.ams_history',
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.amsHistoryTitle(widget.amsLabel),
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<AmsHistoryMetric>(
+                segments: [
+                  ButtonSegment(
+                    value: AmsHistoryMetric.humidity,
+                    icon: const Icon(Icons.water_drop_outlined, size: 18),
+                    label: Text(l10n.amsHistoryHumidity),
+                  ),
+                  ButtonSegment(
+                    value: AmsHistoryMetric.temperature,
+                    icon: const Icon(Icons.thermostat, size: 18),
+                    label: Text(l10n.amsHistoryTemperature),
+                  ),
+                ],
+                selected: {_metric},
+                onSelectionChanged: (s) => setState(() => _metric = s.first),
+              ),
+              const SizedBox(height: 8),
+              _RangeSelector(
+                ranges: _ranges,
+                selected: _hours,
+                labelOf: (h) => _rangeLabel(l10n, h),
+                onChanged: (h) => setState(() => _hours = h),
+              ),
+              const SizedBox(height: 16),
+              async.when(
+                loading: () => const SizedBox(
+                  height: 260,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-                ButtonSegment(
-                  value: AmsHistoryMetric.temperature,
-                  icon: const Icon(Icons.thermostat, size: 18),
-                  label: Text(l10n.amsHistoryTemperature),
+                error: (_, _) => SizedBox(
+                  height: 260,
+                  child: Center(child: Text(l10n.amsHistoryError)),
                 ),
-              ],
-              selected: {_metric},
-              onSelectionChanged: (s) => setState(() => _metric = s.first),
-            ),
-            const SizedBox(height: 8),
-            _RangeSelector(
-              ranges: _ranges,
-              selected: _hours,
-              labelOf: (h) => _rangeLabel(l10n, h),
-              onChanged: (h) => setState(() => _hours = h),
-            ),
-            const SizedBox(height: 16),
-            async.when(
-              loading: () => const SizedBox(
-                height: 260,
-                child: Center(child: CircularProgressIndicator()),
+                data: (history) => _Content(
+                  history: history,
+                  isHumidity: isHumidity,
+                  hours: _hours,
+                  good: good,
+                  fair: fair,
+                ),
               ),
-              error: (_, _) => SizedBox(
-                height: 260,
-                child: Center(child: Text(l10n.amsHistoryError)),
+              const SizedBox(height: 12),
+              Text(
+                l10n.amsHistoryRecordingInfo,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              data: (history) => _Content(
-                history: history,
-                isHumidity: isHumidity,
-                hours: _hours,
-                good: good,
-                fair: fair,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.amsHistoryRecordingInfo,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 

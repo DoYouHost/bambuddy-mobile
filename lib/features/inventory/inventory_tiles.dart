@@ -69,118 +69,121 @@ class _SpoolTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onLongPress: onLongPress,
-          onTap:
-              onTap ??
-              () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                barrierColor: _sheetBarrier,
-                builder: (_) =>
-                    _SpoolDetailSheet(spool: spool, assignment: assignment),
-              ),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: selected
-                  ? t.accentGreen.withValues(alpha: 0.12)
-                  : low
-                  ? t.danger.withValues(alpha: 0.05)
-                  : t.subCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
+        child: logTag(
+          'inventory.spool',
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onLongPress: onLongPress,
+            onTap:
+                onTap ??
+                () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  barrierColor: _sheetBarrier,
+                  builder: (_) =>
+                      _SpoolDetailSheet(spool: spool, assignment: assignment),
+                ),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
                 color: selected
-                    ? t.accentGreen.withValues(alpha: 0.6)
+                    ? t.accentGreen.withValues(alpha: 0.12)
                     : low
-                    ? t.danger.withValues(alpha: 0.35)
-                    : t.subCardBorder,
+                    ? t.danger.withValues(alpha: 0.05)
+                    : t.subCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: selected
+                      ? t.accentGreen.withValues(alpha: 0.6)
+                      : low
+                      ? t.danger.withValues(alpha: 0.35)
+                      : t.subCardBorder,
+                ),
               ),
-            ),
-            // Two nested rows so the checkbox can centre against the full row
-            // height while the swatch stays top-aligned with the title: the
-            // outer row centres, the inner one keeps the original `start`.
-            child: Row(
-              children: [
-                if (selectionMode) ...[
-                  Icon(
-                    selected ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 22,
-                    color: selected ? t.accentGreenInk : t.textTertiary,
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Opacity(
-                        opacity: spool.isArchived ? 0.5 : 1,
-                        child: SpoolSwatch(
-                          rgba: spool.rgba,
-                          size: 44,
-                          radius: 13,
+              // Two nested rows so the checkbox can centre against the full row
+              // height while the swatch stays top-aligned with the title: the
+              // outer row centres, the inner one keeps the original `start`.
+              child: Row(
+                children: [
+                  if (selectionMode) ...[
+                    Icon(
+                      selected ? Icons.check_box : Icons.check_box_outline_blank,
+                      size: 22,
+                      color: selected ? t.accentGreenInk : t.textTertiary,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Opacity(
+                          opacity: spool.isArchived ? 0.5 : 1,
+                          child: SpoolSwatch(
+                            rgba: spool.rgba,
+                            size: 44,
+                            radius: 13,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                _MaterialTag(label: spool.material, tokens: t),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    spool.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: DashTokens.fontUi,
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: spool.isArchived
-                                          ? t.textTertiary
-                                          : t.textPrimary,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  _MaterialTag(label: spool.material, tokens: t),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      spool.displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontFamily: DashTokens.fontUi,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: spool.isArchived
+                                            ? t.textTertiary
+                                            : t.textPrimary,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (low) ...[
-                                  const SizedBox(width: 6),
-                                  _LowBadge(tokens: t),
+                                  if (low) ...[
+                                    const SizedBox(width: 6),
+                                    _LowBadge(tokens: t),
+                                  ],
+                                  if (spool.isArchived) ...[
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      Icons.archive_outlined,
+                                      size: 14,
+                                      color: t.textTertiary,
+                                    ),
+                                  ],
                                 ],
-                                if (spool.isArchived) ...[
-                                  const SizedBox(width: 6),
-                                  Icon(
-                                    Icons.archive_outlined,
-                                    size: 14,
-                                    color: t.textTertiary,
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
-                              child: LinearProgressIndicator(
-                                value: frac,
-                                minHeight: 4,
-                                backgroundColor: t.gaugeTrack,
-                                valueColor: AlwaysStoppedAnimation(fillColor),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            metaLine,
-                          ],
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: frac,
+                                  minHeight: 4,
+                                  backgroundColor: t.gaugeTrack,
+                                  valueColor: AlwaysStoppedAnimation(fillColor),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              metaLine,
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -330,171 +333,102 @@ class _SpoolDetailSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final usage = ref.watch(spoolUsageProvider(spool.id));
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Row(
-              children: [
-                SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              spool.displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: t.textPrimary,
+    return logTag(
+      'sheet.spool_detail',
+      DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        builder: (context, controller) => _SheetSurface(
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            children: [
+              Row(
+                children: [
+                  SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                spool.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: DashTokens.fontUi,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: t.textPrimary,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
+                            const SizedBox(width: 8),
+                            Text(
+                              '#${spool.id}',
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontMono,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: t.accentGreenInk,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (spool.colorName != null)
                           Text(
-                            '#${spool.id}',
+                            spool.colorName!,
                             style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: t.accentGreenInk,
+                              fontFamily: DashTokens.fontUi,
+                              fontSize: 13,
+                              color: t.textSecondary,
                             ),
                           ),
-                        ],
-                      ),
-                      if (spool.colorName != null)
-                        Text(
-                          spool.colorName!,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            color: t.textSecondary,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            _SpoolActions(spool: spool, assignment: assignment),
-            const SizedBox(height: 16),
-
-            if (spool.remainingFraction != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: spool.remainingFraction,
-                  minHeight: 8,
-                  backgroundColor: t.gaugeTrack,
-                  valueColor: AlwaysStoppedAnimation(
-                    spool.isLowStock ? t.danger : t.accentGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
-                ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: t.subCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: t.subCardBorder),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _DetailRow(
-                    icon: Icons.print_outlined,
-                    label: assignment != null
-                        ? l10n.inventoryLoadedIn(
-                            [
-                              if (assignment!.printerName != null)
-                                assignment!.printerName!,
-                              assignmentSlotLabel(l10n, assignment!),
-                            ].join(' · '),
-                          )
-                        : l10n.inventoryNotLoaded,
-                  ),
-                  if (spool.storageLocation != null)
-                    _DetailRow(
-                      icon: Icons.place_outlined,
-                      label:
-                          '${l10n.inventoryLocation}: ${spool.storageLocation}',
-                    ),
-                  if (spool.costPerKg != null)
-                    _DetailRow(
-                      icon: Icons.payments_outlined,
-                      label: l10n.inventoryCostPerKg(
-                        spool.costPerKg!.toStringAsFixed(2),
-                      ),
-                    ),
-                  if (spool.slicerFilamentName != null ||
-                      spool.slicerFilament != null)
-                    _DetailRow(
-                      icon: Icons.tune,
-                      label:
-                          '${l10n.inventoryFieldSlicerPreset}: '
-                          '${spool.slicerFilamentName ?? spool.slicerFilament}',
-                    ),
-                  if (spool.nozzleTempMin != null ||
-                      spool.nozzleTempMax != null)
-                    _DetailRow(
-                      icon: Icons.thermostat_outlined,
-                      label:
-                          '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
-                    ),
-                  if (spool.tagUid != null)
-                    _DetailRow(
-                      icon: Icons.nfc_outlined,
-                      label: '${l10n.inventoryTag}: ${spool.tagUid}',
-                    ),
-                  if (spool.note != null)
-                    _DetailRow(
-                      icon: Icons.sticky_note_2_outlined,
-                      label: '${l10n.inventoryNote}: ${spool.note}',
-                    ),
                 ],
               ),
-            ),
+              const SizedBox(height: 14),
 
-            if (spool.kProfiles.isNotEmpty) ...[
+              _SpoolActions(spool: spool, assignment: assignment),
               const SizedBox(height: 16),
-              _SheetSectionTitle(label: l10n.inventoryKProfiles),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
+
+              if (spool.remainingFraction != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: spool.remainingFraction,
+                    minHeight: 8,
+                    backgroundColor: t.gaugeTrack,
+                    valueColor: AlwaysStoppedAnimation(
+                      spool.isLowStock ? t.danger : t.accentGreen,
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
+                  ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
+                  style: TextStyle(
+                    fontFamily: DashTokens.fontUi,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: t.subCard,
                   borderRadius: BorderRadius.circular(16),
@@ -503,66 +437,138 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final k in spool.kProfiles)
+                    _DetailRow(
+                      icon: Icons.print_outlined,
+                      label: assignment != null
+                          ? l10n.inventoryLoadedIn(
+                              [
+                                if (assignment!.printerName != null)
+                                  assignment!.printerName!,
+                                assignmentSlotLabel(l10n, assignment!),
+                              ].join(' · '),
+                            )
+                          : l10n.inventoryNotLoaded,
+                    ),
+                    if (spool.storageLocation != null)
+                      _DetailRow(
+                        icon: Icons.place_outlined,
+                        label:
+                            '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                      ),
+                    if (spool.costPerKg != null)
+                      _DetailRow(
+                        icon: Icons.payments_outlined,
+                        label: l10n.inventoryCostPerKg(
+                          spool.costPerKg!.toStringAsFixed(2),
+                        ),
+                      ),
+                    if (spool.slicerFilamentName != null ||
+                        spool.slicerFilament != null)
                       _DetailRow(
                         icon: Icons.tune,
-                        label: [
-                          if (k.name != null) k.name!,
-                          l10n.inventoryKProfileLine(
-                            k.nozzleDiameter ?? '?',
-                            k.kValue?.toStringAsFixed(3) ?? '?',
-                          ),
-                        ].join(' · '),
+                        label:
+                            '${l10n.inventoryFieldSlicerPreset}: '
+                            '${spool.slicerFilamentName ?? spool.slicerFilament}',
+                      ),
+                    if (spool.nozzleTempMin != null ||
+                        spool.nozzleTempMax != null)
+                      _DetailRow(
+                        icon: Icons.thermostat_outlined,
+                        label:
+                            '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
+                      ),
+                    if (spool.tagUid != null)
+                      _DetailRow(
+                        icon: Icons.nfc_outlined,
+                        label: '${l10n.inventoryTag}: ${spool.tagUid}',
+                      ),
+                    if (spool.note != null)
+                      _DetailRow(
+                        icon: Icons.sticky_note_2_outlined,
+                        label: '${l10n.inventoryNote}: ${spool.note}',
                       ),
                   ],
                 ),
               ),
-            ],
 
-            const SizedBox(height: 16),
-            _SheetSectionTitle(label: l10n.inventoryUsageHistory),
-            const SizedBox(height: 4),
-            usage.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  l10n.inventoryUsageEmpty,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12.5,
-                    color: t.textTertiary,
+              if (spool.kProfiles.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _SheetSectionTitle(label: l10n.inventoryKProfiles),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.subCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: t.subCardBorder),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final k in spool.kProfiles)
+                        _DetailRow(
+                          icon: Icons.tune,
+                          label: [
+                            if (k.name != null) k.name!,
+                            l10n.inventoryKProfileLine(
+                              k.nozzleDiameter ?? '?',
+                              k.kValue?.toStringAsFixed(3) ?? '?',
+                            ),
+                          ].join(' · '),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              data: (entries) => entries.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        l10n.inventoryUsageEmpty,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 12.5,
-                          color: t.textTertiary,
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        for (var i = 0; i < entries.length; i++)
-                          _UsageRow(
-                            entry: entries[i],
-                            last: i == entries.length - 1,
-                          ),
-                      ],
+              ],
+
+              const SizedBox(height: 16),
+              _SheetSectionTitle(label: l10n.inventoryUsageHistory),
+              const SizedBox(height: 4),
+              usage.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    l10n.inventoryUsageEmpty,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 12.5,
+                      color: t.textTertiary,
                     ),
-            ),
-          ],
+                  ),
+                ),
+                data: (entries) => entries.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          l10n.inventoryUsageEmpty,
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontUi,
+                            fontSize: 12.5,
+                            color: t.textTertiary,
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (var i = 0; i < entries.length; i++)
+                            _UsageRow(
+                              entry: entries[i],
+                              last: i == entries.length - 1,
+                            ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }

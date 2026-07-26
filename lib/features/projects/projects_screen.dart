@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
@@ -60,12 +61,15 @@ class ProjectsScreen extends ConsumerWidget {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: t.accentGreen,
-          foregroundColor: const Color(0xFF0A0C08),
-          onPressed: () => _openCreate(context),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.projectCreate),
+        floatingActionButton: logTag(
+          'projects.create',
+          FloatingActionButton.extended(
+            backgroundColor: t.accentGreen,
+            foregroundColor: const Color(0xFF0A0C08),
+            onPressed: () => _openCreate(context),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.projectCreate),
+          ),
         ),
         body: async.when(
           skipLoadingOnReload: true,
@@ -142,94 +146,97 @@ class _ProjectCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: t.cardGradient,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: t.cardBorder),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ProjectCoverImage(
-                  projectId: project.id,
-                  hasCover: project.hasCover,
-                  width: 64,
-                  height: 64,
-                  borderRadius: BorderRadius.circular(16),
-                  cacheBust: project.createdAt,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ProjectColorDot(color: project.color),
-                          const SizedBox(width: 8),
-                          Expanded(
+        child: logTag(
+          'projects.card',
+          InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: t.cardGradient,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: t.cardBorder),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProjectCoverImage(
+                    projectId: project.id,
+                    hasCover: project.hasCover,
+                    width: 64,
+                    height: 64,
+                    borderRadius: BorderRadius.circular(16),
+                    cacheBust: project.createdAt,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            ProjectColorDot(color: project.color),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                project.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: DashTokens.fontUi,
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.textPrimary,
+                                ),
+                              ),
+                            ),
+                            ProjectStatusChip(status: project.status),
+                          ],
+                        ),
+                        if (project.description != null &&
+                            project.description!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              project.name,
-                              maxLines: 1,
+                              project.description!,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontFamily: DashTokens.fontUi,
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                color: t.textPrimary,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                                color: t.textSecondary,
                               ),
                             ),
                           ),
-                          ProjectStatusChip(status: project.status),
-                        ],
-                      ),
-                      if (project.description != null &&
-                          project.description!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            project.description!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
-                              color: t.textSecondary,
+                        const SizedBox(height: 8),
+                        if (project.progressPercent != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: fraction,
+                              minHeight: 6,
+                              backgroundColor: t.gaugeTrack,
+                              valueColor: AlwaysStoppedAnimation(t.accentGreen),
                             ),
                           ),
-                        ),
-                      const SizedBox(height: 8),
-                      if (project.progressPercent != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: fraction,
-                            minHeight: 6,
-                            backgroundColor: t.gaugeTrack,
-                            valueColor: AlwaysStoppedAnimation(t.accentGreen),
+                          const SizedBox(height: 6),
+                        ],
+                        Text(
+                          counts.join(' · '),
+                          style: TextStyle(
+                            fontFamily: DashTokens.fontMono,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: t.textTertiary,
                           ),
                         ),
-                        const SizedBox(height: 6),
                       ],
-                      Text(
-                        counts.join(' · '),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: t.textTertiary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

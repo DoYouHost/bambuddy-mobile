@@ -359,7 +359,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-              ),
+              ).tagged('spool_form.save'),
             ),
           ],
         ),
@@ -474,7 +474,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
+            ).tagged('spool_form.core_weight'),
           ),
           const SizedBox(width: 8),
           weightField,
@@ -613,7 +613,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-      ),
+      ).tagged('spool_form.preset'),
     );
   }
 
@@ -674,7 +674,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ],
         ),
       ),
-    );
+    ).tagged('spool_form.color');
   }
 
   /// Color picker dialog. Starts from current color (or white), saves chosen hex
@@ -904,6 +904,7 @@ class _ColorPicker extends ConsumerWidget {
         const SizedBox(height: 8),
         if (colors.isNotEmpty) ...[
           DashSearchField(
+            id: 'spool_form.color_search',
             hintText: l10n.inventoryColorSearchHint,
             onChanged: onQuery,
           ),
@@ -1025,6 +1026,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
+                  id: 'spool_form.preset_search',
                   autofocus: true,
                   hintText: l10n.inventorySlicerPresetSearch,
                   onChanged: (v) => setState(() => _query = v),
@@ -1166,6 +1168,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
+                  id: 'spool_form.core_search',
                   autofocus: true,
                   hintText: l10n.inventoryCoreWeightSearch,
                   onChanged: (v) => setState(() => _query = v),
