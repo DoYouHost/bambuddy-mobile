@@ -186,29 +186,34 @@ class _UrlBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.url,
-            textInputAction: TextInputAction.go,
-            onSubmitted: (_) => onResolve(),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
-            decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
-                .copyWith(prefixIcon: Icon(Icons.link, color: t.textTertiary)),
-          ).tagged('makerworld.url'),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          height: 56,
-          child: logTag(
+    // The button takes its height from the field instead of a constant. The
+    // field is as tall as its prefix icon plus padding — and grows with the
+    // system font size — so any number written here is wrong sooner or later;
+    // 56 was already eight pixels too tall.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.go,
+              onSubmitted: (_) => onResolve(),
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+              decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
+                  .copyWith(
+                prefixIcon: Icon(Icons.link, color: t.textTertiary),
+              ),
+            ).tagged('makerworld.url'),
+          ),
+          const SizedBox(width: 12),
+          logTag(
             'makerworld.resolve',
             FilledButton.icon(
               style: dashPrimaryButtonStyle(t),
@@ -224,8 +229,8 @@ class _UrlBar extends StatelessWidget {
               label: Text(l10n.mwResolve),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
