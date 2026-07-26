@@ -47,6 +47,13 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
   Timer? _timer;
   int _generation = 0;
 
+  /// Whether the app is in the background. A flag rather than "no timer",
+  /// because going to the background also closes the socket, and a socket that
+  /// closes looks to [_retune] exactly like a network drop: it re-arms the very
+  /// polling that had just been stopped, and the foreground service — which now
+  /// owns freshness — ends up with the UI isolate polling alongside it.
+  bool _paused = false;
+
   @override
   DashboardState build() {
     // Rebuild on profile/client change (e.g. server change).
@@ -75,16 +82,25 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
 
   void _arm({required bool connected, required int generation}) {
     _timer?.cancel();
+    if (_paused) {
+      _timer = null;
+      return;
+    }
     final interval = connected ? slowPollInterval : pollInterval;
     _timer = Timer.periodic(interval, (_) => _poll(generation));
   }
 
   /// WS state change: on connection loss immediately pull REST
   /// (fallback kicks in), speed up; on regain, slow down.
+  ///
+  /// In the background this only records the new interval for later: [_arm]
+  /// leaves the timer off and the fallback poll is skipped, because down there
+  /// the socket is closed on purpose and the background service is the one
+  /// keeping state fresh.
   void _retune({required bool connected, required int generation}) {
     if (generation != _generation) return;
     _arm(connected: connected, generation: generation);
-    if (!connected) _poll(generation);
+    if (!connected && !_paused) _poll(generation);
   }
 
   Future<void> refresh() => _poll(_generation);
@@ -94,12 +110,14 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
   /// be silent because FGS keeps process alive and timer would keep ticking,
   /// feeding `printerStatusesProvider` → duplicate notification.
   void pausePolling() {
+    _paused = true;
     _timer?.cancel();
     _timer = null;
   }
 
   /// Resume polling on return from background (rearm + immediate backfill).
   void resumePolling() {
+    _paused = false;
     _arm(connected: _wsConnectedNow(), generation: _generation);
     _poll(_generation);
   }

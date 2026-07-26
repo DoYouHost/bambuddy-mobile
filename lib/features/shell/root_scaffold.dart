@@ -7,18 +7,57 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../dashboard/smart_plugs_providers.dart';
 import '../maintenance/maintenance_providers.dart';
 import '../queue/queue_providers.dart';
 
 /// Main shell scaffold with the modernized ("2a") bottom navigation bar.
 /// Displayed for all routes inside [StatefulShellRoute].
-class RootScaffold extends ConsumerWidget {
+class RootScaffold extends ConsumerStatefulWidget {
   const RootScaffold({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
+  /// Branch index of the dashboard, the only tab that shows smart plugs.
+  static const dashboardTab = 0;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RootScaffold> createState() => _RootScaffoldState();
+}
+
+class _RootScaffoldState extends ConsumerState<RootScaffold> {
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportVisibleTab();
+  }
+
+  @override
+  void didUpdateWidget(RootScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.navigationShell.currentIndex !=
+        navigationShell.currentIndex) {
+      _reportVisibleTab();
+    }
+  }
+
+  /// The tabs are an [IndexedStack], so a screen the user left is still mounted
+  /// and its providers keep running. Nothing tells them they are off screen —
+  /// this does, for the one that polls.
+  void _reportVisibleTab() {
+    final onDashboard =
+        navigationShell.currentIndex == RootScaffold.dashboardTab;
+    // Deferred: a notifier must not be poked while the tree is building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(smartPlugsProvider.notifier).setOnScreen(onDashboard);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
 
