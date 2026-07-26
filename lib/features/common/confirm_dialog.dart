@@ -20,6 +20,7 @@ Future<bool> confirmDialog(
   required String confirmLabel,
   String? cancelLabel,
   bool destructive = false,
+  IconData? icon,
   String id = 'confirm',
 }) async {
   final l10n = AppLocalizations.of(context);
@@ -27,6 +28,7 @@ Future<bool> confirmDialog(
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
+      icon: icon == null ? null : Icon(icon),
       title: Text(title),
       content: Text(message),
       actions: [

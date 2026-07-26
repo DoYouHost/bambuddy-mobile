@@ -14,6 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
@@ -126,30 +127,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return;
     }
     if (!mounted) return;
-    final open = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.batteryOptTitle),
-        content: Text(l10n.batteryOptBody),
-        actions: [
-          logTag(
-            'battery_opt.later',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.batteryOptLater),
-            ),
-          ),
-          logTag(
-            'battery_opt.allow',
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.batteryOptAllow),
-            ),
-          ),
-        ],
-      ),
+    final open = await confirmDialog(
+      context,
+      title: l10n.batteryOptTitle,
+      message: l10n.batteryOptBody,
+      confirmLabel: l10n.batteryOptAllow,
+      cancelLabel: l10n.batteryOptLater,
+      id: 'battery_opt',
     );
-    if (open ?? false) await battery.request();
+    if (open) await battery.request();
   }
 
   /// Notification menu: background monitoring toggle + re-onboard
@@ -703,30 +689,14 @@ class _AppDrawer extends ConsumerWidget {
     // so this `_AppDrawer` (a ConsumerWidget) is disposed during the dialog
     // await — touching `ref` afterwards throws "Cannot use ref after dispose".
     final profiles = ref.read(serverProfileProvider.notifier);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.changeServerQuestion),
-        content: Text(l10n.changeServerWarning),
-        actions: [
-          logTag(
-            'change_server.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'change_server.confirm',
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.change),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.changeServerQuestion,
+      message: l10n.changeServerWarning,
+      confirmLabel: l10n.change,
+      id: 'change_server',
     );
-    if (confirmed ?? false) {
+    if (confirmed) {
       await profiles.clear();
     }
   }

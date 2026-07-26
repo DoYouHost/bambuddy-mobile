@@ -104,33 +104,15 @@ class _ControlsActions extends ConsumerWidget {
   /// Stop always behind confirmation—easy to kill a multi-hour print with one tap.
   Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.ctrlStopConfirmTitle),
-        content: Text(l10n.ctrlStopConfirmBody),
-        actions: [
-          logTag(
-            'controls.stop_confirm.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'controls.stop_confirm.confirm',
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.ctrlStop),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.ctrlStopConfirmTitle,
+      message: l10n.ctrlStopConfirmBody,
+      confirmLabel: l10n.ctrlStop,
+      destructive: true,
+      id: 'controls.stop_confirm',
     );
-    if ((confirmed ?? false) && context.mounted) {
+    if (confirmed && context.mounted) {
       await _run(context, ref, ControlAction.stop);
     }
   }
@@ -347,39 +329,17 @@ class _SmartPlugButton extends ConsumerWidget {
     bool want,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          want ? l10n.smartPlugOnConfirmTitle : l10n.smartPlugOffConfirmTitle,
-        ),
-        content: Text(
-          want ? l10n.smartPlugOnConfirmBody : l10n.smartPlugOffConfirmBody,
-        ),
-        actions: [
-          logTag(
-            'smart_plug.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'smart_plug.confirm',
-            FilledButton(
-              style: want
-                  ? null
-                  : FilledButton.styleFrom(
-                      backgroundColor: Theme.of(ctx).colorScheme.error,
-                    ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: want ? l10n.smartPlugOnConfirmTitle : l10n.smartPlugOffConfirmTitle,
+      message: want ? l10n.smartPlugOnConfirmBody : l10n.smartPlugOffConfirmBody,
+      confirmLabel: want ? l10n.smartPlugTurnOn : l10n.smartPlugTurnOff,
+      // Cutting the power to a machine is the answer worth a red button;
+      // turning it on is not.
+      destructive: !want,
+      id: 'smart_plug',
     );
-    if (!(confirmed ?? false) || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
 
     final result = await ref
         .read(smartPlugsProvider.notifier)

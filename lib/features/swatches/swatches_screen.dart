@@ -11,6 +11,7 @@ import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../inventory/inventory_providers.dart'
@@ -119,31 +120,15 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
     }
 
     final existing = ref.read(swatchCodesProvider).length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded),
-        title: Text(l10n.swatchImportTitle),
-        content: Text(l10n.swatchImportWarning(existing, incoming.length)),
-        actions: [
-          logTag(
-            'swatch_import.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'swatch_import.confirm',
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.swatchImportConfirm),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      icon: Icons.warning_amber_rounded,
+      title: l10n.swatchImportTitle,
+      message: l10n.swatchImportWarning(existing, incoming.length),
+      confirmLabel: l10n.swatchImportConfirm,
+      id: 'swatch_import',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     await ref.read(swatchCodesProvider.notifier).replaceAll(incoming);
     if (!mounted) return;
@@ -195,30 +180,15 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
   }
 
   Future<void> _confirmDelete(SwatchCode c) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(_l10n.swatchDeleteTitle),
-        content: Text(_l10n.swatchDeleteBody(c.code, c.displayName)),
-        actions: [
-          logTag(
-            'swatch_delete.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(_l10n.cancel),
-            ),
-          ),
-          logTag(
-            'swatch_delete.confirm',
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(_l10n.swatchDelete),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: _l10n.swatchDeleteTitle,
+      message: _l10n.swatchDeleteBody(c.code, c.displayName),
+      confirmLabel: _l10n.swatchDelete,
+      destructive: true,
+      id: 'swatch_delete',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await ref.read(swatchCodesProvider.notifier).remove(c.code);
   }
 

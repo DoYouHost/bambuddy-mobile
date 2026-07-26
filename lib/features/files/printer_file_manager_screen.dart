@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
@@ -203,33 +204,15 @@ class _PrinterFileManagerScreenState
     if (_selected.isEmpty || _busy) return;
     final l10n = AppLocalizations.of(context);
     final paths = _selected.toList();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.pfmDeleteConfirmTitle),
-        content: Text(l10n.pfmDeleteConfirmBody(paths.length)),
-        actions: [
-          logTag(
-            'printer_files_delete.cancel',
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'printer_files_delete.confirm',
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
-              ),
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l10n.pfmDelete),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.pfmDeleteConfirmTitle,
+      message: l10n.pfmDeleteConfirmBody(paths.length),
+      confirmLabel: l10n.pfmDelete,
+      destructive: true,
+      id: 'printer_files_delete',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() => _busy = true);
     final repo = ref.read(printerFilesRepositoryProvider);

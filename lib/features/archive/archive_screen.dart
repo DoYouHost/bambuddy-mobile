@@ -13,6 +13,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
@@ -499,30 +500,14 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final printer = await pickPrinterSheet(context, ref, l10n);
     if (printer == null || !mounted) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.archiveReprintConfirmTitle),
-        content: Text(l10n.archiveReprintConfirmBody(printer.name)),
-        actions: [
-          logTag(
-            'archive_reprint.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'archive_reprint.confirm',
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.archiveReprint),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.archiveReprintConfirmTitle,
+      message: l10n.archiveReprintConfirmBody(printer.name),
+      confirmLabel: l10n.archiveReprint,
+      id: 'archive_reprint',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ref

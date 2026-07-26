@@ -11,6 +11,7 @@ import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import '../archive/archive_providers.dart';
 import '../files/library_thumbnail.dart';
@@ -292,28 +293,14 @@ class ProjectFilesSection extends ConsumerWidget {
           );
     if (printer == null || !context.mounted) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.fmPrint),
-        content: Text(l10n.fmPrintConfirmBody(file.displayName, printer.name)),
-        actions: [
-          logTag(
-            'project_print.cancel',
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.cancel)),
-          ),
-          logTag(
-            'project_print.confirm',
-            FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.fmPrint)),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.fmPrint,
+      message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
+      confirmLabel: l10n.fmPrint,
+      id: 'project_print',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       await ref
           .read(queueRepositoryProvider)

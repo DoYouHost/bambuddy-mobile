@@ -9,6 +9,7 @@ import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -738,24 +739,15 @@ class _OverflowMenu extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.projectDeleteTitle),
-        content: Text(l10n.projectDeleteBody(project.name)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.projectDelete),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.projectDeleteTitle,
+      message: l10n.projectDeleteBody(project.name),
+      confirmLabel: l10n.projectDelete,
+      destructive: true,
+      id: 'project_delete',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     final result = await ref.read(projectsListProvider.notifier).delete(project.id);
     messenger.showSnackBar(SnackBar(
       content: Text(result == ProjectActionResult.ok

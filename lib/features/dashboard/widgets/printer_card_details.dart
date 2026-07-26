@@ -1324,24 +1324,14 @@ class _AssignSlotSheet extends ConsumerWidget {
         ?from.printerName,
         assignmentSlotLabel(l10n, from),
       ].join(' · ');
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.inventoryReassignTitle),
-          content: Text(l10n.inventoryReassignMessage(fromLabel)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l10n.inventoryReassignAction),
-            ),
-          ],
-        ),
+      final ok = await confirmDialog(
+        context,
+        title: l10n.inventoryReassignTitle,
+        message: l10n.inventoryReassignMessage(fromLabel),
+        confirmLabel: l10n.inventoryReassignAction,
+        id: 'spool_reassign',
       );
-      if (ok != true || !context.mounted) return;
+      if (!ok || !context.mounted) return;
     }
 
     Navigator.of(context).pop();

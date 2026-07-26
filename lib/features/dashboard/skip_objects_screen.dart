@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
+import '../common/confirm_dialog.dart';
 import 'controls_providers.dart' show ControlResult;
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
@@ -138,33 +139,15 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
 
   Future<void> _confirmSkip(PrintableObject obj) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.skipObjectsConfirmTitle),
-        content: Text(l10n.skipObjectsConfirmBody(obj.name)),
-        actions: [
-          logTag(
-            'skip_object.cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'skip_object.confirm',
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.skipObjectsSkip),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.skipObjectsConfirmTitle,
+      message: l10n.skipObjectsConfirmBody(obj.name),
+      confirmLabel: l10n.skipObjectsSkip,
+      destructive: true,
+      id: 'skip_object',
     );
-    if (!(confirmed ?? false) || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() => _inFlight.add(obj.id));
     final result = await ref
