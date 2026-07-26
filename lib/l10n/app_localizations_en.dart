@@ -3950,5 +3950,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers.';
+      'Not wired up yet: WebSocket and the background service. For now the log holds your taps, screen changes, requests to the server and crashes.';
+
+  @override
+  String bugReportLimit(int minutes) {
+    return 'A recording stops by itself after $minutes minutes.';
+  }
+
+  @override
+  String bugReportLimitReached(int minutes) {
+    return 'Recording finished — the $minutes minute limit was reached.';
+  }
+
+  @override
+  String get bugReportShow => 'Show';
+
+  @override
+  String get bugReportRecoveredHeader => 'A recording survived a crash';
+
+  @override
+  String get bugReportRecoveredBody =>
+      'The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away.';
 }

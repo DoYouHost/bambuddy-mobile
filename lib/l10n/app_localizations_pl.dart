@@ -4008,5 +4008,25 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Jeszcze niepodpięte: HTTP, WebSocket, awarie i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami i znaczniki sesji.';
+      'Jeszcze niepodpięte: WebSocket i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami, zapytania do serwera i awarie.';
+
+  @override
+  String bugReportLimit(int minutes) {
+    return 'Nagrywanie zatrzyma się samo po $minutes min.';
+  }
+
+  @override
+  String bugReportLimitReached(int minutes) {
+    return 'Nagrywanie zakończone — minął limit $minutes min.';
+  }
+
+  @override
+  String get bugReportShow => 'Pokaż';
+
+  @override
+  String get bugReportRecoveredHeader => 'Nagranie przetrwało awarię';
+
+  @override
+  String get bugReportRecoveredBody =>
+      'Aplikacja zamknęła się w trakcie nagrywania. To, co zdążyła zapisać, jest nadal w telefonie — obejrzyj albo wyrzuć.';
 }

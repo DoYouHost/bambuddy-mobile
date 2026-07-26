@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
+import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
@@ -246,6 +249,102 @@ void main() {
     );
   });
 
+  group('after a crash', () {
+    late Directory dir;
+
+    const session = 'deadbeefdeadbeefdeadbeefdeadbeef';
+    const header = '{"v":1,"ts":"2026-07-26T12:00:00.000Z","session":"$session",'
+        '"stream":"ui","app":"0.11.2+1102","flavor":"mobile"}';
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('bambuddy_recover');
+      addTearDown(() => dir.deleteSync(recursive: true));
+    });
+
+    File sessionFile() => File('${dir.path}/session-$session.jsonl');
+
+    /// What a process killed mid-recording leaves behind: the flag still in
+    /// prefs and whatever the mirror had already flushed to disk.
+    Future<ProviderContainer> pumpAfterCrash(
+      WidgetTester tester, {
+      required String log,
+    }) async {
+      await SettingsRepository(prefs).saveDiagnosticsSession(session);
+      sessionFile().writeAsStringSync(log);
+
+      final container = ProviderContainer(overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        diagnosticRecorderProvider.overrideWith(
+          (ref) => DiagnosticRecorder(
+            settings: ref.watch(settingsRepositoryProvider),
+            loadFacts: () async => facts,
+            resolveDirectory: () async => dir,
+          ),
+        ),
+      ]);
+      addTearDown(container.dispose);
+      // Pumped inside `runAsync`: the salvaged log is read off disk, and real
+      // file IO only completes on the real event loop, which the fake one a
+      // widget test runs on never gets to.
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: plApp(const BugReportScreen()),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    testWidgets('offers the log that survived', (tester) async {
+      await pumpAfterCrash(
+        tester,
+        log: '$header\n{"t":5,"src":"app","evt":"user_marker"}\n',
+      );
+
+      expect(find.text('Nagranie przetrwało awarię'), findsOneWidget);
+
+      await tester.tap(find.text('Pokaż'));
+      await tester.pumpAndSettle();
+
+      // Reviewed like any other recording, raw log included.
+      expect(find.text('Przejrzyj przed wysłaniem'), findsOneWidget);
+      await tester.tap(find.text('Pokaż surowy log'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('user_marker'), findsOneWidget);
+    });
+
+    testWidgets('throwing it away takes the file with it', (tester) async {
+      await pumpAfterCrash(
+        tester,
+        log: '$header\n{"t":5,"src":"app","evt":"user_marker"}\n',
+      );
+
+      // Deleting the file is real IO again, so the tap that starts it has to
+      // run where real IO completes.
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Odrzuć'));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nagranie przetrwało awarię'), findsNothing);
+      expect(sessionFile().existsSync(), isFalse);
+    });
+
+    testWidgets('says nothing about a file with no records', (tester) async {
+      // The crash beat the first record. Asking the user to decide about an
+      // empty file is worse than staying quiet.
+      await pumpAfterCrash(tester, log: '$header\n');
+
+      expect(find.text('Nagranie przetrwało awarię'), findsNothing);
+      expect(find.text('Jak to działa'), findsOneWidget);
+    });
+  });
+
   group('recording bar', () {
     /// Mounted exactly as the app does it — through `MaterialApp.builder`,
     /// which sits ABOVE the Navigator. Wrapping it in `home:` instead would
@@ -294,10 +393,14 @@ void main() {
       }
     }
 
+    /// What the bar's clock reads at the start: elapsed against the ceiling the
+    /// recording will stop itself at.
+    final clockText = '0:00 / ${formatElapsed(recordingLimit)}';
+
     /// The bar's own box — the innermost Material around the clock, in both the
     /// expanded and the collapsed form.
     Finder barBox() => find
-        .ancestor(of: find.text('0:00'), matching: find.byType(Material))
+        .ancestor(of: find.text(clockText), matching: find.byType(Material))
         .first;
 
     testWidgets('stays out of the way until something is recording',
@@ -308,11 +411,30 @@ void main() {
       expect(find.byIcon(Icons.drag_indicator), findsNothing);
     });
 
+    testWidgets('ends itself at the limit and says so', (tester) async {
+      // Nobody presses finish here — the recording runs out while the user is
+      // on another screen, so the bar going away has to be explained.
+      final container = await pumpBanner(tester);
+      await container.read(bugReportProvider.notifier).start();
+      await tester.pumpAndSettle();
+
+      await tester.pump(recordingLimit);
+      await tester.pumpAndSettle();
+
+      expect(container.read(bugReportProvider).isRecording, isFalse);
+      expect(container.read(bugReportProvider).autoStopped, isTrue);
+      expect(find.text('Zakończ'), findsNothing);
+      expect(find.textContaining('minął limit 5 min'), findsOneWidget);
+
+      await container.read(bugReportProvider.notifier).discard();
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('shows over whatever screen the user is on', (tester) async {
       await whileRecording(tester, (_) async {
         expect(find.text('Zakończ'), findsOneWidget);
         expect(find.text('ekran'), findsOneWidget);
-        expect(find.text('0:00'), findsOneWidget);
+        expect(find.text(clockText), findsOneWidget);
       });
     });
 
@@ -374,11 +496,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // Clock stays — it is the proof something is still being recorded.
-        expect(find.text('0:00'), findsOneWidget);
+        expect(find.text(clockText), findsOneWidget);
         expect(find.text('Zakończ'), findsNothing);
         expect(find.byIcon(Icons.bookmark_add_outlined), findsNothing);
 
-        await tester.tap(find.text('0:00'));
+        await tester.tap(find.text(clockText));
         await tester.pumpAndSettle();
 
         expect(find.text('Zakończ'), findsOneWidget);

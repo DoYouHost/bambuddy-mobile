@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/confirm_dialog.dart';
 import 'bug_report_controller.dart';
 
 /// Guided bug report: explain → record → review. Recording itself lives in
@@ -41,10 +43,48 @@ class _IdleView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final recovered = ref.watch(
+      bugReportProvider.select((s) => s.recovered),
+    );
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
+        // First on the screen when it is there: whoever the app crashed on came
+        // here to report exactly that.
+        if (recovered != null) ...[
+          _Card(
+            title: l10n.bugReportRecoveredHeader,
+            body: l10n.bugReportRecoveredBody,
+            icon: Icons.restore_rounded,
+            footer: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                    ),
+                    onPressed: () =>
+                        ref.read(bugReportProvider.notifier).dropRecovered(),
+                    child: Text(l10n.bugReportDiscard),
+                  ).tagged('bug_report.recovered_discard'),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                    ),
+                    onPressed:
+                        ref.read(bugReportProvider.notifier).showRecovered,
+                    child: Text(l10n.bugReportShow),
+                  ).tagged('bug_report.recovered_show'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         _Card(
           title: l10n.bugReportIntroHeader,
           body: l10n.bugReportIntroBody,
@@ -97,7 +137,8 @@ class _RecordingView extends ConsumerWidget {
       children: [
         _Card(
           title: l10n.bugReportRecordingHeader,
-          body: l10n.bugReportRecordingBody,
+          body: '${l10n.bugReportRecordingBody}\n\n'
+              '${l10n.bugReportLimit(recordingLimit.inMinutes)}',
           icon: Icons.fiber_manual_record_rounded,
         ),
         const SizedBox(height: 20),
@@ -227,30 +268,18 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     BugReportController controller,
     AppLocalizations l10n,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.bugReportDiscardQuestion),
-        content: Text(l10n.bugReportDiscardBody),
-        actions: [
-          logTag(
-            'bug_report.discard_cancel',
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
-            ),
-          ),
-          logTag(
-            'bug_report.discard_confirm',
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.bugReportDiscard),
-            ),
-          ),
-        ],
-      ),
+    // The app's own dialog, not a hand-rolled one: it gives the confirmation a
+    // filled, red button, so the destructive answer does not look like the way
+    // out. It also names both buttons in the log.
+    final confirmed = await confirmDialog(
+      context,
+      title: l10n.bugReportDiscardQuestion,
+      message: l10n.bugReportDiscardBody,
+      confirmLabel: l10n.bugReportDiscard,
+      destructive: true,
+      id: 'bug_report.discard',
     );
-    if (confirmed ?? false) await controller.discard();
+    if (confirmed) await controller.discard();
   }
 }
 
@@ -429,11 +458,19 @@ class _RawBlock extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.title, required this.body, this.icon});
+  const _Card({
+    required this.title,
+    required this.body,
+    this.icon,
+    this.footer,
+  });
 
   final String title;
   final String body;
   final IconData? icon;
+
+  /// Buttons belonging to this card, when it asks for a decision.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +515,7 @@ class _Card extends StatelessWidget {
               color: t.textSecondary,
             ),
           ),
+          if (footer != null) ...[const SizedBox(height: 14), footer!],
         ],
       ),
     );

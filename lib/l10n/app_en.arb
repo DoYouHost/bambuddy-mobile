@@ -1416,5 +1416,12 @@
   "bugReportDiscard": "Discard",
   "bugReportDiscardQuestion": "Discard this recording?",
   "bugReportDiscardBody": "The log will be deleted from the phone.",
-  "bugReportPending": "Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers."
+  "bugReportPending": "Not wired up yet: WebSocket and the background service. For now the log holds your taps, screen changes, requests to the server and crashes.",
+  "bugReportLimit": "A recording stops by itself after {minutes} minutes.",
+  "@bugReportLimit": {"placeholders": {"minutes": {"type": "int"}}},
+  "bugReportLimitReached": "Recording finished — the {minutes} minute limit was reached.",
+  "@bugReportLimitReached": {"placeholders": {"minutes": {"type": "int"}}},
+  "bugReportShow": "Show",
+  "bugReportRecoveredHeader": "A recording survived a crash",
+  "bugReportRecoveredBody": "The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away."
 }

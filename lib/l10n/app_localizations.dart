@@ -6911,8 +6911,38 @@ abstract class AppLocalizations {
   /// No description provided for @bugReportPending.
   ///
   /// In en, this message translates to:
-  /// **'Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers.'**
+  /// **'Not wired up yet: WebSocket and the background service. For now the log holds your taps, screen changes, requests to the server and crashes.'**
   String get bugReportPending;
+
+  /// No description provided for @bugReportLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'A recording stops by itself after {minutes} minutes.'**
+  String bugReportLimit(int minutes);
+
+  /// No description provided for @bugReportLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording finished — the {minutes} minute limit was reached.'**
+  String bugReportLimitReached(int minutes);
+
+  /// No description provided for @bugReportShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get bugReportShow;
+
+  /// No description provided for @bugReportRecoveredHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'A recording survived a crash'**
+  String get bugReportRecoveredHeader;
+
+  /// No description provided for @bugReportRecoveredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away.'**
+  String get bugReportRecoveredBody;
 }
 
 class _AppLocalizationsDelegate

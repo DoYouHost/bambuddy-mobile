@@ -192,6 +192,28 @@ void main() {
     expect(record['evt'], 'user_marker');
   });
 
+  test('a session ends itself at the time ceiling', () {
+    // The ring buffer bounds memory; only the ceiling bounds the file, which
+    // gets every line and never gives one back.
+    final mirrored = <String>[];
+    final store = makeStore(onLine: mirrored.add);
+
+    store.add(LogSource.ui, 'tap');
+    now = start.add(recordingLimit).add(const Duration(seconds: 1));
+    store.add(LogSource.ui, 'tap');
+    store.add(LogSource.ui, 'tap');
+    store.add(LogSource.app, 'recording_stopped');
+
+    final records = parse(store.export()).skip(1).toList();
+    expect(store.isClosed, isTrue);
+    // One tap, then the line that says why there are no more.
+    expect(records.map((r) => r['evt']), ['tap', 'limit_reached']);
+    expect(records.last['lvl'], 'warn');
+    expect(records.last['minutes'], recordingLimit.inMinutes);
+    // And the mirror on disk stopped growing with it.
+    expect(mirrored, hasLength(2));
+  });
+
   test('clear resets records and the drop counter', () {
     final store = makeStore(maxRecords: 1);
 

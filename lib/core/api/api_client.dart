@@ -2,17 +2,23 @@ import 'package:dio/dio.dart';
 
 import '../auth/credentials_store.dart';
 import '../demo/demo_http_adapter.dart';
+import '../diagnostics/http_probe.dart';
 import '../settings/server_profile.dart';
 
 /// Bare Dio for calls without auth (login, auth/status probe) and as the base
 /// for [ApiClient]. Single place for timeouts.
+///
+/// [HttpProbe] goes on here rather than in [ApiClient] so the calls made before
+/// there is a client — login, the auth/status probe — are logged too. First in
+/// the chain, so its duration covers reading the credentials in
+/// [AuthInterceptor] and it sees a 401 before the retry hides it.
 Dio createBareDio() => Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 8),
         receiveTimeout: const Duration(seconds: 15),
         sendTimeout: const Duration(seconds: 15),
       ),
-    );
+    )..interceptors.add(HttpProbe());
 
 /// Authenticated HTTP client for a single [ServerProfile].
 class ApiClient {

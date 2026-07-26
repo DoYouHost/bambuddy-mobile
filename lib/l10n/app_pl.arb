@@ -1272,5 +1272,12 @@
   "bugReportDiscard": "Odrzuć",
   "bugReportDiscardQuestion": "Odrzucić to nagranie?",
   "bugReportDiscardBody": "Log zostanie usunięty z telefonu.",
-  "bugReportPending": "Jeszcze niepodpięte: HTTP, WebSocket, awarie i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami i znaczniki sesji."
+  "bugReportPending": "Jeszcze niepodpięte: WebSocket i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami, zapytania do serwera i awarie.",
+  "bugReportLimit": "Nagrywanie zatrzyma się samo po {minutes} min.",
+  "@bugReportLimit": {"placeholders": {"minutes": {"type": "int"}}},
+  "bugReportLimitReached": "Nagrywanie zakończone — minął limit {minutes} min.",
+  "@bugReportLimitReached": {"placeholders": {"minutes": {"type": "int"}}},
+  "bugReportShow": "Pokaż",
+  "bugReportRecoveredHeader": "Nagranie przetrwało awarię",
+  "bugReportRecoveredBody": "Aplikacja zamknęła się w trakcie nagrywania. To, co zdążyła zapisać, jest nadal w telefonie — obejrzyj albo wyrzuć."
 }

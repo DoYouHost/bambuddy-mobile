@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../router.dart';
@@ -35,6 +36,13 @@ class RecordingBannerScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The limit can run out anywhere in the app, and the bar disappearing is
+    // not an explanation. Listened for here rather than in the bar itself,
+    // which is gone by the time there is anything to say.
+    ref.listen(bugReportProvider, (previous, next) {
+      if (!(previous?.isRecording ?? false) || !next.autoStopped) return;
+      _announceLimit(context);
+    });
     final recording = ref.watch(
       bugReportProvider.select((s) => s.isRecording),
     );
@@ -47,6 +55,26 @@ class RecordingBannerScaffold extends ConsumerWidget {
         if (recording) const Positioned.fill(child: _RecordingLayer()),
       ],
     );
+  }
+
+  void _announceLimit(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.bugReportLimitReached(recordingLimit.inMinutes)),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: l10n.bugReportShow,
+          onPressed: () {
+            final navigator = rootNavigatorKey.currentContext;
+            if (navigator == null || !navigator.mounted) return;
+            if (GoRouter.of(navigator).state.uri.path != bugReportRoute) {
+              navigator.push(bugReportRoute);
+            }
+          },
+        ),
+      ));
   }
 }
 
@@ -104,9 +132,13 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
     super.dispose();
   }
 
-  String _elapsed(DateTime? startedAt) => startedAt == null
-      ? formatElapsed(Duration.zero)
-      : formatElapsed(DateTime.now().difference(startedAt));
+  /// `0:42 / 5:00`. The ceiling is part of the clock because the recording ends
+  /// on it by itself — a bar that simply vanished would read as a malfunction.
+  String _elapsed(DateTime? startedAt) {
+    final elapsed =
+        startedAt == null ? Duration.zero : DateTime.now().difference(startedAt);
+    return '${formatElapsed(elapsed)} / ${formatElapsed(recordingLimit)}';
+  }
 
   /// Where the bar sits right now, in layer coordinates — the anchor the first
   /// drag continues from, so it does not jump out of the centred position.
