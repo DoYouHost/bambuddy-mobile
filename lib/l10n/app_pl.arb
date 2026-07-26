@@ -1272,5 +1272,5 @@
   "bugReportDiscard": "Odrzuć",
   "bugReportDiscardQuestion": "Odrzucić to nagranie?",
   "bugReportDiscardBody": "Log zostanie usunięty z telefonu.",
-  "bugReportPending": "Jeszcze niepodpięte: HTTP, WebSocket, awarie, nawigacja i usługa w tle. Na razie log zawiera Twoje kliknięcia i znaczniki sesji."
+  "bugReportPending": "Jeszcze niepodpięte: HTTP, WebSocket, awarie i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami i znaczniki sesji."
 }

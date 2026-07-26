@@ -273,7 +273,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 Navigator.pop(ctx);
                 _createFolder(s);
               },
-            ),
+            ).tagged('files.new_folder'),
             ListTile(
               leading: const Icon(Icons.upload_file_outlined),
               title: Text(l10n.fmUpload),
@@ -281,7 +281,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 Navigator.pop(ctx);
                 _uploadFile(s);
               },
-            ),
+            ).tagged('files.upload'),
           ],
         ),
       ),
@@ -315,7 +315,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   notifier.setSort(entry.$1);
                   Navigator.pop(ctx);
                 },
-              ),
+              ).tagged('files.sort_option'),
           ],
         ),
       ),
@@ -364,7 +364,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _printFile(file);
                 },
-              ),
+              ).tagged('file_actions.print'),
               ListTile(
                 leading: const Icon(Icons.view_in_ar_outlined),
                 title: Text(l10n.gcodeViewerOpen),
@@ -372,7 +372,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _previewGcode(file);
                 },
-              ),
+              ).tagged('file_actions.preview_gcode'),
             ],
             if (canSlice)
               ListTile(
@@ -382,7 +382,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _sliceFile(file);
                 },
-              ),
+              ).tagged('file_actions.slice'),
             ListTile(
               leading: const Icon(Icons.playlist_add),
               title: Text(l10n.fmAddToQueue),
@@ -390,7 +390,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 Navigator.pop(ctx);
                 _addToQueue(file);
               },
-            ),
+            ).tagged('file_actions.add_to_queue'),
             if (!file.isExternal) ...[
               ListTile(
                 leading: const Icon(Icons.drive_file_rename_outline),
@@ -399,7 +399,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _renameFile(file);
                 },
-              ),
+              ).tagged('file_actions.rename'),
               ListTile(
                 leading: const Icon(Icons.drive_file_move_outline),
                 title: Text(l10n.fmMoveTo),
@@ -407,7 +407,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _moveFile(file);
                 },
-              ),
+              ).tagged('file_actions.move'),
               ListTile(
                 leading: const Icon(Icons.delete_outline),
                 title: Text(l10n.fmDelete),
@@ -415,7 +415,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   Navigator.pop(ctx);
                   _deleteFile(file);
                 },
-              ),
+              ).tagged('file_actions.delete'),
             ],
           ],
         ),
@@ -467,7 +467,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _deleteFolder(LibraryFolder folder) async {
     final ok = await confirmDialog(
       context,
-      id: 'files.delete_confirm',
+      id: 'files.folder_delete_confirm',
       title: _l10n.fmDeleteFolder,
       message: _l10n.fmDeleteFolderConfirm(folder.name),
       confirmLabel: _l10n.fmDelete,
@@ -529,7 +529,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   Future<void> _deleteFile(LibraryFile file) async {
     final ok = await confirmDialog(
       context,
-      id: 'files.folder_delete_confirm',
+      id: 'files.delete_confirm',
       title: _l10n.fmDeleteFile,
       message: _l10n.fmDeleteFileConfirm(file.displayName),
       confirmLabel: _l10n.fmDelete,
@@ -551,7 +551,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final ids = s.selected.toList();
     final ok = await confirmDialog(
       context,
-      id: 'files.move_confirm',
+      id: 'files.bulk_delete_confirm',
       title: _l10n.fmDelete,
       message: _l10n.fmDeleteSelectedConfirm(ids.length),
       confirmLabel: _l10n.fmDelete,
@@ -600,7 +600,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (printer == null || !mounted) return;
     final ok = await confirmDialog(
       context,
-      id: 'files.bulk_delete_confirm',
+      id: 'files.print_confirm',
       title: l10n.fmPrint,
       message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
       confirmLabel: l10n.fmPrint,
@@ -707,14 +707,14 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               title: Text(l10n.fmRoot),
               onTap: () =>
                   Navigator.pop(ctx, const LibraryFolder(id: -1, name: '')),  // Sentinel for root.
-            ),
+            ).tagged('files.move_target_root'),
             for (final f in folders)
               if (f.id != excludeFolderId && !f.isExternal)
                 ListTile(
                   leading: const Icon(Icons.folder_outlined),
                   title: Text(f.name),
                   onTap: () => Navigator.pop(ctx, f),
-                ),
+                ).tagged('files.move_target'),
           ],
         ),
       ),
@@ -769,15 +769,21 @@ class _PromptNameDialogState extends State<_PromptNameDialog> {
         autofocus: true,
         decoration: InputDecoration(labelText: widget.label),
         onSubmitted: (v) => Navigator.pop(context, v.trim()),
-      ),
+      ).tagged('name_prompt.field'),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
+        logTag(
+          'name_prompt.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, _controller.text.trim()),
-          child: Text(l10n.fmSave),
+        logTag(
+          'name_prompt.save',
+          FilledButton(
+            onPressed: () => Navigator.pop(context, _controller.text.trim()),
+            child: Text(l10n.fmSave),
+          ),
         ),
       ],
     );
@@ -846,7 +852,7 @@ class _Breadcrumb extends StatelessWidget {
                 size: 18, color: crumbs.isEmpty ? t.textTertiary : t.accentGreenInk),
             label: Text(l10n.fmRoot, style: crumbStyle(crumbs.isEmpty)),
             onPressed: crumbs.isEmpty ? null : () => onOpen(null),
-          ),
+          ).tagged('files.crumb_root'),
           for (var i = 0; i < crumbs.length; i++) ...[
             Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
             TextButton(
@@ -855,7 +861,7 @@ class _Breadcrumb extends StatelessWidget {
                   : () => onOpen(crumbs[i].id),
               child: Text(crumbs[i].name,
                   style: crumbStyle(i == crumbs.length - 1)),
-            ),
+            ).tagged('files.crumb'),
           ],
         ],
       ),

@@ -204,7 +204,7 @@ class _HmsErrorRow extends StatelessWidget {
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                     ],
                   ),
-                ),
+                ).tagged('printer.open_url'),
             ],
           ),
         ],
@@ -700,7 +700,7 @@ class _AmsMeta extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).tagged('printer.ams_meta');
   }
 }
 
@@ -769,7 +769,7 @@ class _AmsDryControl extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ).tagged('printer.drying');
   }
 }
 
@@ -1110,7 +1110,7 @@ class _DrySlider extends StatelessWidget {
                 max: max.toDouble(),
                 activeColor: t.accentOrange,
                 onChanged: (v) => onChanged(v.round()),
-              ),
+              ).tagged('drying.slider'),
             ),
             _StepButton(icon: Icons.add, onTap: () => onChanged(clamp(value + 1))),
           ],

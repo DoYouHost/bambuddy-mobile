@@ -219,7 +219,7 @@ class _PrinterCandidateTile extends StatelessWidget {
           ? Icon(Icons.power, color: t.accentGreenInk, size: 20)
           : null,
       onTap: onTap,
-    );
+    ).tagged('queue.printer_option');
   }
 }
 
@@ -405,7 +405,7 @@ class _QueueCard extends ConsumerWidget {
         _snackForResult(messenger, l10n, result);
       },
       child: card,
-    );
+    ).tagged('queue.swipe_delete');
   }
 }
 
@@ -664,7 +664,7 @@ Future<void> _startQueueItem(
     if (!context.mounted) return;
     final confirmed = await confirmDialog(
       context,
-      id: 'queue.start_confirm',
+      id: 'queue.plate_clear_confirm',
       title: l10n.plateClearTitle,
       message: l10n.plateClearBody,
       confirmLabel: l10n.plateClearConfirm,

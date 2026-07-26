@@ -378,7 +378,7 @@ class _LabelSpoolRow extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).tagged('labels.spool');
   }
 }
 
@@ -461,7 +461,7 @@ class _LabelFooter extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
+            ).tagged('labels.print'),
           ),
         ],
       ),
@@ -569,7 +569,7 @@ class _TemplateSheet extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
+                  ).tagged('labels.template'),
                 ),
               ),
           ],
@@ -670,7 +670,7 @@ class _MiniChip extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      ).tagged('labels.chip'),
     );
   }
 }
@@ -706,7 +706,7 @@ class _TextAction extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).tagged('labels.text_action');
   }
 }
 
@@ -769,6 +769,6 @@ class _CheckRow extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).tagged('labels.check');
   }
 }

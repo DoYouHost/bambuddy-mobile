@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/demo/demo_config.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../bug_report/recording_banner.dart';
 import '../common/qr_scanner_screen.dart';
 import 'api_key_qr.dart';
 import 'providers.dart';
@@ -85,7 +87,22 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: dashAppBar(context, title: l10n.connectToServer),
+        appBar: dashAppBar(
+          context,
+          title: l10n.connectToServer,
+          // Reachable before there is a server at all — a setup that will not
+          // connect is one of the reports worth having.
+          actions: [
+            logTag(
+              'setup.bug_report',
+              IconButton(
+                onPressed: () => context.push(bugReportRoute),
+                tooltip: l10n.bugReportTitle,
+                icon: Icon(Icons.bug_report_outlined, color: t.textSecondary),
+              ),
+            ),
+          ],
+        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Container(
@@ -99,30 +116,33 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _url,
-                  enabled: !state.busy,
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
+                logTag(
+                  'setup.server_url',
+                  TextField(
+                    controller: _url,
+                    enabled: !state.busy,
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.textPrimary,
+                    ),
+                    decoration: dashFieldDecoration(
+                      t,
+                      labelText: l10n.serverAddressLabel,
+                      hintText: l10n.serverAddressHint,
+                      helperText: l10n.serverAddressHelper,
+                      suffixIcon: IconButton(
+                        onPressed: state.busy ? null : _scanApiKey,
+                        tooltip: l10n.scanApiKeyTitle,
+                        icon:
+                            Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                      ).tagged('setup.scan_api_key'),
+                    ),
+                    onSubmitted: (v) => controller.probe(v),
                   ),
-                  decoration: dashFieldDecoration(
-                    t,
-                    labelText: l10n.serverAddressLabel,
-                    hintText: l10n.serverAddressHint,
-                    helperText: l10n.serverAddressHelper,
-                    suffixIcon: IconButton(
-                      onPressed: state.busy ? null : _scanApiKey,
-                      tooltip: l10n.scanApiKeyTitle,
-                      icon:
-                          Icon(Icons.qr_code_scanner, color: t.textSecondary),
-                    ).tagged('setup.scan_api_key'),
-                  ),
-                  onSubmitted: (v) => controller.probe(v),
                 ),
                 const SizedBox(height: 12),
                 FilledButton(
@@ -216,24 +236,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _apiKey,
-            autocorrect: false,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
-            decoration: dashFieldDecoration(
-              t,
-              labelText: l10n.apiKeyLabel,
-              hintText: 'bb_…',
-              suffixIcon: IconButton(
-                onPressed: _scanApiKey,
-                tooltip: l10n.scanApiKeyTitle,
-                icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
-              ).tagged('setup.scan_api_key'),
+          logTag(
+            'setup.api_key',
+            TextField(
+              controller: _apiKey,
+              autocorrect: false,
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+              decoration: dashFieldDecoration(
+                t,
+                labelText: l10n.apiKeyLabel,
+                hintText: 'bb_…',
+                suffixIcon: IconButton(
+                  onPressed: _scanApiKey,
+                  tooltip: l10n.scanApiKeyTitle,
+                  icon: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                ).tagged('setup.scan_api_key'),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -253,28 +276,34 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _username,
-            autocorrect: false,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
+          logTag(
+            'setup.username',
+            TextField(
+              controller: _username,
+              autocorrect: false,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+              decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
             ),
-            decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            obscureText: true,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
+          logTag(
+            'setup.password',
+            TextField(
+              controller: _password,
+              obscureText: true,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.textPrimary,
+              ),
+              decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
             ),
-            decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
           ),
           CheckboxListTile(
             value: _remember,

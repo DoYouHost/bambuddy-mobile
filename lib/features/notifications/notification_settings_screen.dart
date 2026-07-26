@@ -308,7 +308,7 @@ class _ThresholdSlider extends StatelessWidget {
                 divisions: max - min,
                 label: '$value',
                 onChanged: enabled ? (v) => onChanged(v.round()) : null,
-              ),
+              ).tagged('notifications.threshold'),
             ),
           ],
         ),

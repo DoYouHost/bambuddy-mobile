@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/diagnostics/navigation_probe.dart';
 import 'features/about/about_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/bug_report/bug_report_screen.dart';
@@ -42,11 +43,22 @@ final _inventoryNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'inventor
 final routerProvider = Provider<GoRouter>((ref) {
   final hasProfile =
       ref.watch(serverProfileProvider.select((p) => p != null));
+  // Diagnostic log: the probe follows the location, and a `ModalObserver` per
+  // navigator catches what is pushed over a screen (a sheet opened inside a tab
+  // goes on that tab's navigator). Both must exist before the router —
+  // observers cannot be added afterwards — and both log only while a recording
+  // runs. One observer instance per navigator: Flutter asserts that.
+  final probe = NavigationProbe();
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
+    observers: [ModalObserver()],
     initialLocation: hasProfile ? '/' : '/setup',
     redirect: (context, state) {
-      if (!hasProfile && state.matchedLocation != '/setup') {
+      // The bug report stays reachable without a profile: a setup that fails is
+      // exactly what someone needs to report, and the recorder runs fine with no
+      // server — the header simply carries no fingerprint.
+      const openWithoutProfile = {'/setup', bugReportRoute};
+      if (!hasProfile && !openWithoutProfile.contains(state.matchedLocation)) {
         return '/setup';
       }
       return null;
@@ -167,6 +179,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Tab 0: Dashboard
           StatefulShellBranch(
             navigatorKey: _dashboardNavigatorKey,
+            observers: [ModalObserver()],
             routes: [
               GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
             ],
@@ -174,6 +187,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Tab 1: Queue
           StatefulShellBranch(
             navigatorKey: _queueNavigatorKey,
+            observers: [ModalObserver()],
             routes: [
               GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
             ],
@@ -181,6 +195,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Tab 2: Archive
           StatefulShellBranch(
             navigatorKey: _archiveNavigatorKey,
+            observers: [ModalObserver()],
             routes: [
               GoRoute(
                 path: '/archive',
@@ -191,6 +206,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Tab 3: Maintenance
           StatefulShellBranch(
             navigatorKey: _maintenanceNavigatorKey,
+            observers: [ModalObserver()],
             routes: [
               GoRoute(
                 path: '/maintenance',
@@ -201,6 +217,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Tab 4: Filaments (spool inventory)
           StatefulShellBranch(
             navigatorKey: _inventoryNavigatorKey,
+            observers: [ModalObserver()],
             routes: [
               GoRoute(
                 path: '/inventory',
@@ -212,8 +229,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  probe.watch(router);
   // "Change server" (profile set→null→set) rebuilds a new GoRouter — dispose
   // the old one so its listeners don't leak.
-  ref.onDispose(router.dispose);
+  ref.onDispose(() {
+    probe.unwatch();
+    router.dispose();
+  });
   return router;
 });

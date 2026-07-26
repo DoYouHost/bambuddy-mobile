@@ -452,17 +452,23 @@ class _PerformConfirmDialogState extends State<_PerformConfirmDialog> {
               border: const OutlineInputBorder(),
             ),
             maxLines: 2,
-          ),
+          ).tagged('maintenance_perform.notes'),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
+        logTag(
+          'maintenance_perform.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, _controller.text.trim()),
-          child: Text(l10n.maintenancePerform),
+        logTag(
+          'maintenance_perform.confirm',
+          FilledButton(
+            onPressed: () => Navigator.pop(context, _controller.text.trim()),
+            child: Text(l10n.maintenancePerform),
+          ),
         ),
       ],
     );

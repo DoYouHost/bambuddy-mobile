@@ -28,7 +28,10 @@ class _SearchBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _FilterButton(count: filterCount, onTap: onOpenFilters),
+          logTag(
+            'inventory.filters',
+            _FilterButton(count: filterCount, onTap: onOpenFilters),
+          ),
         ],
       ),
     );

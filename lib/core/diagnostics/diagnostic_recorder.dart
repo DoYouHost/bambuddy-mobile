@@ -9,6 +9,7 @@ import 'log_file_sink.dart';
 import 'log_merge.dart';
 import 'log_redactor.dart';
 import 'log_store.dart';
+import 'navigation_probe.dart';
 import 'session_facts.dart';
 
 /// Owns one recording session: builds the header, holds the buffer, wires the
@@ -17,6 +18,8 @@ import 'session_facts.dart';
 /// ## What is wired
 ///
 /// - user interactions — [InteractionProbe], attached for the session
+/// - navigation — [NavigationProbe], installed on the router for the app's
+///   lifetime; [start] opens the session with the screen it is showing
 /// - the durable mirror of the UI stream, so a crash mid-recording still
 ///   leaves a log on disk
 /// - the session id in [SettingsRepository], which is how the background
@@ -30,15 +33,13 @@ import 'session_facts.dart';
 /// 2. **WebSocket** — frame types, disconnects, backoff in `ws_client.dart`
 /// 3. **Uncaught exceptions** — `FlutterError.onError`,
 ///    `PlatformDispatcher.instance.onError`, `runZonedGuarded` in `main.dart`
-/// 4. **Navigation** — a `GoRouter` observer (dialogs are routes, so open and
-///    cancel come along for free)
-/// 5. **Background isolate** — the FGS stream in
+/// 4. **Background isolate** — the FGS stream in
 ///    `print_monitor_task_handler.dart`, written to its own file and merged
 ///    here at [stop]
 ///
-/// Until those land a recording contains interactions and session markers
-/// only. [stop] already merges an FGS stream if it finds one, so item 5 needs
-/// no change here.
+/// Until those land a recording contains navigation, interactions and session
+/// markers only. [stop] already merges an FGS stream if it finds one, so item 4
+/// needs no change here.
 class DiagnosticRecorder {
   DiagnosticRecorder({
     required this.settings,
@@ -101,6 +102,12 @@ class DiagnosticRecorder {
     // things to keep in sync across isolates.
     await settings.saveDiagnosticsSession(session);
     store.add(LogSource.app, 'recording_started');
+    // Where the session starts. The navigation probe reports changes, so
+    // without this the first screen would be named only once the user leaves it.
+    final screen = NavigationProbe.screen;
+    if (screen != null) {
+      store.add(LogSource.ui, 'route', fields: {'to': screen});
+    }
   }
 
   /// Stops and returns the session as JSONL, merging the background isolate's

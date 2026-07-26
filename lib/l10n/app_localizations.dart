@@ -6911,7 +6911,7 @@ abstract class AppLocalizations {
   /// No description provided for @bugReportPending.
   ///
   /// In en, this message translates to:
-  /// **'Not wired up yet: HTTP, WebSocket, crashes, navigation and the background service. For now the log holds your taps and session markers.'**
+  /// **'Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers.'**
   String get bugReportPending;
 }
 

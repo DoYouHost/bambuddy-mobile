@@ -207,18 +207,20 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: t.textPrimary),
-        title: Text(
-          widget.title ?? l10n.gcodeViewerTitle,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-            color: t.textPrimary,
+      appBar: loggedAppBar(
+        AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: IconThemeData(color: t.textPrimary),
+          title: Text(
+            widget.title ?? l10n.gcodeViewerTitle,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: t.textPrimary,
+            ),
           ),
         ),
       ),

@@ -3950,5 +3950,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Not wired up yet: HTTP, WebSocket, crashes, navigation and the background service. For now the log holds your taps and session markers.';
+      'Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers.';
 }

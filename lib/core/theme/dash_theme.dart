@@ -195,6 +195,18 @@ class DashBackground extends StatelessWidget {
 /// "is there anything to go back to" logic and shifting the title on screens
 /// with no back button; naming the bar reaches it through inheritance, and
 /// tagged actions inside keep their own names.
+/// Names a hand-built [AppBar] for the diagnostic log without restyling it.
+///
+/// Screens that cannot use [dashAppBar] (the camera, the G-code viewer, the QR
+/// scanner — all dark by design) still get a framework-built back button, and
+/// that button is unreachable by a tag of its own. Wrapping the whole bar names
+/// it by inheritance. The bar's own [AppBar.preferredSize] is kept, so a bar
+/// with a `bottom:` is not clipped.
+PreferredSizeWidget loggedAppBar(AppBar bar) => PreferredSize(
+      preferredSize: bar.preferredSize,
+      child: logTag('chrome.appbar', bar),
+    );
+
 PreferredSizeWidget dashAppBar(
   BuildContext context, {
   required String title,

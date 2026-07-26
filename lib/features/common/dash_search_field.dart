@@ -95,9 +95,12 @@ class _DashSearchFieldState extends State<DashSearchField> {
               valueListenable: _controller,
               builder: (_, value, child) =>
                   value.text.isEmpty ? const SizedBox.shrink() : child!,
-              child: IconButton(
-                icon: Icon(Icons.clear, color: t.textTertiary),
-                onPressed: _clear,
+              child: logTag(
+                '${widget.id}.clear',
+                IconButton(
+                  icon: Icon(Icons.clear, color: t.textTertiary),
+                  onPressed: _clear,
+                ),
               ),
             ),
           ),

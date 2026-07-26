@@ -1,6 +1,8 @@
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_controller.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_screen.dart';
 import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
@@ -70,7 +72,17 @@ void main() {
   });
 
   /// Mounted on a router, because starting a recording navigates away.
-  Future<ProviderContainer> pumpRouted(WidgetTester tester) async {
+  /// [withProfile] decides where "back to the user" is: a configured app has a
+  /// dashboard, a fresh one only has setup.
+  Future<ProviderContainer> pumpRouted(
+    WidgetTester tester, {
+    bool withProfile = true,
+  }) async {
+    if (withProfile) {
+      await SettingsRepository(prefs).saveProfile(
+        const ServerProfile(baseUrl: 'https://printer.example', authMode: AuthMode.apiKey),
+      );
+    }
     final container = ProviderContainer(overrides: overrides());
     addTearDown(container.dispose);
     final router = GoRouter(
@@ -79,6 +91,10 @@ void main() {
         GoRoute(
           path: '/',
           builder: (_, _) => const Scaffold(body: Text('dashboard')),
+        ),
+        GoRoute(
+          path: '/setup',
+          builder: (_, _) => const Scaffold(body: Text('setup')),
         ),
         GoRoute(path: bugReportRoute, builder: (_, _) => const BugReportScreen()),
       ],
@@ -108,6 +124,21 @@ void main() {
     // The bug is reproduced on the dashboard, so that is where the user is put.
     expect(find.text('dashboard'), findsOneWidget);
     expect(find.text('Rozpocznij nagrywanie'), findsNothing);
+    expect(DiagnosticRecorder.isRecording, isTrue);
+
+    await container.read(bugReportProvider.notifier).discard();
+  });
+
+  testWidgets('a recording can start before the server is set up',
+      (tester) async {
+    // The setup screen is exactly where the app can be broken enough to report,
+    // and there is no dashboard to go back to yet.
+    final container = await pumpRouted(tester, withProfile: false);
+
+    await tester.tap(find.text('Rozpocznij nagrywanie'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('setup'), findsOneWidget);
     expect(DiagnosticRecorder.isRecording, isTrue);
 
     await container.read(bugReportProvider.notifier).discard();

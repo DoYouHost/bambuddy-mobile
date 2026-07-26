@@ -55,17 +55,19 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final canSkipLayer = layerNum > 1;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.skipObjectsTitle),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                widget.printerName,
-                style: TextStyle(fontSize: 12, color: t.textSecondary),
+      appBar: loggedAppBar(
+        AppBar(
+          title: Text(l10n.skipObjectsTitle),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(20),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  widget.printerName,
+                  style: TextStyle(fontSize: 12, color: t.textSecondary),
+                ),
               ),
             ),
           ),
@@ -142,16 +144,22 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
         title: Text(l10n.skipObjectsConfirmTitle),
         content: Text(l10n.skipObjectsConfirmBody(obj.name)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          logTag(
+            'skip_object.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.skipObjectsSkip),
+          ),
+          logTag(
+            'skip_object.confirm',
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.skipObjectsSkip),
+            ),
           ),
         ],
       ),
@@ -724,7 +732,7 @@ class _ErrorState extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
               label: Text(l10n.retry),
-            ),
+            ).tagged('skip_objects.retry'),
           ],
         ),
       ),

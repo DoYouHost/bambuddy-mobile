@@ -34,6 +34,8 @@ class LogStore {
 
   /// Mirrors each encoded line to a durable sink. The FGS isolate needs it —
   /// its heap dies with the service, so memory alone would lose the records.
+  ///
+  /// Lines go out as they arrive; [export] is what puts them in order.
   final void Function(String line)? onLine;
 
   final ListQueue<_Record> _records = ListQueue<_Record>();
@@ -52,14 +54,24 @@ class LogStore {
     return ms < 0 ? 0 : ms;
   }
 
+  /// Adds a record, stamped with [at] milliseconds when the moment being
+  /// recorded is not "now".
+  ///
+  /// Interactions need it: a button's handler runs before the probe sees the
+  /// pointer go up, so a tap stamped at write time lands *after* the route
+  /// change, the request and everything else it caused. With HTTP, WebSocket and
+  /// the background service on the same timeline that inversion stops being a
+  /// curiosity and starts costing time, so a touch is stamped with the moment
+  /// the finger went down.
   void add(
     LogSource src,
     String evt, {
     LogLevel lvl = LogLevel.info,
     Map<String, Object?> fields = const {},
+    int? at,
   }) {
     final event = LogEvent(
-      t: elapsedMs,
+      t: at ?? elapsedMs,
       src: src,
       evt: evt,
       lvl: lvl,
@@ -90,8 +102,18 @@ class LogStore {
   }
 
   /// Full JSONL for this stream: header line, the truncation marker if any
-  /// records were dropped, then the surviving records in order.
+  /// records were dropped, then the records in the order things happened.
+  ///
+  /// Sorted by `t` rather than by arrival, because a record stamped with [add]'s
+  /// `at` can arrive after something that happened later than it. Ties keep
+  /// arrival order — Dart's sort is not stable on its own, hence the sequence
+  /// number in the comparison (same trick as `mergeSessions`).
   String export() {
+    final ordered = [
+      for (var i = 0; i < _records.length; i++) (i, _records.elementAt(i)),
+    ]..sort((a, b) =>
+        a.$2.t != b.$2.t ? a.$2.t.compareTo(b.$2.t) : a.$1.compareTo(b.$1));
+
     final buf = StringBuffer()..writeln(header.toJsonLine());
     if (_dropped > 0) {
       buf.writeln(
@@ -104,8 +126,8 @@ class LogStore {
         ).toJsonLine(),
       );
     }
-    for (final r in _records) {
-      buf.writeln(r.line);
+    for (final r in ordered) {
+      buf.writeln(r.$2.line);
     }
     return buf.toString();
   }

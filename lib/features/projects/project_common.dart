@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -160,7 +161,7 @@ class ProjectColorSelector extends StatelessWidget {
         ),
         child: child,
       ),
-    );
+    ).tagged('project_form.color');
   }
 }
 

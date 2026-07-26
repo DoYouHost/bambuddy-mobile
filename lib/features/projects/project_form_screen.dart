@@ -117,7 +117,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? l10n.projectNameRequired
                       : null,
-                ),
+                ).tagged('project_form.name'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _description,
@@ -125,7 +125,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   decoration:
                       dashFieldDecoration(t, labelText: l10n.projectDescription),
                   maxLines: 2,
-                ),
+                ).tagged('project_form.description'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -176,7 +176,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         decoration: dashFieldDecoration(t,
                             labelText: l10n.projectTargetCount),
                         keyboardType: TextInputType.number,
-                      ),
+                      ).tagged('project_form.target_count'),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -186,7 +186,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         decoration: dashFieldDecoration(t,
                             labelText: l10n.projectTargetPartsCount),
                         keyboardType: TextInputType.number,
-                      ),
+                      ).tagged('project_form.target_parts'),
                     ),
                   ],
                 ),
@@ -197,20 +197,20 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   decoration: dashFieldDecoration(t, labelText: l10n.projectBudget),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                ),
+                ).tagged('project_form.budget'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _tags,
                   style: fieldStyle,
                   decoration: dashFieldDecoration(t, labelText: l10n.projectTags),
-                ),
+                ).tagged('project_form.tags'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _url,
                   style: fieldStyle,
                   decoration: dashFieldDecoration(t, labelText: l10n.projectUrl),
                   keyboardType: TextInputType.url,
-                ),
+                ).tagged('project_form.url'),
                 const SizedBox(height: 12),
                 _parentDropdown(l10n, t, fieldStyle),
                 const SizedBox(height: 12),
@@ -219,7 +219,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                   style: fieldStyle,
                   decoration: dashFieldDecoration(t, labelText: l10n.projectNotes),
                   maxLines: 4,
-                ),
+                ).tagged('project_form.notes'),
               ],
             ),
           ),
@@ -277,7 +277,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             icon: Icon(Icons.clear, color: t.textSecondary),
             tooltip: l10n.projectDueDateClear,
             onPressed: () => setState(() => _dueDate = null),
-          ),
+          ).tagged('project_form.clear_due_date'),
         OutlinedButton(
           style: OutlinedButton.styleFrom(
             foregroundColor: t.textPrimary,

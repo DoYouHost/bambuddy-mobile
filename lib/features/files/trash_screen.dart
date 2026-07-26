@@ -97,7 +97,7 @@ class TrashScreen extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
-      id: 'trash.restore_confirm',
+      id: 'trash.hard_delete_confirm',
       title: l10n.fmHardDelete,
       message: l10n.fmHardDeleteConfirm(file.filename),
       confirmLabel: l10n.fmHardDelete,
@@ -204,7 +204,7 @@ class _TrashTile extends StatelessWidget {
               ).tagged('trash.delete'),
             ],
           ),
-        ),
+        ).tagged('trash.file'),
       ),
     );
   }

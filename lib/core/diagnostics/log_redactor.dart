@@ -22,6 +22,18 @@ class LogRedactor {
   /// inside an unrelated word than a real secret.
   static const _minKnownLength = 4;
 
+  /// Fields the app fills from its own literals, never from user input: the
+  /// control identifier. Scrubbing those costs more than it protects — the demo
+  /// server is `http://demo`, so `demo` is registered as the host and turned
+  /// `setup.demo` into `setup.[HOST]`; a server called `printer` would do the
+  /// same to `printer.files` and every other id on the dashboard.
+  static const ourKeys = {'id'};
+
+  /// Shape of an identifier this app writes: dotted words, nothing else. A value
+  /// that does not match is not one of ours and goes through the scrub — so a
+  /// stray `logTag('archive.card.$name')` would still be caught.
+  static final _identifierShape = RegExp(r'^\w+(\.\w+)*$');
+
   /// Field names whose value is secret whatever its shape.
   static final _secretKey = RegExp(
     r'(token|api_?key|secret|password|passwd|authorization|access_?code|serial|cookie)',
@@ -83,9 +95,18 @@ class LogRedactor {
     if (fields.isEmpty) return const {};
     return {
       for (final e in fields.entries)
-        e.key: _secretKey.hasMatch(e.key) ? '[REDACTED]' : scrub(e.value),
+        e.key: _secretKey.hasMatch(e.key)
+            ? '[REDACTED]'
+            : _isOurIdentifier(e.key, e.value)
+                ? e.value
+                : scrub(e.value),
     };
   }
+
+  static bool _isOurIdentifier(String key, Object? value) =>
+      ourKeys.contains(key) &&
+      value is String &&
+      _identifierShape.hasMatch(value);
 
   /// Recursively scrubs strings inside maps and lists; other scalars pass
   /// through untouched (an int can't carry a key).

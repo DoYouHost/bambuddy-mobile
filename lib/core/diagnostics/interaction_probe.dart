@@ -77,6 +77,9 @@ class InteractionProbe {
         _touches[event.pointer] = _Touch(
           at: event.position,
           startedAt: event.timeStamp,
+          // The record's own offset. The pointer's `timeStamp` counts from the
+          // engine's epoch, not from the session header.
+          startedMs: store.elapsedMs,
           // Resolved at down time on purpose: by the time the finger lifts, a
           // dialog may cover what was actually pressed.
           target: _targetAt(event.position, event.viewId),
@@ -111,6 +114,11 @@ class InteractionProbe {
     store.add(
       LogSource.ui,
       isLongPress ? 'long_press' : 'tap',
+      // Stamped when the finger went down, not now: the widget's handler has
+      // already run by the time the pointer-up event reaches this probe, so
+      // "now" would file the touch after everything it set off. `held_ms` keeps
+      // the release time recoverable for a press worth measuring.
+      at: touch.startedMs,
       fields: {
         ...?touch.target?.toFields(),
         if (isLongPress) 'held_ms': heldMs,
@@ -130,6 +138,7 @@ class InteractionProbe {
     store.add(
       LogSource.ui,
       'drag',
+      at: touch.startedMs,
       fields: {
         ...?touch.target?.toFields(),
         'dir': _directionOf(delta),
@@ -386,9 +395,22 @@ class _Hit {
 }
 
 class _Touch {
-  const _Touch({required this.at, required this.startedAt, this.target});
+  const _Touch({
+    required this.at,
+    required this.startedAt,
+    required this.startedMs,
+    this.target,
+  });
 
   final Offset at;
+
+  /// Engine timestamp of the down event — for measuring how long the touch
+  /// lasted.
   final Duration startedAt;
+
+  /// The same moment as an offset into the session, which is what a record is
+  /// stamped with.
+  final int startedMs;
+
   final TouchTarget? target;
 }

@@ -209,16 +209,22 @@ class _PrinterFileManagerScreenState
         title: Text(l10n.pfmDeleteConfirmTitle),
         content: Text(l10n.pfmDeleteConfirmBody(paths.length)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          logTag(
+            'printer_files_delete.cancel',
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
             ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.pfmDelete),
+          ),
+          logTag(
+            'printer_files_delete.confirm',
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.pfmDelete),
+            ),
           ),
         ],
       ),
@@ -293,19 +299,22 @@ class _PrinterFileManagerScreenState
                   ),
                 ),
               ),
-            PopupMenuButton<PrinterFileSort>(
-              icon: Icon(Icons.sort, color: t.textSecondary),
-              tooltip: l10n.pfmSortTooltip,
-              initialValue: _sort,
-              onSelected: (s) => setState(() => _sort = s),
-              itemBuilder: (_) => [
-                _sortItem(PrinterFileSort.nameAsc, l10n.pfmSortNameAsc),
-                _sortItem(PrinterFileSort.nameDesc, l10n.pfmSortNameDesc),
-                _sortItem(PrinterFileSort.sizeDesc, l10n.pfmSortSizeLargest),
-                _sortItem(PrinterFileSort.sizeAsc, l10n.pfmSortSizeSmallest),
-                _sortItem(PrinterFileSort.dateDesc, l10n.pfmSortDateNewest),
-                _sortItem(PrinterFileSort.dateAsc, l10n.pfmSortDateOldest),
-              ],
+            logTag(
+              'printer_files.sort',
+              PopupMenuButton<PrinterFileSort>(
+                icon: Icon(Icons.sort, color: t.textSecondary),
+                tooltip: l10n.pfmSortTooltip,
+                initialValue: _sort,
+                onSelected: (s) => setState(() => _sort = s),
+                itemBuilder: (_) => [
+                  _sortItem(PrinterFileSort.nameAsc, l10n.pfmSortNameAsc),
+                  _sortItem(PrinterFileSort.nameDesc, l10n.pfmSortNameDesc),
+                  _sortItem(PrinterFileSort.sizeDesc, l10n.pfmSortSizeLargest),
+                  _sortItem(PrinterFileSort.sizeAsc, l10n.pfmSortSizeSmallest),
+                  _sortItem(PrinterFileSort.dateDesc, l10n.pfmSortDateNewest),
+                  _sortItem(PrinterFileSort.dateAsc, l10n.pfmSortDateOldest),
+                ],
+              ),
             ),
             logTag(
               'printer_files.refresh',
@@ -334,8 +343,12 @@ class _PrinterFileManagerScreenState
     );
   }
 
+  // Tag on the child: a wrapped `PopupMenuItem` is no longer a `PopupMenuEntry`.
   PopupMenuItem<PrinterFileSort> _sortItem(PrinterFileSort s, String label) =>
-      PopupMenuItem(value: s, child: Text(label));
+      PopupMenuItem(
+        value: s,
+        child: logTag('printer_files.sort_option', Text(label)),
+      );
 
   Widget _quickNav(DashTokens t, AppLocalizations l10n) => SizedBox(
         height: 48,
@@ -360,7 +373,7 @@ class _PrinterFileManagerScreenState
                     fontWeight: FontWeight.w700,
                     color: _path == path ? t.accentGreenInk : t.textSecondary,
                   ),
-                ),
+                ).tagged('printer_files.quick_dir'),
               ),
           ],
         ),
@@ -452,7 +465,7 @@ class _PrinterFileManagerScreenState
           style: dashPrimaryButtonStyle(t),
           onPressed: _load,
           child: Text(l10n.retry),
-        ),
+        ).tagged('printer_files.retry'),
       );
     }
     final items = _visible;

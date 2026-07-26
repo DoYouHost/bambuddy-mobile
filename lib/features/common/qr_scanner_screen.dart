@@ -85,36 +85,38 @@ class _QrScannerScreenState<T extends Object>
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: t.textPrimary,
-        elevation: 0,
-        title: Text(
-          widget.title,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-            color: t.textPrimary,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => _controller.toggleTorch(),
-            icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable: _controller,
-              builder: (context, state, _) => Icon(
-                state.torchState == TorchState.on
-                    ? Icons.flash_on
-                    : Icons.flash_off,
-                color: state.torchState == TorchState.on
-                    ? t.accentGreen
-                    : t.textPrimary,
-              ),
+      appBar: loggedAppBar(
+        AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: t.textPrimary,
+          elevation: 0,
+          title: Text(
+            widget.title,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: t.textPrimary,
             ),
-          ).tagged('scanner.torch'),
-        ],
+          ),
+          actions: [
+            IconButton(
+              onPressed: () => _controller.toggleTorch(),
+              icon: ValueListenableBuilder<MobileScannerState>(
+                valueListenable: _controller,
+                builder: (context, state, _) => Icon(
+                  state.torchState == TorchState.on
+                      ? Icons.flash_on
+                      : Icons.flash_off,
+                  color: state.torchState == TorchState.on
+                      ? t.accentGreen
+                      : t.textPrimary,
+                ),
+              ),
+            ).tagged('scanner.torch'),
+          ],
+        ),
       ),
       body: Stack(
         fit: StackFit.expand,

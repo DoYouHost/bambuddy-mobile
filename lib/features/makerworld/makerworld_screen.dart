@@ -203,7 +203,7 @@ class _UrlBar extends StatelessWidget {
             ),
             decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
                 .copyWith(prefixIcon: Icon(Icons.link, color: t.textTertiary)),
-          ),
+          ).tagged('makerworld.url'),
         ),
         const SizedBox(width: 12),
         SizedBox(
@@ -463,7 +463,7 @@ class _PlateRow extends StatelessWidget {
                   foregroundColor: t.accentGreenInk.withValues(alpha: 0.6)),
               icon: const Icon(Icons.check_circle, size: 18),
               label: Text(l10n.mwInLibrary),
-            )
+            ).tagged('makerworld.plate')
           else
             logTag(
               'makerworld.import_plate',
@@ -642,7 +642,7 @@ class _InlineError extends StatelessWidget {
             ),
             onPressed: onRetry,
             child: Text(l10n.retry),
-          ),
+          ).tagged('makerworld.error_action'),
         ],
       ),
     );

@@ -379,7 +379,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ],
           ),
         ),
-      ),
+      ).tagged('queue_edit.mapping'),
     );
   }
 
@@ -651,7 +651,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 labelText: l10n.queueEditChamberTarget,
                 hintText: '—',
               ),
-            ),
+            ).tagged('queue_edit.chamber_target'),
           ],
         ],
       ),
@@ -947,7 +947,7 @@ class _SegToggle<T> extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      ).tagged('queue_edit.segment'),
     );
   }
 }
@@ -1004,7 +1004,7 @@ class _OptionSwitch extends StatelessWidget {
             activeThumbColor: Colors.white,
             activeTrackColor: t.accentGreen,
             onChanged: onChanged,
-          ),
+          ).tagged('queue_edit.toggle'),
         ],
       ),
     );
@@ -1056,7 +1056,7 @@ class _CheckRow extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).tagged('queue_edit.check');
   }
 }
 
@@ -1143,7 +1143,7 @@ class _Dropdown<T> extends StatelessWidget {
         ),
       ),
       child: Text(label),
-    );
+    ).tagged('queue_edit.menu_item');
   }
 
   Widget _field(DashTokens t, String text, Color? swatch, VoidCallback onTap) {
@@ -1195,7 +1195,7 @@ class _Dropdown<T> extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      ).tagged('queue_edit.picker'),
     );
   }
 }

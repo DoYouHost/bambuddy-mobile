@@ -262,63 +262,65 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         drawer: _AppDrawer(profileLabel: profile?.label),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          // Same button AppBar would build implicitly, but named for the log —
-          // this screen always has a drawer, so there is no condition to keep.
-          leading: logTag('chrome.drawer', const DrawerButton()),
-          title: Text(
-            l10n.printersTitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-              color: t.textPrimary,
-            ),
-          ),
-          iconTheme: IconThemeData(color: t.textPrimary),
-          actions: [
-            const Center(child: ConnectionModeChip()),
-            const SizedBox(width: 4),
-            logTag(
-              'dashboard.add_printer',
-              IconButton(
-                tooltip: l10n.addPrinterTitle,
+        appBar: loggedAppBar(
+          AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            // Same button AppBar would build implicitly, but named for the log —
+            // this screen always has a drawer, so there is no condition to keep.
+            leading: logTag('chrome.drawer', const DrawerButton()),
+            title: Text(
+              l10n.printersTitle,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
                 color: t.textPrimary,
-                icon: const Icon(Icons.add),
-                onPressed: () => context.push('/printers/add'),
               ),
             ),
-            logTag(
-              'dashboard.notifications_menu',
-              IconButton(
-                tooltip: l10n.batteryOptMenu,
-                color: t.textPrimary,
-                icon: const Icon(Icons.notifications_active_outlined),
-                onPressed: () => _openNotificationMenu(context, l10n),
+            iconTheme: IconThemeData(color: t.textPrimary),
+            actions: [
+              const Center(child: ConnectionModeChip()),
+              const SizedBox(width: 4),
+              logTag(
+                'dashboard.add_printer',
+                IconButton(
+                  tooltip: l10n.addPrinterTitle,
+                  color: t.textPrimary,
+                  icon: const Icon(Icons.add),
+                  onPressed: () => context.push('/printers/add'),
+                ),
               ),
-            ),
-          ],
-          // Only friendly profile label (if set) — no URL.
-          bottom: profile?.label == null
-              ? null
-              : PreferredSize(
-                  preferredSize: const Size.fromHeight(18),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      profile!.label!,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontMono,
-                        fontSize: 11.5,
-                        color: t.textTertiary,
+              logTag(
+                'dashboard.notifications_menu',
+                IconButton(
+                  tooltip: l10n.batteryOptMenu,
+                  color: t.textPrimary,
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  onPressed: () => _openNotificationMenu(context, l10n),
+                ),
+              ),
+            ],
+            // Only friendly profile label (if set) — no URL.
+            bottom: profile?.label == null
+                ? null
+                : PreferredSize(
+                    preferredSize: const Size.fromHeight(18),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        profile!.label!,
+                        style: TextStyle(
+                          fontFamily: DashTokens.fontMono,
+                          fontSize: 11.5,
+                          color: t.textTertiary,
+                        ),
                       ),
                     ),
                   ),
-                ),
+          ),
         ),
         body: Column(
           children: [
@@ -372,7 +374,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               FilledButton(
                 onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
                 child: Text(l10n.retry),
-              ),
+              ).tagged('dashboard.retry'),
             ],
           ),
         ),
@@ -1001,7 +1003,7 @@ class _FilterButton extends StatelessWidget {
                   color: active ? t.accentGreenInk : t.textSecondary,
                 ),
               ),
-            ),
+            ).tagged('dashboard.filters'),
           ),
         ),
       ),

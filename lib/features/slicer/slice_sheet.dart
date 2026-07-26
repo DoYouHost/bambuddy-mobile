@@ -264,7 +264,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
             )),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
-      ),
+      ).tagged('slice.slot'),
     );
   }
 
@@ -277,7 +277,7 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
               : Icons.radio_button_unchecked),
           title: Text(label),
           onTap: () => Navigator.pop(context, value),
-        );
+        ).tagged('slice.bed_type');
     final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -525,7 +525,7 @@ class _PresetPickerState extends State<_PresetPicker> {
                   Switch(
                     value: _showAll,
                     onChanged: (v) => setState(() => _showAll = v),
-                  ),
+                  ).tagged('slice.show_all_presets'),
                 ],
               ),
             ),
@@ -566,7 +566,7 @@ class _PresetPickerState extends State<_PresetPicker> {
                                   size: 16, color: theme.colorScheme.primary)
                               : null,
                           onTap: () => Navigator.pop(ctx, p),
-                        );
+                        ).tagged('slice.preset_option');
                       },
                     ),
             ),
@@ -682,9 +682,12 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
       content: content,
       actions: terminal
           ? [
-              FilledButton(
-                onPressed: () => Navigator.pop(context, success),
-                child: Text(l10n.sliceClose),
+              logTag(
+                'slice_progress.close',
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, success),
+                  child: Text(l10n.sliceClose),
+                ),
               ),
             ]
           : null,

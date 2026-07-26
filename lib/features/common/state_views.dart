@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/diagnostics/log_tag.dart';
+
 /// Shared "failed to load, tap to retry" view. Replaces the per-screen
 /// `_ErrorView` copies (queue, archive, maintenance, inventory, projects,
 /// files, stats, gcode) that were all minor variants of this.
@@ -39,8 +41,8 @@ class AsyncErrorView extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         tonal
-            ? FilledButton.tonal(onPressed: onRetry, child: Text(retryLabel))
-            : FilledButton(onPressed: onRetry, child: Text(retryLabel)),
+            ? FilledButton.tonal(onPressed: onRetry, child: Text(retryLabel)).tagged('error.retry')
+            : FilledButton(onPressed: onRetry, child: Text(retryLabel)).tagged('error.retry'),
       ],
     );
 

@@ -347,7 +347,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                               : Icons.visibility_off_outlined,
                           color: t.textSecondary,
                         ),
-                      ),
+                      ).tagged('add_printer.reveal_access_code'),
                     ),
                     const SizedBox(height: 12),
                     _modelDropdown(t, l10n),
@@ -378,7 +378,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                           color: t.textPrimary,
                         ),
                       ),
-                    ),
+                    ).tagged('add_printer.auto_archive'),
                     const SizedBox(height: 4),
                     _diagnosticSection(t, l10n),
                     const SizedBox(height: 16),
@@ -481,7 +481,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               labelText: l10n.addPrinterSubnetCustomLabel,
               hintText: '192.168.1.0/24',
             ),
-          ),
+          ).tagged('add_printer.custom_subnet'),
         ],
         const SizedBox(height: 6),
         Text(
@@ -764,7 +764,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         hintText: hint,
         suffixIcon: suffixIcon,
       ),
-    );
+    ).tagged('add_printer.field');
   }
 
   TextStyle _fieldTextStyle(DashTokens t) => TextStyle(

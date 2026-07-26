@@ -4008,5 +4008,5 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Jeszcze niepodpięte: HTTP, WebSocket, awarie, nawigacja i usługa w tle. Na razie log zawiera Twoje kliknięcia i znaczniki sesji.';
+      'Jeszcze niepodpięte: HTTP, WebSocket, awarie i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami i znaczniki sesji.';
 }

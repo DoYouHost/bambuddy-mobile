@@ -36,6 +36,32 @@ void main() {
           jsonDecode(line) as Map<String, dynamic>,
       ];
 
+  test('exports in the order things happened, not the order they arrived', () {
+    final store = makeStore();
+
+    now = start.add(const Duration(milliseconds: 1000));
+    // What a tap sets off is written first — the widget's handler runs before
+    // the probe sees the finger lift — and the touch is stamped with when it
+    // began.
+    store.add(LogSource.ui, 'route', fields: const {'to': '/queue'});
+    store.add(LogSource.ui, 'tap', at: 940, fields: const {'id': 'nav.queue'});
+
+    final records = parse(store.export()).skip(1).toList();
+    expect(records.map((r) => r['evt']), ['tap', 'route']);
+    expect(records.map((r) => r['t']), [940, 1000]);
+  });
+
+  test('records sharing a millisecond keep the order they arrived in', () {
+    final store = makeStore();
+
+    store.add(LogSource.ui, 'tap');
+    store.add(LogSource.ui, 'route');
+    store.add(LogSource.http, 'request');
+
+    final records = parse(store.export()).skip(1).toList();
+    expect(records.map((r) => r['evt']), ['tap', 'route', 'request']);
+  });
+
   test('export starts with the header, then the records in order', () {
     final store = makeStore();
 

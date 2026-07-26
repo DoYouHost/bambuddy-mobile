@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -82,19 +83,35 @@ class _UserFilterMenu extends ConsumerWidget {
       return '?';
     }
 
-    return PopupMenuButton<int?>(
-      icon: Icon(Icons.people_outline, color: DashTokens.of(context).textSecondary),
-      tooltip: labelFor(filter.createdById),
-      initialValue: filter.createdById,
-      onSelected: (id) =>
-          ref.read(statsFilterProvider.notifier).setCreatedById(id),
-      itemBuilder: (context) => [
-        PopupMenuItem(value: null, child: Text(l10n.statsAllUsers)),
-        PopupMenuItem(value: -1, child: Text(l10n.statsNoUser)),
-        const PopupMenuDivider(),
-        for (final u in users)
-          PopupMenuItem(value: u.id, child: Text(u.username)),
-      ],
+    return logTag(
+      'stats.user_filter',
+      PopupMenuButton<int?>(
+        icon:
+            Icon(Icons.people_outline, color: DashTokens.of(context).textSecondary),
+        tooltip: labelFor(filter.createdById),
+        initialValue: filter.createdById,
+        onSelected: (id) =>
+            ref.read(statsFilterProvider.notifier).setCreatedById(id),
+        // Tagging the item's child, not the item: a `PopupMenuItem` wrapped in
+        // `Semantics` is no longer a `PopupMenuEntry`. Which user was picked is
+        // not logged — that is the user's data, and one id per menu is enough.
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: null,
+            child: logTag('stats.user_filter.all', Text(l10n.statsAllUsers)),
+          ),
+          PopupMenuItem(
+            value: -1,
+            child: logTag('stats.user_filter.none', Text(l10n.statsNoUser)),
+          ),
+          const PopupMenuDivider(),
+          for (final u in users)
+            PopupMenuItem(
+              value: u.id,
+              child: logTag('stats.user_filter.user', Text(u.username)),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -108,34 +125,41 @@ class _RangeMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<StatsRange>(
-      icon: Icon(Icons.date_range, color: DashTokens.of(context).textSecondary),
-      tooltip: statsRangeLabel(l10n, filter.range),
-      initialValue: filter.range,
-      onSelected: (range) async {
-        if (range == StatsRange.custom) {
-          final now = DateTime.now();
-          final picked = await showDateRangePicker(
-            context: context,
-            firstDate: DateTime(now.year - 5),
-            lastDate: now,
-            initialDateRange: filter.from != null && filter.to != null
-                ? DateTimeRange(start: filter.from!, end: filter.to!)
-                : null,
-          );
-          if (picked != null) {
-            ref
-                .read(statsFilterProvider.notifier)
-                .setCustom(picked.start, picked.end);
+    return logTag(
+      'stats.range',
+      PopupMenuButton<StatsRange>(
+        icon: Icon(Icons.date_range, color: DashTokens.of(context).textSecondary),
+        tooltip: statsRangeLabel(l10n, filter.range),
+        initialValue: filter.range,
+        onSelected: (range) async {
+          if (range == StatsRange.custom) {
+            final now = DateTime.now();
+            final picked = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(now.year - 5),
+              lastDate: now,
+              initialDateRange: filter.from != null && filter.to != null
+                  ? DateTimeRange(start: filter.from!, end: filter.to!)
+                  : null,
+            );
+            if (picked != null) {
+              ref
+                  .read(statsFilterProvider.notifier)
+                  .setCustom(picked.start, picked.end);
+            }
+            return;
           }
-          return;
-        }
-        ref.read(statsFilterProvider.notifier).setRange(range);
-      },
-      itemBuilder: (context) => [
-        for (final r in StatsRange.values)
-          PopupMenuItem(value: r, child: Text(statsRangeLabel(l10n, r))),
-      ],
+          ref.read(statsFilterProvider.notifier).setRange(range);
+        },
+        // The range is ours, not the user's, so the chosen one can be named.
+        itemBuilder: (context) => [
+          for (final r in StatsRange.values)
+            PopupMenuItem(
+              value: r,
+              child: logTag('stats.range.${r.name}', Text(statsRangeLabel(l10n, r))),
+            ),
+        ],
+      ),
     );
   }
 }

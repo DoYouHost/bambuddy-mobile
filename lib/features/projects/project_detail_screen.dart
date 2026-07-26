@@ -76,7 +76,7 @@ class ProjectDetailScreen extends ConsumerWidget {
                         .read(projectDetailProvider(projectId).notifier)
                         .refresh(),
                     child: Text(l10n.retry),
-                  ),
+                  ).tagged('project.retry'),
                 ],
               ),
             ),
@@ -214,7 +214,7 @@ class _Header extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
+            ).tagged('project.open_url'),
           ],
           if (project.tagList.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -242,7 +242,7 @@ class _Header extends ConsumerWidget {
                   ),
                 ),
                 onTap: () => context.push('/projects/${project.parentId}'),
-              ),
+              ).tagged('project.parent'),
             ),
           if (project.children.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -275,7 +275,7 @@ class _Header extends ConsumerWidget {
                       ),
                     ),
                     onPressed: () => context.push('/projects/${child.id}'),
-                  ),
+                  ).tagged('project.child'),
               ],
             ),
           ],
@@ -609,13 +609,19 @@ class _NotesEditDialogState extends State<_NotesEditDialog> {
         maxLines: 6,
         autofocus: true,
         decoration: InputDecoration(hintText: l10n.projectNotes),
-      ),
+      ).tagged('project_notes.field'),
       actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, _controller.text),
-          child: Text(l10n.projectSave),
+        logTag(
+          'project_notes.cancel',
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+        ),
+        logTag(
+          'project_notes.save',
+          FilledButton(
+            onPressed: () => Navigator.pop(context, _controller.text),
+            child: Text(l10n.projectSave),
+          ),
         ),
       ],
     );

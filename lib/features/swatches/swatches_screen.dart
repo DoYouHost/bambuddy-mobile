@@ -126,13 +126,19 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         title: Text(l10n.swatchImportTitle),
         content: Text(l10n.swatchImportWarning(existing, incoming.length)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
+          logTag(
+            'swatch_import.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.swatchImportConfirm),
+          logTag(
+            'swatch_import.confirm',
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.swatchImportConfirm),
+            ),
           ),
         ],
       ),
@@ -195,13 +201,19 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
         title: Text(_l10n.swatchDeleteTitle),
         content: Text(_l10n.swatchDeleteBody(c.code, c.displayName)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(_l10n.cancel),
+          logTag(
+            'swatch_delete.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(_l10n.cancel),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(_l10n.swatchDelete),
+          logTag(
+            'swatch_delete.confirm',
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(_l10n.swatchDelete),
+            ),
           ),
         ],
       ),
@@ -506,16 +518,23 @@ class _SwatchTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(Icons.copy_rounded, color: t.textSecondary),
-                    tooltip: MaterialLocalizations.of(context).copyButtonLabel,
-                    onPressed: onCopy,
+                  logTag(
+                    'swatches.copy',
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.copy_rounded, color: t.textSecondary),
+                      tooltip:
+                          MaterialLocalizations.of(context).copyButtonLabel,
+                      onPressed: onCopy,
+                    ),
                   ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(Icons.delete_outline_rounded, color: t.danger),
-                    onPressed: onDelete,
+                  logTag(
+                    'swatches.delete',
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.delete_outline_rounded, color: t.danger),
+                      onPressed: onDelete,
+                    ),
                   ),
                 ],
               ),
@@ -541,56 +560,59 @@ class _UncodedTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onGenerate,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            decoration: BoxDecoration(
-              color: t.subCard,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.subCardBorder),
-            ),
-            child: Row(
-              children: [
-                _ColorSwatch(rgba: identity.rgba, size: 40),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    identity.displayName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
+        child: logTag(
+          'swatches.generate',
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onGenerate,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Row(
+                children: [
+                  _ColorSwatch(rgba: identity.rgba, size: 40),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      identity.displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Toned-down outlined style so the bold green FAB stays the
-                // single primary action and the two greens don't merge.
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: t.accentGreenInk,
-                    side: BorderSide(
-                        color: t.accentGreen.withValues(alpha: 0.55)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    textStyle: const TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(width: 8),
+                  // Toned-down outlined style so the bold green FAB stays the
+                  // single primary action and the two greens don't merge.
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: t.accentGreenInk,
+                      side: BorderSide(
+                          color: t.accentGreen.withValues(alpha: 0.55)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                    onPressed: onGenerate,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(l10n.swatchGenerate),
                   ),
-                  onPressed: onGenerate,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(l10n.swatchGenerate),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -800,7 +822,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                     icon: const Icon(Icons.casino_outlined),
                     tooltip: l10n.swatchRegenerate,
                     onPressed: _regenerate,
-                  ),
+                  ).tagged('swatch_form.regenerate'),
                 ),
                 validator: (v) {
                   final code = normalizeSwatchCode(v ?? '');
@@ -811,7 +833,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   if (taken) return l10n.swatchCodeTaken;
                   return null;
                 },
-              ),
+              ).tagged('swatch_form.code'),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _brand,
@@ -821,7 +843,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
-              ),
+              ).tagged('swatch_form.brand'),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _material,
@@ -834,7 +856,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? l10n.swatchMaterialRequired
                     : null,
-              ),
+              ).tagged('swatch_form.material'),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _variant,
@@ -844,7 +866,7 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
-              ),
+              ).tagged('swatch_form.variant'),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _colorName,
@@ -857,9 +879,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                     icon: const Icon(Icons.palette_outlined),
                     tooltip: l10n.inventoryColorPickTitle,
                     onPressed: _pickColor,
-                  ),
+                  ).tagged('swatch_form.pick_color'),
                 ),
-              ),
+              ).tagged('swatch_form.color_name'),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _rgba,
@@ -884,25 +906,32 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
                   ),
                 ),
                 onChanged: (_) => setState(() {}),
-              ),
+              ).tagged('swatch_form.rgba'),
               const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(l10n.cancel),
+                    child: logTag(
+                      'swatch_form.cancel',
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(l10n.cancel),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _submit,
-                      icon: Icon(
-                        _isEdit ? Icons.check : Icons.auto_awesome,
-                        size: 18,
+                    child: logTag(
+                      'swatch_form.save',
+                      FilledButton.icon(
+                        onPressed: _submit,
+                        icon: Icon(
+                          _isEdit ? Icons.check : Icons.auto_awesome,
+                          size: 18,
+                        ),
+                        label:
+                            Text(_isEdit ? l10n.swatchSave : l10n.swatchGenerateCode),
                       ),
-                      label: Text(_isEdit ? l10n.swatchSave : l10n.swatchGenerateCode),
                     ),
                   ),
                 ],
@@ -1007,7 +1036,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
                         : Text(c.manufacturer,
                             maxLines: 1, overflow: TextOverflow.ellipsis),
                     onTap: () => Navigator.pop(context, c),
-                  );
+                  ).tagged('swatch_form.color_option');
                 },
               ),
             ),

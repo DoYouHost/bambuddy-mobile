@@ -7,6 +7,7 @@ import '../../core/diagnostics/log_summary.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import 'bug_report_controller.dart';
 
 /// Guided bug report: explain → record → review. Recording itself lives in
@@ -70,12 +71,16 @@ class _IdleView extends ConsumerWidget {
     );
   }
 
-  /// Hands the app straight back to the user: the bug waits on the dashboard,
-  /// not here. `go` rather than `pop`, because this screen is reached from the
-  /// drawer and the recording bar pushes it again when the user finishes.
+  /// Hands the app straight back to the user: the bug waits on the screen they
+  /// came from, not here. `go` rather than `pop`, because this screen is reached
+  /// from the drawer and the recording bar pushes it again when the user
+  /// finishes. Without a server profile the dashboard would bounce off the
+  /// router's redirect, so a pre-setup recording goes back to setup — which is
+  /// the screen worth recording in that case.
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
     await ref.read(bugReportProvider.notifier).start();
-    if (context.mounted) context.go('/');
+    if (context.mounted) context.go(home);
   }
 }
 
@@ -165,7 +170,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                   _raw ? l10n.bugReportHideRaw : l10n.bugReportShowRaw,
                 ),
                 onPressed: () => setState(() => _raw = !_raw),
-              ),
+              ).tagged('bug_report.toggle_raw'),
               if (_raw)
                 _RawBlock(log: log)
               else
@@ -187,7 +192,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                     ),
                     onPressed: () => _confirmDiscard(context, controller, l10n),
                     child: Text(l10n.bugReportDiscard),
-                  ),
+                  ).tagged('bug_report.discard'),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -207,7 +212,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                           SnackBar(content: Text(l10n.bugReportCopied)),
                         );
                     },
-                  ),
+                  ).tagged('bug_report.copy'),
                 ),
               ],
             ),
@@ -228,13 +233,19 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
         title: Text(l10n.bugReportDiscardQuestion),
         content: Text(l10n.bugReportDiscardBody),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          logTag(
+            'bug_report.discard_cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.bugReportDiscard),
+          logTag(
+            'bug_report.discard_confirm',
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.bugReportDiscard),
+            ),
           ),
         ],
       ),

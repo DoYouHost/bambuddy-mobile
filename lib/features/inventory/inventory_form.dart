@@ -377,32 +377,35 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? errorText,
   }) {
     final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: DropdownMenu<String>(
-        controller: _c[key],
-        label: Text(required ? '$label *' : label),
-        expandedInsets: EdgeInsets.zero,
-        enableFilter: true,
-        requestFocusOnTap: true,
-        menuHeight: 320,
-        errorText: errorText,
-        textStyle: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
+    return logTag(
+      _fieldTag(key),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: DropdownMenu<String>(
+          controller: _c[key],
+          label: Text(required ? '$label *' : label),
+          expandedInsets: EdgeInsets.zero,
+          enableFilter: true,
+          requestFocusOnTap: true,
+          menuHeight: 320,
+          errorText: errorText,
+          textStyle: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: t.textPrimary,
+          ),
+          inputDecorationTheme: _dashInputTheme(t),
+          onSelected: (v) {
+            if (required && v != null && v.isNotEmpty) {
+              setState(() => _materialMissing = false);
+            }
+          },
+          dropdownMenuEntries: [
+            for (final o in options) DropdownMenuEntry(value: o, label: o),
+          ],
         ),
-        inputDecorationTheme: _dashInputTheme(t),
-        onSelected: (v) {
-          if (required && v != null && v.isNotEmpty) {
-            setState(() => _materialMissing = false);
-          }
-        },
-        dropdownMenuEntries: [
-          for (final o in options) DropdownMenuEntry(value: o, label: o),
-        ],
-      ),
+        ),
     );
   }
 
@@ -424,7 +427,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: _dashDecoration(t, labelText: 'g'),
         onChanged: (_) => setState(() => _coreWeightCatalogId = null),
-      ),
+      ).tagged('spool_form.core_weight_value'),
     );
     if (cores.isEmpty) {
       return Padding(
@@ -538,7 +541,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
           padding: EdgeInsets.zero,
-        );
+        ).tagged('spool_form.quantity_step');
     return Tooltip(
       message: l10n.inventoryQuantityHint,
       child: Container(
@@ -703,13 +706,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
+          logTag(
+            'spool_color.cancel',
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.inventoryColorSelect),
+          logTag(
+            'spool_color.confirm',
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.inventoryColorSelect),
+            ),
           ),
         ],
       ),
@@ -732,41 +741,50 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   }) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextFormField(
-        controller: _c[key],
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
+    return logTag(
+      _fieldTag(key),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: TextFormField(
+          controller: _c[key],
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: t.textPrimary,
+          ),
+          keyboardType: number
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
+          maxLines: maxLines,
+          textCapitalization: number
+              ? TextCapitalization.none
+              : TextCapitalization.sentences,
+          onChanged: onChanged,
+          decoration: _dashDecoration(
+            t,
+            labelText: label,
+            hintText: hint,
+            suffixText: suffixText,
+          ),
+          validator: (v) {
+            final text = (v ?? '').trim();
+            if (number && text.isNotEmpty && double.tryParse(text) == null) {
+              return l10n.inventoryFieldInvalidNumber;
+            }
+            return null;
+          },
         ),
-        keyboardType: number
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
-        maxLines: maxLines,
-        textCapitalization: number
-            ? TextCapitalization.none
-            : TextCapitalization.sentences,
-        onChanged: onChanged,
-        decoration: _dashDecoration(
-          t,
-          labelText: label,
-          hintText: hint,
-          suffixText: suffixText,
         ),
-        validator: (v) {
-          final text = (v ?? '').trim();
-          if (number && text.isNotEmpty && double.tryParse(text) == null) {
-            return l10n.inventoryFieldInvalidNumber;
-          }
-          return null;
-        },
-      ),
     );
   }
 }
+
+/// `coreWeight` → `core_weight`: log identifiers are lowercase with
+/// underscores, while the form's controller keys are camelCase. The replacement
+/// callback lowercases each capital and puts an underscore in front of it.
+String _fieldTag(String key) =>
+    'spool_form.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
 
 /// Shared field chrome for the spool form's `InputDecorationTheme` (used by
 /// [DropdownMenu], which builds its own internal text field and doesn't take a
@@ -977,7 +995,7 @@ class _ColorChip extends StatelessWidget {
                 )
               : null,
         ),
-      ),
+      ).tagged('spool_form.color_swatch'),
     );
   }
 }
@@ -1080,7 +1098,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                             : '${p.filamentType} · ${p.source}',
                       ),
                       onTap: () => Navigator.of(context).pop(p),
-                    );
+                    ).tagged('spool_form.preset_option');
                   },
                 );
               },
@@ -1212,7 +1230,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                         ),
                         subtitle: Text('${c.weight} g'),
                         onTap: () => Navigator.of(context).pop(c),
-                      );
+                      ).tagged('spool_form.core_option');
                     },
                   ),
           ),

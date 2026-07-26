@@ -357,7 +357,7 @@ class _OverrideTile extends ConsumerWidget {
             ).tagged('maintenance_settings.interval'),
           ],
         ),
-      ),
+      ).tagged('maintenance_settings.override'),
     );
   }
 
@@ -523,7 +523,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
               validator: (v) => (v ?? '').trim().isEmpty
                   ? l10n.inventoryFieldRequired
                   : null,
-            ),
+            ).tagged('maintenance_type_form.name'),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +568,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                       }
                       return null;
                     },
-                  ),
+                  ).tagged('maintenance_type_form.interval'),
                 ),
               ],
             ),
@@ -597,7 +597,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                 border: const OutlineInputBorder(),
                 isDense: true,
               ),
-            ),
+            ).tagged('maintenance_type_form.description'),
             if (!_isEdit && printers.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
@@ -620,7 +620,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                           _printers.remove(p.id);
                         }
                       }),
-                    ),
+                    ).tagged('maintenance_type_form.printer'),
                 ],
               ),
             ],
@@ -678,7 +678,7 @@ class _IconChoice extends StatelessWidget {
           color: selected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
         ),
       ),
-    );
+    ).tagged('maintenance_type_form.icon');
   }
 }
 
@@ -736,27 +736,36 @@ class _IntervalEditDialogState extends State<_IntervalEditDialog> {
               border: const OutlineInputBorder(),
               isDense: true,
             ),
-          ),
+          ).tagged('interval_edit.value'),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () =>
-              Navigator.pop(context, const _IntervalOutcome(reset: true)),
-          child: Text(l10n.maintenanceResetInterval),
+        logTag(
+          'interval_edit.reset',
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, const _IntervalOutcome(reset: true)),
+            child: Text(l10n.maintenanceResetInterval),
+          ),
         ),
         const Spacer(),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
+        logTag(
+          'interval_edit.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
         ),
-        FilledButton(
-          onPressed: () {
-            final v = double.tryParse(_controller.text.trim());
-            if (v == null || v < 1) return;
-            Navigator.pop(context, _IntervalOutcome(hours: v));
-          },
-          child: Text(l10n.inventorySave),
+        logTag(
+          'interval_edit.save',
+          FilledButton(
+            onPressed: () {
+              final v = double.tryParse(_controller.text.trim());
+              if (v == null || v < 1) return;
+              Navigator.pop(context, _IntervalOutcome(hours: v));
+            },
+            child: Text(l10n.inventorySave),
+          ),
         ),
       ],
     );

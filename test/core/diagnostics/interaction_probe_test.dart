@@ -63,6 +63,74 @@ void main() {
     expect(record['role'], 'button');
   });
 
+  testWidgets('stamps a touch with the moment the finger went down',
+      (tester) async {
+    // The widget's handler runs before the pointer-up event reaches this probe,
+    // so a record stamped at write time lands *after* whatever the tap set off.
+    // With HTTP, WebSocket and the background service on the same timeline,
+    // reading effects before their cause costs real time.
+    final origin = DateTime.utc(2026, 7, 25, 12);
+    var now = origin;
+    store = LogStore(
+      header: LogHeader(
+        ts: origin,
+        session: 'test',
+        app: '0.11.2+1102',
+        flavor: 'mobile',
+      ),
+      clock: () => now,
+    );
+    probe = InteractionProbe(store: store);
+
+    await pumpApp(
+      tester,
+      Center(
+        child: ElevatedButton(
+          onPressed: () =>
+              store.add(LogSource.ui, 'route', fields: const {'to': '/queue'}),
+          child: const Text('Kolejka'),
+        ),
+      ),
+    );
+
+    final gesture =
+        await tester.startGesture(tester.getCenter(find.text('Kolejka')));
+    now = origin.add(const Duration(milliseconds: 120));
+    await gesture.up();
+    await tester.pump();
+
+    final recorded = stop();
+    expect(recorded.map((r) => r['evt']), ['tap', 'route']);
+    expect(recorded.map((r) => r['t']), [0, 120]);
+  });
+
+  testWidgets('names a menu item tagged through its child', (tester) async {
+    // A `PopupMenuItem` cannot be wrapped: `Semantics` is not a
+    // `PopupMenuEntry`. So the tag goes on the item's child, which puts the
+    // identifier *below* the node that carries the tap — the opposite of every
+    // other tagged control.
+    await pumpApp(
+      tester,
+      Center(
+        child: PopupMenuButton<int>(
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 1,
+              child: logTag('stats.range.month', const Text('Miesiąc')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Miesiąc'));
+    await tester.pumpAndSettle();
+
+    expect(stop().last['id'], 'stats.range.month');
+  });
+
   testWidgets('never records the accessibility label', (tester) async {
     // The label of a merged node is the whole content of a card — model names,
     // file names, spool names. The log ends up in a public issue, and no

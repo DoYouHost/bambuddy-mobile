@@ -1416,5 +1416,5 @@
   "bugReportDiscard": "Discard",
   "bugReportDiscardQuestion": "Discard this recording?",
   "bugReportDiscardBody": "The log will be deleted from the phone.",
-  "bugReportPending": "Not wired up yet: HTTP, WebSocket, crashes, navigation and the background service. For now the log holds your taps and session markers."
+  "bugReportPending": "Not wired up yet: HTTP, WebSocket, crashes and the background service. For now the log holds your taps, screen changes and session markers."
 }

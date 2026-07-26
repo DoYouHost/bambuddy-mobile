@@ -141,16 +141,24 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                 context,
                 title: l10n.navArchive,
                 actions: [
-                  PopupMenuButton<String>(
-                    onSelected: (v) {
-                      if (v == 'purge') _purgeOlder();
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'purge',
-                        child: Text(l10n.archivePurgeOlder),
-                      ),
-                    ],
+                  logTag(
+                    'archive.menu',
+                    PopupMenuButton<String>(
+                      onSelected: (v) {
+                        if (v == 'purge') _purgeOlder();
+                      },
+                      // Tag on the child: a wrapped `PopupMenuItem` is no
+                      // longer a `PopupMenuEntry`.
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'purge',
+                          child: logTag(
+                            'archive.menu.purge',
+                            Text(l10n.archivePurgeOlder),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -305,7 +313,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       },
       onDismissed: (_) => _deleteArchive(archive, _pendingPurge),
       child: child,
-    );
+    ).tagged('archive.swipe_delete');
   }
 
   /// Slice from the bottom sheet: close it, open the slice modal.
@@ -425,7 +433,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       title: Text(p.name),
                       subtitle: Text(projectStatusLabel(l10n, p.status)),
                       onTap: () => Navigator.pop(ctx, p.id),
-                    ),
+                    ).tagged('archive.project_option'),
                 ],
               ),
             ),
@@ -497,13 +505,19 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         title: Text(l10n.archiveReprintConfirmTitle),
         content: Text(l10n.archiveReprintConfirmBody(printer.name)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
+          logTag(
+            'archive_reprint.cancel',
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.archiveReprint),
+          logTag(
+            'archive_reprint.confirm',
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.archiveReprint),
+            ),
           ),
         ],
       ),
@@ -953,27 +967,36 @@ class _DeleteArchiveDialogState extends State<_DeleteArchiveDialog> {
         children: [
           Text(widget.message),
           const SizedBox(height: 8),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            value: _purgeStats,
-            onChanged: (v) => setState(() => _purgeStats = v ?? false),
-            title: Text(l10n.archiveDeletePurgeStats),
-            subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+          logTag(
+            'archive_delete.purge_stats',
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _purgeStats,
+              onChanged: (v) => setState(() => _purgeStats = v ?? false),
+              title: Text(l10n.archiveDeletePurgeStats),
+              subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+            ),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: theme.colorScheme.error,
+        logTag(
+          'archive_delete.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
           ),
-          onPressed: () => Navigator.pop(context, _purgeStats),
-          child: Text(l10n.archiveDelete),
+        ),
+        logTag(
+          'archive_delete.confirm',
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, _purgeStats),
+            child: Text(l10n.archiveDelete),
+          ),
         ),
       ],
     );
@@ -1030,20 +1053,23 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
           Row(
             children: [
               Expanded(child: Text(l10n.archivePurgeOlderThan)),
-              DropdownButton<int>(
-                value: _days,
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _days = v);
-                  _fetchPreview();
-                },
-                items: [
-                  for (final d in _dayOptions)
-                    DropdownMenuItem(
-                      value: d,
-                      child: Text(l10n.archivePurgeDaysOption(d)),
-                    ),
-                ],
+              logTag(
+                'archive_purge.days',
+                DropdownButton<int>(
+                  value: _days,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() => _days = v);
+                    _fetchPreview();
+                  },
+                  items: [
+                    for (final d in _dayOptions)
+                      DropdownMenuItem(
+                        value: d,
+                        child: Text(l10n.archivePurgeDaysOption(d)),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1067,35 +1093,44 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
               style: theme.textTheme.bodyMedium,
             ),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            value: _purgeStats,
-            onChanged: (v) {
-              setState(() => _purgeStats = v ?? false);
-              _fetchPreview();
-            },
-            title: Text(l10n.archiveDeletePurgeStats),
-            subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+          logTag(
+            'archive_purge.purge_stats',
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _purgeStats,
+              onChanged: (v) {
+                setState(() => _purgeStats = v ?? false);
+                _fetchPreview();
+              },
+              title: Text(l10n.archiveDeletePurgeStats),
+              subtitle: Text(l10n.archiveDeletePurgeStatsHint),
+            ),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: theme.colorScheme.error,
+        logTag(
+          'archive_purge.cancel',
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
           ),
-          onPressed: canDelete
-              ? () => Navigator.pop(context, (
-                  days: _days,
-                  purgeStats: _purgeStats,
-                ))
-              : null,
-          child: Text(l10n.archiveDelete),
+        ),
+        logTag(
+          'archive_purge.confirm',
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+            ),
+            onPressed: canDelete
+                ? () => Navigator.pop(context, (
+                    days: _days,
+                    purgeStats: _purgeStats,
+                  ))
+                : null,
+            child: Text(l10n.archiveDelete),
+          ),
         ),
       ],
     );

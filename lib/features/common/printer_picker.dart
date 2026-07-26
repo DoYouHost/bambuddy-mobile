@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
 import '../../l10n/app_localizations.dart';
@@ -52,7 +53,7 @@ Future<Printer?> pickPrinterSheet(
               title: Text(p.name),
               subtitle: p.model == null ? null : Text(p.model!),
               onTap: () => Navigator.pop(ctx, p),
-            ),
+            ).tagged('printer_picker.printer'),
         ],
       ),
     ),

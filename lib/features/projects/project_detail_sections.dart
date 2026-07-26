@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/printer.dart';
@@ -91,7 +92,7 @@ Widget _dashAction({
     icon: Icon(icon, size: 18),
     label: Text(label),
     onPressed: onPressed,
-  );
+  ).tagged('project.section_action');
 }
 
 Widget _emptyHint(BuildContext context, String text) {
@@ -214,7 +215,7 @@ class ProjectFilesSection extends ConsumerWidget {
                         title: Text(f.name),
                         subtitle: Text(l10n.projectFolderFileCount(f.fileCount)),
                         onTap: () => Navigator.pop(ctx, f.id),
-                      ),
+                      ).tagged('project.link_folder_option'),
                   ],
                 ),
               ),
@@ -284,7 +285,7 @@ class ProjectFilesSection extends ConsumerWidget {
                       title: Text(p.name),
                       subtitle: p.model == null ? null : Text(p.model!),
                       onTap: () => Navigator.pop(ctx, p),
-                    ),
+                    ).tagged('project_print.printer_option'),
                 ],
               ),
             ),
@@ -297,10 +298,18 @@ class ProjectFilesSection extends ConsumerWidget {
         title: Text(l10n.fmPrint),
         content: Text(l10n.fmPrintConfirmBody(file.displayName, printer.name)),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.fmPrint)),
+          logTag(
+            'project_print.cancel',
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel)),
+          ),
+          logTag(
+            'project_print.confirm',
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.fmPrint)),
+          ),
         ],
       ),
     );
@@ -367,7 +376,7 @@ class _FolderTile extends StatelessWidget {
           icon: Icon(Icons.link_off, color: t.textSecondary),
           tooltip: l10n.projectUnlinkFolder,
           onPressed: onUnlink,
-        ),
+        ).tagged('project.unlink_folder'),
         children: [
           if (files.isEmpty)
             _emptyHint(context, l10n.projectFilesEmpty)
@@ -397,9 +406,9 @@ class _FolderTile extends StatelessWidget {
                         icon: Icon(Icons.print_outlined, color: t.accentGreenInk),
                         tooltip: l10n.fmPrint,
                         onPressed: () => onPrint(f),
-                      )
+                      ).tagged('project.print_file')
                     : null,
-              ),
+              ).tagged('project.file'),
         ],
       ),
     );
@@ -456,15 +465,15 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                               color: t.accentGreenInk),
                           tooltip: l10n.projectAttachmentDownload,
                           onPressed: () => _download(context, ref, name),
-                        ),
+                        ).tagged('project.attachment_download'),
                         IconButton(
                           icon: Icon(Icons.delete_outline, color: t.danger),
                           tooltip: l10n.projectAttachmentDelete,
                           onPressed: () => _delete(context, ref, name),
-                        ),
+                        ).tagged('project.attachment_delete'),
                       ],
                     ),
-                  ),
+                  ).tagged('project.attachment'),
               ],
             ),
     );
@@ -578,7 +587,7 @@ class ProjectBomSection extends ConsumerWidget {
                 quantityAcquired: (v ?? false) ? item.quantityNeeded : 0,
               ),
             ),
-      ),
+      ).tagged('project.bom_done'),
       title: Text(
         item.name,
         style: TextStyle(
@@ -609,13 +618,24 @@ class ProjectBomSection extends ConsumerWidget {
           }
         },
         itemBuilder: (_) => [
-          PopupMenuItem(value: 'edit', child: Text(l10n.bomEditTitle)),
+          // Tag on the child: a wrapped `PopupMenuItem` is no longer a
+          // `PopupMenuEntry`.
+          PopupMenuItem(
+            value: 'edit',
+            child: logTag('bom_menu.edit', Text(l10n.bomEditTitle)),
+          ),
           if (item.sourcingUrl != null && item.sourcingUrl!.isNotEmpty)
-            PopupMenuItem(value: 'open', child: Text(l10n.bomSourcingUrl)),
-          PopupMenuItem(value: 'delete', child: Text(l10n.bomDelete)),
+            PopupMenuItem(
+              value: 'open',
+              child: logTag('bom_menu.open_url', Text(l10n.bomSourcingUrl)),
+            ),
+          PopupMenuItem(
+            value: 'delete',
+            child: logTag('bom_menu.delete', Text(l10n.bomDelete)),
+          ),
         ],
       ),
-    );
+    ).tagged('project.bom_item');
   }
 
   Future<void> _editItem(BuildContext context, WidgetRef ref, BomItem? item) async {
@@ -763,56 +783,63 @@ class _BomItemDialogState extends State<BomItemDialog> {
             TextField(
               controller: _name,
               decoration: InputDecoration(labelText: l10n.bomName),
-            ),
+            ).tagged('bom_item.name'),
             TextField(
               controller: _needed,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: l10n.bomQtyNeeded),
-            ),
+            ).tagged('bom_item.needed'),
             TextField(
               controller: _price,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(labelText: l10n.bomUnitPrice),
-            ),
+            ).tagged('bom_item.price'),
             TextField(
               controller: _url,
               keyboardType: TextInputType.url,
               decoration: InputDecoration(labelText: l10n.bomSourcingUrl),
-            ),
+            ).tagged('bom_item.url'),
             TextField(
               controller: _remarks,
               decoration: InputDecoration(labelText: l10n.bomRemarks),
-            ),
+            ).tagged('bom_item.remarks'),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
-        FilledButton(
-          onPressed: () {
-            if (_name.text.trim().isEmpty) return;
-            final item = widget.item;
-            final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
-            final url = _url.text.trim();
-            final remarks = _remarks.text.trim();
-            Navigator.pop(
-              context,
-              BomItemInput(
-                name: _name.text.trim(),
-                quantityNeeded: int.tryParse(_needed.text.trim()),
-                unitPrice: price,
-                // Editing an existing value down to empty must actively clear
-                // it server-side (see [BomItemInput]) — a fresh item has
-                // nothing to clear, so these never trigger on create.
-                clearUnitPrice: item?.unitPrice != null && price == null,
-                sourcingUrl: url.isEmpty ? null : url,
-                clearSourcingUrl: (item?.sourcingUrl?.isNotEmpty ?? false) && url.isEmpty,
-                remarks: remarks.isEmpty ? null : remarks,
-                clearRemarks: (item?.remarks?.isNotEmpty ?? false) && remarks.isEmpty,
-              ),
-            );
-          },
-          child: Text(l10n.projectSave),
+        logTag(
+          'bom_item.cancel',
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+        ),
+        logTag(
+          'bom_item.save',
+          FilledButton(
+            onPressed: () {
+              if (_name.text.trim().isEmpty) return;
+              final item = widget.item;
+              final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+              final url = _url.text.trim();
+              final remarks = _remarks.text.trim();
+              Navigator.pop(
+                context,
+                BomItemInput(
+                  name: _name.text.trim(),
+                  quantityNeeded: int.tryParse(_needed.text.trim()),
+                  unitPrice: price,
+                  // Editing an existing value down to empty must actively clear
+                  // it server-side (see [BomItemInput]) — a fresh item has
+                  // nothing to clear, so these never trigger on create.
+                  clearUnitPrice: item?.unitPrice != null && price == null,
+                  sourcingUrl: url.isEmpty ? null : url,
+                  clearSourcingUrl: (item?.sourcingUrl?.isNotEmpty ?? false) && url.isEmpty,
+                  remarks: remarks.isEmpty ? null : remarks,
+                  clearRemarks: (item?.remarks?.isNotEmpty ?? false) && remarks.isEmpty,
+                ),
+              );
+            },
+            child: Text(l10n.projectSave),
+          ),
         ),
       ],
     );

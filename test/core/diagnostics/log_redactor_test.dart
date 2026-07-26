@@ -185,4 +185,29 @@ void main() {
           'key [APIKEY]…[clipped]');
     });
   });
+
+  test('leaves a control identifier alone when a host looks like a word', () {
+    // The demo server is `http://demo`, so `demo` is a known host — and the id
+    // `setup.demo` came back as `setup.[HOST]` from a real session.
+    final redactor = LogRedactor()..remember('demo', '[HOST]');
+
+    final fields = redactor.scrubFields(const {
+      'id': 'setup.demo',
+      'msg': 'could not reach demo',
+    });
+
+    expect(fields['id'], 'setup.demo');
+    expect(fields['msg'], 'could not reach [HOST]');
+  });
+
+  test('still scrubs an id that is not shaped like one of ours', () {
+    // A dotted word is ours; anything with spaces or punctuation came from
+    // somewhere else and gets the usual treatment.
+    final redactor = LogRedactor()..remember('demo', '[HOST]');
+
+    expect(
+      redactor.scrubFields(const {'id': 'Rain Gauge on demo'})['id'],
+      'Rain Gauge on [HOST]',
+    );
+  });
 }

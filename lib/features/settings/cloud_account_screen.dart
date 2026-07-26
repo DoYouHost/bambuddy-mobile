@@ -310,7 +310,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                   t,
                   labelText: l10n.cloudEmail,
                 ).copyWith(prefixIcon: const Icon(Icons.email_outlined)),
-              ),
+              ).tagged('cloud.email'),
               const SizedBox(height: 14),
               TextField(
                 controller: _password,
@@ -327,9 +327,9 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                         _obscure ? Icons.visibility : Icons.visibility_off,
                         color: t.textTertiary),
                     onPressed: () => setState(() => _obscure = !_obscure),
-                  ),
+                  ).tagged('cloud.reveal_password'),
                 ),
-              ),
+              ).tagged('cloud.password'),
               const SizedBox(height: 14),
               SegmentedButton<String>(
                 segments: [
@@ -366,7 +366,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                     t,
                     labelText: l10n.cloudVerificationCode,
                   ).copyWith(prefixIcon: const Icon(Icons.pin_outlined)),
-                ),
+                ).tagged('cloud.code'),
               ],
               const SizedBox(height: 24),
               FilledButton(

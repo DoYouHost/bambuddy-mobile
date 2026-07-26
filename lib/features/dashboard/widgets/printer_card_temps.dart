@@ -563,7 +563,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               ],
             ),
           ),
-        ),
+        ).tagged('printer.switch_nozzle'),
       ),
     );
   }
@@ -699,7 +699,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                                   onChanged: (v) => setState(() =>
                                       _target = ((v / step).round() * step)
                                           .clamp(0, max)),
-                                ),
+                                ).tagged('temperature.slider'),
                               ),
                               _StepButton(
                                   icon: Icons.add, onTap: () => _bump(step)),
@@ -807,7 +807,7 @@ class _PresetChip extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      ).tagged('temperature.preset'),
     );
   }
 }
@@ -836,7 +836,7 @@ class _StepButton extends StatelessWidget {
           height: 40,
           child: Icon(icon, size: 20, color: t.textPrimary),
         ),
-      ),
+      ).tagged('temperature.step'),
     );
   }
 }
@@ -939,7 +939,7 @@ class _SheetButton extends StatelessWidget {
                   ),
                 ),
         ),
-      ),
+      ).tagged('temperature.apply'),
     );
   }
 }

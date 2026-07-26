@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/dash_theme.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/endpoints.dart';
 import '../../l10n/app_localizations.dart';
@@ -49,10 +50,12 @@ class _CameraViewState extends ConsumerState<CameraView> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(widget.printerName),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+      appBar: loggedAppBar(
+        AppBar(
+          title: Text(widget.printerName),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
       ),
       body: Center(
         // No MJPEG source exists in demo mode — explain instead of erroring.

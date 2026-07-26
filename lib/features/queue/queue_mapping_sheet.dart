@@ -236,7 +236,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         icon: const Icon(Icons.check),
         label: Text(widget.confirmLabel),
         onPressed: () => Navigator.pop(context, mapping),
-      );
+      ).tagged('queue_mapping.confirm');
 
   Widget _slotRow(
       ThemeData theme, int i, FilamentRequirement req, List<_Tray> trays) {
@@ -261,7 +261,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: trays.isEmpty ? null : () => _pickTray(i, trays),
-      ),
+      ).tagged('queue_mapping.slot'),
     );
   }
 
@@ -286,7 +286,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                     ? Icon(Icons.check, color: theme.colorScheme.primary)
                     : null,
                 onTap: () => Navigator.pop(ctx, t.global),
-              ),
+              ).tagged('queue_mapping.tray_option'),
           ],
         ),
       ),
