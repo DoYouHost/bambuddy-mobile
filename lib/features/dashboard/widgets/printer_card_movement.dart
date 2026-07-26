@@ -202,6 +202,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     ),
                     const SizedBox(height: 18),
                     _StepSelector(
+                      id: 'movement.step',
                       label: l10n.ctrlMoveStep,
                       presets: _stepPresets,
                       value: _step,
@@ -215,6 +216,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                     Divider(color: t.subCardBorder, height: 1),
                     const SizedBox(height: 20),
                     _StepSelector(
+                      id: 'movement.length',
                       label: l10n.ctrlMoveLength,
                       presets: _lengthPresets,
                       value: _length,
@@ -381,11 +383,17 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
 /// Horizontal preset selector ("Step"/"Length": label + mm chips).
 class _StepSelector extends StatelessWidget {
   const _StepSelector({
+    required this.id,
     required this.label,
     required this.presets,
     required this.value,
     required this.onChanged,
   });
+
+  /// Diagnostic identifier for this row's chips. The movement sheet builds two
+  /// of these — the move step and the extrude length — and one shared tag could
+  /// not say which of them the user changed.
+  final String id;
 
   final String label;
   final List<int> presets;
@@ -414,6 +422,7 @@ class _StepSelector extends StatelessWidget {
             for (final p in presets)
               _PresetChip(
                 label: l10n.ctrlMoveMm(p),
+                id: '${id}_preset',
                 selected: value == p,
                 onTap: () => onChanged(p),
               ),

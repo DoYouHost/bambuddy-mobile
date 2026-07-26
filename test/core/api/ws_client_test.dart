@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show WebSocketException;
 
 import 'package:bambuddy_mobile/core/api/ws_backoff.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
+import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:bambuddy_mobile/core/diagnostics/ws_probe.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
@@ -22,10 +28,17 @@ class FakeConn implements WsConnection {
   final List<String> sent = [];
   bool closed = false;
 
+  @override
+  int? closeCode;
+  @override
+  String? closeReason;
+
   void connectOk() => _ready.complete();
   void connectFail([Object e = 'handshake failed']) => _ready.completeError(e);
   void push(String data) => _frames.add(data);
-  void serverClose() {
+  void serverClose({int? code, String? reason}) {
+    closeCode = code;
+    closeReason = reason;
     if (!_frames.isClosed) _frames.close();
   }
 
@@ -43,10 +56,13 @@ class FakeConn implements WsConnection {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   /// Buduje klienta + listę utworzonych połączeń (jedno per próba).
   ({WsClient client, List<FakeConn> conns}) build({
     WsBackoff? backoff,
     Future<bool> Function()? refreshAuth,
+    Future<String?> Function()? queryToken,
   }) {
     final conns = <FakeConn>[];
     final client = WsClient(
@@ -59,6 +75,7 @@ void main() {
       },
       backoff: backoff ?? WsBackoff(random: () => 1.0),
       refreshAuth: refreshAuth,
+      queryToken: queryToken,
     );
     return (client: client, conns: conns);
   }
@@ -438,6 +455,161 @@ void main() {
         client.dispose();
         async.flushMicrotasks();
       });
+    });
+  });
+
+  /// Wpięcie [WsProbe] w klienta: co osobno przetestowane w
+  /// `ws_probe_test.dart`, tu sprawdzane jest tylko to, że klient naprawdę je
+  /// woła — i to ta część cicho gnije przy zmianach w kliencie.
+  group('log diagnostyczny', () {
+    late DiagnosticRecorder recorder;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      recorder = DiagnosticRecorder(
+        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        loadFacts: () async => const SessionFacts(app: '1.0+1', flavor: 'mobile'),
+        resolveDirectory: () async => null,
+      );
+      // Nagrywanie startuje POZA `fakeAsync`: `start()` czeka na prefsy przez
+      // kanał platformy, którego fałszywa pętla zdarzeń nie dokończy.
+      await recorder.start();
+      addTearDown(recorder.discard);
+    });
+
+    Future<List<Map<String, dynamic>>> wsRecords() async {
+      final jsonl = await recorder.stop();
+      return [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, dynamic> row
+              when row['src'] == 'ws')
+            row,
+      ];
+    }
+
+    test('życie połączenia: connect → open → ramka → disconnect → retry',
+        () async {
+      fakeAsync((async) {
+        final (:client, :conns) = build(queryToken: () async => 'tok');
+        client.start();
+        async.flushMicrotasks();
+        conns[0].connectOk();
+        async.flushMicrotasks();
+
+        conns[0].push(readFixtureString('ws_printer_status.json'));
+        async.flushMicrotasks();
+        conns[0].serverClose(code: 1006, reason: 'no close frame');
+        async.flushMicrotasks();
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+
+      final records = await wsRecords();
+      expect(
+        records.map((r) => r['evt']),
+        containsAllInOrder([
+          'connect',
+          'open',
+          'frame',
+          'disconnect',
+          'retry',
+        ]),
+      );
+      expect(records.first['via'], 'token');
+      // Ramka przeszła przez parser klienta, więc rekord niesie jej treść.
+      final frame = records.firstWhere((r) => r['evt'] == 'frame');
+      expect(frame['type'], 'printer_status');
+      expect(frame['printer_id'], 1);
+      final close = records.firstWhere((r) => r['evt'] == 'disconnect');
+      expect(close['reason'], 'remote');
+      expect(close['code'], 1006);
+      expect(close['close_reason'], 'no close frame');
+    });
+
+    test('klient melduje sondzie swój stan, więc migawka go zna', () async {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        client.start();
+        async.flushMicrotasks();
+        conns[0].connectOk();
+        async.flushMicrotasks();
+
+        // Tak samo, jak zrobi to recorder przy starcie nagrania — tylko że tu
+        // nagranie już trwa, więc migawkę wołamy wprost.
+        WsProbe.openSession();
+        async.flushMicrotasks();
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+
+      final snapshot =
+          (await wsRecords()).firstWhere((r) => r['evt'] == 'state');
+      expect(snapshot['state'], 'connected');
+    });
+
+    test('odrzucony handshake schodzi ze statusem HTTP', () async {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        client.start();
+        async.flushMicrotasks();
+        conns[0].connectFail(_rejected(401));
+        async.flushMicrotasks();
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+
+      final error =
+          (await wsRecords()).firstWhere((r) => r['evt'] == 'connect_error');
+      expect(error['phase'], 'handshake');
+      expect(error['status'], 401);
+      expect(error['cause'], 'WebSocketException');
+    });
+
+    test('cisza dłuższa niż watchdog to rozłączenie z powodem idle', () async {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        client.start();
+        async.flushMicrotasks();
+        conns[0].connectOk();
+        async.flushMicrotasks();
+
+        async.elapse(const Duration(seconds: 60));
+        async.flushMicrotasks();
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+
+      expect(
+        (await wsRecords()).firstWhere((r) => r['evt'] == 'disconnect')['reason'],
+        'idle',
+      );
+    });
+
+    test('wejście w tło mówi wprost, dlaczego socket zamilkł', () async {
+      fakeAsync((async) {
+        final (:client, :conns) = build();
+        client.start();
+        async.flushMicrotasks();
+        conns[0].connectOk();
+        async.flushMicrotasks();
+
+        client.suspend();
+        async.flushMicrotasks();
+
+        client.dispose();
+        async.flushMicrotasks();
+      });
+
+      final records = await wsRecords();
+      expect(records.firstWhere((r) => r['evt'] == 'disconnect')['reason'],
+          'suspend');
+      // Zawieszenie nie planuje ponowienia — inaczej log obiecywałby powrót,
+      // którego nie będzie do `resume()`.
+      expect(records.map((r) => r['evt']), isNot(contains('retry')));
     });
   });
 }

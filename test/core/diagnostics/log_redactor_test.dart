@@ -219,6 +219,28 @@ void main() {
     expect(redactor.scrubFields(const {'mat': 'PLA-CF'})['mat'], 'PLA-CF');
   });
 
+  test('leaves a nested material alone too', () {
+    // The WebSocket probe reports an AMS slot's material one level down, inside
+    // the `ams` list — the exemption is about what the key means, not how deep
+    // it sits.
+    final redactor = LogRedactor()..remember('PLA-CF', '[HOST]');
+
+    final fields = redactor.scrubFields(const {
+      'ams': [
+        {
+          'id': 0,
+          'trays': [
+            {'id': 0, 'mat': 'PLA-CF'},
+          ],
+        },
+      ],
+    });
+
+    final unit = (fields['ams']! as List).single as Map<String, Object?>;
+    final tray = (unit['trays']! as List).single as Map<String, Object?>;
+    expect(tray['mat'], 'PLA-CF');
+  });
+
   test('still scrubs a material that is not shaped like one of ours', () {
     final redactor = LogRedactor()..remember('Bambu PLA Basic', '[HOST]');
 

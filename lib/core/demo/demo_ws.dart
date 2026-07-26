@@ -66,4 +66,12 @@ class DemoWsConnection implements WsConnection {
     _timer?.cancel();
     await _controller.close();
   }
+
+  /// Nothing on the other side to send one: the demo socket is a stream in this
+  /// isolate, not a peer that can hang up with a code.
+  @override
+  int? get closeCode => null;
+
+  @override
+  String? get closeReason => null;
 }

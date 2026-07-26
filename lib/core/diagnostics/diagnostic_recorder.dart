@@ -14,6 +14,7 @@ import 'log_redactor.dart';
 import 'log_store.dart';
 import 'navigation_probe.dart';
 import 'session_facts.dart';
+import 'ws_probe.dart';
 
 /// Owns one recording session: builds the header, holds the buffer, wires the
 /// probes, and hands back the finished JSONL.
@@ -27,6 +28,9 @@ import 'session_facts.dart';
 ///   app's lifetime; nothing to attach here, it reads [active] per request
 /// - uncaught exceptions — [ErrorProbe], attached for the session
 /// - background and resume — [LifecycleProbe], attached for the session
+/// - the live view — [WsProbe], owned by `WsClient` for the app's lifetime; like
+///   the HTTP probe it reads [active] per event, and [stop] writes out its
+///   pending frame counts so the last window isn't lost with the session
 /// - the durable mirror of the UI stream, so a crash mid-recording still
 ///   leaves a log on disk
 /// - the session id in [SettingsRepository], which is how the background
@@ -34,16 +38,15 @@ import 'session_facts.dart';
 ///
 /// ## What is NOT wired yet
 ///
-/// Instrumentation still to come, in the order the plan calls for:
+/// Instrumentation still to come:
 ///
-/// 1. **WebSocket** — frame types, disconnects, backoff in `ws_client.dart`
-/// 2. **Background isolate** — the FGS stream in
-///    `print_monitor_task_handler.dart`, written to its own file and merged
-///    here at [stop]. Until it lands the isolate's own HTTP calls and crashes go
-///    nowhere: [active] is a static, and that isolate has its own heap.
+/// - **Background isolate** — the FGS stream in
+///   `print_monitor_task_handler.dart`, written to its own file and merged
+///   here at [stop]. Until it lands, the isolate's own HTTP calls, WebSocket and
+///   crashes go nowhere: [active] is a static, and that isolate has its own heap.
 ///
-/// [stop] already merges an FGS stream if it finds one, so item 2 needs no
-/// change here.
+/// [stop] already merges an FGS stream if it finds one, so that needs no change
+/// here.
 class DiagnosticRecorder {
   DiagnosticRecorder({
     required this.settings,
@@ -126,6 +129,9 @@ class DiagnosticRecorder {
     if (screen != null) {
       store.add(LogSource.ui, 'route', fields: {'to': screen});
     }
+    // Same reason for the live view: the socket is normally up long before
+    // anybody starts recording, so its `connect` and `open` are already history.
+    WsProbe.openSession();
   }
 
   /// Stops and returns the session as JSONL, merging the background isolate's
@@ -135,9 +141,11 @@ class DiagnosticRecorder {
     if (store == null) return '';
 
     // Before the closing marker, so a burst still running when the user hits
-    // stop has its count inside the session rather than after its end.
+    // stop has its count inside the session rather than after its end. The same
+    // goes for frames counted since the last window was written out.
     _errors?.detach();
     _errors = null;
+    WsProbe.flushAll();
     _lifecycle?.detach();
     _lifecycle = null;
     store.add(LogSource.app, 'recording_stopped');

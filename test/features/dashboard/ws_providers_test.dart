@@ -29,6 +29,10 @@ class _HangConn implements WsConnection {
   void send(String data) {}
   @override
   Future<void> close() async {}
+  @override
+  int? get closeCode => null;
+  @override
+  String? get closeReason => null;
 }
 
 ProviderContainer _container() {

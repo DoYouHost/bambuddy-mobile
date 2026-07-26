@@ -586,7 +586,10 @@ class _FanCell extends ConsumerWidget {
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: logTag(
-        'printer.fan',
+        // Per fan, under the key the server itself uses ('part'/'aux'/
+        // 'chamber') — three cells sharing one tag could not say which sheet the
+        // user opened. Same fix as the temperature tiles.
+        'printer.fan_$fan',
         InkWell(
           onTap: () => showModalBottomSheet<void>(
             context: context,
@@ -716,16 +719,24 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _StepButton(icon: Icons.remove, onTap: () => _bump(-1)),
+                        _StepButton(
+                          icon: Icons.remove,
+                          id: 'fan.step_down',
+                          onTap: () => _bump(-1),
+                        ),
                         Expanded(
                           child: Slider(
                             value: _speed.toDouble(),
                             max: 100,
                             activeColor: accent,
                             onChanged: (v) => setState(() => _speed = v.round()),
-                          ),
+                          ).tagged('fan.slider'),
                         ),
-                        _StepButton(icon: Icons.add, onTap: () => _bump(1)),
+                        _StepButton(
+                          icon: Icons.add,
+                          id: 'fan.step_up',
+                          onTap: () => _bump(1),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -737,6 +748,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                         for (final p in _presets)
                           _PresetChip(
                             label: '$p%',
+                            id: 'fan.preset',
                             selected: _speed == p,
                             onTap: () => setState(() => _speed = p),
                           ),
@@ -748,6 +760,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                         Expanded(
                           child: _SheetButton(
                             label: l10n.ctrlOff,
+                            id: 'fan.off',
                             onTap: _busy ? null : () => _apply(0),
                           ),
                         ),
@@ -755,6 +768,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                         Expanded(
                           child: _SheetButton(
                             label: l10n.ctrlSet,
+                            id: 'fan.set',
                             filled: true,
                             busy: _busy,
                             onTap: _busy ? null : () => _apply(_speed),

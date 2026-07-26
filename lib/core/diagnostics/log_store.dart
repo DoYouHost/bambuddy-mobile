@@ -23,8 +23,8 @@ class LogStore {
   LogStore({
     required this.header,
     LogRedactor? redactor,
-    this.maxRecords = 4000,
-    this.maxChars = 512 * 1024,
+    this.maxRecords = 20000,
+    this.maxChars = 4 * 1024 * 1024,
     this.maxDuration = recordingLimit,
     DateTime Function()? clock,
     this.onLine,
@@ -33,6 +33,13 @@ class LogStore {
 
   final LogHeader header;
   final LogRedactor redactor;
+
+  /// Ceiling on how many records are kept, and it is a **runaway guard, not a
+  /// budget**. What bounds a session is [maxDuration]; a busy five minutes —
+  /// several printers pushing a status frame a second each — must fit whole,
+  /// because dropping the start of it to save memory throws away the context
+  /// that explains the end. Only something pathological, like a server stuck in
+  /// a push loop, should ever reach this.
   final int maxRecords;
 
   /// The session's hard ceiling. Enforced here rather than only by whoever
@@ -44,7 +51,9 @@ class LogStore {
 
   /// Cap in characters, not bytes. Records are ASCII-dominant so the two are
   /// close; the hard byte limit lives at the relay, this one only has to keep
-  /// a runaway loop from filling the heap.
+  /// a runaway loop from filling the heap. Same reasoning as [maxRecords]: a
+  /// full five minutes of WebSocket frames is a few hundred kilobytes and is
+  /// supposed to survive intact.
   final int maxChars;
 
   final DateTime Function() _clock;

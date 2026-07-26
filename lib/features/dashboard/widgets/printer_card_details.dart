@@ -958,6 +958,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
       const SizedBox(height: 20),
       _SheetButton(
         label: l10n.ctrlStop,
+        id: 'drying.stop',
         busy: _busy,
         onTap: _busy
             ? null
@@ -1009,6 +1010,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         ),
         const SizedBox(height: 16),
         _DrySlider(
+          id: 'drying.temp',
           label: l10n.ctrlDryTemp,
           valueText: '$_temp°',
           value: _temp,
@@ -1020,6 +1022,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         ),
         const SizedBox(height: 16),
         _DrySlider(
+          id: 'drying.hours',
           label: l10n.ctrlDryDuration,
           valueText: l10n.ctrlDryHours(_hours),
           value: _hours,
@@ -1032,6 +1035,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         const SizedBox(height: 20),
         _SheetButton(
           label: l10n.ctrlDryStart,
+          id: 'drying.start',
           filled: true,
           busy: _busy,
           onTap: _busy
@@ -1051,6 +1055,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 /// drying sheet (temperature and duration).
 class _DrySlider extends StatelessWidget {
   const _DrySlider({
+    required this.id,
     required this.label,
     required this.valueText,
     required this.value,
@@ -1060,6 +1065,12 @@ class _DrySlider extends StatelessWidget {
     required this.presetLabel,
     required this.onChanged,
   });
+
+  /// Diagnostic prefix for this row's controls (`drying.temp` →
+  /// `drying.temp_slider`, `drying.temp_preset`, …). The drying sheet builds two
+  /// of these rows, so a tag baked into the widget could not say whether the
+  /// user changed the temperature or the hours.
+  final String id;
 
   final String label;
   final String valueText;
@@ -1103,7 +1114,11 @@ class _DrySlider extends StatelessWidget {
         ),
         Row(
           children: [
-            _StepButton(icon: Icons.remove, onTap: () => onChanged(clamp(value - 1))),
+            _StepButton(
+              icon: Icons.remove,
+              id: '${id}_step_down',
+              onTap: () => onChanged(clamp(value - 1)),
+            ),
             Expanded(
               child: Slider(
                 value: value.clamp(min, max).toDouble(),
@@ -1111,9 +1126,13 @@ class _DrySlider extends StatelessWidget {
                 max: max.toDouble(),
                 activeColor: t.accentOrange,
                 onChanged: (v) => onChanged(v.round()),
-              ).tagged('drying.slider'),
+              ).tagged('${id}_slider'),
             ),
-            _StepButton(icon: Icons.add, onTap: () => onChanged(clamp(value + 1))),
+            _StepButton(
+              icon: Icons.add,
+              id: '${id}_step_up',
+              onTap: () => onChanged(clamp(value + 1)),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -1125,6 +1144,7 @@ class _DrySlider extends StatelessWidget {
             for (final p in presets)
               _PresetChip(
                 label: presetLabel(p),
+                id: '${id}_preset',
                 selected: value == p,
                 onTap: () => onChanged(p),
               ),

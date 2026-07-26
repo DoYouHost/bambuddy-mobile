@@ -674,4 +674,65 @@ void main() {
       expect(find.byIcon(Icons.memory), findsNothing);
     });
   });
+
+  group('identyfikatory do logu zgłoszeń', () {
+    /// Wspólne widżety karty (kafelek czujnika, przyciski arkusza, presety)
+    /// tagowały się wcześniej **w środku**, więc każdy z nich schodził do logu
+    /// jako `temperature.*`: tapnięcie „Wyłącz" w arkuszu temperatury raportowało
+    /// się identycznie jak „Ustaw", a z trzech kafelków dyszy nie wynikało, który
+    /// user tknął. To ta sama klasa co przesunięte id dialogów potwierdzenia —
+    /// log twierdzi, że user zrobił coś innego, niż zrobił.
+    Iterable<String> identifiersIn(WidgetTester tester) => tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .map((s) => s.properties.identifier)
+        .whereType<String>();
+
+    testWidgets('każdy czujnik ma własny identyfikator kafelka',
+        (tester) async {
+      await tester.pumpWidget(_cardWithProviders(const PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X2D'),
+        status: PrinterStatus(
+          id: 1,
+          connected: true,
+          temperatures: {'nozzle': 220, 'nozzle_2': 39, 'bed': 55},
+        ),
+      )));
+      await tester.pumpAndSettle();
+
+      final ids = identifiersIn(tester).toSet();
+      expect(ids, containsAll(<String>{
+        'printer.temperature_nozzle',
+        'printer.temperature_nozzle_2',
+        'printer.temperature_bed',
+      }));
+    });
+
+    testWidgets('„wyłącz" i „ustaw" w arkuszu to dwie różne nazwy',
+        (tester) async {
+      await tester.pumpWidget(_cardWithProviders(const PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X2D'),
+        status: PrinterStatus(
+          id: 1,
+          connected: true,
+          state: 'IDLE',
+          temperatures: {'nozzle': 220, 'nozzle_target': 220},
+        ),
+      )));
+      await tester.pumpAndSettle();
+
+      // Tapnięcie w kafelek po jego własnym identyfikatorze — czyli po tym, co
+      // sonda zapisze do logu.
+      await tester.tap(
+        find.byWidgetPredicate((w) =>
+            w is Semantics &&
+            w.properties.identifier == 'printer.temperature_nozzle'),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      final ids = identifiersIn(tester).toSet();
+      expect(ids, containsAll(<String>{'temperature.off', 'temperature.set'}));
+      expect(ids, isNot(contains('temperature.apply')));
+    });
+  });
 }

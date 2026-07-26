@@ -113,6 +113,11 @@ class LogRedactor {
 
   /// Recursively scrubs strings inside maps and lists; other scalars pass
   /// through untouched (an int can't carry a key).
+  ///
+  /// [ourKeys] is honoured at every depth: the WebSocket probe reports an AMS
+  /// slot's material as a nested `mat`, and a server called `pla` would turn
+  /// every loaded slot into `[HOST]` — the same trap as `setup.demo`, one level
+  /// down.
   Object? scrub(Object? value) {
     if (value is String) return scrubString(value);
     if (value is Map) {
@@ -120,7 +125,9 @@ class LogRedactor {
         for (final e in value.entries)
           '${e.key}': _secretKey.hasMatch('${e.key}')
               ? '[REDACTED]'
-              : scrub(e.value),
+              : _isOurs('${e.key}', e.value)
+                  ? e.value
+                  : scrub(e.value),
       };
     }
     if (value is List) return [for (final v in value) scrub(v)];

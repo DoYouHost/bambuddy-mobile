@@ -145,7 +145,10 @@ class _GaugeTile extends ConsumerWidget {
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: logTag(
-        'printer.temperature',
+        // Per sensor, under the same name the WebSocket frame uses for it
+        // (`nozzle_2`, `bed`, …): one shared tag could not say which tile was
+        // tapped, and on a dual-head printer that is the whole question.
+        reading.logId,
         InkWell(
           onTap: () => _openSheet(context, target?.round() ?? 0),
           child: tile,
@@ -248,6 +251,14 @@ class _TempReading {
   /// Chamber air duct mode (heating/cooling); set ONLY for chamber tile where we
   /// show it instead of the setpoint. null = unknown/n.a.
   final bool? airductIsHeating;
+
+  /// Diagnostic identifier of this tile. [raw] is the server's own key
+  /// (`nozzle`, `nozzle_2`, `bed`), which keeps the log's vocabulary the same on
+  /// both sides — but it is the server's string, so anything not shaped like an
+  /// identifier falls back to the bare tile name rather than going in verbatim.
+  String get logId => RegExp(r'^\w+$').hasMatch(raw)
+      ? 'printer.temperature_$raw'
+      : 'printer.temperature';
 
   String label(AppLocalizations l10n) => switch (kind) {
         _TempKind.nozzle =>
@@ -686,7 +697,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                           Row(
                             children: [
                               _StepButton(
-                                  icon: Icons.remove, onTap: () => _bump(-step)),
+                                icon: Icons.remove,
+                                id: 'temperature.step_down',
+                                onTap: () => _bump(-step),
+                              ),
                               Expanded(
                                 // No `divisions`: tick marks would be far denser
                                 // on the wide nozzle range (0–300) than the bed
@@ -702,7 +716,10 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                                 ).tagged('temperature.slider'),
                               ),
                               _StepButton(
-                                  icon: Icons.add, onTap: () => _bump(step)),
+                                icon: Icons.add,
+                                id: 'temperature.step_up',
+                                onTap: () => _bump(step),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -716,6 +733,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                               for (final p in _reading.presets)
                                 _PresetChip(
                                   label: '$p°',
+                                  id: 'temperature.preset',
                                   selected: _target == p,
                                   onTap: () => setState(() => _target = p),
                                 ),
@@ -738,6 +756,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                       Expanded(
                         child: _SheetButton(
                           label: l10n.ctrlOff,
+                          id: 'temperature.off',
                           onTap: _busy ? null : () => _apply(0),
                         ),
                       ),
@@ -745,6 +764,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                       Expanded(
                         child: _SheetButton(
                           label: l10n.ctrlSet,
+                          id: 'temperature.set',
                           filled: true,
                           busy: _busy,
                           onTap: (_busy || !tempEnabled)
@@ -770,10 +790,16 @@ class _PresetChip extends StatelessWidget {
   const _PresetChip({
     required this.label,
     required this.selected,
+    required this.id,
     required this.onTap,
   });
 
   final String label;
+
+  /// Diagnostic identifier — see [_SheetButton.id]. The chips of the
+  /// temperature, fan, drying and movement sheets are the same widget.
+  final String id;
+
   final bool selected;
   final VoidCallback onTap;
 
@@ -807,16 +833,26 @@ class _PresetChip extends StatelessWidget {
             ),
           ),
         ),
-      ).tagged('temperature.preset'),
+      ).tagged(id),
     );
   }
 }
 
 /// Round −/+ button flanking the target slider.
 class _StepButton extends StatelessWidget {
-  const _StepButton({required this.icon, required this.onTap});
+  const _StepButton({
+    required this.icon,
+    required this.id,
+    required this.onTap,
+  });
 
   final IconData icon;
+
+  /// Diagnostic identifier. Required for the same reason as on [_SheetButton]:
+  /// this button is shared by the temperature, fan and drying sheets, and a tag
+  /// baked into the widget made every one of them log as the temperature's.
+  final String id;
+
   final VoidCallback onTap;
 
   @override
@@ -836,7 +872,7 @@ class _StepButton extends StatelessWidget {
           height: 40,
           child: Icon(icon, size: 20, color: t.textPrimary),
         ),
-      ).tagged('temperature.step'),
+      ).tagged(id),
     );
   }
 }
@@ -894,12 +930,19 @@ class _AirductToggle extends StatelessWidget {
 class _SheetButton extends StatelessWidget {
   const _SheetButton({
     required this.label,
+    required this.id,
     required this.onTap,
     this.filled = false,
     this.busy = false,
   });
 
   final String label;
+
+  /// Diagnostic identifier, per button rather than per widget: "Off" and "Set"
+  /// sit side by side and do opposite things, and a shared tag made the log
+  /// claim a cancelled heat-up was the user applying a temperature.
+  final String id;
+
   final VoidCallback? onTap;
   final bool filled;
   final bool busy;
@@ -939,7 +982,7 @@ class _SheetButton extends StatelessWidget {
                   ),
                 ),
         ),
-      ).tagged('temperature.apply'),
+      ).tagged(id),
     );
   }
 }

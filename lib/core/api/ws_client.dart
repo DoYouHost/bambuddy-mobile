@@ -5,6 +5,7 @@ import 'dart:io' show WebSocketException;
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../diagnostics/ws_probe.dart';
 import '../models/printer_status.dart';
 import 'ws_backoff.dart';
 import 'ws_messages.dart';
@@ -32,6 +33,15 @@ abstract class WsConnection {
   Stream<dynamic> get stream;
   void send(String data);
   Future<void> close();
+
+  /// Close code the peer sent, once the stream is done — `null` while the
+  /// socket is live, or when the transport reports none. Diagnostics only:
+  /// 1000 (server shutting down cleanly) and 1006 (connection lost without a
+  /// close frame) are the same reconnect to the client and a different report.
+  int? get closeCode;
+
+  /// Text the peer attached to the close, when it sent any.
+  String? get closeReason;
 }
 
 typedef WsConnector = WsConnection Function(
@@ -51,6 +61,10 @@ class _IoWsConnection implements WsConnection {
   void send(String data) => _channel.sink.add(data);
   @override
   Future<void> close() => _channel.sink.close();
+  @override
+  int? get closeCode => _channel.closeCode;
+  @override
+  String? get closeReason => _channel.closeReason;
 }
 
 WsConnection _defaultConnect(Uri url, Map<String, String> headers) =>
@@ -77,6 +91,7 @@ class WsClient {
     Future<String?> Function()? queryToken,
     void Function()? invalidateQueryToken,
     bool Function(Object error)? isAuthError,
+    WsProbe? probe,
     this.heartbeatInterval = const Duration(seconds: 25),
     this.idleTimeout = const Duration(seconds: 60),
     this.stableThreshold = const Duration(seconds: 30),
@@ -96,12 +111,17 @@ class WsClient {
         // ignore: prefer_initializing_formals
         _invalidateQueryToken = invalidateQueryToken,
         _isAuthError = isAuthError ?? _defaultIsAuthError,
+        _probe = probe ?? WsProbe(),
         _backoff = backoff ?? WsBackoff();
 
   final Uri _url;
   final Future<Map<String, String>> Function() _authHeaders;
   final WsConnector _connect;
   final WsBackoff _backoff;
+
+  /// Diagnostic log of the connection's life — attempts, closes, frame rates.
+  /// Silent unless a bug-report recording is running.
+  final WsProbe _probe;
 
   /// Attempt to refresh credentials (silent JWT re-login) when server rejects
   /// handshake. `true` = got fresh credentials, worth retrying immediately.
@@ -187,6 +207,7 @@ class WsClient {
     if (_disposed || _state == WsConnectionState.suspended) return;
     _running = false;
     _retry?.cancel();
+    _probe.disconnected(reason: WsDisconnectReason.suspend);
     _teardownConnection();
     _setState(WsConnectionState.suspended);
   }
@@ -204,6 +225,8 @@ class WsClient {
     _disposed = true;
     _running = false;
     _retry?.cancel();
+    _probe.disconnected(reason: WsDisconnectReason.dispose);
+    _probe.dispose();
     _teardownConnection();
     await _stateController.close();
     await _statusController.close();
@@ -228,6 +251,7 @@ class WsClient {
     // Append the freshly-minted `?token=` when available (new server); on a
     // null token keep the bare URL so header auth still works on old servers.
     var url = _url;
+    var withToken = false;
     if (_queryToken != null) {
       String? token;
       try {
@@ -242,11 +266,13 @@ class WsClient {
         // handshake is certain to 401 and burns the one-shot re-login for
         // nothing.
         if (generation != _generation) return;
+        _probe.connectError(wsInnerError(e), phase: 'token');
         await _handleConnectError(e, generation);
         return;
       }
       if (generation != _generation || !_running || _disposed) return;
       if (token != null && token.isNotEmpty) {
+        withToken = true;
         url = _url.replace(
           queryParameters: {..._url.queryParameters, 'token': token},
         );
@@ -254,11 +280,17 @@ class WsClient {
     }
 
     final WsConnection conn;
+    _probe.connecting(queryToken: withToken);
     try {
       conn = _connect(url, headers);
       await conn.ready;
     } catch (e) {
       if (generation != _generation) return;
+      _probe.connectError(
+        wsInnerError(e),
+        phase: 'handshake',
+        status: wsHandshakeStatus(e),
+      );
       await _handleConnectError(e, generation);
       return;
     }
@@ -271,11 +303,12 @@ class WsClient {
 
     _conn = conn;
     _authRefreshed = false; // successful connection → can retry re-login again
+    _probe.opened();
     _setState(WsConnectionState.connected);
     _sub = conn.stream.listen(
       (data) => _onFrame(generation, data),
-      onError: (_) => _onClosed(generation),
-      onDone: () => _onClosed(generation),
+      onError: (e) => _onClosed(generation, WsDisconnectReason.error, error: e),
+      onDone: () => _onClosed(generation, WsDisconnectReason.remote),
       cancelOnError: true,
     );
     _startHeartbeat();
@@ -286,8 +319,12 @@ class WsClient {
   void _onFrame(int generation, dynamic data) {
     if (generation != _generation) return;
     _resetWatchdog(generation); // any frame = live socket
-    if (data is! String) return;
+    if (data is! String) {
+      _probe.binaryFrame();
+      return;
+    }
     final msg = parseWsMessage(data);
+    _probe.frame(msg);
     if (msg is WsPrinterStatus && !_statusController.isClosed) {
       _statusController.add(msg);
     } else if (msg is WsPlateNotEmpty && !_plateController.isClosed) {
@@ -322,8 +359,20 @@ class WsClient {
     _scheduleRetry();
   }
 
-  void _onClosed(int generation) {
+  void _onClosed(
+    int generation,
+    WsDisconnectReason reason, {
+    Object? error,
+  }) {
     if (generation != _generation) return;
+    // Before teardown: the close code lives on the connection we are about to
+    // drop, and the peer only fills it in once the stream is done.
+    _probe.disconnected(
+      reason: reason,
+      code: _conn?.closeCode,
+      closeReason: _conn?.closeReason,
+      error: error,
+    );
     _teardownConnection();
     _scheduleRetry();
   }
@@ -332,7 +381,11 @@ class WsClient {
     if (!_running || _disposed) return;
     _setState(WsConnectionState.waitingRetry);
     _retry?.cancel();
-    _retry = Timer(_backoff.nextDelay(), _openConnection);
+    // Attempt read before the delay, which increments it.
+    final attempt = _backoff.attempt;
+    final delay = _backoff.nextDelay();
+    _probe.retryScheduled(delay: delay, attempt: attempt);
+    _retry = Timer(delay, _openConnection);
   }
 
   void _startHeartbeat() {
@@ -357,7 +410,10 @@ class WsClient {
 
   void _resetWatchdog(int generation) {
     _watchdog?.cancel();
-    _watchdog = Timer(idleTimeout, () => _onClosed(generation));
+    _watchdog = Timer(
+      idleTimeout,
+      () => _onClosed(generation, WsDisconnectReason.idle),
+    );
   }
 
   /// Close current connection and cancel all associated timers.
@@ -377,24 +433,40 @@ class WsClient {
   void _setState(WsConnectionState next) {
     if (_state == next) return;
     _state = next;
+    // No record of its own — the probe writes it only when a recording opens
+    // mid-connection, where the transitions themselves are already history.
+    _probe.trackState(next.name);
     if (!_stateController.isClosed) _stateController.add(next);
   }
+}
+
+/// What actually went wrong: `package:web_socket_channel` wraps the original
+/// exception in `WebSocketChannelException.inner`, and the wrapper's type says
+/// nothing — `HandshakeException` versus `SocketException` is the difference
+/// between "TLS refused" and "nothing listening there".
+Object wsInnerError(Object error) {
+  final inner = error is WebSocketChannelException ? error.inner : error;
+  return inner ?? error;
+}
+
+/// HTTP status `dart:io`'s `WebSocket.connect` attaches to the thrown
+/// `WebSocketException` (`response.statusCode` whenever a response came back but
+/// wasn't a 101 upgrade), or null when the server never responded at all.
+int? wsHandshakeStatus(Object error) {
+  final inner = wsInnerError(error);
+  return inner is WebSocketException ? inner.httpStatusCode : null;
 }
 
 /// Default classifier: handshake error is auth rejection when server
 /// RESPONDED but didn't upgrade (401/403) — unlike connectivity failure
 /// (SocketException, timeout) where re-login won't help.
 ///
-/// Anchored on the real HTTP status `dart:io`'s `WebSocket.connect` attaches
-/// to the thrown `WebSocketException` (`response.statusCode` whenever a
-/// response came back but wasn't a 101 upgrade) — NOT a substring match on
-/// `error.toString()`. A plain connectivity failure's message can embed the
-/// target host/port (e.g. a server on `host:8403`), which would otherwise
+/// Anchored on the real HTTP status ([wsHandshakeStatus]) — NOT a substring
+/// match on `error.toString()`. A plain connectivity failure's message can embed
+/// the target host/port (e.g. a server on `host:8403`), which would otherwise
 /// false-match "403" and misclassify a routine network hiccup as an auth
-/// rejection. `package:web_socket_channel` wraps the original exception in
-/// `WebSocketChannelException.inner`, so unwrap that first.
+/// rejection.
 bool _defaultIsAuthError(Object error) {
-  final inner = error is WebSocketChannelException ? error.inner : error;
-  final code = inner is WebSocketException ? inner.httpStatusCode : null;
+  final code = wsHandshakeStatus(error);
   return code == 401 || code == 403;
 }
