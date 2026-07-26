@@ -69,8 +69,9 @@ class _SpoolTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Material(
         color: Colors.transparent,
-        child: logTag(
+        child: logTagMaterial(
           'inventory.spool',
+          spool.material,
           InkWell(
             borderRadius: BorderRadius.circular(20),
             onLongPress: onLongPress,

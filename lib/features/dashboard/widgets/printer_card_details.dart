@@ -647,8 +647,9 @@ class _FilamentRow extends StatelessWidget {
     final slot = this.slot;
     final tappable = slot == null
         ? content
-        : logTag(
+        : logTagMaterial(
             'printer.ams_slot',
+            tray.trayType,
             InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () => showModalBottomSheet<void>(
@@ -1263,7 +1264,7 @@ class _AssignSlotSheet extends ConsumerWidget {
                   onPressed: () => _unassign(context, ref, l10n),
                   icon: const Icon(Icons.link_off, size: 18),
                   label: Text(l10n.inventoryUnassign),
-                ),
+                ).taggedMaterial('assign_spool.unassign', current.material),
               ),
               const Divider(height: 24),
             ],
@@ -1301,7 +1302,7 @@ class _AssignSlotSheet extends ConsumerWidget {
                           ? const Icon(Icons.swap_horiz, size: 20)
                           : null,
                       onTap: () => _assign(context, ref, l10n, s, from: from),
-                    );
+                    ).taggedMaterial('assign_spool.option', s.material);
                   },
                 ),
           ],

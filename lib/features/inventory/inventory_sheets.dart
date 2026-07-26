@@ -172,21 +172,23 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                       // valid unit range) changes, or the field would keep
                       // showing the previous printer's selection.
                       key: ValueKey(_printerId),
+                      id: 'spool_assign.unit',
                       label: l10n.inventoryAssignUnit,
                       value: _amsUnit,
                       // Display 1-based, value is unit id.
                       items: {for (final u in unitOptions) u: '${u + 1}'},
                       onChanged: (v) => setState(() => _amsUnit = v),
-                    ).tagged('spool_assign.unit'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _NumberDropdown(
+                      id: 'spool_assign.slot',
                       label: l10n.inventoryAssignSlot,
                       value: _amsSlot,
                       items: {for (var s = 0; s < 4; s++) s: '${s + 1}'},
                       onChanged: (v) => setState(() => _amsSlot = v),
-                    ).tagged('spool_assign.slot'),
+                    ),
                   ),
                 ],
               ),
@@ -262,11 +264,17 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
 class _NumberDropdown extends StatelessWidget {
   const _NumberDropdown({
     super.key,
+    required this.id,
     required this.label,
     required this.value,
     required this.items,
     required this.onChanged,
   });
+
+  /// Log identifier for the field; each option gets `<id>.<value>`. The options
+  /// live in a popup route of their own, so the field's identifier does not
+  /// reach them — untagged, picking an AMS slot recorded as a bare `menuItem`.
+  final String id;
 
   final String label;
   final int value;
@@ -289,10 +297,16 @@ class _NumberDropdown extends StatelessWidget {
           ),
           items: [
             for (final e in items.entries)
-              DropdownMenuItem(value: e.key, child: Text(e.value)),
+              DropdownMenuItem(
+                value: e.key,
+                // Named by value, not shared across the options: which AMS unit
+                // and slot the user picked is the whole point of the record, and
+                // a slot number is the printer's, not the user's.
+                child: logTag('$id.${e.key}', Text(e.value)),
+              ),
           ],
           onChanged: (v) => v == null ? null : onChanged(v),
-        ),
+        ).tagged(id),
       ],
     );
   }

@@ -22,17 +22,20 @@ class LogRedactor {
   /// inside an unrelated word than a real secret.
   static const _minKnownLength = 4;
 
-  /// Fields the app fills from its own literals, never from user input: the
-  /// control identifier. Scrubbing those costs more than it protects — the demo
-  /// server is `http://demo`, so `demo` is registered as the host and turned
-  /// `setup.demo` into `setup.[HOST]`; a server called `printer` would do the
-  /// same to `printer.files` and every other id on the dashboard.
-  static const ourKeys = {'id'};
-
-  /// Shape of an identifier this app writes: dotted words, nothing else. A value
-  /// that does not match is not one of ours and goes through the scrub — so a
-  /// stray `logTag('archive.card.$name')` would still be caught.
-  static final _identifierShape = RegExp(r'^\w+(\.\w+)*$');
+  /// Fields whose value comes from the app's own vocabulary, never from user
+  /// input: the control identifier and the filament material. Scrubbing those
+  /// costs more than it protects — the demo server is `http://demo`, so `demo`
+  /// is registered as the host and turned `setup.demo` into `setup.[HOST]`; a
+  /// server called `printer` would do the same to `printer.files` and every
+  /// other id on the dashboard, and one called `pla` to every material.
+  ///
+  /// Each still has to look like what it claims to be: a value of the wrong
+  /// shape is not one of ours and goes through the scrub, so a stray
+  /// `logTag('archive.card.$name')` would still be caught.
+  static final ourKeys = {
+    'id': RegExp(r'^\w+(\.\w+)*$'),
+    'mat': RegExp(r'^[A-Z0-9]+(-[A-Z0-9]+)*$'),
+  };
 
   /// Field names whose value is secret whatever its shape.
   static final _secretKey = RegExp(
@@ -97,16 +100,16 @@ class LogRedactor {
       for (final e in fields.entries)
         e.key: _secretKey.hasMatch(e.key)
             ? '[REDACTED]'
-            : _isOurIdentifier(e.key, e.value)
+            : _isOurs(e.key, e.value)
                 ? e.value
                 : scrub(e.value),
     };
   }
 
-  static bool _isOurIdentifier(String key, Object? value) =>
-      ourKeys.contains(key) &&
-      value is String &&
-      _identifierShape.hasMatch(value);
+  static bool _isOurs(String key, Object? value) {
+    final shape = ourKeys[key];
+    return shape != null && value is String && shape.hasMatch(value);
+  }
 
   /// Recursively scrubs strings inside maps and lists; other scalars pass
   /// through untouched (an int can't carry a key).

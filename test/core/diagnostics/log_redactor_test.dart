@@ -210,4 +210,21 @@ void main() {
       'Rain Gauge on [HOST]',
     );
   });
+
+  test('leaves the material alone when a host is named after one', () {
+    // Same trap as `setup.demo`, one field over: a server called `pla` would
+    // turn every `mat` into `[HOST]`.
+    final redactor = LogRedactor()..remember('PLA-CF', '[HOST]');
+
+    expect(redactor.scrubFields(const {'mat': 'PLA-CF'})['mat'], 'PLA-CF');
+  });
+
+  test('still scrubs a material that is not shaped like one of ours', () {
+    final redactor = LogRedactor()..remember('Bambu PLA Basic', '[HOST]');
+
+    expect(
+      redactor.scrubFields(const {'mat': 'Bambu PLA Basic'})['mat'],
+      '[HOST]',
+    );
+  });
 }

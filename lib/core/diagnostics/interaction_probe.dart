@@ -3,6 +3,7 @@ import 'dart:ui' show CheckedState;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 
+import 'filament_material.dart';
 import 'log_event.dart';
 import 'log_store.dart';
 
@@ -140,7 +141,7 @@ class InteractionProbe {
       'drag',
       at: touch.startedMs,
       fields: {
-        ...?touch.target?.toFields(),
+        ...?touch.target?.toFields(forDrag: true),
         'dir': _directionOf(delta),
         'dist': delta.distance.round(),
         // How many drags on this same target were folded away since the last
@@ -175,9 +176,40 @@ class InteractionProbe {
     // Semantics geometry is in physical pixels, pointer positions are logical.
     final point = position * view.flutterView.devicePixelRatio;
     final hit = _nodeAt(root, point, Matrix4.identity(), null);
-    return hit == null
-        ? null
-        : TouchTarget.of(_pressed(hit.node), inheritedId: hit.inheritedId);
+    if (hit == null) return null;
+    final node = _pressed(hit.node);
+    return TouchTarget.of(node, inheritedId: hit.id ?? _menuItemId(node));
+  }
+
+  /// Identifier of a menu row's content, found without asking where the finger
+  /// landed inside the row.
+  ///
+  /// A dropdown option puts the tap on the row and its label in a child node of
+  /// its own, with no `MergeSemantics` between them (`PopupMenuItem` has one,
+  /// which is why that shape always worked). The row is 48 logical pixels tall
+  /// and the label 24, so the tag covers half of it — picking an AMS slot
+  /// reported a bare `menuItem` three times out of three in a live run.
+  ///
+  /// Only for rows that *are* menu items, and only when nothing on the hit path
+  /// named the target: a row holds exactly one option, so the first identifier
+  /// below it is that option's.
+  static String? _menuItemId(SemanticsNode node) {
+    if (node.getSemanticsData().role != SemanticsRole.menuItem) return null;
+    String? found;
+    void search(SemanticsNode current) {
+      final identifier = current.getSemanticsData().identifier;
+      if (identifier.isNotEmpty) {
+        found = identifier;
+        return;
+      }
+      current.visitChildren((child) {
+        search(child);
+        return found == null;
+      });
+    }
+
+    search(node);
+    return found;
   }
 
   static RenderView? _renderViewFor(int viewId) {
@@ -239,7 +271,14 @@ class InteractionProbe {
         covering ??= hit;
       }
       if (covering != null) {
-        return _isInteractive(node) ? _Hit(node, idHere) : covering;
+        // The node that takes the press wins over inert cover — but the name
+        // comes from the deepest identifier on the path, which may sit *below*
+        // it. A dropdown option is exactly that shape: the tap is on the
+        // option's button, the tag on the label inside it, and no
+        // `MergeSemantics` in between to pull the identifier up (unlike
+        // `PopupMenuItem`, which has one). Without this, picking an AMS slot
+        // recorded as a bare `menuItem`.
+        return _isInteractive(node) ? _Hit(node, covering.id ?? idHere) : covering;
       }
     }
     return _Hit(node, idHere);
@@ -287,20 +326,37 @@ class InteractionProbe {
 /// values are dynamic, so no redactor can catch them. Naming therefore comes
 /// from identifiers we put on controls ourselves, and a control nobody named
 /// reports as its role alone.
+///
+/// [material] is the single exception, and it is not read off the screen: a
+/// control opts in by tagging with `logTagMaterial`, and only names from
+/// [FilamentMaterial.known] get through.
 class TouchTarget {
   const TouchTarget({
     this.id,
+    this.material,
     this.role,
     this.checked,
+    this.empty = false,
     this.dragKey = '',
   });
 
   factory TouchTarget.of(SemanticsNode node, {String? inheritedId}) {
     final data = node.getSemanticsData();
     final flags = data.flagsCollection;
+    final identifier =
+        data.identifier.isEmpty ? inheritedId : data.identifier;
+    final tag = identifier == null
+        ? null
+        : FilamentMaterial.split(identifier);
     return TouchTarget(
-      id: data.identifier.isEmpty ? inheritedId : data.identifier,
+      id: tag?.id,
+      material: tag?.material,
       role: _roleOf(data),
+      // `_pressed` already climbed as far as it could; landing on something
+      // inert means the finger hit a gap. Said outright, because the reader
+      // otherwise has to infer it from a missing `role` — and "tapped the card
+      // where nothing is" looks the same as "the probe failed to name it".
+      empty: !InteractionProbe._isInteractive(node),
       checked: switch (flags.isChecked) {
         CheckedState.none => null,
         CheckedState.isTrue => true,
@@ -331,19 +387,41 @@ class TouchTarget {
   /// Declared via `Semantics(identifier:)`. Stable and not localized, so it
   /// beats the label whenever a widget bothers to set one.
   final String? id;
+
+  /// Filament material the control was showing, when it declared one — the only
+  /// piece of on-screen content this log carries, and only from a closed list.
+  /// See [FilamentMaterial].
+  final String? material;
   final String? role;
 
   /// State *before* the tap: the handler has not run yet at pointer-down.
   final bool? checked;
 
+  /// Nothing under the finger could be operated — a tap on the body of a card
+  /// between its controls, on the empty part of an open sheet, on a screen's
+  /// background. Recorded as `empty` so the log says so instead of leaving the
+  /// reader to guess from an absent `role`.
+  final bool empty;
+
   /// Identity used to fold repeated drags — the scrollable being dragged, not
   /// the item that happened to be under the finger. Not logged.
   final String dragKey;
 
-  Map<String, Object?> toFields() => {
+  /// [forDrag] drops the two fields that only mean something for a press.
+  /// A drag record stands for a folded burst of flicks over different rows, so
+  /// the material of the one under the first finger-down would speak for rows
+  /// nobody touched; and landing on something inert says nothing about a drag,
+  /// because the scrollable ancestor handles it either way — a live run had the
+  /// same dashboard flick reported once as `empty` and once as a `button`.
+  ///
+  /// `empty` is written only when true: a field per tap saying "this one did hit
+  /// something" would pad every line for the common case.
+  Map<String, Object?> toFields({bool forDrag = false}) => {
         'id': id,
+        'mat': forDrag ? null : material,
         'role': role,
         'was_checked': checked,
+        'empty': !forDrag && empty ? true : null,
       };
 
   /// Declared roles that name a *control*. Anything else (`progressBar`,
@@ -386,12 +464,14 @@ class TouchTarget {
   }
 }
 
-/// A node from the hit path plus the identifier inherited from its ancestors.
+/// A node from the hit path plus the most specific identifier found along that
+/// path — usually from an ancestor, but a control whose tag sits on its label
+/// (a dropdown option) contributes one from below.
 class _Hit {
-  const _Hit(this.node, this.inheritedId);
+  const _Hit(this.node, this.id);
 
   final SemanticsNode node;
-  final String? inheritedId;
+  final String? id;
 }
 
 class _Touch {

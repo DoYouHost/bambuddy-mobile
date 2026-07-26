@@ -75,8 +75,8 @@ METHOD_DECL = re.compile(
     r"\b(?:Widget|PreferredSizeWidget|PopupMenuEntry|PopupMenuItem|List<Widget>)"
     r"(?:<[^>\n]*>)?\s+(_?\w+)\s*(?:<[^>\n]*>)?\s*\("
 )
-TAG_CALL = re.compile(r"\blogTag\s*\(")
-TAGGED_CALL = re.compile(r"\.tagged\s*\(")
+TAG_CALL = re.compile(r"\blogTag(?:Material)?\s*\(")
+TAGGED_CALL = re.compile(r"\.tagged(?:Material)?\s*\(")
 WRAPPER_CALL = re.compile(r"\b(" + "|".join(WRAPPERS) + r")\s*\(")
 
 SKIP_FILES = ("app_localizations",)

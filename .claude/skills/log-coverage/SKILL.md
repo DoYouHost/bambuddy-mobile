@@ -32,7 +32,9 @@ Output: totals, a table per widget kind, the worst files, then every gap as
 
 Three states, matching how the probe resolves a name at runtime:
 
-- **named directly** — a `logTag(...)` / `.tagged(...)` encloses it.
+- **named directly** — a `logTag(...)` / `.tagged(...)` encloses it (or the
+  `…Material` variant, which adds the filament type as a separate `mat` field —
+  the only on-screen content the log carries, and only from a closed list).
 - **inherits a name** — something above it is named and the identifier reaches
   down: its widget class or builder method is tagged at every call site
   (`_FilterButton` is wrapped where it is used; `Widget _iconButton(...)` inherits
@@ -78,6 +80,7 @@ the setup and login screens, so the rest followed for consistency.
 logTag('area.thing', SomeWidget(...))     // wraps
 SomeLongWidget(...).tagged('area.thing')  // postfix, for long trees
 confirmDialog(context, id: 'files.delete_confirm', ...)  // names both buttons
+logTagMaterial('inventory.spool', spool.material, SomeWidget(...))  // adds mat=PETG
 ```
 
 Gotchas that have already cost time here:

@@ -1066,7 +1066,10 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
                     for (final d in _dayOptions)
                       DropdownMenuItem(
                         value: d,
-                        child: Text(l10n.archivePurgeDaysOption(d)),
+                        // Named per value: "purged 30 days" and "purged
+                        // everything" are not the same report.
+                        child: logTag('archive_purge.days.$d',
+                            Text(l10n.archivePurgeDaysOption(d))),
                       ),
                   ],
                 ),

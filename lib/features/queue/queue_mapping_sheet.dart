@@ -261,7 +261,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: trays.isEmpty ? null : () => _pickTray(i, trays),
-      ).tagged('queue_mapping.slot'),
+        // The material the *file* asks for, not the tray picked for it: a
+        // mapping report is about the two disagreeing.
+      ).taggedMaterial('queue_mapping.slot', req.type),
     );
   }
 
@@ -286,7 +288,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
                     ? Icon(Icons.check, color: theme.colorScheme.primary)
                     : null,
                 onTap: () => Navigator.pop(ctx, t.global),
-              ).tagged('queue_mapping.tray_option'),
+              ).taggedMaterial('queue_mapping.tray_option', t.type),
           ],
         ),
       ),

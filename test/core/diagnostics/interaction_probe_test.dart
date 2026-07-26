@@ -131,6 +131,106 @@ void main() {
     expect(stop().last['id'], 'stats.range.month');
   });
 
+  testWidgets('names a dropdown option through its own popup route',
+      (tester) async {
+    // A `DropdownButtonFormField` shows its options in a route of its own, so
+    // the field's identifier does not reach them — picking an AMS slot recorded
+    // as a bare `menuItem`. The tag has to go on each option, and this pins
+    // that it survives the trip through the popup.
+    await pumpApp(
+      tester,
+      Center(
+        child: DropdownButtonFormField<int>(
+          initialValue: 0,
+          items: [
+            for (var slot = 0; slot < 4; slot++)
+              DropdownMenuItem(
+                value: slot,
+                child: logTag('spool_assign.slot.$slot', Text('${slot + 1}')),
+              ),
+          ],
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3').last);
+    await tester.pumpAndSettle();
+
+    expect(stop().last['id'], 'spool_assign.slot.2');
+  });
+
+  testWidgets('names a dropdown option tagged below the node that is tapped',
+      (tester) async {
+    // `DropdownButtonFormField` is the harder cousin of `PopupMenuItem`: the
+    // option's tap sits on a node *above* the tag, and there is no
+    // `MergeSemantics` to pull the identifier up into it. A live run recorded
+    // picking an AMS slot as a bare `menuItem` because of it.
+    await pumpApp(
+      tester,
+      Center(
+        child: DropdownButtonFormField<int>(
+          initialValue: 0,
+          items: [
+            for (var slot = 0; slot < 4; slot++)
+              DropdownMenuItem(
+                value: slot,
+                child: logTag('spool_assign.slot.$slot', Text('${slot + 1}')),
+              ),
+          ],
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3').last);
+    await tester.pumpAndSettle();
+
+    final record = stop().last;
+    expect(record['id'], 'spool_assign.slot.2');
+    expect(record['role'], 'menuItem');
+  });
+
+  testWidgets('names a dropdown option tapped beside its label',
+      (tester) async {
+    // The trap the previous test walks straight past: a tag has the geometry of
+    // what it wraps, and an AMS slot label is 24 pixels tall inside a 48-pixel
+    // row. Tapping dead centre finds it; a live run tapping the row normally
+    // missed it three times out of three. Naming a menu row therefore does not
+    // depend on where inside it the finger landed.
+    await pumpApp(
+      tester,
+      Center(
+        child: DropdownButtonFormField<int>(
+          initialValue: 0,
+          items: [
+            for (var slot = 0; slot < 4; slot++)
+              DropdownMenuItem(
+                value: slot,
+                child: logTag('spool_assign.slot.$slot', Text('${slot + 1}')),
+              ),
+          ],
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+
+    // Below the digit but still inside the option's row — the half of it the
+    // tag does not cover.
+    final label = tester.getRect(find.text('3').last);
+    await tester.tapAt(Offset(label.center.dx, label.bottom + 6));
+    await tester.pumpAndSettle();
+
+    expect(stop().last['id'], 'spool_assign.slot.2');
+  });
+
   testWidgets('never records the accessibility label', (tester) async {
     // The label of a merged node is the whole content of a card — model names,
     // file names, spool names. The log ends up in a public issue, and no
@@ -213,6 +313,80 @@ void main() {
     await tester.pump();
 
     expect(stop().single['id'], 'archive.card');
+  });
+
+  testWidgets('records the filament material as a field of its own',
+      (tester) async {
+    // Material is the one thing on a card the log carries: it explains a share
+    // of AMS reports and identifies nobody. It rides on the identifier because
+    // semantics is the only channel the probe has, and comes back out split.
+    await pumpApp(
+      tester,
+      Center(
+        child: logTagMaterial(
+          'inventory.spool',
+          'PETG',
+          ElevatedButton(onPressed: () {}, child: const Text('Szpula')),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Szpula'));
+    await tester.pump();
+
+    final record = stop().single;
+    expect(record['id'], 'inventory.spool');
+    expect(record['mat'], 'PETG');
+  });
+
+  testWidgets('drops a material outside the known list', (tester) async {
+    // A spool's material is text the user typed into the form, so an
+    // unrecognised value must leave no trace at all — not the id, not a field.
+    await pumpApp(
+      tester,
+      Center(
+        child: logTagMaterial(
+          'inventory.spool',
+          'Rain Gauge PLA',
+          ElevatedButton(onPressed: () {}, child: const Text('Szpula')),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Szpula'));
+    await tester.pump();
+
+    final record = stop().single;
+    expect(record['id'], 'inventory.spool');
+    expect(record.containsKey('mat'), isFalse);
+  });
+
+  testWidgets('the material reaches a control inside the tagged card',
+      (tester) async {
+    // Same inheritance as the identifier: a tap on something deeper inside the
+    // spool tile still knows what was in it.
+    await pumpApp(
+      tester,
+      Center(
+        child: logTagMaterial(
+          'inventory.spool',
+          'TPU',
+          Material(
+            child: InkWell(
+              onTap: () {},
+              child: const SizedBox(width: 100, height: 40),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(InkWell));
+    await tester.pump();
+
+    final record = stop().single;
+    expect(record['id'], 'inventory.spool');
+    expect(record['mat'], 'TPU');
   });
 
   testWidgets('ignores the recorder\'s own controls', (tester) async {
@@ -387,6 +561,39 @@ void main() {
     expect(record['evt'], 'tap');
     expect(record.containsKey('label'), isFalse);
     expect(record.containsKey('id'), isFalse);
+    expect(record['empty'], isTrue);
+  });
+
+  testWidgets('says outright that a tap landed on empty space', (tester) async {
+    // A live run showed `{"evt":"tap","id":"dashboard.printer_card"}` — the
+    // finger hit the card's body between its controls. Without a word for it,
+    // that reads the same as the probe failing to name what was pressed.
+    await pumpApp(
+      tester,
+      logTag(
+        'dashboard.printer_card',
+        Card(
+          child: Column(
+            children: [
+              const SizedBox(height: 80, child: Text('Drukuje 42%')),
+              TextButton(onPressed: () {}, child: const Text('Szczegóły')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Drukuje 42%'));
+    await tester.pump();
+    await tester.tap(find.text('Szczegóły'));
+    await tester.pump();
+
+    final recorded = stop();
+    expect(recorded.first['id'], 'dashboard.printer_card');
+    expect(recorded.first['empty'], isTrue);
+    // The button in the same card is a hit, and stays unmarked.
+    expect(recorded.last['role'], 'button');
+    expect(recorded.last.containsKey('empty'), isFalse);
   });
 
   testWidgets('captures the checkbox state before the tap', (tester) async {
@@ -461,6 +668,60 @@ void main() {
     final drag = stop().firstWhere((r) => r['evt'] == 'drag');
     expect(drag['dir'], 'up');
     expect(drag['dist'], greaterThan(24));
+  });
+
+  testWidgets('a drag says nothing about hitting empty space', (tester) async {
+    // The same dashboard flick came back once as `empty` and once as a
+    // `button`, depending on which part of the card the finger started on —
+    // while both scrolled. Whether the starting point was operable is a fact
+    // about a press, not about a drag.
+    await pumpApp(
+      tester,
+      ListView(
+        children: [
+          for (var i = 0; i < 20; i++)
+            logTag('dashboard.printer_card',
+                SizedBox(height: 80, child: Text('Drukarka $i'))),
+        ],
+      ),
+    );
+
+    await tester.fling(find.text('Drukarka 1'), const Offset(0, -300), 1000);
+    await tester.pumpAndSettle();
+
+    final drag = stop().firstWhere((r) => r['evt'] == 'drag');
+    expect(drag['id'], 'dashboard.printer_card');
+    expect(drag.containsKey('empty'), isFalse);
+  });
+
+  testWidgets('a drag does not claim the material it started on',
+      (tester) async {
+    // Scrolling the spool list named `inventory.spool` *and* its material in a
+    // live run. One drag record stands for a folded burst of flicks over
+    // different rows, so the field would speak for rows it never touched — and
+    // a scroll is no decision about a filament anyway.
+    await pumpApp(
+      tester,
+      ListView(
+        children: [
+          for (var i = 0; i < 40; i++)
+            logTagMaterial(
+              'inventory.spool',
+              'PETG',
+              Material(
+                child: InkWell(onTap: () {}, child: Text('Szpula $i')),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    await tester.fling(find.text('Szpula 1'), const Offset(0, -300), 1000);
+    await tester.pumpAndSettle();
+
+    final drag = stop().firstWhere((r) => r['evt'] == 'drag');
+    expect(drag['id'], 'inventory.spool');
+    expect(drag.containsKey('mat'), isFalse);
   });
 
   testWidgets('folds a burst of drags on the same target', (tester) async {
