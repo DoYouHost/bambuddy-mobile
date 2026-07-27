@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'log_event.dart';
@@ -14,18 +15,68 @@ class LogFileSink {
   LogFileSink(this.file);
 
   final File file;
+
   Future<void> _chain = Future<void>.value();
   bool _closed = false;
 
-  /// `session-<id>.jsonl` / `session-<id>-fgs.jsonl` inside [dir].
+  /// `session-<id>.jsonl`, plus a suffix naming any stream that is not the UI's.
   static File fileFor(Directory dir, String session, LogStream stream) {
-    final suffix = stream == LogStream.fgs ? '-fgs' : '';
+    final suffix = switch (stream) {
+      LogStream.ui => '',
+      LogStream.fgs => '-fgs',
+      LogStream.action => '-act',
+    };
     return File('${dir.path}/session-$session$suffix.jsonl');
   }
 
   Future<void> writeHeader(LogHeader header) => _enqueue(header.toJsonLine());
 
   void writeLine(String line) => unawaited(_enqueue(line));
+
+  /// The file's first line, or empty when there is none.
+  ///
+  /// Streams rather than reading the whole file: the UI stream can be hundreds of
+  /// kilobytes by the time the background isolate wants its header, and the
+  /// header is the first thing in it. Appends land at the end, so a concurrent
+  /// writer cannot disturb this.
+  Future<String> readFirstLine() async {
+    try {
+      if (!await file.exists()) return '';
+      final lines = file
+          .openRead()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+      await for (final line in lines) {
+        return line;
+      }
+      return '';
+    } on Object {
+      return '';
+    }
+  }
+
+  /// Whether the file already ends in a newline, so an append cannot glue itself
+  /// onto a half-written record. False for a file that does not exist.
+  ///
+  /// A killed process can leave the last line torn even with a flush per write.
+  /// Concatenating onto it costs two records: the tail of the old one and all of
+  /// the new one, both dropped as unparseable.
+  Future<bool> endsWithNewline() async {
+    try {
+      final length = await file.length();
+      if (length == 0) return false;
+      final handle = await file.open();
+      try {
+        await handle.setPosition(length - 1);
+        final tail = await handle.read(1);
+        return tail.isNotEmpty && tail.first == 0x0a;
+      } finally {
+        await handle.close();
+      }
+    } on Object {
+      return false;
+    }
+  }
 
   Future<void> _enqueue(String line) {
     if (_closed) return Future<void>.value();

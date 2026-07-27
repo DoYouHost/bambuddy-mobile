@@ -1,3 +1,4 @@
+import '../../core/diagnostics/notif_probe.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/notifications/background_api.dart';
 import '../../core/notifications/notification_prefs.dart';
@@ -66,20 +67,34 @@ class MaintenanceMonitor {
     final List<PrinterMaintenanceOverview> printers;
     try {
       printers = await _repo.fetchOverview();
-    } on Object {
+    } on Object catch (error) {
+      // The only witness that a poll happened at all: with a 30-minute interval,
+      // a failure here means no maintenance alert for half an hour and nothing
+      // else records it. The request itself is logged by `HttpProbe`; this says
+      // the alert decision was skipped.
+      NotifProbe.suppressed(
+        NotifSkip.fetchFailed,
+        event: NotifEvent.maintenanceDue,
+        fields: {'cause': error.runtimeType.toString()},
+      );
       return;
     }
 
     final dueNow = <int>{};
+    var fresh = 0;
     for (final printer in printers) {
       for (final item in printer.maintenanceItems) {
         if (!item.enabled || !item.isDue) continue;
         dueNow.add(item.id);
         if (_notified.add(item.id)) {
+          fresh++;
           await _alertDue(printer, item);
         }
       }
     }
+    // One record for the whole poll rather than one per de-duplicated item: N
+    // lines saying "already told you" carry no more than these two numbers.
+    NotifProbe.maintenanceCheck(due: dueNow.length, fresh: fresh);
     // Items no longer due (e.g., after completion) — re-arm.
     _notified.removeWhere((id) => !dueNow.contains(id));
     await persist?.call(_notified);
@@ -91,12 +106,29 @@ class MaintenanceMonitor {
   Future<void> remindOnPrintEnd(int printerId) async {
     if (!_enabled) return;
     final printer = await _repo.fetchPrinter(printerId);
-    if (printer == null) return;
+    if (printer == null) {
+      // `noData`, not `fetchFailed`: the repository degrades to null for an
+      // unknown printer *and* for a transport error, and the log must not claim
+      // to know which. Nothing is recorded when the printer is known and simply
+      // has nothing overdue — that is the ordinary outcome, not a gap.
+      NotifProbe.suppressed(
+        NotifSkip.noData,
+        printerId: printerId,
+        event: NotifEvent.maintenanceDue,
+      );
+      return;
+    }
     final due = printer.dueItems;
     if (due.isEmpty) return;
 
     final l = _l10n();
+    // Both notifications this class posts report `maintenanceDue`: the event enum
+    // is a persisted preference key, so a second value would silently land in the
+    // default-off set and disable the reminder for every existing install. The id
+    // band is what tells them apart in a log.
     await _notifications.showAlert(
+      event: NotifEvent.maintenanceDue,
+      printerId: printerId,
       id: _maintenanceReminderAlertBase + printerId,
       title: l.maintenanceReminderTitle,
       body: l.maintenanceReminderBody(printer.printerName, due.length),
@@ -111,6 +143,8 @@ class MaintenanceMonitor {
   ) async {
     final l = _l10n();
     await _notifications.showAlert(
+      event: NotifEvent.maintenanceDue,
+      printerId: printer.printerId,
       id: _maintenanceDueAlertBase + item.id,
       title: l.maintenanceNotifTitle,
       body: l.maintenanceNotifBody(

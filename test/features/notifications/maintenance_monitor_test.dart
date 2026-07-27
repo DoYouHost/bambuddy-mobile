@@ -1,13 +1,19 @@
+import 'dart:convert';
+
+import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/models/maintenance.dart';
 import 'package:bambuddy_mobile/core/notifications/background_api.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Nagrywa alerty zamiast dotykać pluginu.
 class _FakeNotifications implements NotificationService {
@@ -15,6 +21,8 @@ class _FakeNotifications implements NotificationService {
 
   @override
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,
@@ -22,6 +30,8 @@ class _FakeNotifications implements NotificationService {
     List<NotificationAction>? actions,
   }) async {
     alerts.add({
+      'event': event,
+      'printerId': printerId,
       'id': id,
       'body': body,
       'payload': payload,
@@ -49,8 +59,16 @@ class _FakeRepo extends MaintenanceRepository {
 
   List<PrinterMaintenanceOverview> overview = const [];
 
+  /// Wymusza błąd sieci na przeglądzie — repo puszcza go dalej, jak w produkcji.
+  bool failOverview = false;
+
   @override
-  Future<List<PrinterMaintenanceOverview>> fetchOverview() async => overview;
+  Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
+    if (failOverview) {
+      throw DioException(requestOptions: RequestOptions(path: '/maintenance'));
+    }
+    return overview;
+  }
 
   @override
   Future<PrinterMaintenanceOverview?> fetchPrinter(int printerId) async {
@@ -190,5 +208,84 @@ void main() {
     await monitor().remindOnPrintEnd(1);
 
     expect(notifications.alerts, isEmpty);
+  });
+
+  group('diagnostyka', () {
+    late DiagnosticRecorder recorder;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      recorder = DiagnosticRecorder(
+        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        loadFacts: () async =>
+            const SessionFacts(app: '0.11.3+1103', flavor: 'mobile'),
+        resolveDirectory: () async => null,
+      );
+    });
+
+    tearDown(() => recorder.discard());
+
+    Future<List<Map<String, Object?>>> rows(Future<void> Function() body) async {
+      await recorder.start();
+      await body();
+      return [
+        for (final line in const LineSplitter().convert(await recorder.stop()))
+          if (jsonDecode(line) case final Map<String, Object?> row
+              when row['src'] == 'notif')
+            row,
+      ];
+    }
+
+    test('jeden rekord na przegląd, nie na zdeduplikowany element', () async {
+      repo.overview = [
+        _printer([
+          _item(id: 10, isDue: true),
+          _item(id: 11, isDue: true),
+          _item(id: 12),
+        ]),
+      ];
+      persisted = {10}; // 10 już zgłoszone, 11 jest nowe
+
+      final all = await rows(() => monitor().check());
+
+      final check = [for (final r in all) if (r['evt'] == 'maintenance_check') r];
+      expect(check.single['due'], 2);
+      expect(check.single['fresh'], 1);
+    });
+
+    test('padnięty przegląd zostawia powód, nie ciszę', () async {
+      repo.failOverview = true;
+
+      final all = await rows(() => monitor().check());
+
+      final skip = [for (final r in all) if (r['evt'] == 'suppressed') r];
+      expect(skip.single['reason'], 'fetchFailed');
+      expect(skip.single['event'], 'maintenanceDue');
+      expect(skip.single['cause'], 'DioException');
+      // Przegląd nie doszedł do końca, więc nie ma o czym raportować.
+      expect([for (final r in all) if (r['evt'] == 'maintenance_check') r],
+          isEmpty);
+    });
+
+    test('brak danych o drukarce to noData, nie fetchFailed', () async {
+      // Serwer nie zna drukarki albo połączenie padło — repozytorium zwraca null
+      // w obu przypadkach, więc log nie udaje, że wie który.
+      final all = await rows(() => monitor().remindOnPrintEnd(99));
+
+      final skip = [for (final r in all) if (r['evt'] == 'suppressed') r];
+      expect(skip.single['reason'], 'noData');
+      expect(skip.single['printer_id'], 99);
+    });
+
+    test('drukarka bez zaległości nie zostawia rekordu', () async {
+      // Zwyczajny wynik, nie luka informacyjna: cisza jest tu poprawną odpowiedzią.
+      repo.overview = [
+        _printer([_item(id: 10)]),
+      ];
+
+      final all = await rows(() => monitor().remindOnPrintEnd(1));
+
+      expect(all, isEmpty);
+    });
   });
 }

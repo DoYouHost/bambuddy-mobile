@@ -65,12 +65,21 @@ class SessionFacts {
       );
 }
 
-/// Reads the real facts off the device and the stored profile.
-Future<SessionFacts> loadSessionFacts({
+/// The exact values a session's redactor must never let through.
+///
+/// Split out of [loadSessionFacts] for the background isolates: they inherit the
+/// UI stream's header off disk, so they need none of the facts — but they do need
+/// these, and with an empty redactor the first records they write are the ones
+/// that carry secrets. A `SocketException` reads "Failed host lookup:
+/// 'nas.example'", which is not a URL, so only an exact value catches it.
+///
+/// Deliberately without `PackageInfo`: this runs before the foreground service
+/// dials its socket, and one platform channel is one more thing that can hang or
+/// throw on the path to monitoring being live.
+Future<Map<String, String>> sessionSecrets({
   required ServerProfile? profile,
   required CredentialsStore credentials,
 }) async {
-  final info = await PackageInfo.fromPlatform();
   final secrets = <String, String>{};
 
   // Registered as exact values so they are cut even when they surface inside
@@ -82,6 +91,18 @@ Future<SessionFacts> loadSessionFacts({
 
   final host = profile == null ? null : Uri.tryParse(profile.baseUrl)?.host;
   if (host != null && host.isNotEmpty) secrets[host] = '[HOST]';
+
+  return secrets;
+}
+
+/// Reads the real facts off the device and the stored profile.
+Future<SessionFacts> loadSessionFacts({
+  required ServerProfile? profile,
+  required CredentialsStore credentials,
+}) async {
+  final info = await PackageInfo.fromPlatform();
+  final secrets =
+      await sessionSecrets(profile: profile, credentials: credentials);
 
   return SessionFacts(
     app: '${info.version}+${info.buildNumber}',

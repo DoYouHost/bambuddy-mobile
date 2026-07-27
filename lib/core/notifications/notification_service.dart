@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'background_api.dart';
+import 'notification_prefs.dart';
 
 /// Notification action button (e.g., "Mark Done" for maintenance).
 /// Independent of the plugin so tests can inject a fake and assert.
@@ -24,6 +25,11 @@ abstract class NotificationService {
   /// Shows/updates ONE ongoing print notification with a progress bar.
   /// The foreground service from `flutter_foreground_task` (separate isolate)
   /// handles keeping the process alive; this service just shows the notification.
+  ///
+  /// Unlike [showAlert] this takes no diagnostic arguments: the record is written
+  /// by `PrintMonitor._updateOngoing`, which is the only place that holds the
+  /// printer, percentage, ETA and print count as separate values — here they are
+  /// already baked into [title] and [body], which never enter a log.
   Future<void> showOngoing({
     required String title,
     required String body,
@@ -36,7 +42,16 @@ abstract class NotificationService {
   /// One-shot alert (completion/failure) — survives backgrounding because the plugin
   /// itself wakes the app on tap. Optional [actions] add action buttons
   /// (handled in background without opening the app).
+  ///
+  /// [event] and [printerId] exist for the diagnostic log and are required so the
+  /// compiler refuses a new notification without a name — the same reason the
+  /// printer card's shared buttons take a mandatory id. Neither can be recovered
+  /// from the arguments that were already here: [title] and [body] are the user's
+  /// own file and printer names and never enter a log, and [id] is a one-way hash
+  /// for HMS alerts (see `_errorAlertId` in `print_monitor.dart`).
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,
@@ -86,6 +101,25 @@ class LocalNotificationService implements NotificationService {
   Future<bool> requestPermission() async =>
       await _android?.requestNotificationsPermission() ?? false;
 
+  /// Whether the OS lets this app post notifications at all, **asked** rather
+  /// than requested — safe in the background, where prompting is impossible.
+  /// Null when the platform does not answer.
+  Future<bool?> notificationsEnabled() async =>
+      _android?.areNotificationsEnabled();
+
+  /// Importance the alerts channel currently has, or null if the channel or the
+  /// answer is missing. App-level permission is not the whole story: a user can
+  /// mute this one channel and keep everything else, which looks like a granted
+  /// permission and delivers nothing. `Importance.none` is 0.
+  Future<int?> alertsChannelImportance() async {
+    final channels = await _android?.getNotificationChannels();
+    if (channels == null) return null;
+    for (final channel in channels) {
+      if (channel.id == _alertsChannelId) return channel.importance.value;
+    }
+    return null;
+  }
+
   // No-ops: the only production `PrintMonitor` runs in the background
   // isolate against `_FgsNotificationService` (see
   // `print_monitor_task_handler.dart`), which routes the ongoing
@@ -104,8 +138,13 @@ class LocalNotificationService implements NotificationService {
   @override
   Future<void> clearOngoing() async {}
 
+  /// [event] and [printerId] are for the diagnostic log, which wraps this class
+  /// from the outside (see `LoggingNotifications`); the platform call itself has
+  /// no use for them.
   @override
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,

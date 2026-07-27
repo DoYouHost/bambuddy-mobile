@@ -4,16 +4,27 @@ import 'dart:math';
 /// Source of a record. The enum names are wire values — they end up in the
 /// JSONL and the summarising GitHub Action groups by them, so renaming one
 /// breaks every log already attached to an issue.
-enum LogSource { http, ws, ui, fgs, err, app }
+///
+/// A subsystem, not an isolate: which isolate wrote a record is the stream's
+/// business, not the record's. Notifications get their own [notif] even though
+/// they are produced only in the background service — "the app buried me in
+/// notifications" should be one look at one lane's count. Declaration order is
+/// the order the review screen lists them in.
+enum LogSource { http, ws, ui, notif, fgs, err, app }
 
 /// Severity. [LogLevel.info] is the default and is omitted from the encoded
 /// record; most lines are info, so spelling it out would just pad the upload.
 enum LogLevel { debug, info, warn, error }
 
-/// Which isolate produced the stream. The UI and the foreground service have
-/// separate heaps, so each writes its own file with its own header; the export
-/// merges them on absolute time (`ts` + `t`), never on `t` alone.
-enum LogStream { ui, fgs }
+/// Which isolate produced the stream. Each has its own heap, so each writes its
+/// own file with its own header; the export merges them on absolute time
+/// (`ts` + `t`), never on `t` alone.
+///
+/// [action] is the plugin's notification-action engine — a third, short-lived
+/// isolate that wakes up only to perform "Mark Done" and does real HTTP on the
+/// way. The name is a wire value: it lands in a header and in every merged
+/// record's `iso`.
+enum LogStream { ui, fgs, action }
 
 /// Shape of the server host. A bare IP means a direct LAN setup, a name means
 /// DNS or a reverse proxy in front — that distinction explains a good share of
@@ -82,7 +93,77 @@ class LogHeader {
   /// Bumped when the record shape changes in a way a parser must know about.
   static const formatVersion = 1;
 
-  /// Session identifier shared by the UI and FGS files of one recording.
+  /// Reads a header line back, or null when the line is not the header of
+  /// [session].
+  ///
+  /// Exists for the background isolates: they do not build a header of their own,
+  /// they continue the one the UI wrote, so they have to read it off disk. The
+  /// checks are the point. A header write is allowed to fail silently
+  /// (`LogFileSink` swallows it) while the writes after it succeed, so the first
+  /// line of a stream is not guaranteed to be a header at all — and accepting a
+  /// *record* as one yields a header with no `ts`, which makes the merge drop the
+  /// entire background stream from every report. Hence: it must decode to a map,
+  /// it must not carry `t` (every record does, no header does), the session must
+  /// be the one we were told to continue, and `ts` must be a real timestamp.
+  static LogHeader? tryParse(String line, {required String session}) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(line);
+    } on Object {
+      return null;
+    }
+    if (decoded is! Map<String, Object?>) return null;
+    final fields = decoded;
+    if (fields.containsKey('t')) return null;
+    if (fields['session'] != session) return null;
+    final ts = DateTime.tryParse('${fields['ts']}');
+    final app = fields['app'];
+    final flavor = fields['flavor'];
+    if (ts == null || app is! String || flavor is! String) return null;
+    return LogHeader(
+      ts: ts,
+      session: session,
+      app: app,
+      flavor: flavor,
+      stream: LogStream.values.firstWhere(
+        (s) => s.name == fields['stream'],
+        orElse: () => LogStream.ui,
+      ),
+      os: fields['os'] as String?,
+      device: fields['device'] as String?,
+      locale: fields['locale'] as String?,
+      server: fields['server'] as String?,
+      serverUrl: switch (fields['scheme']) {
+        final String scheme => ServerFingerprint(
+            scheme: scheme,
+            hostKind: fields['host_kind'] == HostKind.ip.name
+                ? HostKind.ip
+                : HostKind.name,
+            port: fields['port'] as int?,
+          ),
+        _ => null,
+      },
+      auth: fields['auth'] as String?,
+    );
+  }
+
+  /// The same session, tagged as a different stream — what a background isolate
+  /// writes at the top of its own file.
+  LogHeader copyWith({LogStream? stream}) => LogHeader(
+        ts: ts,
+        session: session,
+        app: app,
+        flavor: flavor,
+        stream: stream ?? this.stream,
+        os: os,
+        device: device,
+        locale: locale,
+        server: server,
+        serverUrl: serverUrl,
+        auth: auth,
+      );
+
+  /// Session identifier shared by every stream file of one recording.
   /// 128 random bits as hex — no uuid dependency for what is just a join key.
   static String newSessionId() {
     final rnd = Random.secure();
@@ -150,7 +231,11 @@ class LogEvent {
 
   /// Keys the record owns. A caller-supplied `t` or `evt` would silently
   /// overwrite the record's own, so those are dropped rather than nested.
-  static const reservedKeys = {'t', 'src', 'lvl', 'evt'};
+  ///
+  /// `iso` is here although no record ever sets it: [mergeSessions] stamps it on
+  /// the way out, and a probe that used the same name for a field of its own
+  /// would make a record claim to come from an isolate it did not.
+  static const reservedKeys = {'t', 'src', 'lvl', 'evt', 'iso'};
 
   /// Milliseconds since the header's `ts`.
   final int t;

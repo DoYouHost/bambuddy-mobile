@@ -67,11 +67,14 @@ void main() {
     expect(DiagnosticRecorder.isRecording, isFalse);
   });
 
-  testWidgets('says out loud which sources are not wired up yet',
+  testWidgets('says what the log will contain, background service included',
       (tester) async {
+    // The screen used to list what was *not* wired up yet. Now that the service
+    // and its notification decisions are in the log, saying so is the point —
+    // this is the text the user agrees to before anything is recorded.
     await pumpScreen(tester);
 
-    expect(find.textContaining('Jeszcze niepodpięte'), findsOneWidget);
+    expect(find.textContaining('usługa w tle'), findsOneWidget);
   });
 
   /// Mounted on a router, because starting a recording navigates away.
@@ -424,7 +427,12 @@ void main() {
       expect(container.read(bugReportProvider).isRecording, isFalse);
       expect(container.read(bugReportProvider).autoStopped, isTrue);
       expect(find.text('Zakończ'), findsNothing);
-      expect(find.textContaining('minął limit 5 min'), findsOneWidget);
+      // Derived, not spelled out: the limit is one constant and a test that
+      // hardcodes its value turns a deliberate change into a false alarm.
+      expect(
+        find.textContaining('minął limit ${recordingLimit.inMinutes} min'),
+        findsOneWidget,
+      );
 
       await container.read(bugReportProvider.notifier).discard();
       await tester.pumpAndSettle();

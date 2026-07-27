@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/ws_client.dart';
+import '../../core/diagnostics/diagnostic_recorder.dart';
+import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
@@ -52,7 +54,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _lifecycle = AppLifecycleListener(
       onPause: () {
         if (ref.read(bgMonitoringEnabledProvider)) {
-          ref.read(backgroundMonitorProvider).start();
+          final monitor = ref.read(backgroundMonitorProvider);
+          unawaited(
+            monitor.start().then((started) {
+              // Recorded from here, the one isolate that is certainly able to
+              // write. The service's own stream gives up silently in several
+              // cases (no writable directory, a session past its five minutes, a
+              // platform read that failed), and each of them looks exactly like
+              // an app that was never backgrounded. `started` separates those
+              // from the case below, where nothing was ever asked to start.
+              _logBgService('start', started: started);
+              // Already running, so its start-up never ran for this recording and
+              // it has no idea one exists. This is the normal state after the
+              // user has swiped the app away once.
+              if (!started) monitor.syncDiagnostics();
+            }),
+          );
           // Hand the watch relay over to the FGS isolate. Exactly one
           // responder may listen at a time — a request answered twice is a
           // command executed twice (e.g. double startNext).
@@ -67,6 +84,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(cameraTokenRefresherProvider)?.stop();
       },
       onResume: () {
+        _logBgService('stop');
         // Take the watch relay back only once the FGS isolate is stopped, so
         // the two responders never overlap (see onPause).
         unawaited(
@@ -88,6 +106,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _maybeOnboardNotifications();
     });
   }
+
+  /// Hands the background service's lifecycle to the log from the UI side, where
+  /// there is always a buffer to write into.
+  void _logBgService(String action, {bool? started}) =>
+      DiagnosticRecorder.active?.add(
+        LogSource.app,
+        'bg_service',
+        fields: {'action': action, 'started': started},
+      );
 
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);

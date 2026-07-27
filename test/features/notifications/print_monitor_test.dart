@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
+import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
+import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/print_monitor.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Nagrywa wywołania zamiast dotykać pluginu — sprawdzamy same przejścia.
 class _FakeNotifications implements NotificationService {
@@ -40,13 +46,22 @@ class _FakeNotifications implements NotificationService {
 
   @override
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,
     String? payload,
     List<NotificationAction>? actions,
   }) async {
-    alerts.add({'id': id, 'title': title, 'body': body, 'payload': payload});
+    alerts.add({
+      'event': event,
+      'printerId': printerId,
+      'id': id,
+      'title': title,
+      'body': body,
+      'payload': payload,
+    });
   }
 }
 
@@ -519,4 +534,414 @@ void main() {
     expect(alertById(fake, 3001), isNull); // started OFF
     expect(alertById(fake, 5001), isNull); // milestones OFF
   });
+
+  // --- Tor diagnostyczny (src:notif) ---
+
+  group('diagnostyka', () {
+    late DiagnosticRecorder recorder;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      recorder = DiagnosticRecorder(
+        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        loadFacts: () async =>
+            const SessionFacts(app: '0.11.3+1103', flavor: 'mobile'),
+        // Pamięć zamiast dysku: sprawdzamy rekordy, nie lustro na pliku.
+        resolveDirectory: () async => null,
+      );
+    });
+
+    // Zeruje statyk `DiagnosticRecorder.active` między testami.
+    tearDown(() => recorder.discard());
+
+    /// Uruchamia nagrywanie, wykonuje [body] i zwraca surowy JSONL sesji.
+    Future<String> raw(FutureOr<void> Function() body) async {
+      await recorder.start();
+      await body();
+      return recorder.stop();
+    }
+
+    /// Same rekordy toru powiadomień, w kolejności zapisu.
+    Future<List<Map<String, Object?>>> rows(
+      FutureOr<void> Function() body,
+    ) async {
+      final jsonl = await raw(body);
+      return [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, Object?> row
+              when row['src'] == 'notif')
+            row,
+      ];
+    }
+
+    List<Map<String, Object?>> only(
+      List<Map<String, Object?>> all,
+      String evt,
+    ) =>
+        [for (final r in all) if (r['evt'] == evt) r];
+
+    /// Monitor piszący do logu: dekorator na atrapie serwisu.
+    PrintMonitor logged(
+      _FakeNotifications fake, {
+      NotificationPrefs prefs = _allOn,
+      TimerFactory? timer,
+      String? Function(HmsError)? hmsDescribe,
+      void Function(int)? onPrintEnded,
+    }) =>
+        PrintMonitor(
+          LoggingNotifications(fake),
+          prefs: prefs,
+          l10n: () => lookupAppLocalizations(const Locale('en')),
+          clock: () => DateTime(2026, 6, 12, 20, 0),
+          timerFactory: timer,
+          hmsDescribe: hmsDescribe,
+          onPrintEnded: onPrintEnded,
+        );
+
+    const firstLayerOff = NotificationPrefs(enabled: {NotifEvent.printStarted});
+
+    test('wyłączona pierwsza warstwa: jeden rekord, nie jeden na ramkę', () async {
+      // Gate `_on` był liczony co ramkę, więc rekord w środku warunku dałby
+      // jeden wpis na każdą ramkę do końca druku.
+      final fake = _FakeNotifications();
+      final m = logged(fake, prefs: firstLayerOff);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
+        for (var i = 0; i < 20; i++) {
+          m.update({1: _status(state: 'RUNNING', progress: 10, layerNum: 3)});
+        }
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'firstLayer') r,
+      ];
+      expect(skips, hasLength(1));
+      expect(skips.single['reason'], 'typeOff');
+      expect(skips.single['printer_id'], 1);
+    });
+
+    test('wyłączone milestones: po jednym rekordzie na próg', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, prefs: firstLayerOff);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
+        for (final pct in [30.0, 55.0, 80.0, 80.0, 80.0]) {
+          m.update({1: _status(state: 'RUNNING', progress: pct)});
+        }
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'milestones') r,
+      ];
+      expect([for (final r in skips) r['pct']], [25, 50, 75]);
+    });
+
+    test('nowy wydruk uzbraja zatrzaski ponownie', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, prefs: firstLayerOff);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 5)}); // priming
+        m.update({1: _status(state: 'RUNNING', progress: 10, layerNum: 3)});
+        m.update({1: _status(state: 'FINISH', progress: 100)});
+        m.update({1: _status(state: 'RUNNING', progress: 1)});
+        m.update({1: _status(state: 'RUNNING', progress: 10, layerNum: 3)});
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'firstLayer') r,
+      ];
+      expect(skips, hasLength(2));
+    });
+
+    test('nazwa pliku ani drukarki nie trafia do logu', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, hmsDescribe: describeAll);
+      final jsonl = await raw(() {
+        m.update({
+          1: _status(
+            state: 'IDLE',
+            name: 'Kitchen X1C',
+            connected: true,
+          ),
+        });
+        m.update({
+          1: _status(
+            state: 'RUNNING',
+            job: 'secret-model.3mf',
+            name: 'Kitchen X1C',
+            progress: 30,
+            layerNum: 3,
+            connected: true,
+            hms: [const HmsError(code: '0300_400C', severity: 2)],
+          ),
+        });
+        m.update({
+          1: _status(
+            state: 'FINISH',
+            job: 'secret-model.3mf',
+            name: 'Kitchen X1C',
+            progress: 100,
+            connected: true,
+          ),
+        });
+      });
+
+      // Asercja na surowym tekście, nie na sparsowanych polach: nowe zagnieżdżone
+      // pole nie może przemknąć obok testu.
+      expect(jsonl, isNot(contains('secret-model')));
+      expect(jsonl, isNot(contains('Kitchen')));
+      expect(only(await rows(() {}), 'posted'), isEmpty); // sanity
+    });
+
+    test('wystawiony alert niesie typ, drukarkę i nasze id', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake);
+      final all = await rows(() {
+        m.update({1: _status(state: 'IDLE')});
+        m.update({1: _status(state: 'RUNNING', job: 'x', progress: 1)});
+      });
+
+      final posted = only(all, 'posted').single;
+      expect(posted['event'], 'printStarted');
+      expect(posted['printer_id'], 1);
+      expect(posted['nid'], 3001);
+      expect(posted.containsKey('title'), isFalse);
+      expect(posted.containsKey('body'), isFalse);
+    });
+
+    test('alert HMS niesie drukarkę, choć jego id jest hashem', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, hmsDescribe: describeAll);
+      final all = await rows(() {
+        m.update({7: _status(id: 7, connected: true)});
+        m.update({
+          7: _status(
+            id: 7,
+            connected: true,
+            hms: [const HmsError(code: '0300_400C', severity: 2)],
+          ),
+        });
+      });
+
+      final posted = only(all, 'posted').single;
+      expect(posted['event'], 'printerError');
+      expect(posted['printer_id'], 7);
+    });
+
+    test('odrzucenie przez platformę daje klasę wyjątku, nie komunikat',
+        () async {
+      // Dekorator sprawdzany wprost: wyjątek jest **przepuszczany dalej**, żeby
+      // nie zniknął z izolatu, więc przez monitor (który nie czeka na future)
+      // wyszedłby jako nieobsłużony błąd i wywrócił test.
+      final decorated = LoggingNotifications(_ThrowingNotifications());
+      final all = await rows(() async {
+        await expectLater(
+          decorated.showAlert(
+            event: NotifEvent.printFinished,
+            printerId: 4,
+            id: 1004,
+            title: 'secret-model.3mf',
+            body: 'secret-model.3mf is done',
+          ),
+          throwsStateError,
+        );
+      });
+
+      final error = only(all, 'post_error').single;
+      expect(error['event'], 'printFinished');
+      expect(error['printer_id'], 4);
+      expect(error['cause'], 'StateError');
+      expect(error['lvl'], 'error');
+      // Komunikat wyjątku platformy nie jest pod naszą kontrolą, a jedyne
+      // stringi w zasięgu tej metody to tytuł i treść.
+      expect(error.containsKey('msg'), isFalse);
+      expect(jsonEncode(error), isNot(contains('secret-model')));
+    });
+
+    test('notyfikacja postępu: rekord na zmianę treści, nie na ramkę', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 40, remaining: 30)});
+        m.update({1: _status(state: 'RUNNING', progress: 40, remaining: 30)});
+        m.update({1: _status(state: 'RUNNING', progress: 41, remaining: 29)});
+        m.update({1: _status(state: 'IDLE', progress: 0, remaining: 0)});
+      });
+
+      final ongoing = only(all, 'ongoing');
+      expect(ongoing, hasLength(2));
+      expect(ongoing.first['pct'], 40);
+      expect(ongoing.first['eta_min'], 30);
+      expect(ongoing.first['active'], 1);
+      expect(only(all, 'ongoing_reset'), hasLength(1));
+    });
+
+    test('koniec druku w nieznanym stanie: rekord ostrzegawczy bez alertu',
+        () async {
+      final fake = _FakeNotifications();
+      final ended = <int>[];
+      final m = logged(fake, onPrintEnded: ended.add);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 50)});
+        m.update({1: _status(state: 'IDLE', progress: 50)});
+      });
+
+      final end = only(all, 'print_end').single;
+      expect(end['state'], 'IDLE');
+      expect(end['lvl'], 'warn');
+      expect(only(all, 'posted'), isEmpty);
+      // Ta sama gałąź zjada przypomnienie o konserwacji — o tym mówi rekord.
+      expect(ended, isEmpty);
+    });
+
+    test('koniec druku w FINISH: rekord informacyjny obok alertu', () async {
+      final fake = _FakeNotifications();
+      final ended = <int>[];
+      final m = logged(fake, onPrintEnded: ended.add);
+      final all = await rows(() {
+        m.update({1: _status(state: 'RUNNING', progress: 50)});
+        m.update({1: _status(state: 'FINISH', progress: 100)});
+      });
+
+      final end = only(all, 'print_end').single;
+      expect(end['state'], 'FINISH');
+      expect(end.containsKey('lvl'), isFalse); // info nie jest wypisywane
+      expect(ended, [1]);
+    });
+
+    test('primowanie zapisuje bazę, z której nic nie wynika', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake);
+      final all = await rows(() {
+        m.update({
+          1: _status(state: 'RUNNING', progress: 43, layerNum: 57, job: 'x'),
+        });
+      });
+
+      final primed = only(all, 'primed').single;
+      expect(primed['printer_id'], 1);
+      expect(primed['layer'], 57);
+      expect(primed['progress'], 43);
+      expect(primed['printing'], true);
+      // Pierwsza ramka nie odpala niczego — to jest cała treść tego rekordu.
+      expect(only(all, 'posted'), isEmpty);
+      expect(only(all, 'suppressed'), isEmpty);
+    });
+
+    test('HMS: powody są rozdzielone, a znany kod milczy', () async {
+      final fake = _FakeNotifications();
+      // Bez opisu w katalogu i z severity 1 → kod niedokumentowany.
+      final m = logged(fake, hmsDescribe: (_) => null);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        for (var i = 0; i < 5; i++) {
+          m.update({
+            1: _status(
+              connected: true,
+              hms: [const HmsError(code: '0500_400E', severity: 1)],
+            ),
+          });
+        }
+      });
+
+      final skips = only(all, 'suppressed');
+      expect(skips, hasLength(1));
+      expect(skips.single['reason'], 'undocumented');
+      expect(skips.single['sev'], 1);
+    });
+
+    test('HMS przy rozłączonej drukarce: powód offline, nie typeOff', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, hmsDescribe: describeAll);
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        m.update({
+          1: _status(
+            connected: false,
+            hms: [const HmsError(code: '0300_400C', severity: 2)],
+          ),
+        });
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['event'] == 'printerError') r,
+      ];
+      expect(skips.single['reason'], 'offline');
+    });
+
+    test('powrót drukarki przed upływem łaski zostawia ślad', () async {
+      final fake = _FakeNotifications();
+      final timers = <_FakeTimer>[];
+      final m = logged(fake, timer: (d, cb) {
+        final t = _FakeTimer(cb);
+        timers.add(t);
+        return t;
+      });
+      final all = await rows(() {
+        m.update({1: _status(connected: true)});
+        m.update({1: _status(connected: false)});
+        m.update({1: _status(connected: true)}); // wraca przed strzałem
+        m.update({1: _status(connected: true)}); // bez timera → bez rekordu
+      });
+
+      final skips = only(all, 'suppressed');
+      expect(skips, hasLength(1));
+      expect(skips.single['reason'], 'reconnected');
+      expect(timers.single.isActive, isFalse);
+    });
+
+    test('migawka preferencji wymienia wyłączone typy i stan systemu', () async {
+      final all = await rows(() async {
+        await NotifProbe.openSession(
+          const NotificationPrefs(
+            enabled: {NotifEvent.printFinished},
+            alertsEnabled: false,
+          ),
+          permission: () async => false,
+          channelImportance: () async => 0,
+        );
+      });
+
+      final prefs = only(all, 'prefs').single;
+      expect(prefs['alerts'], false);
+      expect(prefs['perm'], false);
+      expect(prefs['chan_imp'], 0);
+      expect(prefs['off'], isNot(contains('printFinished')));
+      expect(prefs['off'], contains('milestones'));
+    });
+
+    test('nieodpowiadająca platforma nie psuje migawki', () async {
+      final all = await rows(() async {
+        await NotifProbe.openSession(
+          NotificationPrefs.defaults,
+          permission: () async => throw StateError('no channel'),
+          channelImportance: () async => null,
+        );
+      });
+
+      final prefs = only(all, 'prefs').single;
+      // Brak pola znaczy „nie odpowiedziano", nie „zabronione".
+      expect(prefs.containsKey('perm'), isFalse);
+      expect(prefs.containsKey('chan_imp'), isFalse);
+    });
+  });
+}
+
+/// Atrapa, w której platforma odrzuca każdy alert.
+class _ThrowingNotifications extends _FakeNotifications {
+  @override
+  Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+    List<NotificationAction>? actions,
+  }) async =>
+      throw StateError('plugin not initialised');
 }

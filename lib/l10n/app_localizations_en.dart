@@ -3950,7 +3950,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Not wired up yet: WebSocket and the background service. For now the log holds your taps, screen changes, requests to the server and crashes.';
+      'The log holds your taps, screen changes, requests to the server, the live view, crashes, and what the background service does — including which notifications it posted and which it skipped.';
 
   @override
   String bugReportLimit(int minutes) {
@@ -3960,6 +3960,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String bugReportLimitReached(int minutes) {
     return 'Recording finished — the $minutes minute limit was reached.';
+  }
+
+  @override
+  String bugReportSizeLimitReached(int megabytes) {
+    return 'Recording finished — the log reached its $megabytes MB limit.';
   }
 
   @override

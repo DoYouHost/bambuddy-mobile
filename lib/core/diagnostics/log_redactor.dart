@@ -23,18 +23,27 @@ class LogRedactor {
   static const _minKnownLength = 4;
 
   /// Fields whose value comes from the app's own vocabulary, never from user
-  /// input: the control identifier and the filament material. Scrubbing those
-  /// costs more than it protects — the demo server is `http://demo`, so `demo`
-  /// is registered as the host and turned `setup.demo` into `setup.[HOST]`; a
-  /// server called `printer` would do the same to `printer.files` and every
-  /// other id on the dashboard, and one called `pla` to every material.
+  /// input: the control identifier, the filament material, and the notification
+  /// event and skip reason (both closed enums). Scrubbing those costs more than
+  /// it protects — the demo server is `http://demo`, so `demo` is registered as
+  /// the host and turned `setup.demo` into `setup.[HOST]`; a server called
+  /// `printer` would do the same to `printer.files` and every other id on the
+  /// dashboard, one called `pla` to every material, and — the reason `event` is
+  /// here — turn `printerError` into `[HOST]Error`, mangling the one field the
+  /// notification lane exists to report.
   ///
   /// Each still has to look like what it claims to be: a value of the wrong
   /// shape is not one of ours and goes through the scrub, so a stray
-  /// `logTag('archive.card.$name')` would still be caught.
+  /// `logTag('archive.card.$name')` would still be caught. Enum names are
+  /// letters only, which no file or spool name survives.
   static final ourKeys = {
     'id': RegExp(r'^\w+(\.\w+)*$'),
     'mat': RegExp(r'^[A-Z0-9]+(-[A-Z0-9]+)*$'),
+    'event': RegExp(r'^[a-zA-Z]+$'),
+    'reason': RegExp(r'^[a-zA-Z]+$'),
+    // Which ceiling ended a recording, `time` or `size` — both long enough to be
+    // eaten by a server that happens to be named one of them.
+    'limit': RegExp(r'^[a-z]+$'),
   };
 
   /// Field names whose value is secret whatever its shape.

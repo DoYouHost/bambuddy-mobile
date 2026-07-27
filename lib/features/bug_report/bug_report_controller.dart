@@ -16,7 +16,7 @@ class BugReportState {
     this.phase, {
     this.startedAt,
     this.log,
-    this.autoStopped = false,
+    this.autoStoppedBy,
     this.recovered,
   });
 
@@ -26,17 +26,19 @@ class BugReportState {
   const BugReportState.recording(DateTime startedAt)
       : this._(BugReportPhase.recording, startedAt: startedAt);
 
-  const BugReportState.review(String log, {bool autoStopped = false})
-      : this._(BugReportPhase.review, log: log, autoStopped: autoStopped);
+  const BugReportState.review(String log, {String? autoStoppedBy})
+      : this._(BugReportPhase.review, log: log, autoStoppedBy: autoStoppedBy);
 
   final BugReportPhase phase;
   final DateTime? startedAt;
   final String? log;
 
-  /// Whether the recording ended on the time limit rather than on the user
-  /// pressing finish. They are somewhere else in the app when that happens, so
-  /// something has to say so.
-  final bool autoStopped;
+  /// Which ceiling ended the recording — `time`, `size`, or null when the user
+  /// pressed finish. They are somewhere else in the app when a ceiling hits, so
+  /// something has to say so, and the two ceilings need different sentences.
+  final String? autoStoppedBy;
+
+  bool get autoStopped => autoStoppedBy != null;
 
   /// A log left on disk by an app that died mid-recording, waiting for the user
   /// to look at it or throw it away. Offered here rather than pushed at startup:
@@ -116,21 +118,29 @@ class BugReportController extends Notifier<BugReportState> {
 
   Future<void> start() async {
     if (state.isRecording) return;
-    await ref.read(diagnosticRecorderProvider).start();
+    // The store closes itself on either ceiling; this is how the app finds out.
+    // The size one has no timer to fall back on — nothing here can predict when
+    // a runaway stream fills twenty megabytes — so without this the bar would
+    // keep counting down over a recording that stopped recording.
+    await ref
+        .read(diagnosticRecorderProvider)
+        .start(onLimitReached: (limit) => stop(limit: limit));
     _limit?.cancel();
-    _limit = Timer(recordingLimit, () => stop(automatic: true));
+    _limit = Timer(recordingLimit, () => stop(limit: 'time'));
     state = BugReportState.recording(DateTime.now());
   }
 
   /// "It just happened." Recorded as a marker the reviewer can jump to.
   void mark() => ref.read(diagnosticRecorderProvider).mark();
 
-  Future<void> stop({bool automatic = false}) async {
+  /// [limit] names the ceiling that ended it, or null when the user pressed
+  /// finish.
+  Future<void> stop({String? limit}) async {
     if (!state.isRecording) return;
     _limit?.cancel();
     _limit = null;
     final log = await ref.read(diagnosticRecorderProvider).stop();
-    state = BugReportState.review(log, autoStopped: automatic);
+    state = BugReportState.review(log, autoStoppedBy: limit);
   }
 
   /// Backs out: the recording stops and the files go. A log the user decided

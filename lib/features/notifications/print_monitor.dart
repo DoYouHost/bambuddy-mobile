@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/widgets.dart' show Locale;
 
+import '../../core/diagnostics/notif_probe.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
@@ -134,6 +135,16 @@ class PrintMonitor {
 
   bool _on(NotifEvent e) => _prefs.isOn(e);
 
+  /// Which switch silenced an alert. `isOn` collapses the per-type checkbox and
+  /// the master toggle into one boolean, and a record naming the wrong control
+  /// would send the user to the wrong screen.
+  NotifSkip get _offReason =>
+      _prefs.alertsEnabled ? NotifSkip.typeOff : NotifSkip.alertsOff;
+
+  /// The code as the WebSocket lane spells it, so a suppression record and the
+  /// frame that carried the fault can be matched on sight.
+  static String _hmsCode(HmsError e) => e.code ?? e.displayCode;
+
   /// Called on each status map change (from `printerStatusesProvider`).
   void update(Map<int, PrinterStatus> statuses) {
     for (final entry in statuses.entries) {
@@ -144,7 +155,7 @@ class PrintMonitor {
       final isNew = !_memo.containsKey(entry.key);
       final memo = _memo.putIfAbsent(entry.key, _PrinterMemo.new);
       if (isNew) {
-        _prime(memo, entry.value);
+        _prime(entry.key, memo, entry.value);
       } else {
         _processPrinter(entry.key, entry.value, memo);
       }
@@ -173,7 +184,11 @@ class PrintMonitor {
   /// Only correct source for this alert — see comment at step 5) in [_processPrinter].
   /// Printer name from frame (status may not be known), with fallback to list title.
   void onPlateNotEmpty(int printerId, String? printerName) {
-    if (!_on(NotifEvent.plateNotEmpty)) return;
+    if (!_on(NotifEvent.plateNotEmpty)) {
+      NotifProbe.suppressed(_offReason,
+          printerId: printerId, event: NotifEvent.plateNotEmpty);
+      return;
+    }
     _alertPlate(printerId, printerName);
   }
 
@@ -182,7 +197,10 @@ class PrintMonitor {
   /// progress, first layer complete, existing HMS error, or low filament are not
   /// events that just happened from our perspective. `awaitingBedCool` stays false
   /// (cold bed at startup doesn't mean print just finished).
-  void _prime(_PrinterMemo memo, PrinterStatus status) {
+  /// [id] is the map key, the same identity every alert is keyed by — not
+  /// `status.id`, so a frame filed under a different key can never make the
+  /// priming record disagree with the records that follow it.
+  void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
     // "First layer DONE" = printer is already on layer ≥ 2 (parity with bambuddy:
     // `on_first_layer_complete` fires at layer_num ≥ 2). If we prime after completion,
@@ -215,6 +233,21 @@ class PrintMonitor {
         }
       }
     }
+    // What this monitor decided to treat as already-happened. The silence above
+    // is correct and completely invisible, and a fresh monitor is built on every
+    // entry into the background — so "the app swallowed my notification" is
+    // answered by this one record per printer rather than by guesswork.
+    NotifProbe.primed(
+      id,
+      fields: {
+        'printing': memo.printing,
+        'layer': status.layerNum,
+        'progress': status.progress?.round(),
+        'hms': memo.hmsLastSeen.length,
+        'low_trays': memo.lowFilamentTrays.length,
+        'humid': memo.humidUnits.length,
+      },
+    );
   }
 
   void _processPrinter(int id, PrinterStatus status, _PrinterMemo memo) {
@@ -224,45 +257,90 @@ class PrintMonitor {
     // 1) Print start (edge not-printing → printing).
     if (!wasPrinting && isPrinting) {
       memo.resetForNewPrint();
-      if (_on(NotifEvent.printStarted)) _alertStarted(id, status);
+      if (_on(NotifEvent.printStarted)) {
+        _alertStarted(id, status);
+      } else {
+        NotifProbe.suppressed(_offReason,
+            printerId: id, event: NotifEvent.printStarted);
+      }
     }
 
     // 2) Print end (edge printing → not-printing): success / error.
     if (wasPrinting && !isPrinting) {
-      switch (status.state?.toUpperCase()) {
+      final state = status.state?.toUpperCase();
+      switch (state) {
         case 'FINISH':
         case 'FINISHED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFinished)) _alertFinished(id, status);
+          if (_on(NotifEvent.printFinished)) {
+            _alertFinished(id, status);
+          } else {
+            NotifProbe.suppressed(_offReason,
+                printerId: id, event: NotifEvent.printFinished);
+          }
           // Maintenance reminder independent of print finish prefs.
           _onPrintEnded?.call(id);
         case 'FAILED':
           memo.awaitingBedCool = true;
-          if (_on(NotifEvent.printFailed)) _alertFailed(id, status);
+          if (_on(NotifEvent.printFailed)) {
+            _alertFailed(id, status);
+          } else {
+            NotifProbe.suppressed(_offReason,
+                printerId: id, event: NotifEvent.printFailed);
+          }
           _onPrintEnded?.call(id);
         // Other/unknown final state → no false alert.
       }
+      // Recorded for every end, including the states above that alert. A user
+      // cancel lands as neither FINISH nor FAILED, and that branch silently drops
+      // the maintenance reminder as well as the alert — so this one line covers
+      // "my print ended and nothing happened" whatever the reason, and shows a
+      // partial frame faking an end.
+      NotifProbe.printEnd(
+        id,
+        state: state,
+        handled: state == 'FINISH' || state == 'FINISHED' || state == 'FAILED',
+      );
     }
     memo.printing = isPrinting;
 
     // 3) First layer DONE (once per print). Bambuddy announces completion only
     // when printer enters layer 2 (layer_num ≥ 2). Firing at layer_num ≥ 1 was
     // premature — that's only START of first layer.
-    if (isPrinting &&
-        !memo.firstLayerSent &&
-        (status.layerNum ?? 0) >= 2 &&
-        _on(NotifEvent.firstLayer)) {
+    //
+    // The latch is set regardless of the preference, so the decision — an alert
+    // or one suppression record — happens once per edge. With the check inside
+    // the condition it was retaken on every frame for the rest of the print,
+    // which a record would have turned into hundreds of lines. Sound because
+    // `_prefs` is immutable for this monitor's whole life (the service is rebuilt
+    // from scratch on the next background entry); if live preferences ever land,
+    // this silently becomes "enable mid-print, stay quiet until the next one".
+    // `_prime` already latches both of these unconditionally.
+    if (isPrinting && !memo.firstLayerSent && (status.layerNum ?? 0) >= 2) {
       memo.firstLayerSent = true;
-      _alertFirstLayer(id, status);
+      if (_on(NotifEvent.firstLayer)) {
+        _alertFirstLayer(id, status);
+      } else {
+        NotifProbe.suppressed(_offReason,
+            printerId: id, event: NotifEvent.firstLayer);
+      }
     }
 
-    // 4) Progress milestones (once per print).
-    if (isPrinting && status.progress != null && _on(NotifEvent.milestones)) {
+    // 4) Progress milestones (once per print). Same latch-on-the-edge shape as
+    // the first layer above.
+    if (isPrinting && status.progress != null) {
       final pct = status.progress!.round();
+      final on = _on(NotifEvent.milestones);
       for (final m in _milestones) {
-        if (pct >= m && !memo.milestonesSent.contains(m)) {
-          memo.milestonesSent.add(m);
-          _alertMilestone(id, status, m);
+        // `add` is false when the threshold was already crossed — the same guard
+        // as the old `!contains(m)`, with the latch now on the edge.
+        if (pct >= m && memo.milestonesSent.add(m)) {
+          if (on) {
+            _alertMilestone(id, status, m);
+          } else {
+            NotifProbe.suppressed(_offReason,
+                printerId: id, event: NotifEvent.milestones, fields: {'pct': m});
+          }
         }
       }
     }
@@ -292,6 +370,14 @@ class PrintMonitor {
     final connected = status.connected;
     if (connected == null) return; // Partial frame — no info
     if (connected) {
+      // Only when a timer was really pending: the alert the grace period was
+      // holding back never happened, which answers both "the offline alert came
+      // fifteen seconds late" and "it never came at all". Guarded on the timer so
+      // this is one record per flap, not one per connected frame.
+      if (memo.offlineTimer != null) {
+        NotifProbe.suppressed(NotifSkip.reconnected,
+            printerId: id, event: NotifEvent.printerOffline);
+      }
       memo.offlineTimer?.cancel();
       memo.offlineTimer = null;
       memo.offlineNotified = false;
@@ -301,7 +387,12 @@ class PrintMonitor {
       memo.offlineTimer = _timer(_offlineGrace, () {
         memo.offlineTimer = null;
         memo.offlineNotified = true;
-        if (_on(NotifEvent.printerOffline)) _alertOffline(id, status);
+        if (_on(NotifEvent.printerOffline)) {
+          _alertOffline(id, status);
+        } else {
+          NotifProbe.suppressed(_offReason,
+              printerId: id, event: NotifEvent.printerOffline);
+        }
       });
     }
     memo.connected = connected;
@@ -321,19 +412,50 @@ class PrintMonitor {
     // disconnected, but still REFRESH last-seen for present codes below: that
     // pauses the clear-grace clock across the outage, so a fault known before
     // the disconnect doesn't spuriously re-alert on reconnect.
-    final notify = status.connected != false && _on(NotifEvent.printerError);
+    final online = status.connected != false;
     for (final e in errors) {
       final key = _hmsKey(e);
       if (key == null) continue;
       final isNew = !memo.hmsLastSeen.containsKey(key);
       memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
-      if (!isNew || !notify) continue;
-      if (_hmsSuppressed(e)) continue;
-      // Notify only on a real, documented fault (parity with bambuddy) — drops
-      // the undocumented/phantom codes the firmware emits alongside one event.
-      if (!hmsIsNotifiable(e, description: _hmsDescribe?.call(e))) continue;
+      // Only ever the first sighting of a code gets this far, so each of the
+      // records below is one per code per clear-grace window, not one per frame.
+      // A record for the already-known case is deliberately absent: the WebSocket
+      // lane carries `hms_codes` on every frame, so a standing code with no
+      // notification record next to it *is* the dedup, visible on the same
+      // timeline.
+      if (!isNew) continue;
+      final skip = _hmsSkipReason(e, online: online);
+      if (skip != null) {
+        NotifProbe.suppressed(
+          skip,
+          printerId: id,
+          event: NotifEvent.printerError,
+          fields: {'code': _hmsCode(e), 'sev': e.severity},
+        );
+        continue;
+      }
       _alertError(id, status, e);
     }
+  }
+
+  /// Why this HMS code produces no alert, or null when it produces one.
+  ///
+  /// Four separate answers where the code used to fold them into one boolean.
+  /// "Printer disconnected" is not "you turned this off", and neither is "the
+  /// firmware sent a code nobody documented" — which is the single largest silent
+  /// drop on this path, since one physical fault emits several codes and only one
+  /// of them is a real fault.
+  NotifSkip? _hmsSkipReason(HmsError e, {required bool online}) {
+    if (!online) return NotifSkip.offline;
+    if (!_on(NotifEvent.printerError)) return _offReason;
+    if (_hmsSuppressed(e)) return NotifSkip.userAction;
+    // Notify only on a real, documented fault (parity with bambuddy) — drops
+    // the undocumented/phantom codes the firmware emits alongside one event.
+    if (!hmsIsNotifiable(e, description: _hmsDescribe?.call(e))) {
+      return NotifSkip.undocumented;
+    }
+    return null;
   }
 
   /// Stable dedup key for an HMS error: full 16-hex `ecode` when available,
@@ -369,8 +491,12 @@ class PrintMonitor {
         memo.lowFilamentTrays.remove(entry.key);
       }
     }
-    if (triggered && _on(NotifEvent.lowFilament)) {
+    if (!triggered) return;
+    if (_on(NotifEvent.lowFilament)) {
       _alertLowFilament(id, status, triggeredRemain ?? threshold);
+    } else {
+      NotifProbe.suppressed(_offReason,
+          printerId: id, event: NotifEvent.lowFilament);
     }
   }
 
@@ -396,8 +522,12 @@ class PrintMonitor {
         memo.humidUnits.remove(key);
       }
     }
-    if (triggered && _on(NotifEvent.amsHumidity)) {
+    if (!triggered) return;
+    if (_on(NotifEvent.amsHumidity)) {
       _alertHumidity(id, status, value ?? threshold, isHt ?? false);
+    } else {
+      NotifProbe.suppressed(_offReason,
+          printerId: id, event: NotifEvent.amsHumidity);
     }
   }
 
@@ -407,7 +537,12 @@ class PrintMonitor {
     if (bed == null) return;
     if (bed < _prefs.bedCooledTemp) {
       memo.awaitingBedCool = false;
-      if (_on(NotifEvent.bedCooled)) _alertBedCooled(id, status, bed.round());
+      if (_on(NotifEvent.bedCooled)) {
+        _alertBedCooled(id, status, bed.round());
+      } else {
+        NotifProbe.suppressed(_offReason,
+            printerId: id, event: NotifEvent.bedCooled);
+      }
     }
   }
 
@@ -420,6 +555,7 @@ class PrintMonitor {
     if (printing.isEmpty) {
       if (_lastOngoing != null) {
         _lastOngoing = null;
+        NotifProbe.ongoingReset();
         _notifications.clearOngoing();
       }
       return;
@@ -430,6 +566,16 @@ class PrintMonitor {
     final key = _OngoingKey(lead.id, percent, lead.remainingTime, printing.length);
     if (key == _lastOngoing) return; // Nothing material changed
     _lastOngoing = key;
+    // Recorded here rather than in the notification decorator: by the time the
+    // service sees it, all of this is baked into a title and body made of the
+    // user's job name, which never enters a log. The throttle above is what keeps
+    // this to one record per real change instead of one per frame.
+    NotifProbe.ongoing(
+      printerId: lead.id,
+      percent: percent,
+      etaMin: lead.remainingTime,
+      active: printing.length,
+    );
 
     final l = _l10n();
     final title = _jobName(lead) ?? lead.name ?? l.printersTitle;
@@ -444,6 +590,8 @@ class PrintMonitor {
   void _alertStarted(int id, PrinterStatus status) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.printStarted,
+      printerId: id,
       id: _startedAlertBase + id,
       title: l.notifStartedTitle,
       body: l.notifStartedBody(_jobLabel(status, l)),
@@ -454,6 +602,8 @@ class PrintMonitor {
   void _alertFinished(int id, PrinterStatus status) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.printFinished,
+      printerId: id,
       id: _finishedAlertBase + id,
       title: l.printFinishedTitle,
       body: l.printFinishedBody(_jobLabel(status, l)),
@@ -464,6 +614,8 @@ class PrintMonitor {
   void _alertFailed(int id, PrinterStatus status) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.printFailed,
+      printerId: id,
       id: _failedAlertBase + id,
       title: l.printFailedTitle,
       body: l.printFailedBody(_jobLabel(status, l)),
@@ -474,6 +626,8 @@ class PrintMonitor {
   void _alertFirstLayer(int id, PrinterStatus status) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.firstLayer,
+      printerId: id,
       id: _firstLayerAlertBase + id,
       title: l.notifFirstLayerTitle,
       body: l.notifFirstLayerBody(_jobLabel(status, l)),
@@ -484,6 +638,8 @@ class PrintMonitor {
   void _alertMilestone(int id, PrinterStatus status, int percent) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.milestones,
+      printerId: id,
       id: _milestoneAlertBase + id,
       title: l.notifMilestoneTitle(percent),
       body: l.notifMilestoneBody(_jobLabel(status, l), percent),
@@ -496,6 +652,8 @@ class PrintMonitor {
     final name =
         (printerName?.trim().isNotEmpty ?? false) ? printerName!.trim() : null;
     _notifications.showAlert(
+      event: NotifEvent.plateNotEmpty,
+      printerId: id,
       id: _plateAlertBase + id,
       title: l.notifPlateTitle,
       body: l.notifPlateBody(name ?? l.printersTitle),
@@ -506,6 +664,8 @@ class PrintMonitor {
   void _alertOffline(int id, PrinterStatus status) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.printerOffline,
+      printerId: id,
       id: _offlineAlertBase + id,
       title: l.notifOfflineTitle,
       body: l.notifOfflineBody(_printerLabel(status, l)),
@@ -517,6 +677,8 @@ class PrintMonitor {
     final l = _l10n();
     final detail = hmsHumanText(err, description: _hmsDescribe?.call(err), l10n: l);
     _notifications.showAlert(
+      event: NotifEvent.printerError,
+      printerId: id,
       id: _errorAlertId(id, err),
       title: l.notifErrorTitle,
       body: l.notifErrorBody(_printerLabel(status, l), detail),
@@ -535,6 +697,8 @@ class PrintMonitor {
   void _alertLowFilament(int id, PrinterStatus status, int remain) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.lowFilament,
+      printerId: id,
       id: _lowFilamentAlertBase + id,
       title: l.notifLowFilamentTitle,
       body: l.notifLowFilamentBody(_printerLabel(status, l), remain),
@@ -545,6 +709,8 @@ class PrintMonitor {
   void _alertHumidity(int id, PrinterStatus status, int humidity, bool isHt) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.amsHumidity,
+      printerId: id,
       id: _humidityAlertBase + id,
       title: isHt ? l.notifHumidityHtTitle : l.notifHumidityTitle,
       body: l.notifHumidityBody(_printerLabel(status, l), humidity),
@@ -555,6 +721,8 @@ class PrintMonitor {
   void _alertBedCooled(int id, PrinterStatus status, int temp) {
     final l = _l10n();
     _notifications.showAlert(
+      event: NotifEvent.bedCooled,
+      printerId: id,
       id: _bedCooledAlertBase + id,
       title: l.notifBedCooledTitle,
       body: l.notifBedCooledBody(_printerLabel(status, l), temp),

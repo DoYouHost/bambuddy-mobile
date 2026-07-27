@@ -192,6 +192,37 @@ void main() {
     expect(record['evt'], 'user_marker');
   });
 
+  test('a session ends itself at the size ceiling and says which one', () {
+    // The other ceiling. It is also what catches a clock that stopped moving:
+    // `_openMs` would stay at zero and the duration check would never fire.
+    final closed = <String>[];
+    final store = LogStore(
+      header: LogHeader(
+        ts: start,
+        session: 'test-session',
+        app: '0.11.3+1103',
+        flavor: 'mobile',
+      ),
+      // Small ring on purpose: the byte count is about everything ever written,
+      // not about what the ring still holds, so eviction must not buy more room.
+      maxRecords: 2,
+      maxBytes: 400,
+      clock: () => now,
+      onClosed: closed.add,
+    );
+
+    for (var i = 0; i < 40; i++) {
+      store.add(LogSource.ws, 'frame', fields: {'n': i});
+    }
+
+    final records = parse(store.export()).skip(1).toList();
+    expect(store.isClosed, isTrue);
+    expect(records.last['evt'], 'limit_reached');
+    expect(records.last['limit'], 'size');
+    expect(records.last['mb'], 0); // 400 B rounds to zero whole megabytes
+    expect(closed, ['size']); // once, and named
+  });
+
   test('a session ends itself at the time ceiling', () {
     // The ring buffer bounds memory; only the ceiling bounds the file, which
     // gets every line and never gives one back.
@@ -209,9 +240,37 @@ void main() {
     // One tap, then the line that says why there are no more.
     expect(records.map((r) => r['evt']), ['tap', 'limit_reached']);
     expect(records.last['lvl'], 'warn');
+    expect(records.last['limit'], 'time');
     expect(records.last['minutes'], recordingLimit.inMinutes);
     // And the mirror on disk stopped growing with it.
     expect(mirrored, hasLength(2));
+  });
+
+  test('a store handed the session start inherits its deadline', () {
+    // The foreground service is restarted by Android, so one recording can be
+    // several stores. Without this each fresh store would begin the five minutes
+    // again and a crash-looping service could record for an hour.
+    now = start.add(recordingLimit - const Duration(seconds: 30));
+    final store = LogStore(
+      header: LogHeader(
+        ts: start,
+        session: 'test-session',
+        app: '0.11.2+1102',
+        flavor: 'mobile',
+        stream: LogStream.fgs,
+      ),
+      clock: () => now,
+      openedAt: start,
+    );
+
+    store.add(LogSource.fgs, 'start');
+    now = start.add(recordingLimit).add(const Duration(seconds: 1));
+    store.add(LogSource.ws, 'frame');
+
+    final records = parse(store.export()).skip(1).toList();
+    expect(records.map((r) => r['evt']), ['start', 'limit_reached']);
+    // The limit reported is the session's, not what was left of it.
+    expect(records.last['minutes'], recordingLimit.inMinutes);
   });
 
   test('clear resets records and the drop counter', () {

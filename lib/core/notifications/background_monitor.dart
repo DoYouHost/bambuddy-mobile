@@ -13,21 +13,37 @@ import 'print_monitor_task_handler.dart';
 /// `backgroundMonitorProvider` would work without changes to the rest of the app.
 abstract class BackgroundMonitor {
   /// Starts monitoring in the background (idempotent).
-  Future<void> start();
+  ///
+  /// Returns whether it actually started something. False means monitoring was
+  /// already running — which matters more than it looks: a service left over from
+  /// before never runs its start-up code again, so anything the app decided since
+  /// then has not reached it.
+  Future<bool> start();
 
   /// Stops monitoring in the background (idempotent).
   Future<void> stop();
 
   /// Whether monitoring is currently running.
   Future<bool> isRunning();
+
+  /// Tells a monitor that is already running to re-read the diagnostics session.
+  ///
+  /// The session id travels through `SharedPreferences`, which the background
+  /// isolate reads once when it starts. That is enough when the service starts
+  /// after the recording did — and silently wrong when it was already up, which is
+  /// the normal state for anyone who has ever swiped the app away: Android
+  /// restarts the service and it outlives the next launch. Without this the
+  /// background half of their report is simply absent, and absent looks exactly
+  /// like "the service did nothing".
+  void syncDiagnostics();
 }
 
 /// Implementation using `flutter_foreground_task`: hosts [PrintMonitorTaskHandler]
 /// in a separate isolate inside an actual Android foreground service.
 class ForegroundServiceMonitor implements BackgroundMonitor {
   @override
-  Future<void> start() async {
-    if (await FlutterForegroundTask.isRunningService) return;
+  Future<bool> start() async {
+    if (await FlutterForegroundTask.isRunningService) return false;
     final l10n = systemAppLocalizations();
     await FlutterForegroundTask.startService(
       serviceTypes: const [ForegroundServiceTypes.dataSync],
@@ -35,7 +51,14 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
       notificationText: l10n.bgServiceText,
       callback: startCallback,
     );
+    return true;
   }
+
+  /// Over the communication port `main` already opens — the only way to reach an
+  /// isolate that is past its own start-up.
+  @override
+  void syncDiagnostics() =>
+      FlutterForegroundTask.sendDataToTask(const {'diagnostics': 'sync'});
 
   @override
   Future<void> stop() async {

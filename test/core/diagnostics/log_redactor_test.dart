@@ -249,4 +249,32 @@ void main() {
       '[HOST]',
     );
   });
+
+  test('leaves the notification event and reason alone on a LAN host', () {
+    // A server at `http://printer:8080` registers `printer`, which turned
+    // `printerError` into `[HOST]Error` — mangling the one field that says which
+    // notification the record is about.
+    final redactor = LogRedactor()..rememberServerUrl('http://printer:8080');
+
+    final fields = redactor.scrubFields(const {
+      'event': 'printerError',
+      'reason': 'typeOff',
+      'msg': 'could not reach printer',
+    });
+
+    expect(fields['event'], 'printerError');
+    expect(fields['reason'], 'typeOff');
+    expect(fields['msg'], 'could not reach [HOST]');
+  });
+
+  test('still scrubs an event that is not shaped like one of ours', () {
+    // Letters only is the whole guarantee: anything carrying a space, a digit or
+    // punctuation did not come from the enum and is treated as user content.
+    final redactor = LogRedactor()..rememberServerUrl('http://printer:8080');
+
+    expect(
+      redactor.scrubFields(const {'event': 'printer 3 finished'})['event'],
+      '[HOST] 3 finished',
+    );
+  });
 }

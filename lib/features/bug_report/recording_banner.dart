@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/diagnostics/log_store.dart' show recordingLimit;
+import '../../core/diagnostics/log_store.dart'
+    show recordingLimit, recordingSizeLimit;
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../router.dart';
@@ -40,8 +41,9 @@ class RecordingBannerScaffold extends ConsumerWidget {
     // not an explanation. Listened for here rather than in the bar itself,
     // which is gone by the time there is anything to say.
     ref.listen(bugReportProvider, (previous, next) {
-      if (!(previous?.isRecording ?? false) || !next.autoStopped) return;
-      _announceLimit(context);
+      if (!(previous?.isRecording ?? false)) return;
+      final limit = next.autoStoppedBy;
+      if (limit != null) _announceLimit(context, limit);
     });
     final recording = ref.watch(
       bugReportProvider.select((s) => s.isRecording),
@@ -57,12 +59,17 @@ class RecordingBannerScaffold extends ConsumerWidget {
     );
   }
 
-  void _announceLimit(BuildContext context) {
+  void _announceLimit(BuildContext context, String limit) {
     final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(l10n.bugReportLimitReached(recordingLimit.inMinutes)),
+        content: Text(
+          limit == 'size'
+              ? l10n.bugReportSizeLimitReached(
+                  recordingSizeLimit ~/ (1024 * 1024))
+              : l10n.bugReportLimitReached(recordingLimit.inMinutes),
+        ),
         duration: const Duration(seconds: 8),
         action: SnackBarAction(
           label: l10n.bugReportShow,

@@ -5,12 +5,26 @@ import 'log_redactor.dart';
 
 /// How long one recording may run before it cuts itself off.
 ///
-/// The ring buffer bounds memory, but the mirror on disk gets every line and
-/// nothing ever takes one back out, so length is the only thing that bounds the
-/// file. Five minutes is enough to reproduce almost anything a user can
-/// reproduce on purpose; the rare bug that needs longer has to be reported some
-/// other way. In exchange, a recording forgotten overnight cannot exist.
-const recordingLimit = Duration(minutes: 5);
+/// Thirty minutes because the reports that need this feature most start before
+/// the print does: powering the printer on, queueing a job and getting it to
+/// actually start does not fit in five, and cutting the recording in the middle
+/// of that leaves the half without the answer. In exchange, a recording
+/// forgotten overnight still cannot exist.
+///
+/// Length alone does not bound the file — [LogStore.maxBytes] does. Whichever
+/// ceiling comes first ends the session and says which one it was.
+const recordingLimit = Duration(minutes: 30);
+
+/// How much one recording may write before it cuts itself off.
+///
+/// The ring bounds memory, but every accepted record is also mirrored to disk
+/// and nothing ever takes one back out, so without this the only bound on the
+/// file is time — and time is measured with wall-clock deltas that a clock
+/// correction can stall. Twenty megabytes is roughly thirty times what a busy
+/// half hour actually produces (measured: ~18 KB a minute with one printer
+/// printing), so reaching it means something is wrong, and that is exactly when
+/// the log must stop growing rather than fill the user's storage in silence.
+const recordingSizeLimit = 20 * 1024 * 1024;
 
 /// In-memory ring buffer for one recording session, plus its JSONL export.
 ///
@@ -26,9 +40,13 @@ class LogStore {
     this.maxRecords = 20000,
     this.maxChars = 4 * 1024 * 1024,
     this.maxDuration = recordingLimit,
+    this.maxBytes = recordingSizeLimit,
     DateTime Function()? clock,
+    DateTime? openedAt,
     this.onLine,
+    this.onClosed,
   })  : redactor = redactor ?? LogRedactor(),
+        _openedAtOverride = openedAt,
         _clock = clock ?? DateTime.now;
 
   final LogHeader header;
@@ -56,7 +74,19 @@ class LogStore {
   /// supposed to survive intact.
   final int maxChars;
 
+  /// The session's other hard ceiling, counted over **everything accepted**, not
+  /// over what the ring still holds. See [recordingSizeLimit].
+  final int maxBytes;
+
   final DateTime Function() _clock;
+
+  /// Called once, when the store closes itself on one of its ceilings, with the
+  /// ceiling's wire name (`time` or `size`).
+  ///
+  /// A recording that stops taking records has ended, and the app has to say so:
+  /// the countdown that would otherwise keep running is the app claiming to
+  /// record something it is throwing away.
+  final void Function(String limit)? onClosed;
 
   /// Mirrors each encoded line to a durable sink. The FGS isolate needs it —
   /// its heap dies with the service, so memory alone would lose the records.
@@ -66,6 +96,10 @@ class LogStore {
 
   final ListQueue<_Record> _records = ListQueue<_Record>();
   int _chars = 0;
+
+  /// Everything ever accepted, which is what the file holds — [_chars] shrinks
+  /// when the ring evicts, and the file never does.
+  int _written = 0;
   int _dropped = 0;
   int _gapT = 0;
   bool _closed = false;
@@ -84,11 +118,22 @@ class LogStore {
     return ms < 0 ? 0 : ms;
   }
 
+  /// Moment the [maxDuration] deadline counts from, when the caller knows better
+  /// than this store does.
+  ///
+  /// The background isolate does: it is the *second or fifth* store of one
+  /// recording — the foreground service is restarted by Android after a swipe or
+  /// a kill — and each fresh store would otherwise start the five minutes over,
+  /// so a crash-looping service could record for an hour. Passing the session's
+  /// own start makes the deadline absolute and identical for every store in the
+  /// chain, and keeps `limit_reached`'s `minutes` honest.
+  final DateTime? _openedAtOverride;
+
   /// When this store took its first record. [maxDuration] is measured from
   /// here and not from the header's `ts`, which is a label for the session and
   /// is whatever its author says it is; the ceiling is about how long *this*
   /// buffer has been filling. In a real session the two are the same moment.
-  late final DateTime _openedAt = _clock();
+  late final DateTime _openedAt = _openedAtOverride ?? _clock();
 
   int get _openMs {
     final ms = _clock().difference(_openedAt).inMilliseconds;
@@ -112,19 +157,16 @@ class LogStore {
     int? at,
   }) {
     if (_closed) return;
+    // Whichever ceiling comes first ends the session, and the record says which.
+    // Time is checked first only because it is the one a user can predict; the
+    // size ceiling is the one that catches a stalled clock, where `_openMs`
+    // stays at zero and the duration check would never fire at all.
     if (_openMs >= maxDuration.inMilliseconds) {
-      _closed = true;
-      // The session ends on this line instead of on `recording_stopped`, which
-      // is the truth: nobody stopped it, it ran out.
-      _write(
-        LogEvent(
-          t: elapsedMs,
-          src: LogSource.app,
-          evt: 'limit_reached',
-          lvl: LogLevel.warn,
-          fields: {'minutes': maxDuration.inMinutes},
-        ),
-      );
+      _close('time', {'minutes': maxDuration.inMinutes});
+      return;
+    }
+    if (_written >= maxBytes) {
+      _close('size', {'mb': maxBytes ~/ (1024 * 1024)});
       return;
     }
     _write(
@@ -140,6 +182,26 @@ class LogStore {
     );
   }
 
+  /// Ends the session on one of its own ceilings.
+  ///
+  /// The closing line is `limit_reached`, not `recording_stopped`, because that
+  /// is the truth: nobody stopped it, it ran out. [limit] names which ceiling so
+  /// a reader — and the app, which has a countdown to take down — does not have
+  /// to infer it from the fields.
+  void _close(String limit, Map<String, Object?> fields) {
+    _closed = true;
+    _write(
+      LogEvent(
+        t: elapsedMs,
+        src: LogSource.app,
+        evt: 'limit_reached',
+        lvl: LogLevel.warn,
+        fields: {'limit': limit, ...fields},
+      ),
+    );
+    onClosed?.call(limit);
+  }
+
   void _write(LogEvent event) =>
       _append(_Record(event.toJsonLine(), event.t));
 
@@ -150,6 +212,7 @@ class LogStore {
   void _append(_Record record) {
     _records.addLast(record);
     _chars += record.line.length + 1; // + newline
+    _written += record.line.length + 1;
 
     // Keep at least one record: a single oversized line must not empty the
     // queue and spin here forever.

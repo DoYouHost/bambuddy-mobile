@@ -22,6 +22,10 @@ import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../auth/jwt.dart';
 import '../auth/token_refresher.dart';
+import '../diagnostics/diagnostic_recorder.dart';
+import '../diagnostics/log_event.dart';
+import '../diagnostics/notif_probe.dart';
+import '../diagnostics/session_facts.dart';
 import '../demo/demo_ws.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
@@ -69,27 +73,80 @@ class PrintMonitorTaskHandler extends TaskHandler {
   HmsCatalog? _hmsCatalog;
   CameraTokenService? _cameraToken;
   Dio? _coverDio;
+  // This isolate's diagnostic stream, when the user is recording a bug report.
+  // Null the rest of the time, which is why every use of it is `?.`.
+  BackgroundRecording? _recording;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
-    final prefs = await SharedPreferences.getInstance();
-    final profile = SettingsRepository(prefs).loadProfile();
+    final SharedPreferences prefs;
+    final SettingsRepository settings;
+    final ServerProfile? profile;
+    try {
+      prefs = await SharedPreferences.getInstance();
+      settings = SettingsRepository(prefs);
+      profile = settings.loadProfile();
+    } on Object {
+      // Was outside any guard: a throw from the preferences channel or from a
+      // corrupt profile left the service running with nothing behind it, because
+      // the plugin reports success even when the Dart side of `onStart` throws.
+      await FlutterForegroundTask.stopService();
+      return;
+    }
+
+    // Before `_startMonitoring`, so the token mint and the WebSocket handshake —
+    // the two things a report about background notifications most often turns out
+    // to be — are inside the recording. Cannot throw and cannot block for long by
+    // construction; null when no recording is running, which is the normal case.
+    _recording = await DiagnosticRecorder.startBackground(
+      settings: settings,
+      stream: LogStream.fgs,
+      // The header comes off disk, but the secrets cannot: an empty redactor would
+      // let the user's own hostname through in the first socket error.
+      loadSecrets: () => sessionSecrets(
+        profile: profile,
+        credentials: SecureCredentialsStore(),
+      ),
+    );
+    _recording?.store.add(
+      LogSource.fgs,
+      'start',
+      fields: {
+        // `developer` = the app asked for it (going into the background);
+        // `system` = Android restarted us after a swipe or a kill. Until now this
+        // argument was unused, and it is the only thing that tells the two apart.
+        'starter': starter.name,
+        'bg_enabled': settings.loadBgMonitoringEnabled(),
+      },
+    );
+
     if (profile == null) {
       // Nothing to monitor (e.g. profile cleared while backgrounded) — don't
       // leave an idle FGS + "monitoring active" notification running.
+      // Recorded before the stop, with nothing awaited in between: `onDestroy` is
+      // delivered on the same channel without waiting for us to return, and a
+      // closed sink drops whatever comes after it.
+      _recording?.store.add(LogSource.fgs, 'no_profile', lvl: LogLevel.warn);
       await FlutterForegroundTask.stopService();
       return;
     }
 
     try {
       await _startMonitoring(prefs, profile);
-    } catch (_) {
+    } catch (error) {
       // A failure anywhere here (keystore access on some OEMs, Dio/client
       // construction, HMS catalog load, ...) would otherwise abort startup
       // right before `ws.start()` while the FGS notification still claims
       // "monitoring active" — the worst failure mode for this feature: it
       // looks fine but nothing is actually watched. Stop the service instead
-      // so the lie isn't left running silently.
+      // so the lie isn't left running silently. The exception used to be
+      // discarded here, which made that failure unreportable.
+      _recording?.store.add(
+        LogSource.fgs,
+        'start_failed',
+        lvl: LogLevel.error,
+        fields: {'type': error.runtimeType.toString()},
+      );
       await FlutterForegroundTask.stopService();
     }
   }
@@ -99,9 +156,25 @@ class PrintMonitorTaskHandler extends TaskHandler {
     ServerProfile profile,
   ) async {
     final l10n = systemAppLocalizations();
-    final alerts = LocalNotificationService()..init();
+    final alerts = LocalNotificationService();
+    // Awaited: the cascade that used to stand here dropped the future, so the
+    // channel could still be uncreated when the first alert fired (the immediate
+    // maintenance check is the shortest path to that), and a failed init was an
+    // unobservable rejection — every alert would fail while the service kept
+    // claiming it monitors. Both failure modes are silent, which is exactly what
+    // the diagnostic log exists to remove.
+    try {
+      await alerts.init();
+    } on Object catch (error) {
+      NotifProbe.initFailed(error);
+    }
     final fgs = _FgsNotificationService(alerts, l10n);
     _fgs = fgs;
+    // What the monitors talk to: the decorator records every alert handed to the
+    // platform. Outside `_FgsNotificationService`, not inside it — the ongoing
+    // notification there does not delegate to [alerts], so a decorator underneath
+    // would never see it. `_fgs` itself stays raw for [repost].
+    final notify = LoggingNotifications(fgs);
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
@@ -121,14 +194,26 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Maintenance: REST monitor (if enabled) + reminder after print.
     // Set up before [PrintMonitor] to wire the `onPrintEnded` callback.
-    _setUpMaintenance(api, prefs, notifPrefs);
+    _setUpMaintenance(api, notify, prefs, notifPrefs);
 
     _monitor = PrintMonitor(
-      fgs,
+      notify,
       prefs: notifPrefs,
       hmsDescribe: catalog.describe,
-      onPrintEnded: (printerId) =>
-          unawaited(_maintenance?.remindOnPrintEnd(printerId) ?? Future.value()),
+      // `catchError`, because a throw inside the reminder used to become an
+      // uncaught error in this isolate with nothing to show for it: the repo lets
+      // auth failures out on purpose and nobody is awaiting this.
+      onPrintEnded: (printerId) => unawaited(
+        _maintenance?.remindOnPrintEnd(printerId).catchError((Object error) {
+              NotifProbe.suppressed(
+                NotifSkip.fetchFailed,
+                printerId: printerId,
+                event: NotifEvent.maintenanceDue,
+                fields: {'cause': error.runtimeType.toString()},
+              );
+            }) ??
+            Future.value(),
+      ),
     );
 
     final creds = SecureCredentialsStore();
@@ -159,8 +244,16 @@ class PrintMonitorTaskHandler extends TaskHandler {
       // processing of this frame's downstream effects (widget publish below).
       try {
         _monitor?.update(Map.of(_statuses));
-      } on Object {
-        // Swallow-and-continue, consistent with the publish guard below.
+      } on Object catch (error) {
+        // Swallow-and-continue, consistent with the publish guard below — but no
+        // longer in silence: this frame produced no alerts at all, and from the
+        // outside that is indistinguishable from a frame that warranted none.
+        _recording?.store.add(
+          LogSource.fgs,
+          'frame_dropped',
+          lvl: LogLevel.error,
+          fields: {'type': error.runtimeType.toString()},
+        );
       }
       // Also feed the native home screen widget — background isolate may be the only
       // live source of status when the app is closed. Errors don't break the stream.
@@ -183,6 +276,19 @@ class PrintMonitorTaskHandler extends TaskHandler {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
     ws.start();
+
+    // After `ws.start()` on purpose: two platform reads must never sit between
+    // this isolate waking up and its socket dialling. It is a state snapshot, so
+    // where it lands on the timeline does not matter — and it answers the whole
+    // "I got no notification" class from configuration alone, which no per-event
+    // record can do for a print that started before the recording did.
+    unawaited(
+      NotifProbe.openSession(
+        notifPrefs,
+        permission: alerts.notificationsEnabled,
+        channelImportance: alerts.alertsChannelImportance,
+      ),
+    );
 
     // Watch relay: this isolate answers the watch while the app UI is gone
     // (backgrounded/swiped). The UI-engine handler is stopped on pause, so at
@@ -221,14 +327,18 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// Dedup set stored in SharedPreferences (re-armed after perform).
   void _setUpMaintenance(
     ApiClient? api,
+    NotificationService notify,
     SharedPreferences prefs,
     NotificationPrefs notifPrefs,
   ) {
+    // The one place `maintenanceDue` being off is decided: the monitor is never
+    // built, so its own gates can never report it. The session snapshot in
+    // [NotifProbe.openSession] is what answers "why no maintenance alert".
     if (!notifPrefs.isOn(NotifEvent.maintenanceDue) || api == null) return;
 
     final settings = SettingsRepository(prefs);
     final maintenance = MaintenanceMonitor(
-      _fgs!,
+      notify,
       repo: MaintenanceRepository(api.dio),
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
@@ -236,10 +346,21 @@ class PrintMonitorTaskHandler extends TaskHandler {
       reload: () async => settings.loadNotifiedMaintenanceDueIds(),
     );
     _maintenance = maintenance;
-    unawaited(maintenance.check()); // First check immediately after startup
+    // `check()` guards its own fetch, but the dedup-set persistence and the alert
+    // it posts can still throw — and with nothing awaiting the future that lands
+    // as an uncaught error in this isolate, which used to leave no trace.
+    Future<void> checkQuietly() =>
+        maintenance.check().catchError((Object error) {
+          NotifProbe.suppressed(
+            NotifSkip.fetchFailed,
+            event: NotifEvent.maintenanceDue,
+            fields: {'cause': error.runtimeType.toString()},
+          );
+        });
+    unawaited(checkQuietly()); // First check immediately after startup
     _maintenanceTimer = Timer.periodic(
       _maintenanceCheckInterval,
-      (_) => unawaited(maintenance.check()),
+      (_) => unawaited(checkQuietly()),
     );
   }
 
@@ -266,12 +387,61 @@ class PrintMonitorTaskHandler extends TaskHandler {
   @override
   void onRepeatEvent(DateTime timestamp) {}
 
+  /// The app asking this isolate to re-read which bug report it should log into.
+  ///
+  /// [onStart] reads that once, which covers the case where the service starts
+  /// *because* the app went to the background. It does not cover the opposite
+  /// order: a service Android restarted after the app was swiped away keeps
+  /// running across the next launch, so `startService` is a no-op and this isolate
+  /// would never hear that a recording began. Measured on device — the background
+  /// half of the log was simply missing, which reads as "the service did nothing".
+  @override
+  void onReceiveData(Object data) {
+    if (data is Map && data['diagnostics'] == 'sync') {
+      unawaited(_syncDiagnostics());
+    }
+  }
+
+  Future<void> _syncDiagnostics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // This isolate's snapshot predates the write, which came from the UI's.
+      await prefs.reload();
+      final settings = SettingsRepository(prefs);
+      final wanted = settings.loadDiagnosticsSession();
+      if (wanted == _recording?.store.header.session) return;
+
+      // A recording that ended, or was replaced by a newer one: close the old
+      // stream first so two of them can never share this heap's one static.
+      final previous = _recording;
+      _recording = null;
+      await previous?.stop();
+      if (wanted == null) return;
+
+      _recording = await DiagnosticRecorder.startBackground(
+        settings: settings,
+        stream: LogStream.fgs,
+        loadSecrets: () => sessionSecrets(
+          profile: settings.loadProfile(),
+          credentials: SecureCredentialsStore(),
+        ),
+      );
+      // `attach`, not `start`: this service was already up, so it did not prime
+      // itself for this recording — its monitor still holds edges it latched
+      // earlier, and nothing here reconnected. A reader has to know that.
+      _recording?.store.add(LogSource.fgs, 'attach');
+    } on Object {
+      // Monitoring goes on regardless; a recorder is never worth a service.
+    }
+  }
+
   /// Android 14+ allows swiping the foreground service notification ("Clear All"),
   /// which does NOT stop the service — it keeps running but becomes invisible.
   /// We re-post it with the last content to maintain the invariant:
   /// "service alive ⇔ notification visible".
   @override
   void onNotificationDismissed() {
+    _recording?.store.add(LogSource.fgs, 'notification_dismissed');
     final fgs = _fgs;
     if (fgs != null) unawaited(fgs.repost());
   }
@@ -286,6 +456,20 @@ class PrintMonitorTaskHandler extends TaskHandler {
     await _sub?.cancel();
     await _plateSub?.cancel();
     await _ws?.dispose();
+    // Last, and after `_ws.dispose()` on purpose: that call writes the socket's
+    // final records (why it disconnected, and any frames still being counted)
+    // through the same static this stream owns. `isTimeout` says whether Android
+    // took the service away rather than the app releasing it.
+    final recording = _recording;
+    if (recording != null) {
+      _recording = null;
+      recording.store.add(
+        LogSource.fgs,
+        'destroy',
+        fields: {'timeout': isTimeout},
+      );
+      await recording.stop();
+    }
   }
 }
 
@@ -347,6 +531,8 @@ class _FgsNotificationService implements NotificationService {
 
   @override
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,
@@ -354,6 +540,8 @@ class _FgsNotificationService implements NotificationService {
     List<NotificationAction>? actions,
   }) =>
       _alerts.showAlert(
+        event: event,
+        printerId: printerId,
         id: id,
         title: title,
         body: body,

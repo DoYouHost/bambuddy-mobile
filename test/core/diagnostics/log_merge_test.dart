@@ -116,4 +116,106 @@ void main() {
   test('an empty primary is returned untouched', () {
     expect(mergeSessions('', 'anything'), '');
   });
+
+  group('which isolate wrote a record', () {
+    test('stamps the secondary stream and leaves the primary bare', () {
+      // After the merge the header says `merged`, so without this a request made
+      // by the background service is indistinguishable from one made by the UI —
+      // and both polling at once is a bug this log has already caught.
+      final ui = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(0, 'response', src: 'http'),
+      ]);
+      final fgs = jsonl([
+        header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
+        record(10, 'response', src: 'http'),
+      ]);
+
+      final merged = parse(mergeSessions(ui, fgs));
+
+      expect(merged[1].containsKey('iso'), isFalse);
+      expect(merged[2]['iso'], 'fgs');
+    });
+
+    test('a third stream folds in with its own name', () {
+      final ui = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(0, 'tap'),
+      ]);
+      final fgs = jsonl([
+        header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
+        record(10, 'cycle', src: 'fgs'),
+      ]);
+      final action = jsonl([
+        header('2026-07-25T12:00:00.000Z', stream: 'action'),
+        record(20, 'action', src: 'notif'),
+      ]);
+
+      final merged = parse(mergeSessions(mergeSessions(ui, fgs), action));
+
+      expect([for (final r in merged.skip(1)) r['iso']], [null, 'fgs', 'action']);
+      // The stamp from the first pass survives the second.
+      expect([for (final r in merged.skip(1)) r['t']], [0, 10, 20]);
+    });
+
+    test('a stream calling itself ui is not stamped', () {
+      final ui = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(0, 'tap'),
+      ]);
+      final other = jsonl([
+        header('2026-07-25T12:00:01.000Z'),
+        record(0, 'tap'),
+      ]);
+
+      final merged = parse(mergeSessions(ui, other));
+
+      expect(merged.skip(1).every((r) => !r.containsKey('iso')), isTrue);
+    });
+  });
+
+  group('a background file the system killed mid-write', () {
+    test('a second header inside the stream is skipped, not read as a record',
+        () {
+      // A restarted foreground service can append to the file it already wrote.
+      // Taken for a record, the stray header lands at t=0 — in front of
+      // everything, with no source and no event name.
+      final ui = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(500, 'tap'),
+      ]);
+      final fgs = jsonl([
+        header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
+        record(100, 'cycle', src: 'fgs'),
+        header('2026-07-25T12:00:00.000Z', stream: 'fgs'), // second onStart
+        record(200, 'cycle', src: 'fgs'),
+      ]);
+
+      final merged = parse(mergeSessions(ui, fgs));
+
+      expect(merged, hasLength(4)); // header + 3 records, not 5
+      expect(merged.every((r) => !r.containsKey('session') || r == merged.first),
+          isTrue);
+      expect([for (final r in merged.skip(1)) r['t']], [100, 200, 500]);
+    });
+
+    test('a record whose t is not a number costs itself and nothing else', () {
+      // Without this the cast threw out of `mergeSessions`, out of `stop()`, and
+      // the user got no log at all after five minutes of recording.
+      final ui = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(0, 'tap'),
+      ]);
+      final fgs = jsonl([
+        header('2026-07-25T12:00:00.000Z', stream: 'fgs'),
+        jsonEncode({'t': 'soon', 'src': 'fgs', 'evt': 'cycle'}),
+        record(10, 'cycle', src: 'fgs'),
+      ]);
+
+      final merged = parse(mergeSessions(ui, fgs));
+
+      expect(merged, hasLength(3));
+      expect(merged.last['t'], 10);
+    });
+  });
 }

@@ -33,20 +33,21 @@ import 'ws_probe.dart';
 ///   pending frame counts so the last window isn't lost with the session
 /// - the durable mirror of the UI stream, so a crash mid-recording still
 ///   leaves a log on disk
-/// - the session id in [SettingsRepository], which is how the background
-///   isolate will learn that a recording is running
+/// - the session id in [SettingsRepository], which is how a background isolate
+///   learns that a recording is running
+/// - notifications — `NotifProbe` and its decorator, which read [active] per
+///   call and therefore write into whichever isolate's stream is theirs
 ///
-/// ## What is NOT wired yet
+/// ## The other isolates
 ///
-/// Instrumentation still to come:
+/// [startBackground] opens a stream for an isolate that has its own heap and
+/// therefore its own, always-null [active]: the foreground service, and the
+/// engine the plugin spawns for a notification action. Each writes its own file,
+/// [stop] and [recover] fold them all in, and every record they contribute is
+/// stamped with the stream it came from.
 ///
-/// - **Background isolate** — the FGS stream in
-///   `print_monitor_task_handler.dart`, written to its own file and merged
-///   here at [stop]. Until it lands, the isolate's own HTTP calls, WebSocket and
-///   crashes go nowhere: [active] is a static, and that isolate has its own heap.
-///
-/// [stop] already merges an FGS stream if it finds one, so that needs no change
-/// here.
+/// This class stays the only owner of [active]. A public setter would be a way
+/// for anything to point the app's buffer somewhere else.
 class DiagnosticRecorder {
   DiagnosticRecorder({
     required this.settings,
@@ -87,7 +88,10 @@ class DiagnosticRecorder {
   /// *after* stopping — by then there is no active session to take the id from.
   String? _finished;
 
-  Future<void> start() async {
+  /// [onLimitReached] fires when the store closes itself on one of its ceilings,
+  /// with the ceiling's name (`time` or `size`). The caller owns what that means
+  /// for the UI; this class only knows the recording stopped taking records.
+  Future<void> start({void Function(String limit)? onLimitReached}) async {
     if (_active != null) return;
 
     final session = LogHeader.newSessionId();
@@ -108,6 +112,7 @@ class DiagnosticRecorder {
       header: header,
       redactor: redactor,
       onLine: sink?.writeLine,
+      onClosed: onLimitReached,
     );
 
     _sink = sink;
@@ -157,10 +162,7 @@ class DiagnosticRecorder {
     await _sink?.close();
     _sink = null;
 
-    final background = await _readBackgroundStream(store.header.session);
-    return background.isEmpty
-        ? store.export()
-        : mergeSessions(store.export(), background);
+    return _withBackgroundStreams(store.header.session, store.export());
   }
 
   /// Throws the session away, files included — whether it is still running or
@@ -199,12 +201,13 @@ class DiagnosticRecorder {
     final ui = await LogFileSink(
       LogFileSink.fileFor(directory, session, LogStream.ui),
     ).read();
-    final background = await _readBackgroundStream(session);
-    final log = ui.isEmpty
-        ? background
-        : background.isEmpty
-            ? ui
-            : mergeSessions(ui, background);
+    // No UI stream, no report. A background stream on its own is in *arrival*
+    // order — the sort lives in `export` and in the merge, neither of which ran —
+    // and it can be a file a killed isolate recreated by appending to a path the
+    // UI had already deleted, i.e. records with no header at all. Offering that
+    // as a bug report would be offering something we cannot vouch for.
+    if (ui.isEmpty) return '';
+    final log = await _withBackgroundStreams(session, ui);
     // A header and nothing else is not a report; offering it would only ask the
     // user to decide about an empty file.
     if (const LineSplitter().convert(log).length < 2) return '';
@@ -228,12 +231,29 @@ class DiagnosticRecorder {
     }
   }
 
-  Future<String> _readBackgroundStream(String session) async {
+  /// Folds every background stream of [session] into [ui], in stream order.
+  ///
+  /// Merging is chained rather than generalised to N inputs: each pass keeps the
+  /// earliest `ts` as the origin, so the next one shifts nothing already placed.
+  /// A throw is swallowed per stream — a mangled background file must cost at
+  /// most itself, never the recording the user actually made.
+  Future<String> _withBackgroundStreams(String session, String ui) async {
     final directory = await _resolveQuietly();
-    if (directory == null) return '';
-    return LogFileSink(
-      LogFileSink.fileFor(directory, session, LogStream.fgs),
-    ).read();
+    if (directory == null) return ui;
+    var merged = ui;
+    for (final stream in LogStream.values) {
+      if (stream == LogStream.ui) continue;
+      final jsonl = await LogFileSink(
+        LogFileSink.fileFor(directory, session, stream),
+      ).read();
+      if (jsonl.isEmpty) continue;
+      try {
+        merged = mergeSessions(merged, jsonl);
+      } on Object {
+        // Keep what we had. `mergeSessions` promises this, and here it is enforced.
+      }
+    }
+    return merged;
   }
 
   /// Deletes what earlier recordings left behind, keeping only [session].
@@ -257,6 +277,117 @@ class DiagnosticRecorder {
     }
   }
 
+  /// Opens a background isolate's own stream for a recording the UI already
+  /// started, or returns null when there is nothing to continue.
+  ///
+  /// A static on this class rather than a free function, because it is the only
+  /// other thing allowed to set [active] — a public setter would be a way for any
+  /// caller to hijack the UI's buffer.
+  ///
+  /// **Nothing here can throw.** The foreground service's `onStart` is called
+  /// through a platform channel that swallows a Dart exception and reports success
+  /// anyway: the service would stay up, its notification would keep saying
+  /// "monitoring", and nothing would be monitored. A diagnostic recorder must not
+  /// be able to cause the failure it exists to describe, so every step —
+  /// preferences, directory, header read, header write — lives inside one guard
+  /// whose only failure mode is returning null, with a deadline on the file work
+  /// so a stuck disk cannot delay the socket either.
+  ///
+  /// The stream is strictly a *continuation* of the UI's:
+  ///
+  /// - the session id comes from [settings], which is how a recording started in
+  ///   the app reaches an isolate with its own heap;
+  /// - the header is the UI's header re-tagged, so `app`, `os`, `locale` and the
+  ///   server fingerprint cannot drift between two files of one session, and no
+  ///   `PackageInfo` call is needed here;
+  /// - `ts` is therefore the *session's* start, which puts both streams on one
+  ///   clock: the merge shifts nothing, and `t` values are directly comparable;
+  /// - without a readable UI header we do not record at all. There would be
+  ///   nothing to merge into, and an orphan file with a clock of its own is the
+  ///   kind of silent wrongness this whole tor exists to remove.
+  static Future<BackgroundRecording?> startBackground({
+    required SettingsRepository settings,
+    required LogStream stream,
+    Future<Directory?> Function() resolveDirectory = diagnosticsDirectory,
+    Future<Map<String, String>> Function()? loadSecrets,
+    bool attachErrors = true,
+    DateTime Function()? clock,
+    Duration fileTimeout = const Duration(seconds: 2),
+  }) async {
+    if (_active != null) return null;
+    LogFileSink? opened;
+    try {
+      final session = settings.loadDiagnosticsSession();
+      if (session == null) return null;
+      final now = (clock ?? DateTime.now)();
+
+      final prepared = await Future(() async {
+        final directory = await resolveDirectory();
+        if (directory == null) return null;
+        final header = LogHeader.tryParse(
+          await LogFileSink(
+            LogFileSink.fileFor(directory, session, LogStream.ui),
+          ).readFirstLine(),
+          session: session,
+        );
+        return header == null ? null : (directory, header);
+      }).timeout(fileTimeout);
+      if (prepared == null) return null;
+      final (directory, uiHeader) = prepared;
+
+      // Both ends matter. Past the ceiling there is nothing left to record, and a
+      // *negative* elapsed — a clock corrected backwards mid-session — would hand
+      // out a budget longer than the limit while every record stamped itself `t:0`,
+      // i.e. an unbounded file collapsed onto one instant of the timeline.
+      final elapsed = now.difference(uiHeader.ts);
+      if (elapsed.isNegative || elapsed >= recordingLimit) return null;
+
+      final redactor = LogRedactor();
+      (await loadSecrets?.call() ?? const <String, String>{})
+          .forEach(redactor.remember);
+
+      final file = LogFileSink.fileFor(directory, session, stream);
+      final sink = opened = LogFileSink(file);
+      if (await file.exists()) {
+        // Second `onStart` of one recording: Android restarts this service after a
+        // swipe or a kill, each time on a fresh heap. A second header mid-file
+        // would be read as a record at the very front of the merged timeline, so
+        // the existing one stands — the clock is the same either way. An empty line
+        // first in case the previous run was killed mid-write; it is ignored
+        // everywhere and keeps a torn record from swallowing the next one.
+        if (!await sink.endsWithNewline()) sink.writeLine('');
+      } else {
+        await sink.writeHeader(uiHeader.copyWith(stream: stream));
+      }
+
+      final store = LogStore(
+        header: uiHeader.copyWith(stream: stream),
+        redactor: redactor,
+        // The file is the only reader of this store — nothing here ever calls
+        // `export`, so a ring is pure heap in the process whose OOM kill ends
+        // monitoring. One record is the minimum the eviction loop keeps, and
+        // `onLine` still fires for every one of them.
+        maxRecords: 1,
+        // Absolute deadline shared by every store of this session, so restarts
+        // cannot hand themselves five fresh minutes each.
+        openedAt: uiHeader.ts,
+        clock: clock,
+        onLine: sink.writeLine,
+      );
+      _active = store;
+      final errors = attachErrors ? (ErrorProbe(store: store)..attach()) : null;
+      return BackgroundRecording._(store, sink, errors);
+    } on Object {
+      // Including a TimeoutException. Recording is the thing that gives up here;
+      // whatever called us carries on as if diagnostics did not exist. Anything
+      // already opened is closed, so a half-started stream cannot leave a sink
+      // holding queued lines nobody will ever flush.
+      _active = null;
+      await opened?.close();
+      return null;
+    }
+  }
+
   Future<void> _deleteSessionFiles(String session) async {
     final directory = await _resolveQuietly();
     if (directory == null) return;
@@ -265,6 +396,39 @@ class DiagnosticRecorder {
         LogFileSink.fileFor(directory, session, stream),
       ).delete();
     }
+  }
+}
+
+/// A background isolate's live stream: the buffer to write into, and the way to
+/// close it.
+///
+/// Returned by [DiagnosticRecorder.startBackground]. [store] is public so the
+/// caller can add its own records — the isolate's lifecycle, and the exceptions it
+/// currently swallows — without a wrapper method per event.
+class BackgroundRecording {
+  const BackgroundRecording._(this.store, this._sink, this._errors);
+
+  final LogStore store;
+  final LogFileSink _sink;
+  final ErrorProbe? _errors;
+
+  /// Closes the stream: pending WebSocket repeat counts out, global error handlers
+  /// restored, queued lines flushed to disk.
+  ///
+  /// Call it **after** the isolate's own teardown, not before. `WsClient.dispose`
+  /// writes its last two records through the static — the disconnect reason and
+  /// whatever frames were still being counted — so a stream closed first would
+  /// lose the end of the WebSocket story. (`WsProbe.flushAll` below is then a
+  /// no-op, because that dispose already flushed and unregistered its probe; it
+  /// stays for the case where no client was ever built.)
+  ///
+  /// Between the caller's last record and here there should be no `await`: once
+  /// `onDestroy` returns, the process is free to be killed.
+  Future<void> stop() async {
+    WsProbe.flushAll();
+    if (DiagnosticRecorder.active == store) DiagnosticRecorder._active = null;
+    _errors?.detach();
+    await _sink.close();
   }
 }
 

@@ -4008,7 +4008,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get bugReportPending =>
-      'Jeszcze niepodpięte: WebSocket i usługa w tle. Na razie log zawiera Twoje kliknięcia, przejścia między ekranami, zapytania do serwera i awarie.';
+      'Log zawiera Twoje kliknięcia, przejścia między ekranami, zapytania do serwera, podgląd na żywo, awarie oraz to, co robi usługa w tle — łącznie z tym, które powiadomienia wystawiła, a które pominęła.';
 
   @override
   String bugReportLimit(int minutes) {
@@ -4018,6 +4018,11 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String bugReportLimitReached(int minutes) {
     return 'Nagrywanie zakończone — minął limit $minutes min.';
+  }
+
+  @override
+  String bugReportSizeLimitReached(int megabytes) {
+    return 'Nagrywanie zakończone — log osiągnął limit $megabytes MB.';
   }
 
   @override

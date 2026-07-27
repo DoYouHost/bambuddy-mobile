@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -35,6 +36,8 @@ class _NoopNotifications implements NotificationService {
   Future<void> clearOngoing() async {}
   @override
   Future<void> showAlert({
+    required NotifEvent event,
+    required int printerId,
     required int id,
     required String title,
     required String body,

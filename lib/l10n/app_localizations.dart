@@ -6911,7 +6911,7 @@ abstract class AppLocalizations {
   /// No description provided for @bugReportPending.
   ///
   /// In en, this message translates to:
-  /// **'Not wired up yet: WebSocket and the background service. For now the log holds your taps, screen changes, requests to the server and crashes.'**
+  /// **'The log holds your taps, screen changes, requests to the server, the live view, crashes, and what the background service does — including which notifications it posted and which it skipped.'**
   String get bugReportPending;
 
   /// No description provided for @bugReportLimit.
@@ -6925,6 +6925,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recording finished — the {minutes} minute limit was reached.'**
   String bugReportLimitReached(int minutes);
+
+  /// No description provided for @bugReportSizeLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording finished — the log reached its {megabytes} MB limit.'**
+  String bugReportSizeLimitReached(int megabytes);
 
   /// No description provided for @bugReportShow.
   ///

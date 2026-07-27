@@ -84,4 +84,55 @@ void main() {
 
     expect(sink.file.existsSync(), isFalse);
   });
+
+  test('names the notification-action stream apart too', () {
+    expect(
+      LogFileSink.fileFor(dir, 'sess1', LogStream.action).path,
+      endsWith('session-sess1-act.jsonl'),
+    );
+  });
+
+  group('reading the session header back', () {
+    test('returns the first line without reading the rest', () async {
+      // The background isolate needs the UI stream's header, and by then that file
+      // can be hundreds of kilobytes.
+      final sink = LogFileSink(LogFileSink.fileFor(dir, 'sess1', LogStream.ui));
+      await sink.writeHeader(header(LogStream.ui));
+      for (var i = 0; i < 50; i++) {
+        sink.writeLine('{"t":$i,"src":"ui","evt":"tap"}');
+      }
+      await sink.close();
+
+      expect(await sink.readFirstLine(), contains('"stream":"ui"'));
+    });
+
+    test('a missing file reads as empty, not as a throw', () async {
+      final sink = LogFileSink(LogFileSink.fileFor(dir, 'nope', LogStream.ui));
+
+      expect(await sink.readFirstLine(), isEmpty);
+    });
+  });
+
+  group('appending to a file another isolate left behind', () {
+    test('a complete file reports a trailing newline', () async {
+      final sink = LogFileSink(LogFileSink.fileFor(dir, 'sess1', LogStream.fgs));
+      await sink.writeHeader(header(LogStream.fgs));
+
+      expect(await sink.endsWithNewline(), isTrue);
+    });
+
+    test('a torn last line does not, and a missing file does not either',
+        () async {
+      final file = LogFileSink.fileFor(dir, 'sess1', LogStream.fgs);
+      final sink = LogFileSink(file);
+      expect(await sink.endsWithNewline(), isFalse); // no file yet
+
+      // What a process killed mid-write leaves: no closing newline. Appending
+      // straight onto it would glue two records into one unparseable line and
+      // cost both.
+      file.writeAsStringSync('{"t":1,"src":"fgs","ev');
+
+      expect(await sink.endsWithNewline(), isFalse);
+    });
+  });
 }

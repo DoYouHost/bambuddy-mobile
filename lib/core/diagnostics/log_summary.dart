@@ -111,6 +111,7 @@ class LogLine {
     required this.src,
     required this.evt,
     this.lvl,
+    this.iso,
     this.fields = const {},
   });
 
@@ -119,6 +120,7 @@ class LogLine {
         src: '${row['src'] ?? '?'}',
         evt: '${row['evt'] ?? '?'}',
         lvl: row['lvl'] as String?,
+        iso: row['iso'] as String?,
         fields: {
           for (final e in row.entries)
             if (!LogEvent.reservedKeys.contains(e.key)) e.key: e.value,
@@ -129,6 +131,15 @@ class LogLine {
   final String src;
   final String evt;
   final String? lvl;
+
+  /// Which isolate wrote this, for records that did not come from the UI —
+  /// `fgs` or `action`, stamped by `mergeSessions`, null for the UI's own.
+  ///
+  /// A field of its own rather than one of [fields]: `iso` is a reserved key, so
+  /// it is excluded there, and it is the only thing that tells an HTTP call made
+  /// by the background service from the identical-looking one made by the UI.
+  final String? iso;
+
   final Map<String, Object?> fields;
 
   bool get isError => lvl == 'error';
