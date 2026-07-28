@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/swatch_code.dart';
 import '../notifications/notification_prefs.dart';
+import 'print_options.dart';
 import 'server_profile.dart';
 
 /// Persistence of server profile in SharedPreferences.
@@ -18,6 +19,7 @@ class SettingsRepository {
   static const _maintDirtyKey = 'maintenance_dirty';
   static const _inventoryBackendKey = 'inventory_backend';
   static const _swatchCodesKey = 'swatch_codes';
+  static const _printOptionsKey = 'print_options';
   static const _diagnosticsSessionKey = 'diagnostics_session';
 
   final SharedPreferences _prefs;
@@ -86,6 +88,15 @@ class SettingsRepository {
 
   Future<void> saveInventoryBackend(String backend) =>
       _prefs.setString(_inventoryBackendKey, backend);
+
+  /// Print toggles the user last sent with a new job — what the print form
+  /// starts from, so a preference like "no flow calibration" survives instead of
+  /// being re-clicked per print. Missing/corrupted → [PrintOptions.initial].
+  PrintOptions loadPrintOptions() =>
+      PrintOptions.decode(_prefs.getString(_printOptionsKey));
+
+  Future<void> savePrintOptions(PrintOptions options) =>
+      _prefs.setString(_printOptionsKey, options.encode());
 
   /// Swatch codes (filament definitions with assigned codes) — local data stored as a single
   /// JSON string (list of objects). Missing/corrupted → empty list. See [SwatchCode].

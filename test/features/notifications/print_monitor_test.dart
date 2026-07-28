@@ -298,6 +298,43 @@ void main() {
     expect(fake.alerts, isEmpty); // nic nowego nie przekroczono
   });
 
+  test('kamienie milowe: procent z fazy przygotowania nie odpala progów', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    // Kalibracja raportuje własny procent przy layer_num == 0 — obserwowany skok
+    // 6 → 60 w 300 ms przekraczał 25 i 50 przed pierwszą warstwą.
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 6, layerNum: 0)});
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60, layerNum: 0)});
+    expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
+    // Wydruk rusza naprawdę: procent liczy się od zera i progi działają normalnie.
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 5, layerNum: 1)});
+    expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30, layerNum: 8)});
+    expect(alertById(fake, 5001)?['title'], '25% printed');
+  });
+
+  test('kamienie milowe: primowanie na ramce kalibracyjnej nie zjada progów', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    // Pierwsza ramka to kalibracja przy 60% — gdyby posłużyła za bazę, zatrzasnęłaby
+    // 25 i 50 jako wysłane i wyciszyła je na cały prawdziwy wydruk.
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60, layerNum: 0)});
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30, layerNum: 8)});
+    expect(alertById(fake, 5001)?['title'], '25% printed');
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 55, layerNum: 15)});
+    expect(alertById(fake, 5001)?['title'], '50% printed');
+  });
+
+  test('kamienie milowe: primowanie w trakcie druku nadal zatrzaskuje progi', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake);
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60, layerNum: 40)});
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 62, layerNum: 41)});
+    expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
+    m.update({1: _status(state: 'RUNNING', job: 'x', progress: 80, layerNum: 55)});
+    expect(alertById(fake, 5001)?['title'], '75% printed');
+  });
+
   test('płyta niepusta: alert z ramki WS plate_not_empty, nie ze statusu', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
@@ -636,6 +673,25 @@ void main() {
           if (r['event'] == 'milestones') r,
       ];
       expect([for (final r in skips) r['pct']], [25, 50, 75]);
+    });
+
+    test('faza przygotowania: jeden rekord na wydruk, nie jeden na ramkę', () async {
+      final fake = _FakeNotifications();
+      final m = logged(fake, prefs: firstLayerOff);
+      final all = await rows(() {
+        m.update({1: _status(state: 'IDLE')}); // priming
+        for (final pct in [6.0, 60.0, 66.0, 66.0]) {
+          m.update({1: _status(state: 'RUNNING', progress: pct, layerNum: 0)});
+        }
+      });
+
+      final skips = [
+        for (final r in only(all, 'suppressed'))
+          if (r['reason'] == 'prepPhase') r,
+      ];
+      expect(skips, hasLength(1));
+      expect(skips.single['event'], 'milestones');
+      expect(skips.single['pct'], 6);
     });
 
     test('nowy wydruk uzbraja zatrzaski ponownie', () async {

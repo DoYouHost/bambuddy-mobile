@@ -6,9 +6,11 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
@@ -16,28 +18,59 @@ import '../stats/stats_common.dart' show colorFromHex;
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 
-/// Full "Edit Queue Item" screen — mirrors the web PrintModal in edit mode.
-/// Only pending items are editable (the server rejects the rest), so the entry
-/// point is gated on status; this screen assumes a pending [item].
+/// Full print-job form — mirrors the web PrintModal, which serves both modes
+/// from one component.
 ///
-/// Save maps to `PATCH /queue/{id}` via [QueueRepository.updateItem], following
-/// the web payload: printer mode clears `target_model`/`target_location`; model
-/// mode clears `printer_id`. `scheduled_time` is null for ASAP/Queue, an ISO
-/// timestamp only for Schedule. `manual_start` is honoured only in Queue mode.
+/// [QueueEditMode.edit]: `PATCH /queue/{id}` via [QueueRepository.updateItem].
+/// Only pending items are editable (the server rejects the rest), so the entry
+/// point is gated on status.
+///
+/// [QueueEditMode.create]: `POST /queue/` via [QueueRepository.addFromArchive]
+/// or [QueueRepository.addFromLibraryFile], carrying the whole configuration.
+/// Configuring BEFORE the item exists is what keeps the scheduler from starting
+/// a job the user is still setting up — the race in
+/// `docs/plans/06b-log-findings.md`.
+///
+/// Either way the payload follows the web's: printer mode clears
+/// `target_model`/`target_location`, model mode clears `printer_id`,
+/// `scheduled_time` is set only for Schedule, and `manual_start` is honoured
+/// only in Queue mode. ASAP additionally sends `insert_at_top` — create-only,
+/// since it is a position at insertion, not a stored field.
 class QueueEditScreen extends ConsumerStatefulWidget {
-  const QueueEditScreen({super.key, required this.item});
+  const QueueEditScreen({
+    super.key,
+    required this.item,
+    this.mode = QueueEditMode.edit,
+    this.initialSchedule,
+  });
 
+  /// In [QueueEditMode.create] this is a [QueueItem.draft]: it carries the
+  /// source, the name and the values the form starts from, and its `id` is
+  /// never used.
   final QueueItem item;
+
+  final QueueEditMode mode;
+
+  /// Which schedule segment starts selected. Null derives it from the item
+  /// (a real `scheduled_time` = Schedule, else Queue), which is what edit wants.
+  final QueueScheduleType? initialSchedule;
+
+  bool get _isCreate => mode == QueueEditMode.create;
 
   @override
   ConsumerState<QueueEditScreen> createState() => _QueueEditScreenState();
 }
 
+/// What Save does: update an existing item, or create one from the form.
+enum QueueEditMode { edit, create }
+
+/// When the job should print. Only [QueueScheduleType.queue] can be staged with
+/// `manual_start`; the other two dispatch on their own terms.
+enum QueueScheduleType { asap, queue, scheduled }
+
 /// Models with two nozzles — gate for the nozzle-offset-calibration option
 /// (matches the web `showDualNozzleOptions` model list).
 const _dualNozzleModels = {'H2D', 'H2DPRO', 'H2C', 'X2D'};
-
-enum _ScheduleType { asap, queue, scheduled }
 
 /// Dark ink for text/icons painted on a solid [DashTokens.accentGreen] fill.
 /// `accentGreenInk` can't be used here: in the dark theme it equals
@@ -73,7 +106,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late final TextEditingController _chamberTarget;
 
   // When to print
-  late _ScheduleType _scheduleType;
+  late QueueScheduleType _scheduleType;
   DateTime? _scheduledTime;
 
   // Flags
@@ -92,21 +125,37 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     _targetModel = it.targetModel;
     _targetLocation = it.targetLocation;
     _amsMapping = it.amsMapping;
-    _bedLevelling = it.bedLevelling;
-    _flowCali = it.flowCali;
-    _vibrationCali = it.vibrationCali;
-    _layerInspect = it.layerInspect;
-    _timelapse = it.timelapse;
-    _nozzleOffsetCali = it.nozzleOffsetCali;
+    // Editing shows the item's own toggles. A new job has none, so it starts
+    // from what the user last printed with — see [PrintOptions].
+    final options = widget._isCreate
+        ? ref.read(settingsRepositoryProvider).loadPrintOptions()
+        : PrintOptions(
+            bedLevelling: it.bedLevelling,
+            flowCali: it.flowCali,
+            vibrationCali: it.vibrationCali,
+            layerInspect: it.layerInspect,
+            timelapse: it.timelapse,
+            nozzleOffsetCali: it.nozzleOffsetCali,
+          );
+    _bedLevelling = options.bedLevelling;
+    _flowCali = options.flowCali;
+    _vibrationCali = options.vibrationCali;
+    _layerInspect = options.layerInspect;
+    _timelapse = options.timelapse;
+    _nozzleOffsetCali = options.nozzleOffsetCali;
     _preheatOverride = it.preheatOverride;
     _chamberTarget = TextEditingController(
       text: it.preheatChamberTargetOverride?.toString() ?? '',
     );
     // Web maps a null/placeholder scheduled_time to Queue (ASAP is inert in
     // edit — insert_at_top is create-only); only a real timestamp is Schedule.
+    // Create passes the segment it wants instead: printing now vs. lining a job
+    // up are different intents, and the entry point is the one that knows which.
     _scheduledTime = it.scheduledTime;
-    _scheduleType =
-        it.scheduledTime != null ? _ScheduleType.scheduled : _ScheduleType.queue;
+    _scheduleType = widget.initialSchedule ??
+        (it.scheduledTime != null
+            ? QueueScheduleType.scheduled
+            : QueueScheduleType.queue);
     _requireManualStart = it.manualStart;
     _requirePreviousSuccess = it.requirePreviousSuccess;
     _autoOffAfter = it.autoOffAfter;
@@ -142,14 +191,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(
           context,
-          title: l10n.queueEditTitle,
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: t.accentGreenInk),
-              onPressed: _saving ? null : _submit,
-              child: Text(l10n.queueEditSave),
-            ).tagged('queue_edit.save'),
-          ],
+          title: widget._isCreate ? l10n.queueCreateTitle : l10n.queueEditTitle,
+          actions: [_submitAction(l10n, t)],
         ),
         body: AbsorbPointer(
           absorbing: _saving,
@@ -334,6 +377,41 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     );
   }
 
+  /// The one action of this screen, so it carries the app's primary-button fill
+  /// instead of reading as a third piece of bar text next to the title and the
+  /// back arrow. Compact padding and a shorter radius keep the pill inside the
+  /// bar; the rest (colours, disabled state, weight) comes from
+  /// [dashPrimaryButtonStyle] so it matches every other confirming button.
+  Widget _submitAction(AppLocalizations l10n, DashTokens t) {
+    return Padding(
+      // Vertical inset leaves the pill room to grow with the text scale before
+      // it meets the 56-high bar.
+      padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
+      child: FilledButton(
+        style: dashPrimaryButtonStyle(t).copyWith(
+          padding: const WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 18)),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: _saving ? null : _submit,
+        child: Text(
+            widget._isCreate ? l10n.queueCreateSubmit : l10n.queueEditSave),
+      ).tagged(widget._isCreate ? 'queue_create.save' : 'queue_edit.save'),
+    );
+  }
+
+  /// Name of the printer picked in the Target section, for messages that would
+  /// otherwise quote the item's stored (or, on a draft, missing) printer.
+  String? _selectedPrinterName(int printerId) {
+    for (final p in ref.read(allPrintersProvider).valueOrNull ?? const []) {
+      if (p.id == printerId) return p.name;
+    }
+    return null;
+  }
+
   // --- Filament mapping (printer mode) ---
   Widget _mappingSection(AppLocalizations l10n, DashTokens t) {
     final mapped = _amsMapping?.where((v) => v >= 0).length ?? 0;
@@ -349,6 +427,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   context,
                   item: widget.item,
                   printerId: printerId,
+                  printerName: _selectedPrinterName(printerId),
                   confirmLabel: l10n.fmSave,
                 );
                 if (mapping != null) setState(() => _amsMapping = mapping);
@@ -665,25 +744,25 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SegToggle<_ScheduleType>(
+          _SegToggle<QueueScheduleType>(
             selected: _scheduleType,
             segments: [
-              (value: _ScheduleType.asap, label: l10n.queueScheduleAsap, icon: Icons.schedule),
-              (value: _ScheduleType.queue, label: l10n.queueScheduleQueue, icon: Icons.list),
-              (value: _ScheduleType.scheduled, label: l10n.queueScheduleSchedule, icon: Icons.calendar_today),
+              (value: QueueScheduleType.asap, label: l10n.queueScheduleAsap, icon: Icons.schedule),
+              (value: QueueScheduleType.queue, label: l10n.queueScheduleQueue, icon: Icons.list),
+              (value: QueueScheduleType.scheduled, label: l10n.queueScheduleSchedule, icon: Icons.calendar_today),
             ],
             onChanged: (v) => setState(() {
               _scheduleType = v;
               // Manual start only makes sense in Queue mode (matches web).
-              if (v != _ScheduleType.queue) _requireManualStart = false;
+              if (v != QueueScheduleType.queue) _requireManualStart = false;
             }),
           ),
-          if (_scheduleType == _ScheduleType.scheduled) ...[
+          if (_scheduleType == QueueScheduleType.scheduled) ...[
             const SizedBox(height: 12),
             _scheduleTimeRow(l10n, t),
           ],
           const SizedBox(height: 8),
-          if (_scheduleType == _ScheduleType.queue)
+          if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(
               icon: Icons.pan_tool_outlined,
               label: l10n.queueEditRequireManualStart,
@@ -779,28 +858,68 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     setState(() => _saving = true);
 
-    // scheduled_time: ISO (UTC) only when scheduling; null clears it otherwise.
-    final Object? scheduledTime =
-        _scheduleType == _ScheduleType.scheduled && _scheduledTime != null
-            ? _scheduledTime!.toUtc().toIso8601String()
-            : null;
-    final chamber =
-        _preheatOverride == 'off' ? null : int.tryParse(_chamberTarget.text.trim());
-    final chamberClamped = chamber?.clamp(0, 60);
+    final result = await ref
+        .read(queueProvider.notifier)
+        .runAction(widget._isCreate ? _create : _update);
 
-    final result = await ref.read(queueProvider.notifier).runAction(
-      (repo) => repo.updateItem(
+    // Remember the toggles only once a job was really created with them.
+    // Editing an existing item is about THAT item — treating it as "what I print
+    // with" would let a one-off tweak follow the user into every later job.
+    if (widget._isCreate && result == QueueActionResult.ok) {
+      await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
+    }
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+    final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
+    messenger.showSnackBar(SnackBar(
+      content: Text(switch (result) {
+        QueueActionResult.ok => ok,
+        QueueActionResult.forbidden => l10n.ctrlForbidden,
+        QueueActionResult.error => l10n.ctrlFailed,
+      }),
+    ));
+    // Create pops `true` — its caller (a list of archives or files) refreshes
+    // what it shows only when something was really added.
+    if (result == QueueActionResult.ok) navigator.pop(widget._isCreate);
+  }
+
+  /// The print toggles as they stand in the form.
+  PrintOptions get _options => PrintOptions(
+        bedLevelling: _bedLevelling,
+        flowCali: _flowCali,
+        vibrationCali: _vibrationCali,
+        layerInspect: _layerInspect,
+        timelapse: _timelapse,
+        nozzleOffsetCali: _nozzleOffsetCali,
+      );
+
+  /// `scheduled_time` as ISO (UTC), only when scheduling. Null on the update
+  /// path is an explicit clear (back to ASAP/queue); on create it is simply
+  /// omitted from the body.
+  String? get _scheduledTimeIso =>
+      _scheduleType == QueueScheduleType.scheduled && _scheduledTime != null
+          ? _scheduledTime!.toUtc().toIso8601String()
+          : null;
+
+  int? get _chamberTargetValue {
+    if (_preheatOverride == 'off') return null;
+    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, 60);
+  }
+
+  Future<void> _update(QueueRepository repo) => repo.updateItem(
         widget.item.id,
         printerId: _modelMode ? null : _printerId,
         targetModel: _modelMode ? _targetModel : null,
         targetLocation: _modelMode ? _targetLocation : null,
         amsMapping: _modelMode ? kQueueUpdateUnset : _amsMapping,
-        filamentOverrides: _modelMode ? _buildFilamentOverrides() : kQueueUpdateUnset,
-        scheduledTime: scheduledTime,
+        filamentOverrides:
+            _modelMode ? _buildFilamentOverrides() : kQueueUpdateUnset,
+        scheduledTime: _scheduledTimeIso,
         requirePreviousSuccess: _requirePreviousSuccess,
         autoOffAfter: _autoOffAfter,
         manualStart:
-            _scheduleType == _ScheduleType.queue && _requireManualStart,
+            _scheduleType == QueueScheduleType.queue && _requireManualStart,
         bedLevelling: _bedLevelling,
         flowCali: _flowCali,
         vibrationCali: _vibrationCali,
@@ -808,20 +927,39 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         timelapse: _timelapse,
         nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
         preheatOverride: _preheatOverride,
-        preheatChamberTargetOverride: chamberClamped,
-      ),
-    );
+        preheatChamberTargetOverride: _chamberTargetValue,
+      );
 
-    if (!mounted) return;
-    setState(() => _saving = false);
-    messenger.showSnackBar(SnackBar(
-      content: Text(switch (result) {
-        QueueActionResult.ok => l10n.queueEditSaved,
-        QueueActionResult.forbidden => l10n.ctrlForbidden,
-        QueueActionResult.error => l10n.ctrlFailed,
-      }),
-    ));
-    if (result == QueueActionResult.ok) navigator.pop();
+  Future<void> _create(QueueRepository repo) {
+    final it = widget.item;
+    final options = QueueCreateOptions(
+      targetModel: _modelMode ? _targetModel : null,
+      targetLocation: _modelMode ? _targetLocation : null,
+      filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,
+      amsMapping: _modelMode ? null : _amsMapping,
+      scheduledTime: _scheduledTimeIso,
+      requirePreviousSuccess: _requirePreviousSuccess,
+      autoOffAfter: _autoOffAfter,
+      manualStart:
+          _scheduleType == QueueScheduleType.queue && _requireManualStart,
+      bedLevelling: _bedLevelling,
+      flowCali: _flowCali,
+      vibrationCali: _vibrationCali,
+      layerInspect: _layerInspect,
+      timelapse: _timelapse,
+      nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+      preheatOverride: _preheatOverride,
+      preheatChamberTargetOverride: _chamberTargetValue,
+    );
+    // ASAP is a position at insertion, not a stored field — the web sends it the
+    // same way, and it is what makes "reprint" print next.
+    final insertAtTop = _scheduleType == QueueScheduleType.asap;
+    final printerId = _modelMode ? null : _printerId;
+    return it.archiveId != null
+        ? repo.addFromArchive(it.archiveId!,
+            printerId: printerId, insertAtTop: insertAtTop, options: options)
+        : repo.addFromLibraryFile(it.libraryFileId!,
+            printerId: printerId, insertAtTop: insertAtTop, options: options);
   }
 }
 
@@ -830,6 +968,29 @@ Future<void> openQueueEdit(BuildContext context, QueueItem item) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => QueueEditScreen(item: item)),
     );
+
+/// Imperative entry: configure a NEW queue item and post it. [draft] carries the
+/// source and starting values ([QueueItem.draft]); [schedule] picks the segment
+/// the form opens on — ASAP for "print this now", Queue for "line this up".
+///
+/// Returns true when an item was created, so the caller can refresh what it
+/// shows. The queue itself is already refreshed by then.
+Future<bool> openQueueCreate(
+  BuildContext context, {
+  required QueueItem draft,
+  QueueScheduleType schedule = QueueScheduleType.asap,
+}) async {
+  final created = await Navigator.of(context).push<bool>(
+    MaterialPageRoute<bool>(
+      builder: (_) => QueueEditScreen(
+        item: draft,
+        mode: QueueEditMode.create,
+        initialSchedule: schedule,
+      ),
+    ),
+  );
+  return created ?? false;
+}
 
 // ---------------------------------------------------------------------------
 // Local building blocks

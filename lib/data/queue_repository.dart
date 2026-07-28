@@ -11,6 +11,85 @@ import '../core/models/queue_item.dart';
 /// omission (e.g. keep `ams_mapping` untouched in model-based assignment).
 const Object kQueueUpdateUnset = Object();
 
+/// Everything the print form decides before a queue item exists — the create
+/// counterpart of [QueueRepository.updateItem]'s named parameters.
+///
+/// Mirrors the server's `PrintQueueItemCreate`, where every field has a default:
+/// a null here means "not configured", the key is left out of the body, and the
+/// server's own default applies. That is why this is a plain object rather than
+/// the sentinel dance `updateItem` needs — on create there is no stored value a
+/// null could clear.
+///
+/// Sending the whole configuration with the POST is the point: it closes the
+/// window in which the scheduler could dispatch a freshly added item while the
+/// user is still configuring it (see `docs/plans/06b-log-findings.md`).
+class QueueCreateOptions {
+  const QueueCreateOptions({
+    this.targetModel,
+    this.targetLocation,
+    this.filamentOverrides,
+    this.amsMapping,
+    this.plateId,
+    this.scheduledTime,
+    this.requirePreviousSuccess,
+    this.autoOffAfter,
+    this.manualStart,
+    this.bedLevelling,
+    this.flowCali,
+    this.vibrationCali,
+    this.layerInspect,
+    this.timelapse,
+    this.nozzleOffsetCali,
+    this.preheatOverride,
+    this.preheatChamberTargetOverride,
+  });
+
+  final String? targetModel;
+  final String? targetLocation;
+  final List<Map<String, dynamic>>? filamentOverrides;
+  final List<int>? amsMapping;
+  final int? plateId;
+
+  /// ISO-8601 UTC start time; null = ASAP/queue (eligible immediately).
+  final String? scheduledTime;
+
+  final bool? requirePreviousSuccess;
+  final bool? autoOffAfter;
+
+  /// Stage the item: the scheduler leaves it alone until the user starts it.
+  final bool? manualStart;
+
+  final bool? bedLevelling;
+  final bool? flowCali;
+  final bool? vibrationCali;
+  final bool? layerInspect;
+  final bool? timelapse;
+  final bool? nozzleOffsetCali;
+  final String? preheatOverride;
+  final int? preheatChamberTargetOverride;
+
+  /// Body fragment merged into the POST. Null fields are absent, not null-valued.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'target_model': ?targetModel,
+        'target_location': ?targetLocation,
+        'filament_overrides': ?filamentOverrides,
+        'ams_mapping': ?amsMapping,
+        'plate_id': ?plateId,
+        'scheduled_time': ?scheduledTime,
+        'require_previous_success': ?requirePreviousSuccess,
+        'auto_off_after': ?autoOffAfter,
+        'manual_start': ?manualStart,
+        'bed_levelling': ?bedLevelling,
+        'flow_cali': ?flowCali,
+        'vibration_cali': ?vibrationCali,
+        'layer_inspect': ?layerInspect,
+        'timelapse': ?timelapse,
+        'nozzle_offset_cali': ?nozzleOffsetCali,
+        'preheat_override': ?preheatOverride,
+        'preheat_chamber_target_override': ?preheatChamberTargetOverride,
+      };
+}
+
 /// REST data source for print queue (M5).
 ///
 /// Auth adds [AuthInterceptor] to the shared Dio.
@@ -163,24 +242,23 @@ class QueueRepository {
 
   /// POST /queue/ — add new item from archive.
   ///
-  /// Body: `{"archive_id": .., "printer_id": .., "quantity": ..}`;
-  /// `printer_id` omitted if null. [insertAtTop] jumps ahead of other pending
-  /// items in the same printer scope — used by "reprint" to print next
-  /// (the backend removed the direct `/reprint` endpoint; it's a queue item now).
+  /// Body: `{"archive_id": .., "printer_id": .., "quantity": ..}` plus whatever
+  /// [options] configures; `printer_id` omitted if null. [insertAtTop] jumps
+  /// ahead of other pending items in the same printer scope — the web's "ASAP"
+  /// schedule, and how "reprint" prints next (the backend removed the direct
+  /// `/reprint` endpoint; it's a queue item now).
   Future<void> addFromArchive(
     int archiveId, {
     int? printerId,
     int quantity = 1,
     bool insertAtTop = false,
-  }) {
-    final body = <String, dynamic>{
-      'archive_id': archiveId,
-      'printer_id': printerId,
-      'quantity': quantity,
-      if (insertAtTop) 'insert_at_top': true,
-    }..removeWhere((_, v) => v == null);
-    return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
-  }
+    QueueCreateOptions? options,
+  }) =>
+      _add({'archive_id': archiveId},
+          printerId: printerId,
+          quantity: quantity,
+          insertAtTop: insertAtTop,
+          options: options);
 
   /// POST /queue/ — add a library file (e.g. a sliced gcode) to the queue.
   ///
@@ -191,12 +269,28 @@ class QueueRepository {
     int? printerId,
     int quantity = 1,
     bool insertAtTop = false,
+    QueueCreateOptions? options,
+  }) =>
+      _add({'library_file_id': fileId},
+          printerId: printerId,
+          quantity: quantity,
+          insertAtTop: insertAtTop,
+          options: options);
+
+  /// Shared POST for both sources — [source] is the one key that differs.
+  Future<void> _add(
+    Map<String, dynamic> source, {
+    required int? printerId,
+    required int quantity,
+    required bool insertAtTop,
+    required QueueCreateOptions? options,
   }) {
     final body = <String, dynamic>{
-      'library_file_id': fileId,
+      ...source,
       'printer_id': printerId,
       'quantity': quantity,
       if (insertAtTop) 'insert_at_top': true,
+      ...?options?.toJson(),
     }..removeWhere((_, v) => v == null);
     return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
   }

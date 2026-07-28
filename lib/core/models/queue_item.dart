@@ -72,6 +72,46 @@ class QueueItem {
   factory QueueItem.fromJson(Map<String, dynamic> json) =>
       _$QueueItemFromJson(json);
 
+  /// A print job the user is configuring BEFORE it exists server-side — what
+  /// the create form starts from (see `QueueEditScreen` in create mode).
+  ///
+  /// [id] and [position] are placeholders that nothing reads: create posts a
+  /// body built from the form, and the item gets its real identity from the
+  /// server's response. [name] and [thumbnail] land on the archive or library
+  /// fields depending on which source id is given, so `displayName` and the
+  /// header thumbnail work the same as for a real item.
+  factory QueueItem.draft({
+    int? archiveId,
+    int? libraryFileId,
+    String? name,
+    String? thumbnail,
+    int? printerId,
+    String? printerName,
+    String? filamentType,
+    String? filamentColor,
+    String? slicedForModel,
+    bool manualStart = false,
+  }) {
+    final isArchive = archiveId != null;
+    return QueueItem(
+      id: 0,
+      position: 0,
+      status: 'pending',
+      archiveId: archiveId,
+      libraryFileId: libraryFileId,
+      archiveName: isArchive ? name : null,
+      archiveThumbnail: isArchive ? thumbnail : null,
+      libraryFileName: isArchive ? null : name,
+      libraryFileThumbnail: isArchive ? null : thumbnail,
+      printerId: printerId,
+      printerName: printerName,
+      filamentType: filamentType,
+      filamentColor: filamentColor,
+      slicedForModel: slicedForModel,
+      manualStart: manualStart,
+    );
+  }
+
   final int id;
   final int position;
 

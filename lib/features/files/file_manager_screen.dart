@@ -9,6 +9,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
+import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -17,8 +18,8 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart' show formatBytes;
-import '../common/printer_picker.dart';
 import '../common/state_views.dart';
+import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_sheet.dart';
 import 'file_manager_providers.dart';
@@ -594,28 +595,19 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     }
   }
 
+  /// Print: the full print form, opened on ASAP. The job is configured before
+  /// the queue item exists, so nothing can dispatch it mid-setup.
   Future<void> _printFile(LibraryFile file) async {
-    final l10n = _l10n;
-    final printer = await pickPrinterSheet(context, ref, l10n);
-    if (printer == null || !mounted) return;
-    final ok = await confirmDialog(
+    await openQueueCreate(
       context,
-      id: 'files.print_confirm',
-      title: l10n.fmPrint,
-      message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
-      confirmLabel: l10n.fmPrint,
+      draft: QueueItem.draft(
+        libraryFileId: file.id,
+        name: file.displayName,
+        thumbnail: file.thumbnailPath,
+        slicedForModel: file.slicedForModel,
+      ),
+      schedule: QueueScheduleType.asap,
     );
-    if (!ok || !mounted) return;
-    try {
-      await ref
-          .read(queueRepositoryProvider)
-          .addFromLibraryFile(file.id, printerId: printer.id);
-      if (!mounted) return;
-      _snack(l10n.fmPrintStarted);
-    } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
-    }
   }
 
   /// G-code preview: opens the full-screen 3D viewer for a sliced library file.

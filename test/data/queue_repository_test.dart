@@ -100,4 +100,82 @@ void main() {
 
     await repo.addFromArchive(77, printerId: 1, insertAtTop: true);
   });
+
+  test('addFromArchive z opcjami: cała konfiguracja idzie z POST-em', () async {
+    // Sedno poprawki wyścigu: pozycja powstaje już skonfigurowana, więc
+    // scheduler nie ma jak zabrać jej w trakcie ustawiania.
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(200, null),
+      data: {
+        'archive_id': 77,
+        'printer_id': 1,
+        'quantity': 1,
+        'ams_mapping': [2, -1],
+        'manual_start': true,
+        'require_previous_success': false,
+        'auto_off_after': false,
+        'bed_levelling': true,
+        'flow_cali': false,
+        'vibration_cali': true,
+        'layer_inspect': false,
+        'timelapse': false,
+        'preheat_override': 'inherit',
+      },
+    );
+
+    await repo.addFromArchive(
+      77,
+      printerId: 1,
+      options: const QueueCreateOptions(
+        amsMapping: [2, -1],
+        manualStart: true,
+        requirePreviousSuccess: false,
+        autoOffAfter: false,
+        bedLevelling: true,
+        flowCali: false,
+        vibrationCali: true,
+        layerInspect: false,
+        timelapse: false,
+        preheatOverride: 'inherit',
+      ),
+    );
+  });
+
+  test('addFromLibraryFile z harmonogramem: scheduled_time i cel modelowy',
+      () async {
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(200, null),
+      data: {
+        'library_file_id': 12,
+        'quantity': 1,
+        'target_model': 'X2D',
+        'target_location': 'Garage',
+        'scheduled_time': '2026-07-28T20:00:00.000Z',
+      },
+    );
+
+    await repo.addFromLibraryFile(
+      12,
+      options: const QueueCreateOptions(
+        targetModel: 'X2D',
+        targetLocation: 'Garage',
+        scheduledTime: '2026-07-28T20:00:00.000Z',
+      ),
+    );
+  });
+
+  test('puste opcje nie dokładają nic do body', () async {
+    // Null w [QueueCreateOptions] znaczy „nieustawione" — klucz ma NIE polecieć,
+    // bo na tworzeniu nie ma czego czyścić, a serwer ma własne domyślne.
+    adapter.onPost(
+      '/api/v1/queue/',
+      (server) => server.reply(200, null),
+      data: {'archive_id': 77, 'printer_id': 1, 'quantity': 1},
+    );
+
+    await repo.addFromArchive(77,
+        printerId: 1, options: const QueueCreateOptions());
+  });
 }

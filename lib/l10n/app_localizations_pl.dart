@@ -671,20 +671,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get gcodeViewerError => 'Nie udało się załadować podglądu G-code.';
 
   @override
-  String get archiveReprintConfirmTitle => 'Uruchomić ponowny wydruk?';
-
-  @override
-  String archiveReprintConfirmBody(String printer) {
-    return 'Plik zostanie wysłany na $printer i wydruk ruszy.';
-  }
-
-  @override
-  String get archiveReprintStarted => 'Wydruk uruchomiony';
-
-  @override
-  String get archiveAddedToQueue => 'Dodano do kolejki';
-
-  @override
   String get archiveDelete => 'Usuń';
 
   @override
@@ -2675,14 +2661,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmPrint => 'Drukuj';
 
   @override
-  String fmPrintConfirmBody(String name, String printer) {
-    return 'Wysłać „$name” na $printer i rozpocząć druk?';
-  }
-
-  @override
-  String get fmPrintStarted => 'Wysłano na drukarkę';
-
-  @override
   String get fmAddToQueue => 'Dodaj do kolejki';
 
   @override
@@ -3745,6 +3723,15 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueEditSaved => 'Zaktualizowano pozycję kolejki';
+
+  @override
+  String get queueCreateTitle => 'Drukuj';
+
+  @override
+  String get queueCreateSubmit => 'Drukuj';
+
+  @override
+  String get queueCreateAdded => 'Dodano do kolejki';
 
   @override
   String get queueEditPrintJob => 'Zadanie druku';

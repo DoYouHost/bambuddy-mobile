@@ -102,18 +102,27 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
 /// confirm. Returns the `ams_mapping` array (`-1` = auto for unset slots), or
 /// null if dismissed. Persisting/starting is the caller's job — [confirmLabel]
 /// is the action verb on the button (e.g. "Start" or "Save").
+/// [printerName] names [printerId] in the "no AMS" note. Pass it whenever the
+/// caller knows the printer currently selected in the form — the item's own
+/// `printer_name` is the one it was filed under, which is stale after a switch
+/// and absent entirely on a draft.
 Future<List<int>?> showQueueMappingSheet(
   BuildContext context, {
   required QueueItem item,
   required int printerId,
   required String confirmLabel,
+  String? printerName,
 }) {
   return showModalBottomSheet<List<int>>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (_) => _MappingSheet(
-        item: item, printerId: printerId, confirmLabel: confirmLabel),
+      item: item,
+      printerId: printerId,
+      confirmLabel: confirmLabel,
+      printerName: printerName,
+    ),
   );
 }
 
@@ -122,10 +131,12 @@ class _MappingSheet extends ConsumerStatefulWidget {
     required this.item,
     required this.printerId,
     required this.confirmLabel,
+    this.printerName,
   });
   final QueueItem item;
   final int printerId;
   final String confirmLabel;
+  final String? printerName;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -218,7 +229,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         if (trays.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(l10n.mappingNoAms(widget.item.printerName ?? ''),
+            child: Text(
+                l10n.mappingNoAms(
+                    widget.printerName ?? widget.item.printerName ?? ''),
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ),

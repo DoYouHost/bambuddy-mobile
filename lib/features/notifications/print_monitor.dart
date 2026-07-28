@@ -67,11 +67,17 @@ class _PrinterMemo {
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
   bool awaitingBedCool = false;
 
+  /// Whether the prep-phase progress was already recorded as ignored for this
+  /// print — calibration reports a percentage on every frame, so without this
+  /// the record would repeat for the whole phase instead of once.
+  bool prepProgressLogged = false;
+
   /// Reset print-specific state on starting a new print.
   void resetForNewPrint() {
     firstLayerSent = false;
     milestonesSent.clear();
     awaitingBedCool = false;
+    prepProgressLogged = false;
   }
 }
 
@@ -206,7 +212,11 @@ class PrintMonitor {
     // `on_first_layer_complete` fires at layer_num ≥ 2). If we prime after completion,
     // just record it — no alert.
     if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
-    if (status.progress != null) {
+    // Only a percentage that describes the job is a usable baseline. Priming off
+    // a calibration frame ("60%" at layer 0) would latch 25 and 50 as already
+    // sent, and then swallow both when the real print reaches them — the mirror
+    // image of the burst the gate in step 4) prevents.
+    if (status.progress != null && _jobUnderway(status)) {
       final pct = status.progress!.round();
       for (final m in _milestones) {
         if (pct >= m) memo.milestonesSent.add(m);
@@ -327,19 +337,25 @@ class PrintMonitor {
     }
 
     // 4) Progress milestones (once per print). Same latch-on-the-edge shape as
-    // the first layer above.
+    // the first layer above, plus the prep-phase gate — see [_jobUnderway].
     if (isPrinting && status.progress != null) {
-      final pct = status.progress!.round();
-      final on = _on(NotifEvent.milestones);
-      for (final m in _milestones) {
-        // `add` is false when the threshold was already crossed — the same guard
-        // as the old `!contains(m)`, with the latch now on the edge.
-        if (pct >= m && memo.milestonesSent.add(m)) {
-          if (on) {
-            _alertMilestone(id, status, m);
-          } else {
-            NotifProbe.suppressed(_offReason,
-                printerId: id, event: NotifEvent.milestones, fields: {'pct': m});
+      if (!_jobUnderway(status)) {
+        _recordPrepProgress(id, status, memo);
+      } else {
+        final pct = status.progress!.round();
+        final on = _on(NotifEvent.milestones);
+        for (final m in _milestones) {
+          // `add` is false when the threshold was already crossed — the same guard
+          // as the old `!contains(m)`, with the latch now on the edge.
+          if (pct >= m && memo.milestonesSent.add(m)) {
+            if (on) {
+              _alertMilestone(id, status, m);
+            } else {
+              NotifProbe.suppressed(_offReason,
+                  printerId: id,
+                  event: NotifEvent.milestones,
+                  fields: {'pct': m});
+            }
           }
         }
       }
@@ -364,6 +380,31 @@ class PrintMonitor {
 
     // 10) Bed cooled (only after print ends).
     _processBedCooled(id, status, memo);
+  }
+
+  /// Whether the reported `progress` describes the JOB rather than the printer's
+  /// preparation. During bed levelling / vibration compensation the firmware
+  /// reports a percentage of THAT phase: observed jumping 6 → 60 in 300 ms at
+  /// `layer_num == 0`, which crossed two milestones at once before a single line
+  /// of plastic was down. The job is underway from the first layer on.
+  ///
+  /// A frame without `layer_num` says nothing about the phase, so it counts as
+  /// underway — a server that omits the field keeps the previous behaviour
+  /// rather than going silent for the whole print.
+  static bool _jobUnderway(PrinterStatus status) => (status.layerNum ?? 1) >= 1;
+
+  /// One record per print for the progress this gate ignored. Prep lasts minutes
+  /// and every frame in it carries a percentage, so recording each would bury the
+  /// timeline; the first is the one that explains "the app went quiet at 60%".
+  void _recordPrepProgress(int id, PrinterStatus status, _PrinterMemo memo) {
+    if (memo.prepProgressLogged) return;
+    memo.prepProgressLogged = true;
+    NotifProbe.suppressed(
+      NotifSkip.prepPhase,
+      printerId: id,
+      event: NotifEvent.milestones,
+      fields: {'pct': status.progress?.round(), 'stage': status.stgCurName},
+    );
   }
 
   void _processOffline(int id, PrinterStatus status, _PrinterMemo memo) {

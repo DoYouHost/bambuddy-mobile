@@ -9,19 +9,18 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
+import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
-import '../common/printer_picker.dart';
 import '../common/state_views.dart';
 import '../projects/project_common.dart';
-import '../queue/queue_providers.dart';
+import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_sheet.dart';
 import 'archive_providers.dart';
@@ -492,58 +491,42 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// printer's queue (the scheduler starts it next). The direct `/reprint`
   /// endpoint was removed server-side; a reprint is now a top-priority queue
   /// item. Initiates a physical print, so always behind a confirmation dialog.
+  /// Reprint: the print form, opened on ASAP so it goes ahead of the queue —
+  /// the intent behind "reprint" is "print this one next".
   Future<void> _reprint(Archive archive) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-
-    final printer = await pickPrinterSheet(context, ref, l10n);
-    if (printer == null || !mounted) return;
-
-    final confirmed = await confirmDialog(
+    await openQueueCreate(
       context,
-      title: l10n.archiveReprintConfirmTitle,
-      message: l10n.archiveReprintConfirmBody(printer.name),
-      confirmLabel: l10n.archiveReprint,
-      id: 'archive_reprint',
+      draft: _draftFrom(archive),
+      schedule: QueueScheduleType.asap,
     );
-    if (!confirmed) return;
-
-    try {
-      await ref
-          .read(queueRepositoryProvider)
-          .addFromArchive(archive.id, printerId: printer.id, insertAtTop: true);
-      // Refresh queue list so the new top item is visible after tab switch.
-      await ref.read(queueProvider.notifier).refresh();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.archiveReprintStarted)),
-      );
-    } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
-    }
   }
 
-  /// Add to queue: printer selection → POST /queue/. On success, refreshes
-  /// the queue tab.
+  /// Add to queue: the same form, opened on Queue with manual start required.
+  /// Configuring the job precedes its creation, so the scheduler can't take it
+  /// mid-setup, and the start stays the user's decision.
   Future<void> _addToQueue(Archive archive) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-
-    final printer = await pickPrinterSheet(context, ref, l10n);
-    if (printer == null || !mounted) return;
-
-    try {
-      await ref
-          .read(queueRepositoryProvider)
-          .addFromArchive(archive.id, printerId: printer.id);
-      // Refresh queue list so new item is visible after tab switch.
-      await ref.read(queueProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.archiveAddedToQueue)));
-    } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
-    }
+    await openQueueCreate(
+      context,
+      draft: _draftFrom(archive, manualStart: true),
+      schedule: QueueScheduleType.queue,
+    );
   }
+
+  /// The archive's own printer is a starting point, not a decision — the form
+  /// lists every printer and the user can switch before anything is created.
+  QueueItem _draftFrom(Archive archive, {bool manualStart = false}) =>
+      QueueItem.draft(
+        archiveId: archive.id,
+        name: archive.displayName,
+        thumbnail: archive.thumbnailPath,
+        printerId: archive.printerId,
+        filamentType: archive.filamentType,
+        filamentColor: archive.filamentColor,
+        slicedForModel: archive.slicedForModel,
+        manualStart: manualStart,
+      );
 
   String _errText(AppApiException e, AppLocalizations l10n) =>
       e is AuthException && e.code == AppErrorCode.forbidden

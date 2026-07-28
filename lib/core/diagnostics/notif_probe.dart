@@ -39,6 +39,11 @@ enum NotifSkip {
 
   /// A maintenance poll failed outright, so no alert could be decided at all.
   fetchFailed,
+
+  /// The printer was still preparing (calibration, layer 0), so the `progress`
+  /// it reported described that phase and not the job. Deliberate: acting on it
+  /// fires several milestones at once before the first layer is even down.
+  prepPhase,
 }
 
 /// Records what the notification layer decided, and what it decided *not* to do.

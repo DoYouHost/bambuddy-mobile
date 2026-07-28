@@ -275,15 +275,6 @@
   "gcodeViewerTitle": "G-code preview",
   "gcodeViewerOpen": "Preview G-code",
   "gcodeViewerError": "Couldn't load the G-code preview.",
-  "archiveReprintConfirmTitle": "Start reprint?",
-  "archiveReprintConfirmBody": "This sends the file to {printer} and starts printing.",
-  "@archiveReprintConfirmBody": {
-    "placeholders": {
-      "printer": { "type": "String" }
-    }
-  },
-  "archiveReprintStarted": "Reprint started",
-  "archiveAddedToQueue": "Added to queue",
   "archiveDelete": "Delete",
   "archiveDeleteTitle": "Delete print?",
   "archiveDeleteBody": "Remove \"{name}\" from the archive.",
@@ -982,9 +973,6 @@
   "fmFolderItems": "{count} {count, plural, one{item} other{items}}",
   "@fmFolderItems": { "placeholders": { "count": { "type": "int" } } },
   "fmPrint": "Print",
-  "fmPrintConfirmBody": "Send \"{name}\" to {printer} and start printing?",
-  "@fmPrintConfirmBody": { "placeholders": { "name": { "type": "String" }, "printer": { "type": "String" } } },
-  "fmPrintStarted": "Sent to printer",
   "fmAddToQueue": "Add to queue",
   "fmAddedToQueue": "Added to queue",
   "fmUpload": "Upload file",
@@ -1336,6 +1324,9 @@
   "queueEditTitle": "Edit Queue Item",
   "queueEditSave": "Save",
   "queueEditSaved": "Queue item updated",
+  "queueCreateTitle": "Print",
+  "queueCreateSubmit": "Print",
+  "queueCreateAdded": "Added to queue",
   "queueEditPrintJob": "Print Job",
   "queueEditTarget": "Target",
   "queueEditSpecificPrinter": "Specific Printer",

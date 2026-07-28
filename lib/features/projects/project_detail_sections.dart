@@ -6,15 +6,14 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
-import '../../core/models/printer.dart';
 import '../../core/models/project.dart';
+import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../common/confirm_dialog.dart';
 import '../../providers.dart';
-import '../archive/archive_providers.dart';
 import '../files/library_thumbnail.dart';
+import '../queue/queue_edit_screen.dart';
 import 'project_files.dart';
 import 'projects_providers.dart';
 
@@ -250,66 +249,19 @@ class ProjectFilesSection extends ConsumerWidget {
     }
   }
 
-  Future<void> _print(BuildContext context, WidgetRef ref, LibraryFile file) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    final List<Printer> printers;
-    try {
-      printers = await ref.read(printersForPickerProvider.future);
-    } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
-      return;
-    }
-    if (!context.mounted) return;
-    if (printers.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.noPrintersAvailable)));
-      return;
-    }
-    final printer = printers.length == 1
-        ? printers.first
-        : await showModalBottomSheet<Printer>(
-            context: context,
-            showDragHandle: true,
-            builder: (ctx) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(l10n.pickPrinterTitle,
-                        style: Theme.of(ctx).textTheme.titleMedium),
-                  ),
-                  for (final p in printers)
-                    ListTile(
-                      leading: const Icon(Icons.print_outlined),
-                      title: Text(p.name),
-                      subtitle: p.model == null ? null : Text(p.model!),
-                      onTap: () => Navigator.pop(ctx, p),
-                    ).tagged('project_print.printer_option'),
-                ],
-              ),
-            ),
-          );
-    if (printer == null || !context.mounted) return;
-
-    final confirmed = await confirmDialog(
-      context,
-      title: l10n.fmPrint,
-      message: l10n.fmPrintConfirmBody(file.displayName, printer.name),
-      confirmLabel: l10n.fmPrint,
-      id: 'project_print',
-    );
-    if (!confirmed) return;
-    try {
-      await ref
-          .read(queueRepositoryProvider)
-          .addFromLibraryFile(file.id, printerId: printer.id);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.fmPrintStarted)));
-    } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
-    }
-  }
+  /// Print a project file: the full print form, opened on ASAP. Printer choice
+  /// lives in the form, so there is no separate picker or confirm step here.
+  Future<void> _print(BuildContext context, WidgetRef ref, LibraryFile file) =>
+      openQueueCreate(
+        context,
+        draft: QueueItem.draft(
+          libraryFileId: file.id,
+          name: file.displayName,
+          thumbnail: file.thumbnailPath,
+          slicedForModel: file.slicedForModel,
+        ),
+        schedule: QueueScheduleType.asap,
+      );
 
   List<LibraryFolder> _flatten(List<LibraryFolder> tree) => [
         for (final f in tree) ...[f, ..._flatten(f.children)],

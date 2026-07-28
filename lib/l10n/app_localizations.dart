@@ -1316,30 +1316,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the G-code preview.'**
   String get gcodeViewerError;
 
-  /// No description provided for @archiveReprintConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Start reprint?'**
-  String get archiveReprintConfirmTitle;
-
-  /// No description provided for @archiveReprintConfirmBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This sends the file to {printer} and starts printing.'**
-  String archiveReprintConfirmBody(String printer);
-
-  /// No description provided for @archiveReprintStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Reprint started'**
-  String get archiveReprintStarted;
-
-  /// No description provided for @archiveAddedToQueue.
-  ///
-  /// In en, this message translates to:
-  /// **'Added to queue'**
-  String get archiveAddedToQueue;
-
   /// No description provided for @archiveDelete.
   ///
   /// In en, this message translates to:
@@ -4598,18 +4574,6 @@ abstract class AppLocalizations {
   /// **'Print'**
   String get fmPrint;
 
-  /// No description provided for @fmPrintConfirmBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Send \"{name}\" to {printer} and start printing?'**
-  String fmPrintConfirmBody(String name, String printer);
-
-  /// No description provided for @fmPrintStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent to printer'**
-  String get fmPrintStarted;
-
   /// No description provided for @fmAddToQueue.
   ///
   /// In en, this message translates to:
@@ -6463,6 +6427,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Queue item updated'**
   String get queueEditSaved;
+
+  /// No description provided for @queueCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get queueCreateTitle;
+
+  /// No description provided for @queueCreateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get queueCreateSubmit;
+
+  /// No description provided for @queueCreateAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to queue'**
+  String get queueCreateAdded;
 
   /// No description provided for @queueEditPrintJob.
   ///

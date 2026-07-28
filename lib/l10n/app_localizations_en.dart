@@ -662,20 +662,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gcodeViewerError => 'Couldn\'t load the G-code preview.';
 
   @override
-  String get archiveReprintConfirmTitle => 'Start reprint?';
-
-  @override
-  String archiveReprintConfirmBody(String printer) {
-    return 'This sends the file to $printer and starts printing.';
-  }
-
-  @override
-  String get archiveReprintStarted => 'Reprint started';
-
-  @override
-  String get archiveAddedToQueue => 'Added to queue';
-
-  @override
   String get archiveDelete => 'Delete';
 
   @override
@@ -2635,14 +2621,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmPrint => 'Print';
 
   @override
-  String fmPrintConfirmBody(String name, String printer) {
-    return 'Send \"$name\" to $printer and start printing?';
-  }
-
-  @override
-  String get fmPrintStarted => 'Sent to printer';
-
-  @override
   String get fmAddToQueue => 'Add to queue';
 
   @override
@@ -3691,6 +3669,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditSaved => 'Queue item updated';
+
+  @override
+  String get queueCreateTitle => 'Print';
+
+  @override
+  String get queueCreateSubmit => 'Print';
+
+  @override
+  String get queueCreateAdded => 'Added to queue';
 
   @override
   String get queueEditPrintJob => 'Print Job';
