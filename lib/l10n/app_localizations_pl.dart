@@ -3946,7 +3946,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get bugReportReviewBody =>
-      'To wszystko, co zostało nagrane. Wysyłka do issue pojawi się w kolejnej wersji — na razie skopiuj log i dołącz go samodzielnie.';
+      'To wszystko, co zostało nagrane. Wysyłka do issue pojawi się w kolejnej wersji — na razie zapisz log do pliku i dołącz go samodzielnie.';
 
   @override
   String bugReportSummary(int records, int errors, int warnings) {
@@ -3979,10 +3979,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bugReportHideRaw => 'Ukryj surowy log';
 
   @override
-  String get bugReportCopy => 'Kopiuj log';
+  String get bugReportSave => 'Zapisz do pliku';
 
   @override
-  String get bugReportCopied => 'Log skopiowany do schowka';
+  String get bugReportSaved => 'Log zapisany do pliku';
+
+  @override
+  String get bugReportSaveFailed => 'Nie udało się zapisać loga.';
 
   @override
   String get bugReportDiscard => 'Odrzuć';

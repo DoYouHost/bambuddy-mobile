@@ -3889,7 +3889,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportReviewBody =>
-      'This is everything that was recorded. Sending it to an issue comes in a later version — for now copy it and attach it yourself.';
+      'This is everything that was recorded. Sending it to an issue comes in a later version — for now save it to a file and attach it yourself.';
 
   @override
   String bugReportSummary(int records, int errors, int warnings) {
@@ -3921,10 +3921,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bugReportHideRaw => 'Hide raw log';
 
   @override
-  String get bugReportCopy => 'Copy log';
+  String get bugReportSave => 'Save to a file';
 
   @override
-  String get bugReportCopied => 'Log copied to clipboard';
+  String get bugReportSaved => 'Log saved to the file';
+
+  @override
+  String get bugReportSaveFailed => 'The log could not be saved.';
 
   @override
   String get bugReportDiscard => 'Discard';

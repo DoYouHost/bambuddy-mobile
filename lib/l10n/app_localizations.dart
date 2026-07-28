@@ -6821,7 +6821,7 @@ abstract class AppLocalizations {
   /// No description provided for @bugReportReviewBody.
   ///
   /// In en, this message translates to:
-  /// **'This is everything that was recorded. Sending it to an issue comes in a later version — for now copy it and attach it yourself.'**
+  /// **'This is everything that was recorded. Sending it to an issue comes in a later version — for now save it to a file and attach it yourself.'**
   String get bugReportReviewBody;
 
   /// No description provided for @bugReportSummary.
@@ -6860,17 +6860,23 @@ abstract class AppLocalizations {
   /// **'Hide raw log'**
   String get bugReportHideRaw;
 
-  /// No description provided for @bugReportCopy.
+  /// No description provided for @bugReportSave.
   ///
   /// In en, this message translates to:
-  /// **'Copy log'**
-  String get bugReportCopy;
+  /// **'Save to a file'**
+  String get bugReportSave;
 
-  /// No description provided for @bugReportCopied.
+  /// No description provided for @bugReportSaved.
   ///
   /// In en, this message translates to:
-  /// **'Log copied to clipboard'**
-  String get bugReportCopied;
+  /// **'Log saved to the file'**
+  String get bugReportSaved;
+
+  /// No description provided for @bugReportSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The log could not be saved.'**
+  String get bugReportSaveFailed;
 
   /// No description provided for @bugReportDiscard.
   ///

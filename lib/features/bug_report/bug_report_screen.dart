@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import 'bug_report_controller.dart';
+import 'log_export.dart';
 
 /// Guided bug report: explain → record → review. Recording itself lives in
 /// [BugReportController] and keeps running while the user leaves this screen
@@ -242,18 +242,10 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 48),
                     ),
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    label: Text(l10n.bugReportCopy),
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: log));
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          SnackBar(content: Text(l10n.bugReportCopied)),
-                        );
-                    },
-                  ).tagged('bug_report.copy'),
+                    icon: const Icon(Icons.save_alt_rounded, size: 18),
+                    label: Text(l10n.bugReportSave),
+                    onPressed: _save,
+                  ).tagged('bug_report.save'),
                 ),
               ],
             ),
@@ -261,6 +253,50 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
         ),
       ],
     );
+  }
+
+  /// The whole session goes into the file — the only way out of the app, and
+  /// `log_export.dart` says why the clipboard is not the other one.
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref.read(logFileSaverProvider)(
+      fileName: logFileName(DateTime.now()),
+      log: ref.read(bugReportProvider).log ?? '',
+      dialogTitle: l10n.bugReportSave,
+    );
+    if (!mounted) return;
+    switch (result) {
+      // Backing out of the picker is an answer, not a failure: nothing to say,
+      // and the review stays open.
+      case LogSaveResult.cancelled:
+        return;
+      case LogSaveResult.failed:
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(l10n.bugReportSaveFailed)));
+      case LogSaveResult.saved:
+        await _finish(messenger, l10n.bugReportSaved);
+    }
+  }
+
+  /// The log left the app, in a file the user picked. The app's own copy has no
+  /// reason to outlive that, so the session's files go and the user is handed
+  /// back to where the bug happened. The router is taken before the await:
+  /// discarding rebuilds this screen away.
+  Future<void> _finish(
+    ScaffoldMessengerState messenger,
+    String message,
+  ) async {
+    final router = GoRouter.of(context);
+    final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
+    final controller = ref.read(bugReportProvider.notifier);
+    // Shown by the messenger above the routes, so it survives the trip back.
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+    await controller.discard();
+    router.go(home);
   }
 
   Future<void> _confirmDiscard(

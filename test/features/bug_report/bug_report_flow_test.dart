@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_controller.dart';
 import 'package:bambuddy_mobile/features/bug_report/bug_report_screen.dart';
+import 'package:bambuddy_mobile/features/bug_report/log_export.dart';
 import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -35,7 +36,7 @@ void main() {
   });
 
   /// Memory-only recorder: no package-info channel, no files on disk.
-  List<Override> overrides() => [
+  List<Override> overrides([List<Override> extra = const []]) => [
         sharedPreferencesProvider.overrideWithValue(prefs),
         diagnosticRecorderProvider.overrideWith(
           (ref) => DiagnosticRecorder(
@@ -44,6 +45,7 @@ void main() {
             resolveDirectory: () async => null,
           ),
         ),
+        ...extra,
       ];
 
   Future<ProviderContainer> pumpScreen(WidgetTester tester) async {
@@ -83,13 +85,14 @@ void main() {
   Future<ProviderContainer> pumpRouted(
     WidgetTester tester, {
     bool withProfile = true,
+    List<Override> extra = const [],
   }) async {
     if (withProfile) {
       await SettingsRepository(prefs).saveProfile(
         const ServerProfile(baseUrl: 'https://printer.example', authMode: AuthMode.apiKey),
       );
     }
-    final container = ProviderContainer(overrides: overrides());
+    final container = ProviderContainer(overrides: overrides(extra));
     addTearDown(container.dispose);
     final router = GoRouter(
       initialLocation: bugReportRoute,
@@ -233,6 +236,129 @@ void main() {
 
     expect(find.text('Jak to działa'), findsOneWidget);
     expect(container.read(bugReportProvider).log, isNull);
+  });
+
+  group('handing the log over', () {
+    /// A finished recording sitting in review, mounted on the router — every
+    /// way out of this screen ends on the dashboard. [padding] adds records of
+    /// the maximum length a single field survives at (the redactor clips at
+    /// 2000 chars), which is how a real session grows to hundreds of kilobytes.
+    Future<ProviderContainer> pumpReview(
+      WidgetTester tester, {
+      List<Override> extra = const [],
+      int padding = 0,
+    }) async {
+      final container = await pumpRouted(tester, extra: extra);
+      await container.read(bugReportProvider.notifier).start();
+      for (var i = 0; i < padding; i++) {
+        DiagnosticRecorder.active?.add(
+          LogSource.app,
+          'noise',
+          fields: {'pad': 'x' * 2000},
+        );
+      }
+      await container.read(bugReportProvider.notifier).stop();
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    /// Answers for the system save dialog and records what it was handed.
+    Override fakeSaver(
+      LogSaveResult result, {
+      void Function(String fileName, String log)? onCall,
+    }) =>
+        logFileSaverProvider.overrideWithValue((
+          {required String fileName,
+          required String log,
+          String? dialogTitle}) async {
+          onCall?.call(fileName, log);
+          return result;
+        });
+
+    testWidgets('the file is the only way out', (tester) async {
+      // Copying was there and was taken out: a log of this size janks the whole
+      // phone through the clipboard, and lands in the keyboard's clip history
+      // on the way. Selecting a fragment in the raw log is what is left.
+      await pumpReview(tester);
+
+      expect(find.textContaining('Kopiuj'), findsNothing);
+      expect(find.text('Zapisz do pliku'), findsOneWidget);
+    });
+
+    testWidgets('saving it names a text file and then cleans up',
+        (tester) async {
+      String? name;
+      String? written;
+      final container = await pumpReview(tester, extra: [
+        fakeSaver(
+          LogSaveResult.saved,
+          onCall: (fileName, log) {
+            name = fileName;
+            written = log;
+          },
+        ),
+      ]);
+
+      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.pumpAndSettle();
+
+      expect(name, startsWith('bambuddy-log-'));
+      expect(name, endsWith('.txt'));
+      // The whole session, exactly as reviewed — header included.
+      expect(written, contains('"app":"0.11.2+1102"'));
+      expect(written, contains('recording_stopped'));
+      expect(find.text('Log zapisany do pliku'), findsOneWidget);
+      expect(find.text('dashboard'), findsOneWidget);
+      expect(container.read(bugReportProvider).log, isNull);
+    });
+
+    testWidgets('backing out of the picker keeps the report', (tester) async {
+      final container = await pumpReview(
+        tester,
+        extra: [fakeSaver(LogSaveResult.cancelled)],
+      );
+
+      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Przejrzyj przed wysłaniem'), findsOneWidget);
+      expect(find.text('Log zapisany do pliku'), findsNothing);
+      expect(container.read(bugReportProvider).log, isNotNull);
+    });
+
+    testWidgets('a save that fails says so and keeps the report',
+        (tester) async {
+      final container = await pumpReview(
+        tester,
+        extra: [fakeSaver(LogSaveResult.failed)],
+      );
+
+      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nie udało się zapisać loga.'), findsOneWidget);
+      expect(find.text('Przejrzyj przed wysłaniem'), findsOneWidget);
+      expect(container.read(bugReportProvider).log, isNotNull);
+    });
+
+    testWidgets('a long session goes out whole, size being the file\'s problem',
+        (tester) async {
+      // ~300k characters — the size that made the clipboard unusable. The file
+      // takes it in one piece, which is the whole reason it is the only way out.
+      String? written;
+      final container = await pumpReview(tester, padding: 150, extra: [
+        fakeSaver(LogSaveResult.saved, onCall: (_, log) => written = log),
+      ]);
+      final recorded = container.read(bugReportProvider).log!;
+      expect(recorded.length, greaterThan(256 * 1024));
+
+      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.pumpAndSettle();
+
+      expect(written, recorded);
+      expect(find.text('dashboard'), findsOneWidget);
+      expect(container.read(bugReportProvider).log, isNull);
+    });
   });
 
   testWidgets('a session id left over from a crash does not fake a recording',
