@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 9 July 2026_
+_Last updated: 28 July 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -26,6 +26,25 @@ advertising SDK. The developer never receives your data.
 - **App settings and notification preferences**, stored in local app storage.
 
 This data is removed when you uninstall the app or clear its storage.
+
+## Diagnostic logs
+
+The app **can** record a diagnostic log, but only when **you** start one yourself from
+"Report a bug". Nothing is recorded before you press start, and a recording stops by
+itself after 30 minutes.
+
+Such a log describes what the app did: screens you opened, controls you pressed,
+requests to your server and the status codes that came back, live-view connection
+events, what the background service decided about notifications, and crashes. It never
+contains your API key, your password, or text you type. Your server address is reduced
+to its shape — whether it is http or https, a name or an IP, and the port — and file,
+model and spool names are left out.
+
+**The log stays on your device, and the app never uploads it anywhere.** You review it
+in full on screen, and the only way it leaves the phone is if you save it to a file, in
+a location you choose, and then decide to send that file to someone — for example when
+attaching it to a bug report. Whether and when that happens is entirely your decision.
+Once you save the log, or discard it, the app deletes its own copy.
 
 ## Permissions and why they are used
 
