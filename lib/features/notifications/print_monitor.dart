@@ -716,7 +716,7 @@ class PrintMonitor {
 
   void _alertError(int id, PrinterStatus status, HmsError err) {
     final l = _l10n();
-    final detail = hmsHumanText(err, description: _hmsDescribe?.call(err), l10n: l);
+    final detail = hmsHumanText(err, description: _hmsDescribe?.call(err));
     _notifications.showAlert(
       event: NotifEvent.printerError,
       printerId: id,

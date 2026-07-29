@@ -150,7 +150,6 @@ class _HmsErrorRow extends StatelessWidget {
     final label = hmsLabel(
       error,
       description: HmsCatalog.instance.describe(error),
-      l10n: l10n,
     );
     final url = hmsWikiUrl(error);
     return Padding(

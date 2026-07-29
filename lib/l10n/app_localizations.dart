@@ -2372,60 +2372,6 @@ abstract class AppLocalizations {
   /// **'Notification events'**
   String get notifEventsMenu;
 
-  /// No description provided for @hmsSeverityFatal.
-  ///
-  /// In en, this message translates to:
-  /// **'Fatal'**
-  String get hmsSeverityFatal;
-
-  /// No description provided for @hmsSeveritySerious.
-  ///
-  /// In en, this message translates to:
-  /// **'Serious'**
-  String get hmsSeveritySerious;
-
-  /// No description provided for @hmsSeverityCommon.
-  ///
-  /// In en, this message translates to:
-  /// **'Common'**
-  String get hmsSeverityCommon;
-
-  /// No description provided for @hmsSeverityInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Info'**
-  String get hmsSeverityInfo;
-
-  /// No description provided for @hmsModuleMainboard.
-  ///
-  /// In en, this message translates to:
-  /// **'mainboard'**
-  String get hmsModuleMainboard;
-
-  /// No description provided for @hmsModuleAms.
-  ///
-  /// In en, this message translates to:
-  /// **'AMS'**
-  String get hmsModuleAms;
-
-  /// No description provided for @hmsModuleToolhead.
-  ///
-  /// In en, this message translates to:
-  /// **'toolhead'**
-  String get hmsModuleToolhead;
-
-  /// No description provided for @hmsModuleXcam.
-  ///
-  /// In en, this message translates to:
-  /// **'camera'**
-  String get hmsModuleXcam;
-
-  /// No description provided for @hmsModuleMc.
-  ///
-  /// In en, this message translates to:
-  /// **'motion controller'**
-  String get hmsModuleMc;
-
   /// No description provided for @hmsErrorsHeader.
   ///
   /// In en, this message translates to:

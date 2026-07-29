@@ -532,15 +532,6 @@
   "@notifLowFilamentThreshold": { "placeholders": { "percent": { "type": "int" } } },
   "notifEventsMenu": "Notification events",
 
-  "hmsSeverityFatal": "Fatal",
-  "hmsSeveritySerious": "Serious",
-  "hmsSeverityCommon": "Common",
-  "hmsSeverityInfo": "Info",
-  "hmsModuleMainboard": "mainboard",
-  "hmsModuleAms": "AMS",
-  "hmsModuleToolhead": "toolhead",
-  "hmsModuleXcam": "camera",
-  "hmsModuleMc": "motion controller",
   "hmsErrorsHeader": "Active errors",
   "hmsViewInWiki": "Open in Bambu wiki",
 

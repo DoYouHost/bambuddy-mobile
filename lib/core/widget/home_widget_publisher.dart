@@ -190,7 +190,7 @@ class HomeWidgetPublisher {
       final statusLabel =
           hms != null ? l10n.widgetStatusError : _statusLabel(l10n, key);
       final errorText = hms != null
-          ? hmsHumanText(hms, description: describeHms?.call(hms), l10n: l10n)
+          ? hmsHumanText(hms, description: describeHms?.call(hms))
           : '';
 
       await HomeWidget.saveWidgetData<String>('status_key', key);

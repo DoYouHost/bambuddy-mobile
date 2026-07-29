@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart' show Locale;
 
-import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
 
 /// Catalog of HMS error code descriptions bundled as assets (`assets/hms/`).
@@ -42,19 +41,24 @@ class HmsCatalog {
   }
 }
 
-/// Whether an HMS error should be shown to the user (matches bambuddy's behavior:
-/// does NOT display internal errors). Show if:
+/// Whether an HMS error should be shown to the user. An error the client cannot
+/// name is not shown at all — parity with bambuddy's `filterKnownHMSErrors`,
+/// which drops every code missing from its description table so it never turns
+/// an unrecognized code into a red card. Show if:
 ///  • server provided a message, OR
-///  • code resolves in the catalog (known error), OR
-///  • severity is a recognized Bambu level (1 fatal…4 info).
-/// Live observation: untranslatable/internal entries come with unusual severity
-/// (e.g., 6) and no message — we hide these.
-bool hmsIsDisplayable(HmsError e, {String? description}) {
-  if ((e.message?.trim().isNotEmpty ?? false)) return true;
-  if ((description?.trim().isNotEmpty ?? false)) return true;
-  final s = e.severity;
-  return s != null && s >= 1 && s <= 4;
-}
+///  • code resolves in the catalog (known error).
+///
+/// There is deliberately no "recognized severity" escape hatch. `severity` is
+/// not the HMS level: bambuddy derives it as `(attr >> 8) & 0xF`, which is
+/// BambuStudio's `part_id`, while the real level lives in `code >> 16`. Scored
+/// against the bundled catalog the two agree on 39% of codes, and 835 of them
+/// come through as level 1 ("Fatal") while being nothing of the sort. So the
+/// field says nothing about whether a code is a real fault, and the
+/// `severity · module` label it used to feed ("Fatal · mainboard" for an X2D
+/// status message) was invented text on top of an invented number.
+bool hmsIsDisplayable(HmsError e, {String? description}) =>
+    (e.message?.trim().isNotEmpty ?? false) ||
+    (description?.trim().isNotEmpty ?? false);
 
 /// Whether an HMS error should fire a NOTIFICATION — stricter than
 /// [hmsIsDisplayable]. Parity with bambuddy's notification path, which pushes an
@@ -62,9 +66,9 @@ bool hmsIsDisplayable(HmsError e, {String? description}) {
 /// with known descriptions — printers send many undocumented/phantom codes that
 /// aren't real errors"). One physical fault (filament runout, open door) makes
 /// the firmware emit several codes at once, most of them undocumented; gating on
-/// a real description collapses that to the one meaningful alert. The card stays
-/// on the looser [hmsIsDisplayable] so it can still list raw codes with a wiki
-/// link.
+/// a real description collapses that to the one meaningful alert. Stricter than
+/// the card only in the severity floor below — a described code the card lists
+/// can still be too quiet to be worth waking anybody for.
 bool hmsIsNotifiable(HmsError e, {String? description}) {
   // Severity floor — parity with bambuddy's notification path, which alerts only
   // for `severity >= 2` and drops severity-1 codes as "informational/status
@@ -77,61 +81,23 @@ bool hmsIsNotifiable(HmsError e, {String? description}) {
   return description?.trim().isNotEmpty ?? false;
 }
 
-/// Human-readable error label WITHOUT the code: server message → catalog description →
-/// "severity · module". null if nothing is known (only code remains).
+/// Human-readable error label WITHOUT the code: server message → catalog
+/// description. null when neither is known — and such an error is not shown at
+/// all ([hmsIsDisplayable]), so nothing is composed out of `severity`/`module`
+/// to stand in for it.
 /// Used by the printer card, which shows the code separately (with wiki link).
-String? hmsLabel(
-  HmsError e, {
-  String? description,
-  required AppLocalizations l10n,
-}) {
+String? hmsLabel(HmsError e, {String? description}) {
   final msg = e.message?.trim();
   if (msg != null && msg.isNotEmpty) return msg;
-  if (description != null && description.trim().isNotEmpty) {
-    return description.trim();
-  }
-  final parts = <String>[];
-  final sev = hmsSeverityLabel(e.severity, l10n);
-  final mod = hmsModuleLabel(e.module, l10n);
-  if (sev != null) parts.add(sev);
-  if (mod != null) parts.add(mod);
-  return parts.isEmpty ? null : parts.join(' · ');
+  final desc = description?.trim();
+  return (desc != null && desc.isNotEmpty) ? desc : null;
 }
 
-/// Best human-readable text for an HMS error in ONE line (for notifications):
-/// [hmsLabel] + code in parentheses, or code alone. Never bare hex without context.
-String hmsHumanText(
-  HmsError e, {
-  String? description,
-  required AppLocalizations l10n,
-}) {
-  final label = hmsLabel(e, description: description, l10n: l10n);
-  if (label == null) return e.displayCode;
-  // When message/description is a full sentence, don't append the code.
-  final hasText = (e.message?.trim().isNotEmpty ?? false) ||
-      (description?.trim().isNotEmpty ?? false);
-  return hasText ? label : '$label (${e.displayCode})';
-}
-
-/// Label for HMS severity level (Bambu: 1 fatal, 2 serious, 3 common, 4 info).
-/// null for unknown values — omitted from text in those cases.
-String? hmsSeverityLabel(int? severity, AppLocalizations l10n) => switch (severity) {
-      1 => l10n.hmsSeverityFatal,
-      2 => l10n.hmsSeveritySerious,
-      3 => l10n.hmsSeverityCommon,
-      4 => l10n.hmsSeverityInfo,
-      _ => null,
-    };
-
-/// Label for HMS module/subsystem. null for unknown.
-String? hmsModuleLabel(int? module, AppLocalizations l10n) => switch (module) {
-      0x03 => l10n.hmsModuleMc,
-      0x05 => l10n.hmsModuleMainboard,
-      0x07 => l10n.hmsModuleAms,
-      0x08 => l10n.hmsModuleToolhead,
-      0x0C => l10n.hmsModuleXcam,
-      _ => null,
-    };
+/// Best human-readable text for an HMS error in ONE line (for notifications).
+/// Falls back to the bare code, which only the callers that bypass
+/// [hmsIsDisplayable] can reach.
+String hmsHumanText(HmsError e, {String? description}) =>
+    hmsLabel(e, description: description) ?? e.displayCode;
 
 /// URL to the Bambu wiki page for the given code (underscore-separated format).
 /// null if unable to construct the full 16-hex code.

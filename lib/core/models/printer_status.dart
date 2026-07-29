@@ -652,7 +652,9 @@ class HmsError {
   @JsonKey(fromJson: _toIntOrNull)
   final int? attr;
 
-  /// Module/subsystem number (e.g. 5=mainboard, 7=AMS) — see `hmsModuleKey`.
+  /// Module/subsystem number, Bambu's `(attr >> 24) & 0xFF` (e.g. 5=mainboard,
+  /// 7=AMS). Reported, never rendered: the code's own description is the only
+  /// thing the UI shows (see `hmsIsDisplayable`).
   @JsonKey(fromJson: _toIntOrNull)
   final int? module;
 

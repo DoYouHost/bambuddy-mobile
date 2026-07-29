@@ -1319,33 +1319,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEventsMenu => 'Notification events';
 
   @override
-  String get hmsSeverityFatal => 'Fatal';
-
-  @override
-  String get hmsSeveritySerious => 'Serious';
-
-  @override
-  String get hmsSeverityCommon => 'Common';
-
-  @override
-  String get hmsSeverityInfo => 'Info';
-
-  @override
-  String get hmsModuleMainboard => 'mainboard';
-
-  @override
-  String get hmsModuleAms => 'AMS';
-
-  @override
-  String get hmsModuleToolhead => 'toolhead';
-
-  @override
-  String get hmsModuleXcam => 'camera';
-
-  @override
-  String get hmsModuleMc => 'motion controller';
-
-  @override
   String get hmsErrorsHeader => 'Active errors';
 
   @override

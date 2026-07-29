@@ -1,113 +1,102 @@
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
-import 'package:bambuddy_mobile/l10n/app_localizations.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final l10n = lookupAppLocalizations(const Locale('en'));
-
   group('HmsError code parsing', () {
-    test('składa pełny ecode z attr + hex code', () {
-      // Realna ramka X2D: attr=83887616 (0x05000600), code "0x20070".
+    test('composes the full ecode from attr + hex code', () {
+      // Real X2D frame: attr=83887616 (0x05000600), code "0x20070".
       const e = HmsError(code: '0x20070', attr: 83887616, module: 5);
       expect(e.ecode, '0500060000020070');
       expect(e.displayCode, '0500-0600-0002-0070');
     });
 
-    test('bez attr nie składa ecode, displayCode normalizuje separatory', () {
+    test('no attr means no ecode; displayCode normalizes separators', () {
       const e = HmsError(code: '0500_0100');
       expect(e.ecode, isNull);
       expect(e.displayCode, '0500-0100');
     });
 
-    test('pusty kod → znak zapytania', () {
+    test('empty code renders as a question mark', () {
       expect(const HmsError().displayCode, '?');
     });
   });
 
   group('hmsHumanText', () {
-    test('wiadomość z serwera ma pierwszeństwo', () {
+    test('the server message wins', () {
       const e = HmsError(code: '0x1', message: 'Filament runout detected');
-      expect(hmsHumanText(e, l10n: l10n), 'Filament runout detected');
+      expect(hmsHumanText(e), 'Filament runout detected');
     });
 
-    test('opis z katalogu, gdy brak wiadomości', () {
+    test('catalog description when there is no message', () {
       const e = HmsError(code: '0x20070', attr: 83887616);
-      expect(
-        hmsHumanText(e, description: 'Nozzle clog', l10n: l10n),
-        'Nozzle clog',
-      );
+      expect(hmsHumanText(e, description: 'Nozzle clog'), 'Nozzle clog');
     });
 
-    test('fallback: poziom · moduł (kod) gdy nic nie znane', () {
-      // severity 2 = serious, module 7 = AMS.
-      const e = HmsError(code: '0x20070', attr: 83887616, severity: 2, module: 7);
-      expect(
-        hmsHumanText(e, l10n: l10n),
-        'Serious · AMS (0500-0600-0002-0070)',
-      );
-    });
-
-    test('fallback pomija nieznany poziom/moduł', () {
-      // severity 6 (nieznany), module 5 = mainboard.
-      const e = HmsError(code: '0x20070', attr: 83887616, severity: 6, module: 5);
-      expect(hmsHumanText(e, l10n: l10n), 'mainboard (0500-0600-0002-0070)');
-    });
-
-    test('sam kod, gdy brak poziomu i modułu', () {
-      const e = HmsError(code: '0x20070', attr: 83887616);
-      expect(hmsHumanText(e, l10n: l10n), '0500-0600-0002-0070');
+    test('bare code when nothing is known — nothing is composed from '
+        'severity/module', () {
+      const e = HmsError(code: '0x20070', attr: 83887616, severity: 1, module: 5);
+      expect(hmsLabel(e), isNull);
+      expect(hmsHumanText(e), '0500-0600-0002-0070');
     });
   });
 
   group('hmsIsDisplayable', () {
-    test('wewnętrzny wpis (sev 6, brak opisu/wiadomości) → ukryty', () {
-      const e = HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 6);
-      expect(hmsIsDisplayable(e), isFalse);
+    test('unrecognized code stays hidden whatever severity says', () {
+      // The X2D report: bambuddy derives severity from `(attr >> 8) & 0xF`, so a
+      // status message arrives as level 1 / module 5 and used to render as
+      // "Fatal · mainboard" on a card while the printer was healthy.
+      const fatalish = HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1);
+      expect(hmsIsDisplayable(fatalish), isFalse);
+      for (final severity in [1, 2, 3, 4, 6]) {
+        expect(
+          hmsIsDisplayable(HmsError(code: 'x', severity: severity)),
+          isFalse,
+          reason: 'severity $severity is not a description',
+        );
+      }
     });
 
-    test('znany poziom (1–4) → pokazany', () {
-      expect(hmsIsDisplayable(const HmsError(code: 'x', severity: 1)), isTrue);
-      expect(hmsIsDisplayable(const HmsError(code: 'x', severity: 4)), isTrue);
-    });
-
-    test('wiadomość z serwera → pokazany mimo dziwnego severity', () {
+    test('server message → shown', () {
       const e = HmsError(code: 'x', severity: 6, message: 'Filament runout');
       expect(hmsIsDisplayable(e), isTrue);
     });
 
-    test('opis z katalogu → pokazany mimo dziwnego severity', () {
+    test('catalog description → shown', () {
       const e = HmsError(code: 'x', severity: 6);
       expect(hmsIsDisplayable(e, description: 'Nozzle clog'), isTrue);
+    });
+
+    test('blank message/description does not count as recognized', () {
+      expect(hmsIsDisplayable(const HmsError(code: 'x', message: '  ')), isFalse);
+      expect(hmsIsDisplayable(const HmsError(code: 'x'), description: ' '), isFalse);
     });
   });
 
   group('hmsIsNotifiable', () {
-    test('znany severity bez opisu → NIE powiadamiamy (parytet z bambuddy)', () {
+    test('known severity without a description → no alert (bambuddy parity)', () {
       expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 1)), isFalse);
       expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 4)), isFalse);
     });
 
-    test('opis z katalogu → powiadamiamy', () {
+    test('catalog description → alert', () {
       const e = HmsError(code: 'x', severity: 6);
       expect(hmsIsNotifiable(e, description: 'Nozzle clog'), isTrue);
     });
 
-    test('severity 1 z opisem → NIE powiadamiamy (bambuddy filtruje sev < 2)',
-        () {
+    test('severity 1 with a description → no alert (bambuddy drops sev < 2)', () {
       const e = HmsError(code: 'x', severity: 1);
       expect(hmsIsNotifiable(e, description: 'Some status message'), isFalse);
     });
 
-    test('wiadomość z serwera → powiadamiamy', () {
+    test('server message → alert', () {
       const e = HmsError(code: 'x', message: 'Filament runout');
       expect(hmsIsNotifiable(e), isTrue);
     });
   });
 
   group('hmsWikiUrl', () {
-    test('buduje link z podkreśleniami dla pełnego kodu', () {
+    test('builds an underscore-separated link for a full code', () {
       const e = HmsError(code: '0x20070', attr: 83887616);
       expect(
         hmsWikiUrl(e),
@@ -115,7 +104,7 @@ void main() {
       );
     });
 
-    test('null gdy nie da się złożyć pełnego kodu', () {
+    test('null when the full code cannot be composed', () {
       expect(hmsWikiUrl(const HmsError(code: '0500_0100')), isNull);
     });
   });

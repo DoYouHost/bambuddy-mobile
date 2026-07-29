@@ -1339,33 +1339,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notifEventsMenu => 'Zdarzenia powiadomień';
 
   @override
-  String get hmsSeverityFatal => 'Krytyczny';
-
-  @override
-  String get hmsSeveritySerious => 'Poważny';
-
-  @override
-  String get hmsSeverityCommon => 'Zwykły';
-
-  @override
-  String get hmsSeverityInfo => 'Informacja';
-
-  @override
-  String get hmsModuleMainboard => 'płyta główna';
-
-  @override
-  String get hmsModuleAms => 'AMS';
-
-  @override
-  String get hmsModuleToolhead => 'głowica';
-
-  @override
-  String get hmsModuleXcam => 'kamera';
-
-  @override
-  String get hmsModuleMc => 'sterownik ruchu';
-
-  @override
   String get hmsErrorsHeader => 'Aktywne błędy';
 
   @override
