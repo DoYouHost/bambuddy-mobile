@@ -2,6 +2,26 @@ import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Everything a server can put in the fields that are NOT human text. None of
+/// them may ever make an error displayable on its own — that regression shipped
+/// once as a red "Fatal · mainboard" card on a healthy X2D.
+const _severities = <int?>[null, 0, 1, 2, 3, 4, 5, 6, 15];
+const _modules = <int?>[null, 0x03, 0x05, 0x07, 0x08, 0x0C, 0x18, 0xFF];
+
+/// Text that carries no information: absent, empty, whitespace only.
+const _blanks = <String?>[null, '', '   '];
+
+/// Code shapes the wire actually uses, with what each one must render as.
+const _codes = <({String? code, int? attr, String displayed})>[
+  (code: '0x20070', attr: 83887616, displayed: '0500-0600-0002-0070'),
+  (code: '0500_0100', attr: null, displayed: '0500-0100'),
+  (code: null, attr: null, displayed: '?'),
+];
+
+/// A code and nothing else: hex digits, separators, or the empty-code marker.
+/// Any word composed from `severity`/`module` breaks this.
+final _codeOnly = RegExp(r'^[0-9A-F?-]+$');
+
 void main() {
   group('HmsError code parsing', () {
     test('composes the full ecode from attr + hex code', () {
@@ -38,6 +58,102 @@ void main() {
       const e = HmsError(code: '0x20070', attr: 83887616, severity: 1, module: 5);
       expect(hmsLabel(e), isNull);
       expect(hmsHumanText(e), '0500-0600-0002-0070');
+    });
+  });
+
+  group('displayable means nameable — swept over every non-text field', () {
+    test('no severity/module combination makes an unnamed error displayable',
+        () {
+      for (final c in _codes) {
+        for (final sev in _severities) {
+          for (final mod in _modules) {
+            for (final message in _blanks) {
+              for (final description in _blanks) {
+                final e = HmsError(
+                  code: c.code,
+                  attr: c.attr,
+                  severity: sev,
+                  module: mod,
+                  message: message,
+                );
+                final where = 'code=${c.code} sev=$sev mod=$mod '
+                    'message=${message?.length} desc=${description?.length}';
+                expect(
+                  hmsIsDisplayable(e, description: description),
+                  isFalse,
+                  reason: 'displayed with nothing to say it: $where',
+                );
+                expect(
+                  hmsLabel(e, description: description),
+                  isNull,
+                  reason: 'label invented from severity/module: $where',
+                );
+                // The one text an unnamed error may produce is its own code —
+                // reached only by callers that bypass the gate.
+                final text = hmsHumanText(e, description: description);
+                expect(text, c.displayed, reason: where);
+                expect(
+                  text,
+                  matches(_codeOnly),
+                  reason: 'words composed for an unnamed error: $where',
+                );
+              }
+            }
+          }
+        }
+      }
+    });
+
+    test('text from either source makes it displayable, whatever else says', () {
+      for (final c in _codes) {
+        for (final sev in _severities) {
+          for (final mod in _modules) {
+            final base = HmsError(code: c.code, attr: c.attr, severity: sev, module: mod);
+            final fromMessage = HmsError(
+              code: c.code,
+              attr: c.attr,
+              severity: sev,
+              module: mod,
+              message: 'Filament runout',
+            );
+            final where = 'code=${c.code} sev=$sev mod=$mod';
+            expect(hmsIsDisplayable(fromMessage), isTrue, reason: where);
+            expect(hmsLabel(fromMessage), 'Filament runout', reason: where);
+            expect(
+              hmsIsDisplayable(base, description: 'Nozzle clog'),
+              isTrue,
+              reason: where,
+            );
+            expect(hmsLabel(base, description: 'Nozzle clog'), 'Nozzle clog',
+                reason: where);
+          }
+        }
+      }
+    });
+
+    test('anything worth notifying is worth displaying', () {
+      for (final c in _codes) {
+        for (final sev in _severities) {
+          for (final text in [...(_blanks), 'Nozzle clog']) {
+            for (final viaMessage in [true, false]) {
+              final e = HmsError(
+                code: c.code,
+                attr: c.attr,
+                severity: sev,
+                message: viaMessage ? text : null,
+              );
+              final description = viaMessage ? null : text;
+              if (!hmsIsNotifiable(e, description: description)) continue;
+              expect(
+                hmsIsDisplayable(e, description: description),
+                isTrue,
+                reason: 'notified but hidden from the card: sev=$sev '
+                    'text=${text?.length} viaMessage=$viaMessage',
+              );
+            }
+          }
+        }
+      }
     });
   });
 

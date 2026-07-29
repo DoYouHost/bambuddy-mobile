@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
+import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
@@ -733,6 +734,64 @@ void main() {
       final ids = identifiersIn(tester).toSet();
       expect(ids, containsAll(<String>{'temperature.off', 'temperature.set'}));
       expect(ids, isNot(contains('temperature.apply')));
+    });
+  });
+
+  group('HMS error panel', () {
+    // The panel resolves codes through the real catalog asset, in the same
+    // language the card is rendered in — a stub resolver would test nothing
+    // about what a user sees.
+    setUpAll(() => HmsCatalog.instance.load(const Locale('pl')));
+
+    PrinterWithStatus itemWith(List<HmsError> errors) => PrinterWithStatus(
+          printer: const Printer(id: 9, name: 'X2D Warsztat'),
+          status: PrinterStatus(
+            id: 9,
+            connected: true,
+            state: 'RUNNING',
+            progress: 40,
+            hmsErrors: errors,
+          ),
+        );
+
+    testWidgets('an uncataloged code renders nothing, not a fatal fault',
+        (tester) async {
+      // The 2026-07-29 report: healthy X2D, red card. Module 5 and the severity
+      // the server derives from part_id used to compose "Krytyczny · płyta
+      // główna" for a code the catalog does not have.
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [
+        HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
+      ])));
+
+      expect(find.text('Aktywne błędy'), findsNothing);
+      expect(find.textContaining('0500-0600'), findsNothing);
+      expect(find.textContaining('Krytyczny'), findsNothing);
+      expect(find.textContaining('płyta główna'), findsNothing);
+      // The rest of the card is untouched — hiding the code is not a blackout.
+      expect(find.text('X2D Warsztat'), findsOneWidget);
+      expect(find.text('RUNNING'), findsOneWidget);
+    });
+
+    testWidgets('a catalogued code renders the panel with its real description',
+        (tester) async {
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [
+        HmsError(code: '0x1000a', attr: 50331904, module: 3, severity: 1),
+      ])));
+
+      expect(find.text('Aktywne błędy'), findsOneWidget);
+      expect(find.textContaining('Regulacja temperatury stołu'), findsOneWidget);
+      expect(find.text('0300-0100-0001-000A'), findsOneWidget);
+    });
+
+    testWidgets('a mixed list shows only the codes it can name', (tester) async {
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [
+        HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
+        HmsError(code: '0x1000a', attr: 50331904, module: 3, severity: 1),
+      ])));
+
+      expect(find.text('Aktywne błędy'), findsOneWidget);
+      expect(find.text('0300-0100-0001-000A'), findsOneWidget);
+      expect(find.textContaining('0500-0600'), findsNothing);
     });
   });
 }

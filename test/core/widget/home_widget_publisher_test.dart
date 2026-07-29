@@ -6,6 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// "displayable", so the publisher would treat it as an active error.
 String? _describeAll(HmsError e) => 'desc';
 
+/// Resolver for a code that is in no catalog — what the real one returns for the
+/// undocumented codes printers emit while perfectly healthy.
+String? _describeNone(HmsError e) => null;
+
 void main() {
   group('HomeWidgetPublisher.keyFor', () {
     test('offline z zaległym błędem HMS → status OFFLINE, nie ERROR', () {
@@ -37,6 +41,26 @@ void main() {
       };
       final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeAll);
       expect(key.statusKey, 'error');
+    });
+
+    test('kod bez opisu nie robi z drukarki błędu na ekranie głównym', () {
+      // The X2D report reached the home-screen widget too: an undocumented code
+      // with server severity 1 used to flip it to ERROR while the print ran.
+      final statuses = {
+        1: const PrinterStatus(
+          id: 1,
+          name: 'X2D',
+          connected: true,
+          state: 'RUNNING',
+          progress: 40,
+          hmsErrors: [
+            HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
+          ],
+        ),
+      };
+      final key = HomeWidgetPublisher.keyFor(statuses, describeHms: _describeNone);
+      expect(key.statusKey, 'printing');
+      expect(key.progressPct, 40);
     });
   });
 }
