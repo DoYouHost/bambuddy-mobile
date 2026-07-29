@@ -44,12 +44,22 @@ class HttpProbe extends Interceptor {
   /// first few tags.
   static const _maxBodyChars = 300;
 
-  /// Ceiling on one sampled record. A queue item measures 1.4 kB on a real
-  /// server, so this holds it whole with room to spare; past the ceiling the
-  /// record goes in as clipped text, because a library entry carrying an inline
-  /// thumbnail must not put an image in the log. Kept under
-  /// `LogRedactor.maxStringLength` so a clip is marked once rather than twice.
-  static const _maxSampleChars = 1900;
+  /// Ceiling on one sampled record while it stays a map.
+  ///
+  /// Six kilobytes because that is what the records worth reading actually
+  /// measure: a printer status is 4.6 kB and a maintenance overview 3.2 kB on a
+  /// live server, and the first cut of this (1.9 kB, taken from a 1.4 kB queue
+  /// item) turned both into escaped, truncated text — losing the AMS tail and
+  /// most of the maintenance list, which is the half anybody would have opened
+  /// the log for. Repeats do not multiply it: an unchanged record degrades to
+  /// `same`.
+  static const _maxSampleChars = 6 * 1024;
+
+  /// Ceiling on the degraded form. Past [_maxSampleChars] a record goes in as
+  /// clipped text — a library entry carrying an inline thumbnail must not put an
+  /// image in the log — and this stays under `LogRedactor.maxStringLength` so
+  /// such a clip is marked once rather than twice.
+  static const _maxClippedChars = 1900;
 
   /// Endpoints whose answers are the app's content, and therefore the answer to
   /// "it shows nothing" and "it shows the wrong thing".
@@ -63,6 +73,15 @@ class HttpProbe extends Interceptor {
     r'/api/v1/(queue|archives|printers|inventory|spoolman'
     r'|smart-plugs|maintenance|projects|library)(/|$)',
   );
+
+  /// Checked before [_sampledPaths] and wins over it. A prefix on the allowlist
+  /// is not a promise that everything under it is content:
+  /// `/printers/camera/stream-token` mints a camera token and sat inside
+  /// `printers`, so a live recording logged `{"token":"[REDACTED]"}` — the
+  /// redactor caught the value, which is exactly the safety net the allowlist
+  /// exists so as not to lean on. Nothing that mints a credential is worth one
+  /// record of anybody's time.
+  static final _neverSampled = RegExp(r'(token|api-keys)(/|$)');
 
   /// The last record sampled per request, so a poll that keeps answering the
   /// same thing says `same` instead of repeating itself.
@@ -151,20 +170,42 @@ class HttpProbe extends Interceptor {
   static Map<String, Object?> _sampleOf(Response<dynamic> response) {
     final options = response.requestOptions;
     final path = _pathOf(options);
+    if (_neverSampled.hasMatch(path)) return const {};
     if (!_sampledPaths.hasMatch(path)) return const {};
     final record = _firstRecord(response.data);
     if (record == null) return const {};
 
     final encoded = _encoded(record);
     final key = '${options.method} $path?${options.uri.query.hashCode}';
-    if (_lastSample[key] == encoded) return const {'same': true};
-    _lastSample[key] = encoded;
+    final stable = _timestamps.hasMatch(encoded)
+        ? encoded.replaceAll(_timestamps, '"<ts>"')
+        : encoded;
+    // The count belongs in the comparison too: a queue that grew from one item
+    // to two answers with the same first record, and reporting that as `same`
+    // beside `n:2` reads as "nothing happened" at the moment something did.
+    final fingerprint = '${_countOf(response.data)}:$stable';
+    if (_lastSample[key] == fingerprint) return const {'same': true};
+    _lastSample[key] = fingerprint;
     return {
       'first': encoded.length > _maxSampleChars
-          ? '${encoded.substring(0, _maxSampleChars)}…'
+          ? '${encoded.substring(0, _maxClippedChars)}…'
           : record,
     };
   }
+
+  /// Timestamps, as they look inside an encoded record. Compared out of the
+  /// fingerprint, never out of what gets logged.
+  ///
+  /// A server that stamps every answer defeats a fingerprint taken over the
+  /// whole record: a smart plug carries `last_checked` and `updated_at`, both
+  /// rewritten on each poll, so its 1.5 kB record went into a live log five times
+  /// in under a minute and never once as `same` — half a megabyte across a
+  /// half-hour recording, from one endpoint whose state had not changed. Matched
+  /// by the shape of an ISO-8601 value rather than by field name, so a server
+  /// that adds another such field needs no change here.
+  static final _timestamps = RegExp(
+    r'"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"',
+  );
 
   /// The record a body is sampled by: a list's first entry, or the object
   /// itself. Anything else — an empty list, a list of scalars, a downloaded

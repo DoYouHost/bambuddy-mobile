@@ -394,14 +394,33 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-/// One record: offset, source, event, then the extra fields underneath.
-class _LineRow extends StatelessWidget {
+/// One record in the review list — offset, source, event, then the extra fields
+/// underneath, with the detail kept short until asked.
+///
+/// A record used to be a line or two. Since a response contributes one of its
+/// own records in full, an `http response` is forty lines of body and pushes the
+/// tap that caused it off the screen — and skimming for "where did it go wrong"
+/// is the whole reason this list exists rather than the raw log. So the detail is
+/// clamped, and a tap opens the one record the reader is actually looking at.
+class _LineRow extends StatefulWidget {
   const _LineRow({required this.line});
 
   final LogLine line;
 
   @override
+  State<_LineRow> createState() => _LineRowState();
+}
+
+class _LineRowState extends State<_LineRow> {
+  /// Two lines: enough for a path and a status, which is what the short records
+  /// were, and what makes a long one recognisable before opening it.
+  static const _collapsedLines = 2;
+
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final line = widget.line;
     final t = DashTokens.of(context);
     final accent = line.isError
         ? t.danger
@@ -410,6 +429,18 @@ class _LineRow extends StatelessWidget {
             : line.isMarker
                 ? t.accentGreen
                 : t.textTertiary;
+    final detailStyle = TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 11,
+      color: t.textSecondary,
+    );
+
+    final headerStyle = TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: line.isError || line.isWarning ? accent : t.textPrimary,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -434,35 +465,71 @@ class _LineRow extends StatelessWidget {
             decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
           ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${line.src} · ${line.evt}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: line.isError || line.isWarning
-                        ? accent
-                        : t.textPrimary,
-                  ),
-                ),
-                if (line.detail.isNotEmpty)
-                  Text(
-                    line.detail,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 11,
-                      color: t.textSecondary,
+            // The measurement needs the width the detail will actually be laid
+            // out at, and the chevron needs the measurement, so both live inside
+            // the builder: no state carried between frames, no width guessed
+            // from paddings spelled out a second time.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final clamped = line.detail.isNotEmpty &&
+                    _overflows(line.detail, detailStyle, constraints.maxWidth);
+                final block = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('${line.src} · ${line.evt}',
+                              style: headerStyle),
+                        ),
+                        // Only where tapping does something: a chevron on a
+                        // record that is already whole promises more than there is.
+                        if (clamped)
+                          Icon(
+                            _expanded
+                                ? Icons.expand_less_rounded
+                                : Icons.expand_more_rounded,
+                            size: 16,
+                            color: t.textTertiary,
+                          ),
+                      ],
                     ),
-                  ),
-              ],
+                    if (line.detail.isNotEmpty)
+                      Text(
+                        line.detail,
+                        style: detailStyle,
+                        maxLines: _expanded ? null : _collapsedLines,
+                        overflow: _expanded
+                            ? TextOverflow.clip
+                            : TextOverflow.ellipsis,
+                      ),
+                  ],
+                );
+                if (!clamped) return block;
+                return GestureDetector(
+                  // Opaque so the whole block answers, including the gaps
+                  // between its two lines of text.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: block,
+                ).tagged('bug_report.toggle_line');
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  static bool _overflows(String text, TextStyle style, double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: _collapsedLines,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+    final overflows = painter.didExceedMaxLines;
+    painter.dispose();
+    return overflows;
   }
 }
 

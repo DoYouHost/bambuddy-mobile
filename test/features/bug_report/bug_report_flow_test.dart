@@ -200,6 +200,64 @@ void main() {
     expect(find.textContaining('status=502'), findsOneWidget);
   });
 
+  group('a record too long to skim', () {
+    /// The detail of the one record whose text is [needle].
+    Text detailOf(WidgetTester tester, String needle) => tester.widget<Text>(
+          find.textContaining(needle),
+        );
+
+    Future<ProviderContainer> pumpWithLongRecord(WidgetTester tester) async {
+      final container = await pumpScreen(tester);
+      await container.read(bugReportProvider.notifier).start();
+      await tester.pumpAndSettle();
+      // What a sampled response body looks like in this list: one record, forty
+      // lines, and the tap that caused it pushed off the screen.
+      DiagnosticRecorder.active?.add(
+        LogSource.http,
+        'response',
+        fields: {
+          'path': '/api/v1/queue/',
+          'first': {for (var i = 0; i < 30; i++) 'field_$i': 'value_$i'},
+        },
+      );
+      DiagnosticRecorder.active?.add(
+        LogSource.ui,
+        'tap',
+        fields: const {'id': 'nav.queue'},
+      );
+      await container.read(bugReportProvider.notifier).stop();
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    testWidgets('is clamped, and says it has more with a chevron',
+        (tester) async {
+      await pumpWithLongRecord(tester);
+
+      expect(detailOf(tester, 'field_0').maxLines, 2);
+      // Exactly one chevron: the short record next to it fits inside the clamp,
+      // so it is already whole and has nothing to open.
+      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+      expect(find.textContaining('nav.queue'), findsOneWidget);
+    });
+
+    testWidgets('opens on a tap and closes again', (tester) async {
+      await pumpWithLongRecord(tester);
+
+      await tester.tap(find.textContaining('field_0'));
+      await tester.pumpAndSettle();
+
+      expect(detailOf(tester, 'field_0').maxLines, isNull);
+      expect(find.byIcon(Icons.expand_less_rounded), findsOneWidget);
+
+      await tester.tap(find.textContaining('field_0'));
+      await tester.pumpAndSettle();
+
+      expect(detailOf(tester, 'field_0').maxLines, 2);
+      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+    });
+  });
+
   testWidgets('the raw log is one tap away and holds the header',
       (tester) async {
     final container = await pumpScreen(tester);

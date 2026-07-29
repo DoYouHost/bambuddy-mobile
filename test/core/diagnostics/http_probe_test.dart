@@ -10,6 +10,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers.dart';
+
 /// Answers every request with whatever the test hands it: a [ResponseBody] to
 /// reply, a [DioException] to fail. Failing from the adapter is the only honest
 /// way to get a `connectionError` — the real one never reaches a status.
@@ -255,6 +257,43 @@ void main() {
       expect(records.skip(2).map((r) => r['same']), [true, true]);
     });
 
+    test('a token minted under an allowlisted prefix is never sampled',
+        () async {
+      // `/printers/camera/stream-token` sits inside `printers` and answers with
+      // a camera token. A live recording logged `{"token":"[REDACTED]"}` — the
+      // redactor caught it, and leaning on that is what the allowlist exists to
+      // avoid.
+      final dio = dioAnswering((_) => _json('{"token":"cam-tok-abc"}'));
+      await recorder.start();
+
+      await dio.post<dynamic>('/api/v1/printers/camera/stream-token');
+
+      final response = (await httpRecords()).last;
+      expect(response['evt'], 'response');
+      expect(response.containsKey('first'), isFalse);
+      expect(jsonEncode(response), isNot(contains('cam-tok')));
+    });
+
+    test('a list that grew is not "same" just because its first record held',
+        () async {
+      // Straight off a live log: a POST added an item, the next poll answered
+      // `n:2` with the same record on top, and `same` beside it read as
+      // "nothing happened".
+      var items = '{"id":180,"position":1,"status":"pending"}';
+      final dio = dioAnswering((_) => _json('[$items]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+      items = '{"id":180,"position":1,"status":"pending"},'
+          '{"id":181,"position":2,"status":"pending"}';
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final records = await httpRecords();
+      expect(records.map((r) => r['n']), [1, 2]);
+      expect(records.last.containsKey('same'), isFalse);
+      expect((records.last['first'] as Map)['id'], 180);
+    });
+
     test('a peripheral endpoint contributes no record', () async {
       // Not on the allowlist: nothing here should ever carry a token into a log.
       final dio = dioAnswering((_) => _json('{"access_token":"secret-abc"}'));
@@ -267,11 +306,23 @@ void main() {
       expect(jsonEncode(record), isNot(contains('secret-abc')));
     });
 
-    test('a record too big for the log goes in as clipped text', () async {
+    test('a record that fits stays a map, however big', () async {
+      // A printer status is 4.6 kB on a live server and a maintenance overview
+      // 3.2 kB; both used to degrade to escaped, truncated text, which lost the
+      // half of each record anybody opens the log for.
+      final dio = dioAnswering((_) => _json('{"id":1,"ams":"${'A' * 5000}"}'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/printers/1/status');
+
+      expect((await httpRecords()).single['first'], isA<Map<String, dynamic>>());
+    });
+
+    test('a record too big even for that goes in as clipped text', () async {
       // A library entry can carry an inline thumbnail; an image does not belong
       // in a bug report.
       final dio = dioAnswering(
-        (_) => _json('[{"id":1,"thumb":"${'A' * 4000}"}]'),
+        (_) => _json('[{"id":1,"thumb":"${'A' * 8000}"}]'),
       );
       await recorder.start();
 
@@ -279,8 +330,80 @@ void main() {
 
       final first = (await httpRecords()).single['first'];
       expect(first, isA<String>());
+      // Clipped well below the redactor's own 2000-character ceiling, so the
+      // clip is marked once rather than twice.
       expect((first as String).length, lessThan(2100));
       expect(first, endsWith('…'));
+    });
+
+    test('a record that only restamps itself counts as unchanged', () async {
+      // A smart plug rewrites `last_checked` and `updated_at` on every poll. A
+      // fingerprint taken over the whole record never matches, so its 1.5 kB
+      // went into a live log five times in under a minute with nothing changed.
+      var tick = 0;
+      final dio = dioAnswering((_) => _json('[{"id":1,"last_state":"OFF",'
+          '"last_checked":"2026-07-29T14:53:0${tick++}.914155",'
+          '"updated_at":"2026-07-29T14:53:0$tick.892861"}]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+
+      final records = await httpRecords();
+      expect(records.first.containsKey('first'), isTrue);
+      expect(records.last['same'], isTrue);
+      // The record that did get logged keeps its real timestamp — the
+      // substitution belongs to the comparison, not to the log.
+      expect(
+        (records.first['first'] as Map)['last_checked'],
+        '2026-07-29T14:53:00.914155',
+      );
+    });
+
+    test('the timestamp shapes a live server actually sends are covered',
+        () async {
+      // The captured plug record, re-polled with its stamps moved on — three
+      // formats in one file: with a `Z`, without one, and microseconds either
+      // way. A pattern that misses any of them puts 1.5 kB in the log per poll.
+      final record = (readFixture('captured/smart_plugs.json') as List).first
+          as Map<String, dynamic>;
+      var polls = 0;
+      final dio = dioAnswering((_) {
+        polls++;
+        return _json(jsonEncode([
+          {
+            ...record,
+            'last_checked': '2026-07-29T14:53:0$polls.914155',
+            'updated_at': '2026-07-29T14:53:0$polls.892861',
+            'created_at': '2026-05-13T21:20:37.871673Z',
+          },
+        ]));
+      });
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+
+      final records = await httpRecords();
+      expect(records.first.containsKey('first'), isTrue);
+      expect(records.skip(1).map((r) => r['same']), [true, true]);
+    });
+
+    test('a real change is still a change, timestamps or not', () async {
+      var state = 'OFF';
+      var tick = 0;
+      final dio = dioAnswering((_) => _json('[{"id":1,"last_state":"$state",'
+          '"last_checked":"2026-07-29T14:53:0${tick++}.914155"}]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+      state = 'ON';
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+
+      final records = await httpRecords();
+      expect((records.first['first'] as Map)['last_state'], 'OFF');
+      expect((records.last['first'] as Map)['last_state'], 'ON');
     });
 
     test('a downloaded image is neither counted nor sampled', () async {
