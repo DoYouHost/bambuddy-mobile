@@ -118,6 +118,34 @@ class QueueRepository {
     return parseJsonList(body, QueueItem.fromJson);
   }
 
+  /// The queue as the app shows it: everything waiting plus whatever is
+  /// printing, in two filtered requests instead of one unfiltered one.
+  ///
+  /// Unfiltered, `GET /queue/` answers with every item the server has ever
+  /// queued — measured on a real server after two months: 163 records, 218 kB,
+  /// growing with each print, all of it to render the handful that are still
+  /// active. The queue screen polls every 10 s, so that was the whole print
+  /// history on the wire six times a minute, and it is what made the endpoint
+  /// take eight seconds in a user's diagnostic log.
+  ///
+  /// The server takes one status per call, hence two calls; they run
+  /// concurrently, so the wait is the slower one rather than their sum. A paused
+  /// print needs no third call — the server keeps such an item `printing` and
+  /// the pause lives in the printer's state.
+  Future<List<QueueItem>> fetchActive() async {
+    final lists = await Future.wait([
+      fetch(status: 'pending'),
+      fetch(status: 'printing'),
+    ]);
+    // An item that starts printing between the two answers comes back in both.
+    // The `printing` list is applied second, so the fresher truth wins.
+    final byId = <int, QueueItem>{};
+    for (final item in lists.expand((list) => list)) {
+      byId[item.id] = item;
+    }
+    return byId.values.toList();
+  }
+
   /// POST /queue/reorder — change element order.
   ///
   /// Body: `{"items": [{"id": .., "position": ..}, ...]}`.

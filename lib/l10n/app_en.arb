@@ -1402,6 +1402,8 @@
   "bugReportEmpty": "Nothing was recorded.",
   "bugReportShowRaw": "Show raw log",
   "bugReportHideRaw": "Hide raw log",
+  "bugReportRawClipped": "The first {kb} kB are not shown here. The file you save holds the whole session.",
+  "@bugReportRawClipped": {"placeholders": {"kb": {"type": "int"}}},
   "bugReportSave": "Save to a file",
   "bugReportSaved": "Log saved to the file",
   "bugReportSaveFailed": "The log could not be saved.",

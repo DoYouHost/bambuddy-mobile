@@ -14,15 +14,26 @@ import 'log_event.dart';
 ///
 /// Installed by [createBareDio], so it covers the authenticated client, the
 /// login and auth-probe calls that run before there is a client, and the
-/// background isolate's own client. It writes through
-/// `DiagnosticRecorder.active`, which is null unless a recording runs; the
-/// arguments of a `?.` call are not evaluated on null, so an idle app pays for
-/// one clock reading per request and nothing else.
+/// background isolate's own client. Nothing here is built unless a recording
+/// runs, so an idle app pays for one clock reading per request and nothing else.
 ///
 /// What deliberately never enters a record: headers (the API key lives there),
-/// the query string (the camera and thumbnail tokens live there), the host (the
-/// user's private network — the session header carries scheme, port and whether
-/// it was a name or an IP), and successful response bodies.
+/// the query string (the camera and thumbnail tokens live there), and the host
+/// (the user's private network — the session header carries scheme, port and
+/// whether it was a name or an IP).
+///
+/// ## What a successful answer contributes
+///
+/// Its record count ([_countOf]) plus **one** record in full, for the endpoints
+/// that carry the app's content ([_sampledPaths]). A status code cannot separate
+/// "the screen is empty" from "the screen shows the wrong thing": a 200 with
+/// twenty records the app then hides looks exactly like a 200 with nothing in
+/// it. One record settles both, and names the field when the server changed a
+/// type.
+///
+/// The rest of the list stays a number, and an unchanged sample degrades to
+/// `same` — a poll answering with the same first record twice a minute for half
+/// an hour would otherwise *be* the log.
 class HttpProbe extends Interceptor {
   /// Where the clock reading for `ms` is parked. `extra` survives redirects and
   /// the auth retry, which re-sends the very same [RequestOptions].
@@ -32,6 +43,39 @@ class HttpProbe extends Interceptor {
   /// anything longer is a proxy's HTML error page, which says which proxy in its
   /// first few tags.
   static const _maxBodyChars = 300;
+
+  /// Ceiling on one sampled record. A queue item measures 1.4 kB on a real
+  /// server, so this holds it whole with room to spare; past the ceiling the
+  /// record goes in as clipped text, because a library entry carrying an inline
+  /// thumbnail must not put an image in the log. Kept under
+  /// `LogRedactor.maxStringLength` so a clip is marked once rather than twice.
+  static const _maxSampleChars = 1900;
+
+  /// Endpoints whose answers are the app's content, and therefore the answer to
+  /// "it shows nothing" and "it shows the wrong thing".
+  ///
+  /// An allowlist, not a denylist: `auth`, `cloud`, `makerworld` and `settings`
+  /// answer with tokens and credentials, `users` answers with people, and
+  /// `filament-catalog` is a static table nobody reports bugs about. Forgetting
+  /// an endpoint here costs a diagnosis; forgetting one in a denylist costs a
+  /// secret.
+  static final _sampledPaths = RegExp(
+    r'/api/v1/(queue|archives|printers|inventory|spoolman'
+    r'|smart-plugs|maintenance|projects|library)(/|$)',
+  );
+
+  /// The last record sampled per request, so a poll that keeps answering the
+  /// same thing says `same` instead of repeating itself.
+  ///
+  /// Keyed by method, path and the query's hash: `/queue/?status=pending` and
+  /// `?status=printing` are one path with two different answers, and they have to
+  /// dedupe against themselves rather than against each other. The hash lives
+  /// here and only here — the query string itself never reaches a record.
+  static final Map<String, String> _lastSample = {};
+
+  /// Called when a recording opens. Fingerprints left by the previous session
+  /// would silence the first answer of this one.
+  static void openSession() => _lastSample.clear();
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -60,21 +104,78 @@ class HttpProbe extends Interceptor {
     Response<dynamic> response,
     ResponseInterceptorHandler handler,
   ) {
-    final status = response.statusCode;
-    DiagnosticRecorder.active?.add(
-      LogSource.http,
-      'response',
-      // A 4xx normally arrives as a DioException; it only reaches here when the
-      // call opted out of status validation, and it is still not good news.
-      lvl: status != null && status >= 400 ? LogLevel.warn : LogLevel.info,
-      fields: {
-        'method': response.requestOptions.method,
-        'path': _pathOf(response.requestOptions),
-        'status': status,
-        'ms': _elapsedMs(response.requestOptions),
-      },
-    );
+    // A local null check rather than `?.`: the sample below has to be built
+    // (and the fingerprint kept) only while something is recording.
+    final store = DiagnosticRecorder.active;
+    if (store != null) {
+      final status = response.statusCode;
+      store.add(
+        LogSource.http,
+        'response',
+        // A 4xx normally arrives as a DioException; it only reaches here when
+        // the call opted out of status validation, and it is still not good news.
+        lvl: status != null && status >= 400 ? LogLevel.warn : LogLevel.info,
+        fields: {
+          'method': response.requestOptions.method,
+          'path': _pathOf(response.requestOptions),
+          'status': status,
+          'ms': _elapsedMs(response.requestOptions),
+          // How many records a list endpoint answered with. "The queue is empty"
+          // and "the queue came back full and the app dropped all of it" are the
+          // same 200 without this, and they have nothing in common as bugs.
+          'n': _countOf(response.data),
+          // A GET that answered 200 with nothing in it. dio hands back a null
+          // body for an empty response that claims to be JSON, and the data
+          // layer reads that as an empty list — the one way a truncated or
+          // dropped answer reaches a screen as "there is nothing here" instead
+          // of as an error. Reads only: a 200 with no body is the normal answer
+          // to a save.
+          'empty':
+              _isRead(response.requestOptions.method) && response.data == null
+                  ? true
+                  : null,
+          ..._sampleOf(response),
+        },
+      );
+    }
     handler.next(response);
+  }
+
+  /// One record of the answer, or `same` when it matches the last one sampled
+  /// for this request. Empty for anything outside [_sampledPaths].
+  ///
+  /// Records go in as a map, not as text: [LogRedactor] checks field names at
+  /// every depth of a nested map and runs its shape passes on every string
+  /// inside it, so a token that turns up in a body it has no business being in
+  /// is caught either way.
+  static Map<String, Object?> _sampleOf(Response<dynamic> response) {
+    final options = response.requestOptions;
+    final path = _pathOf(options);
+    if (!_sampledPaths.hasMatch(path)) return const {};
+    final record = _firstRecord(response.data);
+    if (record == null) return const {};
+
+    final encoded = _encoded(record);
+    final key = '${options.method} $path?${options.uri.query.hashCode}';
+    if (_lastSample[key] == encoded) return const {'same': true};
+    _lastSample[key] = encoded;
+    return {
+      'first': encoded.length > _maxSampleChars
+          ? '${encoded.substring(0, _maxSampleChars)}…'
+          : record,
+    };
+  }
+
+  /// The record a body is sampled by: a list's first entry, or the object
+  /// itself. Anything else — an empty list, a list of scalars, a downloaded
+  /// image, a bare string — has no record to show.
+  static Map<String, dynamic>? _firstRecord(Object? data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is List && data is! List<int>) {
+      final first = data.isEmpty ? null : data.first;
+      return first is Map<String, dynamic> ? first : null;
+    }
+    return null;
   }
 
   @override
@@ -126,6 +227,16 @@ class HttpProbe extends Interceptor {
     r'\s*This indicates an error which most likely cannot be solved by the '
     r'library\.?$',
   );
+
+  /// Element count for a JSON array body, null for anything else — an object
+  /// body's shape is the endpoint's business, and counting its keys would say
+  /// nothing.
+  ///
+  /// A downloaded image is a `List<int>` and is excluded: its length is a byte
+  /// count, and reported as `n` it would read as "the server sent 34 000
+  /// records".
+  static int? _countOf(Object? data) =>
+      data is List && data is! List<int> ? data.length : null;
 
   static bool _isRead(String method) {
     final upper = method.toUpperCase();

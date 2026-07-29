@@ -291,6 +291,76 @@ void main() {
     expect(LogFileSink.fileFor(dir, session, LogStream.ui).existsSync(), isFalse);
   });
 
+  /// A recorder whose ring fills in a few records — the real one takes four
+  /// megabytes to rotate, which through a sink that flushes every line is not a
+  /// test.
+  DiagnosticRecorder withTinyRing({
+    Future<Directory?> Function()? resolveDirectory,
+  }) {
+    final tiny = DiagnosticRecorder(
+      settings: settings,
+      loadFacts: () async => facts,
+      resolveDirectory: resolveDirectory ?? () async => dir,
+      ringRecords: 3,
+    );
+    addTearDown(tiny.discard);
+    return tiny;
+  }
+
+  test('a session that rotated the ring still goes out whole', () async {
+    final tiny = withTinyRing();
+    await tiny.start();
+    for (var i = 0; i < 8; i++) {
+      DiagnosticRecorder.active?.add(LogSource.app, 'step_$i');
+    }
+
+    final log = await tiny.stop();
+
+    // The ring held three of these by the end; the file held all of them, and
+    // the file is what the report is made of.
+    for (var i = 0; i < 8; i++) {
+      expect(log, contains('step_$i'));
+    }
+    expect(log, contains('recording_started'),
+        reason: 'the start of the session is what eviction used to eat');
+    expect(log, isNot(contains('truncated')),
+        reason: 'nothing is missing, so nothing should claim a gap');
+  });
+
+  test('a memory-only session still reports what the ring dropped', () async {
+    final tiny = withTinyRing(resolveDirectory: () async => null);
+    await tiny.start();
+    for (var i = 0; i < 8; i++) {
+      DiagnosticRecorder.active?.add(LogSource.app, 'step_$i');
+    }
+
+    final log = await tiny.stop();
+
+    // No file to fall back on: the ring is the session, and it says so.
+    expect(log, contains('truncated'));
+    expect(log, isNot(contains('step_0')));
+    expect(log, contains('step_7'));
+  });
+
+  test('the session read back from disk is in the order things happened',
+      () async {
+    await recorder.start();
+    // A tap is stamped with the moment the finger went down, so it can be
+    // written after an event that happened later — which is the whole reason
+    // the ring's export sorted, and the file does not.
+    DiagnosticRecorder.active?.add(LogSource.ui, 'late_write', at: 900);
+    DiagnosticRecorder.active?.add(LogSource.ui, 'early_touch', at: 100);
+
+    final records = parse(await recorder.stop()).skip(1).toList();
+    final offsets = [for (final r in records) r['t'] as int];
+
+    expect(offsets, orderedEquals([...offsets]..sort()));
+    expect(
+      records.indexWhere((r) => r['evt'] == 'early_touch'),
+      lessThan(records.indexWhere((r) => r['evt'] == 'late_write')),
+    );
+  });
+
   test('an unwritable directory degrades to a memory-only session', () async {
     final memoryOnly = DiagnosticRecorder(
       settings: settings,

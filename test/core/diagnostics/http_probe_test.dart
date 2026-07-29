@@ -41,6 +41,15 @@ ResponseBody _text(String body, int status) => ResponseBody.fromString(
       },
     );
 
+/// A body dio actually decodes — the count only exists for parsed JSON.
+ResponseBody _json(String body) => ResponseBody.fromString(
+      body,
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -110,6 +119,221 @@ void main() {
     final records = await httpRecords();
     expect(records.single['path'], '/api/v1/archives/5/thumbnail');
     expect(jsonEncode(records.single), isNot(contains('s3cr3t')));
+  });
+
+  test('counts the records a list endpoint answered with', () async {
+    // "The queue is empty" versus "the queue came back full and the app showed
+    // none of it" is the same 200 without this count.
+    final dio = dioAnswering(
+      (_) => _json('[{"id":1},{"id":2},{"id":3}]'),
+    );
+    await recorder.start();
+
+    await dio.get<dynamic>('/api/v1/queue/');
+
+    expect((await httpRecords()).single['n'], 3);
+  });
+
+  test('a read that answered 200 with nothing says so', () async {
+    // dio gives a null body for an empty response that claims JSON, and the
+    // data layer turns that into an empty list — the quiet way a dropped answer
+    // reads as "nothing here". `n:0` (a real empty array) must not look the same.
+    final dio = dioAnswering((_) => _json(''));
+    await recorder.start();
+
+    await dio.get<dynamic>('/api/v1/queue/');
+
+    final record = (await httpRecords()).single;
+    expect(record['empty'], isTrue);
+    expect(record.containsKey('n'), isFalse);
+  });
+
+  test('a write with no body is not reported as empty', () async {
+    // The normal answer to a save; flagging it would bury the reads that matter.
+    final dio = dioAnswering((_) => _json(''));
+    await recorder.start();
+
+    await dio.post<dynamic>('/api/v1/queue/5/start');
+
+    final response = (await httpRecords()).last;
+    expect(response['evt'], 'response');
+    expect(response.containsKey('empty'), isFalse);
+  });
+
+  test('an object body has no count to report', () async {
+    final dio = dioAnswering((_) => _json('{"state":"RUNNING"}'));
+    await recorder.start();
+
+    await dio.get<dynamic>('/api/v1/printers/3/status');
+
+    expect((await httpRecords()).single.containsKey('n'), isFalse);
+  });
+
+  group('one record of the answer', () {
+    String queueItem({String status = 'pending', int id = 1}) =>
+        '{"id":$id,"position":1,"status":"$status","printer_name":"X2D"}';
+
+    test('a list contributes its first record whole, plus the count', () async {
+      // The whole point: `n:2` with a `completed` first record is a different
+      // bug from `n:2` with a `pending` one, and the same 200 either way.
+      final dio = dioAnswering(
+        (_) => _json('[${queueItem(status: 'completed')},${queueItem(id: 2)}]'),
+      );
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final record = (await httpRecords()).single;
+      expect(record['n'], 2);
+      expect(record['first'], isA<Map<String, dynamic>>());
+      expect((record['first'] as Map)['status'], 'completed');
+      expect((record['first'] as Map)['id'], 1);
+    });
+
+    test('an object answer is the record', () async {
+      final dio = dioAnswering((_) => _json('{"id":3,"state":"RUNNING"}'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/printers/3/status');
+
+      final record = (await httpRecords()).single;
+      expect((record['first'] as Map)['state'], 'RUNNING');
+      expect(record.containsKey('n'), isFalse);
+    });
+
+    test('an unchanged answer says so instead of repeating itself', () async {
+      final dio = dioAnswering((_) => _json('[${queueItem()}]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+      await dio.get<dynamic>('/api/v1/queue/');
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final records = await httpRecords();
+      expect(records.first.containsKey('first'), isTrue);
+      expect(records.skip(1).map((r) => r['same']), [true, true]);
+      expect(records.skip(1).any((r) => r.containsKey('first')), isFalse);
+      // The count still comes with every answer — `same` is about the record.
+      expect(records.map((r) => r['n']), [1, 1, 1]);
+    });
+
+    test('a changed record is logged again', () async {
+      var status = 'pending';
+      final dio = dioAnswering((_) => _json('[${queueItem(status: status)}]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+      status = 'printing';
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final records = await httpRecords();
+      expect((records.first['first'] as Map)['status'], 'pending');
+      expect((records.last['first'] as Map)['status'], 'printing');
+    });
+
+    test('two answers behind one path dedupe against themselves', () async {
+      // `/queue/?status=pending` and `?status=printing` share a path, and the
+      // query is deliberately absent from the log. Deduping them together would
+      // hide every second answer behind a `same` that is not true.
+      final dio = dioAnswering((options) => _json(
+            options.uri.query.contains('printing')
+                ? '[${queueItem(status: 'printing', id: 9)}]'
+                : '[${queueItem()}]',
+          ));
+      await recorder.start();
+
+      for (var i = 0; i < 2; i++) {
+        await dio.get<dynamic>('/api/v1/queue/',
+            queryParameters: {'status': 'pending'});
+        await dio.get<dynamic>('/api/v1/queue/',
+            queryParameters: {'status': 'printing'});
+      }
+
+      final records = await httpRecords();
+      expect(records.take(2).every((r) => r.containsKey('first')), isTrue,
+          reason: 'each query is new the first time it is asked');
+      expect(records.skip(2).map((r) => r['same']), [true, true]);
+    });
+
+    test('a peripheral endpoint contributes no record', () async {
+      // Not on the allowlist: nothing here should ever carry a token into a log.
+      final dio = dioAnswering((_) => _json('{"access_token":"secret-abc"}'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/users/me');
+
+      final record = (await httpRecords()).single;
+      expect(record.containsKey('first'), isFalse);
+      expect(jsonEncode(record), isNot(contains('secret-abc')));
+    });
+
+    test('a record too big for the log goes in as clipped text', () async {
+      // A library entry can carry an inline thumbnail; an image does not belong
+      // in a bug report.
+      final dio = dioAnswering(
+        (_) => _json('[{"id":1,"thumb":"${'A' * 4000}"}]'),
+      );
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/library/files');
+
+      final first = (await httpRecords()).single['first'];
+      expect(first, isA<String>());
+      expect((first as String).length, lessThan(2100));
+      expect(first, endsWith('…'));
+    });
+
+    test('a downloaded image is neither counted nor sampled', () async {
+      // Bytes: its length is a byte count, and `n:34000` would read as records.
+      final dio = dioAnswering((_) => ResponseBody.fromBytes(
+            Uint8List.fromList(List.filled(1000, 65)),
+            200,
+            headers: {
+              Headers.contentTypeHeader: ['image/png'],
+            },
+          ));
+      await recorder.start();
+
+      await dio.get<List<int>>(
+        '/api/v1/archives/5/thumbnail',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final record = (await httpRecords()).single;
+      expect(record.containsKey('n'), isFalse);
+      expect(record.containsKey('first'), isFalse);
+    });
+
+    test('a token inside a sampled body is redacted', () async {
+      // The allowlist keeps token endpoints out, but a body is server-shaped and
+      // the redactor is what makes that safe rather than lucky.
+      final dio = dioAnswering((_) => _json(
+            '[{"id":1,"nested":{"access_token":"tok-123","key":"bb_realkey12"}}]',
+          ));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final encoded = jsonEncode((await httpRecords()).single);
+      expect(encoded, isNot(contains('tok-123')));
+      expect(encoded, isNot(contains('bb_realkey12')));
+      expect(encoded, contains('[REDACTED]'));
+    });
+
+    test('a new recording does not inherit the previous one\'s fingerprints',
+        () async {
+      final dio = dioAnswering((_) => _json('[${queueItem()}]'));
+      await recorder.start();
+      await dio.get<dynamic>('/api/v1/queue/');
+      await stopAndParse();
+
+      await useRecorder();
+      await recorder.start();
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      expect((await httpRecords()).single.containsKey('first'), isTrue,
+          reason: 'a session that starts with `same` starts with nothing');
+    });
   });
 
   test('announces a write before its answer', () async {

@@ -6860,6 +6860,12 @@ abstract class AppLocalizations {
   /// **'Hide raw log'**
   String get bugReportHideRaw;
 
+  /// No description provided for @bugReportRawClipped.
+  ///
+  /// In en, this message translates to:
+  /// **'The first {kb} kB are not shown here. The file you save holds the whole session.'**
+  String bugReportRawClipped(int kb);
+
   /// No description provided for @bugReportSave.
   ///
   /// In en, this message translates to:

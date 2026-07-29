@@ -218,4 +218,69 @@ void main() {
       expect(merged.last['t'], 10);
     });
   });
+
+  group('orderSession', () {
+    test('puts the records in the order things happened, header first', () {
+      // Arrival order is not event order: a tap is stamped with the moment the
+      // finger went down and is written after the route change it caused.
+      final file = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(900, 'route'),
+        record(100, 'tap'),
+        record(500, 'response', src: 'http'),
+      ]);
+
+      final ordered = parse(orderSession(file));
+
+      expect(ordered.first['session'], 's1');
+      expect([for (final r in ordered.skip(1)) r['t']], [100, 500, 900]);
+    });
+
+    test('records sharing a millisecond keep the order they arrived in', () {
+      final file = jsonl([
+        header('2026-07-25T12:00:00.000Z'),
+        record(5, 'first'),
+        record(5, 'second'),
+        record(5, 'third'),
+      ]);
+
+      final ordered = parse(orderSession(file));
+
+      expect(
+        [for (final r in ordered.skip(1)) r['evt']],
+        ['first', 'second', 'third'],
+      );
+    });
+
+    test('a torn last line costs itself and nothing else', () {
+      // What a killed process leaves behind: half a record with no `t`.
+      final file = '${jsonl([
+            header('2026-07-25T12:00:00.000Z'),
+            record(10, 'tap'),
+          ])}{"t":20,"src":"ui","ev';
+
+      final ordered = parse(orderSession(file));
+
+      expect(ordered, hasLength(2));
+      expect(ordered.last['evt'], 'tap');
+    });
+
+    test('a file with no usable records keeps only its header', () {
+      final file = jsonl([header('2026-07-25T12:00:00.000Z'), 'not json']);
+
+      // One line is how the caller reads "nothing here" and falls back to
+      // the in-memory ring.
+      expect(parse(orderSession(file)), hasLength(1));
+    });
+
+    test('nothing to order comes back untouched', () {
+      final headerOnly = jsonl([header('2026-07-25T12:00:00.000Z')]);
+      expect(orderSession(headerOnly), headerOnly);
+      expect(orderSession(''), '');
+      // No header means this is not a session, and rewriting it would only lose
+      // whatever it actually is.
+      final headerless = jsonl([record(10, 'tap'), record(0, 'tap')]);
+      expect(orderSession(headerless), headerless);
+    });
+  });
 }

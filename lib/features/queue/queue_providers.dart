@@ -39,7 +39,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     // apiClientProvider throws, so short-circuit to an empty queue instead.
     final profile = ref.watch(serverProfileProvider);
     if (profile == null) return const [];
-    final all = await ref.read(queueRepositoryProvider).fetch();
+    final all = await ref.read(queueRepositoryProvider).fetchActive();
     return _activeSorted(all);
   }
 
@@ -65,7 +65,8 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     if (ref.read(serverProfileProvider) == null) return;
     state = const AsyncValue<List<QueueItem>>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
-      () async => _activeSorted(await ref.read(queueRepositoryProvider).fetch()),
+      () async =>
+          _activeSorted(await ref.read(queueRepositoryProvider).fetchActive()),
     );
   }
 

@@ -11,6 +11,7 @@ import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import 'bug_report_controller.dart';
 import 'log_export.dart';
+import 'log_preview.dart';
 
 /// Guided bug report: explain → record → review. Recording itself lives in
 /// [BugReportController] and keeps running while the user leaves this screen
@@ -472,7 +473,9 @@ class _RawBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
+    final preview = logPreview(log);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -481,13 +484,26 @@ class _RawBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: t.subCardBorder),
       ),
-      child: SelectableText(
-        log,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 10,
-          color: t.textSecondary,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (preview.hiddenChars > 0) ...[
+            Text(
+              // Rounded up, so a clip is never reported as zero.
+              l10n.bugReportRawClipped((preview.hiddenChars + 1023) ~/ 1024),
+              style: TextStyle(fontSize: 11, color: t.textTertiary),
+            ),
+            const SizedBox(height: 8),
+          ],
+          SelectableText(
+            preview.text,
+            style: TextStyle(
+              fontFamily: DashTokens.fontMono,
+              fontSize: 10,
+              color: t.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

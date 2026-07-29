@@ -47,8 +47,19 @@ class LogRedactor {
   };
 
   /// Field names whose value is secret whatever its shape.
+  ///
+  /// A standalone `key` is in there because bambuddy's own API answers with one:
+  /// `POST /api-keys` returns the full key under exactly that name
+  /// (`schemas/api_key.py`). It is fenced by non-alphanumerics so it catches
+  /// `key`, `full_key` and `api-key` while leaving `monkey` and `keyboard`
+  /// alone — those would be false positives on a field that is nobody's secret.
+  /// `username` is in there for the same reason emails are masked: a report from
+  /// a server with more than one user would otherwise name the others in a public
+  /// issue — `created_by_username` rides along in every queue and archive record
+  /// the log samples — and "who queued it" has never been the diagnosis.
   static final _secretKey = RegExp(
-    r'(token|api_?key|secret|password|passwd|authorization|access_?code|serial|cookie)',
+    r'(token|api_?key|(?:^|[^a-z0-9])key(?:$|[^a-z0-9])|secret|password|passwd'
+    r'|authorization|access_?code|serial|cookie|username)',
     caseSensitive: false,
   );
 
@@ -68,9 +79,31 @@ class LogRedactor {
   static final _email =
       RegExp(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b');
 
-  /// Bambu serials: 00M/01D/01S/01P/03W + alphanumerics, 12-16 chars.
-  static final _serial = RegExp(r'\b0[0-3][A-Z0-9][A-Z0-9]{9,13}\b',
-      caseSensitive: false);
+  /// A bambuddy API key by its shape. The one the app itself holds is registered
+  /// via [remember] and would be caught anyway; this is for a key that turns up
+  /// somewhere nobody expected — a body, a server error message, a field named
+  /// something the name pass does not know about.
+  static final _apiKey = RegExp(r'\bbb_[A-Za-z0-9_-]{8,}');
+
+  /// Bambu serials, in the two shapes they actually arrive in.
+  ///
+  /// The `0[0-3]…` alternative is the older fleet (00M/01D/01S/01P/03W). The
+  /// second is the shape a live X2D answered with, for both the printer
+  /// (`20P0AA000000001`) and its AMS unit (`19C0AA000000002`) — fifteen
+  /// characters, two digits, a letter, then alphanumerics, and neither matched
+  /// the first pattern. Field names carry `serial` often enough for the name pass
+  /// to catch most of these, but a serial nested in a status frame or quoted in a
+  /// server message has only this. (The examples are anonymised: a real serial
+  /// does not belong in a public repository any more than in a log.)
+  /// Both alternatives insist on a letter in the third position, which every
+  /// documented prefix has and which is what keeps digits-only strings out: an
+  /// HMS `full_code` (`030001000001000A`) and a stray float
+  /// (`33.01666666666665`) both matched before, and turning an HMS code into
+  /// `[SERIAL]` blinds the log to the one field the HMS catalog exists to read.
+  static final _serial = RegExp(
+    r'\b(?:0[0-3][A-Z][A-Z0-9]{9,13}|\d{2}[A-Z][0-9A-Z]{12})\b',
+    caseSensitive: false,
+  );
 
   /// IPv4, skipping firmware-version shapes like `01.09.01.00` — the
   /// `[1-9]\d|\d` alternations reject leading-zero octets.
@@ -161,6 +194,7 @@ class LogRedactor {
               '[HOST]${m[4] ?? ''}',
         )
         .replaceAll(_jwt, '[JWT]')
+        .replaceAll(_apiKey, '[APIKEY]')
         .replaceAllMapped(_queryToken, (m) => '${m[1]}[REDACTED]')
         .replaceAll(_email, '[EMAIL]')
         .replaceAll(_serial, '[SERIAL]')

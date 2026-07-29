@@ -1263,6 +1263,7 @@
   "bugReportEmpty": "Nic nie zostało nagrane.",
   "bugReportShowRaw": "Pokaż surowy log",
   "bugReportHideRaw": "Ukryj surowy log",
+  "bugReportRawClipped": "Pierwsze {kb} kB nie są tu pokazane. Zapisany plik zawiera całą sesję.",
   "bugReportSave": "Zapisz do pliku",
   "bugReportSaved": "Log zapisany do pliku",
   "bugReportSaveFailed": "Nie udało się zapisać loga.",

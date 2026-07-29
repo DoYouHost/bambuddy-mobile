@@ -76,6 +76,28 @@ void main() {
     expect(res.data!['queuePending'], 2);
   });
 
+  test('getFleet: asks the server for pending only, not the whole history',
+      () async {
+    // Unfiltered, this endpoint answers with every print ever queued — 218 kB
+    // on a real server — for a number the watch renders as one digit. The mock
+    // matches only the filtered request, so dropping the filter fails here.
+    adapter
+      ..onGet('/api/v1/printers/', (s) => s.reply(200, <dynamic>[]))
+      ..onGet(
+        '/api/v1/queue/',
+        (s) => s.reply(200, [
+          {'id': 1, 'position': 1, 'status': 'pending'},
+        ]),
+        queryParameters: {'status': 'pending'},
+      );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res =
+        await roundTrip(handler, WearRpcRequest.create(WearRpcAction.getFleet));
+
+    expect(res.data!['queuePending'], 1);
+  });
+
   test('getFleet: failed queue fetch omits queuePending (unknown, not zero)',
       () async {
     adapter.onGet('/api/v1/printers/', (s) => s.reply(200, <dynamic>[]));

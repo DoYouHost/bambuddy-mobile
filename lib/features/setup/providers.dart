@@ -85,7 +85,13 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     try {
       final probe =
           await ref.read(authServiceProvider).probeAuthStatus(url);
-      if (probe.requiresSetup) {
+      // Only a server that has neither finished setup NOR got auth turned on is
+      // genuinely unusable — that's also the sole case the web UI redirects to
+      // /setup for. `requires_setup` alone stays true forever on installs whose
+      // `setup_completed` row is missing (DB restored, pre-dates the key), and
+      // there the wizard can't clear it: POST /auth/setup answers 403 once auth
+      // is enabled. Blocking on it locked out working servers.
+      if (probe.requiresSetup && !probe.authEnabled) {
         state = const SetupState(error: SetupErrorCode.requiresServerSetup);
         return;
       }

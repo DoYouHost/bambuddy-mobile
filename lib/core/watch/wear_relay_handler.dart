@@ -142,7 +142,11 @@ class WearRelayHandler {
     // as a failed status.
     int? queuePending;
     try {
-      final items = await QueueRepository(dio).fetch();
+      // Filtered server-side: a count is all the watch shows, and the
+      // unfiltered endpoint answers with the entire print history.
+      final items = await QueueRepository(dio).fetch(status: 'pending');
+      // The filter is still applied here — a server that ignored the query
+      // would otherwise turn the whole history into the watch's "waiting" count.
       queuePending = items
           .where((q) => q.statusKind == QueueItemStatusKind.pending)
           .length;

@@ -3979,6 +3979,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bugReportHideRaw => 'Ukryj surowy log';
 
   @override
+  String bugReportRawClipped(int kb) {
+    return 'Pierwsze $kb kB nie są tu pokazane. Zapisany plik zawiera całą sesję.';
+  }
+
+  @override
   String get bugReportSave => 'Zapisz do pliku';
 
   @override

@@ -208,7 +208,10 @@ class RestTransport implements WearTransport {
     final printers = _printers.fetchAll();
     int? pending;
     try {
-      final items = await _queue.fetch();
+      // Filtered server-side (see the relay handler): the watch shows a count,
+      // and unfiltered this endpoint answers with the whole print history. The
+      // client-side filter stays as the guard for a server that ignores it.
+      final items = await _queue.fetch(status: 'pending');
       pending = items
           .where((q) => q.statusKind == QueueItemStatusKind.pending)
           .length;

@@ -26,19 +26,26 @@ const recordingLimit = Duration(minutes: 30);
 /// the log must stop growing rather than fill the user's storage in silence.
 const recordingSizeLimit = 20 * 1024 * 1024;
 
+/// Runaway guards on the ring, not on the session — see [LogStore.maxRecords]
+/// and [LogStore.maxChars]. What a report contains is bounded by
+/// [recordingSizeLimit]: the session goes out from its file, so eviction here
+/// costs the heap nothing and the report nothing.
+const ringRecordLimit = 20000;
+const ringCharLimit = 4 * 1024 * 1024;
+
 /// In-memory ring buffer for one recording session, plus its JSONL export.
 ///
-/// Records are encoded (and redacted) on the way in, so the cost is paid once
-/// and memory stays bounded by what will actually be uploaded. When a cap is
-/// hit the oldest records go and the gap is reported as a single `truncated`
-/// marker at export — losing the start of a long session is fine, losing the
-/// moment the user reproduced the bug is not.
+/// Records are encoded (and redacted) on the way in, so the cost is paid once.
+/// When a cap is hit the oldest records go and the gap is reported as a single
+/// `truncated` marker at export — which is what a reader sees only when there
+/// was no file to read the session back from, the ring being the fallback for a
+/// device that cannot write one.
 class LogStore {
   LogStore({
     required this.header,
     LogRedactor? redactor,
-    this.maxRecords = 20000,
-    this.maxChars = 4 * 1024 * 1024,
+    this.maxRecords = ringRecordLimit,
+    this.maxChars = ringCharLimit,
     this.maxDuration = recordingLimit,
     this.maxBytes = recordingSizeLimit,
     DateTime Function()? clock,
@@ -52,12 +59,11 @@ class LogStore {
   final LogHeader header;
   final LogRedactor redactor;
 
-  /// Ceiling on how many records are kept, and it is a **runaway guard, not a
-  /// budget**. What bounds a session is [maxDuration]; a busy five minutes —
-  /// several printers pushing a status frame a second each — must fit whole,
-  /// because dropping the start of it to save memory throws away the context
-  /// that explains the end. Only something pathological, like a server stuck in
-  /// a push loop, should ever reach this.
+  /// Ceiling on how many records the ring keeps, and it is a **runaway guard,
+  /// not a budget**. What bounds a session is [maxDuration] and [maxBytes]; only
+  /// something pathological, like a server stuck in a push loop, should reach
+  /// this one. Reaching it no longer costs the report either: the session is
+  /// read back from its file, which nothing evicts from.
   final int maxRecords;
 
   /// The session's hard ceiling. Enforced here rather than only by whoever
@@ -68,10 +74,8 @@ class LogStore {
   final Duration maxDuration;
 
   /// Cap in characters, not bytes. Records are ASCII-dominant so the two are
-  /// close; the hard byte limit lives at the relay, this one only has to keep
-  /// a runaway loop from filling the heap. Same reasoning as [maxRecords]: a
-  /// full five minutes of WebSocket frames is a few hundred kilobytes and is
-  /// supposed to survive intact.
+  /// close; this one only has to keep a runaway loop from filling the heap, the
+  /// session's own ceiling being [maxBytes]. Same reasoning as [maxRecords].
   final int maxChars;
 
   /// The session's other hard ceiling, counted over **everything accepted**, not

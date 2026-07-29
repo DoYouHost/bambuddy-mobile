@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../settings/settings_repository.dart';
 import 'error_probe.dart';
+import 'http_probe.dart';
 import 'interaction_probe.dart';
 import 'lifecycle_probe.dart';
 import 'log_event.dart';
@@ -53,6 +54,8 @@ class DiagnosticRecorder {
     required this.settings,
     required this.loadFacts,
     this.resolveDirectory = diagnosticsDirectory,
+    this.ringRecords = ringRecordLimit,
+    this.ringChars = ringCharLimit,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
@@ -63,6 +66,13 @@ class DiagnosticRecorder {
   /// which is what tests do, and what a device with no writable support
   /// directory degrades to.
   final Future<Directory?> Function() resolveDirectory;
+
+  /// The ring's runaway guards, forwarded to the session's [LogStore]. Only the
+  /// tests move them: proving that eviction no longer costs the report takes a
+  /// ring that fills in a handful of records, and filling the real one would mean
+  /// writing four megabytes through a sink that flushes every line.
+  final int ringRecords;
+  final int ringChars;
 
   final DateTime Function() _clock;
 
@@ -111,6 +121,8 @@ class DiagnosticRecorder {
     final store = LogStore(
       header: header,
       redactor: redactor,
+      maxRecords: ringRecords,
+      maxChars: ringChars,
       onLine: sink?.writeLine,
       onClosed: onLimitReached,
     );
@@ -137,6 +149,9 @@ class DiagnosticRecorder {
     // Same reason for the live view: the socket is normally up long before
     // anybody starts recording, so its `connect` and `open` are already history.
     WsProbe.openSession();
+    // Response fingerprints from an earlier session would make this session's
+    // first answer from each endpoint read as "unchanged".
+    HttpProbe.openSession();
   }
 
   /// Stops and returns the session as JSONL, merging the background isolate's
@@ -162,7 +177,34 @@ class DiagnosticRecorder {
     await _sink?.close();
     _sink = null;
 
-    return _withBackgroundStreams(store.header.session, store.export());
+    return _withBackgroundStreams(store.header.session, await _uiStream(store));
+  }
+
+  /// The session's UI stream, taken from its file rather than from the ring.
+  ///
+  /// The ring evicts its oldest records once it hits its memory caps, and
+  /// [LogStore.export] can only read what the ring still holds — so a session
+  /// busy enough to rotate used to reach the report with its start already gone,
+  /// while the file next to it held all of it. The file is the session; the ring
+  /// is a heap guard. What bounds the report is [recordingSizeLimit], the same
+  /// ceiling that bounds the file.
+  ///
+  /// Falls back to the ring when there is no usable file: a device with no
+  /// writable support directory records in memory only, and so do the tests. A
+  /// file holding nothing but its header counts as unusable — the writes never
+  /// landed (a full disk, a permission the platform took back), and the records
+  /// are still in memory.
+  Future<String> _uiStream(LogStore store) async {
+    final directory = await _resolveQuietly();
+    if (directory == null) return store.export();
+    final ordered = orderSession(
+      await LogFileSink(
+        LogFileSink.fileFor(directory, store.header.session, LogStream.ui),
+      ).read(),
+    );
+    return const LineSplitter().convert(ordered).length < 2
+        ? store.export()
+        : ordered;
   }
 
   /// Throws the session away, files included — whether it is still running or
@@ -198,9 +240,11 @@ class DiagnosticRecorder {
   Future<String> recover(String session) async {
     final directory = await _resolveQuietly();
     if (directory == null) return '';
-    final ui = await LogFileSink(
-      LogFileSink.fileFor(directory, session, LogStream.ui),
-    ).read();
+    final ui = orderSession(
+      await LogFileSink(
+        LogFileSink.fileFor(directory, session, LogStream.ui),
+      ).read(),
+    );
     // No UI stream, no report. A background stream on its own is in *arrival*
     // order — the sort lives in `export` and in the merge, neither of which ran —
     // and it can be a file a killed isolate recreated by appending to a path the

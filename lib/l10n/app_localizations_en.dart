@@ -3921,6 +3921,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bugReportHideRaw => 'Hide raw log';
 
   @override
+  String bugReportRawClipped(int kb) {
+    return 'The first $kb kB are not shown here. The file you save holds the whole session.';
+  }
+
+  @override
   String get bugReportSave => 'Save to a file';
 
   @override

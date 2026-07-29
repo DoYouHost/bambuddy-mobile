@@ -359,6 +359,28 @@ void main() {
       expect(find.text('dashboard'), findsOneWidget);
       expect(container.read(bugReportProvider).log, isNull);
     });
+
+    testWidgets('the raw view shows a window onto a long session, and says so',
+        (tester) async {
+      // Laying out 300k characters of `SelectableText` on the frame the user
+      // taps "show raw log" is what this window exists to avoid.
+      final container = await pumpReview(tester, padding: 150);
+      final recorded = container.read(bugReportProvider).log!;
+
+      await tester.tap(find.text('Pokaż surowy log'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('nie są tu pokazane'), findsOneWidget);
+      final shown = tester
+          .widgetList<SelectableText>(find.byType(SelectableText))
+          .single
+          .data!;
+      expect(shown.length, lessThan(recorded.length));
+      expect(shown, startsWith('{"v":1,'),
+          reason: 'the header stays, whatever gets clipped');
+      // The end of the session is what the window keeps.
+      expect(shown, endsWith(recorded.substring(recorded.length - 200)));
+    });
   });
 
   testWidgets('a session id left over from a crash does not fake a recording',

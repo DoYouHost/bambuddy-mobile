@@ -1,3 +1,6 @@
+import '../diagnostics/diagnostic_recorder.dart';
+import '../diagnostics/log_event.dart';
+
 // Shared tolerant JSON coercion helpers for `@JsonKey(fromJson: ...)` and
 // hand-written `fromJson` factories across the model layer.
 //
@@ -21,19 +24,48 @@ DateTime? dateTimeFromJson(dynamic value) =>
 /// skips (rather than propagates) any element [fromJson] itself fails to
 /// parse — one malformed record drops just that entry instead of the whole
 /// list/parent.
+/// Every skip is also recorded while a diagnostic recording runs. Tolerance is
+/// what keeps one bad record from emptying a screen, and it is also what makes
+/// a whole screen go empty in silence when the server changes a field the
+/// generated casts insist on — that shows up as a 200 with nothing on screen,
+/// which is indistinguishable from "there was nothing to show" unless the drop
+/// says so itself.
 List<T> parseJsonList<T>(
   dynamic value,
   T Function(Map<String, dynamic>) fromJson,
 ) {
   if (value is! List) return const [];
   final out = <T>[];
+  var dropped = 0;
+  String? cause;
   for (final item in value) {
-    if (item is! Map<String, dynamic>) continue;
-    try {
-      out.add(fromJson(item));
-    } on Object {
+    if (item is! Map<String, dynamic>) {
+      dropped++;
+      cause ??= 'not an object: ${item.runtimeType}';
       continue;
     }
+    try {
+      out.add(fromJson(item));
+    } on Object catch (e) {
+      dropped++;
+      // The first failure only: a field the server renamed fails the same way
+      // on every record, and one copy of the message names the field.
+      cause ??= e.toString();
+      continue;
+    }
+  }
+  if (dropped > 0) {
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'parse_drop',
+      lvl: LogLevel.warn,
+      fields: {
+        'type': T.toString(),
+        'n': dropped,
+        'of': value.length,
+        'cause': cause,
+      },
+    );
   }
   return out;
 }
