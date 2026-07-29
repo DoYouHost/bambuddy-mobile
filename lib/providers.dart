@@ -160,6 +160,12 @@ final authServiceProvider = Provider<AuthService>(
   (ref) => AuthService(
     bareDio: ref.watch(bareDioProvider),
     credentials: ref.watch(credentialsStoreProvider),
+    // Nothing on screen otherwise says why the app went quiet: the rejection
+    // happens in an interceptor or a background timer, and every request after
+    // it just fails as unauthorized. The dashboard turns this flag into one
+    // warning on the next app open.
+    onCredentialsRejected: () =>
+        ref.read(settingsRepositoryProvider).saveSignInRequired(true),
   ),
 );
 
@@ -225,7 +231,10 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
       ref.watch(settingsRepositoryProvider).loadProfile();
 
   Future<void> save(ServerProfile profile) async {
-    await ref.read(settingsRepositoryProvider).saveProfile(profile);
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.saveProfile(profile);
+    // Signing in is what the warning asks for, so getting here answers it.
+    await settings.saveSignInRequired(false);
     state = profile;
   }
 

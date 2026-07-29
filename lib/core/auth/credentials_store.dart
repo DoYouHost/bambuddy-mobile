@@ -14,6 +14,11 @@ abstract class CredentialsStore {
   Future<({String username, String password})?> readRememberedLogin();
   Future<void> writeRememberedLogin(String username, String password);
 
+  /// Forgets the remembered login while keeping the rest of the profile's
+  /// secrets — used when the server has definitively rejected them, so silent
+  /// re-login stops replaying a password that can no longer work.
+  Future<void> clearRememberedLogin();
+
   Future<void> clearAll();
 }
 
@@ -55,6 +60,12 @@ class SecureCredentialsStore implements CredentialsStore {
   Future<void> writeRememberedLogin(String username, String password) async {
     await _storage.write(key: _usernameKey, value: username);
     await _storage.write(key: _passwordKey, value: password);
+  }
+
+  @override
+  Future<void> clearRememberedLogin() async {
+    await _storage.delete(key: _usernameKey);
+    await _storage.delete(key: _passwordKey);
   }
 
   @override

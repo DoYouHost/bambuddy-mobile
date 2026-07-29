@@ -33,10 +33,17 @@ List<int> parseMaintenancePayload(String? payload) {
 /// where providers are unavailable. Mirrors `apiClientProvider` logic.
 /// Returns `null` if no server profile is configured.
 Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
-  final profile = SettingsRepository(prefs).loadProfile();
+  final settings = SettingsRepository(prefs);
+  final profile = settings.loadProfile();
   if (profile == null) return null;
   final creds = SecureCredentialsStore();
-  final auth = AuthService(bareDio: createBareDio(), credentials: creds);
+  final auth = AuthService(
+    bareDio: createBareDio(),
+    credentials: creds,
+    // The rejection can just as easily happen here, hours before the user opens
+    // the app; the flag is in prefs so the UI still finds it when they do.
+    onCredentialsRejected: () => settings.saveSignInRequired(true),
+  );
   return ApiClient(
     profile: profile,
     credentials: creds,

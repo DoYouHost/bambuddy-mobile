@@ -116,6 +116,30 @@ abstract class AppLocalizations {
   /// **'Session expired — sign in again'**
   String get sessionExpired;
 
+  /// No description provided for @signInRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again'**
+  String get signInRequiredTitle;
+
+  /// No description provided for @signInRequiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.'**
+  String get signInRequiredBody;
+
+  /// No description provided for @signInRequiredAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get signInRequiredAction;
+
+  /// No description provided for @later.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get later;
+
   /// No description provided for @serverUnreachableStale.
   ///
   /// In en, this message translates to:
@@ -2029,6 +2053,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'API key rejected — check the key and its scope (can_read_status required)'**
   String get errApiKeyRejected;
+
+  /// No description provided for @errTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.'**
+  String get errTooManyAttempts;
 
   /// No description provided for @notifOngoingBody.
   ///

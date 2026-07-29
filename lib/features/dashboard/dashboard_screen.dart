@@ -39,6 +39,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _query = '';
   late final AppLifecycleListener _lifecycle;
 
+  /// Whether the "sign in again" warning already ran in this launch.
+  bool _signInWarned = false;
+
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
@@ -98,13 +101,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(smartPlugsProvider.notifier).resumePolling();
         ref.read(tokenRefresherProvider)?.start();
         ref.read(cameraTokenRefresherProvider)?.start();
+        // The background isolate may have met the rejection while we were away.
+        unawaited(_maybeWarnSignInRequired());
       },
     );
     // After first render: one-time notification onboarding (permission +
-    // request to allow "Unrestricted" battery usage).
+    // request to allow "Unrestricted" battery usage), then the sign-in warning.
+    // Sequential so the two never stack dialogs on a first run.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybeOnboardNotifications();
+      unawaited(_onFirstFrame());
     });
+  }
+
+  Future<void> _onFirstFrame() async {
+    await _maybeOnboardNotifications();
+    await _maybeWarnSignInRequired();
+  }
+
+  /// Warns once per app open that the server rejected the remembered login.
+  ///
+  /// Both places that notice it are invisible to the user — the 401 interceptor
+  /// and the background token refresh — and afterwards the app simply stops
+  /// loading anything. The one message it would otherwise show is "session
+  /// expired", which reads as "sign in with the same password again"; the point
+  /// here is that the saved password is the thing that stopped working, and that
+  /// the app has stopped replaying it rather than keep spending the server's
+  /// failed-attempt budget. Cleared when a profile is saved again
+  /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
+  Future<void> _maybeWarnSignInRequired() async {
+    if (_signInWarned || !mounted) return;
+    if (!ref.read(settingsRepositoryProvider).loadSignInRequired()) return;
+    // Once per launch: a resume must not re-open it, but the next open must.
+    _signInWarned = true;
+    final l10n = AppLocalizations.of(context);
+    final signIn = await confirmDialog(
+      context,
+      title: l10n.signInRequiredTitle,
+      message: l10n.signInRequiredBody,
+      confirmLabel: l10n.signInRequiredAction,
+      cancelLabel: l10n.later,
+      icon: Icons.lock_outline,
+      id: 'sign_in_required',
+    );
+    if (signIn && mounted) context.go('/setup');
   }
 
   /// Hands the background service's lifecycle to the log from the UI side, where

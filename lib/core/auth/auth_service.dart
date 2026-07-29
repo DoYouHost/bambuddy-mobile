@@ -20,11 +20,18 @@ typedef AuthProbeResult = ({
 /// login by definition goes without headers, which breaks the AuthService ↔
 /// ApiClient cycle.
 class AuthService {
-  AuthService({required Dio bareDio, required this._credentials})
-      : _dio = bareDio;
+  AuthService({
+    required Dio bareDio,
+    required this._credentials,
+    this._onCredentialsRejected,
+  }) : _dio = bareDio;
 
   final Dio _dio;
   final CredentialsStore _credentials;
+
+  /// Called once when the server rejects the remembered login, so the app can
+  /// tell the user their saved password no longer works. See [_doSilentReLogin].
+  final Future<void> Function()? _onCredentialsRejected;
 
   /// `GET /auth/status` → `{auth_enabled, requires_setup}`.
   /// Fallback for older servers without this endpoint (404):
@@ -174,7 +181,20 @@ class AuthService {
         username: saved.username,
         password: saved.password,
       );
-    } on AppApiException {
+    } on AppApiException catch (e) {
+      // A 401 is the server's final word on these credentials: it checked them
+      // and said no. Keeping them means replaying the same rejected password on
+      // every 401 the app runs into, and the server counts those — 10 per
+      // username and 20 per IP in a 15-minute window. Behind a reverse proxy
+      // that IP bucket is the proxy's, shared with the web UI, so a phone whose
+      // saved password went stale can lock the whole install out of signing in.
+      // Forget them instead: the next call finds nothing saved and stops there.
+      // Anything else (429, 5xx, no network) says nothing about the password, so
+      // those keep it and retry later.
+      if (e.code == AppErrorCode.invalidCredentials) {
+        await _credentials.clearRememberedLogin();
+        await _onCredentialsRejected?.call();
+      }
       return null;
     }
   }

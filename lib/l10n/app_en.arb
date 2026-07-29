@@ -6,6 +6,10 @@
   "changeServer": "Change server",
   "@changeServer": { "description": "Tooltip / action to reset the saved server" },
   "sessionExpired": "Session expired — sign in again",
+  "signInRequiredTitle": "Sign in again",
+  "signInRequiredBody": "The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.",
+  "signInRequiredAction": "Sign in",
+  "later": "Later",
   "serverUnreachableStale": "Server unreachable — data may be out of date",
   "wsReconnecting": "No live connection — refreshing every 5 s",
   "@wsReconnecting": { "description": "Banner shown while the live WebSocket is down but REST polling keeps data fresh" },
@@ -454,6 +458,7 @@
   "errInvalidCredentials": "Invalid username or password",
   "errTwoFactorUnsupported": "Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).",
   "errApiKeyRejected": "API key rejected — check the key and its scope (can_read_status required)",
+  "errTooManyAttempts": "Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.",
 
   "notifOngoingBody": "{percent}% · ETA {eta}",
   "@notifOngoingBody": { "placeholders": { "percent": { "type": "int" }, "eta": { "type": "String" } } },

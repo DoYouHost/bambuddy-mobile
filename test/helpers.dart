@@ -70,6 +70,12 @@ class InMemoryCredentialsStore implements CredentialsStore {
   }
 
   @override
+  Future<void> clearRememberedLogin() async {
+    username = null;
+    password = null;
+  }
+
+  @override
   Future<void> clearAll() async {
     jwt = null;
     apiKey = null;

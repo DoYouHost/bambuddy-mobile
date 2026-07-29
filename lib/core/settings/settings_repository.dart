@@ -13,6 +13,7 @@ class SettingsRepository {
   SettingsRepository(this._prefs);
 
   static const _profileKey = 'server_profile';
+  static const _signInRequiredKey = 'sign_in_required';
   static const _bgMonitoringKey = 'bg_monitoring_enabled';
   static const _notifPrefsKey = 'notification_prefs';
   static const _maintNotifiedKey = 'maintenance_notified_due_ids';
@@ -40,6 +41,16 @@ class SettingsRepository {
       _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
 
   Future<void> clearProfile() => _prefs.remove(_profileKey);
+
+  /// Whether the server has rejected the remembered login, so the user has to
+  /// sign in by hand again. Set from wherever the rejection is noticed —
+  /// including the background isolate, which is why it lives in prefs rather
+  /// than in memory — and read by the dashboard to warn on the next app open.
+  bool loadSignInRequired() => _prefs.getBool(_signInRequiredKey) ?? false;
+
+  Future<void> saveSignInRequired(bool required) => required
+      ? _prefs.setBool(_signInRequiredKey, true)
+      : _prefs.remove(_signInRequiredKey);
 
   /// Whether to monitor prints in the background (foreground service). Enabled by default —
   /// notification reliability is the priority; user can disable to remove the persistent

@@ -18,6 +18,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionExpired => 'Session expired — sign in again';
 
   @override
+  String get signInRequiredTitle => 'Sign in again';
+
+  @override
+  String get signInRequiredBody =>
+      'The server rejected your saved password, so the app stopped retrying it — repeated attempts get an account locked out. Sign in again, and use a new password if it was changed.';
+
+  @override
+  String get signInRequiredAction => 'Sign in';
+
+  @override
+  String get later => 'Later';
+
+  @override
   String get serverUnreachableStale =>
       'Server unreachable — data may be out of date';
 
@@ -1107,6 +1120,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errApiKeyRejected =>
       'API key rejected — check the key and its scope (can_read_status required)';
+
+  @override
+  String get errTooManyAttempts =>
+      'Too many attempts — the server is blocking sign-in for a few minutes. Wait and try again, or use an API key.';
 
   @override
   String notifOngoingBody(int percent, String eta) {

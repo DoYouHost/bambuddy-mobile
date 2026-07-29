@@ -307,13 +307,24 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
-    _setUpTokenRefresh(profile, creds);
+    _setUpTokenRefresh(profile, creds, prefs);
   }
 
   /// Starts proactive JWT refresh in the background isolate (JWT mode only).
-  void _setUpTokenRefresh(ServerProfile profile, CredentialsStore creds) {
+  void _setUpTokenRefresh(
+    ServerProfile profile,
+    CredentialsStore creds,
+    SharedPreferences prefs,
+  ) {
     if (profile.authMode != AuthMode.jwt) return;
-    final auth = AuthService(bareDio: createBareDio(), credentials: creds);
+    final auth = AuthService(
+      bareDio: createBareDio(),
+      credentials: creds,
+      // A refresh that runs while the app is closed is the likeliest place for a
+      // stale password to be caught; leave the mark for the UI to explain later.
+      onCredentialsRejected: () =>
+          SettingsRepository(prefs).saveSignInRequired(true),
+    );
     final refresher = ProactiveTokenRefresher(
       readExpiry: () async => jwtExpiry(await creds.readJwt()),
       refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),

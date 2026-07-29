@@ -48,8 +48,18 @@ ScannedApiKeyConfig? parseScannedApiKey(String raw) {
   final match = RegExp(r'bb_[A-Za-z0-9._-]+').firstMatch(s);
   if (match != null) return ScannedApiKeyConfig(apiKey: match.group(0)!);
 
-  // Bare token: accept only if it carries no whitespace (rejects prose/labels).
-  if (!s.contains(RegExp(r'\s'))) return ScannedApiKeyConfig(apiKey: s);
+  // Bare token: accept only if it carries no whitespace (rejects prose/labels)
+  // and carries no URI scheme. Anything scannable ends up in front of this
+  // parser, and a `scheme:` payload that got this far had no key parameter and no
+  // `bb_` token — a shop link, a `WIFI:` share, an `otpauth:` seed. Without the
+  // scheme test its whole text would quietly become the "key" and the server
+  // would answer "key rejected", which reads as a bad key rather than a wrong
+  // code. Cost of the rule: a custom key containing a colon has to be typed in
+  // by hand, which the (editable) field allows.
+  final looksLikeLink = uri != null && uri.hasScheme;
+  if (!looksLikeLink && !s.contains(RegExp(r'\s'))) {
+    return ScannedApiKeyConfig(apiKey: s);
+  }
   return null;
 }
 

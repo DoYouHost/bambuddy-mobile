@@ -18,6 +18,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sessionExpired => 'Sesja wygasła — zaloguj się ponownie';
 
   @override
+  String get signInRequiredTitle => 'Zaloguj się ponownie';
+
+  @override
+  String get signInRequiredBody =>
+      'Serwer odrzucił zapisane hasło, więc aplikacja przestała je wysyłać — kolejne próby blokują konto. Zaloguj się ponownie, a jeśli hasło zostało zmienione, podaj nowe.';
+
+  @override
+  String get signInRequiredAction => 'Zaloguj';
+
+  @override
+  String get later => 'Później';
+
+  @override
   String get serverUnreachableStale =>
       'Serwer nieosiągalny — dane mogą być nieaktualne';
 
@@ -1128,6 +1141,10 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get errApiKeyRejected =>
       'Klucz API odrzucony — sprawdź klucz i jego scope (wymagany can_read_status)';
+
+  @override
+  String get errTooManyAttempts =>
+      'Za dużo prób — serwer blokuje logowanie na kilka minut. Odczekaj i spróbuj ponownie albo użyj klucza API.';
 
   @override
   String notifOngoingBody(int percent, String eta) {

@@ -17,6 +17,14 @@ enum AppErrorCode {
   invalidCredentials,
   twoFactorUnsupported,
   apiKeyRejected,
+
+  /// 429 — the server is refusing for now, not forever. bambuddy rate-limits
+  /// failed logins in two buckets (10 per username, 20 per IP, 15-minute
+  /// window) and answers 429 *before* checking the password, so a locked-out
+  /// user gets it even when they finally type the right one. Reported as its
+  /// own code because "wait 15 minutes" and "your password is wrong" send the
+  /// user in opposite directions.
+  tooManyAttempts,
 }
 
 /// Base exception for the API layer. Carries error code (for localization) and
@@ -101,6 +109,10 @@ AppApiException mapDioException(DioException e) {
       }
       if (code == 403) {
         return const AuthException(AppErrorCode.forbidden);
+      }
+      if (code == 429) {
+        return const ApiException(AppErrorCode.tooManyAttempts,
+            statusCode: 429);
       }
       return ApiException(AppErrorCode.badResponse, statusCode: code);
     case DioExceptionType.badCertificate:

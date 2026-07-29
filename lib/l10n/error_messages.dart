@@ -15,5 +15,6 @@ extension AppApiExceptionL10n on AppApiException {
         AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,
         AppErrorCode.twoFactorUnsupported => l10n.errTwoFactorUnsupported,
         AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
+        AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
       };
 }
