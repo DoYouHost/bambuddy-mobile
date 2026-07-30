@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
@@ -18,6 +19,7 @@ import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
+import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:dio/dio.dart';
@@ -51,6 +53,32 @@ void main() {
       final items = await QueueRepository(dio).fetch();
       expect(items.length, greaterThanOrEqualTo(2));
       expect(items.first.statusKind, QueueItemStatusKind.pending);
+    });
+
+    test('kolejka mówi kontraktem 1.2.5, razem z auto', () async {
+      // Demo jest jedynym miejscem, w którym trójstanowe kalibracje da się
+      // przejść bez serwera 1.2.5 — nasz chodzi na 0.2.5b2 i wysyła booleany.
+      // Gdyby ten payload wrócił kiedyś do booleanów, demo przestałoby łapać
+      // regresję, dla której zostało zmienione (docs/plans/07), i to w ciszy.
+      final items = await QueueRepository(dio).fetch();
+
+      expect(
+        items.map((i) => i.bedLevelling),
+        everyElement(CalibrationOption.auto),
+      );
+      expect(items.first.flowCali, CalibrationOption.off);
+      expect(items.first.nozzleOffsetCali, CalibrationOption.auto);
+      expect(items.first.vibrationCali, isTrue,
+          reason: 'te trzy nie migrowały i zostają boolem');
+    });
+
+    test('demo raportuje wersję, która obsługuje trójstan', () async {
+      // Bez tego formularz druku pokazałby w demo dwa stany nad
+      // trójstanowymi danymi — payload i sonda muszą mówić to samo.
+      final version = ServerVersionService(dio);
+
+      expect(await version.reportedVersion(), isNotNull);
+      expect(await version.supportsTriStateCalibration(), isTrue);
     });
 
     test('archive list, search and purge preview', () async {

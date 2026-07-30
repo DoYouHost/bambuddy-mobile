@@ -388,7 +388,16 @@ void main() {
       final records = await httpRecords();
       expect(records.first.containsKey('first'), isTrue);
       expect(records.skip(1).map((r) => r['same']), [true, true]);
-    });
+    },
+        // The only test here that needs a captured payload, and `captured/` is
+        // untracked (test/fixtures/README.md). The timestamp shapes it checks are
+        // written out in the body above; the fixture supplies the surrounding
+        // record, which is why this one waits for a local capture instead of
+        // being rewritten around an invented one.
+        skip: File('test/fixtures/captured/smart_plugs.json').existsSync()
+            ? null
+            : 'brak test/fixtures/captured — tool/capture_fixtures.sh '
+                'https://twój.serwer');
 
     test('a real change is still a change, timestamps or not', () async {
       var state = 'OFF';

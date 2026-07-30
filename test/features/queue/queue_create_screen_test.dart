@@ -314,6 +314,58 @@ void main() {
       expect(_captured?['bed_levelling'], 'auto');
     });
 
+    testWidgets('wybrane Auto zostaje zapamiętane na następny wydruk',
+        (tester) async {
+      // Trójstan pamiętamy tym samym mechanizmem co przełączniki: `on` na start
+      // dla kogoś, kto nigdy nie konfigurował, potem to, co wybrał ostatnio.
+      // Samą serializację pokrywa print_options_test; tu chodzi o to, że
+      // formularz naprawdę ją zapisuje.
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        triState: true,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Auto').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_stored().bedLevelling, CalibrationOption.auto);
+      expect(_stored().flowCali, CalibrationOption.on,
+          reason: 'nietknięte zostaje tym, czym było');
+    });
+
+    testWidgets('następny wydruk startuje z zapamiętanego Auto', (tester) async {
+      await _prefs.setString(
+        'print_options',
+        const PrintOptions(
+          bedLevelling: CalibrationOption.auto,
+          flowCali: CalibrationOption.on,
+          vibrationCali: true,
+          layerInspect: true,
+          timelapse: false,
+          nozzleOffsetCali: CalibrationOption.auto,
+        ).encode(),
+      );
+
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        triState: true,
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      // Bez żadnego tapnięcia w opcje: to, co zapamiętane, jedzie na serwer.
+      expect(_captured?['bed_levelling'], 'auto');
+      expect(_captured?['nozzle_offset_cali'], 'auto');
+      expect(_captured?['flow_cali'], true,
+          reason: 'on jedzie booleanem — rozumie go każda wersja serwera');
+    });
+
     testWidgets('nietknięte auto nie jest nadpisywane przy edycji',
         (tester) async {
       // Formularz dwustanowy rysuje auto jako ON. Odesłanie tego jako `true`

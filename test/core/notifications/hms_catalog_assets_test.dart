@@ -9,9 +9,21 @@ import '../../helpers.dart';
 /// named is decided by an asset, so a stubbed resolver proves nothing about
 /// what a user actually sees.
 ///
-/// Codes below come from `fixtures/captured/printer_status.json` — a real
+/// Codes below come from `fixtures/printer_status_hms.json` — a real
 /// `GET /printers/{id}/status` capture, hence the odd trio: one code missing
 /// from the catalog and two that share a short code with different meanings.
+///
+/// It has its own fixture, and it lives outside `captured/`, for two reasons
+/// that both come down to it being **irreproducible**. HMS errors are transient:
+/// they belong to a print job, and this printer stopped reporting these the
+/// moment it reconnected, so a fresh capture of the same endpoint holds one error
+/// instead of three and the whole scenario below evaporates. And `captured/` is
+/// untracked (see `test/fixtures/README.md`), so anything left in there exists
+/// only on the machine that captured it — which for a payload nobody can capture
+/// again would mean losing this coverage for everyone else.
+///
+/// Hence a frozen, committed file with a pre-1.2.5.1 field set. Nothing here
+/// reads the fields 1.2.5.1 added.
 void main() {
   late HmsCatalog en;
 
@@ -31,7 +43,7 @@ void main() {
   /// The three errors that printer really reported, in fixture order.
   List<HmsError> capturedErrors() {
     final status = PrinterStatus.fromJson(
-        readFixture('captured/printer_status.json') as Map<String, dynamic>);
+        readFixture('printer_status_hms.json') as Map<String, dynamic>);
     final errors = status.hmsErrors;
     expect(errors, hasLength(3));
     return errors!;

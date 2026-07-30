@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
@@ -22,7 +24,27 @@ import '../helpers.dart';
 /// They deliberately go through the repositories rather than the models: the
 /// tolerant list parsing that hides a broken record lives there, so a record
 /// silently dropped would pass a model test and fail here.
+///
+/// `test/fixtures/captured/` is **untracked** — the payloads carry the server
+/// owner's own data (see test/fixtures/README.md), so they live on the machine
+/// that captured them and nowhere else. Without them this file has nothing to
+/// hold the contract against, and it says so out loud rather than passing on an
+/// empty set: a green run that checked nothing is worse than a skip that names
+/// the command to fix it.
 void main() {
+  final captures = Directory('test/fixtures/captured');
+  final missing = captures.existsSync() && captures.listSync().isNotEmpty
+      ? null
+      : 'brak test/fixtures/captured — zrób zrzut z własnego serwera: '
+          'tool/capture_fixtures.sh https://twój.serwer';
+
+  if (missing != null) {
+    // One named skip instead of eleven identical ones, and nothing below is
+    // registered — a test that cannot reach its fixture has no assertion to make.
+    test('kontrakt na przechwyconych payloadach', () {}, skip: missing);
+    return;
+  }
+
   late Dio dio;
   late DioAdapter adapter;
 
@@ -130,12 +152,52 @@ void main() {
     expect(items, hasLength(count));
   });
 
+  test('the captured queue really is the tri-state contract', () async {
+    // This is the shape whose arrival emptied the queue screen: bambuddy 1.2.5
+    // sends the three calibrations as `off`/`on`/`auto` strings, and the
+    // generated `as bool?` cast threw on every record, so a correct 200 rendered
+    // as "nothing queued" (docs/plans/07-queue-cali-enum.md).
+    //
+    // Asserted on the raw JSON as well as on the parsed model on purpose. The
+    // parsed side alone would still pass if the fixture were re-captured from an
+    // older server, because the reader accepts booleans too — and then this file
+    // would quietly stop covering the contract it exists for.
+    final raw = readFixture('captured/queue_all.json') as List<dynamic>;
+    expect(
+      raw.map((r) => (r as Map)['bed_levelling']),
+      everyElement(isA<String>()),
+      reason: 'fixture przechwycony ze serwera starszego niż 1.2.5?',
+    );
+    expect(
+      raw.map((r) => (r as Map)['vibration_cali']),
+      everyElement(isA<bool>()),
+      reason: 'to pole nie migrowało i ma zostać boolem',
+    );
+
+    mock('/api/v1/queue/', 'queue_all.json');
+    final items = await QueueRepository(dio).fetch();
+
+    // Read back exactly what the server wrote, value for value. Deliberately not
+    // "this fixture contains both on and off": which states a live queue happens
+    // to hold changes with every re-capture, and a test that pins the sample
+    // rather than the contract fails for reasons nobody wants to chase.
+    for (var i = 0; i < items.length; i++) {
+      final record = raw[i] as Map;
+      expect(items[i].bedLevelling.name, record['bed_levelling']);
+      expect(items[i].flowCali.name, record['flow_cali']);
+      expect(items[i].nozzleOffsetCali.name, record['nozzle_offset_cali']);
+    }
+  });
+
   test('an endpoint with nothing in it parses to nothing, not to an error',
       () async {
-    // Both of these came back as `[]` from the live server: an empty library and
-    // a queue with nothing waiting. Worth pinning — an empty list is the shape
-    // the app spends most of its time rendering.
-    mock('/api/v1/queue/', 'queue_pending.json');
+    // An empty list is the shape the app spends most of its time rendering, so
+    // it is worth pinning — but not against a captured fixture. This used to read
+    // `queue_pending.json`, which was `[]` only because the queue happened to be
+    // empty at capture time; one queued item later the fixture had a record in it
+    // and this test failed for saying something true about the wrong thing.
+    // `[]` is `[]`, and needs no server to prove it.
+    adapter.onGet('/api/v1/queue/', (server) => server.reply(200, <dynamic>[]));
 
     expect(await QueueRepository(dio).fetch(status: 'pending'), isEmpty);
   });

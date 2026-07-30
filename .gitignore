@@ -197,3 +197,9 @@ doc/api/
 
 # Local planning notes — not part of the repo
 docs/plans/
+
+# Fixture'y przechwycone z żywego serwera — zostają lokalnie, nie w repo.
+# Niosą dane właściciela serwera (encje Home Assistant nazywają pokoje, nazwy
+# projektów i wydruków są jego), a tool/scrub_fixtures.py maskuje sekrety, nie
+# tożsamość. Odtwarzasz je u siebie: tool/capture_fixtures.sh https://twój.serwer
+test/fixtures/captured/

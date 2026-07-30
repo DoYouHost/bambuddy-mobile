@@ -201,9 +201,9 @@ void main() {
       // these describes infrastructure outside bambuddy — the HA entity even
       // names the room the printer stands in.
       final out = redactor.scrubFields(const {
-        'ha_entity_id': 'switch.szafa_biuro',
-        'ha_power_entity': 'sensor.szafa_biuro_power',
-        'ha_energy_total_entity': 'sensor.szafa_biuro_energy',
+        'ha_entity_id': 'switch.office_cabinet',
+        'ha_power_entity': 'sensor.office_cabinet_power',
+        'ha_energy_total_entity': 'sensor.office_cabinet_energy',
         'mqtt_topic': 'tasmota/office/cmnd/POWER',
         'mqtt_power_topic': 'tasmota/office/tele/SENSOR',
         'mqtt_state_topic': 'tasmota/office/stat/POWER',
@@ -269,10 +269,10 @@ void main() {
       // więc realna ścieżka to rekurencja w [scrub], nie [scrubFields].
       final out = redactor.scrub(const {
         'first': {
-          'name': 'Szafa Biuro',
+          'name': 'Office Cabinet',
           'plug_type': 'homeassistant',
-          'ha_entity_id': 'switch.szafa_biuro',
-          'ha_power_entity': 'sensor.szafa_biuro_power',
+          'ha_entity_id': 'switch.office_cabinet',
+          'ha_power_entity': 'sensor.office_cabinet_power',
           'mqtt_topic': null,
           'rest_headers': {'Authorization': 'Bearer hunter2'},
           'enabled': true,
@@ -285,7 +285,7 @@ void main() {
       expect(plug['rest_headers'], '[REDACTED]',
           reason: 'cała mapa nagłówków idzie w całości, nie klucz po kluczu');
       expect(plug['mqtt_topic'], isNull);
-      expect(plug['name'], 'Szafa Biuro',
+      expect(plug['name'], 'Office Cabinet',
           reason: 'nazwa gniazdka zostaje — bez niej rekord przestaje być czytelny');
       expect(plug['plug_type'], 'homeassistant');
       expect(plug['enabled'], true);
