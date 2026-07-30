@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/server_version_service.dart';
+import '../core/models/calibration_option.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/queue_item.dart';
 
@@ -59,17 +61,22 @@ class QueueCreateOptions {
   /// Stage the item: the scheduler leaves it alone until the user starts it.
   final bool? manualStart;
 
-  final bool? bedLevelling;
-  final bool? flowCali;
+  final CalibrationOption? bedLevelling;
+  final CalibrationOption? flowCali;
   final bool? vibrationCali;
   final bool? layerInspect;
   final bool? timelapse;
-  final bool? nozzleOffsetCali;
+  final CalibrationOption? nozzleOffsetCali;
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
 
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  ///
+  /// [triState] says whether the server can store `auto` on the three
+  /// calibrations — see [CalibrationOption.toWire]. When it cannot, an `auto`
+  /// drops out of the body and the server applies its own default, which is the
+  /// closest thing to `auto` it has.
+  Map<String, dynamic> toJson({required bool triState}) => <String, dynamic>{
         'target_model': ?targetModel,
         'target_location': ?targetLocation,
         'filament_overrides': ?filamentOverrides,
@@ -79,12 +86,12 @@ class QueueCreateOptions {
         'require_previous_success': ?requirePreviousSuccess,
         'auto_off_after': ?autoOffAfter,
         'manual_start': ?manualStart,
-        'bed_levelling': ?bedLevelling,
-        'flow_cali': ?flowCali,
+        'bed_levelling': ?bedLevelling?.toWire(triState: triState),
+        'flow_cali': ?flowCali?.toWire(triState: triState),
         'vibration_cali': ?vibrationCali,
         'layer_inspect': ?layerInspect,
         'timelapse': ?timelapse,
-        'nozzle_offset_cali': ?nozzleOffsetCali,
+        'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
         'preheat_override': ?preheatOverride,
         'preheat_chamber_target_override': ?preheatChamberTargetOverride,
       };
@@ -95,9 +102,59 @@ class QueueCreateOptions {
 /// Auth adds [AuthInterceptor] to the shared Dio.
 /// Each method maps [DioException] to [AppApiException].
 class QueueRepository {
-  QueueRepository(this._dio);
+  QueueRepository(this._dio, [this._serverVersion]);
 
   final Dio _dio;
+
+  /// Fallback for the wire form of the three calibration options, used until a
+  /// queue response has shown it. Optional because the read-only callers (the
+  /// watch relay) never write one, and a missing service reads the same as an
+  /// unknown version: the boolean form, which every server generation accepts.
+  final ServerVersionService? _serverVersion;
+
+  /// What the server's own queue payload showed, once one has arrived.
+  ///
+  /// This outranks the version number, because the version number cannot always
+  /// answer the question. bambuddy renumbered the 0.2.5 development cycle to
+  /// 1.2.5 partway through, so a server reporting `0.2.5b2` is a beta of the very
+  /// release that introduced the tri-state options — yet `0.2.5b2` sorts below
+  /// `1.2.5` on every sane comparison, and no ordering of those two strings can
+  /// tell you whether that particular beta predates the change. What the server
+  /// puts in `bed_levelling` answers it outright.
+  bool? _observedTriState;
+
+  static const _calibrationKeys = [
+    'bed_levelling',
+    'flow_cali',
+    'nozzle_offset_cali',
+  ];
+
+  /// Whether this server stores the calibration options as `off`/`on`/`auto`.
+  /// Observed contract first, version second, and `false` when neither knows —
+  /// the boolean form is the one every server accepts.
+  Future<bool> supportsTriStateCalibration() async =>
+      _observedTriState ??
+      (await _serverVersion?.supportsTriStateCalibration() ?? false);
+
+  /// Records which spelling a queue payload used. Reads the raw JSON rather than
+  /// the parsed [QueueItem], because the whole point of the parsed form is that
+  /// both spellings collapse into one enum.
+  void _observeCalibrationWire(List<dynamic> records) {
+    for (final record in records) {
+      if (record is! Map) continue;
+      for (final key in _calibrationKeys) {
+        final value = record[key];
+        if (value is String) {
+          _observedTriState = true;
+          return;
+        }
+        if (value is bool) {
+          _observedTriState = false;
+          return;
+        }
+      }
+    }
+  }
 
   /// GET /queue/ — defensive list parsing (skip unparseable entries,
   /// like [PrintersRepository.fetchPrinters]).
@@ -115,6 +172,7 @@ class QueueRepository {
       );
       return res.data ?? const [];
     });
+    _observeCalibrationWire(body);
     return parseJsonList(body, QueueItem.fromJson);
   }
 
@@ -196,17 +254,18 @@ class QueueRepository {
     bool? requirePreviousSuccess,
     bool? autoOffAfter,
     bool? manualStart,
-    bool? bedLevelling,
-    bool? flowCali,
+    CalibrationOption? bedLevelling,
+    CalibrationOption? flowCali,
     bool? vibrationCali,
     bool? layerInspect,
     bool? timelapse,
     bool? useAms,
-    bool? nozzleOffsetCali,
+    CalibrationOption? nozzleOffsetCali,
     bool? gcodeInjection,
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
-  }) {
+  }) async {
+    final triState = await supportsTriStateCalibration();
     final body = <String, dynamic>{
       if (printerId != kQueueUpdateUnset) 'printer_id': printerId,
       if (targetModel != kQueueUpdateUnset) 'target_model': targetModel,
@@ -218,13 +277,16 @@ class QueueRepository {
       'require_previous_success': ?requirePreviousSuccess,
       'auto_off_after': ?autoOffAfter,
       'manual_start': ?manualStart,
-      'bed_levelling': ?bedLevelling,
-      'flow_cali': ?flowCali,
+      // An `auto` the server cannot store drops out here rather than being sent
+      // as a boolean: omitting the key leaves the stored value alone, whereas a
+      // boolean would silently rewrite the user's `auto` as on-or-off.
+      'bed_levelling': ?bedLevelling?.toWire(triState: triState),
+      'flow_cali': ?flowCali?.toWire(triState: triState),
       'vibration_cali': ?vibrationCali,
       'layer_inspect': ?layerInspect,
       'timelapse': ?timelapse,
       'use_ams': ?useAms,
-      'nozzle_offset_cali': ?nozzleOffsetCali,
+      'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
       'gcode_injection': ?gcodeInjection,
       'preheat_override': ?preheatOverride,
       if (preheatChamberTargetOverride != kQueueUpdateUnset)
@@ -312,13 +374,14 @@ class QueueRepository {
     required int quantity,
     required bool insertAtTop,
     required QueueCreateOptions? options,
-  }) {
+  }) async {
+    final triState = await supportsTriStateCalibration();
     final body = <String, dynamic>{
       ...source,
       'printer_id': printerId,
       'quantity': quantity,
       if (insertAtTop) 'insert_at_top': true,
-      ...?options?.toJson(),
+      ...?options?.toJson(triState: triState),
     }..removeWhere((_, v) => v == null);
     return guard(() => _dio.post<dynamic>(Endpoints.queue, data: body));
   }

@@ -260,8 +260,9 @@ class ProjectResponse {
 
   bool get hasCover => coverImageFilename != null && coverImageFilename!.isNotEmpty;
 
-  DateTime? get dueDateParsed =>
-      dueDate == null ? null : DateTime.tryParse(dueDate!);
+  /// A date, not a moment — the form sends it back as `YYYY-MM-DD`, so it must
+  /// not be shifted across a day boundary by the device's zone.
+  DateTime? get dueDateParsed => calendarDateFromJson(dueDate);
 
   /// Tags split into trimmed non-empty parts (UI renders as chips).
   List<String> get tagList => (tags ?? '')
@@ -334,8 +335,7 @@ class TimelineEvent {
   final String? description;
   final Map<String, dynamic>? metadata;
 
-  DateTime? get timestampParsed =>
-      timestamp == null ? null : DateTime.tryParse(timestamp!);
+  DateTime? get timestampParsed => dateTimeFromJson(timestamp);
 }
 
 // --- Request bodies (write to server; hand-built maps, null fields omitted) ---

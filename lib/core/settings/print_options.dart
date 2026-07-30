@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../models/calibration_option.dart';
+
 /// The per-print toggles of the print form (bed levelling, calibrations,
 /// inspection, timelapse), remembered between jobs.
 ///
@@ -25,32 +27,37 @@ class PrintOptions {
   });
 
   /// Starting point for a user who has never configured a print.
+  ///
+  /// The three calibrations start [CalibrationOption.on] rather than
+  /// [CalibrationOption.auto]: `on` is what they meant when they were booleans,
+  /// and a server old enough to still use booleans has nowhere to put `auto`.
+  /// A user who wants the printer to decide picks it.
   static const initial = PrintOptions(
-    bedLevelling: true,
-    flowCali: true,
+    bedLevelling: CalibrationOption.on,
+    flowCali: CalibrationOption.on,
     vibrationCali: true,
     layerInspect: true,
     timelapse: false,
-    nozzleOffsetCali: true,
+    nozzleOffsetCali: CalibrationOption.on,
   );
 
-  final bool bedLevelling;
-  final bool flowCali;
+  final CalibrationOption bedLevelling;
+  final CalibrationOption flowCali;
   final bool vibrationCali;
   final bool layerInspect;
   final bool timelapse;
 
   /// Dual-nozzle printers only. Remembered even while the form hides it, so it
   /// survives a job sliced for a single-nozzle model in between.
-  final bool nozzleOffsetCali;
+  final CalibrationOption nozzleOffsetCali;
 
   String encode() => jsonEncode({
-        'bed_levelling': bedLevelling,
-        'flow_cali': flowCali,
+        'bed_levelling': bedLevelling.name,
+        'flow_cali': flowCali.name,
         'vibration_cali': vibrationCali,
         'layer_inspect': layerInspect,
         'timelapse': timelapse,
-        'nozzle_offset_cali': nozzleOffsetCali,
+        'nozzle_offset_cali': nozzleOffsetCali.name,
       });
 
   /// Lenient: a missing or unreadable entry falls back to [initial] field by
@@ -66,13 +73,19 @@ class PrintOptions {
     }
     bool read(String key, bool fallback) =>
         map[key] is bool ? map[key] as bool : fallback;
+    // Blobs written before the tri-state migration hold booleans on these three
+    // keys; [calibrationOrNull] reads both spellings, so a user's remembered
+    // toggles survive the upgrade instead of resetting to [initial].
+    CalibrationOption readCali(String key, CalibrationOption fallback) =>
+        calibrationOrNull(map[key]) ?? fallback;
     return PrintOptions(
-      bedLevelling: read('bed_levelling', initial.bedLevelling),
-      flowCali: read('flow_cali', initial.flowCali),
+      bedLevelling: readCali('bed_levelling', initial.bedLevelling),
+      flowCali: readCali('flow_cali', initial.flowCali),
       vibrationCali: read('vibration_cali', initial.vibrationCali),
       layerInspect: read('layer_inspect', initial.layerInspect),
       timelapse: read('timelapse', initial.timelapse),
-      nozzleOffsetCali: read('nozzle_offset_cali', initial.nozzleOffsetCali),
+      nozzleOffsetCali:
+          readCali('nozzle_offset_cali', initial.nozzleOffsetCali),
     );
   }
 

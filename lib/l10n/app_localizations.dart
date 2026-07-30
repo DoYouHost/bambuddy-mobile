@@ -6380,6 +6380,12 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get commonOff;
 
+  /// No description provided for @commonAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get commonAuto;
+
   /// No description provided for @queueEdit.
   ///
   /// In en, this message translates to:

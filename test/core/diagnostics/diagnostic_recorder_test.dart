@@ -22,6 +22,7 @@ void main() {
     flavor: 'mobile',
     os: 'Android 15',
     locale: 'pl-PL',
+    server: '1.2.5.1',
     auth: 'apikey',
     secrets: {'sk-live-abcdef': '[APIKEY]', 'bambuddy.local': '[HOST]'},
   );
@@ -55,6 +56,9 @@ void main() {
     expect(header['flavor'], 'mobile');
     expect(header['os'], 'Android 15');
     expect(header['locale'], 'pl-PL');
+    // The server build is the first question any report raises; it belongs in
+    // the header, not somewhere down the records.
+    expect(header['server'], '1.2.5.1');
     expect(header['auth'], 'apikey');
     expect((header['session'] as String), hasLength(32));
   });

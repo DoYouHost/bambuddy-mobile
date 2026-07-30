@@ -182,6 +182,18 @@ class DemoBackend {
         }
         return _notFound();
 
+      case 'updates':
+        // The demo queue speaks the 1.2.5 contract (tri-state calibrations), so
+        // it has to report a version that matches, or the print form would offer
+        // two states over three-state data.
+        if (at(1, 'version')) {
+          return _ok(const {
+            'version': '1.2.5.1',
+            'repo': 'maziggy/bambuddy',
+          });
+        }
+        return _notFound();
+
       case 'printers':
         if (s.length == 1) return _ok(_printers);
         if (at(1, 'camera')) return _ok({'token': 'demo-camera-token'});
@@ -719,8 +731,13 @@ class DemoBackend {
         'auto_off_after': false,
         'require_previous_success': false,
         'filament_short': false,
-        'bed_levelling': true,
-        'flow_cali': false,
+        // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
+        // arrival emptied the real queue screen (docs/plans/07). Demo mode is
+        // where that regression should surface first, so it speaks the current
+        // contract and includes an `auto` rather than only the two easy values.
+        'bed_levelling': 'auto',
+        'flow_cali': 'off',
+        'nozzle_offset_cali': 'auto',
         'vibration_cali': true,
         'layer_inspect': true,
         'timelapse': false,

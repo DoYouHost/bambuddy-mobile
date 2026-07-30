@@ -196,6 +196,115 @@ void main() {
       expect(out['printer_name'], 'X2D-3DP');
     });
 
+    test('smart plug wiring: HA entities, MQTT topics, REST endpoints', () {
+      // Shape taken from a real sampled `/smart-plugs/` record. Every one of
+      // these describes infrastructure outside bambuddy — the HA entity even
+      // names the room the printer stands in.
+      final out = redactor.scrubFields(const {
+        'ha_entity_id': 'switch.szafa_biuro',
+        'ha_power_entity': 'sensor.szafa_biuro_power',
+        'ha_energy_total_entity': 'sensor.szafa_biuro_energy',
+        'mqtt_topic': 'tasmota/office/cmnd/POWER',
+        'mqtt_power_topic': 'tasmota/office/tele/SENSOR',
+        'mqtt_state_topic': 'tasmota/office/stat/POWER',
+        'rest_on_url': 'http://10.0.0.5/cm?cmnd=Power%20On',
+        'rest_off_body': '{"state":"off"}',
+        'rest_headers': '{"Authorization":"Bearer hunter2"}',
+      });
+
+      expect(
+        out.values,
+        everyElement('[REDACTED]'),
+        reason: 'żadne z tych pól nie diagnozuje nic, czego nie mówi stan gniazdka',
+      );
+    });
+
+    test('smart plug wiring: co ZOSTAJE, bo to jest diagnoza', () {
+      final out = redactor.scrubFields(const {
+        'plug_type': 'homeassistant',
+        'mqtt_power_path': 'StatusSNS.ENERGY.Power',
+        'rest_status_path': 'state.power',
+        'rest_method': 'GET',
+        'rest_power_multiplier': 1.0,
+        'off_delay_minutes': 30,
+      });
+
+      expect(out['plug_type'], 'homeassistant');
+      expect(out['mqtt_power_path'], 'StatusSNS.ENERGY.Power',
+          reason: 'wskaźnik na pole, nie adres — i to on tłumaczy zero watów');
+      expect(out['rest_status_path'], 'state.power');
+      expect(out['rest_method'], 'GET');
+      expect(out['rest_power_multiplier'], 1.0);
+      expect(out['off_delay_minutes'], 30);
+    });
+
+    test('entity nie zjada identity, topic nie zjada niczego', () {
+      final out = redactor.scrubFields(const {
+        'identity': 'nie-sekret',
+        'ha_entity_id': 'switch.x',
+      });
+
+      expect(out['identity'], 'nie-sekret',
+          reason: '„identity" zawiera „entity" — dlatego wzorzec jest ogrodzony');
+      expect(out['ha_entity_id'], '[REDACTED]');
+    });
+
+    test('cover_url i kamera zewnętrzna zostają czytelne', () {
+      // Zawężenie do prefiksu `rest_` jest celowe: te dwa są diagnostyczne,
+      // a host i tak maskuje przebieg po autorytecie URL-a.
+      final out = redactor.scrubFields(const {
+        'cover_url': 'https://bambu.example/api/v1/printers/1/cover',
+        'external_camera_url': 'rtsp://admin:pw@192.168.1.50/stream',
+        'rest_status_url': 'http://10.0.0.5/cm?cmnd=Status',
+      });
+
+      expect(out['cover_url'], contains('[HOST]'));
+      expect(out['cover_url'], contains('/api/v1/printers/1/cover'));
+      expect(out['external_camera_url'], contains('[CREDENTIALS]@[HOST]'));
+      expect(out['rest_status_url'], '[REDACTED]');
+    });
+
+    test('zagnieżdżony rekord `first` — tak to leci w produkcji', () {
+      // http_probe próbkuje pierwszy rekord odpowiedzi jako mapę pod `first`,
+      // więc realna ścieżka to rekurencja w [scrub], nie [scrubFields].
+      final out = redactor.scrub(const {
+        'first': {
+          'name': 'Szafa Biuro',
+          'plug_type': 'homeassistant',
+          'ha_entity_id': 'switch.szafa_biuro',
+          'ha_power_entity': 'sensor.szafa_biuro_power',
+          'mqtt_topic': null,
+          'rest_headers': {'Authorization': 'Bearer hunter2'},
+          'enabled': true,
+        },
+      }) as Map<String, Object?>;
+      final plug = out['first']! as Map<String, Object?>;
+
+      expect(plug['ha_entity_id'], '[REDACTED]');
+      expect(plug['ha_power_entity'], '[REDACTED]');
+      expect(plug['rest_headers'], '[REDACTED]',
+          reason: 'cała mapa nagłówków idzie w całości, nie klucz po kluczu');
+      expect(plug['mqtt_topic'], isNull);
+      expect(plug['name'], 'Szafa Biuro',
+          reason: 'nazwa gniazdka zostaje — bez niej rekord przestaje być czytelny');
+      expect(plug['plug_type'], 'homeassistant');
+      expect(plug['enabled'], true);
+    });
+
+    test('null zostaje nullem — „nieskonfigurowane" to też diagnoza', () {
+      // Bez tego gniazdko bez encji energii czyta się jak skonfigurowane
+      // i następny czytający szuka przyczyny zerowej energii gdzie indziej.
+      final out = redactor.scrubFields(const {
+        'ha_energy_today_entity': null,
+        'ha_energy_total_entity': 'sensor.x_energy',
+        'password': null,
+      });
+
+      expect(out['ha_energy_today_entity'], isNull);
+      expect(out['ha_energy_total_entity'], '[REDACTED]');
+      expect(out['password'], isNull);
+    });
+
     test('a field called key is a secret, monkey and keyboard are not', () {
       // bambuddy answers with the full API key under exactly `key`
       // (`POST /api-keys`), so the name pass has to know that one on its own —

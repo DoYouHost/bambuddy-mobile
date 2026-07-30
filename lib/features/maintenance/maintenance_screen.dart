@@ -543,8 +543,8 @@ class _HistorySheet extends ConsumerWidget {
 /// Simple date format `YYYY-MM-DD HH:MM` (local) without intl dependency.
 String? _formatDate(DateTime? dt) {
   if (dt == null) return null;
-  final l = dt.toLocal();
+  // Already local — [dateTimeFromJson] converts once, at parse time.
   String two(int n) => n.toString().padLeft(2, '0');
-  return '${l.year}-${two(l.month)}-${two(l.day)} ${two(l.hour)}:${two(l.minute)}';
+  return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
 }
 

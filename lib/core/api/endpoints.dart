@@ -1,6 +1,8 @@
 /// All bambuddy API endpoints in one place.
 ///
-/// Contract: bambuddy v0.2.4.8 (`/api/v1`). When updating the server,
+/// Contract: bambuddy v0.2.4.9 … v1.2.5.1 (`/api/v1`) — every path below was
+/// diffed across that range and none of them moved
+/// (`docs/plans/08-server-v1.2.5-migration.md`). When updating the server,
 /// compare with `/openapi.json` before changing anything here.
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
@@ -13,6 +15,12 @@ abstract final class Endpoints {
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
+
+  /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
+  /// answers before login too. Read once per session to gate wire-format
+  /// differences between server generations and to stamp the diagnostic log
+  /// header — see `ServerVersionService`.
+  static const updatesVersion = '$apiPrefix/updates/version';
 
   /// Mint a short-lived WebSocket token (valid ~60 min). Required as `?token=`
   /// on the `/ws` handshake (GHSA-r2qv follow-up) — the upgrade can't carry

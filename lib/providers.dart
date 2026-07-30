@@ -6,6 +6,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
 import 'core/auth/jwt.dart';
@@ -150,6 +151,12 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
     loadFacts: () => loadSessionFacts(
       profile: ref.read(serverProfileProvider),
       credentials: ref.read(credentialsStoreProvider),
+      // Read through the provider only when a profile exists: without one
+      // [apiClientProvider] throws by design, and a recording started from the
+      // setup screen has no server to ask anyway.
+      readServerVersion: ref.read(serverProfileProvider) == null
+          ? null
+          : () => ref.read(serverVersionServiceProvider).reportedVersion(),
     ),
   ),
 );
@@ -309,9 +316,32 @@ final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Connected server's version, read once per profile. Rebuilt with
+/// [apiClientProvider] so switching servers cannot carry the old answer over.
+final serverVersionServiceProvider = Provider<ServerVersionService>(
+  (ref) => ServerVersionService(ref.watch(apiClientProvider).dio),
+);
+
 /// Print queue (M5). Shares authenticated Dio.
 final queueRepositoryProvider = Provider<QueueRepository>(
-  (ref) => QueueRepository(ref.watch(apiClientProvider).dio),
+  (ref) => QueueRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether the server stores the three calibration options as `off`/`on`/`auto`
+/// rather than as booleans. Drives whether the print form offers an `auto`
+/// position — while this is loading, or when nothing knows, the form stays on two
+/// states and no `auto` is ever sent to a server that would reject it.
+///
+/// Asks the queue repository rather than the version service directly: it has
+/// seen the server's own payloads, and that beats reasoning from a version
+/// number (see `QueueRepository.supportsTriStateCalibration`). `autoDispose` so
+/// each time the print form opens it asks again — a queue fetch between two
+/// openings is exactly what turns "unknown" into a real answer.
+final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(queueRepositoryProvider).supportsTriStateCalibration(),
 );
 
 /// Archive of prints (M5). Shares authenticated Dio.

@@ -547,9 +547,9 @@ class _PrinterFileManagerScreenState
     final size = _formatBytes(file.size);
     final date = file.modifiedAt;
     if (date == null) return size;
-    final local = date.toLocal();
+    // Already local — [dateTimeFromJson] converts once, at parse time.
     final d =
-        '${local.year}-${_two(local.month)}-${_two(local.day)} ${_two(local.hour)}:${_two(local.minute)}';
+        '${date.year}-${_two(date.month)}-${_two(date.day)} ${_two(date.hour)}:${_two(date.minute)}';
     return '$size · $d';
   }
 

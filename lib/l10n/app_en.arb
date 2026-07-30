@@ -1315,6 +1315,7 @@
 
   "commonOn": "On",
   "commonOff": "Off",
+  "commonAuto": "Auto",
 
   "queueEdit": "Edit",
   "queueEditTitle": "Edit Queue Item",

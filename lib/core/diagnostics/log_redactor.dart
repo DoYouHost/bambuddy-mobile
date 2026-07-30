@@ -57,9 +57,32 @@ class LogRedactor {
   /// a server with more than one user would otherwise name the others in a public
   /// issue — `created_by_username` rides along in every queue and archive record
   /// the log samples — and "who queued it" has never been the diagnosis.
+  ///
+  /// The last four cover a smart plug's integration wiring, which the sampled
+  /// `/smart-plugs/` record carries in full. None of it diagnoses anything the
+  /// plug's own state does not, and all of it describes infrastructure outside
+  /// bambuddy:
+  ///
+  /// * `entity` — Home Assistant ids are named by their owner, so they map a
+  ///   home: `switch.szafa_biuro` says which room the printer is in. Fenced by a
+  ///   non-alphanumeric so it cannot swallow `identity`.
+  /// * `topic` — an MQTT topic names the broker's tree and the devices on it.
+  /// * `headers` — a REST plug's headers are where an `Authorization` line lives.
+  ///   Nested maps are already caught by name at depth; this catches the same
+  ///   thing arriving as one JSON string, which the recursion cannot look inside.
+  /// * `rest_*_url` / `rest_*_body` — control endpoints on the user's LAN, plus
+  ///   whatever they POST to them. Scoped to the `rest_` prefix on purpose:
+  ///   `cover_url` and `external_camera_url` stay readable, and their host is
+  ///   masked by the authority pass anyway.
+  ///
+  /// Deliberately NOT here: `plug_type` (which integration is in use is the first
+  /// thing to know), the `*_path` selectors (a JSON pointer like `state.power` is
+  /// a field name, not an address, and it is what explains a plug reporting zero
+  /// watts), `rest_method`, and the multipliers and thresholds.
   static final _secretKey = RegExp(
     r'(token|api_?key|(?:^|[^a-z0-9])key(?:$|[^a-z0-9])|secret|password|passwd'
-    r'|authorization|access_?code|serial|cookie|username)',
+    r'|authorization|access_?code|serial|cookie|username'
+    r'|(?:^|[^a-z0-9])entity|(?:^|[^a-z0-9])topic|headers|rest_\w*(?:url|body))',
     caseSensitive: false,
   );
 
@@ -136,12 +159,22 @@ class LogRedactor {
 
   void forgetAll() => _known.clear();
 
+  /// The value of a secret-named field, which is the label — except for `null`,
+  /// which stays `null`.
+  ///
+  /// An absent value has nothing to leak, and whether one is set is often the
+  /// diagnosis: a plug wired to Home Assistant with no `ha_power_entity` reports
+  /// no power, and `[REDACTED]` on that field reads as "configured" and sends the
+  /// next reader looking somewhere else.
+  static Object? _redacted(Object? value) =>
+      value == null ? null : '[REDACTED]';
+
   Map<String, Object?> scrubFields(Map<String, Object?> fields) {
     if (fields.isEmpty) return const {};
     return {
       for (final e in fields.entries)
         e.key: _secretKey.hasMatch(e.key)
-            ? '[REDACTED]'
+            ? _redacted(e.value)
             : _isOurs(e.key, e.value)
                 ? e.value
                 : scrub(e.value),
@@ -166,7 +199,7 @@ class LogRedactor {
       return {
         for (final e in value.entries)
           '${e.key}': _secretKey.hasMatch('${e.key}')
-              ? '[REDACTED]'
+              ? _redacted(e.value)
               : _isOurs('${e.key}', e.value)
                   ? e.value
                   : scrub(e.value),

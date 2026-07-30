@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'calibration_option.dart';
 import 'json_utils.dart';
 
 part 'queue_item.g.dart';
@@ -55,13 +56,13 @@ class QueueItem {
     this.autoOffAfter = false,
     this.manualStart = false,
     this.plateId,
-    this.bedLevelling = true,
-    this.flowCali = false,
+    this.bedLevelling = CalibrationOption.auto,
+    this.flowCali = CalibrationOption.auto,
     this.vibrationCali = true,
     this.layerInspect = false,
     this.timelapse = false,
     this.useAms = true,
-    this.nozzleOffsetCali = true,
+    this.nozzleOffsetCali = CalibrationOption.auto,
     this.preheatOverride = 'inherit',
     this.preheatChamberTargetOverride,
     this.gcodeInjection = false,
@@ -202,10 +203,15 @@ class QueueItem {
   final int? plateId;
 
   /// Print options — defaults mirror the server model.
-  @JsonKey(defaultValue: true)
-  final bool bedLevelling;
-  @JsonKey(defaultValue: false)
-  final bool flowCali;
+  ///
+  /// The three calibrations are tri-state from bambuddy 1.2.5 on and plain
+  /// booleans before it; [calibrationFromJson] reads either, which is what keeps
+  /// the queue screen from emptying itself against a newer server (see
+  /// [CalibrationOption]). The other four never migrated and stay booleans.
+  @JsonKey(fromJson: calibrationFromJson)
+  final CalibrationOption bedLevelling;
+  @JsonKey(fromJson: calibrationFromJson)
+  final CalibrationOption flowCali;
   @JsonKey(defaultValue: true)
   final bool vibrationCali;
   @JsonKey(defaultValue: false)
@@ -214,8 +220,8 @@ class QueueItem {
   final bool timelapse;
   @JsonKey(defaultValue: true)
   final bool useAms;
-  @JsonKey(defaultValue: true)
-  final bool nozzleOffsetCali;
+  @JsonKey(fromJson: calibrationFromJson)
+  final CalibrationOption nozzleOffsetCali;
 
   /// Preheat & heat-soak override: `inherit` | `on` | `off`.
   @JsonKey(defaultValue: 'inherit')

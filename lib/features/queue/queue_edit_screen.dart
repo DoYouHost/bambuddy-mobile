@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/available_filament.dart';
+import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
@@ -94,12 +95,12 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   final Map<int, bool> _forceColorMatch = {};
 
   // Print options
-  late bool _bedLevelling;
-  late bool _flowCali;
+  late CalibrationOption _bedLevelling;
+  late CalibrationOption _flowCali;
   late bool _vibrationCali;
   late bool _layerInspect;
   late bool _timelapse;
-  late bool _nozzleOffsetCali;
+  late CalibrationOption _nozzleOffsetCali;
 
   // Preheat & heat soak
   late String _preheatOverride; // inherit | on | off
@@ -642,20 +643,27 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   // --- Print options ---
   Widget _printOptionsSection(AppLocalizations l10n, DashTokens t) {
+    // Two states until the server is known to have a third. A pre-1.2.5 server
+    // rejects `auto` outright, so offering the position before the probe answers
+    // would promise something we cannot deliver.
+    final triState =
+        ref.watch(triStateCalibrationProvider).valueOrNull ?? false;
     return _SectionCard(
       title: l10n.queueEditPrintOptions,
       child: Column(
         children: [
-          _OptionSwitch(
+          _CalibrationRow(
             title: l10n.queueOptBedLevelling,
             subtitle: l10n.queueOptBedLevellingDesc,
             value: _bedLevelling,
+            triState: triState,
             onChanged: (v) => setState(() => _bedLevelling = v),
           ),
-          _OptionSwitch(
+          _CalibrationRow(
             title: l10n.queueOptFlowCali,
             subtitle: l10n.queueOptFlowCaliDesc,
             value: _flowCali,
+            triState: triState,
             onChanged: (v) => setState(() => _flowCali = v),
           ),
           _OptionSwitch(
@@ -677,10 +685,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _timelapse = v),
           ),
           if (_showNozzleOffset)
-            _OptionSwitch(
+            _CalibrationRow(
               title: l10n.queueOptNozzleOffset,
               subtitle: l10n.queueOptNozzleOffsetDesc,
               value: _nozzleOffsetCali,
+              triState: triState,
               onChanged: (v) => setState(() => _nozzleOffsetCali = v),
             ),
         ],
@@ -907,6 +916,18 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return int.tryParse(_chamberTarget.text.trim())?.clamp(0, 60);
   }
 
+  /// A calibration option for the PATCH body, or `null` to leave the key out.
+  ///
+  /// Unchanged means unsent. That matters when the server has an `auto` stored
+  /// but this build is showing two states (an older server, or a probe that has
+  /// not answered): the switch renders `auto` as ON, and sending that back would
+  /// rewrite the user's `auto` as a plain `on` for a value they never touched.
+  CalibrationOption? _calibrationUpdate(
+    CalibrationOption current,
+    CalibrationOption stored,
+  ) =>
+      current == stored ? null : current;
+
   Future<void> _update(QueueRepository repo) => repo.updateItem(
         widget.item.id,
         printerId: _modelMode ? null : _printerId,
@@ -920,12 +941,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         autoOffAfter: _autoOffAfter,
         manualStart:
             _scheduleType == QueueScheduleType.queue && _requireManualStart,
-        bedLevelling: _bedLevelling,
-        flowCali: _flowCali,
+        bedLevelling:
+            _calibrationUpdate(_bedLevelling, widget.item.bedLevelling),
+        flowCali: _calibrationUpdate(_flowCali, widget.item.flowCali),
         vibrationCali: _vibrationCali,
         layerInspect: _layerInspect,
         timelapse: _timelapse,
-        nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+        nozzleOffsetCali: _showNozzleOffset
+            ? _calibrationUpdate(
+                _nozzleOffsetCali, widget.item.nozzleOffsetCali)
+            : null,
         preheatOverride: _preheatOverride,
         preheatChamberTargetOverride: _chamberTargetValue,
       );
@@ -1114,6 +1139,89 @@ class _SegToggle<T> extends StatelessWidget {
 }
 
 /// Title + subtitle row with a trailing [Switch] (print options).
+/// One tri-state calibration option.
+///
+/// bambuddy 1.2.5+ stores `off` / `on` / `auto`, so the row is a three-way
+/// segment. Older servers only have the boolean, and they are the reason this
+/// falls back to [_OptionSwitch] rather than greying a third position out: a
+/// position the server cannot store has no honest disabled state, it simply does
+/// not exist there.
+///
+/// The fallback maps `auto` onto the switch's ON side ([CalibrationOption.asSwitch]).
+/// That reads right — `auto` still lets the printer calibrate — and it cannot
+/// quietly rewrite the stored value, because the save path omits an untouched
+/// field entirely (see `_calibrationUpdate`).
+class _CalibrationRow extends StatelessWidget {
+  const _CalibrationRow({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.triState,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final CalibrationOption value;
+  final bool triState;
+  final ValueChanged<CalibrationOption> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!triState) {
+      return _OptionSwitch(
+        title: title,
+        subtitle: subtitle,
+        value: value.asSwitch,
+        onChanged: (v) =>
+            onChanged(v ? CalibrationOption.on : CalibrationOption.off),
+      );
+    }
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 12,
+              color: t.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _SegToggle<CalibrationOption>(
+            selected: value,
+            segments: [
+              (
+                value: CalibrationOption.auto,
+                label: l10n.commonAuto,
+                icon: null
+              ),
+              (value: CalibrationOption.on, label: l10n.commonOn, icon: null),
+              (value: CalibrationOption.off, label: l10n.commonOff, icon: null),
+            ],
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OptionSwitch extends StatelessWidget {
   const _OptionSwitch({
     required this.title,

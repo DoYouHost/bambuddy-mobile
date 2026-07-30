@@ -42,13 +42,19 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
   autoOffAfter: json['auto_off_after'] as bool? ?? false,
   manualStart: json['manual_start'] as bool? ?? false,
   plateId: (json['plate_id'] as num?)?.toInt(),
-  bedLevelling: json['bed_levelling'] as bool? ?? true,
-  flowCali: json['flow_cali'] as bool? ?? false,
+  bedLevelling: json['bed_levelling'] == null
+      ? CalibrationOption.auto
+      : calibrationFromJson(json['bed_levelling']),
+  flowCali: json['flow_cali'] == null
+      ? CalibrationOption.auto
+      : calibrationFromJson(json['flow_cali']),
   vibrationCali: json['vibration_cali'] as bool? ?? true,
   layerInspect: json['layer_inspect'] as bool? ?? false,
   timelapse: json['timelapse'] as bool? ?? false,
   useAms: json['use_ams'] as bool? ?? true,
-  nozzleOffsetCali: json['nozzle_offset_cali'] as bool? ?? true,
+  nozzleOffsetCali: json['nozzle_offset_cali'] == null
+      ? CalibrationOption.auto
+      : calibrationFromJson(json['nozzle_offset_cali']),
   preheatOverride: json['preheat_override'] as String? ?? 'inherit',
   preheatChamberTargetOverride:
       (json['preheat_chamber_target_override'] as num?)?.toInt(),

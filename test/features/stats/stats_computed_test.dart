@@ -41,17 +41,37 @@ void main() {
   });
 
   group('StatsComputed.from', () {
+    // Serwer stempluje UTC i część schematów nie dokleja `Z` (patrz
+    // [dateTimeFromJson]), a statystyki kubełkują po czasie **lokalnym**: „o
+    // której drukujesz" ma sens tylko w strefie użytkownika. Instanty trzymamy
+    // więc jawnie w UTC, a oczekiwania wyliczamy z tych samych instantów —
+    // inaczej test przechodziłby wyłącznie w strefie, w której go napisano.
+    // (Poprzednia wersja podawała `2026-06-01T10:00:00` i oczekiwała godziny 10
+    // jako lokalnej, czyli pinowała naprawiony właśnie błąd.)
+    //
+    // Dwa udane wydruki są blisko południa UTC celowo: przy każdym realnym
+    // offsecie (−12…+14) lądują tego samego dnia lokalnego, więc asercja o
+    // „najbusy dniu" nie rozpada się w skrajnej strefie.
+    final noon = DateTime.utc(2026, 6, 1, 12);
+    final afterNoon = DateTime.utc(2026, 6, 1, 13);
+    final failedAt = DateTime.utc(2026, 6, 2, 21);
+
+    DateTime localDay(DateTime utc) {
+      final l = utc.toLocal();
+      return DateTime(l.year, l.month, l.day);
+    }
+
     final items = [
-      _a(status: 'completed', createdAt: '2026-06-01T10:00:00', seconds: 1000, grams: 50, material: 'PLA', color: '#FF0000', cost: 1.5, printerId: 1),
-      _a(status: 'completed', createdAt: '2026-06-01T14:00:00', seconds: 5000, grams: 120, material: 'PETG', color: '#00FF00', cost: 4.0, printerId: 1),
-      _a(status: 'failed', createdAt: '2026-06-02T21:00:00', seconds: 90000, grams: 300, material: 'PLA', color: '#FF0000', cost: 9.0, printerId: 2),
+      _a(status: 'completed', createdAt: noon.toIso8601String(), seconds: 1000, grams: 50, material: 'PLA', color: '#FF0000', cost: 1.5, printerId: 1),
+      _a(status: 'completed', createdAt: afterNoon.toIso8601String(), seconds: 5000, grams: 120, material: 'PETG', color: '#00FF00', cost: 4.0, printerId: 1),
+      _a(status: 'failed', createdAt: failedAt.toIso8601String(), seconds: 90000, grams: 300, material: 'PLA', color: '#FF0000', cost: 9.0, printerId: 2),
     ];
     final c = StatsComputed.from(items);
 
     test('zlicza wydruki per dzień i wskazuje najbusy dzień', () {
-      expect(c.printsByDay[DateTime(2026, 6, 1)], 2);
-      expect(c.printsByDay[DateTime(2026, 6, 2)], 1);
-      expect(c.busiestDay, DateTime(2026, 6, 1));
+      expect(c.printsByDay[localDay(noon)], 2);
+      expect(c.printsByDay[localDay(failedAt)], 1);
+      expect(c.busiestDay, localDay(noon));
       expect(c.busiestDayCount, 2);
     });
 
@@ -87,11 +107,14 @@ void main() {
       expect(c.byPrinter[2]!.prints, 1);
     });
 
-    test('godziny doby', () {
-      expect(c.byHour[10], 1);
-      expect(c.byHour[14], 1);
-      expect(c.byHour[21], 1);
-      expect(c.failedByHour[21], 1);
+    test('godziny doby liczone w czasie lokalnym, nie UTC', () {
+      // To jest ta poprawka: wykres „o której drukujesz" ma pokazywać godzinę,
+      // o której user stał przy drukarce. Wcześniej kubełkował po UTC, więc na
+      // każdym urządzeniu z niezerowym offsetem był przesunięty.
+      expect(c.byHour[noon.toLocal().hour], 1);
+      expect(c.byHour[afterNoon.toLocal().hour], 1);
+      expect(c.byHour[failedAt.toLocal().hour], 1);
+      expect(c.failedByHour[failedAt.toLocal().hour], 1);
     });
   });
 }

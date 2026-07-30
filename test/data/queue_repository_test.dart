@@ -1,4 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:dio/dio.dart';
@@ -44,6 +46,24 @@ void main() {
     expect(items, hasLength(payload.length),
         reason: 'ani jeden rekord nie może wypaść przy parsowaniu');
     expect(items.map((i) => i.id), payload.map((r) => (r as Map)['id']));
+  });
+
+  test('fetch: odpowiedź serwera 1.2.5 nie gubi ani jednego rekordu', () async {
+    // To jest ten pusty ekran ze zgłoszenia: trzy pola kalibracji przyszły jako
+    // stringi, generowany rzut na bool rzucał na KAŻDYM rekordzie i lista
+    // wychodziła pusta przy statusie 200.
+    final payload = readFixture('queue_list_tristate.json') as List<dynamic>;
+    adapter.onGet('/api/v1/queue/', (server) => server.reply(200, payload));
+
+    final items = await repo.fetch();
+
+    expect(items, hasLength(payload.length));
+    expect(items.map((i) => i.bedLevelling),
+        [CalibrationOption.off, CalibrationOption.auto]);
+    expect(items.map((i) => i.nozzleOffsetCali),
+        [CalibrationOption.auto, CalibrationOption.off]);
+    expect(items.where((i) => i.isActive), hasLength(2),
+        reason: 'pending + printing — ekran kolejki ma co pokazać');
   });
 
   test('fetch: pozycje spoza AMS i dziwne nazwy przechodzą bez straty',
@@ -246,8 +266,8 @@ void main() {
         manualStart: true,
         requirePreviousSuccess: false,
         autoOffAfter: false,
-        bedLevelling: true,
-        flowCali: false,
+        bedLevelling: CalibrationOption.on,
+        flowCali: CalibrationOption.off,
         vibrationCali: true,
         layerInspect: false,
         timelapse: false,
@@ -278,6 +298,199 @@ void main() {
         scheduledTime: '2026-07-28T20:00:00.000Z',
       ),
     );
+  });
+
+  group('kalibracje na zapisie', () {
+    /// Repozytorium pytające podstawiony serwer o wersję.
+    QueueRepository repoFor(String version) {
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (server) => server.reply(200, {'version': version, 'repo': 'x/y'}),
+      );
+      return QueueRepository(dio, ServerVersionService(dio));
+    }
+
+    test('on/off zawsze booleanem — również na serwerze 1.2.5', () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'quantity': 1,
+          'bed_levelling': true,
+          'flow_cali': false,
+        },
+      );
+
+      await repoFor('1.2.5.1').addFromArchive(
+        77,
+        options: const QueueCreateOptions(
+          bedLevelling: CalibrationOption.on,
+          flowCali: CalibrationOption.off,
+        ),
+      );
+    });
+
+    test('auto leci jako string na serwer, który to umie', () async {
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {
+          'archive_id': 77,
+          'quantity': 1,
+          'bed_levelling': 'auto',
+        },
+      );
+
+      await repoFor('1.2.5.1').addFromArchive(
+        77,
+        options: const QueueCreateOptions(bedLevelling: CalibrationOption.auto),
+      );
+    });
+
+    test('auto wypada z body na starszym serwerze, zamiast udawać boolean',
+        () async {
+      // 0.2.4.9 nie ma gdzie zapisać auto. Wysłanie true przekłamałoby wybór
+      // usera, a wysłanie "auto" dałoby 422 — klucz ma zniknąć i niech serwer
+      // użyje własnej wartości domyślnej.
+      adapter.onPost(
+        '/api/v1/queue/',
+        (server) => server.reply(200, null),
+        data: {'archive_id': 77, 'quantity': 1, 'flow_cali': false},
+      );
+
+      await repoFor('0.2.4.9').addFromArchive(
+        77,
+        options: const QueueCreateOptions(
+          bedLevelling: CalibrationOption.auto,
+          flowCali: CalibrationOption.off,
+        ),
+      );
+    });
+
+    test('nieznana wersja zachowuje się jak starsza', () async {
+      adapter.onGet(
+        '/api/v1/updates/version',
+        (server) => server.reply(500, null),
+      );
+      adapter.onPatch(
+        '/api/v1/queue/9',
+        (server) => server.reply(200, null),
+        data: {'bed_levelling': true},
+      );
+
+      await QueueRepository(dio, ServerVersionService(dio)).updateItem(
+        9,
+        bedLevelling: CalibrationOption.on,
+        nozzleOffsetCali: CalibrationOption.auto,
+      );
+    });
+
+    test('nasz serwer 0.2.5b2: booleany potwierdzone zapytaniem na żywo',
+        () async {
+      // Sprawdzone 2026-07-30 curlem na własny serwer: `.[0].bed_levelling`
+      // zwraca `true`. Czyli 0.2.5b2 jest PRZED zmianą na trójstan — numer
+      // wersji dawał tę samą odpowiedź, ale przypadkiem, nie z dowodu.
+      final repo = repoFor('0.2.5b2');
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [
+          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': true},
+        ]),
+      );
+      await repo.fetch();
+
+      expect(await repo.supportsTriStateCalibration(), isFalse);
+    });
+
+    test('to, co serwer przysłał, bije numer wersji', () async {
+      // Ten sam numer wersji, ale gdyby serwer wysyłał stringi — obserwacja ma
+      // wygrać. Bramkowanie po numerze jest tu formalnie nierozstrzygalne:
+      // 0.2.5b2 to beta tego samego cyklu, który wyszedł jako 1.2.5, a leży pod
+      // nim w każdym porządku.
+      final repo = repoFor('0.2.5b2');
+      expect(await repo.supportsTriStateCalibration(), isFalse,
+          reason: 'zanim cokolwiek zobaczy — ostrożnie');
+
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [
+          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': 'auto'},
+        ]),
+      );
+      await repo.fetch();
+
+      expect(await repo.supportsTriStateCalibration(), isTrue,
+          reason: 'stringi w odpowiedzi to dowód, nie poszlaka');
+    });
+
+    test('booleany w odpowiedzi trzymają nas przy starym kształcie', () async {
+      // Odwrotny kierunek: serwer nazywa się 1.2.5, ale gdyby wysyłał booleany,
+      // obserwacja też ma wygrać — nie wyślemy mu stringa.
+      final repo = repoFor('1.2.5.1');
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [
+          {'id': 1, 'position': 1, 'status': 'pending', 'bed_levelling': true},
+        ]),
+      );
+      await repo.fetch();
+
+      expect(await repo.supportsTriStateCalibration(), isFalse);
+    });
+
+    test('odpowiedź bez pól kalibracji nic nie ustala', () async {
+      final repo = repoFor('1.2.5.1');
+      adapter.onGet(
+        '/api/v1/queue/',
+        (server) => server.reply(200, [
+          {'id': 1, 'position': 1, 'status': 'pending'},
+        ]),
+      );
+      await repo.fetch();
+
+      expect(await repo.supportsTriStateCalibration(), isTrue,
+          reason: 'brak obserwacji → decyduje wersja');
+    });
+
+    test('po obserwacji auto jedzie na serwer 0.2.5b2', () async {
+      final repo = repoFor('0.2.5b2');
+      adapter
+        ..onGet(
+          '/api/v1/queue/',
+          (server) => server.reply(200, [
+            {
+              'id': 1,
+              'position': 1,
+              'status': 'pending',
+              'nozzle_offset_cali': 'auto',
+            },
+          ]),
+        )
+        ..onPatch(
+          '/api/v1/queue/9',
+          (server) => server.reply(200, null),
+          data: {'bed_levelling': 'auto'},
+        );
+
+      await repo.fetch();
+      await repo.updateItem(9, bedLevelling: CalibrationOption.auto);
+    });
+
+    test('bez serwisu wersji też działa — czytające wywołania go nie mają',
+        () async {
+      adapter.onPatch(
+        '/api/v1/queue/9',
+        (server) => server.reply(200, null),
+        data: {'flow_cali': false},
+      );
+
+      await QueueRepository(dio).updateItem(
+        9,
+        flowCali: CalibrationOption.off,
+        bedLevelling: CalibrationOption.auto,
+      );
+    });
   });
 
   test('puste opcje nie dokładają nic do body', () async {

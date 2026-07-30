@@ -3703,6 +3703,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get commonOff => 'Wył.';
 
   @override
+  String get commonAuto => 'Auto';
+
+  @override
   String get queueEdit => 'Edytuj';
 
   @override

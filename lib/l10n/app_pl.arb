@@ -1176,6 +1176,7 @@
 
   "commonOn": "Wł.",
   "commonOff": "Wył.",
+  "commonAuto": "Auto",
 
   "queueEdit": "Edytuj",
   "queueEditTitle": "Edytuj pozycję kolejki",

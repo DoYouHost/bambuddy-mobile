@@ -3649,6 +3649,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonOff => 'Off';
 
   @override
+  String get commonAuto => 'Auto';
+
+  @override
   String get queueEdit => 'Edit';
 
   @override

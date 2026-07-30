@@ -117,8 +117,7 @@ class MaintenanceStatus {
   @JsonKey(name: 'last_performed_at')
   final String? lastPerformedAtRaw;
 
-  DateTime? get lastPerformedAt =>
-      lastPerformedAtRaw == null ? null : DateTime.tryParse(lastPerformedAtRaw!);
+  DateTime? get lastPerformedAt => dateTimeFromJson(lastPerformedAtRaw);
 
   MaintenanceSeverity get severity => isDue
       ? MaintenanceSeverity.due
@@ -233,8 +232,7 @@ class MaintenanceHistoryEntry {
 
   final String? notes;
 
-  DateTime? get performedAtDate =>
-      performedAt == null ? null : DateTime.tryParse(performedAt!);
+  DateTime? get performedAtDate => dateTimeFromJson(performedAt);
 }
 
 List<MaintenanceStatus> _maintenanceItemsFromJson(dynamic value) =>

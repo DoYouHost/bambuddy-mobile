@@ -1,3 +1,5 @@
+import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
@@ -21,13 +23,24 @@ import '../../helpers.dart';
 /// "these keys differ", not as an unexplained connection error.
 Map<String, dynamic>? _captured;
 
-QueueRepository _repo() {
+/// [triState] is the server generation the whole screen talks to — the repository
+/// reads it from the version endpoint exactly as it does in production, so the
+/// form and the request body cannot disagree about what the server can store.
+QueueRepository _repo({required bool triState}) {
   final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
   dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-    _captured = options.data as Map<String, dynamic>?;
+    // The version probe is a GET with no body; only the queue writes matter here.
+    if (options.data != null) _captured = options.data as Map<String, dynamic>?;
     handler.next(options);
   }));
   DioAdapter(dio: dio)
+    ..onGet(
+      '/api/v1/updates/version',
+      (server) => server.reply(200, {
+        'version': triState ? '1.2.5.1' : '0.2.4.9',
+        'repo': 'maziggy/bambuddy',
+      }),
+    )
     ..onPost(
       '/api/v1/queue/',
       (server) => server.reply(200, null),
@@ -38,7 +51,7 @@ QueueRepository _repo() {
       (server) => server.reply(200, null),
       data: Matchers.any,
     );
-  return QueueRepository(dio);
+  return QueueRepository(dio, ServerVersionService(dio));
 }
 
 /// Null profile: [QueueNotifier.refresh] short-circuits, so the only request
@@ -52,17 +65,21 @@ const _printer = Printer(id: 1, name: 'X2D-3DP', model: 'X2D');
 
 late SharedPreferences _prefs;
 
+/// [triState] stands in for the server-version probe: `false` is what an older
+/// server (or an unanswered probe) gives the form, `true` is bambuddy 1.2.5+.
 Widget _screen(
   QueueItem draft,
   QueueScheduleType schedule, {
   QueueEditMode mode = QueueEditMode.create,
+  bool triState = false,
 }) =>
     ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_NullProfileNotifier.new),
-        queueRepositoryProvider.overrideWithValue(_repo()),
+        queueRepositoryProvider.overrideWithValue(_repo(triState: triState)),
         allPrintersProvider.overrideWith((ref) async => const [_printer]),
         sharedPreferencesProvider.overrideWithValue(_prefs),
+        triStateCalibrationProvider.overrideWith((ref) async => triState),
       ],
       child: plApp(QueueEditScreen(
         item: draft,
@@ -143,12 +160,12 @@ void main() {
     await _prefs.setString(
       'print_options',
       const PrintOptions(
-        bedLevelling: false,
-        flowCali: false,
+        bedLevelling: CalibrationOption.off,
+        flowCali: CalibrationOption.off,
         vibrationCali: true,
         layerInspect: false,
         timelapse: true,
-        nozzleOffsetCali: true,
+        nozzleOffsetCali: CalibrationOption.on,
       ).encode(),
     );
 
@@ -172,7 +189,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
     await tester.pumpAndSettle();
 
-    expect(_stored().bedLevelling, false);
+    expect(_stored().bedLevelling, CalibrationOption.off);
     expect(_stored().vibrationCali, true);
   });
 
@@ -243,5 +260,98 @@ void main() {
 
     expect(_captured, isNull);
     expect(find.text('Wybierz drukarkę'), findsOneWidget);
+  });
+
+  group('trójstanowe kalibracje', () {
+    /// The item the edit tests start from: stored `auto` on bed levelling, which
+    /// is the value a two-state form must not quietly rewrite.
+    QueueItem storedAuto() => QueueItem.fromJson({
+          'id': 5,
+          'position': 1,
+          'status': 'pending',
+          'archive_id': 77,
+          'printer_id': 1,
+          'sliced_for_model': 'X2D',
+          'bed_levelling': 'auto',
+          'flow_cali': 'on',
+          'nozzle_offset_cali': 'auto',
+        });
+
+    testWidgets('starszy serwer nie pokazuje pozycji Auto', (tester) async {
+      await tester.pumpWidget(_screen(_archiveDraft(), QueueScheduleType.asap));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Auto'), findsNothing,
+          reason: 'serwer nie ma gdzie zapisać auto — nie obiecujemy go');
+      expect(find.byType(Switch), isNot(findsNothing));
+    });
+
+    testWidgets('serwer 1.2.5 daje wybór Auto / Wł. / Wył.', (tester) async {
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        triState: true,
+      ));
+      await tester.pumpAndSettle();
+
+      // Trzy pola kalibracji na ekranie (poziomowanie, przepływ, offset dyszy).
+      expect(find.text('Auto'), findsNWidgets(3));
+    });
+
+    testWidgets('wybrane Auto leci na serwer jako auto', (tester) async {
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        triState: true,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Auto').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?['bed_levelling'], 'auto');
+    });
+
+    testWidgets('nietknięte auto nie jest nadpisywane przy edycji',
+        (tester) async {
+      // Formularz dwustanowy rysuje auto jako ON. Odesłanie tego jako `true`
+      // przepisałoby userowi auto na on — pole, którego nie tknął, ma nie
+      // pojechać wcale.
+      await tester.pumpWidget(_screen(
+        storedAuto(),
+        QueueScheduleType.queue,
+        mode: QueueEditMode.edit,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Zapisz'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?.containsKey('bed_levelling'), isFalse);
+      expect(_captured?.containsKey('nozzle_offset_cali'), isFalse);
+      expect(_captured?.containsKey('flow_cali'), isFalse,
+          reason: 'on też nietknięte');
+    });
+
+    testWidgets('zmienione pole jedzie normalnie', (tester) async {
+      await tester.pumpWidget(_screen(
+        storedAuto(),
+        QueueScheduleType.queue,
+        mode: QueueEditMode.edit,
+      ));
+      await tester.pumpAndSettle();
+
+      // Pierwszy przełącznik to poziomowanie stołu — auto rysuje się jako ON,
+      // więc tapnięcie ustawia off.
+      await tester.tap(find.byType(Switch).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Zapisz'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?['bed_levelling'], false);
+      expect(_captured?.containsKey('flow_cali'), isFalse);
+    });
   });
 }

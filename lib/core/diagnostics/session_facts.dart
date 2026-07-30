@@ -35,8 +35,9 @@ class SessionFacts {
 
   final String? locale;
 
-  /// bambuddy version. Nothing in the app currently reads it from the server,
-  /// so it stays empty until something does.
+  /// bambuddy version, as the server reports it at `/updates/version`. Empty
+  /// when the server could not be reached or answered something unparseable —
+  /// which is itself worth seeing in a report.
   final String? server;
 
   final ServerFingerprint? serverUrl;
@@ -96,9 +97,18 @@ Future<Map<String, String>> sessionSecrets({
 }
 
 /// Reads the real facts off the device and the stored profile.
+///
+/// [readServerVersion] is awaited for the header's `server` field. It is a
+/// callback rather than a value because the version comes off the network, and
+/// the header is written once at the top of the log where it is most useful:
+/// which server build produced the behaviour below is the first question every
+/// report raises, and the queue-enum diagnosis
+/// (`docs/plans/07-queue-cali-enum.md`) cost a day for want of exactly this line.
+/// A failure to read it is swallowed — a recording must start regardless.
 Future<SessionFacts> loadSessionFacts({
   required ServerProfile? profile,
   required CredentialsStore credentials,
+  Future<String?> Function()? readServerVersion,
 }) async {
   final info = await PackageInfo.fromPlatform();
   final secrets =
@@ -109,6 +119,8 @@ Future<SessionFacts> loadSessionFacts({
     flavor: appFlavor ?? 'mobile',
     os: Platform.operatingSystemVersion,
     locale: PlatformDispatcher.instance.locale.toLanguageTag(),
+    server:
+        readServerVersion == null ? null : await _quietly(readServerVersion),
     serverUrl: ServerFingerprint.tryParse(profile?.baseUrl),
     auth: profile?.authMode.name,
     secrets: secrets,
