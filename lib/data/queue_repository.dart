@@ -73,9 +73,9 @@ class QueueCreateOptions {
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
-  /// calibrations — see [CalibrationOption.toWire]. When it cannot, an `auto`
-  /// drops out of the body and the server applies its own default, which is the
-  /// closest thing to `auto` it has.
+  /// calibrations. Creating uses [CalibrationOption.toCreateWire], not
+  /// `toWire`: there is no stored value to protect here, so an `auto` the server
+  /// cannot keep is sent as the state the form was showing rather than omitted.
   Map<String, dynamic> toJson({required bool triState}) => <String, dynamic>{
         'target_model': ?targetModel,
         'target_location': ?targetLocation,
@@ -86,12 +86,13 @@ class QueueCreateOptions {
         'require_previous_success': ?requirePreviousSuccess,
         'auto_off_after': ?autoOffAfter,
         'manual_start': ?manualStart,
-        'bed_levelling': ?bedLevelling?.toWire(triState: triState),
-        'flow_cali': ?flowCali?.toWire(triState: triState),
+        'bed_levelling': ?bedLevelling?.toCreateWire(triState: triState),
+        'flow_cali': ?flowCali?.toCreateWire(triState: triState),
         'vibration_cali': ?vibrationCali,
         'layer_inspect': ?layerInspect,
         'timelapse': ?timelapse,
-        'nozzle_offset_cali': ?nozzleOffsetCali?.toWire(triState: triState),
+        'nozzle_offset_cali':
+            ?nozzleOffsetCali?.toCreateWire(triState: triState),
         'preheat_override': ?preheatOverride,
         'preheat_chamber_target_override': ?preheatChamberTargetOverride,
       };

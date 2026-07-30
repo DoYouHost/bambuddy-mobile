@@ -348,23 +348,47 @@ void main() {
       );
     });
 
-    test('auto wypada z body na starszym serwerze, zamiast udawać boolean',
+    test('tworzenie: auto na starym serwerze idzie tak, jak pokazał formularz',
         () async {
-      // 0.2.4.9 nie ma gdzie zapisać auto. Wysłanie true przekłamałoby wybór
-      // usera, a wysłanie "auto" dałoby 422 — klucz ma zniknąć i niech serwer
-      // użyje własnej wartości domyślnej.
+      // `auto` trafia tu tylko jako wybór zapamiętany z nowszego serwera. Stary
+      // nie ma go gdzie zapisać, a formularz pokazuje wtedy przełącznik
+      // dwustanowy w pozycji ON — więc ON ma pojechać. Pominięcie klucza
+      // oddawało decyzję serwerowi, a jego domyślna dla `flow_cali` to `false`,
+      // czyli ekran mówił co innego, niż się zapisywało.
       adapter.onPost(
         '/api/v1/queue/',
         (server) => server.reply(200, null),
-        data: {'archive_id': 77, 'quantity': 1, 'flow_cali': false},
+        data: {
+          'archive_id': 77,
+          'quantity': 1,
+          'bed_levelling': true,
+          'flow_cali': true,
+        },
       );
 
       await repoFor('0.2.4.9').addFromArchive(
         77,
         options: const QueueCreateOptions(
           bedLevelling: CalibrationOption.auto,
-          flowCali: CalibrationOption.off,
+          flowCali: CalibrationOption.auto,
         ),
+      );
+    });
+
+    test('edycja: auto na starym serwerze nadal wypada z body', () async {
+      // Odwrotnie niż przy tworzeniu: tu JEST zapisana wartość do ochrony.
+      // Wysłanie booleana przepisałoby userowi auto na on/off w polu, którego
+      // mógł nie tknąć.
+      adapter.onPatch(
+        '/api/v1/queue/9',
+        (server) => server.reply(200, null),
+        data: {'flow_cali': false},
+      );
+
+      await repoFor('0.2.4.9').updateItem(
+        9,
+        bedLevelling: CalibrationOption.auto,
+        flowCali: CalibrationOption.off,
       );
     });
 

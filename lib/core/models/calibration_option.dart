@@ -15,21 +15,40 @@ enum CalibrationOption {
   on,
   auto;
 
-  /// Value for a request body, or `null` to leave the key out of the body.
+  /// Value for an **update** body, or `null` to leave the key out of it.
   ///
   /// [on] and [off] always go as booleans: pre-1.2.5 servers take only that
   /// form, and 1.2.5+ maps it back through its own `_coerce_tristate` validator
   /// (`bool → "on"/"off"`), so a boolean is the one spelling every server
   /// understands. Only [auto] needs the string form, and only a [triState]
-  /// server has somewhere to put it — elsewhere the key is omitted, which leaves
-  /// a stored value untouched on an update and lets the server apply its own
-  /// default on a create. Both are honest about "this server cannot store auto";
-  /// sending a boolean instead would quietly turn the user's `auto` into
-  /// on-or-off.
+  /// server has somewhere to put it.
+  ///
+  /// Where it does not, the key is omitted rather than degraded, because an
+  /// update has a stored value to protect: sending a boolean would rewrite the
+  /// user's `auto` as plain on-or-off for a field they may not have touched.
+  /// See [toCreateWire] for why a create needs the opposite answer.
   Object? toWire({required bool triState}) => switch (this) {
         CalibrationOption.on => true,
         CalibrationOption.off => false,
         CalibrationOption.auto => triState ? 'auto' : null,
+      };
+
+  /// Value for a **create** body. Never `null` — every field is decided here.
+  ///
+  /// The difference from [toWire] is [auto] on a server that cannot store it. An
+  /// update omits the key so the stored value survives; a create has no stored
+  /// value, only the control the user was looking at. That control is a two-state
+  /// switch showing [asSwitch], so sending anything else — including omitting the
+  /// key and letting the server pick — makes the form lie: the server's own
+  /// default for `flow_cali` is `false` while the switch reads ON.
+  ///
+  /// `auto` reaches a pre-1.2.5 server only when it was remembered from a newer
+  /// one ([PrintOptions] persists the last choice) and the app was then pointed
+  /// at the older server.
+  Object toCreateWire({required bool triState}) => switch (this) {
+        CalibrationOption.on => true,
+        CalibrationOption.off => false,
+        CalibrationOption.auto => triState ? 'auto' : asSwitch,
       };
 
   /// How the option reads on a control that has no `auto` position (an older

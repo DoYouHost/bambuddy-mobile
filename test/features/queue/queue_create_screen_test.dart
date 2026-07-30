@@ -366,6 +366,45 @@ void main() {
           reason: 'on jedzie booleanem — rozumie go każda wersja serwera');
     });
 
+    testWidgets('zapamiętane Auto na starym serwerze: ekran nie kłamie',
+        (tester) async {
+      // Jedyna droga, którą `auto` trafia do starego serwera: wybrane na
+      // nowszym i zapamiętane, potem przełączenie apki na starszy. Formularz
+      // rysuje wtedy przełącznik dwustanowy w pozycji ON i to ON musi się
+      // zapisać. Wcześniej klucz wypadał z body, a domyślna serwera dla
+      // `flow_cali` to `false` — user widział włączone, dostawał wyłączone.
+      await _prefs.setString(
+        'print_options',
+        const PrintOptions(
+          bedLevelling: CalibrationOption.auto,
+          flowCali: CalibrationOption.auto,
+          vibrationCali: true,
+          layerInspect: true,
+          timelapse: false,
+          nozzleOffsetCali: CalibrationOption.auto,
+        ).encode(),
+      );
+
+      await tester.pumpWidget(_screen(_archiveDraft(), QueueScheduleType.asap));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Auto'), findsNothing,
+          reason: 'stary serwer — trzech stanów nie ma');
+      expect(
+        tester.widgetList<Switch>(find.byType(Switch)).first.value,
+        isTrue,
+        reason: 'auto rysuje się jako włączone',
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?['bed_levelling'], true);
+      expect(_captured?['flow_cali'], true,
+          reason: 'to jest ten punkt: przełącznik ON, więc na serwer idzie ON');
+      expect(_captured?['nozzle_offset_cali'], true);
+    });
+
     testWidgets('nietknięte auto nie jest nadpisywane przy edycji',
         (tester) async {
       // Formularz dwustanowy rysuje auto jako ON. Odesłanie tego jako `true`
