@@ -183,38 +183,40 @@ _bump ver:
         git commit -m "chore: bump version to {{ver}}"
     fi
 
-# create Codeberg release and upload phone + watch APKs (assumes both built)
+# create GitHub release and upload phone + watch APKs (assumes both built)
 # usage: just release 1.0.0
 release ver:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Push the bump commit first; let Codeberg create the tag together with the
+    # Push the bump commit first; let GitHub create the tag together with the
     # release in one server-side call. This avoids the race where we push a tag
-    # and immediately reference it before Codeberg has indexed it.
+    # and immediately reference it before the server has indexed it.
     git push origin HEAD:master
     # Skip creating the release if it already exists (e.g. a previous run got
     # this far before failing), so the pipeline can be resumed safely.
-    # Capture the list first: piping straight into `grep -q` deadlocks against
-    # `set -o pipefail` — grep closes the pipe on the first match, tea dies with
-    # SIGPIPE (141), the pipeline returns non-zero, and the `if` wrongly takes
-    # the "not found" branch → a bogus re-create that aborts the run.
-    existing=$(tea releases list --remote origin --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
-    if grep -qxF "v{{ver}}" <<<"$existing"; then
+    if gh release view "v{{ver}}" --repo {{repo}} >/dev/null 2>&1; then
         echo "Release v{{ver}} already exists, skipping create"
     else
-        tea releases create --remote origin --target master --tag v{{ver}} --title "v{{ver}}"
+        # Empty notes on purpose: the Play/Obtainium changelog is written by hand
+        # afterwards, and --generate-notes would fill it with raw commit subjects.
+        gh release create "v{{ver}}" --repo {{repo}} --target master \
+            --title "v{{ver}}" --notes ""
     fi
     # Upload both APKs to the one release. Phone + watch share an applicationId
     # but have distinct filenames (app-mobile/app-wear), so Obtainium picks the
     # right one via a filename regex. Skip an asset that's already up so a
     # resumed run doesn't duplicate it.
+    #
+    # Capture the asset list before filtering it: `gh ... | grep -q` deadlocks
+    # against `set -o pipefail` — grep closes the pipe on its first match, gh
+    # dies with SIGPIPE (141), and the `if` wrongly takes the "not found" branch.
+    assets=$(gh release view "v{{ver}}" --repo {{repo}} --json assets --jq '.assets[].name')
     for f in {{apk}} {{wear_apk}}; do
         name=$(basename "$f")
-        assets=$(tea releases assets list --remote origin v{{ver}} --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
         if grep -qxF "$name" <<<"$assets"; then
             echo "Asset $name already uploaded, skipping"
         else
-            tea releases assets create --remote origin v{{ver}} "$f"
+            gh release upload "v{{ver}}" --repo {{repo}} "$f"
         fi
     done
     # Sync the server-created tag back to the local repo.
@@ -226,16 +228,18 @@ release ver:
 # whole latest minor (e.g. all of v0.2.x) keeps its APKs while v0.1.x and earlier
 # lose theirs. With VER (like release-purge) everything at or below that release
 # is stripped, the newest minor included.
-# Irreversible on the server side.
-# free Codeberg release-storage quota: strip artifacts from old releases
+# Irreversible on the server side. The original driver was Codeberg's release
+# storage quota, which GitHub does not impose; what is left is housekeeping, so
+# old releases stay findable without carrying binaries nobody installs.
+# strip artifacts from old releases
 # usage: just release-cleanup [0.9.0]
 release-cleanup ver='':
     #!/usr/bin/env bash
     set -euo pipefail
-    # Capture the list first (piping tea straight into a filter risks a pipefail
-    # abort). tea's TSV wraps the notes body onto extra lines, so keep only real
-    # vMAJOR.MINOR.PATCH tags. A high --limit grabs every release in one page.
-    releases=$(tea releases list --remote origin --limit 50 --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+    # Capture the list first (piping gh straight into a filter risks a pipefail
+    # abort). Keep only real vMAJOR.MINOR.PATCH tags; a high --limit grabs every
+    # release in one page.
+    releases=$(gh release list --repo {{repo}} --limit 50 --json tagName --jq '.[].tagName')
     tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
     if [ -z "$tags" ]; then
         echo "No version releases found; nothing to clean."
@@ -286,28 +290,31 @@ release-cleanup ver='':
         exit 1
     fi
     for tag in $doomed; do
-        mapfile -t assets < <(tea releases assets list --remote origin "$tag" --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+        mapfile -t assets < <(gh release view "$tag" --repo {{repo}} --json assets --jq '.assets[].name')
         if (( ${#assets[@]} == 0 )); then
             echo "  $tag: no artifacts"
             continue
         fi
         echo "  $tag: deleting ${assets[*]}"
-        tea releases assets delete --remote origin -y "$tag" "${assets[@]}"
+        # One call per asset: gh takes a single asset name, unlike tea.
+        for name in "${assets[@]}"; do
+            gh release delete-asset "$tag" "$name" --repo {{repo}} -y
+        done
     done
     echo "Cleanup done."
 
 # Deletes whole releases (entry, title, notes and artifacts) at VER and below —
 # unlike release-cleanup, which only strips artifacts. Tags are kept, so history
 # and `git describe` still work, and a release can be recreated from one; pass
-# --delete-tag to tea by hand if you really want the tags gone too.
+# --cleanup-tag to gh by hand if you really want the tags gone too.
 # Irreversible on the server side, hence the preview + typed confirmation.
 # delete whole releases from VER downwards: just release-purge 0.9.0
 release-purge ver:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Capture first (piping tea straight into a filter risks a pipefail abort);
-    # tea's TSV wraps notes onto extra lines, so keep only real version tags.
-    releases=$(tea releases list --remote origin --limit 100 --output tsv 2>/dev/null | awk -F'\t' 'NR>1 {print $1}')
+    # Capture first (piping gh straight into a filter risks a pipefail abort);
+    # keep only real version tags.
+    releases=$(gh release list --repo {{repo}} --limit 100 --json tagName --jq '.[].tagName')
     tags=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$releases" || true)
     if [ -z "$tags" ]; then
         echo "No version releases found; nothing to purge."
@@ -326,7 +333,7 @@ release-purge ver:
         echo "No releases at or below v{{ver}}; nothing to purge."
         exit 0
     fi
-    echo "About to DELETE these releases from Codeberg (irreversible; tags stay):"
+    echo "About to DELETE these releases from GitHub (irreversible; tags stay):"
     printf '  %s\n' $doomed
     echo "Keeping: $(comm -23 <(sort <<<"$tags") <(sort <<<"$doomed") | tr '\n' ' ')"
     read -r -p "Type 'yes' to confirm: " answer
@@ -334,7 +341,10 @@ release-purge ver:
         echo "Aborted."
         exit 1
     fi
-    tea releases delete --remote origin -y $doomed
+    # One call per release: gh deletes a single tag, unlike tea.
+    for tag in $doomed; do
+        gh release delete "$tag" --repo {{repo}} -y
+    done
     echo "Purged $(wc -l <<<"$doomed") releases."
 
 # bump version, test, build and release — full pipeline

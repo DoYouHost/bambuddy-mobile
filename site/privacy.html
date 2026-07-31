@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bambuddy mobile — Privacy Policy</title>
+  <meta name="description" content="Privacy policy for Bambuddy mobile, an unofficial open-source companion app for a self-hosted bambuddy Bambu Lab printer manager.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="container">
+      <a class="brand" href="index.html">Bam<span class="accent">buddy</span> <span class="sub">mobile</span></a>
+      <div class="links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html" class="active">Privacy</a>
+        <a href="https://github.com/DoYouHost/bambuddy-mobile">Source</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <h1 class="page-title">Privacy Policy</h1>
+      <div class="card">
+        <p class="updated">Last updated: 31 July 2026</p>
+
+        <p>Bambuddy mobile is an unofficial, open-source Android companion app for a
+        <strong>self-hosted bambuddy server</strong> that manages Bambu Lab 3D printers.
+        It is <strong>not affiliated with, endorsed by, or connected to Bambu Lab.</strong></p>
+
+        <p>This policy explains what data the app handles. In short: <strong>Bambuddy mobile does not
+        collect, transmit, or share any personal data with the developer or any third party.</strong>
+        All data stays on your device and travels only to the bambuddy server address that
+        <strong>you</strong> configure.</p>
+
+        <h2>Who the app talks to</h2>
+        <p>Bambuddy mobile communicates <strong>only</strong> with the self-hosted bambuddy server whose
+        address you enter during setup. There is no cloud backend, no analytics service, and no
+        advertising SDK. The developer never receives your data.</p>
+
+        <h2>Data stored on your device</h2>
+        <ul>
+          <li><strong>Server address and login credentials</strong> (API key or
+          username/password/token for your bambuddy server). Credentials are stored in the Android
+          <strong>Keystore-backed encrypted storage</strong> on your device and are never sent
+          anywhere except to your own server, over the connection you configure.</li>
+          <li><strong>App settings and notification preferences</strong>, stored in local app storage.</li>
+        </ul>
+        <p>This data is removed when you uninstall the app or clear its storage.</p>
+
+        <h2>Diagnostic logs</h2>
+        <p>The app <strong>can</strong> record a diagnostic log, but only when <strong>you</strong>
+        start one yourself from "Report a bug". Nothing is recorded before you press start, and a
+        recording stops by itself after 30 minutes.</p>
+        <p>Such a log describes what the app did: screens you opened, controls you pressed, requests
+        to your server and the status codes that came back, live-view connection events, what the
+        background service decided about notifications, and crashes. It never contains your API key,
+        your password, or text you type. Your server address is reduced to its shape — whether it is
+        http or https, a name or an IP, and the port — and file, model and spool names are left
+        out.</p>
+        <p><strong>The log stays on your device, and the app never uploads it anywhere.</strong> You
+        review it in full on screen, and the only way it leaves the phone is if you save it to a
+        file, in a location you choose, and then decide to send that file to someone — for example
+        when attaching it to a bug report. Whether and when that happens is entirely your decision.
+        Once you save the log, or discard it, the app deletes its own copy.</p>
+
+        <h2>Permissions and why they are used</h2>
+        <ul>
+          <li><strong>Internet / network state</strong> — to reach the bambuddy server you configure.</li>
+          <li><strong>Camera</strong> — used <strong>only</strong> when you open the spool QR scanner.
+          Frames are processed on-device to read a spool code; images are not stored or transmitted.
+          The scanned spool identifier is sent only to your bambuddy server.</li>
+          <li><strong>Notifications + foreground service (data sync)</strong> — to keep a live
+          connection to your server while a print is running and show print status and alerts.
+          No data leaves your device beyond the connection to your server.</li>
+          <li><strong>Wake lock</strong> — keeps the background print-status connection alive during a print.</li>
+        </ul>
+
+        <h2>Wear OS companion</h2>
+        <p>If you use Bambuddy mobile on a paired Wear OS watch, your server configuration can be sent
+        from the phone to the watch over Google's encrypted <strong>Wear Data Layer</strong> between your
+        own paired devices. This transfer happens directly between your phone and your watch; the
+        developer has no access to it.</p>
+
+        <h2>Children</h2>
+        <p>Bambuddy mobile is a utility app for 3D-printer owners and is not directed at children.</p>
+
+        <h2>Data deletion</h2>
+        <p>Because no data is collected on any server operated by the developer, there is nothing for
+        the developer to delete. To remove all locally stored data, uninstall the app or clear its
+        storage in Android settings. Data held by your bambuddy server is governed by that server,
+        which you control.</p>
+
+        <h2>Changes to this policy</h2>
+        <p>Updates to this policy will be published at this page. Material changes will be noted by
+        the "Last updated" date above.</p>
+
+        <h2>Contact</h2>
+        <p>Questions about this policy: <a href="mailto:info.doyouhost@gmail.com">info.doyouhost@gmail.com</a></p>
+        <p>Source code (AGPL-3.0):
+        <a href="https://github.com/DoYouHost/bambuddy-mobile">github.com/DoYouHost/bambuddy-mobile</a></p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      &ldquo;Bambu Lab&rdquo; and &ldquo;Bambu&rdquo; are trademarks of their respective owner.
+      Bambuddy mobile is an independent, community-built companion app and is not affiliated with Bambu Lab.
+    </div>
+  </footer>
+</body>
+</html>

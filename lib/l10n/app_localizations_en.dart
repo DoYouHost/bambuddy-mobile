@@ -2471,7 +2471,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutSourceHeader => 'Source code';
 
   @override
-  String get aboutSourceBody => 'The full source is available on Codeberg.';
+  String get aboutSourceBody => 'The full source is available on GitHub.';
 
   @override
   String get aboutSourceLink => 'Open source repository';

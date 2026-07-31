@@ -57,7 +57,7 @@ Keystore-backed storage on your device and are only ever sent to your own server
 
 OPEN SOURCE
 Bambuddy mobile is free software under the AGPL-3.0 license.
-Source: https://codeberg.org/DoYouHost/bambuddy-mobile
+Source: https://github.com/DoYouHost/bambuddy-mobile
 
 "Bambu Lab" and "Bambu" are trademarks of their respective owner. Bambuddy mobile is an
 independent, community-built companion app and is not affiliated with Bambu Lab.
@@ -108,7 +108,7 @@ analityki, reklam i chmury. Dane logowania trzymane są w szyfrowanym
 magazynie (Keystore) na urządzeniu.
 
 OPEN SOURCE (AGPL-3.0):
-https://codeberg.org/DoYouHost/bambuddy-mobile
+https://github.com/DoYouHost/bambuddy-mobile
 
 „Bambu Lab" i „Bambu" to znaki towarowe ich właściciela. Bambuddy mobile jest niezależną
 aplikacją społecznościową, niepowiązaną z Bambu Lab.
@@ -121,9 +121,20 @@ aplikacją społecznościową, niepowiązaną z Bambu Lab.
 - **App category:** Tools (or House & Home)
 - **Tags:** 3D printing, printer, utility
 - **Email:** info.doyouhost@gmail.com
-- **Website:** https://doyouhost.codeberg.page/bambuddy-mobile/ (landing page; Codeberg Pages)
-- **Privacy policy URL:** https://doyouhost.codeberg.page/bambuddy-mobile/privacy.html
-  (served from the `pages` branch via Codeberg Pages; source `docs/privacy-policy.md`)
+- **Website:** https://doyouhost.github.io/bambuddy-mobile/ (landing page; GitHub Pages)
+- **Privacy policy URL:** https://doyouhost.github.io/bambuddy-mobile/privacy.html
+  (deployed from `site/` on master by `.github/workflows/pages.yml`; policy text also
+  kept as Markdown in `docs/privacy-policy.md`)
+
+> **Both URLs changed in July 2026** when the project moved off Codeberg. They must be
+> updated **in the Play Console** — the app listing still carries the old
+> `doyouhost.codeberg.page` addresses, and a privacy policy URL that stops resolving is
+> a policy problem on a live listing, not a broken link. Keep the Codeberg Pages site up
+> until the Console shows the new ones.
+
+The `applicationId` stays `page.codeberg.morganmlgman.bambuddy_mobile` forever: it is the
+identity of the Play listing and cannot be changed without publishing a different app.
+Its `codeberg` prefix is now only a historical artifact.
 
 ## Graphics still required (you must create these)
 

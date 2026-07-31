@@ -142,5 +142,5 @@ it skipped `chore: bump version`. Those became:
   script skips tags pointing at the same commit as the newest and compares the
   two most recent distinct releases. If you've committed post-tag work you want
   to preview, pass `HEAD` explicitly.
-- The release pipeline is `just ship X.Y.Z` (bump + tag via Codeberg). Generate
+- The release pipeline is `just ship X.Y.Z` (bump + tag via GitHub). Generate
   notes **after** the tag exists, or pass `HEAD` to preview before shipping.

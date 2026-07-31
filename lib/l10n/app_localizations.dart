@@ -4313,7 +4313,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutSourceBody.
   ///
   /// In en, this message translates to:
-  /// **'The full source is available on Codeberg.'**
+  /// **'The full source is available on GitHub.'**
   String get aboutSourceBody;
 
   /// No description provided for @aboutSourceLink.

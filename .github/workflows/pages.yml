@@ -1,0 +1,43 @@
+name: Pages
+
+# The landing page and the privacy policy used to live on a separate `pages`
+# branch. They now ship from `site/` on master, so a policy change is a normal
+# commit reviewed alongside the code it describes, not a second branch to
+# remember. The privacy policy URL below is registered in the Play Console —
+# treat a broken deploy here as a live-listing problem, not a docs problem.
+#
+#   https://doyouhost.github.io/bambuddy-mobile/
+#   https://doyouhost.github.io/bambuddy-mobile/privacy.html
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# Pages deployments are stateful, so a queued run must not overtake a running
+# one. In-progress runs finish rather than being cancelled: a half-applied
+# deploy would take the policy URL down.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v5

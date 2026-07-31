@@ -8,7 +8,7 @@ import '../../l10n/app_localizations.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
-const String _sourceUrl = 'https://codeberg.org/DoYouHost/bambuddy-mobile';
+const String _sourceUrl = 'https://github.com/DoYouHost/bambuddy-mobile';
 const String _licenseUrl = 'https://www.gnu.org/licenses/agpl-3.0.html';
 
 /// "About" screen: name/version, AGPL-3.0 license notice, source link, and entry
@@ -87,7 +87,7 @@ class AboutScreen extends StatelessWidget {
                 _AboutRow(
                   icon: Icons.code,
                   title: l10n.aboutSourceLink,
-                  subtitle: 'codeberg.org/DoYouHost/bambuddy-mobile',
+                  subtitle: 'github.com/DoYouHost/bambuddy-mobile',
                   onTap: () => _open(context, _sourceUrl, l10n),
                   id: 'about.source',
                 ),

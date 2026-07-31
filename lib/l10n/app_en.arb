@@ -923,7 +923,7 @@
   "aboutLicenseBody": "Bambuddy is free software released under the GNU Affero General Public License v3.0 (AGPL-3.0). You may use, study, share and modify it; if you run a modified version as a network service, you must offer its source to its users.",
   "aboutViewLicense": "Read the AGPL-3.0 license",
   "aboutSourceHeader": "Source code",
-  "aboutSourceBody": "The full source is available on Codeberg.",
+  "aboutSourceBody": "The full source is available on GitHub.",
   "aboutSourceLink": "Open source repository",
   "aboutThirdParty": "Open-source licenses",
   "aboutThirdPartySubtitle": "Licenses of the bundled libraries",

@@ -18,9 +18,13 @@ This app is a companion to the bambuddy server — get and set it up here first:
 ## Distribution
 
 - **[Google Play](https://play.google.com/store/apps/details?id=page.codeberg.morganmlgman.bambuddy_mobile)** *(testing — early access)*
-- **Codeberg Releases** (for [Obtainium](https://github.com/ImranR98/Obtainium)) — [repository releases](https://codeberg.org/DoYouHost/bambuddy-mobile/releases); phone and watch ship as separate APKs (`app-mobile` / `app-wear`) in one release
-- **Project page:** https://doyouhost.codeberg.page/bambuddy-mobile/
-- **Privacy policy:** https://doyouhost.codeberg.page/bambuddy-mobile/privacy.html ([source](docs/privacy-policy.md))
+- **GitHub Releases** (for [Obtainium](https://github.com/ImranR98/Obtainium)) — [repository releases](https://github.com/DoYouHost/bambuddy-mobile/releases); phone and watch ship as separate APKs (`app-mobile` / `app-wear`) in one release
+- **Project page:** https://doyouhost.github.io/bambuddy-mobile/
+- **Privacy policy:** https://doyouhost.github.io/bambuddy-mobile/privacy.html ([source](docs/privacy-policy.md))
+
+> **Moved from Codeberg (July 2026).** Obtainium installs that still track the old
+> `codeberg.org/DoYouHost/bambuddy-mobile` releases will not see updates — re-add the
+> app from the GitHub URL above.
 
 Phone and watch share one `applicationId` (a single Play listing) and differ only by flavor (`mobile` / `wear`).
 
@@ -105,7 +109,7 @@ Release builds and releases go through [`just`](https://github.com/casey/just) (
 just build            # phone release APK (mobile flavor) -> build/dist/
 just build-wear       # watch release APK (wear flavor)   -> build/dist/
 just build-aab        # AABs for both flavors for Google Play -> build/dist/
-just ship X.Y.Z       # full pipeline: bump + test + build + Codeberg release
+just ship X.Y.Z       # full pipeline: bump + test + build + GitHub release
 ```
 
 Tests and lint:

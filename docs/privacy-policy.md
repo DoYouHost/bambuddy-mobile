@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 28 July 2026_
+_Last updated: 31 July 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -84,4 +84,4 @@ by the "Last updated" date above.
 
 Questions about this policy: **info.doyouhost@gmail.com**
 
-Source code (AGPL-3.0): https://codeberg.org/DoYouHost/bambuddy-mobile
+Source code (AGPL-3.0): https://github.com/DoYouHost/bambuddy-mobile
