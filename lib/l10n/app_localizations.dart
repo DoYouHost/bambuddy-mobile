@@ -6803,7 +6803,7 @@ abstract class AppLocalizations {
   /// No description provided for @bugReportReviewBody.
   ///
   /// In en, this message translates to:
-  /// **'This is everything that was recorded. Sending it to an issue comes in a later version — for now save it to a file and attach it yourself.'**
+  /// **'This is everything that was recorded. Read it through — below you choose whether it stays on the phone or goes out as a public issue.'**
   String get bugReportReviewBody;
 
   /// No description provided for @bugReportSummary.
@@ -6854,6 +6854,12 @@ abstract class AppLocalizations {
   /// **'Save to a file'**
   String get bugReportSave;
 
+  /// No description provided for @bugReportSaveShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get bugReportSaveShort;
+
   /// No description provided for @bugReportSaved.
   ///
   /// In en, this message translates to:
@@ -6883,6 +6889,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The log will be deleted from the phone.'**
   String get bugReportDiscardBody;
+
+  /// No description provided for @bugReportDiscardBodyQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'The log will be deleted from the phone and the queued report cancelled.'**
+  String get bugReportDiscardBodyQueued;
 
   /// No description provided for @bugReportPending.
   ///
@@ -6925,6 +6937,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away.'**
   String get bugReportRecoveredBody;
+
+  /// No description provided for @bugReportDestinationHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'What happens to this log'**
+  String get bugReportDestinationHeader;
+
+  /// No description provided for @bugReportDestinationFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to a file'**
+  String get bugReportDestinationFile;
+
+  /// No description provided for @bugReportDestinationIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Report on GitHub'**
+  String get bugReportDestinationIssue;
+
+  /// No description provided for @bugReportDestinationFileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The log is saved where you choose and stays on your phone. You decide whether to send it anywhere.'**
+  String get bugReportDestinationFileBody;
+
+  /// No description provided for @bugReportDestinationIssueBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The log and your description are posted as a public issue on GitHub, where anyone can read them and they stay for good. Go through the log below first.'**
+  String get bugReportDestinationIssueBody;
+
+  /// No description provided for @bugReportDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What went wrong?'**
+  String get bugReportDescriptionLabel;
+
+  /// No description provided for @bugReportDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What were you doing, what did you expect, what happened instead.'**
+  String get bugReportDescriptionHint;
+
+  /// No description provided for @bugReportDescriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Say what went wrong — a log with no description is nearly unusable.'**
+  String get bugReportDescriptionRequired;
+
+  /// No description provided for @bugReportSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get bugReportSend;
+
+  /// No description provided for @bugReportSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get bugReportSending;
+
+  /// No description provided for @bugReportSendWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending in {clock}'**
+  String bugReportSendWaiting(String clock);
+
+  /// No description provided for @bugReportSendWaitingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The relay spaces reports out. You can leave this screen — it goes on its own.'**
+  String get bugReportSendWaitingBody;
+
+  /// No description provided for @bugReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent'**
+  String get bugReportSent;
+
+  /// No description provided for @bugReportSentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. The issue is open and the log is attached to it.'**
+  String get bugReportSentBody;
+
+  /// No description provided for @bugReportOpenIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the issue'**
+  String get bugReportOpenIssue;
+
+  /// No description provided for @bugReportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get bugReportDone;
+
+  /// No description provided for @bugReportSendFailedNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'The relay is not accepting reports right now. Try again later, or save the log to a file.'**
+  String get bugReportSendFailedNotYet;
+
+  /// No description provided for @bugReportSendFailedRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The relay refused this report. Save the log to a file and attach it yourself.'**
+  String get bugReportSendFailedRefused;
+
+  /// No description provided for @bugReportSendFailedDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'This one has already been reported.'**
+  String get bugReportSendFailedDuplicate;
+
+  /// No description provided for @bugReportSendFailedUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the relay. Check the connection, or save the log to a file.'**
+  String get bugReportSendFailedUnreachable;
+
+  /// No description provided for @bugReportSendFailedRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The relay rejected this report. Save the log to a file and attach it yourself.'**
+  String get bugReportSendFailedRejected;
 }
 
 class _AppLocalizationsDelegate

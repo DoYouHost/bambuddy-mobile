@@ -197,7 +197,8 @@ class LogHeader {
   /// something to dig out of redacted strings.
   final ServerFingerprint? serverUrl;
 
-  /// `apikey`, `jwt` or `none`.
+  /// `apiKey`, `jwt` or `none` — `AuthMode.name` verbatim, camel case included.
+  /// Whatever reads this back has to match that spelling exactly.
   final String? auth;
 
   Map<String, Object?> toJson() => {

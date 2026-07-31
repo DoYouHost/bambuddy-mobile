@@ -3882,7 +3882,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportReviewBody =>
-      'This is everything that was recorded. Sending it to an issue comes in a later version — for now save it to a file and attach it yourself.';
+      'This is everything that was recorded. Read it through — below you choose whether it stays on the phone or goes out as a public issue.';
 
   @override
   String bugReportSummary(int records, int errors, int warnings) {
@@ -3922,6 +3922,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bugReportSave => 'Save to a file';
 
   @override
+  String get bugReportSaveShort => 'Save';
+
+  @override
   String get bugReportSaved => 'Log saved to the file';
 
   @override
@@ -3935,6 +3938,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bugReportDiscardBody => 'The log will be deleted from the phone.';
+
+  @override
+  String get bugReportDiscardBodyQueued =>
+      'The log will be deleted from the phone and the queued report cancelled.';
 
   @override
   String get bugReportPending =>
@@ -3964,4 +3971,80 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bugReportRecoveredBody =>
       'The app closed while it was recording. What it had written down is still on the phone — look at it, or throw it away.';
+
+  @override
+  String get bugReportDestinationHeader => 'What happens to this log';
+
+  @override
+  String get bugReportDestinationFile => 'Save to a file';
+
+  @override
+  String get bugReportDestinationIssue => 'Report on GitHub';
+
+  @override
+  String get bugReportDestinationFileBody =>
+      'The log is saved where you choose and stays on your phone. You decide whether to send it anywhere.';
+
+  @override
+  String get bugReportDestinationIssueBody =>
+      'The log and your description are posted as a public issue on GitHub, where anyone can read them and they stay for good. Go through the log below first.';
+
+  @override
+  String get bugReportDescriptionLabel => 'What went wrong?';
+
+  @override
+  String get bugReportDescriptionHint =>
+      'What were you doing, what did you expect, what happened instead.';
+
+  @override
+  String get bugReportDescriptionRequired =>
+      'Say what went wrong — a log with no description is nearly unusable.';
+
+  @override
+  String get bugReportSend => 'Report';
+
+  @override
+  String get bugReportSending => 'Sending…';
+
+  @override
+  String bugReportSendWaiting(String clock) {
+    return 'Sending in $clock';
+  }
+
+  @override
+  String get bugReportSendWaitingBody =>
+      'The relay spaces reports out. You can leave this screen — it goes on its own.';
+
+  @override
+  String get bugReportSent => 'Report sent';
+
+  @override
+  String get bugReportSentBody =>
+      'Thank you. The issue is open and the log is attached to it.';
+
+  @override
+  String get bugReportOpenIssue => 'Open the issue';
+
+  @override
+  String get bugReportDone => 'Done';
+
+  @override
+  String get bugReportSendFailedNotYet =>
+      'The relay is not accepting reports right now. Try again later, or save the log to a file.';
+
+  @override
+  String get bugReportSendFailedRefused =>
+      'The relay refused this report. Save the log to a file and attach it yourself.';
+
+  @override
+  String get bugReportSendFailedDuplicate =>
+      'This one has already been reported.';
+
+  @override
+  String get bugReportSendFailedUnreachable =>
+      'Could not reach the relay. Check the connection, or save the log to a file.';
+
+  @override
+  String get bugReportSendFailedRejected =>
+      'The relay rejected this report. Save the log to a file and attach it yourself.';
 }

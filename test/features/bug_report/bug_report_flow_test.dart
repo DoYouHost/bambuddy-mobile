@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
+import 'package:bambuddy_mobile/core/diagnostics/relay_client.dart';
+import 'package:bambuddy_mobile/core/diagnostics/relay_pow.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_outbox.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
@@ -12,6 +15,7 @@ import 'package:bambuddy_mobile/features/bug_report/log_export.dart';
 import 'package:bambuddy_mobile/features/bug_report/recording_banner.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -227,6 +231,11 @@ void main() {
       );
       await container.read(bugReportProvider.notifier).stop();
       await tester.pumpAndSettle();
+      // The list opens on the review header and the destination choice, so the
+      // records sit below the fold — and a lazy list has not laid them out yet,
+      // while the clamp is measured during layout. Scrolled to, as a reader does.
+      await tester.scrollUntilVisible(find.textContaining('field_0'), 200);
+      await tester.pumpAndSettle();
       return container;
     }
 
@@ -333,14 +342,16 @@ void main() {
           return result;
         });
 
-    testWidgets('the file is the only way out', (tester) async {
+    testWidgets('the clipboard is not one of the ways out', (tester) async {
       // Copying was there and was taken out: a log of this size janks the whole
       // phone through the clipboard, and lands in the keyboard's clip history
       // on the way. Selecting a fragment in the raw log is what is left.
       await pumpReview(tester);
 
       expect(find.textContaining('Kopiuj'), findsNothing);
+      // The choice above the log, and the button that acts on it.
       expect(find.text('Zapisz do pliku'), findsOneWidget);
+      expect(find.text('Zapisz'), findsOneWidget);
     });
 
     testWidgets('saving it names a text file and then cleans up',
@@ -357,7 +368,7 @@ void main() {
         ),
       ]);
 
-      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
       expect(name, startsWith('bambuddy-log-'));
@@ -370,13 +381,176 @@ void main() {
       expect(container.read(bugReportProvider).log, isNull);
     });
 
+    /// The relay, faked. Counts challenges because *when* one is asked for is
+    /// the design decision this screen encodes.
+    Override fakeRelay(_FakeRelay relay) =>
+        relayClientProvider.overrideWithValue(relay);
+
+    Override outboxIn(Directory root) =>
+        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root));
+
+    /// Taps and lets the send actually run.
+    ///
+    /// The outbox writes the report to disk before anything goes out, and real
+    /// file I/O does not complete under the fake clock a widget test runs on —
+    /// only inside [WidgetTester.runAsync]. Without this the tap returns having
+    /// done nothing and the assertions read as "it never sent".
+    Future<void> tapAndSettleAsync(WidgetTester tester, Finder target) async {
+      await tester.runAsync(() async {
+        await tester.tap(target);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opens on keeping the log, not on publishing it',
+        (tester) async {
+      final relay = _FakeRelay();
+      await pumpReview(tester, extra: [fakeRelay(relay)]);
+
+      // The default cannot be the one that posts to a public repository: the
+      // action offered is the save, and there is nothing to describe.
+      expect(find.text('Zapisz'), findsOneWidget);
+      expect(find.text('Co poszło nie tak?'), findsNothing);
+      // And nothing has been asked of the relay: the user has not decided yet,
+      // and a challenge is charged for when it is handed out.
+      expect(relay.challenges, 0);
+    });
+
+    testWidgets('choosing GitHub asks for the challenge there and then',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpReview(tester, extra: [fakeRelay(relay)]);
+
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+
+      // The wait starts now, while the description is still being written —
+      // which is the only reason the wait is tolerable.
+      expect(relay.challenges, 1);
+      expect(find.text('Co poszło nie tak?'), findsOneWidget);
+      expect(find.text('Zgłoś'), findsOneWidget);
+    });
+
+    testWidgets('flipping the destination does not buy a second challenge',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpReview(tester, extra: [fakeRelay(relay)]);
+
+      // Somebody reading the warning, backing out, and deciding to report after
+      // all. Each extra challenge would double their wait — 25 s, 50 s, 100 s —
+      // for a decision they were entitled to change.
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+
+      expect(relay.challenges, 1);
+    });
+
+    testWidgets('discarding calls off a report that is still queued',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
+      final container =
+          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'jednak nie chcę tego');
+      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+
+      await tester.tap(find.text('Odrzuć'));
+      await tester.pumpAndSettle();
+      // The dialog has to admit that this cancels the send, not just delete a file.
+      expect(find.textContaining('wysyłka anulowana'), findsOneWidget);
+      await tapAndSettleAsync(tester, find.text('Odrzuć').last);
+
+      // Nothing left to send: the outbox keeps its own copy of the log, so
+      // deleting the recording alone would have published it minutes later.
+      final queued = await tester.runAsync(
+        () => ReportOutbox(root: root).peek(),
+      );
+      expect(queued, isNull);
+      expect(relay.sends, 0);
+      expect(container.read(bugReportProvider).log, isNull);
+    });
+
+    testWidgets('refuses to send an issue with no description', (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zgłoś'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Napisz, co poszło nie tak'), findsOneWidget);
+      // A log nobody explained is nearly unusable, so nothing left the phone.
+      expect(relay.sends, 0);
+    });
+
+    testWidgets('sends the issue and offers the link back', (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField),
+        'kolejka pusta po wznowieniu',
+      );
+      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+
+      expect(relay.sends, 1);
+      expect(relay.lastDescription, 'kolejka pusta po wznowieniu');
+      // The envelope comes off the log, so the header travels with it.
+      expect(relay.lastHeader?['app'], '0.11.2+1102');
+      expect(relay.lastSchema, 1);
+      // The URL is the one thing that cannot be recovered once this closes.
+      expect(find.text('Otwórz zgłoszenie'), findsOneWidget);
+    });
+
+    testWidgets('a ticket that is not due yet queues instead of failing',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
+      await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+
+      await tester.tap(find.text('Zgłoś na GitHubie'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'coś się zepsuło');
+      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+
+      expect(relay.sends, 0);
+      // m:ss, not a bare second count — 5 minutes reads as 4:5x by the time the
+      // first tick lands.
+      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      // The queued copy is what gets sent, so the field must stop pretending
+      // that carrying on typing changes anything.
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+      // Queued to disk, so closing the screen does not lose it.
+      final queued = await tester.runAsync(
+        () => ReportOutbox(root: root).peek(),
+      );
+      expect(queued, isNotNull);
+    });
+
     testWidgets('backing out of the picker keeps the report', (tester) async {
       final container = await pumpReview(
         tester,
         extra: [fakeSaver(LogSaveResult.cancelled)],
       );
 
-      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
       expect(find.text('Przejrzyj przed wysłaniem'), findsOneWidget);
@@ -391,7 +565,7 @@ void main() {
         extra: [fakeSaver(LogSaveResult.failed)],
       );
 
-      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nie udało się zapisać loga.'), findsOneWidget);
@@ -410,7 +584,7 @@ void main() {
       final recorded = container.read(bugReportProvider).log!;
       expect(recorded.length, greaterThan(256 * 1024));
 
-      await tester.tap(find.text('Zapisz do pliku'));
+      await tester.tap(find.text('Zapisz'));
       await tester.pumpAndSettle();
 
       expect(written, recorded);
@@ -796,4 +970,54 @@ void main() {
       expect(find.text('Nagrywanie'), findsNothing);
     });
   });
+}
+
+RelayTicket _ticket({Duration wait = Duration.zero}) {
+  final now = DateTime.now();
+  return RelayTicket(
+    ticket: 'signed',
+    notBefore: now.add(wait),
+    expiresAt: now.add(wait + const Duration(minutes: 30)),
+    // Zero bits: the real difficulty is about a second of hashing, which every
+    // test using this would otherwise pay.
+    challenge: const PowChallenge(seed: 'seed', bits: 0),
+  );
+}
+
+/// Stands in for the relay. What matters here is not the protocol — the worker's
+/// own suite covers that — but *when* this screen talks to it.
+class _FakeRelay extends RelayClient {
+  _FakeRelay({this.issued}) : super(Dio());
+
+  final RelayTicket? issued;
+
+  int challenges = 0;
+  int sends = 0;
+  String? lastDescription;
+  Map<String, Object>? lastHeader;
+  int? lastSchema;
+
+  @override
+  Future<RelayTicket> challenge(String installId) async {
+    challenges++;
+    final next = issued;
+    if (next == null) throw const RelayException(RelayFailure.unreachable);
+    return next;
+  }
+
+  @override
+  Future<String> send({
+    required String installId,
+    required RelayTicket ticket,
+    required String description,
+    required Map<String, Object> header,
+    required int logSchema,
+    required String log,
+  }) async {
+    sends++;
+    lastDescription = description;
+    lastHeader = header;
+    lastSchema = logSchema;
+    return 'https://github.example/issues/7';
+  }
 }

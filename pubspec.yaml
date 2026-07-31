@@ -13,6 +13,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   collection: ^1.19.0
+  # Used directly by the report relay client (SHA-256 for the proof of work).
+  # Was already resolved transitively; declared so the import is honest.
+  crypto: ^3.0.6
   cupertino_icons: ^1.0.8
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1

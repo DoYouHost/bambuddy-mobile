@@ -12,6 +12,10 @@ import 'core/auth/credentials_store.dart';
 import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/diagnostics/diagnostic_recorder.dart';
+import 'core/diagnostics/relay_client.dart';
+import 'core/diagnostics/relay_identity.dart';
+import 'core/diagnostics/report_outbox.dart';
+import 'core/diagnostics/report_sender.dart';
 import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
@@ -160,6 +164,29 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
     ),
   ),
 );
+
+/// Sends bug reports to the relay.
+///
+/// On the bare Dio on purpose: the relay is not the bambuddy server, so it must
+/// see none of the auth interceptors, none of the credentials and none of the
+/// base URL the user configured.
+final relayClientProvider = Provider<RelayClient>(
+  (ref) => RelayClient(ref.watch(bareDioProvider)),
+);
+
+final reportOutboxProvider = Provider<ReportOutbox>((ref) => const ReportOutbox());
+
+/// One per app: it owns the single outbox slot and a timer, and two of them
+/// would race each other over both.
+final reportSenderProvider = Provider<ReportSender>((ref) {
+  final sender = ReportSender(
+    client: ref.watch(relayClientProvider),
+    outbox: ref.watch(reportOutboxProvider),
+    installId: () => installId(ref.read(sharedPreferencesProvider)),
+  );
+  ref.onDispose(sender.dispose);
+  return sender;
+});
 
 final bareDioProvider = Provider<Dio>((ref) => createBareDio());
 
