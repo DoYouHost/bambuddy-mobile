@@ -389,7 +389,10 @@ ship-dev target='':
         echo "Working tree is dirty; commit or stash before shipping a dev build." >&2
         exit 1
     fi
-    last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
+    # --exclude, because --match takes a glob and not a regex: the trailing `*`
+    # of the patch component happily swallows `-dev.3`, so without this the
+    # second dev build of a cycle would measure itself against the first one.
+    last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' --exclude '*-dev.*')
     base=${last#v}
     n=$(git rev-list --count "$last..HEAD")
     if [ "$n" -eq 0 ]; then
