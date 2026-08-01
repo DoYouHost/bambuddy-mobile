@@ -389,18 +389,16 @@ ship-dev target='':
         echo "Working tree is dirty; commit or stash before shipping a dev build." >&2
         exit 1
     fi
+    # The counter is read off the dev tags, so a build published from another
+    # machine has to be visible here or it gets its number handed out twice.
+    git fetch --tags --quiet origin
     # --exclude, because --match takes a glob and not a regex: the trailing `*`
     # of the patch component happily swallows `-dev.3`, so without this the
     # second dev build of a cycle would measure itself against the first one.
     last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' --exclude '*-dev.*')
     base=${last#v}
-    n=$(git rev-list --count "$last..HEAD")
-    if [ "$n" -eq 0 ]; then
+    if [ "$(git rev-list --count "$last..HEAD")" -eq 0 ]; then
         echo "Nothing new since $last." >&2
-        exit 1
-    fi
-    if [ "$n" -gt 999 ]; then
-        echo "$n commits since $last — past the 999 dev slots under one version. Ship a release." >&2
         exit 1
     fi
     target='{{target}}'
@@ -418,6 +416,26 @@ ship-dev target='':
     # backwards); the target loses when it sorts first.
     if [ "$(printf '%s\n%s\n' "$target" "$base" | sort -V | head -1)" = "$target" ]; then
         echo "Target $target is not newer than the last release $base." >&2
+        exit 1
+    fi
+    # N counts dev builds of this target, so the first one is always dev.1 and
+    # the sequence has no gaps. Read from the tags rather than kept in a file:
+    # the tags are the record of what was published, and a counter on disk would
+    # drift from them the first time a run failed halfway.
+    #
+    # `sed -n .../p` keeps only tags whose suffix really is a number, so a
+    # hand-made `-dev.rc1` cannot silently count as zero.
+    dev_n() { git tag "$@" --list "v$target-dev.*" | sed -n 's/.*-dev\.\([0-9]\+\)$/\1/p' | sort -n | tail -1; }
+    # A dev tag already on this commit means an earlier run of this recipe got
+    # as far as publishing it. Reuse it — same commit is the same build, and the
+    # steps below skip whatever that run finished.
+    n=$(dev_n --points-at HEAD)
+    if [ -z "$n" ]; then
+        highest=$(dev_n)
+        n=$(( ${highest:-0} + 1 ))
+    fi
+    if [ "$n" -gt 999 ]; then
+        echo "$n dev builds under $target — past the 999 slots. Ship a release." >&2
         exit 1
     fi
     maj=$(cut -d. -f1 <<<"$target")
