@@ -183,6 +183,9 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
     client: ref.watch(relayClientProvider),
     outbox: ref.watch(reportOutboxProvider),
     installId: () => installId(ref.read(sharedPreferencesProvider)),
+    // Read, not watched: rebuilding this provider on a profile change would
+    // hand out a second sender over the same outbox slot.
+    demoMode: () => ref.read(serverProfileProvider)?.isDemo ?? false,
   );
   ref.onDispose(sender.dispose);
   return sender;

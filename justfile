@@ -159,7 +159,12 @@ emu-view:
       >/dev/null 2>&1 &
 
 # bump version in pubspec.yaml and commit
-# versionCode = major*10000 + minor*100 + patch (e.g. 1.2.3 → 10203)
+# versionCode = (major*10000 + minor*100 + patch) * 1000 (e.g. 1.2.3 → 10203000)
+# The trailing three zeros are the dev slots: `ship-dev` numbers the builds
+# between two releases into them (1.2.3-dev.7 → 10203007 - 1000, i.e. just under
+# 1.2.3 and just over 1.2.2), so a dev build can never block the release it
+# precedes. Widened from the old bare major*10000+minor*100+patch, which left no
+# integer at all between two consecutive patches.
 # Idempotent: safe to re-run after a partially-completed `ship` — it skips the
 # edit/commit when the version is already bumped, so the pipeline can resume.
 _bump ver:
@@ -169,7 +174,7 @@ _bump ver:
     major=$(echo "{{ver}}" | cut -d. -f1)
     minor=$(echo "{{ver}}" | cut -d. -f2)
     patch=$(echo "{{ver}}" | cut -d. -f3)
-    code=$((major * 10000 + minor * 100 + patch))
+    code=$(((major * 10000 + minor * 100 + patch) * 1000))
     target="version: {{ver}}+${code}"
     if [ "$(grep '^version: ' pubspec.yaml)" = "$target" ]; then
         echo "pubspec.yaml already at {{ver}}+${code}, skipping bump"
@@ -355,3 +360,147 @@ ship ver:
     just build
     just build-wear
     just release {{ver}}
+
+# Test, build both flavors and publish the current commit as a dev prerelease.
+#
+#   versionName  X.Y.Z-dev.N    versionCode  (X.Y.Z as in _bump) - 1000 + N
+#
+# X.Y.Z is the release this build is heading for (default: the next patch after
+# the last tag) and N is how many commits it sits past that tag — so the number
+# says where the build is, and both parts stay ordered: every dev build is above
+# the last release and below the next one.
+#
+# pubspec.yaml is not touched and nothing is committed. The version travels as a
+# build flag, so master never carries a `-dev` version, the history stays free of
+# bump commits for throwaway builds, and the release points at a SHA instead.
+#
+# Obtainium hides prereleases by default, so a tester opts in with one switch and
+# everyone else keeps seeing stable only. Nothing here builds an AAB: dev builds
+# do not go to Play.
+#
+# usage: just ship-dev [0.13.0]
+ship-dev target='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # A dev release names a commit, so the build has to *be* that commit —
+    # untracked files included, since a new .dart file compiles in whether or not
+    # git knows about it.
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Working tree is dirty; commit or stash before shipping a dev build." >&2
+        exit 1
+    fi
+    last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
+    base=${last#v}
+    n=$(git rev-list --count "$last..HEAD")
+    if [ "$n" -eq 0 ]; then
+        echo "Nothing new since $last." >&2
+        exit 1
+    fi
+    if [ "$n" -gt 999 ]; then
+        echo "$n commits since $last — past the 999 dev slots under one version. Ship a release." >&2
+        exit 1
+    fi
+    target='{{target}}'
+    if [ -z "$target" ]; then
+        IFS=. read -r lmaj lmin lpat <<<"$base"
+        target="$lmaj.$lmin.$((lpat + 1))"
+    fi
+    if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"$target"; then
+        echo "Target must be X.Y.Z, got '$target'." >&2
+        exit 1
+    fi
+    # The dev slots sit *under* the target, so a target at or below the last
+    # release would hand out a versionCode the phone has already installed.
+    # `sort -V` compares numerically (0.9.0 < 0.10.0, which sorting by text gets
+    # backwards); the target loses when it sorts first.
+    if [ "$(printf '%s\n%s\n' "$target" "$base" | sort -V | head -1)" = "$target" ]; then
+        echo "Target $target is not newer than the last release $base." >&2
+        exit 1
+    fi
+    maj=$(cut -d. -f1 <<<"$target")
+    min=$(cut -d. -f2 <<<"$target")
+    pat=$(cut -d. -f3 <<<"$target")
+    code=$(( (maj * 10000 + min * 100 + pat) * 1000 - 1000 + n ))
+    name="$target-dev.$n"
+    sha=$(git rev-parse HEAD)
+    # The release is created around a commit, so the server needs it first. Said
+    # rather than pushed: which branch a dev build comes off is the user's call.
+    if [ -z "$(git branch -r --contains HEAD 2>/dev/null)" ]; then
+        echo "HEAD is not on the remote yet. Push it first: git push origin HEAD" >&2
+        exit 1
+    fi
+    echo "Dev build $name (versionCode $code) from ${sha:0:8}"
+    just test
+    just _clean-artifacts
+    flutter build apk --release --flavor mobile --build-name="$name" --build-number="$code"
+    mkdir -p build/dist
+    cp build/app/outputs/flutter-apk/app-mobile-release.apk "build/dist/app-mobile-$name.apk"
+    # Same clean-between-flavors rule as build-aab: an incremental release build
+    # here has repeatably packed the other flavor's stale Dart snapshot.
+    just _clean-artifacts
+    flutter build apk --release --flavor wear --target lib/wear/main_wear.dart \
+        --build-name="$name" --build-number="$code"
+    cp build/app/outputs/flutter-apk/app-wear-release.apk "build/dist/app-wear-$name.apk"
+    tag="v$name"
+    # Resumable like `release`: skip whatever a failed earlier run already did.
+    if gh release view "$tag" --repo {{repo}} >/dev/null 2>&1; then
+        echo "Release $tag already exists, skipping create"
+    else
+        # --generate-notes, unlike in `release`: raw commit subjects are exactly
+        # the changelog a dev channel wants. The store notes are the handwritten
+        # ones, and no dev build ever reaches a store.
+        gh release create "$tag" --repo {{repo}} --target "$sha" \
+            --title "$tag" --prerelease --generate-notes
+    fi
+    # Capture the asset list before filtering (see `release`: gh piped straight
+    # into grep dies of SIGPIPE and takes pipefail down with it).
+    assets=$(gh release view "$tag" --repo {{repo}} --json assets --jq '.assets[].name')
+    for f in "build/dist/app-mobile-$name.apk" "build/dist/app-wear-$name.apk"; do
+        asset=$(basename "$f")
+        if grep -qxF "$asset" <<<"$assets"; then
+            echo "Asset $asset already uploaded, skipping"
+        else
+            gh release upload "$tag" --repo {{repo}} "$f"
+        fi
+    done
+    git fetch --tags origin
+    echo "Published $tag"
+
+# Deletes old dev prereleases whole — release, notes, APKs and tag — keeping the
+# newest KEEP. Unlike release-cleanup, the tags go too: a dev tag marks a build
+# nobody can install any more, and `git describe` picking one over the release it
+# came after is actively misleading.
+# Stable releases are unreachable from here: the pattern only matches -dev tags.
+# Irreversible on the server side, hence the preview + typed confirmation.
+# usage: just dev-cleanup [5]
+dev-cleanup keep='5':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # gh lists newest first, and that is the right order here: a dev build is
+    # superseded by the next one, so "old" is positional rather than semantic —
+    # no version sort to get wrong on a `-dev.10` vs `-dev.9`.
+    releases=$(gh release list --repo {{repo}} --limit 100 --json tagName --jq '.[].tagName')
+    devs=$(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$' <<<"$releases" || true)
+    if [ -z "$devs" ]; then
+        echo "No dev prereleases; nothing to clean."
+        exit 0
+    fi
+    doomed=$(tail -n +$(( {{keep}} + 1 )) <<<"$devs")
+    if [ -z "$doomed" ]; then
+        echo "Only $(wc -l <<<"$devs") dev prerelease(s), keeping {{keep}}; nothing to clean."
+        exit 0
+    fi
+    echo "About to DELETE these dev prereleases and their tags (irreversible):"
+    printf '  %s\n' $doomed
+    echo "Keeping: $(head -n {{keep}} <<<"$devs" | tr '\n' ' ')"
+    read -r -p "Type 'yes' to confirm: " answer
+    if [ "$answer" != "yes" ]; then
+        echo "Aborted."
+        exit 1
+    fi
+    for tag in $doomed; do
+        gh release delete "$tag" --repo {{repo}} --cleanup-tag -y
+    done
+    # Drop the local copies of the tags the server no longer has.
+    git fetch --prune --prune-tags --tags origin
+    echo "Purged $(wc -l <<<"$doomed") dev prereleases."

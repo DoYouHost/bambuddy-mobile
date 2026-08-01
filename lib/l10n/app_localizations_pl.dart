@@ -4104,4 +4104,8 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get bugReportSendFailedRejected =>
       'Relay odrzucił to zgłoszenie. Zapisz log do pliku i dołącz go sam.';
+
+  @override
+  String get bugReportSendFailedDemo =>
+      'Tryb demo nie publikuje zgłoszeń. Zapisz log do pliku.';
 }

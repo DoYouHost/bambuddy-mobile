@@ -48,6 +48,7 @@ class ReportSender {
     required this._client,
     required this._outbox,
     required this._installId,
+    required this._demoMode,
   });
 
   final RelayClient _client;
@@ -56,6 +57,17 @@ class ReportSender {
   /// Read lazily rather than passed in: it lives in preferences, and the sender
   /// is built before those are necessarily loaded.
   final Future<String> Function() _installId;
+
+  /// Whether the app is running against the fabricated demo server.
+  ///
+  /// The demo account is handed to store reviewers, so anything it can reach is
+  /// reachable by anyone who reads the listing — and the far end here is a
+  /// public issue tracker under someone else's name. Nothing about a session
+  /// against a fake in-process server is worth reporting anyway.
+  ///
+  /// A closure rather than a flag: the sender is one per app and outlives every
+  /// profile change, so the answer has to be asked for, not remembered.
+  final bool Function() _demoMode;
 
   final _states = StreamController<SendState>.broadcast();
   Stream<SendState> get states => _states.stream;
@@ -75,6 +87,10 @@ class ReportSender {
   /// the user turns out not to want makes their *next* report wait twice as
   /// long, and the one after that four times.
   Future<void> prepare() async {
+    // Not even a challenge in demo mode: the relay meters challenges *issued*,
+    // so asking for one it will never spend would push the real user's next
+    // report further out.
+    if (_demoMode()) return;
     // Idempotent, and that is not an optimisation: a ticket in hand has already
     // been paid for, and the relay charges per challenge *issued*. Without this,
     // flipping the destination back and forth doubles the user's wait on every
@@ -100,6 +116,15 @@ class ReportSender {
     required String description,
     required String log,
   }) async {
+    // Refused here rather than at the tap, so the demo behaves like the real
+    // app right up to the point where a public issue would be created: the
+    // report is never written to the outbox, so there is nothing for a later
+    // flush to find either.
+    if (_demoMode()) {
+      _emit(const SendState.failed(RelayFailure.demo));
+      return;
+    }
+
     final ticket = _ticket;
     if (ticket == null || ticket.expired) {
       // Nothing was reserved for us, or it went stale while the form was open.
@@ -139,6 +164,16 @@ class ReportSender {
     }
     if (pending == null) {
       _emit(const SendState.idle());
+      return;
+    }
+
+    // A report queued against a real server, with the app since pointed at the
+    // demo one. Held rather than dropped — it is the user's, and they did ask
+    // for it — but it does not go out from a session that is not allowed to
+    // publish. Checked after the peek so an empty outbox stays silent instead
+    // of greeting every demo start with a failure.
+    if (_demoMode()) {
+      _emit(const SendState.failed(RelayFailure.demo));
       return;
     }
 

@@ -97,6 +97,11 @@ enum RelayFailure {
 
   /// The relay rejected the envelope. A bug on this side; retrying is pointless.
   rejected,
+
+  /// Demo mode. The only value here the relay never produces: the app refuses
+  /// to publish on its behalf and never calls out at all, so it is reported the
+  /// same way as any other reason no issue exists.
+  demo,
 }
 
 class RelayException implements Exception {

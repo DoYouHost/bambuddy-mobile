@@ -58,10 +58,11 @@ void main() {
   setUp(() => root = Directory.systemTemp.createTempSync('outbox'));
   tearDown(() => root.deleteSync(recursive: true));
 
-  ReportSender senderWith(FakeRelay relay) => ReportSender(
+  ReportSender senderWith(FakeRelay relay, {bool demo = false}) => ReportSender(
         client: relay,
         outbox: ReportOutbox(root: root),
         installId: () async => 'install-1',
+        demoMode: () => demo,
       );
 
   Future<void> submit(ReportSender sender, {String description = 'it broke'}) =>
@@ -231,6 +232,54 @@ void main() {
 
       expect(await ReportOutbox(root: root).peek(), isNull);
       expect(root.listSync(recursive: true).whereType<File>(), isEmpty);
+    });
+  });
+
+  group('demo mode', () {
+    test('never reaches the relay, and queues nothing on the way', () async {
+      final relay = FakeRelay(issued: ticket());
+      final sender = senderWith(relay, demo: true);
+      addTearDown(sender.dispose);
+      final seen = <SendState>[];
+      sender.states.listen(seen.add);
+
+      await sender.prepare();
+      await submit(sender);
+      // Whatever the sender does next, it does with nothing queued.
+      await sender.flush();
+
+      // Not one challenge either: they are metered per installation, so asking
+      // for one that can never be spent costs the real user their next report.
+      expect(relay.challenges, 0);
+      expect(relay.sends, 0);
+      expect(await ReportOutbox(root: root).peek(), isNull);
+      // And the user is told why, rather than watching a send that never lands.
+      await pumpEventQueue();
+      expect(
+        seen.map((s) => s.failure),
+        contains(RelayFailure.demo),
+      );
+    });
+
+    test('holds a report queued before demo instead of publishing it', () async {
+      await ReportOutbox(root: root).put(
+        id: 'r9',
+        description: 'from the real server',
+        header: const {'app': '0.11.7'},
+        logSchema: 1,
+        ticket: ticket(),
+        log: 'line\n',
+      );
+
+      final relay = FakeRelay(issued: ticket());
+      final sender = senderWith(relay, demo: true);
+      addTearDown(sender.dispose);
+
+      await sender.flush();
+
+      expect(relay.sends, 0);
+      // Kept, not dropped: the user asked for it, and leaving demo lets it go.
+      expect(await ReportOutbox(root: root).peek(), isNotNull);
     });
   });
 

@@ -76,9 +76,16 @@ android {
         create("wear") {
             dimension = "device"
             // Play requires a distinct versionCode per APK under one listing.
-            // Offset the wear series well clear of the phone one — the phone
-            // scheme (major*10000+minor*100+patch) never reaches 1_000_000.
-            versionCode = (flutter.versionCode ?: 0) + 1_000_000
+            // Offset the wear series well clear of the phone one, which tops out
+            // at 999_999_000 ((major*10000+minor*100+patch)*1000, see `_bump` in
+            // the justfile). A billion keeps every watch build above every phone
+            // build ever numbered, and the highest reachable code — 1_999_999_000
+            // — still fits under Play's 2_100_000_000 ceiling.
+            //
+            // The offset used to be 1_000_000, from before dev builds needed the
+            // extra three digits; at that width the two series overlap (watch
+            // 0.11.0 and phone 0.21.0 both land on 2_100_000).
+            versionCode = (flutter.versionCode ?: 0) + 1_000_000_000
             // Wear OS 3+ only (API 30). Keeps Play from serving the watch APK
             // to Wear OS 2 devices, where nothing has ever been tested.
             minSdk = 30

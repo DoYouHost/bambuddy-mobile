@@ -7063,6 +7063,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The relay rejected this report. Save the log to a file and attach it yourself.'**
   String get bugReportSendFailedRejected;
+
+  /// No description provided for @bugReportSendFailedDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode does not publish reports. Save the log to a file instead.'**
+  String get bugReportSendFailedDemo;
 }
 
 class _AppLocalizationsDelegate

@@ -19,6 +19,7 @@ This app is a companion to the bambuddy server — get and set it up here first:
 
 - **[Google Play](https://play.google.com/store/apps/details?id=page.codeberg.morganmlgman.bambuddy_mobile)** *(testing — early access)*
 - **GitHub Releases** (for [Obtainium](https://github.com/ImranR98/Obtainium)) — [repository releases](https://github.com/DoYouHost/bambuddy-mobile/releases); phone and watch ship as separate APKs (`app-mobile` / `app-wear`) in one release
+- **Dev builds** — GitHub *prereleases* tagged `vX.Y.Z-dev.N`, built from a single commit between two releases (`just ship-dev`). Obtainium hides prereleases by default; turn on "Include prereleases" to follow the dev channel. They install over the stable build and a later stable installs over them; they never go to Play.
 - **Project page:** https://doyouhost.github.io/bambuddy-mobile/
 - **Privacy policy:** https://doyouhost.github.io/bambuddy-mobile/privacy.html ([source](docs/privacy-policy.md))
 
@@ -27,6 +28,8 @@ This app is a companion to the bambuddy server — get and set it up here first:
 > app from the GitHub URL above.
 
 Phone and watch share one `applicationId` (a single Play listing) and differ only by flavor (`mobile` / `wear`).
+
+**Version codes.** A release is `(major*10000 + minor*100 + patch) * 1000`, so `0.12.1` → `1201000`; the watch APK adds `1_000_000_000` (Play needs a distinct code per APK in one listing). The trailing three digits are the dev slots: `X.Y.Z-dev.N` takes `code(X.Y.Z) - 1000 + N`, landing every dev build above the last release and below the one it is heading for. `N` is the number of commits since the last tag, and a dev build never touches `pubspec.yaml` — the version is passed to `flutter build` and the release points at the commit.
 
 ## Demo user
 

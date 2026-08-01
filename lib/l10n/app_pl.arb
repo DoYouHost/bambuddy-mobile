@@ -1300,5 +1300,6 @@
   "bugReportSendFailedRefused": "Relay odmówił przyjęcia tego zgłoszenia. Zapisz log do pliku i dołącz go sam.",
   "bugReportSendFailedDuplicate": "To już zostało zgłoszone.",
   "bugReportSendFailedUnreachable": "Nie udało się połączyć z relayem. Sprawdź połączenie albo zapisz log do pliku.",
-  "bugReportSendFailedRejected": "Relay odrzucił to zgłoszenie. Zapisz log do pliku i dołącz go sam."
+  "bugReportSendFailedRejected": "Relay odrzucił to zgłoszenie. Zapisz log do pliku i dołącz go sam.",
+  "bugReportSendFailedDemo": "Tryb demo nie publikuje zgłoszeń. Zapisz log do pliku."
 }

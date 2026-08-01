@@ -649,6 +649,7 @@ class _Failed extends StatelessWidget {
         RelayFailure.refused => l10n.bugReportSendFailedRefused,
         RelayFailure.duplicate => l10n.bugReportSendFailedDuplicate,
         RelayFailure.unreachable => l10n.bugReportSendFailedUnreachable,
+        RelayFailure.demo => l10n.bugReportSendFailedDemo,
         RelayFailure.rejected || null => l10n.bugReportSendFailedRejected,
       };
 }

@@ -1440,5 +1440,6 @@
   "bugReportSendFailedRefused": "The relay refused this report. Save the log to a file and attach it yourself.",
   "bugReportSendFailedDuplicate": "This one has already been reported.",
   "bugReportSendFailedUnreachable": "Could not reach the relay. Check the connection, or save the log to a file.",
-  "bugReportSendFailedRejected": "The relay rejected this report. Save the log to a file and attach it yourself."
+  "bugReportSendFailedRejected": "The relay rejected this report. Save the log to a file and attach it yourself.",
+  "bugReportSendFailedDemo": "Demo mode does not publish reports. Save the log to a file instead."
 }

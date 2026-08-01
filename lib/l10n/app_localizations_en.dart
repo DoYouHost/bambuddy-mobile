@@ -4047,4 +4047,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bugReportSendFailedRejected =>
       'The relay rejected this report. Save the log to a file and attach it yourself.';
+
+  @override
+  String get bugReportSendFailedDemo =>
+      'Demo mode does not publish reports. Save the log to a file instead.';
 }
