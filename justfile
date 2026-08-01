@@ -38,18 +38,60 @@ build-wear: _clean-artifacts
     cp build/app/outputs/flutter-apk/app-wear-release.apk {{wear_apk}}
 
 # build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
+#
+# Without arguments the version comes from pubspec.yaml, which is what a stable
+# release wants (`ship` bumps it first). `ship-dev` passes its own name and code
+# instead, because a dev build deliberately leaves pubspec.yaml alone — building
+# an AAB straight after `ship-dev` without them is what silently produces the
+# *previous* release again, and Play answers "version code already in use".
+#
+# Both parts are always passed to the build explicitly and echoed before the
+# build starts, so you see which version is going out before gradle spends a
+# minute and a half on it — not after Play refuses the upload.
+#
+# Fixed file names, like {{apk}} and unlike the dev APKs: an AAB is never
+# published under its name, it is a one-shot hand-off from the last build to the
+# Play Console. Overwriting means there is only ever one pair to pick from, and
+# a bundle pair is ~157 MB, which is not worth accumulating for provenance the
+# echo already gives.
+#
+# The watch bundle's code is a billion higher (see android/app/build.gradle.kts):
+# one listing, one applicationId, and Play needs the two artifacts to differ.
+#
 # Clean before each flavor so neither packs the other's (or a stale) snapshot;
 # the clean wipes build/app, so copy each AAB into build/dist/ before the next
 # build. Both end up side by side in build/dist/ for a single Play release.
-build-aab:
+#
+# usage: just build-aab            (stable, version from pubspec.yaml)
+#        just build-aab 0.12.1-dev.1 1200001
+build-aab name='' code='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    name='{{name}}'
+    code='{{code}}'
+    # Both or neither: a dev name carrying a release code would name the file
+    # after a build that is not the one inside it.
+    if { [ -n "$name" ] && [ -z "$code" ]; } || { [ -z "$name" ] && [ -n "$code" ]; }; then
+        echo "Pass both a name and a code, or neither." >&2
+        exit 1
+    fi
+    if [ -z "$name" ]; then
+        pubspec=$(grep '^version: ' pubspec.yaml | cut -d' ' -f2)
+        name=${pubspec%%+*}
+        code=${pubspec##*+}
+    fi
+    echo "Bundles for $name (versionCode $code, watch $((code + 1000000000)))"
     just _clean-artifacts
-    flutter build appbundle --release --flavor mobile
+    flutter build appbundle --release --flavor mobile \
+        --build-name="$name" --build-number="$code"
     mkdir -p build/dist
     cp build/app/outputs/bundle/mobileRelease/app-mobile-release.aab build/dist/
     just _clean-artifacts
-    flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart
+    flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart \
+        --build-name="$name" --build-number="$code"
     cp build/app/outputs/bundle/wearRelease/app-wear-release.aab build/dist/
-    @echo "AABs ready in build/dist/:" && ls -1 build/dist/*.aab
+    echo "AABs for $name ready in build/dist/:"
+    ls -1 build/dist/*.aab
 
 # clean build artifacts
 clean:
@@ -353,12 +395,19 @@ release-purge ver:
     echo "Purged $(wc -l <<<"$doomed") releases."
 
 # bump version, test, build and release — full pipeline
+#
+# Produces everything a stable version needs: APKs for the GitHub release (and
+# Obtainium), plus both Play bundles in build/dist/, which you upload to Play by
+# hand. The bundles are built *before* the GitHub release, so a bundle that fails
+# to build does not leave a published release with nothing to promote.
+#
 # usage: just ship 1.0.0
 ship ver:
     just _bump {{ver}}
     just test
     just build
     just build-wear
+    just build-aab
     just release {{ver}}
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
@@ -375,11 +424,17 @@ ship ver:
 # bump commits for throwaway builds, and the release points at a SHA instead.
 #
 # Obtainium hides prereleases by default, so a tester opts in with one switch and
-# everyone else keeps seeing stable only. Nothing here builds an AAB: dev builds
-# do not go to Play.
+# everyone else keeps seeing stable only.
 #
-# usage: just ship-dev [0.13.0]
-ship-dev target='':
+# Both artefact kinds come out of one run: APKs go to the GitHub prerelease, and
+# the two Play bundles stay in build/dist/ for you to upload to Play's internal
+# testing track. That is what the dev slots are for — a dev code sits above the
+# last release and below the next one, so internal testers get the dev build now
+# and the stable release upgrades them cleanly later. Pass `no` as the second
+# argument to skip the bundles when a build is only meant for Obtainium.
+#
+# usage: just ship-dev [0.13.0] [aab=yes|no]
+ship-dev target='' aab='yes':
     #!/usr/bin/env bash
     set -euo pipefail
     # A dev release names a commit, so the build has to *be* that commit —
@@ -462,14 +517,20 @@ ship-dev target='':
     flutter build apk --release --flavor wear --target lib/wear/main_wear.dart \
         --build-name="$name" --build-number="$code"
     cp build/app/outputs/flutter-apk/app-wear-release.apk "build/dist/app-wear-$name.apk"
+    # Before the release is published, not after: a bundle that fails to build
+    # would otherwise leave a dev release on GitHub with nothing to upload to
+    # Play, and the next run would skip straight past the build it needs.
+    if [ '{{aab}}' != 'no' ]; then
+        just build-aab "$name" "$code"
+    fi
     tag="v$name"
     # Resumable like `release`: skip whatever a failed earlier run already did.
     if gh release view "$tag" --repo {{repo}} >/dev/null 2>&1; then
         echo "Release $tag already exists, skipping create"
     else
         # --generate-notes, unlike in `release`: raw commit subjects are exactly
-        # the changelog a dev channel wants. The store notes are the handwritten
-        # ones, and no dev build ever reaches a store.
+        # the changelog a dev channel wants. Play's own notes are the handwritten
+        # ones, and internal testing does not ask for them at all.
         gh release create "$tag" --repo {{repo}} --target "$sha" \
             --title "$tag" --prerelease --generate-notes
     fi
@@ -486,6 +547,10 @@ ship-dev target='':
     done
     git fetch --tags origin
     echo "Published $tag"
+    if [ '{{aab}}' != 'no' ]; then
+        echo "Upload to Play internal testing ($name):"
+        ls -1 build/dist/*.aab
+    fi
 
 # Deletes old dev prereleases whole — release, notes, APKs and tag — keeping the
 # newest KEEP. Unlike release-cleanup, the tags go too: a dev tag marks a build
