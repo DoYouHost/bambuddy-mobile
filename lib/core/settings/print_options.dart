@@ -24,6 +24,7 @@ class PrintOptions {
     required this.layerInspect,
     required this.timelapse,
     required this.nozzleOffsetCali,
+    this.gcodeInjection = false,
   });
 
   /// Starting point for a user who has never configured a print.
@@ -51,6 +52,13 @@ class PrintOptions {
   /// survives a job sliced for a single-nozzle model in between.
   final CalibrationOption nozzleOffsetCali;
 
+  /// Inject the server's per-model auto-print G-code. Off in [initial] and only
+  /// ever remembered as ON once the user ticked it: a plate-swap rig needs it on
+  /// every single job, which is exactly what this class is for. The form still
+  /// hides it — and drops it from the payload — while the server has no snippets
+  /// configured, so a remembered ON cannot start injecting behind the user.
+  final bool gcodeInjection;
+
   String encode() => jsonEncode({
         'bed_levelling': bedLevelling.name,
         'flow_cali': flowCali.name,
@@ -58,6 +66,7 @@ class PrintOptions {
         'layer_inspect': layerInspect,
         'timelapse': timelapse,
         'nozzle_offset_cali': nozzleOffsetCali.name,
+        'gcode_injection': gcodeInjection,
       });
 
   /// Lenient: a missing or unreadable entry falls back to [initial] field by
@@ -86,6 +95,7 @@ class PrintOptions {
       timelapse: read('timelapse', initial.timelapse),
       nozzleOffsetCali:
           readCali('nozzle_offset_cali', initial.nozzleOffsetCali),
+      gcodeInjection: read('gcode_injection', initial.gcodeInjection),
     );
   }
 
@@ -97,9 +107,10 @@ class PrintOptions {
       other.vibrationCali == vibrationCali &&
       other.layerInspect == layerInspect &&
       other.timelapse == timelapse &&
-      other.nozzleOffsetCali == nozzleOffsetCali;
+      other.nozzleOffsetCali == nozzleOffsetCali &&
+      other.gcodeInjection == gcodeInjection;
 
   @override
   int get hashCode => Object.hash(bedLevelling, flowCali, vibrationCali,
-      layerInspect, timelapse, nozzleOffsetCali);
+      layerInspect, timelapse, nozzleOffsetCali, gcodeInjection);
 }

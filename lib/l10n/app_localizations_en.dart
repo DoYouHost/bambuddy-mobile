@@ -3796,6 +3796,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueEditPowerOff => 'Power off printer when done';
 
   @override
+  String get queueEditGcodeInjection => 'Inject auto-print G-code';
+
+  @override
+  String queueEditGcodeInjectionNoSnippet(String model) {
+    return 'No G-code snippet for $model — nothing will be injected.';
+  }
+
+  @override
   String get queueEditNoModel => 'Select a target model';
 
   @override

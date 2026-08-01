@@ -337,6 +337,13 @@ class DemoBackend {
           'require_plate_clear': false,
           'use_slicer_api': false,
           'currency': 'USD',
+          // Auto-print snippets, as the real server stores them: a JSON string
+          // keyed by printer model. Only the A1 mini has one, so demo shows both
+          // halves of the gate — the injection checkbox appears, and picking the
+          // X1C or the P1S says out loud that nothing would be injected.
+          'gcode_snippets':
+              '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
+                  '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
         });
 
       case 'slicer':
@@ -693,6 +700,23 @@ class DemoBackend {
       color: '#FF6A13',
       createdDaysAgo: 0,
     ),
+    // Plate-swap job on the one model demo has snippets for: opening it shows
+    // the injection checkbox already ticked, with no "nothing will be injected"
+    // note. Move it to the X1C or the P1S and the note appears.
+    _queueItem(
+      id: 103,
+      printerId: 3,
+      position: 3,
+      name: 'Keychain batch (plate swap)',
+      status: 'pending',
+      timeSec: 2760,
+      grams: 12.4,
+      type: 'PLA',
+      color: '#1F8F4D',
+      createdDaysAgo: 0,
+      gcodeInjection: true,
+      slicedForModel: 'A1 mini',
+    ),
   ];
 
   /// Demo filaments "loaded on other printers of the model" — options for the
@@ -716,6 +740,8 @@ class DemoBackend {
     required String type,
     required String color,
     required int createdDaysAgo,
+    bool gcodeInjection = false,
+    String slicedForModel = 'X1C',
   }) =>
       {
         'id': id,
@@ -730,6 +756,7 @@ class DemoBackend {
         'manual_start': false,
         'auto_off_after': false,
         'require_previous_success': false,
+        'gcode_injection': gcodeInjection,
         'filament_short': false,
         // Tri-state strings, as bambuddy 1.2.5+ sends them — the shape whose
         // arrival emptied the real queue screen (docs/plans/07). Demo mode is
@@ -754,7 +781,7 @@ class DemoBackend {
         'filament_color': color,
         'layer_height': 0.2,
         'nozzle_diameter': 0.4,
-        'sliced_for_model': 'X1C',
+        'sliced_for_model': slicedForModel,
       };
 
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
@@ -776,6 +803,7 @@ class DemoBackend {
           type: (archive?['filament_type'] as String?) ?? 'PLA',
           color: (archive?['filament_color'] as String?) ?? '#808080',
           createdDaysAgo: 0,
+          gcodeInjection: body['gcode_injection'] == true,
         ));
         return _ok(_queue.last);
       }
@@ -810,6 +838,9 @@ class DemoBackend {
       }
       if (body.containsKey('ams_mapping')) {
         item['ams_mapping'] = body['ams_mapping'];
+      }
+      if (body.containsKey('gcode_injection')) {
+        item['gcode_injection'] = body['gcode_injection'];
       }
       return _ok(item);
     }

@@ -42,6 +42,7 @@ class QueueCreateOptions {
     this.layerInspect,
     this.timelapse,
     this.nozzleOffsetCali,
+    this.gcodeInjection,
     this.preheatOverride,
     this.preheatChamberTargetOverride,
   });
@@ -67,6 +68,12 @@ class QueueCreateOptions {
   final bool? layerInspect;
   final bool? timelapse;
   final CalibrationOption? nozzleOffsetCali;
+
+  /// Inject the per-model auto-print G-code snippets (`Settings → Workflow` on
+  /// the web) into this job's 3MF before it is uploaded. Needed by plate-swap
+  /// rigs (SwapMod, Farmloop, …); a no-op when the target model has no snippet.
+  final bool? gcodeInjection;
+
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
 
@@ -93,6 +100,7 @@ class QueueCreateOptions {
         'timelapse': ?timelapse,
         'nozzle_offset_cali':
             ?nozzleOffsetCali?.toCreateWire(triState: triState),
+        'gcode_injection': ?gcodeInjection,
         'preheat_override': ?preheatOverride,
         'preheat_chamber_target_override': ?preheatChamberTargetOverride,
       };

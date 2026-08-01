@@ -67,11 +67,15 @@ late SharedPreferences _prefs;
 
 /// [triState] stands in for the server-version probe: `false` is what an older
 /// server (or an unanswered probe) gives the form, `true` is bambuddy 1.2.5+.
+/// [snippets] stands in for `AppSettings.gcode_snippets`: the printer models the
+/// server has auto-print G-code for. Empty is the ordinary install, where the
+/// injection checkbox has nothing to offer and stays off screen.
 Widget _screen(
   QueueItem draft,
   QueueScheduleType schedule, {
   QueueEditMode mode = QueueEditMode.create,
   bool triState = false,
+  Set<String> snippets = const {},
 }) =>
     ProviderScope(
       overrides: [
@@ -80,6 +84,7 @@ Widget _screen(
         allPrintersProvider.overrideWith((ref) async => const [_printer]),
         sharedPreferencesProvider.overrideWithValue(_prefs),
         triStateCalibrationProvider.overrideWith((ref) async => triState),
+        gcodeSnippetModelsProvider.overrideWith((ref) async => snippets),
       ],
       child: plApp(QueueEditScreen(
         item: draft,
@@ -260,6 +265,165 @@ void main() {
 
     expect(_captured, isNull);
     expect(find.text('Wybierz drukarkę'), findsOneWidget);
+  });
+
+  group('wstrzykiwanie G-code auto-druku', () {
+    const label = 'Wstrzyknij G-code auto-druku';
+
+    /// The flags sit at the bottom of a long form, so they must be scrolled to
+    /// before a finder can see them at all — "Power off" is the last row that is
+    /// always there, which makes it the anchor.
+    Future<void> revealFlags(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('Wyłącz drukarkę po zakończeniu'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapInjection(WidgetTester tester) async {
+      await revealFlags(tester);
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    /// The options blob a plate-swap user ends up with: injection remembered ON.
+    Future<void> rememberInjection() => _prefs.setString(
+          'print_options',
+          const PrintOptions(
+            bedLevelling: CalibrationOption.on,
+            flowCali: CalibrationOption.on,
+            vibrationCali: true,
+            layerInspect: true,
+            timelapse: false,
+            nozzleOffsetCali: CalibrationOption.on,
+            gcodeInjection: true,
+          ).encode(),
+        );
+
+    testWidgets('serwer bez snippetów nie pokazuje opcji', (tester) async {
+      await tester.pumpWidget(_screen(_archiveDraft(), QueueScheduleType.asap));
+      await tester.pumpAndSettle();
+      await revealFlags(tester);
+
+      expect(find.text(label), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?.containsKey('gcode_injection'), isFalse,
+          reason: 'flaga bez snippetów jest i tak bezczynna');
+    });
+
+    testWidgets('zaznaczona opcja jedzie z POST-em', (tester) async {
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        snippets: {'X2D'},
+      ));
+      await tester.pumpAndSettle();
+
+      await tapInjection(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?['gcode_injection'], true);
+      expect(_stored().gcodeInjection, isTrue,
+          reason: 'rig do wymiany płyty potrzebuje tego przy każdym wydruku');
+    });
+
+    testWidgets('zapamiętana opcja startuje zaznaczona', (tester) async {
+      await rememberInjection();
+
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        snippets: {'X2D'},
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?['gcode_injection'], true);
+    });
+
+    testWidgets('zapamiętana opcja nie jedzie na serwer bez snippetów',
+        (tester) async {
+      // Server without snippets: the flag must not ship at all, otherwise a
+      // remembered ON keeps asking for an injection nobody configured.
+      await rememberInjection();
+
+      await tester.pumpWidget(_screen(_archiveDraft(), QueueScheduleType.asap));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?.containsKey('gcode_injection'), isFalse);
+    });
+
+    testWidgets('model docelowy bez snippetu mówi, że nic nie wstrzyknie',
+        (tester) async {
+      // Snippets exist, but for another model — the scheduler prints the file
+      // untouched and says so only in its own log.
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        snippets: {'A1 mini'},
+      ));
+      await tester.pumpAndSettle();
+      await revealFlags(tester);
+
+      expect(find.textContaining('nic nie zostanie wstrzyknięte'), findsNothing,
+          reason: 'niezaznaczona opcja nie ma o czym ostrzegać');
+
+      await tapInjection(tester);
+
+      expect(find.textContaining('Brak G-code dla modelu X2D'),
+          findsAtLeastNWidgets(1));
+    });
+
+    testWidgets('ostrzeżenie widać przy wyborze drukarki, bez scrollowania',
+        (tester) async {
+      // The reported hole: someone who only comes in to change the printer never
+      // reaches the checkbox at the bottom, so the note has to be where the
+      // choice is made.
+      await rememberInjection();
+
+      await tester.pumpWidget(_screen(
+        _archiveDraft(),
+        QueueScheduleType.asap,
+        snippets: {'A1 mini'},
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Brak G-code dla modelu X2D'), findsOneWidget,
+          reason: 'sekcja Cel jest na pierwszym ekranie formularza');
+    });
+
+    testWidgets('edycja bez snippetów nie przepisuje zapisanej flagi',
+        (tester) async {
+      await tester.pumpWidget(_screen(
+        QueueItem.fromJson({
+          'id': 5,
+          'position': 1,
+          'status': 'pending',
+          'archive_id': 77,
+          'printer_id': 1,
+          'gcode_injection': true,
+        }),
+        QueueScheduleType.queue,
+        mode: QueueEditMode.edit,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Zapisz'));
+      await tester.pumpAndSettle();
+
+      expect(_captured?.containsKey('gcode_injection'), isFalse,
+          reason: 'checkbox niewidoczny — nie wolno kasować wartości serwera');
+    });
   });
 
   group('trójstanowe kalibracje', () {

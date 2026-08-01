@@ -20,6 +20,7 @@ import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
@@ -432,6 +433,15 @@ final requirePlateClearProvider = FutureProvider<bool>(
   (ref) async =>
       (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
       true,
+);
+
+/// Printer models with an auto-print G-code snippet configured on the server.
+/// Gates the print form's `gcode_injection` checkbox (see [gcodeSnippetModels]):
+/// without snippets the flag does nothing, so the web hides it too.
+final gcodeSnippetModelsProvider = FutureProvider<Set<String>>(
+  (ref) async => gcodeSnippetModels(
+    (await ref.watch(serverSettingsProvider.future))['gcode_snippets'],
+  ),
 );
 
 /// MakerWorld integration (model import). Shares authenticated Dio.

@@ -6644,6 +6644,18 @@ abstract class AppLocalizations {
   /// **'Power off printer when done'**
   String get queueEditPowerOff;
 
+  /// No description provided for @queueEditGcodeInjection.
+  ///
+  /// In en, this message translates to:
+  /// **'Inject auto-print G-code'**
+  String get queueEditGcodeInjection;
+
+  /// No description provided for @queueEditGcodeInjectionNoSnippet.
+  ///
+  /// In en, this message translates to:
+  /// **'No G-code snippet for {model} — nothing will be injected.'**
+  String queueEditGcodeInjectionNoSnippet(String model);
+
   /// No description provided for @queueEditNoModel.
   ///
   /// In en, this message translates to:

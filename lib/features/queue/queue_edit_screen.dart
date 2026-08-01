@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/diagnostic_recorder.dart';
+import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
@@ -114,6 +116,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   late bool _requireManualStart;
   late bool _requirePreviousSuccess;
   late bool _autoOffAfter;
+  late bool _gcodeInjection;
 
   bool _saving = false;
 
@@ -137,6 +140,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             layerInspect: it.layerInspect,
             timelapse: it.timelapse,
             nozzleOffsetCali: it.nozzleOffsetCali,
+            gcodeInjection: it.gcodeInjection,
           );
     _bedLevelling = options.bedLevelling;
     _flowCali = options.flowCali;
@@ -144,6 +148,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     _layerInspect = options.layerInspect;
     _timelapse = options.timelapse;
     _nozzleOffsetCali = options.nozzleOffsetCali;
+    _gcodeInjection = options.gcodeInjection;
     _preheatOverride = it.preheatOverride;
     _chamberTarget = TextEditingController(
       text: it.preheatChamberTargetOverride?.toString() ?? '',
@@ -181,6 +186,85 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   bool get _showNozzleOffset {
     final m = widget.item.slicedForModel?.toUpperCase();
     return m != null && _dualNozzleModels.contains(m);
+  }
+
+  /// Printer models the server has auto-print snippets for. Empty while
+  /// `/settings` has not answered (or could not be read) — the injection
+  /// checkbox stays hidden then, exactly as the web hides it.
+  ///
+  /// [watch] because the save path needs the same answer and `ref.watch` is
+  /// build-only: the form watches so the checkbox appears once `/settings`
+  /// answers, and [_submit] reads what is already resolved by then.
+  Set<String> _snippetModels({required bool watch}) {
+    final async = watch
+        ? ref.watch(gcodeSnippetModelsProvider)
+        : ref.read(gcodeSnippetModelsProvider);
+    return async.valueOrNull ?? const {};
+  }
+
+  /// Whether the form may offer G-code injection at all.
+  bool get _showGcodeInjection => _snippetModels(watch: true).isNotEmpty;
+
+  /// The model this job will print on, as far as the form knows: the selected
+  /// printer's own in printer mode, the chosen target otherwise. Null when the
+  /// target is not settled yet, and then there is no snippet to check against.
+  /// [watch] as in [_snippetModels].
+  String? _resolvedTargetModel({required bool watch}) {
+    if (_modelMode) return _targetModel ?? widget.item.slicedForModel;
+    final async = watch
+        ? ref.watch(allPrintersProvider)
+        : ref.read(allPrintersProvider);
+    for (final p in async.valueOrNull ?? const []) {
+      if (p.id == _printerId) return p.model;
+    }
+    return null;
+  }
+
+  /// Warns that injection is on while the target model has no snippet, so the
+  /// job will print exactly as sliced. Null when there is nothing to warn about.
+  ///
+  /// Shown twice on purpose: next to the checkbox, and again in the target
+  /// section. The checkbox lives at the bottom of the form, and someone who came
+  /// in only to change the printer never scrolls that far — while a remembered
+  /// injection is precisely the setting they configured once and stopped
+  /// watching. Same wording in both places, so it reads as one fact.
+  Widget? _missingSnippetNote(
+    AppLocalizations l10n,
+    DashTokens t, {
+    required EdgeInsets padding,
+  }) {
+    final model = _modelMissingSnippet;
+    if (model == null) return null;
+    return Padding(
+      padding: padding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16, color: t.textTertiary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              l10n.queueEditGcodeInjectionNoSnippet(model),
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                color: t.textTertiary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The target model when injection is asked for but that model has no snippet
+  /// — the case where the scheduler silently prints without injecting anything.
+  /// Null when there is nothing to warn about.
+  String? get _modelMissingSnippet {
+    if (!_gcodeInjection) return null;
+    final model = _resolvedTargetModel(watch: true);
+    if (model == null || model.isEmpty) return null;
+    return _snippetModels(watch: true).contains(model) ? null : model;
   }
 
   @override
@@ -319,6 +403,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             _printerList(l10n, t, printers)
           else
             _modelTarget(l10n, t, models, locations, modelFixed),
+          ?_missingSnippetNote(l10n, t,
+              padding: const EdgeInsets.only(top: 10)),
         ],
       ),
     );
@@ -594,6 +680,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             }),
           ),
           _CheckRow(
+            id: 'queue_edit.force_color_match',
             icon: Icons.palette_outlined,
             label: l10n.queueEditForceColorMatch,
             value: _forceColorMatch[req.slotId] ?? false,
@@ -773,23 +860,38 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           const SizedBox(height: 8),
           if (_scheduleType == QueueScheduleType.queue)
             _CheckRow(
+              id: 'queue_edit.require_manual_start',
               icon: Icons.pan_tool_outlined,
               label: l10n.queueEditRequireManualStart,
               value: _requireManualStart,
               onChanged: (v) => setState(() => _requireManualStart = v),
             ),
           _CheckRow(
+            id: 'queue_edit.require_previous',
             icon: Icons.check_circle_outline,
             label: l10n.queueEditRequirePrevious,
             value: _requirePreviousSuccess,
             onChanged: (v) => setState(() => _requirePreviousSuccess = v),
           ),
           _CheckRow(
+            id: 'queue_edit.power_off',
             icon: Icons.power_settings_new,
             label: l10n.queueEditPowerOff,
             value: _autoOffAfter,
             onChanged: (v) => setState(() => _autoOffAfter = v),
           ),
+          // Injection is offered only while the server actually holds snippets:
+          // the flag does nothing without them, and the web gates it the same way.
+          if (_showGcodeInjection)
+            _CheckRow(
+              id: 'queue_edit.gcode_injection',
+              icon: Icons.code,
+              label: l10n.queueEditGcodeInjection,
+              value: _gcodeInjection,
+              onChanged: (v) => setState(() => _gcodeInjection = v),
+            ),
+          ?_missingSnippetNote(l10n, t,
+              padding: const EdgeInsets.only(left: 4, top: 2)),
         ],
       ),
     );
@@ -866,6 +968,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     }
 
     setState(() => _saving = true);
+    _logGcodeInjection();
 
     final result = await ref
         .read(queueProvider.notifier)
@@ -901,7 +1004,47 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         layerInspect: _layerInspect,
         timelapse: _timelapse,
         nozzleOffsetCali: _nozzleOffsetCali,
+        gcodeInjection: _gcodeInjection,
       );
+
+  /// The injection flag as it may ship, or null to leave the key out.
+  ///
+  /// Null while the form is not offering the checkbox: create then falls back to
+  /// the server's own default (off), and update leaves the stored value alone
+  /// instead of rewriting it from a control the user could not see. A remembered
+  /// ON from a server that has snippets therefore cannot follow the user onto one
+  /// that has none.
+  bool? get _gcodeInjectionPayload =>
+      _snippetModels(watch: false).isEmpty ? null : _gcodeInjection;
+
+  /// Records what the injection flag did to this save.
+  ///
+  /// The request body never reaches the log (only responses are sampled), and
+  /// this is the one option that can be ticked and still do nothing: the
+  /// scheduler skips a model it has no snippet for, and says so in the server's
+  /// own log rather than anywhere the user can see. `sent` separates "the user
+  /// wanted it" from "the key shipped", and `match` answers whether the target
+  /// model had a snippet at all — the two questions a "my plate did not swap"
+  /// report turns on.
+  ///
+  /// `models` is a count and `match` a boolean on purpose: a printer model is
+  /// user data, and the count is all that "were snippets configured" needs.
+  /// Silent when there is nothing to say — no snippets and nothing asked for.
+  void _logGcodeInjection() {
+    final models = _snippetModels(watch: false);
+    if (models.isEmpty && !_gcodeInjection) return;
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'queue_gcode_injection',
+      fields: {
+        'on': _gcodeInjection,
+        'sent': _gcodeInjectionPayload != null,
+        'models': models.length,
+        'match': _gcodeInjection &&
+            models.contains(_resolvedTargetModel(watch: false)),
+      },
+    );
+  }
 
   /// `scheduled_time` as ISO (UTC), only when scheduling. Null on the update
   /// path is an explicit clear (back to ASAP/queue); on create it is simply
@@ -951,6 +1094,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             ? _calibrationUpdate(
                 _nozzleOffsetCali, widget.item.nozzleOffsetCali)
             : null,
+        gcodeInjection: _gcodeInjectionPayload,
         preheatOverride: _preheatOverride,
         preheatChamberTargetOverride: _chamberTargetValue,
       );
@@ -973,6 +1117,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       layerInspect: _layerInspect,
       timelapse: _timelapse,
       nozzleOffsetCali: _showNozzleOffset ? _nozzleOffsetCali : null,
+      gcodeInjection: _gcodeInjectionPayload,
       preheatOverride: _preheatOverride,
       preheatChamberTargetOverride: _chamberTargetValue,
     );
@@ -1283,11 +1428,17 @@ class _OptionSwitch extends StatelessWidget {
 /// Leading-icon checkbox row (schedule flags).
 class _CheckRow extends StatelessWidget {
   const _CheckRow({
+    required this.id,
     required this.icon,
     required this.label,
     required this.value,
     required this.onChanged,
   });
+
+  /// Log identifier, required from the call site: one shared tag would make
+  /// every checkbox on the screen report as the same control, and the log would
+  /// then claim the user ticked "manual start" when they ticked injection.
+  final String id;
 
   final IconData icon;
   final String label;
@@ -1325,7 +1476,7 @@ class _CheckRow extends StatelessWidget {
           ],
         ),
       ),
-    ).tagged('queue_edit.check');
+    ).tagged(id);
   }
 }
 

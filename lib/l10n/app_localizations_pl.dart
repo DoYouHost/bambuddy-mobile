@@ -3853,6 +3853,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueEditPowerOff => 'Wyłącz drukarkę po zakończeniu';
 
   @override
+  String get queueEditGcodeInjection => 'Wstrzyknij G-code auto-druku';
+
+  @override
+  String queueEditGcodeInjectionNoSnippet(String model) {
+    return 'Brak G-code dla modelu $model — nic nie zostanie wstrzyknięte.';
+  }
+
+  @override
   String get queueEditNoModel => 'Wybierz docelowy model';
 
   @override

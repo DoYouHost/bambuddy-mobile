@@ -15,6 +15,8 @@ void main() {
       reason: 'on, nie auto — starszy serwer nie ma gdzie zapisać auto',
     );
     expect(o.timelapse, isFalse, reason: 'nagranie tylko na żądanie');
+    expect(o.gcodeInjection, isFalse,
+        reason: 'wstrzykiwanie G-code tylko na wyraźne życzenie');
   });
 
   test('encode → decode wraca tym samym', () {
@@ -25,13 +27,14 @@ void main() {
       layerInspect: true,
       timelapse: true,
       nozzleOffsetCali: CalibrationOption.on,
+      gcodeInjection: true,
     );
     expect(PrintOptions.decode(o.encode()), o);
   });
 
   test('zapis z poprzedniej wersji: booleany na kalibracjach nadal się czytają', () {
-    // Blob sprzed migracji na trójstan. User ma odzyskać swoje przełączniki,
-    // a nie wrócić do wartości początkowych.
+    // Blob written before the tri-state migration. The user should get their
+    // toggles back rather than fall back to the initial values.
     final o = PrintOptions.decode(
       '{"bed_levelling":false,"flow_cali":true,'
       '"vibration_cali":true,"layer_inspect":false,'
@@ -54,12 +57,14 @@ void main() {
   });
 
   test('niepełny zapis: brakujące pola biorą wartość domyślną', () {
-    // Starszy build zapisał mniej kluczy — user traci pamięć jednego
-    // przełącznika, nie cały ekran druku.
+    // An older build wrote fewer keys — the user loses the memory of one
+    // toggle, not the whole print screen.
     final o = PrintOptions.decode('{"timelapse":true,"flow_cali":"tak"}');
     expect(o.timelapse, isTrue);
     expect(o.flowCali, PrintOptions.initial.flowCali,
         reason: 'zła wartość typu = brak wartości');
     expect(o.bedLevelling, PrintOptions.initial.bedLevelling);
+    expect(o.gcodeInjection, isFalse,
+        reason: 'zapis sprzed wstrzykiwania G-code = wyłączone');
   });
 }
