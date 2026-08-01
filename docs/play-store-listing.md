@@ -51,9 +51,12 @@ MORE
 • Wear OS companion: check status and control prints from your watch
 
 PRIVACY
-Bambuddy mobile talks only to the bambuddy server you configure. There is no analytics,
-no advertising and no cloud service. Your credentials are stored in encrypted,
-Keystore-backed storage on your device and are only ever sent to your own server.
+While you use it, Bambuddy mobile talks only to the bambuddy server you configure. There
+is no analytics, no advertising and no cloud service. Your credentials are stored in
+encrypted, Keystore-backed storage on your device and are only ever sent to your own
+server. If you choose to report a bug from inside the app, your description and a
+diagnostic log — which you read through first — are published as a public GitHub issue.
+Nothing is sent unless you decide to send it.
 
 OPEN SOURCE
 Bambuddy mobile is free software under the AGPL-3.0 license.
@@ -103,9 +106,11 @@ WIĘCEJ
 • Wersja na Wear OS
 
 PRYWATNOŚĆ
-Bambuddy mobile łączy się wyłącznie z serwerem bambuddy, który skonfigurujesz. Brak
-analityki, reklam i chmury. Dane logowania trzymane są w szyfrowanym
-magazynie (Keystore) na urządzeniu.
+W codziennym użyciu Bambuddy mobile łączy się wyłącznie z serwerem bambuddy, który
+skonfigurujesz. Brak analityki, reklam i chmury. Dane logowania trzymane są w szyfrowanym
+magazynie (Keystore) na urządzeniu. Jeśli sam zgłosisz błąd z aplikacji, Twój opis i
+dziennik diagnostyczny — który wcześniej przeglądasz — trafiają jako publiczne zgłoszenie
+na GitHubie. Bez Twojej decyzji nic nie jest wysyłane.
 
 OPEN SOURCE (AGPL-3.0):
 https://github.com/DoYouHost/bambuddy-mobile

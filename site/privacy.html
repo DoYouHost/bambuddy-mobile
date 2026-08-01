@@ -23,21 +23,34 @@
     <div class="container">
       <h1 class="page-title">Privacy Policy</h1>
       <div class="card">
-        <p class="updated">Last updated: 31 July 2026</p>
+        <p class="updated">Last updated: 1 August 2026</p>
 
         <p>Bambuddy mobile is an unofficial, open-source Android companion app for a
         <strong>self-hosted bambuddy server</strong> that manages Bambu Lab 3D printers.
         It is <strong>not affiliated with, endorsed by, or connected to Bambu Lab.</strong></p>
 
-        <p>This policy explains what data the app handles. In short: <strong>Bambuddy mobile does not
-        collect, transmit, or share any personal data with the developer or any third party.</strong>
-        All data stays on your device and travels only to the bambuddy server address that
+        <p>This policy explains what data the app handles. In short: the app has
+        <strong>no analytics, no advertising and no cloud account</strong>, and everything it does
+        while you use it stays between your device and the bambuddy server address that
         <strong>you</strong> configure.</p>
 
+        <p>There is one exception, and only you can trigger it: if you decide to report a bug from
+        inside the app, your description and a diagnostic log you have read through first are
+        published as a <strong>public issue on GitHub</strong>. Nothing is sent unless you choose
+        that, and the whole path is described under
+        <a href="#sending-a-bug-report">Sending a bug report</a>.</p>
+
         <h2>Who the app talks to</h2>
-        <p>Bambuddy mobile communicates <strong>only</strong> with the self-hosted bambuddy server whose
-        address you enter during setup. There is no cloud backend, no analytics service, and no
-        advertising SDK. The developer never receives your data.</p>
+        <ul>
+          <li><strong>Your bambuddy server</strong> — the self-hosted address you enter during
+          setup. While you use the app, this is the only server it talks to. There is no cloud
+          backend, no analytics service and no advertising SDK.</li>
+          <li><strong>The bug-report relay and GitHub</strong> — contacted <strong>only</strong>
+          when you open "Report a bug" and choose to publish a report. The relay
+          (<code>relay-bambu.morganmlg.com</code>) is a small Cloudflare Worker operated by the
+          developer; it exists so that you can file a report without having a GitHub account. If
+          you never send a report, the app never contacts either of them.</li>
+        </ul>
 
         <h2>Data stored on your device</h2>
         <ul>
@@ -46,28 +59,97 @@
           <strong>Keystore-backed encrypted storage</strong> on your device and are never sent
           anywhere except to your own server, over the connection you configure.</li>
           <li><strong>App settings and notification preferences</strong>, stored in local app storage.</li>
+          <li><strong>A random installation identifier</strong> — a UUID the app makes up for itself
+          the first time you open the report form. It is not a device identifier and is not derived
+          from one; its only job is to pace bug reports, so that whoever keeps sending them waits
+          longer each time. Reinstalling the app replaces it.</li>
+          <li><strong>A diagnostic log</strong>, while a recording is running or waiting for you to
+          decide what to do with it.</li>
         </ul>
         <p>This data is removed when you uninstall the app or clear its storage.</p>
 
         <h2>Diagnostic logs</h2>
         <p>The app <strong>can</strong> record a diagnostic log, but only when <strong>you</strong>
         start one yourself from "Report a bug". Nothing is recorded before you press start, and a
-        recording stops by itself after 30 minutes.</p>
+        recording stops by itself after 30 minutes, or sooner if it reaches 20 MB.</p>
         <p>Such a log describes what the app did: screens you opened, controls you pressed, requests
         to your server and the status codes that came back, live-view connection events, what the
         background service decided about notifications, and crashes. It never contains your API key,
-        your password, or text you type. Your server address is reduced to its shape — whether it is
-        http or https, a name or an IP, and the port — and file, model and spool names are left
-        out.</p>
-        <p><strong>The log stays on your device, and the app never uploads it anywhere.</strong> You
-        review it in full on screen, and the only way it leaves the phone is if you save it to a
-        file, in a location you choose, and then decide to send that file to someone — for example
-        when attaching it to a bug report. Whether and when that happens is entirely your decision.
-        Once you save the log, or discard it, the app deletes its own copy.</p>
+        your password, or <strong>any text you type into the app</strong>. Your server address is
+        reduced to its shape — whether it is http or https, a name or an IP, and the port — file,
+        model and spool names are left out, and a control you press is recorded under an internal
+        name rather than the label shown on screen.</p>
+        <p>You review the whole log on screen, and then you choose one of two destinations:</p>
+        <ul>
+          <li><strong>Save to a file</strong> — the log is written where you pick and stays on your
+          phone. Nothing is uploaded, and whether you ever send that file to anyone is entirely your
+          decision.</li>
+          <li><strong>Report on GitHub</strong> — the log is published, as described in the next
+          section.</li>
+        </ul>
+        <p>Once the log has been saved, published or discarded, the app deletes its own copy.</p>
+
+        <h2 id="sending-a-bug-report">Sending a bug report</h2>
+        <p>This happens only when you write a description in the report form and press Report. It is
+        voluntary from beginning to end: if you do not send a report, nothing described in this
+        section takes place.</p>
+
+        <h3>What leaves your phone</h3>
+        <ul>
+          <li><strong>Your description</strong>, exactly as you wrote it, in whatever language you
+          used.</li>
+          <li><strong>The diagnostic log</strong> you have just reviewed, compressed.</li>
+          <li><strong>A short session header</strong>: the app version and build number, whether it
+          is the phone or the watch build, your Android version, your device's language tag (for
+          example <code>pl-PL</code>), the bambuddy version your server reports, the <em>shape</em>
+          of your server address as described above, and which authentication mode you use.</li>
+          <li><strong>The installation identifier</strong> described above.</li>
+          <li><strong>Your IP address</strong>, which the relay necessarily sees, as does any server
+          you connect to.</li>
+        </ul>
+
+        <h3>Where it goes</h3>
+        <p>The relay checks the report, commits the log file to the <code>bug-report-assets</code>
+        branch of the app's public GitHub repository, and opens a <strong>public issue</strong> that
+        quotes your description and the session header and links to the log. The app then shows you
+        the address of that issue.</p>
+        <p><strong>A public issue is public and permanent by its nature.</strong> Anyone can read it,
+        search engines index it, and other people can copy or quote it. Deleting an issue later
+        cannot undo a copy somebody has already taken. Please treat the description as something you
+        are publishing: do not put your name, e-mail address, home address, network details or
+        anything else you would not post publicly into it.</p>
+
+        <h3>What the relay stores</h3>
+        <p>The relay's job is to keep this endpoint from being abused, and it holds as little as it
+        can to do that:</p>
+        <ul>
+          <li>Your installation identifier, your IP address and your description are turned into
+          <strong>keyed hashes (HMAC-SHA-256)</strong> before anything is written down. The relay
+          never stores or logs any of the three in the clear.</li>
+          <li>Those hashes, with timestamps, sit in a small counter database used for the hourly and
+          daily caps, the per-IP cap and duplicate detection. Report rows are deleted automatically
+          within <strong>25 hours</strong>, and the rows that pace repeat reporting within
+          <strong>36 hours</strong>.</li>
+          <li>The relay keeps <strong>no copy of your log or your description</strong>. Both are
+          forwarded to GitHub, and from then on they exist there and nowhere else.</li>
+          <li>When a cap is hit, the developer receives an alert over Telegram. It carries counters
+          only — never any part of any report.</li>
+        </ul>
+
+        <h3>Services involved</h3>
+        <ul>
+          <li><strong>Cloudflare</strong> — hosts the relay and filters abusive traffic at the edge.
+          It processes connection metadata, including your IP address, in the course of delivering
+          and protecting the request.</li>
+          <li><strong>GitHub</strong> — hosts the public issue and the log file attached to it.</li>
+          <li><strong>Telegram</strong> — carries the maintainer alerts described above, which
+          contain no report content.</li>
+        </ul>
 
         <h2>Permissions and why they are used</h2>
         <ul>
-          <li><strong>Internet / network state</strong> — to reach the bambuddy server you configure.</li>
+          <li><strong>Internet / network state</strong> — to reach the bambuddy server you configure,
+          and the report relay if you choose to send a report.</li>
           <li><strong>Camera</strong> — used <strong>only</strong> when you open the spool QR scanner.
           Frames are processed on-device to read a spool code; images are not stored or transmitted.
           The scanned spool identifier is sent only to your bambuddy server.</li>
@@ -87,10 +169,19 @@
         <p>Bambuddy mobile is a utility app for 3D-printer owners and is not directed at children.</p>
 
         <h2>Data deletion</h2>
-        <p>Because no data is collected on any server operated by the developer, there is nothing for
-        the developer to delete. To remove all locally stored data, uninstall the app or clear its
-        storage in Android settings. Data held by your bambuddy server is governed by that server,
-        which you control.</p>
+        <ul>
+          <li><strong>On your device</strong> — uninstall the app or clear its storage in Android
+          settings. That also removes the installation identifier and any log still waiting on the
+          phone.</li>
+          <li><strong>A report you published</strong> — write to the contact address below with the
+          address of the issue, and the issue together with its log file will be deleted from the
+          repository. Because the repository is public, copies that other people, forks, mirrors or
+          search engines have already taken are outside the developer's control.</li>
+          <li><strong>Relay counters</strong> — they expire on their own within about a day and hold
+          nothing but keyed hashes, so there is nothing there to identify or delete.</li>
+          <li><strong>Your bambuddy server</strong> — the data it holds is governed by that server,
+          which you control.</li>
+        </ul>
 
         <h2>Changes to this policy</h2>
         <p>Updates to this policy will be published at this page. Material changes will be noted by
