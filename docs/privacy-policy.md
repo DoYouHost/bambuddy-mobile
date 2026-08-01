@@ -148,10 +148,11 @@ Bambuddy mobile is a utility app for 3D-printer owners and is not directed at ch
 
 - **On your device** — uninstall the app or clear its storage in Android settings. That
   also removes the installation identifier and any log still waiting on the phone.
-- **A report you published** — write to the contact address below with the address of the
-  issue, and the issue together with its log file will be deleted from the repository.
-  Because the repository is public, copies that other people, forks, mirrors or search
-  engines have already taken are outside the developer's control.
+- **A report you published** — send a deletion request to **info.doyouhost@gmail.com** with
+  the address of the issue. The issue and its log file are deleted from the repository, and
+  no account or proof of identity is needed — the issue address is enough. Because the
+  repository is public, copies that other people, forks, mirrors or search engines have
+  already taken are outside the developer's control.
 - **Relay counters** — they expire on their own within about a day and hold nothing but
   keyed hashes, so there is nothing there to identify or delete.
 - **Your bambuddy server** — the data it holds is governed by that server, which you
