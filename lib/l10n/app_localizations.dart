@@ -4790,6 +4790,144 @@ abstract class AppLocalizations {
   /// **'Permanently deleted'**
   String get fmDeletedForever;
 
+  /// No description provided for @fmTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get fmTags;
+
+  /// No description provided for @fmTagsFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by tags'**
+  String get fmTagsFilterTitle;
+
+  /// No description provided for @fmTagsFilterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags search the whole library — the current folder is ignored.'**
+  String get fmTagsFilterHint;
+
+  /// No description provided for @fmTagsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage tags'**
+  String get fmTagsManage;
+
+  /// No description provided for @fmTagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet'**
+  String get fmTagsEmpty;
+
+  /// No description provided for @fmTagsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags'**
+  String get fmTagsNone;
+
+  /// No description provided for @fmTagsApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get fmTagsApply;
+
+  /// No description provided for @fmTagNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New tag'**
+  String get fmTagNew;
+
+  /// No description provided for @fmTagName.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag name'**
+  String get fmTagName;
+
+  /// No description provided for @fmTagRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename tag'**
+  String get fmTagRename;
+
+  /// No description provided for @fmTagDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tag'**
+  String get fmTagDelete;
+
+  /// No description provided for @fmTagDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tag \"{name}\"? Files keep everything else — they only lose this label.'**
+  String fmTagDeleteConfirm(String name);
+
+  /// No description provided for @fmTagCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag created'**
+  String get fmTagCreated;
+
+  /// No description provided for @fmTagDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag deleted'**
+  String get fmTagDeleted;
+
+  /// No description provided for @fmTagExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag with this name already exists'**
+  String get fmTagExists;
+
+  /// No description provided for @fmTagsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags updated'**
+  String get fmTagsSaved;
+
+  /// No description provided for @fmTagsPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {count} of {total} files — the rest are not yours to edit'**
+  String fmTagsPartial(int count, int total);
+
+  /// No description provided for @fmTagsBulkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {count} {count, plural, one{file} other{files}}'**
+  String fmTagsBulkTitle(int count);
+
+  /// No description provided for @fmTagsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get fmTagsAdd;
+
+  /// No description provided for @fmTagsRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get fmTagsRemove;
+
+  /// No description provided for @fmTagsReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get fmTagsReplace;
+
+  /// No description provided for @fmTagsReplaceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all tags on {count} {count, plural, one{file} other{files}} with the selected ones?'**
+  String fmTagsReplaceConfirm(int count);
+
+  /// No description provided for @fmTagsPickSome.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least one tag'**
+  String get fmTagsPickSome;
+
   /// Drawer entry: MakerWorld import
   ///
   /// In en, this message translates to:

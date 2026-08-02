@@ -1,0 +1,212 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/library_tag.dart';
+import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
+
+void main() {
+  late Dio dio;
+  late DioAdapter adapter;
+  late LibraryRepository repo;
+
+  setUp(() {
+    dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+    adapter = DioAdapter(dio: dio);
+    repo = LibraryRepository(dio);
+  });
+
+  group('listTags', () {
+    test('parsuje katalog, pomija niepoprawny wpis', () async {
+      adapter.onGet(
+        '/api/v1/library/tags',
+        (s) => s.reply(200, [
+          {'id': 1, 'name': 'zabawki', 'file_count': 3},
+          'śmieć',
+          {'id': 2, 'name': 'petg'}, // brak file_count → 0
+        ]),
+      );
+
+      final tags = await repo.listTags();
+
+      expect(tags, hasLength(2));
+      expect(tags!.first.name, 'zabawki');
+      expect(tags.first.fileCount, 3);
+      expect(tags.last.fileCount, 0);
+    });
+
+    test('404 → null (serwer bez katalogu tagów)', () async {
+      adapter.onGet(
+        '/api/v1/library/tags',
+        (s) => s.reply(404, {'detail': 'Not Found'}),
+      );
+
+      expect(await repo.listTags(), isNull);
+    });
+
+    test('500 to błąd, nie brak funkcji', () async {
+      adapter.onGet(
+        '/api/v1/library/tags',
+        (s) => s.reply(500, {'detail': 'boom'}),
+      );
+
+      expect(repo.listTags(), throwsA(isA<AppApiException>()));
+    });
+
+    test('401 wypływa jako AuthException', () async {
+      adapter.onGet(
+        '/api/v1/library/tags',
+        (s) => s.reply(401, {'detail': 'nope'}),
+      );
+
+      expect(
+        repo.listTags(),
+        throwsA(isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
+      );
+    });
+  });
+
+  test('createTag: 409 zachowuje status, by UI powiedział „już istnieje"',
+      () async {
+    adapter.onPost(
+      '/api/v1/library/tags',
+      (s) => s.reply(409, {'detail': 'Tag with this name already exists'}),
+      data: {'name': 'zabawki'},
+    );
+
+    expect(
+      repo.createTag('zabawki'),
+      throwsA(isA<AppApiException>().having((e) => e.statusCode, 'status', 409)),
+    );
+  });
+
+  test('createTag: zwraca utworzony tag', () async {
+    adapter.onPost(
+      '/api/v1/library/tags',
+      (s) => s.reply(201, {'id': 7, 'name': 'petg', 'file_count': 0}),
+      data: {'name': 'petg'},
+    );
+
+    final tag = await repo.createTag('petg');
+
+    expect(tag.id, 7);
+    expect(tag.name, 'petg');
+  });
+
+  test('listFilesByTags: wysyła powtórzone tag_ids i parsuje tagi pliku',
+      () async {
+    adapter.onGet(
+      '/api/v1/library/files',
+      (s) => s.reply(200, [
+        {
+          'id': 11,
+          'filename': 'kubek.3mf',
+          'file_type': '3mf',
+          'file_size': 1024,
+          'print_count': 0,
+          'tags': [
+            {'id': 1, 'name': 'zabawki'},
+            'śmieć',
+          ],
+        },
+      ]),
+      queryParameters: {'tag_ids': [1, 2]},
+    );
+
+    final files = await repo.listFilesByTags([1, 2]);
+
+    expect(files, hasLength(1));
+    expect(files.first.tagNames, ['zabawki']);
+  });
+
+  // Kształt URL, nie tylko mapa parametrów: FastAPI czyta `tag_ids` jako listę
+  // z POWTÓRZONEGO klucza. Gdyby Dio zserializował go jako `tag_ids[]=` albo
+  // `tag_ids=1,2`, serwer zobaczyłby zero tagów i cicho oddał całą bibliotekę —
+  // filtr wyglądałby na zepsuty dopiero na ekranie.
+  test('listFilesByTags: tag_ids lecą jako powtórzony klucz', () async {
+    String? query;
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      query = options.uri.query;
+      handler.next(options);
+    }));
+    adapter.onGet(
+      '/api/v1/library/files',
+      (s) => s.reply(200, <dynamic>[]),
+      queryParameters: {'tag_ids': [1, 2]},
+    );
+
+    await repo.listFilesByTags([1, 2]);
+
+    expect(query, 'tag_ids=1&tag_ids=2');
+  });
+
+  test('listFiles: brak tagów w odpowiedzi → pusta lista, nie null', () async {
+    adapter.onGet(
+      '/api/v1/library/files',
+      (s) => s.reply(200, [
+        {
+          'id': 12,
+          'filename': 'stary.gcode',
+          'file_type': 'gcode',
+          'file_size': 10,
+          'print_count': 1,
+        },
+      ]),
+      queryParameters: {'include_root': true},
+    );
+
+    final files = await repo.listFiles();
+
+    expect(files.single.tags, isEmpty);
+  });
+
+  test('assignTags: wysyła akcję po nazwie z kontraktu i czyta liczniki',
+      () async {
+    adapter.onPost(
+      '/api/v1/library/tags/bulk-assign',
+      (s) => s.reply(200, {
+        'files_updated': 2,
+        'associations_added': 0,
+        'associations_removed': 4,
+      }),
+      data: {
+        'file_ids': [11, 12],
+        'tag_ids': <int>[],
+        'action': 'replace',
+      },
+    );
+
+    final result = await repo.assignTags(
+      fileIds: [11, 12],
+      tagIds: const [],
+      action: TagAssignAction.replace,
+    );
+
+    expect(result.filesUpdated, 2);
+    expect(result.removed, 4);
+    expect(result.added, 0);
+  });
+
+  test('assignTags: mniej plików niż wysłano = częściowe zastosowanie',
+      () async {
+    adapter.onPost(
+      '/api/v1/library/tags/bulk-assign',
+      (s) => s.reply(200, {'files_updated': 1}), // reszta pól nieobecna → 0
+      data: {
+        'file_ids': [11, 12],
+        'tag_ids': [1],
+        'action': 'add',
+      },
+    );
+
+    final result = await repo.assignTags(
+      fileIds: [11, 12],
+      tagIds: const [1],
+      action: TagAssignAction.add,
+    );
+
+    expect(result.filesUpdated, 1);
+    expect(result.added, 0);
+  });
+}

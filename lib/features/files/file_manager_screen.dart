@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart' show formatBytes;
@@ -24,6 +25,7 @@ import '../slicer/slice_providers.dart';
 import '../slicer/slice_sheet.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
+import 'tag_sheets.dart';
 
 /// File manager (library): folder navigation, thumbnails, file actions (print, queue,
 /// rename, move, delete), folder CRUD, upload, and trash. UI pattern consistent with archive screen.
@@ -143,9 +145,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Widget _body(FileManagerState s) {
     final l10n = _l10n;
-    // Search is global (all library) — in search mode show matching files from all library,
-    // not subfolders of current directory.
-    final folders = s.isSearching ? const [] : s.subfolders;
+    // Search and the tag filter are both library-wide — folders of the current
+    // directory would be noise next to results from everywhere.
+    final folders = s.isSearching || s.isTagFiltering ? const [] : s.subfolders;
     final files = s.visibleFiles;
     final notifier = ref.read(fileManagerProvider.notifier);
 
@@ -160,12 +162,12 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       content = SliverFillRemaining(
         hasScrollBody: false,
         child: EmptyStateView(
-          message: s.searchFailed
+          message: s.fetchFailed
               ? l10n.connectFailed
-              : s.isSearching || s.typeFilter != null
+              : s.isSearching || s.isTagFiltering || s.typeFilter != null
                   ? l10n.fmNoMatches
                   : l10n.fmEmpty,
-          icon: s.searchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
+          icon: s.fetchFailed ? Icons.cloud_off : Icons.folder_open_outlined,
         ),
       );
     } else {
@@ -238,6 +240,15 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         ),
       ),
       actions: [
+        if (libraryTagsSupported(ref.watch(libraryTagsProvider)))
+          logTag(
+            'files.tag_selected',
+            IconButton(
+              tooltip: l10n.fmTags,
+              icon: const Icon(Icons.sell_outlined),
+              onPressed: s.selected.isEmpty ? null : () => _tagSelected(s),
+            ),
+          ),
         logTag(
           'files.add_to_queue',
           IconButton(
@@ -329,6 +340,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     // server's slicer sidecar is enabled.
     final canSlice =
         (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
+    final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -392,6 +404,20 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                 _addToQueue(file);
               },
             ).tagged('file_actions.add_to_queue'),
+            // Offered for external files too: a tag is a row in the server's
+            // database, not a change to the file on the host's disk.
+            if (tagsSupported)
+              ListTile(
+                leading: const Icon(Icons.sell_outlined),
+                title: Text(l10n.fmTags),
+                subtitle: Text(file.tags.isEmpty
+                    ? l10n.fmTagsNone
+                    : file.tagNames.join(', ')),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _tagFile(file);
+                },
+              ).tagged('file_actions.tags'),
             if (!file.isExternal) ...[
               ListTile(
                 leading: const Icon(Icons.drive_file_rename_outline),
@@ -571,6 +597,22 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     }
   }
 
+  /// Bulk tagging. Selection survives on purpose when nothing was applied
+  /// (cancelled sheet), so a mis-tap doesn't cost the user their selection.
+  Future<void> _tagSelected(FileManagerState s) async {
+    final changed = await showBulkTagsSheet(context, s.selected.toList());
+    if (!changed || !mounted) return;
+    ref.read(fileManagerProvider.notifier).clearSelection();
+    await ref.read(fileManagerProvider.notifier).refresh();
+  }
+
+  Future<void> _tagFile(LibraryFile file) async {
+    final changed = await showFileTagsSheet(context, file);
+    if (!changed || !mounted) return;
+    await ref.read(fileManagerProvider.notifier).refresh();
+    if (mounted) _snack(_l10n.fmTagsSaved);
+  }
+
   Future<void> _addSelectedToQueue(FileManagerState s) async {
     final ids = s.selected.toList();
     try {
@@ -665,13 +707,8 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     required String title,
     required String label,
     String? initial,
-  }) {
-    return showDialog<String>(
-      context: context,
-      builder: (_) =>
-          _PromptNameDialog(title: title, label: label, initial: initial),
-    );
-  }
+  }) =>
+      promptName(context, title: title, label: label, initial: initial);
 
   /// Target folder picker (move). Includes "All Files" (root).
   /// [excludeFolderId] skips folder and its subtree (folder move).
@@ -719,67 +756,6 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 /// translate to `folderId=null` in move call.
 extension on LibraryFolder {
   int? get moveTargetId => id == -1 ? null : id;
-}
-
-/// Name-prompt dialog (new folder / rename folder or file) — a StatefulWidget
-/// so it owns and disposes its own controller in the State lifecycle, same as
-/// `_NotesEditDialog` in project_detail_screen.dart (disposing a
-/// function-local controller right after `await showDialog` races the
-/// dialog's exit animation).
-class _PromptNameDialog extends StatefulWidget {
-  const _PromptNameDialog({
-    required this.title,
-    required this.label,
-    this.initial,
-  });
-
-  final String title;
-  final String label;
-  final String? initial;
-
-  @override
-  State<_PromptNameDialog> createState() => _PromptNameDialogState();
-}
-
-class _PromptNameDialogState extends State<_PromptNameDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(labelText: widget.label),
-        onSubmitted: (v) => Navigator.pop(context, v.trim()),
-      ).tagged('name_prompt.field'),
-      actions: [
-        logTag(
-          'name_prompt.cancel',
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-        ),
-        logTag(
-          'name_prompt.save',
-          FilledButton(
-            onPressed: () => Navigator.pop(context, _controller.text.trim()),
-            child: Text(l10n.fmSave),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _StatsBar extends ConsumerWidget {
@@ -888,8 +864,24 @@ class _FilterRow extends ConsumerWidget {
             onChanged: onSearch,
           ),
         ),
+        if (libraryTagsSupported(ref.watch(libraryTagsProvider))) ...[
+          const SizedBox(width: 4),
+          logTag(
+            'files.tag_filter',
+            IconButton(
+              tooltip: l10n.fmTagsFilterTitle,
+              // A filled icon plus the accent is the only affordance saying the
+              // listing is no longer the folder in the breadcrumb above it.
+              icon: Icon(
+                state.tagFilter.isEmpty ? Icons.sell_outlined : Icons.sell,
+                color: state.tagFilter.isEmpty ? t.textSecondary : t.accentGreenInk,
+              ),
+              onPressed: () => showTagFilterSheet(context),
+            ),
+          ),
+        ],
         if (types.isNotEmpty) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           PopupMenuButton<String?>(
             tooltip: l10n.fmFilterType,
             icon: Icon(
@@ -1130,6 +1122,21 @@ class _FileTile extends StatelessWidget {
                             color: t.textTertiary,
                           ),
                         ),
+                        if (file.tags.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          // Capped so a file tagged a dozen times keeps the
+                          // tile's height; the full set is in its action sheet.
+                          Row(
+                            children: [
+                              for (final tag in file.tags.take(3)) ...[
+                                Flexible(child: TagChip(tag.name)),
+                                const SizedBox(width: 4),
+                              ],
+                              if (file.tags.length > 3)
+                                TagChip('+${file.tags.length - 3}'),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

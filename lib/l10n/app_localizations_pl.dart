@@ -2810,6 +2810,100 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmDeletedForever => 'Usunięto trwale';
 
   @override
+  String get fmTags => 'Tagi';
+
+  @override
+  String get fmTagsFilterTitle => 'Filtruj po tagach';
+
+  @override
+  String get fmTagsFilterHint =>
+      'Tagi przeszukują całą bibliotekę — bieżący folder nie ma znaczenia.';
+
+  @override
+  String get fmTagsManage => 'Zarządzaj tagami';
+
+  @override
+  String get fmTagsEmpty => 'Nie ma jeszcze tagów';
+
+  @override
+  String get fmTagsNone => 'Bez tagów';
+
+  @override
+  String get fmTagsApply => 'Zastosuj';
+
+  @override
+  String get fmTagNew => 'Nowy tag';
+
+  @override
+  String get fmTagName => 'Nazwa tagu';
+
+  @override
+  String get fmTagRename => 'Zmień nazwę tagu';
+
+  @override
+  String get fmTagDelete => 'Usuń tag';
+
+  @override
+  String fmTagDeleteConfirm(String name) {
+    return 'Usunąć tag „$name\"? Pliki zostają — tracą tylko tę etykietę.';
+  }
+
+  @override
+  String get fmTagCreated => 'Tag utworzony';
+
+  @override
+  String get fmTagDeleted => 'Tag usunięty';
+
+  @override
+  String get fmTagExists => 'Tag o tej nazwie już istnieje';
+
+  @override
+  String get fmTagsSaved => 'Tagi zapisane';
+
+  @override
+  String fmTagsPartial(int count, int total) {
+    return 'Zmieniono $count z $total plików — pozostałych nie możesz edytować';
+  }
+
+  @override
+  String fmTagsBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pliku',
+      many: 'plików',
+      few: 'pliki',
+      one: 'plik',
+    );
+    return 'Otaguj $count $_temp0';
+  }
+
+  @override
+  String get fmTagsAdd => 'Dodaj';
+
+  @override
+  String get fmTagsRemove => 'Usuń';
+
+  @override
+  String get fmTagsReplace => 'Zastąp';
+
+  @override
+  String fmTagsReplaceConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pliku',
+      many: 'plikach',
+      few: 'plikach',
+      one: 'pliku',
+    );
+    return 'Zastąpić wszystkie tagi na $count $_temp0 wybranymi?';
+  }
+
+  @override
+  String get fmTagsPickSome => 'Wybierz przynajmniej jeden tag';
+
+  @override
   String get makerworldMenu => 'MakerWorld';
 
   @override

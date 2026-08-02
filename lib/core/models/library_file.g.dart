@@ -22,4 +22,5 @@ LibraryFile _$LibraryFileFromJson(Map<String, dynamic> json) => LibraryFile(
   printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
   filamentUsedGrams: (json['filament_used_grams'] as num?)?.toDouble(),
   slicedForModel: json['sliced_for_model'] as String?,
+  tags: json['tags'] == null ? const [] : _tagsFromJson(json['tags']),
 );

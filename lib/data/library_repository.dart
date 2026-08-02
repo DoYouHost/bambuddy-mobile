@@ -6,6 +6,7 @@ import '../core/models/json_utils.dart';
 import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';
+import '../core/models/library_tag.dart';
 import '../core/models/trash_file.dart';
 
 /// REST data source for file manager / library.
@@ -48,6 +49,24 @@ class LibraryRepository {
     return parseJsonList(body, LibraryFile.fromJson);
   }
 
+  /// GET /library/files?tag_ids=… — every file carrying ALL of [tagIds].
+  ///
+  /// A separate method rather than a parameter on [listFiles] because the
+  /// server drops the folder scope entirely once `tag_ids` is present: tags are
+  /// cross-cutting, so the answer is library-wide by design. Sending
+  /// `folder_id` alongside would suggest otherwise. Dio serializes the list as
+  /// repeated `tag_ids=` keys, which is what FastAPI's `Query` list expects.
+  Future<List<LibraryFile>> listFilesByTags(List<int> tagIds) async {
+    final body = await guard(() async {
+      final res = await _dio.get<List<dynamic>>(
+        Endpoints.libraryFiles,
+        queryParameters: {'tag_ids': tagIds},
+      );
+      return res.data ?? const [];
+    });
+    return parseJsonList(body, LibraryFile.fromJson);
+  }
+
   /// GET /library/folders — full folder tree (nested). We flatten navigation by
   /// [LibraryFolder.parentId], so return tree roots.
   Future<List<LibraryFolder>> listFolders() async {
@@ -62,6 +81,69 @@ class LibraryRepository {
   Future<LibraryStats> stats() => guard(() async {
         final res = await _dio.get<Map<String, dynamic>>(Endpoints.libraryStats);
         return LibraryStats.fromJson(res.data ?? const {});
+      });
+
+  // --- Tags ---
+
+  /// GET /library/tags — the whole catalog, alphabetical, with file counts.
+  ///
+  /// Returns `null` when the server has no tag catalog at all (404 — the routes
+  /// arrived in bambuddy 1.2.5). That is the app's feature gate: the tag
+  /// controls stay hidden instead of offering buttons that can only fail. Any
+  /// other failure is a real error and propagates, so a network blip shows as an
+  /// error rather than silently removing the feature.
+  Future<List<LibraryTag>?> listTags() async {
+    try {
+      final body = await guard(() async {
+        final res = await _dio.get<List<dynamic>>(Endpoints.libraryTags);
+        return res.data ?? const [];
+      });
+      return parseJsonList(body, LibraryTag.fromJson);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// POST /library/tags — create a tag. Names are unique case-insensitively;
+  /// a duplicate answers 409, which reaches the caller as [ApiException] with
+  /// `statusCode == 409`.
+  Future<LibraryTag> createTag(String name) => guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.libraryTags,
+          data: <String, dynamic>{'name': name},
+        );
+        return LibraryTag.fromJson(res.data ?? const {});
+      });
+
+  /// PATCH /library/tags/{id} — rename a tag (409 on duplicate name).
+  Future<void> renameTag(int tagId, String name) => guard(() => _dio.patch<dynamic>(
+        Endpoints.libraryTag(tagId),
+        data: <String, dynamic>{'name': name},
+      ));
+
+  /// DELETE /library/tags/{id} — drop the tag; tagged files keep everything
+  /// else, they just lose this label.
+  Future<void> deleteTag(int tagId) =>
+      guard(() => _dio.delete<dynamic>(Endpoints.libraryTag(tagId)));
+
+  /// POST /library/tags/bulk-assign — add / remove / replace [tagIds] across
+  /// [fileIds]. See [TagAssignResult.filesUpdated] for partial application.
+  Future<TagAssignResult> assignTags({
+    required List<int> fileIds,
+    required List<int> tagIds,
+    required TagAssignAction action,
+  }) =>
+      guard(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.libraryTagsBulkAssign,
+          data: <String, dynamic>{
+            'file_ids': fileIds,
+            'tag_ids': tagIds,
+            'action': action.wire,
+          },
+        );
+        return TagAssignResult.fromJson(res.data ?? const {});
       });
 
   // --- Folders: CRUD ---

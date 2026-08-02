@@ -538,6 +538,22 @@ abstract final class Endpoints {
   /// Library statistics (file/folder count, size, free space).
   static const libraryStats = '$apiPrefix/library/stats';
 
+  // --- Library tags ---
+
+  /// Tag catalog (`TagResponse[]`, alphabetical, with `file_count`).
+  /// Also `POST` — create tag (`TagCreate`: name); `409` on a
+  /// case-insensitive duplicate.
+  static const libraryTags = '$apiPrefix/library/tags';
+
+  /// Single tag: `PATCH` (rename `TagUpdate`: name, `409` on duplicate),
+  /// `DELETE` (drops the tag; files themselves are untouched).
+  static String libraryTag(int tagId) => '$apiPrefix/library/tags/$tagId';
+
+  /// Add / remove / replace tags across files (`POST`, body
+  /// `{file_ids, tag_ids, action}` → `TagBulkAssignResponse`).
+  static const libraryTagsBulkAssign =
+      '$apiPrefix/library/tags/bulk-assign';
+
   // --- Library trash ---
 
   /// Trash file list (`TrashListResponse`: items/total/retention_days).

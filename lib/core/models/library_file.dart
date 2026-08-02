@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'json_utils.dart';
+import 'library_tag.dart';
 
 part 'library_file.g.dart';
 
@@ -26,6 +27,7 @@ class LibraryFile {
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.slicedForModel,
+    this.tags = const [],
   });
 
   factory LibraryFile.fromJson(Map<String, dynamic> json) =>
@@ -77,8 +79,17 @@ class LibraryFile {
   /// Printer model this file was sliced for (e.g. "P1S", "X1C").
   final String? slicedForModel;
 
+  /// Tags on this file — label-only chips, orthogonal to the folder it lives
+  /// in. Empty on servers predating the tag catalog, which is also how the UI
+  /// decides there is nothing to render.
+  @JsonKey(fromJson: _tagsFromJson)
+  final List<LibraryTag> tags;
+
   /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
+
+  /// Tag names in catalog order, for the one-line summary under an action row.
+  List<String> get tagNames => [for (final t in tags) t.name];
 
   /// Whether file is printable (sliced g-code). Print endpoint only accepts these
   /// — see `FilePrint` in API.
@@ -90,3 +101,6 @@ class LibraryFile {
         name.endsWith('.gcode.3mf');
   }
 }
+
+List<LibraryTag> _tagsFromJson(dynamic value) =>
+    parseJsonList(value, LibraryTag.fromJson);

@@ -2765,6 +2765,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmDeletedForever => 'Permanently deleted';
 
   @override
+  String get fmTags => 'Tags';
+
+  @override
+  String get fmTagsFilterTitle => 'Filter by tags';
+
+  @override
+  String get fmTagsFilterHint =>
+      'Tags search the whole library — the current folder is ignored.';
+
+  @override
+  String get fmTagsManage => 'Manage tags';
+
+  @override
+  String get fmTagsEmpty => 'No tags yet';
+
+  @override
+  String get fmTagsNone => 'No tags';
+
+  @override
+  String get fmTagsApply => 'Apply';
+
+  @override
+  String get fmTagNew => 'New tag';
+
+  @override
+  String get fmTagName => 'Tag name';
+
+  @override
+  String get fmTagRename => 'Rename tag';
+
+  @override
+  String get fmTagDelete => 'Delete tag';
+
+  @override
+  String fmTagDeleteConfirm(String name) {
+    return 'Delete tag \"$name\"? Files keep everything else — they only lose this label.';
+  }
+
+  @override
+  String get fmTagCreated => 'Tag created';
+
+  @override
+  String get fmTagDeleted => 'Tag deleted';
+
+  @override
+  String get fmTagExists => 'A tag with this name already exists';
+
+  @override
+  String get fmTagsSaved => 'Tags updated';
+
+  @override
+  String fmTagsPartial(int count, int total) {
+    return 'Updated $count of $total files — the rest are not yours to edit';
+  }
+
+  @override
+  String fmTagsBulkTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return 'Tag $count $_temp0';
+  }
+
+  @override
+  String get fmTagsAdd => 'Add';
+
+  @override
+  String get fmTagsRemove => 'Remove';
+
+  @override
+  String get fmTagsReplace => 'Replace';
+
+  @override
+  String fmTagsReplaceConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'files',
+      one: 'file',
+    );
+    return 'Replace all tags on $count $_temp0 with the selected ones?';
+  }
+
+  @override
+  String get fmTagsPickSome => 'Pick at least one tag';
+
+  @override
   String get makerworldMenu => 'MakerWorld';
 
   @override
