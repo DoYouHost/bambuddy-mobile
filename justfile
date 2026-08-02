@@ -3,6 +3,8 @@
 # clean — both flavors must coexist for `release` to upload them together.
 apk := "build/dist/app-mobile-release.apk"
 wear_apk := "build/dist/app-wear-release.apk"
+aab := "build/dist/app-mobile-release.aab"
+wear_aab := "build/dist/app-wear-release.aab"
 repo := "DoYouHost/bambuddy-mobile"
 # Shared headless GPU Android 14 emulator (TofuSadurki: lxc-docker-android).
 emu := "192.168.2.208:5555"
@@ -25,52 +27,29 @@ test:
 _clean-artifacts:
     rm -rf build/app .dart_tool/flutter_build
 
-# build phone release APK (flavors force an explicit --flavor)
-build: _clean-artifacts
-    flutter build apk --release --flavor mobile
-    mkdir -p build/dist
-    cp build/app/outputs/flutter-apk/app-mobile-release.apk {{apk}}
-
-# build watch release APK (Wear OS entry point + wear flavor/manifest)
-build-wear: _clean-artifacts
-    flutter build apk --release --flavor wear --target lib/wear/main_wear.dart
-    mkdir -p build/dist
-    cp build/app/outputs/flutter-apk/app-wear-release.apk {{wear_apk}}
-
-# build Play Store bundles (AAB) for both flavors — Play accepts only AAB.
+# The one implementation behind `build`, `build-wear`, `build-aab` and
+# `build-aab-wear`: resolve the version, announce it, clean, build one flavor,
+# leave the artifact in build/dist under a fixed name.
 #
-# Without arguments the version comes from pubspec.yaml, which is what a stable
-# release wants (`ship` bumps it first). `ship-dev` passes its own name and code
-# instead, because a dev build deliberately leaves pubspec.yaml alone — building
-# an AAB straight after `ship-dev` without them is what silently produces the
-# *previous* release again, and Play answers "version code already in use".
+# The version always reaches gradle explicitly. Without arguments it comes from
+# pubspec.yaml, which is what a stable release wants (`ship` bumps it first);
+# `ship-dev` passes its own, because a dev build deliberately leaves pubspec
+# alone, and building from it silently produces the *previous* release again —
+# that is what makes Play answer "version code already in use".
 #
-# Both parts are always passed to the build explicitly and echoed before the
-# build starts, so you see which version is going out before gradle spends a
-# minute and a half on it — not after Play refuses the upload.
+# Announced before the build so you see which version is going out before gradle
+# spends a minute and a half on it, rather than after Play refuses the upload.
+# That echo is also why fixed file names are enough: the artifact is a one-shot
+# hand-off to the next step, and a bundle pair alone is ~157 MB.
 #
-# Fixed file names, like {{apk}} and unlike the dev APKs: an AAB is never
-# published under its name, it is a one-shot hand-off from the last build to the
-# Play Console. Overwriting means there is only ever one pair to pick from, and
-# a bundle pair is ~157 MB, which is not worth accumulating for provenance the
-# echo already gives.
-#
-# The watch bundle's code is a billion higher (see android/app/build.gradle.kts):
-# one listing, one applicationId, and Play needs the two artifacts to differ.
-#
-# Clean before each flavor so neither packs the other's (or a stale) snapshot;
-# the clean wipes build/app, so copy each AAB into build/dist/ before the next
-# build. Both end up side by side in build/dist/ for a single Play release.
-#
-# usage: just build-aab            (stable, version from pubspec.yaml)
-#        just build-aab 0.12.1-dev.1 1200001
-build-aab name='' code='':
+# The watch code is a billion higher (see android/app/build.gradle.kts): one
+# listing, one applicationId, and Play needs the two artifacts to differ.
+_build kind flavor name code:
     #!/usr/bin/env bash
     set -euo pipefail
     name='{{name}}'
     code='{{code}}'
-    # Both or neither: a dev name carrying a release code would name the file
-    # after a build that is not the one inside it.
+    # Both or neither: half a pair would build a version nobody asked for.
     if { [ -n "$name" ] && [ -z "$code" ]; } || { [ -z "$name" ] && [ -n "$code" ]; }; then
         echo "Pass both a name and a code, or neither." >&2
         exit 1
@@ -80,18 +59,41 @@ build-aab name='' code='':
         name=${pubspec%%+*}
         code=${pubspec##*+}
     fi
-    echo "Bundles for $name (versionCode $code, watch $((code + 1000000000)))"
+    if [ '{{kind}}' = appbundle ]; then
+        ext=aab
+        src="build/app/outputs/bundle/{{flavor}}Release/app-{{flavor}}-release.aab"
+    else
+        ext=apk
+        src="build/app/outputs/flutter-apk/app-{{flavor}}-release.apk"
+    fi
+    # if/then rather than `[ ... ] && x=y`, which under `set -e` aborts the
+    # recipe on the mobile flavor instead of just skipping the assignment.
+    target=()
+    shown=$code
+    if [ '{{flavor}}' = wear ]; then
+        target=(--target lib/wear/main_wear.dart)
+        shown=$((code + 1000000000))
+    fi
+    echo "Building {{flavor}} $ext $name (versionCode $shown)"
     just _clean-artifacts
-    flutter build appbundle --release --flavor mobile \
+    flutter build {{kind}} --release --flavor {{flavor}} "${target[@]}" \
         --build-name="$name" --build-number="$code"
     mkdir -p build/dist
-    cp build/app/outputs/bundle/mobileRelease/app-mobile-release.aab build/dist/
-    just _clean-artifacts
-    flutter build appbundle --release --flavor wear --target lib/wear/main_wear.dart \
-        --build-name="$name" --build-number="$code"
-    cp build/app/outputs/bundle/wearRelease/app-wear-release.aab build/dist/
-    echo "AABs for $name ready in build/dist/:"
-    ls -1 build/dist/*.aab
+    cp "$src" "build/dist/app-{{flavor}}-release.$ext"
+    echo "-> build/dist/app-{{flavor}}-release.$ext"
+
+# All four take the same optional version pair, e.g. `just build-aab 0.12.1-dev.1 1200001`.
+# build phone release APK
+build name='' code='': (_build "apk" "mobile" name code)
+
+# build watch release APK (Wear OS entry point + wear flavor/manifest)
+build-wear name='' code='': (_build "apk" "wear" name code)
+
+# build phone Play bundle (Play accepts only AAB)
+build-aab name='' code='': (_build "appbundle" "mobile" name code)
+
+# build watch Play bundle
+build-aab-wear name='' code='': (_build "appbundle" "wear" name code)
 
 # clean build artifacts
 clean:
@@ -398,8 +400,10 @@ release-purge ver:
 #
 # Produces everything a stable version needs: APKs for the GitHub release (and
 # Obtainium), plus both Play bundles in build/dist/, which you upload to Play by
-# hand. The bundles are built *before* the GitHub release, so a bundle that fails
-# to build does not leave a published release with nothing to promote.
+# hand. Same four artifacts and same order as `ship-dev`; the only difference is
+# where the version comes from. The bundles are built *before* the GitHub
+# release, so one that fails to build does not leave a published release with
+# nothing to promote.
 #
 # usage: just ship 1.0.0
 ship ver:
@@ -408,6 +412,7 @@ ship ver:
     just build
     just build-wear
     just build-aab
+    just build-aab-wear
     just release {{ver}}
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
@@ -507,21 +512,19 @@ ship-dev target='' aab='yes':
     fi
     echo "Dev build $name (versionCode $code) from ${sha:0:8}"
     just test
-    just _clean-artifacts
-    flutter build apk --release --flavor mobile --build-name="$name" --build-number="$code"
-    mkdir -p build/dist
-    cp build/app/outputs/flutter-apk/app-mobile-release.apk "build/dist/app-mobile-$name.apk"
-    # Same clean-between-flavors rule as build-aab: an incremental release build
-    # here has repeatably packed the other flavor's stale Dart snapshot.
-    just _clean-artifacts
-    flutter build apk --release --flavor wear --target lib/wear/main_wear.dart \
-        --build-name="$name" --build-number="$code"
-    cp build/app/outputs/flutter-apk/app-wear-release.apk "build/dist/app-wear-$name.apk"
-    # Before the release is published, not after: a bundle that fails to build
+    # The same four recipes `ship` runs, with the version passed in.
+    just build "$name" "$code"
+    just build-wear "$name" "$code"
+    # Renamed only here: unlike the bundles, these APKs are published as release
+    # assets a tester downloads, so the file has to say which build it holds.
+    mv {{apk}} "build/dist/app-mobile-$name.apk"
+    mv {{wear_apk}} "build/dist/app-wear-$name.apk"
+    # Bundles before the release is published, not after: one that fails to build
     # would otherwise leave a dev release on GitHub with nothing to upload to
     # Play, and the next run would skip straight past the build it needs.
     if [ '{{aab}}' != 'no' ]; then
         just build-aab "$name" "$code"
+        just build-aab-wear "$name" "$code"
     fi
     tag="v$name"
     # Resumable like `release`: skip whatever a failed earlier run already did.
@@ -549,7 +552,7 @@ ship-dev target='' aab='yes':
     echo "Published $tag"
     if [ '{{aab}}' != 'no' ]; then
         echo "Upload to Play internal testing ($name):"
-        ls -1 build/dist/*.aab
+        ls -1 {{aab}} {{wear_aab}}
     fi
 
 # Deletes old dev prereleases whole — release, notes, APKs and tag — keeping the
