@@ -23,16 +23,16 @@
     <div class="container">
       <h1 class="page-title">Privacy Policy</h1>
       <div class="card">
-        <p class="updated">Last updated: 1 August 2026</p>
+        <p class="updated">Last updated: 2 August 2026</p>
 
         <p>Bambuddy mobile is an unofficial, open-source Android companion app for a
         <strong>self-hosted bambuddy server</strong> that manages Bambu Lab 3D printers.
         It is <strong>not affiliated with, endorsed by, or connected to Bambu Lab.</strong></p>
 
         <p>This policy explains what data the app handles. In short: the app has
-        <strong>no analytics, no advertising and no cloud account</strong>, and everything it does
-        while you use it stays between your device and the bambuddy server address that
-        <strong>you</strong> configure.</p>
+        <strong>no analytics, no advertising and no account you create with the developer</strong>,
+        and everything it does while you use it stays between your device and the bambuddy server
+        address that <strong>you</strong> configure.</p>
 
         <p>There is one exception, and only you can trigger it: if you decide to report a bug from
         inside the app, your description and a diagnostic log you have read through first are
@@ -67,6 +67,30 @@
           decide what to do with it.</li>
         </ul>
         <p>This data is removed when you uninstall the app or clear its storage.</p>
+
+        <h2 id="bambu-cloud-sign-in">Signing in to Bambu Lab cloud (optional)</h2>
+        <p>Downloading models from MakerWorld requires a Bambu Lab account, so the app offers a
+        sign-in screen under <strong>Settings → Cloud account</strong>. It is the only place in the
+        app that handles an <strong>e-mail address</strong>, and nothing happens there unless you
+        use it.</p>
+        <p>When you do sign in, the app sends your <strong>Bambu Lab e-mail address and
+        password</strong> — and, if your account uses two-factor authentication, the
+        <strong>verification code</strong> — to <strong>your own bambuddy server</strong>. Your
+        server signs in to Bambu Lab on your behalf, keeps the resulting session token, and reports
+        the signed-in e-mail address back so the app can show you which account is in use. The app
+        itself does not store your e-mail address or your password on the device, and it never
+        contacts Bambu Lab directly.</p>
+        <p>Two things worth being explicit about:</p>
+        <ul>
+          <li>Your bambuddy server is a server <strong>you</strong> run, but this is still data
+          leaving your phone, and the server holds a Bambu Lab session on your behalf until you
+          sign out.</li>
+          <li>These credentials travel over the connection <strong>you</strong> configured. If your
+          server address is plain <code>http://</code>, they are not encrypted in transit — the same
+          as every other request the app makes. Use <code>https://</code> whenever the server is
+          reachable beyond your own network.</li>
+        </ul>
+        <p>Signing out from the same screen tells your server to discard the token.</p>
 
         <h2>Diagnostic logs</h2>
         <p>The app <strong>can</strong> record a diagnostic log, but only when <strong>you</strong>
@@ -179,6 +203,9 @@
           and no account or proof of identity is needed — the issue address is enough. Because the
           repository is public, copies that other people, forks, mirrors or search engines have
           already taken are outside the developer's control.</li>
+          <li><strong>A Bambu Lab cloud session</strong> — sign out in Settings → Cloud account, and
+          your server discards the token it was holding. The Bambu Lab account itself is governed by
+          Bambu Lab.</li>
           <li><strong>Relay counters</strong> — they expire on their own within about a day and hold
           nothing but keyed hashes, so there is nothing there to identify or delete.</li>
           <li><strong>Your bambuddy server</strong> — the data it holds is governed by that server,

@@ -1,14 +1,14 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 1 August 2026_
+_Last updated: 2 August 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
 endorsed by, or connected to Bambu Lab.**
 
 This policy explains what data the app handles. In short: the app has **no analytics, no
-advertising and no cloud account**, and everything it does while you use it stays between
-your device and the bambuddy server address **you** configure.
+advertising and no account you create with the developer**, and everything it does while
+you use it stays between your device and the bambuddy server address **you** configure.
 
 There is one exception, and only you can trigger it: if you decide to report a bug from
 inside the app, your description and a diagnostic log you have read through first are
@@ -41,6 +41,29 @@ the whole path is described under [Sending a bug report](#sending-a-bug-report).
   to do with it.
 
 This data is removed when you uninstall the app or clear its storage.
+
+## Signing in to Bambu Lab cloud (optional)
+
+Downloading models from MakerWorld requires a Bambu Lab account, so the app offers a
+sign-in screen under **Settings → Cloud account**. It is the only place in the app that
+handles an **e-mail address**, and nothing happens there unless you use it.
+
+When you do sign in, the app sends your **Bambu Lab e-mail address and password** — and,
+if your account uses two-factor authentication, the **verification code** — to **your own
+bambuddy server**. Your server signs in to Bambu Lab on your behalf, keeps the resulting
+session token, and reports the signed-in e-mail address back so the app can show you which
+account is in use. The app itself does not store your e-mail address or your password on
+the device, and it never contacts Bambu Lab directly.
+
+Two things worth being explicit about:
+
+- Your bambuddy server is a server **you** run, but this is still data leaving your phone,
+  and the server holds a Bambu Lab session on your behalf until you sign out.
+- These credentials travel over the connection **you** configured. If your server address
+  is plain `http://`, they are not encrypted in transit — the same as every other request
+  the app makes. Use `https://` whenever the server is reachable beyond your own network.
+
+Signing out from the same screen tells your server to discard the token.
 
 ## Diagnostic logs
 
@@ -153,6 +176,8 @@ Bambuddy mobile is a utility app for 3D-printer owners and is not directed at ch
   no account or proof of identity is needed — the issue address is enough. Because the
   repository is public, copies that other people, forks, mirrors or search engines have
   already taken are outside the developer's control.
+- **A Bambu Lab cloud session** — sign out in Settings → Cloud account, and your server
+  discards the token it was holding. The Bambu Lab account itself is governed by Bambu Lab.
 - **Relay counters** — they expire on their own within about a day and hold nothing but
   keyed hashes, so there is nothing there to identify or delete.
 - **Your bambuddy server** — the data it holds is governed by that server, which you
