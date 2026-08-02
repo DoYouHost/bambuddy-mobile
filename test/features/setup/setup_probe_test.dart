@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/auth/two_factor.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/setup/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -21,22 +22,30 @@ void main() {
   late ProviderContainer container;
   late InMemoryCredentialsStore credentials;
 
+  /// The overrides every container here needs; a group that wants one more
+  /// (the 2FA countdown) rebuilds the container on top of these.
+  late List<Override> overrides;
+
+  ProviderContainer buildContainer([List<Override> extra = const []]) {
+    final built = ProviderContainer(overrides: [...overrides, ...extra]);
+    // AutoDispose provider: keep the controller alive across the awaits.
+    built.listen(setupControllerProvider, (_, _) {});
+    addTearDown(built.dispose);
+    return built;
+  }
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final dio = Dio();
     adapter = DioAdapter(dio: dio);
     credentials = InMemoryCredentialsStore();
-    container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        credentialsStoreProvider.overrideWithValue(credentials),
-        bareDioProvider.overrideWithValue(dio),
-      ],
-    );
-    // AutoDispose provider: keep the controller alive across the awaits.
-    container.listen(setupControllerProvider, (_, _) {});
-    addTearDown(container.dispose);
+    overrides = [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      credentialsStoreProvider.overrideWithValue(credentials),
+      bareDioProvider.overrideWithValue(dio),
+    ];
+    container = buildContainer();
   });
 
   SetupController controller() =>
@@ -239,19 +248,20 @@ void main() {
       expect(savedProfile(), isNull);
     });
 
-    test('2FA account → its own message, nothing saved', () async {
+    test('2FA account → the code step, nothing saved yet', () async {
       await probed();
       mockLogin((s) => s.reply(200, readFixture('login_response_2fa.json')));
 
       await controller().connectWithLogin(
-          username: 'tester', password: 'sekret', remember: false);
+          username: 'tester', password: 'sekret', remember: true);
 
-      expect(
-        state().error,
-        isA<AuthException>()
-            .having((e) => e.code, 'code', AppErrorCode.twoFactorUnsupported),
-      );
-      expect(savedProfile(), isNull);
+      expect(state().error, isNull);
+      expect(state().busy, isFalse);
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
+      expect(savedProfile(), isNull, reason: 'the login is not finished yet');
+      expect(credentials.jwt, isNull);
+      expect(await credentials.readRememberedLogin(), isNull,
+          reason: 'a password that cannot renew a 2FA session is not kept');
     });
 
     test('empty fields → missingCredentials, no request', () async {
@@ -364,6 +374,213 @@ void main() {
 
       expect(savedProfile(), isNull);
       expect(state().error, isNull);
+    });
+  });
+
+  group('SetupController — the 2FA step', () {
+    // The countdown is real time, so the group runs it at 50 ms instead of the
+    // server's five minutes.
+    setUp(() {
+      container = buildContainer([
+        twoFactorLifetimeProvider
+            .overrideWithValue(const Duration(milliseconds: 50)),
+      ]);
+    });
+
+    Future<void> probed() async {
+      mockAuthStatus('auth_status_enabled.json');
+      await controller().probe(_baseUrl);
+    }
+
+    void mockLogin(void Function(dynamic server) reply) =>
+        adapter.onPost('$_baseUrl/api/v1/auth/login', reply,
+            data: {'username': 'tester', 'password': 'sekret'});
+
+    void mockVerify(void Function(dynamic server) reply,
+            {String code = '123456', String method = 'totp'}) =>
+        adapter.onPost('$_baseUrl/api/v1/auth/2fa/verify', reply, data: {
+          'pre_auth_token': 'pre-auth-xyz',
+          'code': code,
+          'method': method,
+        });
+
+    /// Signs in as far as the code step, against a server offering [methods].
+    Future<void> atCodeStep({List<String> methods = const ['totp']}) async {
+      await probed();
+      mockLogin((s) => s.reply(200, {
+            'requires_2fa': true,
+            'pre_auth_token': 'pre-auth-xyz',
+            'two_fa_methods': methods,
+          }));
+      await controller().connectWithLogin(
+          username: 'tester', password: 'sekret', remember: false);
+    }
+
+    test('the right code finishes the sign-in', () async {
+      await atCodeStep();
+      mockVerify((s) => s.reply(200, readFixture('login_response_ok.json')));
+
+      await controller()
+          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+
+      expect(state().error, isNull);
+      expect(savedProfile()?.authMode, AuthMode.jwt);
+      expect(credentials.jwt, startsWith('eyJ'));
+    });
+
+    test('a wrong code keeps the step so the next one can be typed', () async {
+      // The server does not spend the pre-auth token on a failed check, so
+      // dropping back to the password form here would throw away a live
+      // challenge and cost the user a whole round trip.
+      await atCodeStep();
+      mockVerify((s) => s.reply(401, {'detail': 'Invalid TOTP code'}),
+          code: '000000');
+
+      await controller()
+          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '000000');
+
+      expect(
+        state().error,
+        isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.twoFactorCodeRejected),
+      );
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
+      expect(state().busy, isFalse);
+      expect(savedProfile(), isNull);
+    });
+
+    test('an expired challenge drops back to the password form', () async {
+      // Only a fresh login can mint another pre-auth token; leaving the code
+      // field up would let the user type into something already dead.
+      await atCodeStep();
+      mockVerify(
+          (s) => s.reply(401, {'detail': 'Invalid or expired pre-auth token'}));
+
+      await controller()
+          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+
+      expect(state().twoFactor, isNull);
+      expect(
+        state().error,
+        isA<AuthException>().having(
+            (e) => e.code, 'code', AppErrorCode.twoFactorChallengeExpired),
+      );
+    });
+
+    test('an empty code is refused without a request', () async {
+      await atCodeStep();
+
+      await controller()
+          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '   ');
+
+      expect(state().error, SetupErrorCode.missingTwoFactorCode);
+      expect(state().twoFactor, isNotNull);
+    });
+
+    test('an e-mail-only account gets its code without being asked', () async {
+      // There is nothing to type until one has been sent, so the extra tap
+      // could only ever go one way.
+      adapter.onPost(
+        '$_baseUrl/api/v1/auth/2fa/email/send',
+        (s) => s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
+        data: {'pre_auth_token': 'pre-auth-xyz'},
+      );
+
+      await atCodeStep(methods: ['email']);
+
+      expect(state().emailCodeSent, isTrue);
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-2',
+          reason: 'the send consumes the old token and issues a new one');
+    });
+
+    test('an account with a choice is not mailed a code it did not ask for',
+        () async {
+      // The send is rate-limited (3 per 15 minutes) and reaches the user's
+      // inbox — spending it on a method they may not use is not ours to do.
+      await atCodeStep(methods: ['totp', 'email', 'backup']);
+
+      expect(state().emailCodeSent, isFalse);
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
+    });
+
+    test('a failed send keeps the step usable', () async {
+      adapter.onPost(
+        '$_baseUrl/api/v1/auth/2fa/email/send',
+        (s) => s.reply(500, {'detail': 'Email service is not configured'}),
+        data: {'pre_auth_token': 'pre-auth-xyz'},
+      );
+
+      await atCodeStep(methods: ['email']);
+
+      expect(
+        state().error,
+        isA<ApiException>().having(
+            (e) => e.code, 'code', AppErrorCode.twoFactorEmailUnavailable),
+      );
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-xyz');
+      expect(state().emailCodeSent, isFalse);
+      expect(state().busy, isFalse);
+    });
+
+    test('an untouched step gives way once the token has run out', () async {
+      // The pre-auth token dies after five minutes and the server announces
+      // that nowhere; left alone, the code field would keep accepting input for
+      // a challenge that stopped existing, and a correct code would come back
+      // as "wrong". Verified live: an 8-minute wait used to leave the step up.
+      await atCodeStep();
+      expect(state().twoFactor, isNotNull);
+
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      expect(state().twoFactor, isNull);
+      expect(
+        state().error,
+        isA<AuthException>().having(
+            (e) => e.code, 'code', AppErrorCode.twoFactorChallengeExpired),
+      );
+    });
+
+    test('a mailed code restarts the countdown', () async {
+      // `/2fa/email/send` hands back a brand-new token, so the step it belongs
+      // to has the full window again — expiring on the first one's clock would
+      // throw away a challenge the user just refreshed.
+      adapter.onPost(
+        '$_baseUrl/api/v1/auth/2fa/email/send',
+        (s) => s.reply(200, {'message': 'sent', 'pre_auth_token': 'pre-auth-2'}),
+        data: {'pre_auth_token': 'pre-auth-xyz'},
+      );
+      await atCodeStep(methods: ['totp', 'email']);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      await controller().sendTwoFactorEmailCode();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      expect(state().twoFactor?.preAuthToken, 'pre-auth-2',
+          reason: 'the old challenge\'s timer must not take the new one down');
+    });
+
+    test('signing in stops the countdown', () async {
+      // Otherwise the timer fires minutes later, on a screen the user has long
+      // left, and writes an error into a setup that already succeeded.
+      await atCodeStep();
+      mockVerify((s) => s.reply(200, readFixture('login_response_ok.json')));
+
+      await controller()
+          .verifyTwoFactor(method: TwoFactorMethod.totp, code: '123456');
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      expect(state().error, isNull);
+      expect(savedProfile()?.authMode, AuthMode.jwt);
+    });
+
+    test('backing out returns to the login form', () async {
+      await atCodeStep();
+
+      controller().cancelTwoFactor();
+
+      expect(state().twoFactor, isNull);
+      expect(state().error, isNull);
+      expect(state().needsAuth, isTrue, reason: 'the probe result survives');
     });
   });
 }

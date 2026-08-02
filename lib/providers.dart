@@ -202,8 +202,9 @@ final authServiceProvider = Provider<AuthService>(
     // happens in an interceptor or a background timer, and every request after
     // it just fails as unauthorized. The dashboard turns this flag into one
     // warning on the next app open.
-    onCredentialsRejected: () =>
-        ref.read(settingsRepositoryProvider).saveSignInRequired(true),
+    onSignInRequired: (reason) => ref
+        .read(settingsRepositoryProvider)
+        .saveSignInRequired(true, reason: reason),
   ),
 );
 

@@ -14,6 +14,13 @@ extension AppApiExceptionL10n on AppApiException {
         AppErrorCode.malformedResponse => l10n.errMalformedResponse,
         AppErrorCode.invalidCredentials => l10n.errInvalidCredentials,
         AppErrorCode.twoFactorUnsupported => l10n.errTwoFactorUnsupported,
+        AppErrorCode.twoFactorCodeRejected => l10n.errTwoFactorCodeRejected,
+        AppErrorCode.twoFactorChallengeExpired =>
+          l10n.errTwoFactorChallengeExpired,
+        AppErrorCode.twoFactorMethodUnavailable =>
+          l10n.errTwoFactorMethodUnavailable,
+        AppErrorCode.twoFactorEmailUnavailable =>
+          l10n.errTwoFactorEmailUnavailable,
         AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
         AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
       };

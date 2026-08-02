@@ -12,6 +12,7 @@ String setupErrorText(AppLocalizations l10n, Object error) {
       SetupErrorCode.missingUrl => l10n.errMissingUrl,
       SetupErrorCode.missingApiKey => l10n.errMissingApiKey,
       SetupErrorCode.missingCredentials => l10n.errMissingCredentials,
+      SetupErrorCode.missingTwoFactorCode => l10n.errMissingTwoFactorCode,
       SetupErrorCode.requiresServerSetup => l10n.errRequiresServerSetup,
     };
   }

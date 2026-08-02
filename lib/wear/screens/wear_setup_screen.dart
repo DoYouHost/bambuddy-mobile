@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/auth/two_factor.dart';
 import '../../features/setup/providers.dart';
 import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
   final _apiKey = TextEditingController();
   final _username = TextEditingController();
   final _password = TextEditingController();
+  final _code = TextEditingController();
   bool _useLogin = false;
 
   @override
@@ -27,6 +29,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
     _apiKey.dispose();
     _username.dispose();
     _password.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -70,7 +73,9 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
                       color: Theme.of(context).colorScheme.error, fontSize: 12),
                 ),
               ),
-            if (state.needsAuth && !state.busy)
+            if (state.twoFactor case final challenge?)
+              ..._twoFactorSection(controller, l10n, challenge, state)
+            else if (state.needsAuth && !state.busy)
               ..._authSection(controller, l10n),
           ],
         ),
@@ -114,6 +119,61 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
           ),
         ],
       ];
+
+  /// The code step, watch-sized. Same controller as the phone, so the whole
+  /// flow (challenge, e-mail resend, expiry) behaves identically; only the
+  /// method picker is dropped — the wrist is no place for a segmented control,
+  /// so the watch answers with whatever the server listed first (TOTP where the
+  /// account has it) and the phone handles the exotic cases.
+  List<Widget> _twoFactorSection(
+    SetupController controller,
+    AppLocalizations l10n,
+    TwoFactorChallenge challenge,
+    SetupState state,
+  ) {
+    final method = challenge.methods.first;
+    return [
+      const SizedBox(height: 12),
+      Text(
+        l10n.twoFactorTitle,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 8),
+      _compactField(_code, l10n.twoFactorCodeLabel,
+          keyboard: method.isNumericCode
+              ? TextInputType.number
+              : TextInputType.visiblePassword,
+          enabled: !state.busy),
+      const SizedBox(height: 8),
+      if (method == TwoFactorMethod.email)
+        TextButton(
+          onPressed: state.busy ? null : controller.sendTwoFactorEmailCode,
+          child: Text(
+            state.emailCodeSent
+                ? l10n.twoFactorResendEmail
+                : l10n.twoFactorSendEmail,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+      FilledButton(
+        onPressed: state.busy
+            ? null
+            : () =>
+                controller.verifyTwoFactor(method: method, code: _code.text),
+        child: Text(l10n.twoFactorVerify),
+      ),
+      TextButton(
+        onPressed: state.busy
+            ? null
+            : () {
+                _code.clear();
+                controller.cancelTwoFactor();
+              },
+        child: Text(l10n.twoFactorBack, style: const TextStyle(fontSize: 12)),
+      ),
+    ];
+  }
 
   Widget _compactField(
     TextEditingController controller,

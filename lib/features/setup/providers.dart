@@ -1,8 +1,13 @@
+import 'dart:async';
+
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/two_factor.dart';
 import '../../core/demo/demo_config.dart';
+import '../../core/diagnostics/auth_probe.dart';
 import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
@@ -12,6 +17,7 @@ enum SetupErrorCode {
   missingUrl,
   missingApiKey,
   missingCredentials,
+  missingTwoFactorCode,
   requiresServerSetup,
 }
 
@@ -21,6 +27,8 @@ class SetupState {
     this.error,
     this.probe,
     this.baseUrl,
+    this.twoFactor,
+    this.emailCodeSent = false,
   });
 
   final bool busy;
@@ -34,6 +42,14 @@ class SetupState {
   /// Normalized URL, set on successful probe.
   final String? baseUrl;
 
+  /// Set when the password went through but the account wants a second factor.
+  /// Non-null = the screen shows the code step instead of the login form.
+  final TwoFactorChallenge? twoFactor;
+
+  /// A code has been mailed for the current challenge — turns the send button
+  /// into a resend and tells the user where to look.
+  final bool emailCodeSent;
+
   /// Probe passed and server requires authentication.
   bool get needsAuth => probe?.authEnabled == true;
 
@@ -42,12 +58,17 @@ class SetupState {
     Object? error,
     AuthProbeResult? probe,
     String? baseUrl,
+    TwoFactorChallenge? twoFactor,
+    bool? emailCodeSent,
+    bool clearTwoFactor = false,
   }) =>
       SetupState(
         busy: busy ?? this.busy,
         error: error,
         probe: probe ?? this.probe,
         baseUrl: baseUrl ?? this.baseUrl,
+        twoFactor: clearTwoFactor ? null : twoFactor ?? this.twoFactor,
+        emailCodeSent: clearTwoFactor ? false : emailCodeSent ?? this.emailCodeSent,
       );
 }
 
@@ -56,9 +77,41 @@ final setupControllerProvider =
   SetupController.new,
 );
 
+/// How long the controller leaves the code step up before declaring the
+/// challenge stale. Overridden in tests to keep them off the clock.
+final twoFactorLifetimeProvider =
+    Provider<Duration>((ref) => TwoFactorChallenge.lifetime);
+
 class SetupController extends AutoDisposeNotifier<SetupState> {
+  /// Counts down the pre-auth token so an untouched code step gives way to the
+  /// password form on its own, instead of waiting for the user to type a
+  /// perfectly good code into a challenge the server forgot minutes ago.
+  Timer? _twoFactorExpiry;
+
   @override
-  SetupState build() => const SetupState();
+  SetupState build() {
+    ref.onDispose(() => _twoFactorExpiry?.cancel());
+    return const SetupState();
+  }
+
+  /// (Re)starts the countdown — a fresh challenge, and every token the e-mail
+  /// step swaps in, gets the full window.
+  void _armTwoFactorExpiry() {
+    _twoFactorExpiry?.cancel();
+    _twoFactorExpiry = Timer(ref.read(twoFactorLifetimeProvider), () {
+      if (state.twoFactor == null) return;
+      AuthProbe.twoFactorLapsed();
+      state = state.copyWith(
+        clearTwoFactor: true,
+        error: const AuthException(AppErrorCode.twoFactorChallengeExpired),
+      );
+    });
+  }
+
+  void _cancelTwoFactorExpiry() {
+    _twoFactorExpiry?.cancel();
+    _twoFactorExpiry = null;
+  }
 
   /// Probe server auth mode. If auth disabled — immediately save profile
   /// (zero extra steps for simplest setup).
@@ -164,16 +217,93 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
       return;
     }
     try {
-      await ref.read(authServiceProvider).login(
+      final result = await ref.read(authServiceProvider).login(
             baseUrl: url,
             username: username,
             password: password,
             remember: remember,
           );
-      await _saveProfile(url, AuthMode.jwt);
+      switch (result) {
+        case LoginCompleted():
+          await _saveProfile(url, AuthMode.jwt);
+        case LoginNeedsTwoFactor(:final challenge):
+          state = state.copyWith(busy: false, twoFactor: challenge);
+          _armTwoFactorExpiry();
+          // An account whose only factor is e-mail has nothing to type until a
+          // code has been mailed, so asking the user to press "send" first is a
+          // step that can only go one way. With more than one method the choice
+          // is theirs — mailing a code they weren't going to use would be spam
+          // against a 3-per-15-minutes server limit.
+          if (challenge.methods.singleOrNull == TwoFactorMethod.email) {
+            await sendTwoFactorEmailCode();
+          }
+      }
     } on AppApiException catch (e) {
       state = state.copyWith(busy: false, error: e);
     }
+  }
+
+  /// Mails a fresh e-mail OTP for the pending challenge. Replaces the stored
+  /// challenge: the server hands back a new pre-auth token and voids the old.
+  Future<void> sendTwoFactorEmailCode() async {
+    final url = state.baseUrl;
+    final challenge = state.twoFactor;
+    if (url == null || challenge == null) return;
+    state = state.copyWith(busy: true, error: null);
+    try {
+      final refreshed = await ref.read(authServiceProvider).sendEmailOtp(
+            baseUrl: url,
+            challenge: challenge,
+          );
+      state = state.copyWith(
+        busy: false,
+        twoFactor: refreshed,
+        emailCodeSent: true,
+      );
+      // The server issued a new token with it, so the clock starts over.
+      _armTwoFactorExpiry();
+    } on AppApiException catch (e) {
+      state = state.copyWith(busy: false, error: e);
+    }
+  }
+
+  /// Second step: exchange the code for a session. A rejected code leaves the
+  /// challenge in place (the server does not spend it), so the user just types
+  /// the next one; an expired challenge drops back to the password form,
+  /// because only a fresh login can mint another.
+  Future<void> verifyTwoFactor({
+    required TwoFactorMethod method,
+    required String code,
+  }) async {
+    final url = state.baseUrl;
+    final challenge = state.twoFactor;
+    if (url == null || challenge == null) return;
+    if (code.trim().isEmpty) {
+      state = state.copyWith(error: SetupErrorCode.missingTwoFactorCode);
+      return;
+    }
+    state = state.copyWith(busy: true, error: null);
+    try {
+      await ref.read(authServiceProvider).verifyTwoFactor(
+            baseUrl: url,
+            challenge: challenge,
+            method: method,
+            code: code,
+          );
+      _cancelTwoFactorExpiry();
+      await _saveProfile(url, AuthMode.jwt);
+    } on AppApiException catch (e) {
+      final expired = e.code == AppErrorCode.twoFactorChallengeExpired;
+      if (expired) _cancelTwoFactorExpiry();
+      state = state.copyWith(busy: false, error: e, clearTwoFactor: expired);
+    }
+  }
+
+  /// Back to the password form — "wrong account", or the authenticator is on
+  /// the other phone.
+  void cancelTwoFactor() {
+    _cancelTwoFactorExpiry();
+    state = state.copyWith(error: null, clearTwoFactor: true);
   }
 
   /// Profile save switches router to dashboard (see routerProvider).

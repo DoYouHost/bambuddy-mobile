@@ -28,6 +28,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInRequiredAction => 'Sign in';
 
   @override
+  String get signInRequiredTwoFactorBody =>
+      'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.';
+
+  @override
   String get later => 'Later';
 
   @override
@@ -1058,6 +1062,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInAndConnect => 'Sign in and connect';
 
   @override
+  String get twoFactorTitle => 'Two-factor authentication';
+
+  @override
+  String get twoFactorMethodTotp => 'Authenticator';
+
+  @override
+  String get twoFactorMethodEmail => 'E-mail';
+
+  @override
+  String get twoFactorMethodBackup => 'Backup code';
+
+  @override
+  String get twoFactorExplainTotp =>
+      'Enter the 6-digit code from your authenticator app.';
+
+  @override
+  String get twoFactorExplainEmail =>
+      'Have the server e-mail you a 6-digit code, then enter it here.';
+
+  @override
+  String get twoFactorExplainEmailSent =>
+      'A 6-digit code has been sent to the address on your account. It expires in 10 minutes.';
+
+  @override
+  String get twoFactorExplainBackup =>
+      'Enter one of the 8-character backup codes you saved when setting up 2FA. Each one works once.';
+
+  @override
+  String get twoFactorCodeLabel => 'Code';
+
+  @override
+  String get twoFactorSendEmail => 'E-mail me a code';
+
+  @override
+  String get twoFactorResendEmail => 'Send another code';
+
+  @override
+  String get twoFactorVerify => 'Confirm and connect';
+
+  @override
+  String get twoFactorBack => 'Use a different account';
+
+  @override
+  String get twoFactorSessionNote =>
+      'The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.';
+
+  @override
   String get tryDemo => 'Try the demo';
 
   @override
@@ -1116,6 +1167,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errTwoFactorUnsupported =>
       'Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).';
+
+  @override
+  String get errTwoFactorCodeRejected => 'Wrong code — check it and try again.';
+
+  @override
+  String get errTwoFactorChallengeExpired =>
+      'The sign-in attempt expired — enter your password again to get a new code.';
+
+  @override
+  String get errTwoFactorMethodUnavailable =>
+      'That method is not available on this account — pick another one.';
+
+  @override
+  String get errTwoFactorEmailUnavailable =>
+      'The server could not send the code — it has no e-mail set up, or your account has no address. Use another method.';
+
+  @override
+  String get errMissingTwoFactorCode => 'Enter the code';
 
   @override
   String get errApiKeyRejected =>

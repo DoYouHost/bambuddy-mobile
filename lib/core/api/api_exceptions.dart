@@ -15,7 +15,29 @@ enum AppErrorCode {
   connectionError,
   malformedResponse,
   invalidCredentials,
+
+  /// The account needs a second factor and the caller has no way to ask for it
+  /// — silent re-login from an interceptor or the background isolate. The
+  /// interactive path never sees this: it gets a [TwoFactorChallenge] instead.
   twoFactorUnsupported,
+
+  /// The server checked the code and said no. The login challenge survives a
+  /// wrong code, so the user just types the next one.
+  twoFactorCodeRejected,
+
+  /// The pre-auth token is gone: 5 minutes elapsed, it was already spent, or
+  /// the `2fa_challenge` cookie binding failed (a proxy that drops `Set-Cookie`
+  /// looks exactly like this). Only the password step can produce a new one.
+  twoFactorChallengeExpired,
+
+  /// The chosen second factor is not usable on this account — TOTP turned off
+  /// between the two steps, or a backup code on an account without TOTP.
+  twoFactorMethodUnavailable,
+
+  /// The server cannot mail the code: no SMTP configured, or the send failed.
+  /// Another method (if the account has one) still works.
+  twoFactorEmailUnavailable,
+
   apiKeyRejected,
 
   /// 429 — the server is refusing for now, not forever. bambuddy rate-limits

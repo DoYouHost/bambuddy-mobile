@@ -42,7 +42,8 @@ Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
     credentials: creds,
     // The rejection can just as easily happen here, hours before the user opens
     // the app; the flag is in prefs so the UI still finds it when they do.
-    onCredentialsRejected: () => settings.saveSignInRequired(true),
+    onSignInRequired: (reason) =>
+        settings.saveSignInRequired(true, reason: reason),
   );
   return ApiClient(
     profile: profile,

@@ -28,6 +28,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get signInRequiredAction => 'Zaloguj';
 
   @override
+  String get signInRequiredTwoFactorBody =>
+      'Konto wymaga teraz drugiego składnika, a aplikacja nie poda go w tle — więc przestała logować się sama. Zaloguj się ponownie i wpisz kod.';
+
+  @override
   String get later => 'Później';
 
   @override
@@ -1078,6 +1082,53 @@ class AppLocalizationsPl extends AppLocalizations {
   String get signInAndConnect => 'Zaloguj i połącz';
 
   @override
+  String get twoFactorTitle => 'Uwierzytelnianie dwuskładnikowe';
+
+  @override
+  String get twoFactorMethodTotp => 'Aplikacja';
+
+  @override
+  String get twoFactorMethodEmail => 'E-mail';
+
+  @override
+  String get twoFactorMethodBackup => 'Kod zapasowy';
+
+  @override
+  String get twoFactorExplainTotp =>
+      'Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.';
+
+  @override
+  String get twoFactorExplainEmail =>
+      'Poproś serwer o wysłanie 6-cyfrowego kodu na e-mail i wpisz go tutaj.';
+
+  @override
+  String get twoFactorExplainEmailSent =>
+      '6-cyfrowy kod poszedł na adres przypisany do konta. Wygasa po 10 minutach.';
+
+  @override
+  String get twoFactorExplainBackup =>
+      'Wpisz jeden z 8-znakowych kodów zapasowych zapisanych przy włączaniu 2FA. Każdy działa raz.';
+
+  @override
+  String get twoFactorCodeLabel => 'Kod';
+
+  @override
+  String get twoFactorSendEmail => 'Wyślij kod na e-mail';
+
+  @override
+  String get twoFactorResendEmail => 'Wyślij kolejny kod';
+
+  @override
+  String get twoFactorVerify => 'Potwierdź i połącz';
+
+  @override
+  String get twoFactorBack => 'Zaloguj się na inne konto';
+
+  @override
+  String get twoFactorSessionNote =>
+      'Aplikacja nie odnowi sesji z 2FA sama, więc po jej wygaśnięciu zapyta ponownie. Klucz API nie wygasa i pomija ten krok.';
+
+  @override
   String get tryDemo => 'Wypróbuj wersję demo';
 
   @override
@@ -1137,6 +1188,25 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get errTwoFactorUnsupported =>
       'Konto wymaga 2FA — nieobsługiwane w tej wersji. Użyj klucza API (Ustawienia → API Keys na serwerze).';
+
+  @override
+  String get errTwoFactorCodeRejected =>
+      'Zły kod — sprawdź go i spróbuj ponownie.';
+
+  @override
+  String get errTwoFactorChallengeExpired =>
+      'Próba logowania wygasła — podaj hasło jeszcze raz, żeby dostać nowy kod.';
+
+  @override
+  String get errTwoFactorMethodUnavailable =>
+      'Ta metoda nie jest dostępna na tym koncie — wybierz inną.';
+
+  @override
+  String get errTwoFactorEmailUnavailable =>
+      'Serwer nie wysłał kodu — nie ma skonfigurowanej poczty albo konto nie ma adresu. Użyj innej metody.';
+
+  @override
+  String get errMissingTwoFactorCode => 'Wpisz kod';
 
   @override
   String get errApiKeyRejected =>

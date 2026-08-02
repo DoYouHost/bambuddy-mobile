@@ -11,6 +11,7 @@ import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
+import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -130,14 +131,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
   Future<void> _maybeWarnSignInRequired() async {
     if (_signInWarned || !mounted) return;
-    if (!ref.read(settingsRepositoryProvider).loadSignInRequired()) return;
+    final settings = ref.read(settingsRepositoryProvider);
+    if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
     final l10n = AppLocalizations.of(context);
     final signIn = await confirmDialog(
       context,
       title: l10n.signInRequiredTitle,
-      message: l10n.signInRequiredBody,
+      // 2FA gets its own wording: the saved password is fine there, and sending
+      // the user off to reset it would waste their time on the wrong thing.
+      message: switch (settings.loadSignInReason()) {
+        SignInReason.credentialsRejected => l10n.signInRequiredBody,
+        SignInReason.twoFactorRequired => l10n.signInRequiredTwoFactorBody,
+      },
       confirmLabel: l10n.signInRequiredAction,
       cancelLabel: l10n.later,
       icon: Icons.lock_outline,

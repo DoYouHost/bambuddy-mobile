@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Sign in'**
   String get signInRequiredAction;
 
+  /// Sign-in warning when silent re-login hit requires_2fa rather than a bad password
+  ///
+  /// In en, this message translates to:
+  /// **'Your account now asks for a second factor, and the app cannot supply one in the background — so it stopped signing in on its own. Sign in again and enter the code.'**
+  String get signInRequiredTwoFactorBody;
+
   /// No description provided for @later.
   ///
   /// In en, this message translates to:
@@ -1940,6 +1946,90 @@ abstract class AppLocalizations {
   /// **'Sign in and connect'**
   String get signInAndConnect;
 
+  /// Heading of the second login step, shown after the server answered requires_2fa
+  ///
+  /// In en, this message translates to:
+  /// **'Two-factor authentication'**
+  String get twoFactorTitle;
+
+  /// No description provided for @twoFactorMethodTotp.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticator'**
+  String get twoFactorMethodTotp;
+
+  /// No description provided for @twoFactorMethodEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get twoFactorMethodEmail;
+
+  /// No description provided for @twoFactorMethodBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup code'**
+  String get twoFactorMethodBackup;
+
+  /// No description provided for @twoFactorExplainTotp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your authenticator app.'**
+  String get twoFactorExplainTotp;
+
+  /// No description provided for @twoFactorExplainEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Have the server e-mail you a 6-digit code, then enter it here.'**
+  String get twoFactorExplainEmail;
+
+  /// No description provided for @twoFactorExplainEmailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'A 6-digit code has been sent to the address on your account. It expires in 10 minutes.'**
+  String get twoFactorExplainEmailSent;
+
+  /// No description provided for @twoFactorExplainBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter one of the 8-character backup codes you saved when setting up 2FA. Each one works once.'**
+  String get twoFactorExplainBackup;
+
+  /// No description provided for @twoFactorCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get twoFactorCodeLabel;
+
+  /// No description provided for @twoFactorSendEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail me a code'**
+  String get twoFactorSendEmail;
+
+  /// No description provided for @twoFactorResendEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Send another code'**
+  String get twoFactorResendEmail;
+
+  /// No description provided for @twoFactorVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and connect'**
+  String get twoFactorVerify;
+
+  /// No description provided for @twoFactorBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different account'**
+  String get twoFactorBack;
+
+  /// Why remember-me does nothing for a 2FA account; shown under the code field
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot renew a 2FA session on its own, so it will ask again when this one expires. An API key does not expire and skips this step.'**
+  String get twoFactorSessionNote;
+
   /// No description provided for @tryDemo.
   ///
   /// In en, this message translates to:
@@ -2047,6 +2137,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account requires 2FA — not supported in this version. Use an API key (Settings → API Keys on the server).'**
   String get errTwoFactorUnsupported;
+
+  /// No description provided for @errTwoFactorCodeRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong code — check it and try again.'**
+  String get errTwoFactorCodeRejected;
+
+  /// No description provided for @errTwoFactorChallengeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in attempt expired — enter your password again to get a new code.'**
+  String get errTwoFactorChallengeExpired;
+
+  /// No description provided for @errTwoFactorMethodUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'That method is not available on this account — pick another one.'**
+  String get errTwoFactorMethodUnavailable;
+
+  /// No description provided for @errTwoFactorEmailUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not send the code — it has no e-mail set up, or your account has no address. Use another method.'**
+  String get errTwoFactorEmailUnavailable;
+
+  /// No description provided for @errMissingTwoFactorCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get errMissingTwoFactorCode;
 
   /// No description provided for @errApiKeyRejected.
   ///

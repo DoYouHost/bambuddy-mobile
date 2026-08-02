@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/two_factor.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/demo/demo_config.dart';
 import '../../core/theme/dash_theme.dart';
@@ -26,8 +28,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _apiKey = TextEditingController();
   final _username = TextEditingController();
   final _password = TextEditingController();
+  final _code = TextEditingController();
   bool _remember = false;
   bool _useLogin = false;
+
+  /// Which second factor the user picked. Null until the challenge arrives —
+  /// then it defaults to the server's first offered method.
+  TwoFactorMethod? _method;
 
   @override
   void dispose() {
@@ -35,6 +42,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     _apiKey.dispose();
     _username.dispose();
     _password.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -192,7 +200,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       ),
                     ),
                   ),
-                if (state.needsAuth && !state.busy)
+                if (state.twoFactor case final challenge?)
+                  ..._twoFactorSection(t, l10n, controller, challenge, state)
+                else if (state.needsAuth && !state.busy)
                   ..._authSection(t, l10n, controller),
               ],
             ),
@@ -201,6 +211,175 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ),
     );
   }
+
+  /// Step two of a login the server answered with `requires_2fa`.
+  ///
+  /// Replaces the login form rather than appearing under it: the password is
+  /// already accepted at this point, and leaving its fields on screen invites
+  /// re-submitting them, which mints a second challenge and voids this one.
+  List<Widget> _twoFactorSection(
+    DashTokens t,
+    AppLocalizations l10n,
+    SetupController controller,
+    TwoFactorChallenge challenge,
+    SetupState state,
+  ) {
+    final method = _method ?? challenge.methods.first;
+    return [
+      const SizedBox(height: 24),
+      Text(
+        l10n.twoFactorTitle,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: t.textPrimary,
+        ),
+      ),
+      const SizedBox(height: 8),
+      if (challenge.methods.length > 1) ...[
+        SegmentedButton<TwoFactorMethod>(
+          showSelectedIcon: false,
+          segments: [
+            for (final m in challenge.methods)
+              ButtonSegment(value: m, label: Text(_methodLabel(l10n, m))),
+          ],
+          selected: {method},
+          // Clearing the field on a switch: a 6-digit TOTP left in place while
+          // the user moves to backup codes would be submitted as an 8-character
+          // one and burn an attempt against the 5-per-15-minutes limit.
+          onSelectionChanged: (s) => setState(() {
+            _method = s.first;
+            _code.clear();
+          }),
+        ).tagged('setup.two_factor_method'),
+        const SizedBox(height: 12),
+      ],
+      Text(
+        _methodExplain(l10n, method, sent: state.emailCodeSent),
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: t.textSecondary,
+        ),
+      ),
+      const SizedBox(height: 12),
+      logTag(
+        'setup.two_factor_code',
+        TextField(
+          controller: _code,
+          enabled: !state.busy,
+          autofocus: true,
+          autocorrect: false,
+          enableSuggestions: false,
+          maxLength: method.codeLength,
+          keyboardType: method.isNumericCode
+              ? TextInputType.number
+              : TextInputType.visiblePassword,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            if (method.isNumericCode)
+              FilteringTextInputFormatter.digitsOnly
+            else
+              FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
+          ],
+          style: TextStyle(
+            fontFamily: DashTokens.fontMono,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 4,
+            color: t.textPrimary,
+          ),
+          decoration: dashFieldDecoration(t, labelText: l10n.twoFactorCodeLabel),
+          onSubmitted: (v) =>
+              controller.verifyTwoFactor(method: method, code: v),
+        ),
+      ),
+      if (method == TwoFactorMethod.email)
+        logTag(
+          'setup.two_factor_send_email',
+          TextButton.icon(
+            onPressed:
+                state.busy ? null : controller.sendTwoFactorEmailCode,
+            icon: Icon(Icons.mail_outline, size: 18, color: t.textSecondary),
+            label: Text(state.emailCodeSent
+                ? l10n.twoFactorResendEmail
+                : l10n.twoFactorSendEmail),
+            style: TextButton.styleFrom(
+              foregroundColor: t.textSecondary,
+              textStyle: const TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      const SizedBox(height: 4),
+      FilledButton(
+        style: dashPrimaryButtonStyle(t),
+        onPressed: state.busy
+            ? null
+            : () =>
+                controller.verifyTwoFactor(method: method, code: _code.text),
+        child: Text(l10n.twoFactorVerify),
+      ).tagged('setup.two_factor_verify'),
+      const SizedBox(height: 4),
+      Center(
+        child: logTag(
+          'setup.two_factor_cancel',
+          TextButton(
+            onPressed: state.busy
+                ? null
+                : () {
+                    _code.clear();
+                    setState(() => _method = null);
+                    controller.cancelTwoFactor();
+                  },
+            style: TextButton.styleFrom(
+              foregroundColor: t.textSecondary,
+              textStyle: const TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            child: Text(l10n.twoFactorBack),
+          ),
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        l10n.twoFactorSessionNote,
+        style: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: t.textTertiary,
+        ),
+      ),
+    ];
+  }
+
+  String _methodLabel(AppLocalizations l10n, TwoFactorMethod method) =>
+      switch (method) {
+        TwoFactorMethod.totp => l10n.twoFactorMethodTotp,
+        TwoFactorMethod.email => l10n.twoFactorMethodEmail,
+        TwoFactorMethod.backup => l10n.twoFactorMethodBackup,
+      };
+
+  String _methodExplain(
+    AppLocalizations l10n,
+    TwoFactorMethod method, {
+    required bool sent,
+  }) =>
+      switch (method) {
+        TwoFactorMethod.totp => l10n.twoFactorExplainTotp,
+        TwoFactorMethod.email =>
+          sent ? l10n.twoFactorExplainEmailSent : l10n.twoFactorExplainEmail,
+        TwoFactorMethod.backup => l10n.twoFactorExplainBackup,
+      };
 
   List<Widget> _authSection(
           DashTokens t, AppLocalizations l10n, SetupController controller) =>

@@ -16,6 +16,14 @@ abstract final class Endpoints {
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
+  /// Second step of a login that answered `requires_2fa`: exchanges the
+  /// pre-auth token plus a code (TOTP / e-mail OTP / backup) for the real JWT.
+  static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
+
+  /// Mails a 6-digit code to the user and answers with a **fresh** pre-auth
+  /// token — the one sent in is consumed. See `docs/plans/10-two-factor-login.md`.
+  static const authTwoFactorEmailSend = '$apiPrefix/auth/2fa/email/send';
+
   /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
   /// answers before login too. Read once per session to gate wire-format
   /// differences between server generations and to stamp the diagnostic log

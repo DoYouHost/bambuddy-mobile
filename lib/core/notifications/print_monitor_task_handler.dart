@@ -322,8 +322,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
       credentials: creds,
       // A refresh that runs while the app is closed is the likeliest place for a
       // stale password to be caught; leave the mark for the UI to explain later.
-      onCredentialsRejected: () =>
-          SettingsRepository(prefs).saveSignInRequired(true),
+      onSignInRequired: (reason) =>
+          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
     );
     final refresher = ProactiveTokenRefresher(
       readExpiry: () async => jwtExpiry(await creds.readJwt()),
