@@ -6,6 +6,7 @@ import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
 import 'package:bambuddy_mobile/core/diagnostics/relay_client.dart';
 import 'package:bambuddy_mobile/core/diagnostics/relay_pow.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_outbox.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_sender.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
@@ -82,6 +83,47 @@ void main() {
 
     expect(find.textContaining('usługa w tle'), findsOneWidget);
   });
+
+  /// Gives real file I/O already in flight the real event loop it needs, then
+  /// rebuilds on the result.
+  ///
+  /// This screen writes to disk before anything goes out — the outbox, and the
+  /// salvaged session file — and real file I/O does not complete under the fake
+  /// clock a widget test runs on, only inside [WidgetTester.runAsync].
+  ///
+  /// [until] is polled rather than waiting a fixed slice of real time: any
+  /// constant short enough to keep the suite quick is also short enough to lose
+  /// the race on a loaded machine, where the failure then reads as a send that
+  /// never happened or a file that was never deleted. The deadline only bounds a
+  /// condition that never comes true — the assertions after the call are what
+  /// report that.
+  Future<void> settleAsyncUntil(
+    WidgetTester tester,
+    Future<bool> Function() until,
+  ) async {
+    await tester.runAsync(() async {
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (!await until() && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    await tester.pumpAndSettle();
+  }
+
+  /// Taps and lets the disk work the tap starts actually run.
+  ///
+  /// Only for taps whose work is pure I/O. A tap answering an awaited dialog
+  /// needs [WidgetTester.pumpAndSettle] first — popping that route is driven by
+  /// frames, which never come inside [WidgetTester.runAsync] — so the work there
+  /// has not even begun while this would be polling for it.
+  Future<void> tapAndSettleAsync(
+    WidgetTester tester,
+    Finder target, {
+    required Future<bool> Function() until,
+  }) async {
+    await tester.runAsync(() => tester.tap(target));
+    await settleAsyncUntil(tester, until);
+  }
 
   /// Mounted on a router, because starting a recording navigates away.
   /// [withProfile] decides where "back to the user" is: a configured app has a
@@ -389,20 +431,6 @@ void main() {
     Override outboxIn(Directory root) =>
         reportOutboxProvider.overrideWithValue(ReportOutbox(root: root));
 
-    /// Taps and lets the send actually run.
-    ///
-    /// The outbox writes the report to disk before anything goes out, and real
-    /// file I/O does not complete under the fake clock a widget test runs on —
-    /// only inside [WidgetTester.runAsync]. Without this the tap returns having
-    /// done nothing and the assertions read as "it never sent".
-    Future<void> tapAndSettleAsync(WidgetTester tester, Finder target) async {
-      await tester.runAsync(() async {
-        await tester.tap(target);
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pumpAndSettle();
-    }
-
     testWidgets('opens on keeping the log, not on publishing it',
         (tester) async {
       final relay = _FakeRelay();
@@ -454,6 +482,7 @@ void main() {
         (tester) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
+      final outbox = ReportOutbox(root: root);
       final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
       final container =
           await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
@@ -461,19 +490,31 @@ void main() {
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'jednak nie chcę tego');
-      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+      // Waited on by the phase, not by the outbox: the report is on disk before
+      // the wait is announced, so a file-shaped condition lets the dialog below
+      // be built while the send still looks idle — and it then offers the wrong
+      // warning.
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.waiting,
+      );
 
       await tester.tap(find.text('Odrzuć'));
       await tester.pumpAndSettle();
       // The dialog has to admit that this cancels the send, not just delete a file.
       expect(find.textContaining('wysyłka anulowana'), findsOneWidget);
-      await tapAndSettleAsync(tester, find.text('Odrzuć').last);
+      // Confirming is answered by an awaited dialog, so the discard only starts
+      // once the pop has been pumped — and only then is there disk work to wait
+      // for.
+      await tester.tap(find.text('Odrzuć').last);
+      await tester.pumpAndSettle();
+      await settleAsyncUntil(tester, () async => await outbox.peek() == null);
 
       // Nothing left to send: the outbox keeps its own copy of the log, so
       // deleting the recording alone would have published it minutes later.
-      final queued = await tester.runAsync(
-        () => ReportOutbox(root: root).peek(),
-      );
+      final queued = await tester.runAsync(outbox.peek);
       expect(queued, isNull);
       expect(relay.sends, 0);
       expect(container.read(bugReportProvider).log, isNull);
@@ -499,7 +540,8 @@ void main() {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
       final relay = _FakeRelay(issued: _ticket());
-      await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+      final container =
+          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
 
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
@@ -507,7 +549,14 @@ void main() {
         find.byType(TextField),
         'kolejka pusta po wznowieniu',
       );
-      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+      // The relay's own counter goes up inside the call, one step ahead of the
+      // state the screen shows the link from.
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.sent,
+      );
 
       expect(relay.sends, 1);
       expect(relay.lastDescription, 'kolejka pusta po wznowieniu');
@@ -522,13 +571,22 @@ void main() {
         (tester) async {
       final root = Directory.systemTemp.createTempSync('outbox');
       addTearDown(() => root.deleteSync(recursive: true));
+      final outbox = ReportOutbox(root: root);
       final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
-      await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
+      final container =
+          await pumpReview(tester, extra: [fakeRelay(relay), outboxIn(root)]);
 
       await tester.tap(find.text('Zgłoś na GitHubie'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'coś się zepsuło');
-      await tapAndSettleAsync(tester, find.text('Zgłoś'));
+      // The countdown and the dead text field are both built off the phase, not
+      // off the file.
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.waiting,
+      );
 
       expect(relay.sends, 0);
       // m:ss, not a bare second count — 5 minutes reads as 4:5x by the time the
@@ -538,9 +596,7 @@ void main() {
       // that carrying on typing changes anything.
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
       // Queued to disk, so closing the screen does not lose it.
-      final queued = await tester.runAsync(
-        () => ReportOutbox(root: root).peek(),
-      );
+      final queued = await tester.runAsync(outbox.peek);
       expect(queued, isNotNull);
     });
 
@@ -648,9 +704,13 @@ void main() {
 
     /// What a process killed mid-recording leaves behind: the flag still in
     /// prefs and whatever the mirror had already flushed to disk.
+    ///
+    /// [recovers] says whether this is a log the screen will offer back, which
+    /// decides what the pump can wait for.
     Future<ProviderContainer> pumpAfterCrash(
       WidgetTester tester, {
       required String log,
+      bool recovers = true,
     }) async {
       await SettingsRepository(prefs).saveDiagnosticsSession(session);
       sessionFile().writeAsStringSync(log);
@@ -676,9 +736,25 @@ void main() {
             child: plApp(const BugReportScreen()),
           ),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
       });
-      await tester.pumpAndSettle();
+      if (recovers) {
+        // The salvaged log arriving is what the card is built from, so waiting
+        // for anything less than that is what made this flake: the tap that
+        // follows found no card to press.
+        await settleAsyncUntil(
+          tester,
+          () async => container.read(bugReportProvider).recovered != null,
+        );
+      } else {
+        // A log the screen stays quiet about — there is no arrival to wait for.
+        // A slice of real time is enough here: too short a wait can only ever
+        // pass, and a card that stopped appearing is what the two tests above
+        // would catch.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 200)),
+        );
+        await tester.pumpAndSettle();
+      }
       return container;
     }
 
@@ -701,18 +777,21 @@ void main() {
     });
 
     testWidgets('throwing it away takes the file with it', (tester) async {
-      await pumpAfterCrash(
+      final container = await pumpAfterCrash(
         tester,
         log: '$header\n{"t":5,"src":"app","evt":"user_marker"}\n',
       );
 
       // Deleting the file is real IO again, so the tap that starts it has to
-      // run where real IO completes.
-      await tester.runAsync(() async {
-        await tester.tap(find.text('Odrzuć'));
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-      });
-      await tester.pumpAndSettle();
+      // run where real IO completes — and be waited on until it has. Waited on
+      // by the state and not by the file: the drop clears the offer only once
+      // the delete is through, so the file going is the earlier of the two, and
+      // stopping there cuts the rebuild off.
+      await tapAndSettleAsync(
+        tester,
+        find.text('Odrzuć'),
+        until: () async => container.read(bugReportProvider).recovered == null,
+      );
 
       expect(find.text('Nagranie przetrwało awarię'), findsNothing);
       expect(sessionFile().existsSync(), isFalse);
@@ -721,7 +800,7 @@ void main() {
     testWidgets('says nothing about a file with no records', (tester) async {
       // The crash beat the first record. Asking the user to decide about an
       // empty file is worse than staying quiet.
-      await pumpAfterCrash(tester, log: '$header\n');
+      await pumpAfterCrash(tester, log: '$header\n', recovers: false);
 
       expect(find.text('Nagranie przetrwało awarię'), findsNothing);
       expect(find.text('Jak to działa'), findsOneWidget);
