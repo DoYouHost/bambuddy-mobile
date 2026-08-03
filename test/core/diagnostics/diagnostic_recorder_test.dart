@@ -218,27 +218,14 @@ void main() {
     expect(left.any((name) => name.contains(abandoned)), isFalse);
   });
 
-  /// Waits for the mirror to catch up. Lines are written fire-and-forget
-  /// through a future chain, so "it is on disk" is not true the instant the
-  /// record is added.
-  Future<void> untilOnDisk(File file, String needle) async {
-    for (var attempt = 0; attempt < 100; attempt++) {
-      if (file.existsSync() && file.readAsStringSync().contains(needle)) return;
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-    }
-    fail('"$needle" never reached ${file.path}');
-  }
-
   test('hands back the session an app died in the middle of', () async {
     await recorder.start();
     final session = settings.loadDiagnosticsSession()!;
     DiagnosticRecorder.active?.add(LogSource.app, 'the_last_thing_it_saw');
     // No stop and no discard: the process is gone, the flag stays in prefs and
-    // the file is whatever the mirror had already flushed.
-    await untilOnDisk(
-      LogFileSink.fileFor(dir, session, LogStream.ui),
-      'the_last_thing_it_saw',
-    );
+    // the file is whatever the mirror had already flushed. Mirror writes are
+    // fire-and-forget, so wait for the chain rather than for the clock.
+    await recorder.flushMirror();
 
     final recovered = await recorder.recover(session);
 
@@ -250,6 +237,7 @@ void main() {
     await recorder.start();
     final session = settings.loadDiagnosticsSession()!;
     DiagnosticRecorder.active?.add(LogSource.app, 'from_the_ui');
+    await recorder.flushMirror();
     final fgs = LogFileSink(LogFileSink.fileFor(dir, session, LogStream.fgs));
     await fgs.writeHeader(
       LogHeader(

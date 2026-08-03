@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../settings/settings_repository.dart';
@@ -229,6 +230,15 @@ class DiagnosticRecorder {
   /// "The bug just happened." Cheapest thing that cuts the search through a
   /// few thousand records.
   void mark() => _active?.mark();
+
+  /// Waits for the records added so far to reach the mirror file.
+  ///
+  /// Only the crash paths need it: [stop] and [discard] close the sink and so
+  /// already wait, while [recover] reads a session nobody stopped — by design,
+  /// since the process that was writing it is gone. Nothing in the app calls
+  /// this; a test that reads the file behind a live recording does.
+  @visibleForTesting
+  Future<void> flushMirror() async => _sink?.flush();
 
   /// The session an app that died mid-recording left on disk, as JSONL. Empty
   /// string when there is nothing worth offering — no files, or a file holding
