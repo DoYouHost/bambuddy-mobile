@@ -60,3 +60,27 @@ jobs:
           additional_permissions: |
             actions: read
 
+          # The action's base allowlist is read-only plus git add/commit/push, so
+          # without this Claude cannot run a single check of its own and every
+          # "does this still build?" comes back as a question. These extend the
+          # base list rather than replacing it, one line per concern below:
+          #
+          #   checks    — what CI runs; no APK build, CI already proves that one
+          #   codegen   — only build_runner, never a bare `dart run <anything>`
+          #   git / gh  — reading history and CI; no `gh run rerun`/`cancel`
+          #   reports   — the gzipped log a "[Bug Report]" issue links to, scoped
+          #               to the bug-report-assets branch the relay writes to
+          #   docs      — package and server documentation
+          #
+          # Deliberately absent: `Bash(flutter:*)` and `Bash(dart run *)` from
+          # .claude/settings.local.json. On a self-hosted runner those two are
+          # "execute arbitrary code", not "run the tests".
+          claude_args: |
+            --allowedTools
+            "Bash(flutter analyze:*)" "Bash(flutter test:*)" "Bash(just test)"
+            "Bash(flutter pub get:*)" "Bash(flutter gen-l10n:*)" "Bash(dart run build_runner build:*)"
+            "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)"
+            "Bash(gh run list:*)" "Bash(gh run view:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)"
+            "Bash(curl -sL https://raw.githubusercontent.com/DoYouHost/bambuddy-mobile/bug-report-assets/*)" "Bash(zcat:*)" "Bash(gunzip:*)"
+            "WebSearch" "WebFetch(domain:pub.dev)" "WebFetch(domain:wiki.bambuddy.cool)"
+
