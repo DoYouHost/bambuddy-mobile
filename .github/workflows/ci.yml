@@ -54,13 +54,10 @@ jobs:
       - name: Test
         run: flutter test
 
-      # Debug builds, not release: the point is that the Dart and the Android
-      # side still compile and the manifests still merge, and a debug build gets
-      # there without R8, without the release keystore and in a fraction of the
-      # time. Both flavors, because the watch entry point is separate code that
-      # `flutter test` never compiles for Android.
-      - name: Build debug APK (mobile)
-        run: flutter build apk --debug --flavor mobile
+      - name: Compile check (mobile)
+        run: flutter build apk --debug --flavor mobile --target-platform android-arm64
 
-      - name: Build debug APK (wear)
-        run: flutter build apk --debug --flavor wear --target lib/wear/main_wear.dart
+      - name: Compile check (wear)
+        run: |
+          flutter build apk --debug --flavor wear \
+            --target lib/wear/main_wear.dart --target-platform android-arm64

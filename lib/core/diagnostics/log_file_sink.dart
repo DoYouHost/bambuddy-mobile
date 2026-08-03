@@ -94,6 +94,11 @@ class LogFileSink {
     return _chain;
   }
 
+  /// Completes once everything enqueued so far is on disk, leaving the sink
+  /// open. [writeLine] enqueues synchronously, so awaiting this right after one
+  /// is an exact guarantee rather than a guess at how long the chain needs.
+  Future<void> flush() => _chain;
+
   /// Waits for queued writes to land, then refuses further ones.
   Future<void> close() async {
     await _chain;

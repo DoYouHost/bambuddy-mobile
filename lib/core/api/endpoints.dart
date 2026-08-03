@@ -16,6 +16,14 @@ abstract final class Endpoints {
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
+  /// The signed-in identity — `UserResponse` (role, `is_admin`, permissions,
+  /// groups), the same object `POST /auth/login` embeds as `user`
+  /// (`backend/app/api/routes/auth.py:627`). Also answers an `X-API-Key`
+  /// session, with a synthetic admin holding every permission
+  /// (`auth.py:91`), which is what a key actually grants. Without credentials
+  /// it is a 401 — a server with auth switched off has no identity to give.
+  static const authMe = '$apiPrefix/auth/me';
+
   /// Second step of a login that answered `requires_2fa`: exchanges the
   /// pre-auth token plus a code (TOTP / e-mail OTP / backup) for the real JWT.
   static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
