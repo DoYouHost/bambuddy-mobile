@@ -705,9 +705,33 @@ abstract final class Endpoints {
 
   // --- Users ---
 
-  /// User list (`UserResponse[]`) — used only by the Stats "filter by user"
-  /// picker. Gated server-side on `USERS_READ`/`stats:filter_by_user`; 403
-  /// means this identity can't filter by user (caller hides the picker, not
-  /// an error). Trailing slash required (FastAPI), similar to `/printers/`.
+  /// User list (`UserResponse[]`) — the Stats "filter by user" picker and the
+  /// administration user list. Gated server-side on `USERS_READ` only
+  /// (`backend/app/api/routes/users.py:67`), so a custom group without the
+  /// admin role reaches it; the Stats picker treats a 403 as "can't filter by
+  /// user", not an error. Trailing slash required (FastAPI), like `/printers/`.
   static const users = '$apiPrefix/users/';
+
+  /// What this account owns (`{archives, queue_items, library_files}` —
+  /// `backend/app/api/routes/users.py:317`). Read-only, `USERS_READ`; answers
+  /// what a later edit or deletion would be touching.
+  static String userItemsCount(int userId) =>
+      '$apiPrefix/users/$userId/items-count';
+
+  /// One account: `PATCH` (edit, `users.py:208`) and `DELETE` (`users.py:359`,
+  /// query `delete_items=true|false` — see [UsersRepository.delete]). Both are
+  /// admin-only *and* permission-gated; API keys are refused outright.
+  static String userById(int userId) => '$apiPrefix/users/$userId';
+
+  /// Whether the server generates and mails the password instead of the admin
+  /// setting one (`{advanced_auth_enabled, smtp_configured, ...}` —
+  /// `backend/app/api/routes/auth.py:908`). Unauthenticated server-side, and
+  /// what decides the shape of the account form.
+  static const advancedAuthStatus = '$apiPrefix/auth/advanced-auth/status';
+
+  // --- Groups ---
+
+  /// Group list (`GroupResponse[]` — `backend/app/api/routes/groups.py:62`),
+  /// gated on `groups:read`. Trailing slash required, like `/users/`.
+  static const groups = '$apiPrefix/groups/';
 }

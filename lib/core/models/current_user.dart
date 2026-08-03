@@ -91,6 +91,14 @@ class CurrentUser {
   /// `User.has_permission` (`backend/app/models/user.py:110`): admin passes
   /// everything, otherwise the permission has to be in the set. The server
   /// matches the string exactly, with no wildcard form, so neither do we.
+  ///
+  /// Careful with a session authenticated by an API key: `/auth/me` describes
+  /// it as an admin holding every permission
+  /// (`backend/app/api/routes/auth.py:91`), so this says yes to everything,
+  /// while the routes gate keys on their scope flags and refuse every
+  /// administrative permission outright (`backend/app/core/auth.py:291`).
+  /// Anything gating on users/groups/api-keys must go through
+  /// `identifiedPermissionProvider`, which accounts for that.
   bool can(String permission) =>
       isAdmin || !permissionsKnown || permissions.contains(permission);
 }

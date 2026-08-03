@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/diagnostics/navigation_probe.dart';
 import 'features/about/about_screen.dart';
+import 'features/admin/users_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/bug_report/bug_report_screen.dart';
 import 'features/bug_report/recording_banner.dart';
@@ -148,6 +149,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/cloud',
         builder: (_, _) => const CloudAccountScreen(),
+      ),
+
+      // Accounts on the server — full screen outside shell (pushed from the
+      // drawer, and only shown there to an identity holding `users:read`).
+      GoRoute(
+        path: '/admin/users',
+        builder: (_, _) => const UsersScreen(),
       ),
 
       // About + licenses — full screen outside shell (pushed from drawer).

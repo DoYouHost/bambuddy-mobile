@@ -7411,6 +7411,444 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Demo mode does not publish reports. Save the log to a file instead.'**
   String get bugReportSendFailedDemo;
+
+  /// No description provided for @usersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get usersTitle;
+
+  /// No description provided for @usersMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get usersMenu;
+
+  /// No description provided for @usersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No accounts on this server.'**
+  String get usersEmpty;
+
+  /// No description provided for @usersYou.
+  ///
+  /// In en, this message translates to:
+  /// **'you'**
+  String get usersYou;
+
+  /// No description provided for @usersRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get usersRoleAdmin;
+
+  /// No description provided for @usersRoleUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get usersRoleUser;
+
+  /// No description provided for @usersInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get usersInactive;
+
+  /// No description provided for @usersEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get usersEmailLabel;
+
+  /// No description provided for @usersEmailNone.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get usersEmailNone;
+
+  /// No description provided for @usersGroupsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get usersGroupsLabel;
+
+  /// No description provided for @usersNoGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get usersNoGroups;
+
+  /// No description provided for @usersPermissionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get usersPermissionsLabel;
+
+  /// No description provided for @usersPermissionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{none} =1{1 permission} other{{count} permissions}}'**
+  String usersPermissionsCount(int count);
+
+  /// No description provided for @usersPermissionsUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'not reported by the server'**
+  String get usersPermissionsUnknown;
+
+  /// No description provided for @usersAuthSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in'**
+  String get usersAuthSourceLabel;
+
+  /// No description provided for @usersAuthSourceLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local account'**
+  String get usersAuthSourceLocal;
+
+  /// No description provided for @usersCreatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get usersCreatedLabel;
+
+  /// No description provided for @usersOwnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATED BY THIS ACCOUNT'**
+  String get usersOwnedTitle;
+
+  /// No description provided for @usersOwnedArchives.
+  ///
+  /// In en, this message translates to:
+  /// **'Prints'**
+  String get usersOwnedArchives;
+
+  /// No description provided for @usersOwnedQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get usersOwnedQueue;
+
+  /// No description provided for @usersOwnedLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get usersOwnedLibrary;
+
+  /// No description provided for @usersOwnedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read what this account owns.'**
+  String get usersOwnedFailed;
+
+  /// No description provided for @usersCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Add account'**
+  String get usersCreate;
+
+  /// No description provided for @usersCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New account'**
+  String get usersCreateTitle;
+
+  /// No description provided for @usersEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get usersEdit;
+
+  /// No description provided for @usersEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit account'**
+  String get usersEditTitle;
+
+  /// No description provided for @usersDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get usersDelete;
+
+  /// No description provided for @usersSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get usersSave;
+
+  /// No description provided for @usersSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Account saved'**
+  String get usersSaved;
+
+  /// No description provided for @usersSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The account could not be saved.'**
+  String get usersSaveFailed;
+
+  /// No description provided for @usersDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted'**
+  String get usersDeleted;
+
+  /// No description provided for @usersFieldUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get usersFieldUsername;
+
+  /// No description provided for @usersFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail (optional)'**
+  String get usersFieldEmail;
+
+  /// No description provided for @usersFieldEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get usersFieldEmailRequired;
+
+  /// No description provided for @usersFieldPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get usersFieldPassword;
+
+  /// No description provided for @usersFieldNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get usersFieldNewPassword;
+
+  /// No description provided for @usersFieldConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat the password'**
+  String get usersFieldConfirmPassword;
+
+  /// No description provided for @usersFieldActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get usersFieldActive;
+
+  /// No description provided for @usersFieldGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get usersFieldGroups;
+
+  /// No description provided for @usersGroupSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'(built-in)'**
+  String get usersGroupSystem;
+
+  /// No description provided for @usersFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill this in'**
+  String get usersFieldRequired;
+
+  /// No description provided for @usersPasswordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passwords are different.'**
+  String get usersPasswordsDoNotMatch;
+
+  /// No description provided for @usersGroupsAdminHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Membership of Administrators is what makes an account an admin.'**
+  String get usersGroupsAdminHint;
+
+  /// No description provided for @usersActiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'An inactive account cannot sign in.'**
+  String get usersActiveHint;
+
+  /// No description provided for @usersEmailAdvancedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This server mails the password, so it needs an address.'**
+  String get usersEmailAdvancedHint;
+
+  /// No description provided for @usersPasswordMailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The server picks the password itself and mails it to this address. Nobody, including you, gets to see it.'**
+  String get usersPasswordMailed;
+
+  /// No description provided for @usersNoSmtpWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.'**
+  String get usersNoSmtpWarning;
+
+  /// No description provided for @usersLdapPasswordNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This account signs in through the directory (LDAP). Its password lives there and cannot be set from here.'**
+  String get usersLdapPasswordNote;
+
+  /// No description provided for @usersPasswordKeepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to keep the current password.'**
+  String get usersPasswordKeepHint;
+
+  /// No description provided for @usersPasswordRulesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters, with an upper and lower case letter, a digit and a symbol.'**
+  String get usersPasswordRulesHint;
+
+  /// No description provided for @usersPasswordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 8 characters.'**
+  String get usersPasswordTooShort;
+
+  /// No description provided for @usersPasswordNoUppercase.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an upper case letter.'**
+  String get usersPasswordNoUppercase;
+
+  /// No description provided for @usersPasswordNoLowercase.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a lower case letter.'**
+  String get usersPasswordNoLowercase;
+
+  /// No description provided for @usersPasswordNoDigit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a digit.'**
+  String get usersPasswordNoDigit;
+
+  /// No description provided for @usersPasswordNoSpecial.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a symbol.'**
+  String get usersPasswordNoSpecial;
+
+  /// No description provided for @usersDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {username}?'**
+  String usersDeleteTitle(String username);
+
+  /// No description provided for @usersDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The account, its API keys and its sign-in state are removed. This cannot be undone.'**
+  String get usersDeleteBody;
+
+  /// No description provided for @usersDeleteOwnsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This account created 1 item} other{This account created {count} items}}'**
+  String usersDeleteOwnsCount(int count);
+
+  /// No description provided for @usersDeleteItemsToo.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete them too'**
+  String get usersDeleteItemsToo;
+
+  /// No description provided for @usersDeleteItemsTooHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Their prints, queue items and files are deleted with the account.'**
+  String get usersDeleteItemsTooHint;
+
+  /// No description provided for @usersDeleteItemsKeepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Their prints, queue items and files stay, with no owner.'**
+  String get usersDeleteItemsKeepHint;
+
+  /// No description provided for @usersDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get usersDeleteConfirm;
+
+  /// No description provided for @usersErrLastAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last admin — the server keeps one.'**
+  String get usersErrLastAdmin;
+
+  /// No description provided for @usersErrLastAdminDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'The last admin cannot be deleted — the server would be left with nobody who can manage it.'**
+  String get usersErrLastAdminDelete;
+
+  /// No description provided for @usersErrLastAdminDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'The last admin cannot be deactivated — the server would be left with nobody who can manage it.'**
+  String get usersErrLastAdminDeactivate;
+
+  /// No description provided for @usersErrLastAdminRole.
+  ///
+  /// In en, this message translates to:
+  /// **'The last admin cannot be demoted — the server would be left with nobody who can manage it.'**
+  String get usersErrLastAdminRole;
+
+  /// No description provided for @usersErrSelfDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot delete the account you are signed in with.'**
+  String get usersErrSelfDelete;
+
+  /// No description provided for @usersErrUsernameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That username is taken.'**
+  String get usersErrUsernameTaken;
+
+  /// No description provided for @usersErrEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That e-mail is already on another account.'**
+  String get usersErrEmailTaken;
+
+  /// No description provided for @usersErrLdapPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password of a directory (LDAP) account cannot be set here.'**
+  String get usersErrLdapPassword;
+
+  /// No description provided for @usersErrEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs an e-mail address for a new account.'**
+  String get usersErrEmailRequired;
+
+  /// No description provided for @usersErrPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs a password for a new account.'**
+  String get usersErrPasswordRequired;
+
+  /// No description provided for @usersErrGroupsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the groups no longer exists — reopen the form.'**
+  String get usersErrGroupsInvalid;
 }
 
 class _AppLocalizationsDelegate

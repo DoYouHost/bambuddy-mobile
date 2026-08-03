@@ -15,6 +15,7 @@ import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../admin/users_providers.dart';
 import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
@@ -679,6 +680,20 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.notifications',
                 ),
+                // Administration. Only for an identity the server named and
+                // granted `users:read` — a server with authentication off has
+                // nobody to show accounts to. Groups and API keys join this
+                // entry as their screens land.
+                if (ref.watch(canReadUsersProvider))
+                  _DrawerTile(
+                    icon: Icons.people_outline,
+                    label: l10n.usersMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/admin/users');
+                    },
+                    id: 'drawer.users',
+                  ),
                 const Divider(indent: 16, endIndent: 16, height: 16),
                 _DrawerTile(
                   icon: Icons.cloud_outlined,

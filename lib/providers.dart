@@ -34,6 +34,7 @@ import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
+import 'data/groups_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
@@ -48,6 +49,7 @@ import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
+import 'data/users_repository.dart';
 
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -396,12 +398,16 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// **Answers `true` whenever the identity is unknown** (no profile, still
 /// loading, auth switched off server-side, a `/auth/me` that failed, or a
 /// response without a `permissions` field). The server is the only enforcer —
-/// it answers 403 regardless of what this says — and for an API-key session
-/// the true answer really is admin, so a permissive unknown matches reality
-/// rather than hiding a screen the user is entitled to.
+/// it answers 403 regardless of what this says — so a permissive unknown
+/// leaves a screen reachable rather than hiding one the user is entitled to.
 ///
 /// An empty `permissions` list is *not* unknown: it is a user whose groups
 /// grant nothing, and this answers `false` for them.
+///
+/// **Not the gate for anything administrative.** An API-key session reports
+/// itself as an admin holding every permission, and yet the server refuses it
+/// every users/groups/api-keys route — use [identifiedPermissionProvider]
+/// there, which knows that.
 ///
 /// A screen that would rather not flash a drawer entry and take it away again
 /// should watch [currentUserProvider] and handle `loading` itself, instead of
@@ -411,11 +417,46 @@ final permissionProvider = Provider.family<bool, String>(
       ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
 );
 
-/// Whether the current user is an admin — the gate on every write to users,
-/// groups and API keys. Unknown identity answers `true`, for the reasons in
-/// [permissionProvider].
+/// Whether the current user is an admin. Unknown identity answers `true`, for
+/// the reasons in [permissionProvider] — and, like it, this is not enough on
+/// its own for a write to users, groups or API keys: an API-key session
+/// answers `true` here and is refused all three server-side. Pair it with
+/// [identifiedPermissionProvider].
 final isAdminProvider = Provider<bool>(
   (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
+);
+
+/// Whether a *known* identity holds [permission] — the gate on the entry
+/// points into administration.
+///
+/// Deliberately the opposite of [permissionProvider] on an unknown identity:
+/// this answers `false`. Nothing administrative is offered when we cannot say
+/// who is signed in — with authentication switched off server-side there is no
+/// account to attribute an edit to, and an entry that leads straight to a 401
+/// is worse than no entry at all.
+///
+/// An API-key session is refused outright, [CurrentUser.isAdmin] or not: the
+/// server denies a key **every** administrative permission
+/// (`_check_apikey_permissions`, `backend/app/core/auth.py:291` — anything
+/// outside the scope allowlist is a 403, and users/groups/api-keys are all
+/// outside it, `auth.py:207`). The synthetic admin `/auth/me` describes a key
+/// with (`backend/app/api/routes/auth.py:91`) says nothing about that gate.
+final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
+  if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
+    return false;
+  }
+  final user = ref.watch(currentUserProvider).valueOrNull;
+  return user != null && user.can(p);
+});
+
+/// The accounts on the server (`GET /users/`). Shares the authenticated Dio.
+final usersRepositoryProvider = Provider<UsersRepository>(
+  (ref) => UsersRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// The groups on the server (`GET /groups/`). Shares the authenticated Dio.
+final groupsRepositoryProvider = Provider<GroupsRepository>(
+  (ref) => GroupsRepository(ref.watch(apiClientProvider).dio),
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(

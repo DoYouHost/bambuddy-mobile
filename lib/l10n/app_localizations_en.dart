@@ -4259,4 +4259,261 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bugReportSendFailedDemo =>
       'Demo mode does not publish reports. Save the log to a file instead.';
+
+  @override
+  String get usersTitle => 'Users';
+
+  @override
+  String get usersMenu => 'Users';
+
+  @override
+  String get usersEmpty => 'No accounts on this server.';
+
+  @override
+  String get usersYou => 'you';
+
+  @override
+  String get usersRoleAdmin => 'Admin';
+
+  @override
+  String get usersRoleUser => 'User';
+
+  @override
+  String get usersInactive => 'Inactive';
+
+  @override
+  String get usersEmailLabel => 'E-mail';
+
+  @override
+  String get usersEmailNone => 'none';
+
+  @override
+  String get usersGroupsLabel => 'Groups';
+
+  @override
+  String get usersNoGroups => 'none';
+
+  @override
+  String get usersPermissionsLabel => 'Permissions';
+
+  @override
+  String usersPermissionsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count permissions',
+      one: '1 permission',
+      zero: 'none',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get usersPermissionsUnknown => 'not reported by the server';
+
+  @override
+  String get usersAuthSourceLabel => 'Sign-in';
+
+  @override
+  String get usersAuthSourceLocal => 'Local account';
+
+  @override
+  String get usersCreatedLabel => 'Created';
+
+  @override
+  String get usersOwnedTitle => 'CREATED BY THIS ACCOUNT';
+
+  @override
+  String get usersOwnedArchives => 'Prints';
+
+  @override
+  String get usersOwnedQueue => 'Queue';
+
+  @override
+  String get usersOwnedLibrary => 'Files';
+
+  @override
+  String get usersOwnedFailed => 'Could not read what this account owns.';
+
+  @override
+  String get usersCreate => 'Add account';
+
+  @override
+  String get usersCreateTitle => 'New account';
+
+  @override
+  String get usersEdit => 'Edit';
+
+  @override
+  String get usersEditTitle => 'Edit account';
+
+  @override
+  String get usersDelete => 'Delete';
+
+  @override
+  String get usersSave => 'Save';
+
+  @override
+  String get usersSaved => 'Account saved';
+
+  @override
+  String get usersSaveFailed => 'The account could not be saved.';
+
+  @override
+  String get usersDeleted => 'Account deleted';
+
+  @override
+  String get usersFieldUsername => 'Username';
+
+  @override
+  String get usersFieldEmail => 'E-mail (optional)';
+
+  @override
+  String get usersFieldEmailRequired => 'E-mail';
+
+  @override
+  String get usersFieldPassword => 'Password';
+
+  @override
+  String get usersFieldNewPassword => 'New password';
+
+  @override
+  String get usersFieldConfirmPassword => 'Repeat the password';
+
+  @override
+  String get usersFieldActive => 'Active';
+
+  @override
+  String get usersFieldGroups => 'Groups';
+
+  @override
+  String get usersGroupSystem => '(built-in)';
+
+  @override
+  String get usersFieldRequired => 'Fill this in';
+
+  @override
+  String get usersPasswordsDoNotMatch => 'The two passwords are different.';
+
+  @override
+  String get usersGroupsAdminHint =>
+      'Membership of Administrators is what makes an account an admin.';
+
+  @override
+  String get usersActiveHint => 'An inactive account cannot sign in.';
+
+  @override
+  String get usersEmailAdvancedHint =>
+      'This server mails the password, so it needs an address.';
+
+  @override
+  String get usersPasswordMailed =>
+      'The server picks the password itself and mails it to this address. Nobody, including you, gets to see it.';
+
+  @override
+  String get usersNoSmtpWarning =>
+      'No mail server is configured, so that message will not arrive — the account would be created with a password nobody knows.';
+
+  @override
+  String get usersLdapPasswordNote =>
+      'This account signs in through the directory (LDAP). Its password lives there and cannot be set from here.';
+
+  @override
+  String get usersPasswordKeepHint =>
+      'Leave empty to keep the current password.';
+
+  @override
+  String get usersPasswordRulesHint =>
+      'At least 8 characters, with an upper and lower case letter, a digit and a symbol.';
+
+  @override
+  String get usersPasswordTooShort => 'At least 8 characters.';
+
+  @override
+  String get usersPasswordNoUppercase => 'Add an upper case letter.';
+
+  @override
+  String get usersPasswordNoLowercase => 'Add a lower case letter.';
+
+  @override
+  String get usersPasswordNoDigit => 'Add a digit.';
+
+  @override
+  String get usersPasswordNoSpecial => 'Add a symbol.';
+
+  @override
+  String usersDeleteTitle(String username) {
+    return 'Delete $username?';
+  }
+
+  @override
+  String get usersDeleteBody =>
+      'The account, its API keys and its sign-in state are removed. This cannot be undone.';
+
+  @override
+  String usersDeleteOwnsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This account created $count items',
+      one: 'This account created 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get usersDeleteItemsToo => 'Delete them too';
+
+  @override
+  String get usersDeleteItemsTooHint =>
+      'Their prints, queue items and files are deleted with the account.';
+
+  @override
+  String get usersDeleteItemsKeepHint =>
+      'Their prints, queue items and files stay, with no owner.';
+
+  @override
+  String get usersDeleteConfirm => 'Delete';
+
+  @override
+  String get usersErrLastAdmin =>
+      'This is the last admin — the server keeps one.';
+
+  @override
+  String get usersErrLastAdminDelete =>
+      'The last admin cannot be deleted — the server would be left with nobody who can manage it.';
+
+  @override
+  String get usersErrLastAdminDeactivate =>
+      'The last admin cannot be deactivated — the server would be left with nobody who can manage it.';
+
+  @override
+  String get usersErrLastAdminRole =>
+      'The last admin cannot be demoted — the server would be left with nobody who can manage it.';
+
+  @override
+  String get usersErrSelfDelete =>
+      'You cannot delete the account you are signed in with.';
+
+  @override
+  String get usersErrUsernameTaken => 'That username is taken.';
+
+  @override
+  String get usersErrEmailTaken => 'That e-mail is already on another account.';
+
+  @override
+  String get usersErrLdapPassword =>
+      'The password of a directory (LDAP) account cannot be set here.';
+
+  @override
+  String get usersErrEmailRequired =>
+      'This server needs an e-mail address for a new account.';
+
+  @override
+  String get usersErrPasswordRequired =>
+      'This server needs a password for a new account.';
+
+  @override
+  String get usersErrGroupsInvalid =>
+      'One of the groups no longer exists — reopen the form.';
 }

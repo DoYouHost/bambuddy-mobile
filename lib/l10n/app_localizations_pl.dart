@@ -4321,4 +4321,266 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get bugReportSendFailedDemo =>
       'Tryb demo nie publikuje zgłoszeń. Zapisz log do pliku.';
+
+  @override
+  String get usersTitle => 'Użytkownicy';
+
+  @override
+  String get usersMenu => 'Użytkownicy';
+
+  @override
+  String get usersEmpty => 'Na tym serwerze nie ma kont.';
+
+  @override
+  String get usersYou => 'ty';
+
+  @override
+  String get usersRoleAdmin => 'Administrator';
+
+  @override
+  String get usersRoleUser => 'Użytkownik';
+
+  @override
+  String get usersInactive => 'Nieaktywne';
+
+  @override
+  String get usersEmailLabel => 'E-mail';
+
+  @override
+  String get usersEmailNone => 'brak';
+
+  @override
+  String get usersGroupsLabel => 'Grupy';
+
+  @override
+  String get usersNoGroups => 'brak';
+
+  @override
+  String get usersPermissionsLabel => 'Uprawnienia';
+
+  @override
+  String usersPermissionsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uprawnień',
+      many: '$count uprawnień',
+      few: '$count uprawnienia',
+      one: '1 uprawnienie',
+      zero: 'brak',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get usersPermissionsUnknown => 'serwer ich nie podał';
+
+  @override
+  String get usersAuthSourceLabel => 'Logowanie';
+
+  @override
+  String get usersAuthSourceLocal => 'Konto lokalne';
+
+  @override
+  String get usersCreatedLabel => 'Utworzone';
+
+  @override
+  String get usersOwnedTitle => 'UTWORZONE PRZEZ TO KONTO';
+
+  @override
+  String get usersOwnedArchives => 'Wydruki';
+
+  @override
+  String get usersOwnedQueue => 'Kolejka';
+
+  @override
+  String get usersOwnedLibrary => 'Pliki';
+
+  @override
+  String get usersOwnedFailed =>
+      'Nie udało się odczytać, co należy do tego konta.';
+
+  @override
+  String get usersCreate => 'Dodaj konto';
+
+  @override
+  String get usersCreateTitle => 'Nowe konto';
+
+  @override
+  String get usersEdit => 'Edytuj';
+
+  @override
+  String get usersEditTitle => 'Edycja konta';
+
+  @override
+  String get usersDelete => 'Usuń';
+
+  @override
+  String get usersSave => 'Zapisz';
+
+  @override
+  String get usersSaved => 'Zapisano konto';
+
+  @override
+  String get usersSaveFailed => 'Nie udało się zapisać konta.';
+
+  @override
+  String get usersDeleted => 'Konto usunięte';
+
+  @override
+  String get usersFieldUsername => 'Nazwa użytkownika';
+
+  @override
+  String get usersFieldEmail => 'E-mail (opcjonalnie)';
+
+  @override
+  String get usersFieldEmailRequired => 'E-mail';
+
+  @override
+  String get usersFieldPassword => 'Hasło';
+
+  @override
+  String get usersFieldNewPassword => 'Nowe hasło';
+
+  @override
+  String get usersFieldConfirmPassword => 'Powtórz hasło';
+
+  @override
+  String get usersFieldActive => 'Aktywne';
+
+  @override
+  String get usersFieldGroups => 'Grupy';
+
+  @override
+  String get usersGroupSystem => '(wbudowana)';
+
+  @override
+  String get usersFieldRequired => 'Uzupełnij to pole';
+
+  @override
+  String get usersPasswordsDoNotMatch => 'Hasła się różnią.';
+
+  @override
+  String get usersGroupsAdminHint =>
+      'Administratorem czyni konto członkostwo w grupie Administrators.';
+
+  @override
+  String get usersActiveHint => 'Nieaktywne konto nie zaloguje się.';
+
+  @override
+  String get usersEmailAdvancedHint =>
+      'Ten serwer wysyła hasło mailem, więc potrzebuje adresu.';
+
+  @override
+  String get usersPasswordMailed =>
+      'Serwer sam ustala hasło i wysyła je na ten adres. Nikt go nie zobaczy — Ty też nie.';
+
+  @override
+  String get usersNoSmtpWarning =>
+      'Serwer poczty nie jest skonfigurowany, więc ta wiadomość nie dojdzie — konto powstanie z hasłem, którego nikt nie zna.';
+
+  @override
+  String get usersLdapPasswordNote =>
+      'To konto loguje się przez katalog (LDAP). Hasło jest po jego stronie i nie ustawisz go stąd.';
+
+  @override
+  String get usersPasswordKeepHint => 'Zostaw puste, żeby nie zmieniać hasła.';
+
+  @override
+  String get usersPasswordRulesHint =>
+      'Co najmniej 8 znaków, w tym wielka i mała litera, cyfra i znak specjalny.';
+
+  @override
+  String get usersPasswordTooShort => 'Co najmniej 8 znaków.';
+
+  @override
+  String get usersPasswordNoUppercase => 'Dodaj wielką literę.';
+
+  @override
+  String get usersPasswordNoLowercase => 'Dodaj małą literę.';
+
+  @override
+  String get usersPasswordNoDigit => 'Dodaj cyfrę.';
+
+  @override
+  String get usersPasswordNoSpecial => 'Dodaj znak specjalny.';
+
+  @override
+  String usersDeleteTitle(String username) {
+    return 'Usunąć $username?';
+  }
+
+  @override
+  String get usersDeleteBody =>
+      'Konto, jego klucze API i stan logowania znikają. Tego nie da się cofnąć.';
+
+  @override
+  String usersDeleteOwnsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'To konto utworzyło $count rzeczy',
+      many: 'To konto utworzyło $count rzeczy',
+      few: 'To konto utworzyło $count rzeczy',
+      one: 'To konto utworzyło 1 rzecz',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get usersDeleteItemsToo => 'Usuń je razem z kontem';
+
+  @override
+  String get usersDeleteItemsTooHint =>
+      'Wydruki, pozycje w kolejce i pliki znikną razem z kontem.';
+
+  @override
+  String get usersDeleteItemsKeepHint =>
+      'Wydruki, pozycje w kolejce i pliki zostaną, bez właściciela.';
+
+  @override
+  String get usersDeleteConfirm => 'Usuń';
+
+  @override
+  String get usersErrLastAdmin =>
+      'To ostatni administrator — serwer musi mieć jednego.';
+
+  @override
+  String get usersErrLastAdminDelete =>
+      'Nie można usunąć ostatniego administratora — nie zostałby nikt do zarządzania serwerem.';
+
+  @override
+  String get usersErrLastAdminDeactivate =>
+      'Nie można wyłączyć ostatniego administratora — nie zostałby nikt do zarządzania serwerem.';
+
+  @override
+  String get usersErrLastAdminRole =>
+      'Nie można odebrać roli ostatniemu administratorowi — nie zostałby nikt do zarządzania serwerem.';
+
+  @override
+  String get usersErrSelfDelete =>
+      'Nie usuniesz konta, na którym jesteś zalogowany.';
+
+  @override
+  String get usersErrUsernameTaken => 'Ta nazwa jest już zajęta.';
+
+  @override
+  String get usersErrEmailTaken =>
+      'Ten e-mail jest już przypisany do innego konta.';
+
+  @override
+  String get usersErrLdapPassword =>
+      'Hasła konta z katalogu (LDAP) nie ustawisz tutaj.';
+
+  @override
+  String get usersErrEmailRequired =>
+      'Ten serwer wymaga adresu e-mail dla nowego konta.';
+
+  @override
+  String get usersErrPasswordRequired =>
+      'Ten serwer wymaga hasła dla nowego konta.';
+
+  @override
+  String get usersErrGroupsInvalid =>
+      'Którejś z grup już nie ma — otwórz formularz jeszcze raz.';
 }
