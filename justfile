@@ -435,11 +435,15 @@ ship ver:
 # the two Play bundles stay in build/dist/ for you to upload to Play's internal
 # testing track. That is what the dev slots are for — a dev code sits above the
 # last release and below the next one, so internal testers get the dev build now
-# and the stable release upgrades them cleanly later. Pass `no` as the second
-# argument to skip the bundles when a build is only meant for Obtainium.
+# and the stable release upgrades them cleanly later. Pass `bundles=no` to skip
+# them when a build is only meant for Obtainium.
 #
-# usage: just ship-dev [0.13.0] [aab=yes|no]
-ship-dev target='' aab='yes':
+# The parameter is `bundles` and not `aab`: a parameter shadows the global of the
+# same name for the whole recipe, so `{{aab}}` would expand to `yes` instead of
+# the bundle's path.
+#
+# usage: just ship-dev [0.13.0] [bundles=yes|no]
+ship-dev target='' bundles='yes':
     #!/usr/bin/env bash
     set -euo pipefail
     # A dev release names a commit, so the build has to *be* that commit —
@@ -522,7 +526,7 @@ ship-dev target='' aab='yes':
     # Bundles before the release is published, not after: one that fails to build
     # would otherwise leave a dev release on GitHub with nothing to upload to
     # Play, and the next run would skip straight past the build it needs.
-    if [ '{{aab}}' != 'no' ]; then
+    if [ '{{bundles}}' != 'no' ]; then
         just build-aab "$name" "$code"
         just build-aab-wear "$name" "$code"
     fi
@@ -550,7 +554,7 @@ ship-dev target='' aab='yes':
     done
     git fetch --tags origin
     echo "Published $tag"
-    if [ '{{aab}}' != 'no' ]; then
+    if [ '{{bundles}}' != 'no' ]; then
         echo "Upload to Play internal testing ($name):"
         ls -1 {{aab}} {{wear_aab}}
     fi
