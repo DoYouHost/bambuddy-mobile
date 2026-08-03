@@ -421,6 +421,11 @@ class _Subtitle extends StatelessWidget {
     final parts = <String>[
       if (item.printerName != null) item.printerName!,
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
+      // Says the print will land in the exact trays the slicer picked, rather
+      // than trays the scheduler works out from the file's type and colour.
+      // Server ≥ 1.2.5.2; false everywhere else, so the marker just never
+      // appears.
+      if (item.archiveHasSlicerAmsMapping) l10n.queueAmsFromSlicer,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

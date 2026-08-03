@@ -24,6 +24,8 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       coolingFanSpeed: _toIntOrNull(json['cooling_fan_speed']),
       bigFan1Speed: _toIntOrNull(json['big_fan1_speed']),
       bigFan2Speed: _toIntOrNull(json['big_fan2_speed']),
+      leftAuxFanSpeed: _toIntOrNull(json['left_aux_fan_speed']),
+      exhaustFanPresent: json['exhaust_fan_present'] as bool?,
       heatbreakFanSpeed: _toIntOrNull(json['heatbreak_fan_speed']),
       speedLevel: _toIntOrNull(json['speed_level']),
       chamberLight: json['chamber_light'] as bool?,

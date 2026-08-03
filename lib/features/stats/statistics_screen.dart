@@ -241,6 +241,12 @@ class _StatsBody extends ConsumerWidget {
                   const SizedBox(height: 12),
                   UsageOverTimeCard(data: c, locale: locale),
                   const SizedBox(height: 12),
+                  // Per-print energy only reaches us from a 1.2.5.2 server, and
+                  // only once energy tracking has recorded something.
+                  if (c.hasEnergyData) ...[
+                    EnergyOverTimeCard(data: c, locale: locale),
+                    const SizedBox(height: 12),
+                  ],
                   ByMaterialCard(data: c),
                   const SizedBox(height: 12),
                   SuccessByMaterialCard(data: c),

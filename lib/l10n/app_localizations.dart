@@ -623,7 +623,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlFanPart.
   ///
   /// In en, this message translates to:
-  /// **'Hotend fan'**
+  /// **'Part cooling fan'**
   String get ctrlFanPart;
 
   /// No description provided for @ctrlFanAux.
@@ -632,16 +632,28 @@ abstract class AppLocalizations {
   /// **'Aux fan'**
   String get ctrlFanAux;
 
+  /// No description provided for @ctrlFanAux2.
+  ///
+  /// In en, this message translates to:
+  /// **'Left aux fan'**
+  String get ctrlFanAux2;
+
   /// No description provided for @ctrlFanChamber.
   ///
   /// In en, this message translates to:
   /// **'Chamber fan'**
   String get ctrlFanChamber;
 
+  /// No description provided for @ctrlFanExhaust.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhaust fan'**
+  String get ctrlFanExhaust;
+
   /// No description provided for @ctrlFanPartShort.
   ///
   /// In en, this message translates to:
-  /// **'Hotend'**
+  /// **'Part'**
   String get ctrlFanPartShort;
 
   /// No description provided for @ctrlFanAuxShort.
@@ -650,11 +662,23 @@ abstract class AppLocalizations {
   /// **'Aux'**
   String get ctrlFanAuxShort;
 
+  /// No description provided for @ctrlFanAux2Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Aux L'**
+  String get ctrlFanAux2Short;
+
   /// No description provided for @ctrlFanChamberShort.
   ///
   /// In en, this message translates to:
   /// **'Chamber'**
   String get ctrlFanChamberShort;
+
+  /// No description provided for @ctrlFanExhaustShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhaust'**
+  String get ctrlFanExhaustShort;
 
   /// No description provided for @ctrlSpeed.
   ///
@@ -1069,6 +1093,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The queue is empty'**
   String get queueEmpty;
+
+  /// No description provided for @queueAmsFromSlicer.
+  ///
+  /// In en, this message translates to:
+  /// **'AMS from slicer'**
+  String get queueAmsFromSlicer;
 
   /// No description provided for @queueDeleteTitle.
   ///
@@ -4334,6 +4364,24 @@ abstract class AppLocalizations {
   /// **'Usage over time'**
   String get statsUsageOverTime;
 
+  /// No description provided for @statsEnergyOverTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy over time'**
+  String get statsEnergyOverTime;
+
+  /// No description provided for @statsMostEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Most energy used'**
+  String get statsMostEnergy;
+
+  /// No description provided for @statsKwh.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kWh'**
+  String statsKwh(String value);
+
   /// No description provided for @statsByMaterialTitle.
   ///
   /// In en, this message translates to:
@@ -5570,6 +5618,18 @@ abstract class AppLocalizations {
   /// **'Target parts'**
   String get projectTargetPartsCount;
 
+  /// No description provided for @projectTargetSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Target sets'**
+  String get projectTargetSets;
+
+  /// No description provided for @projectTargetSetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'How many times each file in the project should be printed'**
+  String get projectTargetSetsHint;
+
   /// No description provided for @projectTags.
   ///
   /// In en, this message translates to:
@@ -5713,6 +5773,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Parts'**
   String get projectStatPartsProgress;
+
+  /// No description provided for @projectStatSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete sets'**
+  String get projectStatSets;
+
+  /// No description provided for @projectSetsOfTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {target}'**
+  String projectSetsOfTarget(int done, int target);
 
   /// No description provided for @projectStatPrints.
   ///

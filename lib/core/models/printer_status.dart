@@ -32,6 +32,8 @@ class PrinterStatus {
     this.coolingFanSpeed,
     this.bigFan1Speed,
     this.bigFan2Speed,
+    this.leftAuxFanSpeed,
+    this.exhaustFanPresent,
     this.heatbreakFanSpeed,
     this.speedLevel,
     this.chamberLight,
@@ -97,9 +99,31 @@ class PrinterStatus {
   @JsonKey(fromJson: _toIntOrNull)
   final int? bigFan1Speed;
 
-  /// Chamber fan (big fan 2), 0–100%.
+  /// Chamber / exhaust fan (big fan 2), 0–100%.
   @JsonKey(fromJson: _toIntOrNull)
   final int? bigFan2Speed;
+
+  /// Left auxiliary part cooling fan, 0–100% — a P2S accessory kit, factory
+  /// fitted on the X2D. Reported only from the printer's airduct data (part
+  /// id 10), never mirrored into a `big_fanX_speed` field, so `null` covers
+  /// both "server too old to send it" and "printer doesn't have this fan".
+  /// Either way there is nothing to show, so no server-version gate is needed.
+  /// Controlled with `fan=aux2` (server ≥ 1.2.5.2; older ones answer 400, which
+  /// we never reach because the tile only renders when this is non-null).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? leftAuxFanSpeed;
+
+  /// Whether the chamber exhaust fan is physically fitted (airduct part id 3).
+  /// Deliberately nullable to keep three states apart: `null` = server older
+  /// than 1.2.5.2, which never reported presence; `false` = the printer sent a
+  /// full airduct inventory without the fan; `true` = fitted.
+  ///
+  /// Only meaningful on P2S/X2D, where this fan is an add-on kit. Everywhere
+  /// else the server sends `false` — X1C/P1S are on the old protocol and report
+  /// no airduct at all — so it must never be used as a general gate, or every
+  /// one of those printers would lose its chamber fan tile. See
+  /// `usesExhaustFanLabel`.
+  final bool? exhaustFanPresent;
 
   /// Heatbreak fan, 0–100% (usually 0 — firmware-controlled).
   @JsonKey(fromJson: _toIntOrNull)
@@ -190,6 +214,8 @@ class PrinterStatus {
           other.coolingFanSpeed == coolingFanSpeed &&
           other.bigFan1Speed == bigFan1Speed &&
           other.bigFan2Speed == bigFan2Speed &&
+          other.leftAuxFanSpeed == leftAuxFanSpeed &&
+          other.exhaustFanPresent == exhaustFanPresent &&
           other.heatbreakFanSpeed == heatbreakFanSpeed &&
           other.speedLevel == speedLevel &&
           other.chamberLight == chamberLight &&
@@ -224,6 +250,8 @@ class PrinterStatus {
         coolingFanSpeed,
         bigFan1Speed,
         bigFan2Speed,
+        leftAuxFanSpeed,
+        exhaustFanPresent,
         heatbreakFanSpeed,
         speedLevel,
         chamberLight,
@@ -288,6 +316,8 @@ class PrinterStatus {
       coolingFanSpeed: coolingFanSpeed ?? previous.coolingFanSpeed,
       bigFan1Speed: bigFan1Speed ?? previous.bigFan1Speed,
       bigFan2Speed: bigFan2Speed ?? previous.bigFan2Speed,
+      leftAuxFanSpeed: leftAuxFanSpeed ?? previous.leftAuxFanSpeed,
+      exhaustFanPresent: exhaustFanPresent ?? previous.exhaustFanPresent,
       heatbreakFanSpeed: heatbreakFanSpeed ?? previous.heatbreakFanSpeed,
       speedLevel: speedLevel ?? previous.speedLevel,
       chamberLight: chamberLight ?? previous.chamberLight,
@@ -315,6 +345,11 @@ class PrinterStatus {
   /// live state, so drop it: `state`, the job, progress, temps, fans, lights,
   /// door, wifi, speed, airduct, stage.
   ///
+  /// `exhaustFanPresent` is kept rather than dropped: it says which fans the
+  /// machine physically has, not what they are doing, and surviving the outage
+  /// means a base P2S doesn't flash a chamber tile on reconnect while waiting
+  /// for its first airduct frame (`null` there falls back to "show it").
+  ///
   /// Kept: identity/hardware (`name`/`model`/`supportsDrying`), the physical AMS
   /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
   /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
@@ -328,6 +363,7 @@ class PrinterStatus {
       connected: false,
       model: model,
       supportsDrying: supportsDrying,
+      exhaustFanPresent: exhaustFanPresent,
       ams: ams,
       vtTray: vtTray,
       amsExtruderMap: amsExtruderMap,
@@ -344,6 +380,26 @@ class PrinterStatus {
     if (previous == null) return temperatures;
     return {...previous, ...temperatures!};
   }
+
+  /// Whether this model calls its enclosure fan the *exhaust* fan rather than
+  /// the chamber fan. P2S/X2D follow the printer's own screen and Bambu Studio
+  /// here; every other enclosed model (X1/P1S/H2*) says "chamber". Mirrors the
+  /// server's `uses_exhaust_fan_label`, including its normalization, so a model
+  /// reported as an internal code (`N7`/`N6`) resolves the same way.
+  bool get usesExhaustFanLabel => const {'P2S', 'X2D', 'N7', 'N6'}
+      .contains(model?.trim().toUpperCase().replaceAll(RegExp(r'[ -]'), ''));
+
+  /// Whether to offer the enclosure fan (big fan 2) at all.
+  ///
+  /// On P2S/X2D that fan is the External Exhaust Fan kit — an accessory, not
+  /// standard equipment — and the printer reports `big_fan2_speed` regardless,
+  /// so the speed alone cannot tell a fitted machine from a base one. Servers
+  /// from 1.2.5.2 answer that with [exhaustFanPresent]; older ones don't know,
+  /// and `null` there keeps the pre-1.2.5.2 behaviour of showing the fan rather
+  /// than hiding a control that works.
+  bool get chamberFanAvailable =>
+      bigFan2Speed != null &&
+      (!usesExhaustFanLabel || (exhaustFanPresent ?? true));
 
   /// true = heating, false = cooling, null = none/unknown mode.
   bool? get airductIsHeating => switch (airductMode) {

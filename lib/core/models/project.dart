@@ -17,6 +17,7 @@ class ProjectListResponse {
     this.status = 'active',
     this.targetCount,
     this.targetPartsCount,
+    this.targetSets,
     this.budget,
     this.createdAt,
     this.archiveCount = 0,
@@ -43,6 +44,13 @@ class ProjectListResponse {
   final int? targetCount;
   @JsonKey(fromJson: toIntOrNull)
   final int? targetPartsCount;
+
+  /// Copies-per-file target: every printable file in the project's linked
+  /// folders should be printed this many times. Null on servers older than
+  /// 1.2.5.2, which have no such column, and null whenever the user hasn't
+  /// set one — both mean "don't track sets".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? targetSets;
   @JsonKey(fromJson: toDoubleOrNull)
   final double? budget;
 
@@ -184,6 +192,46 @@ class ProjectStats {
   final double bomCost;
 }
 
+/// How many finished runs one library file has inside a project
+/// (`GET /projects/{id}/file-progress`, server ≥ 1.2.5.2).
+///
+/// The count is per file, not per project, because "complete sets" asks how
+/// many whole assemblies exist: that is the *smallest* count across the
+/// project's files, so one part printed ten times and another printed once
+/// still makes exactly one set.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class ProjectFileProgress {
+  const ProjectFileProgress({required this.fileId, this.completedCount = 0});
+
+  factory ProjectFileProgress.fromJson(Map<String, dynamic> json) =>
+      _$ProjectFileProgressFromJson(json);
+
+  @JsonKey(fromJson: toInt)
+  final int fileId;
+  @JsonKey(fromJson: toInt)
+  final int completedCount;
+}
+
+/// How many complete sets [fileIds] amounts to, given per-file [progress].
+///
+/// The smallest per-file count, because a set needs every part: printing one
+/// component ten times and another once still yields one set. A file absent
+/// from [progress] has never finished a run and counts as zero, which is what
+/// keeps a half-printed project from reading as complete. No files at all means
+/// no sets — an empty project has not assembled anything.
+int completeSetsFor(
+  Iterable<int> fileIds,
+  Iterable<ProjectFileProgress> progress,
+) {
+  final counts = {for (final p in progress) p.fileId: p.completedCount};
+  var smallest = -1;
+  for (final id in fileIds) {
+    final done = counts[id] ?? 0;
+    if (smallest < 0 || done < smallest) smallest = done;
+  }
+  return smallest < 0 ? 0 : smallest;
+}
+
 /// Full project detail (`ProjectResponse`) from `GET /projects/{id}`.
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class ProjectResponse {
@@ -195,6 +243,7 @@ class ProjectResponse {
     this.status = 'active',
     this.targetCount,
     this.targetPartsCount,
+    this.targetSets,
     this.notes,
     this.attachments = const [],
     this.tags,
@@ -226,6 +275,13 @@ class ProjectResponse {
   final int? targetCount;
   @JsonKey(fromJson: toIntOrNull)
   final int? targetPartsCount;
+
+  /// Copies-per-file target: every printable file in the project's linked
+  /// folders should be printed this many times. Null on servers older than
+  /// 1.2.5.2, which have no such column, and null whenever the user hasn't
+  /// set one — both mean "don't track sets".
+  @JsonKey(fromJson: toIntOrNull)
+  final int? targetSets;
 
   final String? notes;
 
@@ -348,6 +404,7 @@ class ProjectCreate {
     this.color,
     this.targetCount,
     this.targetPartsCount,
+    this.targetSets,
     this.notes,
     this.tags,
     this.dueDate,
@@ -362,6 +419,7 @@ class ProjectCreate {
   final String? color;
   final int? targetCount;
   final int? targetPartsCount;
+  final int? targetSets;
   final String? notes;
   final String? tags;
   final String? dueDate;
@@ -376,6 +434,7 @@ class ProjectCreate {
         'color': ?color,
         'target_count': ?targetCount,
         'target_parts_count': ?targetPartsCount,
+        'target_sets': ?targetSets,
         'notes': ?notes,
         'tags': ?tags,
         'due_date': ?dueDate,
@@ -396,6 +455,7 @@ class ProjectUpdate {
     this.status,
     this.targetCount,
     this.targetPartsCount,
+    this.targetSets,
     this.notes,
     this.tags,
     this.dueDate,
@@ -411,6 +471,7 @@ class ProjectUpdate {
   final String? status;
   final int? targetCount;
   final int? targetPartsCount;
+  final int? targetSets;
   final String? notes;
   final String? tags;
   final String? dueDate;
@@ -426,6 +487,7 @@ class ProjectUpdate {
         'status': ?status,
         'target_count': ?targetCount,
         'target_parts_count': ?targetPartsCount,
+        'target_sets': ?targetSets,
         'notes': ?notes,
         'tags': ?tags,
         'due_date': ?dueDate,

@@ -446,6 +446,108 @@ void main() {
     });
   });
 
+  group('Wentylatory akcesoryjne P2S/X2D', () {
+    test('parsuje left_aux_fan_speed i exhaust_fan_present', () {
+      final s = PrinterStatus.fromJson(const {
+        'id': 1,
+        'model': 'X2D',
+        'left_aux_fan_speed': 40,
+        'exhaust_fan_present': true,
+      });
+      expect(s.leftAuxFanSpeed, 40);
+      expect(s.exhaustFanPresent, isTrue);
+    });
+
+    test('serwer < 1.2.5.2 nie wysyła pól → null, nie false', () {
+      final s = PrinterStatus.fromJson(const {'id': 1, 'model': 'P2S'});
+      expect(s.leftAuxFanSpeed, isNull);
+      // Musi zostać null: false znaczy "serwer sprawdził i nie ma".
+      expect(s.exhaustFanPresent, isNull);
+    });
+
+    test('etykieta wyciągu tylko dla P2S/X2D, też po kodzie wewnętrznym', () {
+      for (final model in ['P2S', 'p2s', 'X2D', 'N7', 'N6', 'X2 D']) {
+        expect(PrinterStatus(id: 1, model: model).usesExhaustFanLabel, isTrue,
+            reason: model);
+      }
+      for (final model in ['X1C', 'P1S', 'H2D', 'A1 mini', null]) {
+        expect(PrinterStatus(id: 1, model: model).usesExhaustFanLabel, isFalse,
+            reason: '$model');
+      }
+    });
+
+    test('P2S bez zestawu wyciągu — kafelek ukryty', () {
+      const s = PrinterStatus(
+        id: 1,
+        model: 'P2S',
+        bigFan2Speed: 0,
+        exhaustFanPresent: false,
+      );
+      expect(s.chamberFanAvailable, isFalse);
+    });
+
+    test('P2S z zestawem — kafelek widoczny', () {
+      const s = PrinterStatus(
+        id: 1,
+        model: 'P2S',
+        bigFan2Speed: 60,
+        exhaustFanPresent: true,
+      );
+      expect(s.chamberFanAvailable, isTrue);
+    });
+
+    test('P2S na starym serwerze — zachowanie sprzed zmiany (pokazujemy)', () {
+      const s = PrinterStatus(id: 1, model: 'P2S', bigFan2Speed: 0);
+      expect(s.chamberFanAvailable, isTrue);
+    });
+
+    test('X1C z exhaust_fan_present=false dalej ma wentylator komory', () {
+      // Regresja, o którą tu najłatwiej: X1C/P1S nie mają airductu, więc serwer
+      // raportuje im `false` przy wentylatorze, który fizycznie jest.
+      const s = PrinterStatus(
+        id: 1,
+        model: 'X1C',
+        bigFan2Speed: 45,
+        exhaustFanPresent: false,
+      );
+      expect(s.chamberFanAvailable, isTrue);
+    });
+
+    test('brak big_fan2_speed → brak kafelka niezależnie od modelu', () {
+      const s = PrinterStatus(id: 1, model: 'X2D', exhaustFanPresent: true);
+      expect(s.chamberFanAvailable, isFalse);
+    });
+
+    test('merge dziedziczy oba pola z poprzedniej ramki', () {
+      const prev = PrinterStatus(
+        id: 1,
+        model: 'P2S',
+        leftAuxFanSpeed: 30,
+        exhaustFanPresent: true,
+      );
+      const poll = PrinterStatus(id: 1, bigFan1Speed: 50);
+      final merged = poll.mergedWith(prev);
+      expect(merged.leftAuxFanSpeed, 30);
+      expect(merged.exhaustFanPresent, isTrue);
+    });
+
+    test('offline gasi prędkość, ale zachowuje informację o obecności', () {
+      const prev = PrinterStatus(
+        id: 1,
+        model: 'P2S',
+        leftAuxFanSpeed: 30,
+        bigFan2Speed: 60,
+        exhaustFanPresent: false,
+      );
+      const off = PrinterStatus(id: 1, connected: false);
+      final merged = off.mergedWith(prev);
+      expect(merged.leftAuxFanSpeed, isNull);
+      // Zestaw nie znika po zaniku zasilania — inaczej po powrocie bazowy P2S
+      // mignąłby kafelkiem komory, czekając na pierwszą ramkę airduct.
+      expect(merged.exhaustFanPresent, isFalse);
+    });
+  });
+
   group('PrinterStatus.isCalibration', () {
     test('plik auto_cali_for_user_param liczy się jako kalibracja', () {
       const s = PrinterStatus(

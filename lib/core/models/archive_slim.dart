@@ -20,6 +20,8 @@ class ArchiveSlim {
     this.startedAt,
     this.completedAt,
     this.cost,
+    this.energyKwh,
+    this.energyCost,
     this.quantity = 1,
   });
 
@@ -36,6 +38,8 @@ class ArchiveSlim {
         startedAt: dateTimeFromJson(json['started_at']),
         completedAt: dateTimeFromJson(json['completed_at']),
         cost: toDoubleOrNull(json['cost']),
+        energyKwh: toDoubleOrNull(json['energy_kwh']),
+        energyCost: toDoubleOrNull(json['energy_cost']),
         quantity: toIntOrNull(json['quantity']) ?? 1,
       );
 
@@ -59,6 +63,15 @@ class ArchiveSlim {
   final DateTime? startedAt;
   final DateTime? completedAt;
   final double? cost;
+
+  /// Energy this run drew, in kWh, and what it cost — per print, from the smart
+  /// plug records (server ≥ 1.2.5.2; `null` on older ones, and on any run made
+  /// before energy tracking was switched on). `/archives/stats` has carried the
+  /// period *totals* all along; these are what let the breakdowns be computed
+  /// per printer and over time.
+  final double? energyKwh;
+  final double? energyCost;
+
   final int quantity;
 
   /// Print success = status "completed" (others are failures/other).

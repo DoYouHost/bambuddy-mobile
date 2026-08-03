@@ -460,9 +460,13 @@ class _TempGrid extends StatelessWidget {
   }
 }
 
-/// Always-visible fan readings as a 3-column grid (Hotend / Aux / Chamber),
+/// Always-visible fan readings as a grid (Part / Aux L / Aux / Chamber),
 /// matching the design. Each cell shows the fan's short label and % in mono.
 /// Renders only when the server provides at least one fan reading.
+///
+/// Cells follow the physical left-to-right order of the fans, so the left
+/// auxiliary sits before the right-hand one. Most printers show three; only a
+/// P2S with both accessory kits, or an X2D, reaches four.
 class _FansGrid extends StatelessWidget {
   const _FansGrid({required this.status, required this.printerId});
 
@@ -473,8 +477,11 @@ class _FansGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // P2S/X2D name this fan after what it does — see PrinterStatus.
+    final exhaust = status.usesExhaustFanLabel;
+
     // Fan id → server key mapping mirrors the backend fan-speed route:
-    // part=cooling, aux=big fan 1, chamber=big fan 2.
+    // part=cooling, aux2=left aux, aux=big fan 1, chamber=big fan 2.
     final cells = <Widget>[
       if (status.coolingFanSpeed != null)
         _FanCell(
@@ -482,6 +489,14 @@ class _FansGrid extends StatelessWidget {
           label: l10n.ctrlFanPartShort,
           sheetLabel: l10n.ctrlFanPart,
           value: status.coolingFanSpeed!,
+          printerId: printerId,
+        ),
+      if (status.leftAuxFanSpeed != null)
+        _FanCell(
+          fan: 'aux2',
+          label: l10n.ctrlFanAux2Short,
+          sheetLabel: l10n.ctrlFanAux2,
+          value: status.leftAuxFanSpeed!,
           printerId: printerId,
         ),
       if (status.bigFan1Speed != null)
@@ -492,11 +507,11 @@ class _FansGrid extends StatelessWidget {
           value: status.bigFan1Speed!,
           printerId: printerId,
         ),
-      if (status.bigFan2Speed != null)
+      if (status.chamberFanAvailable)
         _FanCell(
           fan: 'chamber',
-          label: l10n.ctrlFanChamberShort,
-          sheetLabel: l10n.ctrlFanChamber,
+          label: exhaust ? l10n.ctrlFanExhaustShort : l10n.ctrlFanChamberShort,
+          sheetLabel: exhaust ? l10n.ctrlFanExhaust : l10n.ctrlFanChamber,
           value: status.bigFan2Speed!,
           printerId: printerId,
         ),
@@ -526,7 +541,7 @@ class _FanCell extends ConsumerWidget {
     required this.printerId,
   });
 
-  /// Fan id sent to the server ('part'/'aux'/'chamber').
+  /// Fan id sent to the server ('part'/'aux'/'aux2'/'chamber').
   final String fan;
   final String label;
   final String sheetLabel;
@@ -586,8 +601,8 @@ class _FanCell extends ConsumerWidget {
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: logTag(
-        // Per fan, under the key the server itself uses ('part'/'aux'/
-        // 'chamber') — three cells sharing one tag could not say which sheet the
+        // Per fan, under the key the server itself uses ('part'/'aux'/'aux2'/
+        // 'chamber') — cells sharing one tag could not say which sheet the
         // user opened. Same fix as the temperature tiles.
         'printer.fan_$fan',
         InkWell(

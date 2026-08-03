@@ -302,22 +302,34 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get ctrlFanPart => 'Wentylator hotendu';
+  String get ctrlFanPart => 'Wentylator chłodzący wydruk';
 
   @override
   String get ctrlFanAux => 'Wentylator pomocniczy';
 
   @override
+  String get ctrlFanAux2 => 'Lewy wentylator pomocniczy';
+
+  @override
   String get ctrlFanChamber => 'Wentylator komory';
 
   @override
-  String get ctrlFanPartShort => 'Hotend';
+  String get ctrlFanExhaust => 'Wentylator wyciągowy';
+
+  @override
+  String get ctrlFanPartShort => 'Wydruk';
 
   @override
   String get ctrlFanAuxShort => 'Pomoc.';
 
   @override
+  String get ctrlFanAux2Short => 'Pomoc. L';
+
+  @override
   String get ctrlFanChamberShort => 'Komora';
+
+  @override
+  String get ctrlFanExhaustShort => 'Wyciąg';
 
   @override
   String get ctrlSpeed => 'Prędkość';
@@ -546,6 +558,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueEmpty => 'Kolejka jest pusta';
+
+  @override
+  String get queueAmsFromSlicer => 'AMS ze slicera';
 
   @override
   String get queueDeleteTitle => 'Usunąć z kolejki?';
@@ -2513,6 +2528,17 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statsUsageOverTime => 'Zużycie w czasie';
 
   @override
+  String get statsEnergyOverTime => 'Energia w czasie';
+
+  @override
+  String get statsMostEnergy => 'Najwięcej energii';
+
+  @override
+  String statsKwh(String value) {
+    return '$value kWh';
+  }
+
+  @override
   String get statsByMaterialTitle => 'Wg materiału';
 
   @override
@@ -3280,6 +3306,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectTargetPartsCount => 'Docelowa liczba części';
 
   @override
+  String get projectTargetSets => 'Docelowa liczba kompletów';
+
+  @override
+  String get projectTargetSetsHint =>
+      'Ile razy ma zostać wydrukowany każdy plik projektu';
+
+  @override
   String get projectTags => 'Tagi (po przecinku)';
 
   @override
@@ -3350,6 +3383,14 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get projectStatPartsProgress => 'Części';
+
+  @override
+  String get projectStatSets => 'Pełne komplety';
+
+  @override
+  String projectSetsOfTarget(int done, int target) {
+    return '$done z $target';
+  }
 
   @override
   String get projectStatPrints => 'Płyty';

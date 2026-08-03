@@ -6,11 +6,15 @@ class StatBucket {
   double grams = 0;
   int seconds = 0;
   int successes = 0;
+  double energyKwh = 0;
+  double energyCost = 0;
 
   void add(ArchiveSlim a) {
     prints += 1;
     grams += a.filamentUsedGrams ?? 0;
     seconds += a.effectiveSeconds ?? 0;
+    energyKwh += a.energyKwh ?? 0;
+    energyCost += a.energyCost ?? 0;
     if (a.isSuccess) successes += 1;
   }
 
@@ -41,6 +45,11 @@ class StatsComputed {
   final Map<DateTime, int> printsByDay = {};
   final Map<DateTime, double> gramsByDay = {};
 
+  /// kWh per calendar day — the energy line chart. Only ever populated from
+  /// runs that carry a reading, so a server that doesn't report per-print
+  /// energy leaves this empty and the section stays hidden ([hasEnergyData]).
+  final Map<DateTime, double> energyKwhByDay = {};
+
   /// Duration histogram (length [durationBucketCount]).
   final List<int> durationBuckets = List.filled(durationBucketCount, 0);
 
@@ -61,6 +70,7 @@ class StatsComputed {
   ArchiveSlim? longest;
   ArchiveSlim? heaviest;
   ArchiveSlim? mostExpensive;
+  ArchiveSlim? hungriest;
   DateTime? busiestDay;
   int busiestDayCount = 0;
   int bestSuccessStreak = 0;
@@ -86,6 +96,10 @@ class StatsComputed {
       final day = DateTime(a.createdAt.year, a.createdAt.month, a.createdAt.day);
       c.printsByDay[day] = (c.printsByDay[day] ?? 0) + 1;
       c.gramsByDay[day] = (c.gramsByDay[day] ?? 0) + (a.filamentUsedGrams ?? 0);
+      final kwh = a.energyKwh;
+      if (kwh != null) {
+        c.energyKwhByDay[day] = (c.energyKwhByDay[day] ?? 0) + kwh;
+      }
 
       final count = c.printsByDay[day]!;
       if (count > c.busiestDayCount) {
@@ -136,16 +150,34 @@ class StatsComputed {
               cost > (c.mostExpensive!.cost ?? 0))) {
         c.mostExpensive = a;
       }
+      if (kwh != null &&
+          (c.hungriest == null || kwh > (c.hungriest!.energyKwh ?? 0))) {
+        c.hungriest = a;
+      }
     }
     return c;
   }
 
   bool get isEmpty => printsByDay.isEmpty;
 
+  /// Whether any run in the period reported its energy. False against a server
+  /// older than 1.2.5.2, which doesn't send the field, and equally false when
+  /// energy tracking has simply never been on — both mean there is nothing to
+  /// chart, so the UI treats them the same rather than claiming 0 kWh.
+  bool get hasEnergyData => energyKwhByDay.isNotEmpty;
+
   /// Usage points in grams per day, sorted ascending by date — for
   /// "Usage Over Time" line chart.
   List<MapEntry<DateTime, double>> get usageOverTime {
     final list = gramsByDay.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return list;
+  }
+
+  /// kWh per day, sorted ascending — same shape as [usageOverTime] so both feed
+  /// the same line chart.
+  List<MapEntry<DateTime, double>> get energyOverTime {
+    final list = energyKwhByDay.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
     return list;
   }

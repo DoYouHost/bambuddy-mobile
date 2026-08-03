@@ -35,6 +35,21 @@ void main() {
       expect(item.statusKind, QueueItemStatusKind.unknown);
       expect(item.isActive, isFalse);
     });
+
+    test('mapowanie AMS ze slicera: brak pola = brak (stary serwer)', () {
+      final item = QueueItem.fromJson(const {'id': 1, 'position': 1, 'status': 'pending'});
+      expect(item.archiveHasSlicerAmsMapping, isFalse);
+    });
+
+    test('mapowanie AMS ze slicera odczytane, gdy serwer je zgłasza', () {
+      final item = QueueItem.fromJson(const {
+        'id': 1,
+        'position': 1,
+        'status': 'pending',
+        'archive_has_slicer_ams_mapping': true,
+      });
+      expect(item.archiveHasSlicerAmsMapping, isTrue);
+    });
   });
 
   group('QueueItemStatusKind klasyfikacja', () {

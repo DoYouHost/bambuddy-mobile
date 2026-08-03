@@ -11,6 +11,8 @@ ArchiveSlim _a({
   String? color,
   double? cost,
   int? printerId,
+  double? energyKwh,
+  double? energyCost,
 }) =>
     ArchiveSlim.fromJson({
       'status': status,
@@ -21,6 +23,8 @@ ArchiveSlim _a({
       'filament_color': color,
       'cost': cost,
       'printer_id': printerId,
+      'energy_kwh': energyKwh,
+      'energy_cost': energyCost,
     });
 
 void main() {
@@ -115,6 +119,53 @@ void main() {
       expect(c.byHour[afterNoon.toLocal().hour], 1);
       expect(c.byHour[failedAt.toLocal().hour], 1);
       expect(c.failedByHour[failedAt.toLocal().hour], 1);
+    });
+  });
+
+  group('Energia per wydruk (serwer >= 1.2.5.2)', () {
+    test('bez pola energii sekcja się nie włącza', () {
+      // Stary serwer nie wysyła energy_kwh — wykres ma zniknąć, a nie
+      // narysować płaskie zero, które czyta się jak "nic nie zużyłeś".
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', grams: 20),
+      ]);
+      expect(c.hasEnergyData, isFalse);
+      expect(c.energyOverTime, isEmpty);
+      expect(c.hungriest, isNull);
+    });
+
+    test('sumuje kWh po dniach i wskazuje najbardziej prądożerny wydruk', () {
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', energyKwh: 0.4),
+        _a(status: 'completed', createdAt: '2026-06-01T20:00:00Z', energyKwh: 1.1),
+        _a(status: 'failed', createdAt: '2026-06-02T09:00:00Z', energyKwh: 0.3),
+      ]);
+      expect(c.hasEnergyData, isTrue);
+      expect(c.energyOverTime, hasLength(2));
+      expect(c.energyOverTime.first.value, closeTo(1.5, 1e-9));
+      expect(c.hungriest!.energyKwh, 1.1);
+    });
+
+    test('wydruki bez odczytu nie zaniżają kubełków ani rekordu', () {
+      // Energia bywa null także na nowym serwerze — dla przebiegów sprzed
+      // włączenia śledzenia. Takie mają być pominięte, nie liczone jako 0.
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z', energyKwh: 0.8),
+        _a(status: 'completed', createdAt: '2026-06-03T10:00:00Z'),
+      ]);
+      expect(c.energyOverTime, hasLength(1));
+      expect(c.hungriest!.energyKwh, 0.8);
+    });
+
+    test('kubełek drukarki sumuje energię i jej koszt', () {
+      final c = StatsComputed.from([
+        _a(status: 'completed', createdAt: '2026-06-01T10:00:00Z',
+            printerId: 1, energyKwh: 0.5, energyCost: 0.25),
+        _a(status: 'completed', createdAt: '2026-06-02T10:00:00Z',
+            printerId: 1, energyKwh: 0.5, energyCost: 0.25),
+      ]);
+      expect(c.byPrinter[1]!.energyKwh, closeTo(1.0, 1e-9));
+      expect(c.byPrinter[1]!.energyCost, closeTo(0.5, 1e-9));
     });
   });
 }

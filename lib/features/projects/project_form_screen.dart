@@ -30,6 +30,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   late final TextEditingController _tags;
   late final TextEditingController _url;
   late final TextEditingController _targetCount;
+  late final TextEditingController _targetSets;
   late final TextEditingController _targetParts;
   late final TextEditingController _budget;
 
@@ -53,6 +54,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
         TextEditingController(text: p?.targetCount?.toString() ?? '');
     _targetParts =
         TextEditingController(text: p?.targetPartsCount?.toString() ?? '');
+    _targetSets = TextEditingController(text: p?.targetSets?.toString() ?? '');
     _budget = TextEditingController(text: p?.budget?.toString() ?? '');
     _status = p?.status ?? 'active';
     _priority = p?.priority ?? 'normal';
@@ -71,6 +73,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
       _url,
       _targetCount,
       _targetParts,
+      _targetSets,
       _budget,
     ]) {
       c.dispose();
@@ -190,6 +193,19 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                // Sets are a 1.2.5.2 column. An older server ignores the field
+                // rather than failing, so the input stays offered instead of
+                // being gated behind a version probe — but nothing reads it
+                // back, so the value simply won't stick there.
+                TextFormField(
+                  controller: _targetSets,
+                  style: fieldStyle,
+                  decoration: dashFieldDecoration(t,
+                      labelText: l10n.projectTargetSets,
+                      helperText: l10n.projectTargetSetsHint),
+                  keyboardType: TextInputType.number,
+                ).tagged('project_form.target_sets'),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _budget,
@@ -361,6 +377,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
               status: _status,
               targetCount: _intOrNull(_targetCount.text),
               targetPartsCount: _intOrNull(_targetParts.text),
+              targetSets: _intOrNull(_targetSets.text),
               notes: _emptyToNull(_notes.text),
               tags: _emptyToNull(_tags.text),
               dueDate: dueIso,
@@ -376,6 +393,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
               color: _color,
               targetCount: _intOrNull(_targetCount.text),
               targetPartsCount: _intOrNull(_targetParts.text),
+              targetSets: _intOrNull(_targetSets.text),
               notes: _emptyToNull(_notes.text),
               tags: _emptyToNull(_tags.text),
               dueDate: dueIso,

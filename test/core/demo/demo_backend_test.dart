@@ -35,7 +35,7 @@ void main() {
   group('printers', () {
     test('list + statuses parse; simulated print is running', () async {
       final all = await PrintersRepository(dio).fetchAll();
-      expect(all, hasLength(3));
+      expect(all, hasLength(4));
       final printing = all.firstWhere((p) => p.printer.id == 1).status;
       expect(printing, isNotNull);
       expect(printing!.isPrinting, isTrue);
@@ -45,6 +45,11 @@ void main() {
       expect(idle!.state, 'IDLE');
       final offline = all.firstWhere((p) => p.printer.id == 3).status;
       expect(offline!.connected, isFalse);
+      // The P2S carries both accessory fan kits — the four-tile layout.
+      final p2s = all.firstWhere((p) => p.printer.id == 4).status;
+      expect(p2s!.leftAuxFanSpeed, isNotNull);
+      expect(p2s.usesExhaustFanLabel, isTrue);
+      expect(p2s.chamberFanAvailable, isTrue);
     });
   });
 
@@ -128,7 +133,7 @@ void main() {
     test('overview, types, perform resets counters', () async {
       final repo = MaintenanceRepository(dio);
       final overview = await repo.fetchOverview();
-      expect(overview, hasLength(3));
+      expect(overview, hasLength(4));
       final x1c = overview.firstWhere((o) => o.printerId == 1);
       expect(x1c.dueCount, greaterThan(0));
       final dueItem = x1c.maintenanceItems.firstWhere((i) => i.isDue);

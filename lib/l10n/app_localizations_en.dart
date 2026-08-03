@@ -294,22 +294,34 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get ctrlFanPart => 'Hotend fan';
+  String get ctrlFanPart => 'Part cooling fan';
 
   @override
   String get ctrlFanAux => 'Aux fan';
 
   @override
+  String get ctrlFanAux2 => 'Left aux fan';
+
+  @override
   String get ctrlFanChamber => 'Chamber fan';
 
   @override
-  String get ctrlFanPartShort => 'Hotend';
+  String get ctrlFanExhaust => 'Exhaust fan';
+
+  @override
+  String get ctrlFanPartShort => 'Part';
 
   @override
   String get ctrlFanAuxShort => 'Aux';
 
   @override
+  String get ctrlFanAux2Short => 'Aux L';
+
+  @override
   String get ctrlFanChamberShort => 'Chamber';
+
+  @override
+  String get ctrlFanExhaustShort => 'Exhaust';
 
   @override
   String get ctrlSpeed => 'Speed';
@@ -537,6 +549,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEmpty => 'The queue is empty';
+
+  @override
+  String get queueAmsFromSlicer => 'AMS from slicer';
 
   @override
   String get queueDeleteTitle => 'Remove from queue?';
@@ -2478,6 +2493,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsUsageOverTime => 'Usage over time';
 
   @override
+  String get statsEnergyOverTime => 'Energy over time';
+
+  @override
+  String get statsMostEnergy => 'Most energy used';
+
+  @override
+  String statsKwh(String value) {
+    return '$value kWh';
+  }
+
+  @override
   String get statsByMaterialTitle => 'By material';
 
   @override
@@ -3225,6 +3251,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectTargetPartsCount => 'Target parts';
 
   @override
+  String get projectTargetSets => 'Target sets';
+
+  @override
+  String get projectTargetSetsHint =>
+      'How many times each file in the project should be printed';
+
+  @override
   String get projectTags => 'Tags (comma-separated)';
 
   @override
@@ -3295,6 +3328,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectStatPartsProgress => 'Parts';
+
+  @override
+  String get projectStatSets => 'Complete sets';
+
+  @override
+  String projectSetsOfTarget(int done, int target) {
+    return '$done of $target';
+  }
 
   @override
   String get projectStatPrints => 'Plates';

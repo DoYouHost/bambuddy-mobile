@@ -41,6 +41,7 @@ class QueueItem {
     this.filamentColor,
     this.amsMapping,
     this.beenJumped = false,
+    this.archiveHasSlicerAmsMapping = false,
     this.errorMessage,
     this.waitingReason,
     this.createdAt,
@@ -158,6 +159,20 @@ class QueueItem {
   /// Whether item jumped in queue. Defaults to false.
   @JsonKey(defaultValue: false)
   final bool beenJumped;
+
+  /// Whether dispatch will reuse the AMS slots the slicer itself resolved for
+  /// the source archive, instead of the scheduler re-deriving them from the
+  /// file's filament type and colour (`archive_has_slicer_ams_mapping`, server
+  /// ≥ 1.2.5.2). The distinction matters with two spools of the same material
+  /// and colour, where re-deriving picks either one.
+  ///
+  /// The server sets this only when the saved mapping was resolved against
+  /// *this* row's own printer — a tray number means nothing on another machine
+  /// — so it already answers "will it actually be reused", not "does one
+  /// exist". Absent on older servers, which is the same as no saved mapping:
+  /// they never stored one.
+  @JsonKey(defaultValue: false)
+  final bool archiveHasSlicerAmsMapping;
 
   final String? errorMessage;
   final String? waitingReason;

@@ -15,6 +15,7 @@ ProjectListResponse _$ProjectListResponseFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String? ?? 'active',
       targetCount: toIntOrNull(json['target_count']),
       targetPartsCount: toIntOrNull(json['target_parts_count']),
+      targetSets: toIntOrNull(json['target_sets']),
       budget: toDoubleOrNull(json['budget']),
       createdAt: json['created_at'] as String?,
       archiveCount: json['archive_count'] == null
@@ -100,6 +101,14 @@ ProjectStats _$ProjectStatsFromJson(Map<String, dynamic> json) => ProjectStats(
   bomCost: json['bom_cost'] == null ? 0 : toDouble(json['bom_cost']),
 );
 
+ProjectFileProgress _$ProjectFileProgressFromJson(Map<String, dynamic> json) =>
+    ProjectFileProgress(
+      fileId: toInt(json['file_id']),
+      completedCount: json['completed_count'] == null
+          ? 0
+          : toInt(json['completed_count']),
+    );
+
 ProjectResponse _$ProjectResponseFromJson(Map<String, dynamic> json) =>
     ProjectResponse(
       id: (json['id'] as num).toInt(),
@@ -109,6 +118,7 @@ ProjectResponse _$ProjectResponseFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String? ?? 'active',
       targetCount: toIntOrNull(json['target_count']),
       targetPartsCount: toIntOrNull(json['target_parts_count']),
+      targetSets: toIntOrNull(json['target_sets']),
       notes: json['notes'] as String?,
       attachments: json['attachments'] == null
           ? const []

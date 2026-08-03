@@ -152,8 +152,9 @@ class _PrinterCardState extends State<PrinterCard> {
     final hasDetails = status?.hasDetails ?? false;
     final hasFans = status != null &&
         (status.coolingFanSpeed != null ||
+            status.leftAuxFanSpeed != null ||
             status.bigFan1Speed != null ||
-            status.bigFan2Speed != null);
+            status.chamberFanAvailable);
     // Manual movement (jog/home) is offered while idle — it must not run during
     // a print (raw G-code would corrupt it).
     final canMove = status != null && connected && !printing;

@@ -205,6 +205,14 @@ final projectFilesProvider =
   (ref, projectId) => ref.watch(projectsRepositoryProvider).files(projectId),
 );
 
+/// Finished runs per library file, or `null` on a server without the route
+/// (< 1.2.5.2) — see [ProjectsRepository.fileProgress].
+final projectFileProgressProvider =
+    FutureProvider.autoDispose.family<List<ProjectFileProgress>?, int>(
+  (ref, projectId) =>
+      ref.watch(projectsRepositoryProvider).fileProgress(projectId),
+);
+
 /// Folders linked to the project (File Manager folders with `project_id`).
 final projectFoldersProvider =
     FutureProvider.autoDispose.family<List<LibraryFolder>, int>(

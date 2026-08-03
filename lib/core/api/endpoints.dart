@@ -644,6 +644,12 @@ abstract final class Endpoints {
   static String projectArchives(int projectId) =>
       '$apiPrefix/projects/$projectId/archives';
 
+  /// Finished-run count per library file (`GET`, `ProjectFileProgress[]`).
+  /// Server ≥ 1.2.5.2 — older ones answer 404, which the repository turns into
+  /// an empty list rather than an error.
+  static String projectFileProgress(int projectId) =>
+      '$apiPrefix/projects/$projectId/file-progress';
+
   /// Add archives to project (`POST`, body `{archive_ids:[]}`).
   static String projectAddArchives(int projectId) =>
       '$apiPrefix/projects/$projectId/add-archives';

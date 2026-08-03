@@ -334,6 +334,13 @@ class RecordsCard extends StatelessWidget {
       add(Icons.payments_outlined, l10n.statsMostExpensive,
           fmtNum(exp!.cost!), exp.printName);
     }
+    // Server ≥ 1.2.5.2 only — stays absent rather than reading 0 kWh elsewhere.
+    final hungriest = data.hungriest;
+    if (hungriest?.energyKwh != null) {
+      add(Icons.bolt_outlined, l10n.statsMostEnergy,
+          l10n.statsKwh(hungriest!.energyKwh!.toStringAsFixed(2)),
+          hungriest.printName);
+    }
     if (data.busiestDay != null) {
       add(Icons.calendar_today, l10n.statsBusiestDay,
           l10n.statsPrintsCount(data.busiestDayCount),
@@ -595,13 +602,61 @@ class _Metric extends StatelessWidget {
   }
 }
 
-// ── Usage Over Time (line chart) ────────────────────────────────────────
+// ── Usage / energy over time (line charts) ──────────────────────────────
 
 class UsageOverTimeCard extends StatelessWidget {
   const UsageOverTimeCard({super.key, required this.data, required this.locale});
 
   final StatsComputed data;
   final String locale;
+
+  @override
+  Widget build(BuildContext context) => _OverTimeChart(
+        title: AppLocalizations.of(context).statsUsageOverTime,
+        points: data.usageOverTime,
+        locale: locale,
+        color: DashTokens.of(context).accentGreen,
+        formatY: (v) =>
+            v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
+      );
+}
+
+/// Energy drawn per day. Only reachable when [StatsComputed.hasEnergyData] —
+/// the readings come per-print from `/archives/slim` on servers from 1.2.5.2,
+/// and an older one (or an install that never had energy tracking on) would
+/// otherwise get a flat zero line reading as "you used no power".
+class EnergyOverTimeCard extends StatelessWidget {
+  const EnergyOverTimeCard({super.key, required this.data, required this.locale});
+
+  final StatsComputed data;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) => _OverTimeChart(
+        title: AppLocalizations.of(context).statsEnergyOverTime,
+        points: data.energyOverTime,
+        locale: locale,
+        color: DashTokens.of(context).accentBlue,
+        // kWh per day lands in single digits, where the filament chart's
+        // integer axis would collapse every day into "0" or "1".
+        formatY: (v) => v.toStringAsFixed(v >= 10 ? 0 : 1),
+      );
+}
+
+class _OverTimeChart extends StatelessWidget {
+  const _OverTimeChart({
+    required this.title,
+    required this.points,
+    required this.locale,
+    required this.color,
+    required this.formatY,
+  });
+
+  final String title;
+  final List<MapEntry<DateTime, double>> points;
+  final String locale;
+  final Color color;
+  final String Function(double) formatY;
 
   @override
   Widget build(BuildContext context) {
@@ -612,10 +667,9 @@ class UsageOverTimeCard extends StatelessWidget {
       fontSize: 10.5,
       color: t.textTertiary,
     );
-    final points = data.usageOverTime;
     if (points.length < 2) {
       return SectionCard(
-        title: l10n.statsUsageOverTime,
+        title: title,
         child: SizedBox(
           height: 60,
           child: Center(
@@ -633,7 +687,7 @@ class UsageOverTimeCard extends StatelessWidget {
     final df = DateFormat.MMMd(locale);
 
     return SectionCard(
-      title: l10n.statsUsageOverTime,
+      title: title,
       child: SizedBox(
         height: 180,
         child: LineChart(
@@ -649,10 +703,8 @@ class UsageOverTimeCard extends StatelessWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   reservedSize: 38,
-                  getTitlesWidget: (v, meta) => Text(
-                    v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
-                    style: axisStyle,
-                  ),
+                  getTitlesWidget: (v, meta) =>
+                      Text(formatY(v), style: axisStyle),
                 ),
               ),
               bottomTitles: AxisTitles(
@@ -676,12 +728,12 @@ class UsageOverTimeCard extends StatelessWidget {
                 spots: spots,
                 isCurved: true,
                 preventCurveOverShooting: true,
-                color: t.accentGreen,
+                color: color,
                 barWidth: 2,
                 dotData: const FlDotData(show: false),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: t.accentGreen.withValues(alpha: 0.15),
+                  color: color.withValues(alpha: 0.15),
                 ),
               ),
             ],

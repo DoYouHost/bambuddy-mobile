@@ -66,7 +66,10 @@ class PrinterCommandsRepository {
       _post(Endpoints.airductMode(printerId),
           query: {'mode': heating ? 'heating' : 'cooling'});
 
-  /// Fan speed as a percentage. [fan] is 'part', 'aux', or 'chamber'.
+  /// Fan speed as a percentage. [fan] is 'part', 'aux', 'chamber', or — from
+  /// server 1.2.5.2 — 'aux2' for the left auxiliary fan. Only send 'aux2' for a
+  /// printer whose status reports `left_aux_fan_speed`: the server rejects it
+  /// with 400 otherwise, and an older one rejects it always.
   Future<void> setFanSpeed(int printerId, String fan, int speed) {
     assert(speed >= 0 && speed <= 100, 'fan speed out of range: $speed');
     return _post(Endpoints.fanSpeed(printerId),

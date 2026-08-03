@@ -27,6 +27,8 @@ QueueItem _$QueueItemFromJson(Map<String, dynamic> json) => QueueItem(
       ?.map((e) => (e as num).toInt())
       .toList(),
   beenJumped: json['been_jumped'] as bool? ?? false,
+  archiveHasSlicerAmsMapping:
+      json['archive_has_slicer_ams_mapping'] as bool? ?? false,
   errorMessage: json['error_message'] as String?,
   waitingReason: json['waiting_reason'] as String?,
   createdAt: dateTimeFromJson(json['created_at']),

@@ -419,6 +419,20 @@ class DemoBackend {
       'is_active': true,
       'nozzle_count': 1,
     },
+    // Carries both P2S accessory fan kits — the only configuration that shows
+    // four fan tiles and the "Exhaust" label, so the layout is reachable
+    // without the hardware.
+    {
+      'id': 4,
+      'name': 'P2S',
+      'serial_number': '01N70D216500000',
+      'ip_address': '192.168.4.24',
+      'access_code': '47281630',
+      'model': 'P2S',
+      'location': 'Workshop',
+      'is_active': true,
+      'nozzle_count': 1,
+    },
   ];
 
   /// Full status for the REST endpoint (`id`+`name` included).
@@ -432,6 +446,7 @@ class DemoBackend {
   Map<String, dynamic> statusData(int printerId) => switch (printerId) {
         1 => _statusPrinting(),
         2 => _statusIdle(),
+        4 => _statusAccessoryFans(),
         _ => const {
             'name': 'A1 mini',
             'model': 'A1 mini',
@@ -540,6 +555,54 @@ class DemoBackend {
         'active_extruder': 0,
         'hms_errors': const <Object>[],
         'firmware_version': '01.07.01.00',
+        'cover_url': null,
+        'supports_drying': false,
+        'awaiting_plate_clear': false,
+        'sdcard': true,
+        'ipcam': true,
+      };
+
+  /// P2S wearing both accessory fan kits: `left_aux_fan_speed` is reported
+  /// (airduct part 10 present) and `exhaust_fan_present` is true (part 3), so
+  /// the card shows four fan tiles with the enclosure one labelled "Exhaust".
+  /// A base P2S sends the same payload with `left_aux_fan_speed: null` and
+  /// `exhaust_fan_present: false`, which hides both.
+  Map<String, dynamic> _statusAccessoryFans() => {
+        'name': 'P2S',
+        'model': 'P2S',
+        'connected': true,
+        'state': 'IDLE',
+        'current_print': null,
+        'gcode_file': null,
+        'progress': 0,
+        'remaining_time': 0,
+        'layer_num': 0,
+        'total_layers': 0,
+        'temperatures': {
+          'nozzle': _r1(24.1 + _wiggle(0.3, phase: 20)),
+          'nozzle_target': 0.0,
+          'bed': _r1(23.9 + _wiggle(0.2, phase: 55)),
+          'bed_target': 0.0,
+          'chamber': _r1(25.4 + _wiggle(0.4, phase: 75)),
+        },
+        'cooling_fan_speed': _fanSpeeds['part'] ?? 0,
+        'big_fan1_speed': _fanSpeeds['aux'] ?? 0,
+        'left_aux_fan_speed': _fanSpeeds['aux2'] ?? 0,
+        'big_fan2_speed': _fanSpeeds['chamber'] ?? 0,
+        'exhaust_fan_present': true,
+        'heatbreak_fan_speed': 0,
+        'speed_level': _speedLevel[4] ?? 2,
+        'chamber_light': _chamberLight[4] ?? false,
+        'airduct_mode': _airductMode[4] ?? 0,
+        'wifi_signal': -49,
+        'door_open': false,
+        'ams_exists': false,
+        'ams': const <Object>[],
+        'vt_tray': const <Object>[],
+        'tray_now': 255,
+        'active_extruder': 0,
+        'hms_errors': const <Object>[],
+        'firmware_version': '01.02.00.00',
         'cover_url': null,
         'supports_drying': false,
         'awaiting_plate_clear': false,

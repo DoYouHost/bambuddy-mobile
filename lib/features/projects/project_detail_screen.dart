@@ -83,13 +83,19 @@ class ProjectDetailScreen extends ConsumerWidget {
             ),
           ),
           data: (project) => RefreshIndicator(
-            onRefresh: () =>
-                ref.read(projectDetailProvider(projectId).notifier).refresh(),
+            onRefresh: () async {
+              // The per-file counts move whenever a print finishes, and they
+              // live in their own provider — without this the sets bar would
+              // keep its number while everything above it updated.
+              ref.invalidate(projectFileProgressProvider(projectId));
+              await ref.read(projectDetailProvider(projectId).notifier).refresh();
+            },
             child: ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: [
                 _Header(project: project),
-                if (project.stats != null) _ProgressCard(stats: project.stats!),
+                if (project.stats != null)
+                  _ProgressCard(stats: project.stats!, project: project),
                 if (project.stats != null) _StatCards(stats: project.stats!),
                 _NotesSection(project: project),
                 ProjectFilesSection(projectId: projectId),
@@ -319,14 +325,16 @@ class _DashTag extends StatelessWidget {
   }
 }
 
-/// Plates + parts progress bars (the project's two target metrics).
-class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.stats});
+/// Plates + parts progress bars (the project's two target metrics), plus
+/// complete sets where the project tracks them.
+class _ProgressCard extends ConsumerWidget {
+  const _ProgressCard({required this.stats, required this.project});
 
   final ProjectStats stats;
+  final ProjectResponse project;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     return SectionCard(
       icon: Icons.track_changes_outlined,
@@ -348,9 +356,35 @@ class _ProgressCard extends StatelessWidget {
                 ? null
                 : l10n.projectRemainingShort(stats.remainingParts!),
           ),
+          ..._setsRow(context, ref, l10n),
         ],
       ),
     );
+  }
+
+  /// Complete-sets bar. Needs both halves of a feature that only exists from
+  /// 1.2.5.2: a target on the project, and the per-file counts to measure it
+  /// against. Either one missing (older server, or the user tracking plates and
+  /// parts only) and the row is absent rather than showing an empty bar.
+  List<Widget> _setsRow(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    final target = project.targetSets;
+    if (target == null || target <= 0) return const [];
+
+    final progress = ref.watch(projectFileProgressProvider(project.id)).valueOrNull;
+    final files = ref.watch(projectFilesProvider(project.id)).valueOrNull;
+    if (progress == null || files == null || files.isEmpty) return const [];
+
+    final complete = completeSetsFor([for (final f in files) f.id], progress);
+
+    return [
+      const SizedBox(height: 12),
+      _ProgressRow(
+        label: l10n.projectStatSets,
+        percent: (complete / target * 100).clamp(0, 100).toDouble(),
+        trailing: l10n.projectSetsOfTarget(complete, target),
+      ),
+    ];
   }
 }
 
