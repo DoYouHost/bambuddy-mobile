@@ -33,6 +33,23 @@ read-only `gh run/pr/issue view`, `WebSearch` and `WebFetch` on pub.dev and
 wiki.bambuddy.cool — **run them, do not ask for them.** APK builds are not on
 that list on purpose; the CI run above is what proves those.
 
+A question about the actual server-side contract — a route's request/response
+shape, a permission gate, a validation rule — also doesn't need to be asked:
+clone the [bambuddy](https://github.com/maziggy/bambuddy) server itself and
+read the source.
+
+```sh
+git clone --depth 1 https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref
+# ... inspect backend/app/api/routes/*.py, backend/app/schemas/*.py ...
+rm -rf /tmp/bambuddy-server-ref
+```
+
+Always that exact path under `/tmp`, outside the repository's working tree —
+never `reference/bambuddy` inside the checkout, which is the maintainer's own
+local, git-excluded clone for interactive sessions. Remove the clone before
+finishing the task; leaving it behind, or letting a second copy of it land
+inside the repo, is not acceptable.
+
 ## Issues from the report relay
 
 An issue titled `[Bug Report] …` was filed by the in-app reporter, not by a

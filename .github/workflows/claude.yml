@@ -70,6 +70,9 @@ jobs:
           #   git / gh  — reading history and CI; no `gh run rerun`/`cancel`
           #   reports   — the gzipped log a "[Bug Report]" issue links to, scoped
           #               to the bug-report-assets branch the relay writes to
+          #   server ref — throwaway clone of the bambuddy server to check the
+          #               actual API contract; fixed /tmp path so the matching
+          #               rm -rf can only ever remove that one directory
           #   docs      — package and server documentation
           #
           # Deliberately absent: `Bash(flutter:*)` and `Bash(dart run *)` from
@@ -84,5 +87,6 @@ jobs:
             "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)"
             "Bash(gh run list:*)" "Bash(gh run view:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)"
             "Bash(curl -sL https://raw.githubusercontent.com/DoYouHost/bambuddy-mobile/bug-report-assets/*)" "Bash(zcat:*)" "Bash(gunzip:*)"
+            "Bash(git clone --depth 1 https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref)" "Bash(rm -rf /tmp/bambuddy-server-ref)"
             "WebSearch" "WebFetch(domain:pub.dev)" "WebFetch(domain:wiki.bambuddy.cool)"
 
