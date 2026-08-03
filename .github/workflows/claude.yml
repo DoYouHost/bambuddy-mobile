@@ -76,6 +76,8 @@ jobs:
           # .claude/settings.local.json. On a self-hosted runner those two are
           # "execute arbitrary code", not "run the tests".
           claude_args: |
+            --model claude-opus-5
+            --effort medium
             --allowedTools
             "Bash(flutter analyze:*)" "Bash(flutter test:*)" "Bash(just test)"
             "Bash(flutter pub get:*)" "Bash(flutter gen-l10n:*)" "Bash(dart run build_runner build:*)"
