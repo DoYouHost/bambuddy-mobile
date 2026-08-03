@@ -1,0 +1,66 @@
+name: CI
+
+# The "is it done?" signal for pull requests — especially for @claude, which is
+# told in CLAUDE.md to read this run before asking a question. Everything here
+# is what `just test` plus a compile of both flavors would tell you locally, so
+# a green run means the branch builds and behaves; a red one is homework, not a
+# question for the reviewer.
+#
+# Runs on the self-hosted runners (label `flutter`), which already carry the
+# Flutter SDK, the Android SDK and a warm Gradle/pub cache — a hosted runner
+# would spend most of the wall clock re-downloading them.
+
+on:
+  pull_request:
+    branches: [master]
+    # Docs, the Pages site and store copy can't break the build; skipping them
+    # keeps both runners free for changes that can.
+    paths-ignore:
+      - "site/**"
+      - "docs/**"
+      - "store-assets/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+# A force-push should not leave the previous run burning a runner for a commit
+# nobody will look at again.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: analyze · test · build
+    runs-on: [self-hosted, flutter]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      # Which SDK actually ran matters when a failure reproduces nowhere else.
+      - name: Toolchain
+        run: flutter --version
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      # Debug builds, not release: the point is that the Dart and the Android
+      # side still compile and the manifests still merge, and a debug build gets
+      # there without R8, without the release keystore and in a fraction of the
+      # time. Both flavors, because the watch entry point is separate code that
+      # `flutter test` never compiles for Android.
+      - name: Build debug APK (mobile)
+        run: flutter build apk --debug --flavor mobile
+
+      - name: Build debug APK (wear)
+        run: flutter build apk --debug --flavor wear --target lib/wear/main_wear.dart

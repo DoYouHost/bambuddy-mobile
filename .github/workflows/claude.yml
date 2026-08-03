@@ -39,7 +39,7 @@ jobs:
   claude:
     needs: gate
     if: needs.gate.outputs.allowed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, flutter]
     permissions:
       contents: read
       pull-requests: read
