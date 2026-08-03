@@ -28,7 +28,7 @@ class UsersRepository {
       final res = await _dio.get<List<dynamic>>(Endpoints.users);
       return parseJsonList(res.data, CurrentUser.fromJson);
     } on DioException catch (e) {
-      throw mapUserWriteException(e);
+      throw mapDioExceptionKeepingDetail(e);
     }
   }
 
@@ -40,7 +40,7 @@ class UsersRepository {
           .get<Map<String, dynamic>>(Endpoints.userItemsCount(userId));
       return UserItemsCount.fromJson(res.data ?? const {});
     } on DioException catch (e) {
-      throw mapUserWriteException(e);
+      throw mapDioExceptionKeepingDetail(e);
     }
   }
 
@@ -53,7 +53,7 @@ class UsersRepository {
       );
       return CurrentUser.fromJson(res.data ?? const {});
     } on DioException catch (e) {
-      throw mapUserWriteException(e);
+      throw mapDioExceptionKeepingDetail(e);
     }
   }
 
@@ -66,7 +66,7 @@ class UsersRepository {
       );
       return CurrentUser.fromJson(res.data ?? const {});
     } on DioException catch (e) {
-      throw mapUserWriteException(e);
+      throw mapDioExceptionKeepingDetail(e);
     }
   }
 
@@ -83,7 +83,7 @@ class UsersRepository {
         queryParameters: {'delete_items': deleteItems},
       );
     } on DioException catch (e) {
-      throw mapUserWriteException(e);
+      throw mapDioExceptionKeepingDetail(e);
     }
   }
 
@@ -102,38 +102,3 @@ class UsersRepository {
   }
 }
 
-/// [mapDioException], but keeping what the server said in a 400 or 422.
-///
-/// These routes enforce rules the app deliberately does not re-implement —
-/// "Cannot delete the last admin user", "Username already exists", "Cannot set
-/// password for LDAP users" — and each arrives only as a `detail` string that
-/// the plain mapper drops. The form shows it, so it has to survive the mapping.
-AppApiException mapUserWriteException(DioException e) {
-  final mapped = mapDioException(e);
-  final status = e.response?.statusCode;
-  if (mapped is! ApiException || (status != 400 && status != 422)) {
-    return mapped;
-  }
-  final detail = _detailOf(e.response?.data);
-  if (detail == null) return mapped;
-  return ApiException(mapped.code, statusCode: status, detail: detail);
-}
-
-/// FastAPI answers a rule violation with `{"detail": "..."}` and a schema
-/// violation with `{"detail": [{"msg": "..."}, ...]}` — the password
-/// complexity validator produces the second shape.
-String? _detailOf(Object? data) {
-  if (data is! Map) return null;
-  final detail = data['detail'];
-  if (detail is String) return detail.isEmpty ? null : detail;
-  if (detail is List) {
-    final messages = [
-      for (final item in detail)
-        if (item is Map && item['msg'] is String)
-          // Pydantic prefixes its own "Value error, " — noise for a reader.
-          (item['msg'] as String).replaceFirst('Value error, ', ''),
-    ];
-    if (messages.isNotEmpty) return messages.join('\n');
-  }
-  return null;
-}

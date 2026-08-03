@@ -729,9 +729,37 @@ abstract final class Endpoints {
   /// what decides the shape of the account form.
   static const advancedAuthStatus = '$apiPrefix/auth/advanced-auth/status';
 
+  // --- API keys ---
+
+  /// Key list (`GET`, `APIKeyResponse[]` — never the keys themselves) and
+  /// creation (`POST`, whose answer carries the full key **once**;
+  /// `backend/app/api/routes/api_keys.py:34`). Gated on `api_keys:read` /
+  /// `api_keys:create` — no admin role on top, unlike users and groups.
+  static const apiKeys = '$apiPrefix/api-keys/';
+
+  /// One key: `PATCH` (rename, scopes, enable/disable, expiry) and `DELETE`
+  /// (revoke — the key stops working immediately).
+  static String apiKeyById(int keyId) => '$apiPrefix/api-keys/$keyId';
+
   // --- Groups ---
 
   /// Group list (`GroupResponse[]` — `backend/app/api/routes/groups.py:62`),
   /// gated on `groups:read`. Trailing slash required, like `/users/`.
   static const groups = '$apiPrefix/groups/';
+
+  /// Every permission the server knows, by category
+  /// (`PermissionsListResponse`, `groups.py:43`). Gated on `groups:read` —
+  /// the same key that opens the group screens.
+  static const groupPermissions = '$apiPrefix/groups/permissions';
+
+  /// One group with its member list (`GroupDetailResponse`, `groups.py:133`).
+  /// `PATCH` and `DELETE` on the same path are admin-only and refuse system
+  /// groups.
+  static String groupById(int groupId) => '$apiPrefix/groups/$groupId';
+
+  /// Membership from the group's side: `POST` adds, `DELETE` removes
+  /// (`groups.py:259`, `:297`). Admin-only on top of `groups:update`, and
+  /// both answer 204 with no body.
+  static String groupMember(int groupId, int userId) =>
+      '$apiPrefix/groups/$groupId/users/$userId';
 }

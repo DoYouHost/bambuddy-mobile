@@ -7849,6 +7849,528 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One of the groups no longer exists — reopen the form.'**
   String get usersErrGroupsInvalid;
+
+  /// No description provided for @groupsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get groupsTitle;
+
+  /// No description provided for @groupsMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get groupsMenu;
+
+  /// No description provided for @groupsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No groups on this server.'**
+  String get groupsEmpty;
+
+  /// No description provided for @groupsNoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get groupsNoDescription;
+
+  /// No description provided for @groupsSystemPill.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get groupsSystemPill;
+
+  /// No description provided for @groupsSystemNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.'**
+  String get groupsSystemNote;
+
+  /// No description provided for @groupsMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no accounts} =1{1 account} other{{count} accounts}}'**
+  String groupsMemberCount(int count);
+
+  /// No description provided for @groupsPermissionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{no permissions} =1{1 permission} other{{count} permissions}}'**
+  String groupsPermissionCount(int count);
+
+  /// No description provided for @groupsMembersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'MEMBERS'**
+  String get groupsMembersHeader;
+
+  /// No description provided for @groupsNoMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is in this group.'**
+  String get groupsNoMembers;
+
+  /// No description provided for @groupsAddMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get groupsAddMember;
+
+  /// No description provided for @groupsAddMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to {group}'**
+  String groupsAddMemberTitle(String group);
+
+  /// No description provided for @groupsEveryoneIsIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Every account is already in this group.'**
+  String get groupsEveryoneIsIn;
+
+  /// No description provided for @groupsRemoveMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get groupsRemoveMember;
+
+  /// No description provided for @groupsRemoveMemberQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {username} from {group}?'**
+  String groupsRemoveMemberQuestion(String username, String group);
+
+  /// No description provided for @groupsRemoveMemberBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The account stays, and loses what this group granted it.'**
+  String get groupsRemoveMemberBody;
+
+  /// No description provided for @groupsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New group'**
+  String get groupsCreate;
+
+  /// No description provided for @groupsCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New group'**
+  String get groupsCreateTitle;
+
+  /// No description provided for @groupsEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit group'**
+  String get groupsEditTitle;
+
+  /// No description provided for @groupsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete group'**
+  String get groupsDelete;
+
+  /// No description provided for @groupsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Group saved'**
+  String get groupsSaved;
+
+  /// No description provided for @groupsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Group deleted'**
+  String get groupsDeleted;
+
+  /// No description provided for @groupsDeleteQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {group}?'**
+  String groupsDeleteQuestion(String group);
+
+  /// No description provided for @groupsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The permissions it grants disappear with it.'**
+  String get groupsDeleteBody;
+
+  /// No description provided for @groupsDeleteBodyWithMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 account is in it and stays — it just loses what this group granted.} other{{count} accounts are in it and stay — they just lose what this group granted.}}'**
+  String groupsDeleteBodyWithMembers(int count);
+
+  /// No description provided for @groupsFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get groupsFieldName;
+
+  /// No description provided for @groupsFieldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'What it is for'**
+  String get groupsFieldDescription;
+
+  /// No description provided for @groupsSystemFormNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.'**
+  String get groupsSystemFormNote;
+
+  /// No description provided for @groupsPermissionsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'PERMISSIONS'**
+  String get groupsPermissionsHeader;
+
+  /// No description provided for @groupsPermissionsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String groupsPermissionsSelected(int count);
+
+  /// No description provided for @groupsAdvancedPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Server administration'**
+  String get groupsAdvancedPermissions;
+
+  /// No description provided for @groupsAdvancedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Users, API keys, settings, backups — everything the app itself has no screen for.'**
+  String get groupsAdvancedHint;
+
+  /// No description provided for @adminMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration'**
+  String get adminMenu;
+
+  /// No description provided for @adminTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration'**
+  String get adminTitle;
+
+  /// No description provided for @adminSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {username}'**
+  String adminSignedInAs(String username);
+
+  /// No description provided for @adminUsersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who has an account, and what each of them may do'**
+  String get adminUsersSubtitle;
+
+  /// No description provided for @adminGroupsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission sets and who holds them'**
+  String get adminGroupsSubtitle;
+
+  /// No description provided for @adminApiKeysSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials for everything that is not this app'**
+  String get adminApiKeysSubtitle;
+
+  /// No description provided for @apiKeysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'API keys'**
+  String get apiKeysTitle;
+
+  /// No description provided for @apiKeysEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No keys have been issued.'**
+  String get apiKeysEmpty;
+
+  /// No description provided for @apiKeysCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New key'**
+  String get apiKeysCreate;
+
+  /// No description provided for @apiKeysCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New API key'**
+  String get apiKeysCreateTitle;
+
+  /// No description provided for @apiKeysEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit key'**
+  String get apiKeysEditTitle;
+
+  /// No description provided for @apiKeysSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Key saved'**
+  String get apiKeysSaved;
+
+  /// No description provided for @apiKeysRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get apiKeysRevoke;
+
+  /// No description provided for @apiKeysRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Key revoked'**
+  String get apiKeysRevoked;
+
+  /// No description provided for @apiKeysRevokeQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke {name}?'**
+  String apiKeysRevokeQuestion(String name);
+
+  /// No description provided for @apiKeysRevokeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.'**
+  String get apiKeysRevokeBody;
+
+  /// No description provided for @apiKeysLastUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'last used {date}'**
+  String apiKeysLastUsed(String date);
+
+  /// No description provided for @apiKeysNeverUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'never used'**
+  String get apiKeysNeverUsed;
+
+  /// No description provided for @apiKeysDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched off'**
+  String get apiKeysDisabled;
+
+  /// No description provided for @apiKeysExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get apiKeysExpired;
+
+  /// No description provided for @apiKeysExpiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date}'**
+  String apiKeysExpiresOn(String date);
+
+  /// No description provided for @apiKeysPrinterLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 printer} other{{count} printers}}'**
+  String apiKeysPrinterLimited(int count);
+
+  /// No description provided for @apiKeysLegacy.
+  ///
+  /// In en, this message translates to:
+  /// **'No owner'**
+  String get apiKeysLegacy;
+
+  /// No description provided for @apiKeysFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get apiKeysFieldName;
+
+  /// No description provided for @apiKeysFieldNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What holds this key — \"Home Assistant\", \"SpoolBuddy\".'**
+  String get apiKeysFieldNameHint;
+
+  /// No description provided for @apiKeysFieldEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get apiKeysFieldEnabled;
+
+  /// No description provided for @apiKeysFieldEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching it off stops the key working without deleting it.'**
+  String get apiKeysFieldEnabledHint;
+
+  /// No description provided for @apiKeysScopesHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT IT MAY DO'**
+  String get apiKeysScopesHeader;
+
+  /// No description provided for @apiKeysScopesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A key can never manage accounts, groups, keys or settings — the server refuses those to every key.'**
+  String get apiKeysScopesHint;
+
+  /// No description provided for @apiKeysPrintersHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'PRINTERS'**
+  String get apiKeysPrintersHeader;
+
+  /// No description provided for @apiKeysAllPrinters.
+  ///
+  /// In en, this message translates to:
+  /// **'All printers'**
+  String get apiKeysAllPrinters;
+
+  /// No description provided for @apiKeysAllPrintersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: pick which printers this key may touch.'**
+  String get apiKeysAllPrintersHint;
+
+  /// No description provided for @apiKeysExpiryHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPIRY'**
+  String get apiKeysExpiryHeader;
+
+  /// No description provided for @apiKeysNoExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not expire'**
+  String get apiKeysNoExpiry;
+
+  /// No description provided for @apiKeysExpiryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to pick a date after which the key stops working.'**
+  String get apiKeysExpiryHint;
+
+  /// No description provided for @apiKeysExpiryClear.
+  ///
+  /// In en, this message translates to:
+  /// **'No expiry'**
+  String get apiKeysExpiryClear;
+
+  /// No description provided for @apiKeysCreatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Key created'**
+  String get apiKeysCreatedTitle;
+
+  /// No description provided for @apiKeysCreatedWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy it now. The server keeps only a hash — this is the last time it can be shown.'**
+  String get apiKeysCreatedWarning;
+
+  /// No description provided for @apiKeysCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get apiKeysCopy;
+
+  /// No description provided for @apiKeysCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Key copied'**
+  String get apiKeysCopied;
+
+  /// No description provided for @apiKeysCreatedDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get apiKeysCreatedDone;
+
+  /// No description provided for @apiKeyScopeRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read status'**
+  String get apiKeyScopeRead;
+
+  /// No description provided for @apiKeyScopeReadHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Printers, queue, archive, library, statistics — reading only.'**
+  String get apiKeyScopeReadHint;
+
+  /// No description provided for @apiKeyScopeQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get apiKeyScopeQueue;
+
+  /// No description provided for @apiKeyScopeControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Control printers'**
+  String get apiKeyScopeControl;
+
+  /// No description provided for @apiKeyScopeControlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause, stop, temperatures, AMS, smart plugs.'**
+  String get apiKeyScopeControlHint;
+
+  /// No description provided for @apiKeyScopeLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get apiKeyScopeLibrary;
+
+  /// No description provided for @apiKeyScopeInventory.
+  ///
+  /// In en, this message translates to:
+  /// **'Filaments'**
+  String get apiKeyScopeInventory;
+
+  /// No description provided for @apiKeyScopeMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get apiKeyScopeMaintenance;
+
+  /// No description provided for @apiKeyScopeArchives.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get apiKeyScopeArchives;
+
+  /// No description provided for @apiKeyScopeProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get apiKeyScopeProjects;
+
+  /// No description provided for @apiKeyScopeCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get apiKeyScopeCloud;
+
+  /// No description provided for @apiKeyScopeCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads the cloud on behalf of the account that creates the key. Needs authentication switched on server-side.'**
+  String get apiKeyScopeCloudHint;
+
+  /// No description provided for @apiKeyScopeEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy price'**
+  String get apiKeyScopeEnergy;
+
+  /// No description provided for @apiKeyScopeEnergyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The one settings value a key may write — for a dynamic tariff.'**
+  String get apiKeyScopeEnergyHint;
 }
 
 class _AppLocalizationsDelegate

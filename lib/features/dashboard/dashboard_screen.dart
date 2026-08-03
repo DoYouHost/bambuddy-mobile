@@ -15,7 +15,7 @@ import '../../core/settings/sign_in_reason.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../admin/users_providers.dart';
+import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
@@ -680,19 +680,20 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.notifications',
                 ),
-                // Administration. Only for an identity the server named and
-                // granted `users:read` — a server with authentication off has
-                // nobody to show accounts to. Groups and API keys join this
-                // entry as their screens land.
-                if (ref.watch(canReadUsersProvider))
+                // Administration — accounts, groups and API keys behind one
+                // entry. Only for an identity the server named and granted at
+                // least one of the three read permissions: a server with
+                // authentication off has nobody to show any of it to, and an
+                // API key is refused all three outright.
+                if (ref.watch(canOpenAdminProvider))
                   _DrawerTile(
-                    icon: Icons.people_outline,
-                    label: l10n.usersMenu,
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: l10n.adminMenu,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/admin/users');
+                      context.push('/admin');
                     },
-                    id: 'drawer.users',
+                    id: 'drawer.admin',
                   ),
                 const Divider(indent: 16, endIndent: 16, height: 16),
                 _DrawerTile(

@@ -1,8 +1,8 @@
 import 'json_utils.dart';
 
 /// A group as `GET /groups/` sends it (`GroupResponse`,
-/// `backend/app/schemas/group.py:33`). Used here for the membership picker in
-/// the account form; the group screens of their own come later.
+/// `backend/app/schemas/group.py:33`) — the list and the membership picker in
+/// the account form.
 class GroupSummary {
   const GroupSummary({
     required this.id,
@@ -30,4 +30,55 @@ class GroupSummary {
   final List<String> permissions;
   final bool isSystem;
   final int userCount;
+}
+
+/// One member of a group (`UserBrief`, `backend/app/schemas/group.py:52`) —
+/// id, name and whether the account is switched on. Not a whole
+/// `UserResponse`: the group detail says who is in it, not what each of them
+/// may do elsewhere.
+class GroupMember {
+  const GroupMember({
+    required this.id,
+    required this.username,
+    this.isActive = true,
+  });
+
+  factory GroupMember.fromJson(Map<String, dynamic> json) => GroupMember(
+        id: toInt(json['id']),
+        username: toStringOrNull(json['username']) ?? '',
+        isActive: json['is_active'] != false,
+      );
+
+  final int id;
+  final String username;
+  final bool isActive;
+}
+
+/// `GET /groups/{id}` — the group plus its member list
+/// (`GroupDetailResponse`, `backend/app/schemas/group.py:48`).
+class GroupDetail extends GroupSummary {
+  const GroupDetail({
+    required super.id,
+    required super.name,
+    super.description,
+    super.permissions,
+    super.isSystem,
+    super.userCount,
+    this.members = const [],
+  });
+
+  factory GroupDetail.fromJson(Map<String, dynamic> json) {
+    final summary = GroupSummary.fromJson(json);
+    return GroupDetail(
+      id: summary.id,
+      name: summary.name,
+      description: summary.description,
+      permissions: summary.permissions,
+      isSystem: summary.isSystem,
+      userCount: summary.userCount,
+      members: parseJsonList(json['users'], GroupMember.fromJson),
+    );
+  }
+
+  final List<GroupMember> members;
 }

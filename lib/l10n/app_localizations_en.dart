@@ -4516,4 +4516,334 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get usersErrGroupsInvalid =>
       'One of the groups no longer exists — reopen the form.';
+
+  @override
+  String get groupsTitle => 'Groups';
+
+  @override
+  String get groupsMenu => 'Groups';
+
+  @override
+  String get groupsEmpty => 'No groups on this server.';
+
+  @override
+  String get groupsNoDescription => 'No description';
+
+  @override
+  String get groupsSystemPill => 'Built-in';
+
+  @override
+  String get groupsSystemNote =>
+      'A built-in group cannot be renamed and what it grants is fixed — only who is in it can change.';
+
+  @override
+  String groupsMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count accounts',
+      one: '1 account',
+      zero: 'no accounts',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String groupsPermissionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count permissions',
+      one: '1 permission',
+      zero: 'no permissions',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupsMembersHeader => 'MEMBERS';
+
+  @override
+  String get groupsNoMembers => 'Nobody is in this group.';
+
+  @override
+  String get groupsAddMember => 'Add member';
+
+  @override
+  String groupsAddMemberTitle(String group) {
+    return 'Add to $group';
+  }
+
+  @override
+  String get groupsEveryoneIsIn => 'Every account is already in this group.';
+
+  @override
+  String get groupsRemoveMember => 'Remove';
+
+  @override
+  String groupsRemoveMemberQuestion(String username, String group) {
+    return 'Remove $username from $group?';
+  }
+
+  @override
+  String get groupsRemoveMemberBody =>
+      'The account stays, and loses what this group granted it.';
+
+  @override
+  String get groupsCreate => 'New group';
+
+  @override
+  String get groupsCreateTitle => 'New group';
+
+  @override
+  String get groupsEditTitle => 'Edit group';
+
+  @override
+  String get groupsDelete => 'Delete group';
+
+  @override
+  String get groupsSaved => 'Group saved';
+
+  @override
+  String get groupsDeleted => 'Group deleted';
+
+  @override
+  String groupsDeleteQuestion(String group) {
+    return 'Delete $group?';
+  }
+
+  @override
+  String get groupsDeleteBody => 'The permissions it grants disappear with it.';
+
+  @override
+  String groupsDeleteBodyWithMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count accounts are in it and stay — they just lose what this group granted.',
+      one:
+          '1 account is in it and stays — it just loses what this group granted.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupsFieldName => 'Name';
+
+  @override
+  String get groupsFieldDescription => 'What it is for';
+
+  @override
+  String get groupsSystemFormNote =>
+      'A built-in group: its name and permissions are fixed by the server. Only the description can be changed here.';
+
+  @override
+  String get groupsPermissionsHeader => 'PERMISSIONS';
+
+  @override
+  String groupsPermissionsSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get groupsAdvancedPermissions => 'Server administration';
+
+  @override
+  String get groupsAdvancedHint =>
+      'Users, API keys, settings, backups — everything the app itself has no screen for.';
+
+  @override
+  String get adminMenu => 'Administration';
+
+  @override
+  String get adminTitle => 'Administration';
+
+  @override
+  String adminSignedInAs(String username) {
+    return 'Signed in as $username';
+  }
+
+  @override
+  String get adminUsersSubtitle =>
+      'Who has an account, and what each of them may do';
+
+  @override
+  String get adminGroupsSubtitle => 'Permission sets and who holds them';
+
+  @override
+  String get adminApiKeysSubtitle =>
+      'Credentials for everything that is not this app';
+
+  @override
+  String get apiKeysTitle => 'API keys';
+
+  @override
+  String get apiKeysEmpty => 'No keys have been issued.';
+
+  @override
+  String get apiKeysCreate => 'New key';
+
+  @override
+  String get apiKeysCreateTitle => 'New API key';
+
+  @override
+  String get apiKeysEditTitle => 'Edit key';
+
+  @override
+  String get apiKeysSaved => 'Key saved';
+
+  @override
+  String get apiKeysRevoke => 'Revoke';
+
+  @override
+  String get apiKeysRevoked => 'Key revoked';
+
+  @override
+  String apiKeysRevokeQuestion(String name) {
+    return 'Revoke $name?';
+  }
+
+  @override
+  String get apiKeysRevokeBody =>
+      'Whatever uses this key stops working at once. This cannot be undone — a new key would have to be issued.';
+
+  @override
+  String apiKeysLastUsed(String date) {
+    return 'last used $date';
+  }
+
+  @override
+  String get apiKeysNeverUsed => 'never used';
+
+  @override
+  String get apiKeysDisabled => 'Switched off';
+
+  @override
+  String get apiKeysExpired => 'Expired';
+
+  @override
+  String apiKeysExpiresOn(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String apiKeysPrinterLimited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count printers',
+      one: '1 printer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get apiKeysLegacy => 'No owner';
+
+  @override
+  String get apiKeysFieldName => 'Name';
+
+  @override
+  String get apiKeysFieldNameHint =>
+      'What holds this key — \"Home Assistant\", \"SpoolBuddy\".';
+
+  @override
+  String get apiKeysFieldEnabled => 'Active';
+
+  @override
+  String get apiKeysFieldEnabledHint =>
+      'Switching it off stops the key working without deleting it.';
+
+  @override
+  String get apiKeysScopesHeader => 'WHAT IT MAY DO';
+
+  @override
+  String get apiKeysScopesHint =>
+      'A key can never manage accounts, groups, keys or settings — the server refuses those to every key.';
+
+  @override
+  String get apiKeysPrintersHeader => 'PRINTERS';
+
+  @override
+  String get apiKeysAllPrinters => 'All printers';
+
+  @override
+  String get apiKeysAllPrintersHint =>
+      'Off: pick which printers this key may touch.';
+
+  @override
+  String get apiKeysExpiryHeader => 'EXPIRY';
+
+  @override
+  String get apiKeysNoExpiry => 'Does not expire';
+
+  @override
+  String get apiKeysExpiryHint =>
+      'Tap to pick a date after which the key stops working.';
+
+  @override
+  String get apiKeysExpiryClear => 'No expiry';
+
+  @override
+  String get apiKeysCreatedTitle => 'Key created';
+
+  @override
+  String get apiKeysCreatedWarning =>
+      'Copy it now. The server keeps only a hash — this is the last time it can be shown.';
+
+  @override
+  String get apiKeysCopy => 'Copy';
+
+  @override
+  String get apiKeysCopied => 'Key copied';
+
+  @override
+  String get apiKeysCreatedDone => 'Done';
+
+  @override
+  String get apiKeyScopeRead => 'Read status';
+
+  @override
+  String get apiKeyScopeReadHint =>
+      'Printers, queue, archive, library, statistics — reading only.';
+
+  @override
+  String get apiKeyScopeQueue => 'Queue';
+
+  @override
+  String get apiKeyScopeControl => 'Control printers';
+
+  @override
+  String get apiKeyScopeControlHint =>
+      'Pause, stop, temperatures, AMS, smart plugs.';
+
+  @override
+  String get apiKeyScopeLibrary => 'Files';
+
+  @override
+  String get apiKeyScopeInventory => 'Filaments';
+
+  @override
+  String get apiKeyScopeMaintenance => 'Maintenance';
+
+  @override
+  String get apiKeyScopeArchives => 'Archive';
+
+  @override
+  String get apiKeyScopeProjects => 'Projects';
+
+  @override
+  String get apiKeyScopeCloud => 'Bambu Cloud';
+
+  @override
+  String get apiKeyScopeCloudHint =>
+      'Reads the cloud on behalf of the account that creates the key. Needs authentication switched on server-side.';
+
+  @override
+  String get apiKeyScopeEnergy => 'Energy price';
+
+  @override
+  String get apiKeyScopeEnergyHint =>
+      'The one settings value a key may write — for a dynamic tariff.';
 }

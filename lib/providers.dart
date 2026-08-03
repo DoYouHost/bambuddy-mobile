@@ -30,6 +30,7 @@ import 'core/models/current_user.dart';
 import 'core/models/makerworld.dart';
 import 'data/account_repository.dart';
 import 'data/ams_history_repository.dart';
+import 'data/api_keys_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
@@ -457,6 +458,11 @@ final usersRepositoryProvider = Provider<UsersRepository>(
 /// The groups on the server (`GET /groups/`). Shares the authenticated Dio.
 final groupsRepositoryProvider = Provider<GroupsRepository>(
   (ref) => GroupsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// The API keys issued on the server. Shares the authenticated Dio.
+final apiKeysRepositoryProvider = Provider<ApiKeysRepository>(
+  (ref) => ApiKeysRepository(ref.watch(apiClientProvider).dio),
 );
 
 final printersRepositoryProvider = Provider<PrintersRepository>(

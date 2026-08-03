@@ -4583,4 +4583,344 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get usersErrGroupsInvalid =>
       'Którejś z grup już nie ma — otwórz formularz jeszcze raz.';
+
+  @override
+  String get groupsTitle => 'Grupy';
+
+  @override
+  String get groupsMenu => 'Grupy';
+
+  @override
+  String get groupsEmpty => 'Na tym serwerze nie ma grup.';
+
+  @override
+  String get groupsNoDescription => 'Bez opisu';
+
+  @override
+  String get groupsSystemPill => 'Wbudowana';
+
+  @override
+  String get groupsSystemNote =>
+      'Wbudowanej grupy nie zmienisz z nazwy ani z uprawnień — zmienić można tylko to, kto do niej należy.';
+
+  @override
+  String groupsMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count konta',
+      many: '$count kont',
+      few: '$count konta',
+      one: '1 konto',
+      zero: 'brak kont',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String groupsPermissionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uprawnienia',
+      many: '$count uprawnień',
+      few: '$count uprawnienia',
+      one: '1 uprawnienie',
+      zero: 'brak uprawnień',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupsMembersHeader => 'CZŁONKOWIE';
+
+  @override
+  String get groupsNoMembers => 'Nikt nie należy do tej grupy.';
+
+  @override
+  String get groupsAddMember => 'Dodaj konto';
+
+  @override
+  String groupsAddMemberTitle(String group) {
+    return 'Dodaj do: $group';
+  }
+
+  @override
+  String get groupsEveryoneIsIn => 'Wszystkie konta są już w tej grupie.';
+
+  @override
+  String get groupsRemoveMember => 'Usuń z grupy';
+
+  @override
+  String groupsRemoveMemberQuestion(String username, String group) {
+    return 'Usunąć $username z grupy $group?';
+  }
+
+  @override
+  String get groupsRemoveMemberBody =>
+      'Konto zostaje i traci to, co dawała mu ta grupa.';
+
+  @override
+  String get groupsCreate => 'Nowa grupa';
+
+  @override
+  String get groupsCreateTitle => 'Nowa grupa';
+
+  @override
+  String get groupsEditTitle => 'Edycja grupy';
+
+  @override
+  String get groupsDelete => 'Usuń grupę';
+
+  @override
+  String get groupsSaved => 'Zapisano grupę';
+
+  @override
+  String get groupsDeleted => 'Grupa usunięta';
+
+  @override
+  String groupsDeleteQuestion(String group) {
+    return 'Usunąć grupę $group?';
+  }
+
+  @override
+  String get groupsDeleteBody =>
+      'Uprawnienia, które dawała, znikają razem z nią.';
+
+  @override
+  String groupsDeleteBodyWithMembers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Należy do niej $count konta i zostają — tracą tylko to, co dawała ta grupa.',
+      many:
+          'Należy do niej $count kont i zostają — tracą tylko to, co dawała ta grupa.',
+      few:
+          'Należą do niej $count konta i zostają — tracą tylko to, co dawała ta grupa.',
+      one:
+          'Należy do niej 1 konto i zostaje — traci tylko to, co dawała ta grupa.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupsFieldName => 'Nazwa';
+
+  @override
+  String get groupsFieldDescription => 'Do czego służy';
+
+  @override
+  String get groupsSystemFormNote =>
+      'Grupa wbudowana: nazwę i uprawnienia ustala serwer. Stąd zmienisz tylko opis.';
+
+  @override
+  String get groupsPermissionsHeader => 'UPRAWNIENIA';
+
+  @override
+  String groupsPermissionsSelected(int count) {
+    return 'zaznaczono $count';
+  }
+
+  @override
+  String get groupsAdvancedPermissions => 'Administracja serwerem';
+
+  @override
+  String get groupsAdvancedHint =>
+      'Użytkownicy, klucze API, ustawienia, kopie zapasowe — to, na co sama apka nie ma ekranów.';
+
+  @override
+  String get adminMenu => 'Administracja';
+
+  @override
+  String get adminTitle => 'Administracja';
+
+  @override
+  String adminSignedInAs(String username) {
+    return 'Zalogowany jako $username';
+  }
+
+  @override
+  String get adminUsersSubtitle => 'Kto ma konto i co każdemu wolno';
+
+  @override
+  String get adminGroupsSubtitle => 'Zestawy uprawnień i kto je ma';
+
+  @override
+  String get adminApiKeysSubtitle =>
+      'Dostęp dla wszystkiego, co nie jest tą apką';
+
+  @override
+  String get apiKeysTitle => 'Klucze API';
+
+  @override
+  String get apiKeysEmpty => 'Nie wydano żadnego klucza.';
+
+  @override
+  String get apiKeysCreate => 'Nowy klucz';
+
+  @override
+  String get apiKeysCreateTitle => 'Nowy klucz API';
+
+  @override
+  String get apiKeysEditTitle => 'Edycja klucza';
+
+  @override
+  String get apiKeysSaved => 'Zapisano klucz';
+
+  @override
+  String get apiKeysRevoke => 'Odwołaj';
+
+  @override
+  String get apiKeysRevoked => 'Klucz odwołany';
+
+  @override
+  String apiKeysRevokeQuestion(String name) {
+    return 'Odwołać klucz $name?';
+  }
+
+  @override
+  String get apiKeysRevokeBody =>
+      'Wszystko, co go używa, przestanie działać natychmiast. Tego nie da się cofnąć — trzeba będzie wydać nowy klucz.';
+
+  @override
+  String apiKeysLastUsed(String date) {
+    return 'użyty $date';
+  }
+
+  @override
+  String get apiKeysNeverUsed => 'nieużywany';
+
+  @override
+  String get apiKeysDisabled => 'Wyłączony';
+
+  @override
+  String get apiKeysExpired => 'Wygasł';
+
+  @override
+  String apiKeysExpiresOn(String date) {
+    return 'do $date';
+  }
+
+  @override
+  String apiKeysPrinterLimited(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drukarki',
+      many: '$count drukarek',
+      few: '$count drukarki',
+      one: '1 drukarka',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get apiKeysLegacy => 'Bez właściciela';
+
+  @override
+  String get apiKeysFieldName => 'Nazwa';
+
+  @override
+  String get apiKeysFieldNameHint =>
+      'Co go trzyma — „Home Assistant”, „SpoolBuddy”.';
+
+  @override
+  String get apiKeysFieldEnabled => 'Aktywny';
+
+  @override
+  String get apiKeysFieldEnabledHint =>
+      'Wyłączenie zatrzymuje klucz bez kasowania go.';
+
+  @override
+  String get apiKeysScopesHeader => 'CO MU WOLNO';
+
+  @override
+  String get apiKeysScopesHint =>
+      'Klucz nigdy nie zarządza kontami, grupami, kluczami ani ustawieniami — serwer odmawia tego każdemu kluczowi.';
+
+  @override
+  String get apiKeysPrintersHeader => 'DRUKARKI';
+
+  @override
+  String get apiKeysAllPrinters => 'Wszystkie drukarki';
+
+  @override
+  String get apiKeysAllPrintersHint =>
+      'Wyłącz, żeby wskazać, których drukarek klucz dotyczy.';
+
+  @override
+  String get apiKeysExpiryHeader => 'WAŻNOŚĆ';
+
+  @override
+  String get apiKeysNoExpiry => 'Bezterminowy';
+
+  @override
+  String get apiKeysExpiryHint =>
+      'Dotknij, aby wybrać datę, po której klucz przestanie działać.';
+
+  @override
+  String get apiKeysExpiryClear => 'Bezterminowy';
+
+  @override
+  String get apiKeysCreatedTitle => 'Klucz utworzony';
+
+  @override
+  String get apiKeysCreatedWarning =>
+      'Skopiuj go teraz. Serwer trzyma tylko skrót — to ostatni moment, kiedy można go pokazać.';
+
+  @override
+  String get apiKeysCopy => 'Kopiuj';
+
+  @override
+  String get apiKeysCopied => 'Skopiowano klucz';
+
+  @override
+  String get apiKeysCreatedDone => 'Gotowe';
+
+  @override
+  String get apiKeyScopeRead => 'Odczyt stanu';
+
+  @override
+  String get apiKeyScopeReadHint =>
+      'Drukarki, kolejka, archiwum, pliki, statystyki — tylko odczyt.';
+
+  @override
+  String get apiKeyScopeQueue => 'Kolejka';
+
+  @override
+  String get apiKeyScopeControl => 'Sterowanie drukarkami';
+
+  @override
+  String get apiKeyScopeControlHint =>
+      'Pauza, stop, temperatury, AMS, gniazdka.';
+
+  @override
+  String get apiKeyScopeLibrary => 'Pliki';
+
+  @override
+  String get apiKeyScopeInventory => 'Filamenty';
+
+  @override
+  String get apiKeyScopeMaintenance => 'Konserwacja';
+
+  @override
+  String get apiKeyScopeArchives => 'Archiwum';
+
+  @override
+  String get apiKeyScopeProjects => 'Projekty';
+
+  @override
+  String get apiKeyScopeCloud => 'Bambu Cloud';
+
+  @override
+  String get apiKeyScopeCloudHint =>
+      'Czyta chmurę w imieniu konta, które wydaje klucz. Wymaga włączonego logowania po stronie serwera.';
+
+  @override
+  String get apiKeyScopeEnergy => 'Cena energii';
+
+  @override
+  String get apiKeyScopeEnergyHint =>
+      'Jedyne ustawienie, które klucz może zapisać — do taryfy dynamicznej.';
 }

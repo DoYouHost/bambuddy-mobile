@@ -116,4 +116,10 @@ abstract final class Permissions {
 
   /// `backend/app/core/permissions.py:164`
   static const apiKeysRead = 'api_keys:read';
+
+  /// Managing keys needs no admin role on top, unlike users and groups —
+  /// these permissions are the whole gate (`routes/api_keys.py:38`).
+  static const apiKeysCreate = 'api_keys:create';
+  static const apiKeysUpdate = 'api_keys:update';
+  static const apiKeysDelete = 'api_keys:delete';
 }

@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'core/diagnostics/navigation_probe.dart';
 import 'features/about/about_screen.dart';
+import 'features/admin/admin_screen.dart';
+import 'features/admin/api_keys_screen.dart';
+import 'features/admin/group_detail_screen.dart';
+import 'features/admin/groups_screen.dart';
 import 'features/admin/users_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/bug_report/bug_report_screen.dart';
@@ -151,11 +155,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const CloudAccountScreen(),
       ),
 
-      // Accounts on the server — full screen outside shell (pushed from the
-      // drawer, and only shown there to an identity holding `users:read`).
+      // Administration hub — full screen outside shell (pushed from the
+      // drawer, shown there only to an identity holding one of the three read
+      // permissions). Each screen below is reachable on its own, so a deep
+      // link still works; the hub is what the drawer offers.
+      GoRoute(
+        path: '/admin',
+        builder: (_, _) => const AdminScreen(),
+      ),
+
+      // Accounts on the server, gated on `users:read`.
       GoRoute(
         path: '/admin/users',
         builder: (_, _) => const UsersScreen(),
+      ),
+
+      // API keys — credentials for everything that is not this app.
+      GoRoute(
+        path: '/admin/api-keys',
+        builder: (_, _) => const ApiKeysScreen(),
+      ),
+
+      // Groups (permission sets + who holds them), gated on `groups:read`.
+      GoRoute(
+        path: '/admin/groups',
+        builder: (_, _) => const GroupsScreen(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (_, state) {
+              // A malformed id (a stale deep link) goes back to the list
+              // rather than crashing the route builder.
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const GroupsScreen();
+              return GroupDetailScreen(groupId: id);
+            },
+          ),
+        ],
       ),
 
       // About + licenses — full screen outside shell (pushed from drawer).
