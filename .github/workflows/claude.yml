@@ -11,12 +11,34 @@ on:
     types: [submitted]
 
 jobs:
-  claude:
+  gate:
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      allowed: ${{ steps.perm.outputs.allowed }}
+    steps:
+      - id: perm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}
+        run: |
+          LEVEL=$(gh api "repos/${{ github.repository }}/collaborators/$ACTOR/permission" -q .permission 2>/dev/null || echo none)
+          echo "$ACTOR has permission: $LEVEL"
+          if [[ "$LEVEL" == "admin" || "$LEVEL" == "write" ]]; then
+            echo "allowed=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "allowed=false" >>"$GITHUB_OUTPUT"
+          fi
+
+  claude:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
