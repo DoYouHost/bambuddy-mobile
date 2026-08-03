@@ -34,21 +34,18 @@ wiki.bambuddy.cool — **run them, do not ask for them.** APK builds are not on
 that list on purpose; the CI run above is what proves those.
 
 A question about the actual server-side contract — a route's request/response
-shape, a permission gate, a validation rule — also doesn't need to be asked:
-clone the [bambuddy](https://github.com/maziggy/bambuddy) server itself and
-read the source.
+shape, a permission gate, a validation rule — also doesn't need to be asked.
+The [bambuddy](https://github.com/maziggy/bambuddy) server source is already
+checked out for you at `/tmp/bambuddy-server-ref`: read
+`backend/app/api/routes/*.py`, `backend/app/schemas/*.py` and
+`backend/app/core/*.py` with Read and Grep, and cite the file and line you got
+the answer from.
 
-```sh
-git clone --depth 1 https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref
-# ... inspect backend/app/api/routes/*.py, backend/app/schemas/*.py ...
-rm -rf /tmp/bambuddy-server-ref
-```
-
-Always that exact path under `/tmp`, outside the repository's working tree —
-never `reference/bambuddy` inside the checkout, which is the maintainer's own
-local, git-excluded clone for interactive sessions. Remove the clone before
-finishing the task; leaving it behind, or letting a second copy of it land
-inside the repo, is not acceptable.
+Do not clone it yourself — the bash sandbox has no network egress, so the clone
+fails there and the workflow does it before you start. Do not delete it either;
+the workflow removes it. In an interactive session the same clone lives at
+`reference/bambuddy` inside the checkout (the maintainer's own, git-excluded);
+never create a second copy of it inside the repository.
 
 ## Issues from the report relay
 
