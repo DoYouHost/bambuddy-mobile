@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/auth_service.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
+import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:bambuddy_mobile/core/settings/sign_in_reason.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -491,6 +492,43 @@ void main() {
       expect((result as LoginCompleted).token, 'eyJ.bare.token');
       expect(store.jwt, 'eyJ.bare.token');
     });
+
+    test('the embedded user comes back with the token', () async {
+      // `LoginResponse.user` — the whole point of keeping it is that a fresh
+      // sign-in then needs no `GET /auth/me` of its own.
+      onLogin((s) => s.reply(200, {
+            'access_token': 'eyJ.with.user',
+            'user': {
+              'id': 3,
+              'username': 'tester',
+              'is_admin': false,
+              'groups': [
+                {'id': 1, 'name': 'Household'},
+              ],
+              'permissions': ['users:read'],
+            },
+          }));
+
+      final result = await service.login(
+          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+
+      final user = (result as LoginCompleted).user;
+      expect(user?.username, 'tester');
+      expect(user?.groups.single.name, 'Household');
+      expect(user?.can(Permissions.usersRead), isTrue);
+      expect(user?.can(Permissions.groupsRead), isFalse);
+    });
+
+    test('a login answer without a user is still a completed login', () async {
+      onLogin((s) => s.reply(200, {'access_token': 'eyJ.no.user'}));
+
+      final result = await service.login(
+          baseUrl: baseUrl, username: 'tester', password: 'sekret');
+
+      expect((result as LoginCompleted).token, 'eyJ.no.user');
+      expect(result.user, isNull);
+      expect(store.jwt, 'eyJ.no.user');
+    });
   });
 
   group('verifyAndStoreApiKey', () {
@@ -871,6 +909,31 @@ void main() {
         calls: counting,
       );
     }
+
+    test('finishing 2FA also identifies the session', () async {
+      // `TwoFAVerifyResponse` carries the same `user` object as a one-step
+      // login, so the code path that has it must not throw it away.
+      final r = recording((o) async => _json({
+            'access_token': 'eyJ.po.2fa',
+            'user': {
+              'id': 9,
+              'username': 'tester',
+              'is_admin': true,
+              'permissions': const <String>[],
+            },
+          }, 200));
+
+      final completed = await r.service.verifyTwoFactor(
+        baseUrl: baseUrl,
+        challenge: challenge,
+        method: TwoFactorMethod.totp,
+        code: '123456',
+      );
+
+      expect(completed.token, 'eyJ.po.2fa');
+      expect(completed.user?.isAdmin, isTrue);
+      expect(completed.user?.can(Permissions.usersRead), isTrue);
+    });
 
     test('the login response cookie travels back on the verify call', () async {
       // The server binds the pre-auth token to the HttpOnly `2fa_challenge`

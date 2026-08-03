@@ -26,7 +26,9 @@ import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
 import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
+import 'core/models/current_user.dart';
 import 'core/models/makerworld.dart';
+import 'data/account_repository.dart';
 import 'data/ams_history_repository.dart';
 import 'data/archive_repository.dart';
 import 'data/cloud_repository.dart';
@@ -323,6 +325,98 @@ final apiClientProvider = Provider<ApiClient>((ref) {
         : null,
   );
 });
+
+/// The signed-in account (`GET /auth/me`). Shares authenticated Dio.
+final accountRepositoryProvider = Provider<AccountRepository>(
+  (ref) => AccountRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Who is signed in, and what they are allowed to do. `null` = nobody known:
+/// no profile yet, a server with auth switched off, or a `/auth/me` that
+/// didn't answer.
+///
+/// Login hands its own `user` over through [CurrentUserNotifier.adopt] before
+/// saving the profile, so signing in costs no extra request; a session
+/// restored at startup (profile loaded from settings, no login) is what the
+/// `GET /auth/me` here is for.
+final currentUserProvider =
+    AsyncNotifierProvider<CurrentUserNotifier, CurrentUser?>(
+  CurrentUserNotifier.new,
+);
+
+class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
+  /// Set by [adopt] and consumed by the very next [build]. Saving the profile
+  /// is what rebuilds this notifier, and the login that just saved it already
+  /// holds the answer — without this hand-off the rebuild would ask the server
+  /// for what we were handed a moment ago.
+  CurrentUser? _handedOver;
+
+  @override
+  Future<CurrentUser?> build() async {
+    final profile = ref.watch(serverProfileProvider);
+    final handed = _handedOver;
+    _handedOver = null;
+    if (profile == null) return null;
+    if (handed != null) return handed;
+    // A no-auth server answers 401 here (`auth.py:706`) — there is no identity
+    // behind an anonymous session, and nothing it could be restricted from.
+    // The demo backend does serve `/auth/me`, so it stays included.
+    if (profile.authMode == AuthMode.none && !profile.isDemo) return null;
+    try {
+      return await ref.read(accountRepositoryProvider).me();
+    } on Object {
+      // An identity we failed to read is an unknown one, not a restricted one
+      // — see [permissionProvider]. The server keeps enforcing either way.
+      return null;
+    }
+  }
+
+  /// Takes the `user` object a fresh login already carries.
+  void adopt(CurrentUser user) {
+    _handedOver = user;
+    state = AsyncData(user);
+  }
+
+  /// Re-reads `GET /auth/me`. Group membership and permissions can change on
+  /// the server while the app is open.
+  Future<void> refresh() async {
+    state = const AsyncLoading<CurrentUser?>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final profile = ref.read(serverProfileProvider);
+      if (profile == null) return null;
+      if (profile.authMode == AuthMode.none && !profile.isDemo) return null;
+      return ref.read(accountRepositoryProvider).me();
+    });
+  }
+}
+
+/// Whether the current user may do [permission] — see [Permissions] for the
+/// strings.
+///
+/// **Answers `true` whenever the identity is unknown** (no profile, still
+/// loading, auth switched off server-side, a `/auth/me` that failed, or a
+/// response without a `permissions` field). The server is the only enforcer —
+/// it answers 403 regardless of what this says — and for an API-key session
+/// the true answer really is admin, so a permissive unknown matches reality
+/// rather than hiding a screen the user is entitled to.
+///
+/// An empty `permissions` list is *not* unknown: it is a user whose groups
+/// grant nothing, and this answers `false` for them.
+///
+/// A screen that would rather not flash a drawer entry and take it away again
+/// should watch [currentUserProvider] and handle `loading` itself, instead of
+/// this being made restrictive for everyone.
+final permissionProvider = Provider.family<bool, String>(
+  (ref, permission) =>
+      ref.watch(currentUserProvider).valueOrNull?.can(permission) ?? true,
+);
+
+/// Whether the current user is an admin — the gate on every write to users,
+/// groups and API keys. Unknown identity answers `true`, for the reasons in
+/// [permissionProvider].
+final isAdminProvider = Provider<bool>(
+  (ref) => ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? true,
+);
 
 final printersRepositoryProvider = Provider<PrintersRepository>(
   (ref) => PrintersRepository(ref.watch(apiClientProvider).dio),

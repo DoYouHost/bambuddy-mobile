@@ -199,6 +199,22 @@ void main() {
       expect(await credentials.readRememberedLogin(), isNull);
     });
 
+    test('the identity comes from the login answer, not a second request',
+        () async {
+      // `GET /auth/me` is deliberately not mocked: if the sign-in path asked
+      // for it, this container would have no answer and the user would be
+      // unknown. The login response's own `user` is what must land.
+      await probed();
+      mockLogin((s) => s.reply(200, readFixture('login_response_ok.json')));
+
+      await controller().connectWithLogin(
+          username: 'tester', password: 'sekret', remember: false);
+
+      final user = await container.read(currentUserProvider.future);
+      expect(user?.username, 'tester');
+      expect(user?.isAdmin, isTrue);
+    });
+
     test('remember=true also stores the credentials for silent re-login',
         () async {
       await probed();

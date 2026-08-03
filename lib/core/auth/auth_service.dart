@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../diagnostics/auth_probe.dart';
+import '../models/current_user.dart';
 import '../settings/server_profile.dart';
 import '../settings/sign_in_reason.dart';
 import 'credentials_store.dart';
@@ -27,9 +28,14 @@ sealed class LoginResult {
 
 /// Signed in: the JWT is already in the credentials store.
 class LoginCompleted extends LoginResult {
-  const LoginCompleted(this.token);
+  const LoginCompleted(this.token, {this.user});
 
   final String token;
+
+  /// Who signed in, from the `user` object the login answer embeds
+  /// (`LoginResponse.user`, `backend/app/schemas/auth.py:39`). Null when the
+  /// server sent none — then the identity has to come from `GET /auth/me`.
+  final CurrentUser? user;
 }
 
 /// Password accepted, second factor pending. Nothing was stored yet — see
@@ -164,8 +170,13 @@ class AuthService {
     if (remember) {
       await _credentials.writeRememberedLogin(username, password);
     }
-    return LoginCompleted(token);
+    return LoginCompleted(token, user: _userOrNull(body['user']));
   }
+
+  /// The embedded `UserResponse`, or null when the server sent none — an
+  /// answer without it is still a completed login, so this never throws.
+  static CurrentUser? _userOrNull(Object? value) =>
+      value is Map<String, dynamic> ? CurrentUser.fromJson(value) : null;
 
   /// `POST /auth/2fa/email/send` — mails a 6-digit code.
   ///
@@ -206,7 +217,7 @@ class AuthService {
   /// session on its own (the second factor is in the user's head or their
   /// authenticator), and a stored secret that buys nothing is pure liability.
   /// See `docs/plans/10-two-factor-login.md` §2.
-  Future<String> verifyTwoFactor({
+  Future<LoginCompleted> verifyTwoFactor({
     required String baseUrl,
     required TwoFactorChallenge challenge,
     required TwoFactorMethod method,
@@ -237,7 +248,10 @@ class AuthService {
     }
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
-    return token;
+    // `TwoFAVerifyResponse` carries the same `user` object as the one-step
+    // login (`backend/app/schemas/auth.py:271`), so finishing 2FA identifies
+    // the session too and costs no extra `GET /auth/me`.
+    return LoginCompleted(token, user: _userOrNull(res.data?['user']));
   }
 
   /// Maps a failed `/2fa/*` call and records it. [method] is null for the

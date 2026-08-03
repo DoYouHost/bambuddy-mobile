@@ -8,6 +8,7 @@ import '../../core/auth/auth_service.dart';
 import '../../core/auth/two_factor.dart';
 import '../../core/demo/demo_config.dart';
 import '../../core/diagnostics/auth_probe.dart';
+import '../../core/models/current_user.dart';
 import '../../core/settings/server_profile.dart';
 import '../../providers.dart';
 
@@ -224,7 +225,8 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
             remember: remember,
           );
       switch (result) {
-        case LoginCompleted():
+        case LoginCompleted(:final user):
+          _adopt(user);
           await _saveProfile(url, AuthMode.jwt);
         case LoginNeedsTwoFactor(:final challenge):
           state = state.copyWith(busy: false, twoFactor: challenge);
@@ -284,12 +286,13 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
     }
     state = state.copyWith(busy: true, error: null);
     try {
-      await ref.read(authServiceProvider).verifyTwoFactor(
+      final completed = await ref.read(authServiceProvider).verifyTwoFactor(
             baseUrl: url,
             challenge: challenge,
             method: method,
             code: code,
           );
+      _adopt(completed.user);
       _cancelTwoFactorExpiry();
       await _saveProfile(url, AuthMode.jwt);
     } on AppApiException catch (e) {
@@ -304,6 +307,15 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
   void cancelTwoFactor() {
     _cancelTwoFactorExpiry();
     state = state.copyWith(error: null, clearTwoFactor: true);
+  }
+
+  /// Hands the identity the login answer already carried to
+  /// [currentUserProvider], before the profile save rebuilds it — that way a
+  /// sign-in needs no `GET /auth/me` of its own. A server that sent no `user`
+  /// leaves it to fetch one.
+  void _adopt(CurrentUser? user) {
+    if (user == null) return;
+    ref.read(currentUserProvider.notifier).adopt(user);
   }
 
   /// Profile save switches router to dashboard (see routerProvider).
