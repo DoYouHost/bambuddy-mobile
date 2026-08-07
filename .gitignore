@@ -48,6 +48,8 @@ app.*.map.json
 # Miscellaneous
 *.class
 *.lock
+# ...except the one that decides which versions a build gets; see below.
+!pubspec.lock
 *.log
 *.pyc
 *.swp
@@ -171,8 +173,10 @@ app.*.symbols
 .dart_tool/
 .packages
 build/
-# If you're building an application, you may want to check-in your pubspec.lock
-pubspec.lock
+# pubspec.lock is deliberately NOT ignored: this is an application, so the build
+# has to be reproducible. It was already tracked despite these rules, which only
+# worked because git stops applying .gitignore to a file once it is in the index
+# — remove it and add it back and it would have silently vanished from the repo.
 
 # Directory created by dartdoc
 # If you don't generate documentation locally you can remove this line.

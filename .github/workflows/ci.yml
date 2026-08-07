@@ -45,8 +45,11 @@ jobs:
       - name: Toolchain
         run: flutter --version
 
+      # --enforce-lockfile, so a stale lock fails here instead of quietly
+      # resolving something else. Committing the lock only guarantees a
+      # reproducible build while pub is actually made to honour it.
       - name: Dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Analyze
         run: flutter analyze
