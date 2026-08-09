@@ -4379,6 +4379,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Demo mode does not publish reports.';
 
   @override
+  String get bugReportRequestNotPrepared =>
+      'The app could not put the report together. Nothing was sent — try again.';
+
+  @override
   String get usersTitle => 'Users';
 
   @override

@@ -4437,6 +4437,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bugReportRequestFailedDemo => 'Tryb demo nie publikuje zgłoszeń.';
 
   @override
+  String get bugReportRequestNotPrepared =>
+      'Aplikacja nie zdołała przygotować zgłoszenia. Nic nie wysłano — spróbuj ponownie.';
+
+  @override
   String get usersTitle => 'Użytkownicy';
 
   @override

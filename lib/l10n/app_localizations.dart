@@ -7622,6 +7622,12 @@ abstract class AppLocalizations {
   /// **'Demo mode does not publish reports.'**
   String get bugReportRequestFailedDemo;
 
+  /// No description provided for @bugReportRequestNotPrepared.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not put the report together. Nothing was sent — try again.'**
+  String get bugReportRequestNotPrepared;
+
   /// No description provided for @usersTitle.
   ///
   /// In en, this message translates to:

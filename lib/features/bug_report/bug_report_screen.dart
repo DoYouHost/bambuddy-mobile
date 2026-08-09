@@ -127,9 +127,19 @@ class _IdleViewState extends ConsumerState<_IdleView> {
           onChanged: ref.read(bugReportProvider.notifier).chooseKind,
         ),
         const SizedBox(height: 12),
-        if (state.kind.needsLog)
-          ..._bugSteps(l10n)
-        else
+        if (state.kind.needsLog) ...[
+          // A request queued a moment ago is still on its way out, and switching
+          // tabs does not call it off. Shown here too, or the countdown would run
+          // on a screen that says nothing about it and the one control that can
+          // still stop it would be a tab away.
+          if (state.send.phase == SendPhase.waiting ||
+              state.send.phase == SendPhase.sending) ...[
+            _SendStatus(send: state.send),
+            if (state.send.phase == SendPhase.waiting) const _CancelSend(),
+            const SizedBox(height: 12),
+          ],
+          ..._bugSteps(l10n),
+        ] else
           ..._requestForm(l10n, state),
       ],
     );
@@ -208,8 +218,11 @@ class _IdleViewState extends ConsumerState<_IdleView> {
             state.send.phase == SendPhase.failed,
         label: feature ? l10n.bugReportFeatureLabel : l10n.bugReportChangeLabel,
         hint: feature ? l10n.bugReportFeatureHint : l10n.bugReportChangeHint,
+        // Where a request's ticket is bought, so the relay's delay runs while
+        // the sentence is being finished rather than after the send tap.
+        onChanged: ref.read(bugReportProvider.notifier).describingRequest,
       ),
-      _SendStatus(send: state.send, kind: state.kind),
+      _SendStatus(send: state.send),
       const SizedBox(height: 8),
       if (sent)
         _SentActions(
@@ -223,10 +236,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
         // off, and afterwards the relay already has it.
         if (state.send.phase == SendPhase.waiting) ...[
           const SizedBox(height: 8),
-          TextButton(
-            onPressed: ref.read(bugReportProvider.notifier).cancelSend,
-            child: Text(l10n.bugReportCancelSend),
-          ).tagged('bug_report.cancel_send'),
+          const _CancelSend(),
         ],
       ],
     ];
@@ -244,7 +254,14 @@ class _IdleViewState extends ConsumerState<_IdleView> {
         ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestRequired)));
       return;
     }
-    await ref.read(bugReportProvider.notifier).sendRequest(description);
+    // False means the app could not even describe itself — nothing was queued,
+    // so nothing downstream will ever put a failure on the screen.
+    if (await ref.read(bugReportProvider.notifier).sendRequest(description)) {
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestNotPrepared)));
   }
 
   /// Nothing to delete here — a request leaves no recording behind — so this
@@ -681,9 +698,14 @@ class _DescriptionField extends StatelessWidget {
     required this.enabled,
     this.label,
     this.hint,
+    this.onChanged,
   });
 
   final TextEditingController controller;
+
+  /// Typing is what tells a request apart from a look around, so this fires on
+  /// it rather than on the choice that opened the field.
+  final VoidCallback? onChanged;
 
   /// False once the report has been handed over. What is queued is a copy, so
   /// carrying on typing would edit something that is no longer what gets sent.
@@ -700,6 +722,7 @@ class _DescriptionField extends StatelessWidget {
     return TextField(
       controller: controller,
       enabled: enabled,
+      onChanged: onChanged == null ? null : (_) => onChanged!(),
       minLines: 3,
       maxLines: 5,
       // The relay's own ceiling. Counted here so the limit is visible while
@@ -724,13 +747,9 @@ class _DescriptionField extends StatelessWidget {
 /// one thing on this screen the user did not ask for and cannot shorten, so
 /// burying it reads as the app having quietly hung.
 class _SendStatus extends StatelessWidget {
-  const _SendStatus({required this.send, this.kind = ReportKind.bug});
+  const _SendStatus({required this.send});
 
   final SendState send;
-
-  /// Only the failures read this, and only for their advice: every fallback the
-  /// bug wording offers is about the log, and a request has none.
-  final ReportKind kind;
 
   /// `m:ss`, because "167 s" is a number the reader has to convert themselves.
   static String clock(Duration left) {
@@ -743,7 +762,10 @@ class _SendStatus extends StatelessWidget {
     return switch (send.phase) {
       SendPhase.waiting => _Waiting(remaining: send.remaining),
       SendPhase.sending => const _Working(),
-      SendPhase.failed => _Failed(failure: send.failure, kind: kind),
+      // The kind of the report that failed, not the tab in front of the user:
+      // every fallback the bug wording offers is about the log, and a request
+      // has none.
+      SendPhase.failed => _Failed(failure: send.failure, kind: send.kind),
       SendPhase.idle || SendPhase.sent => const SizedBox.shrink(),
     };
   }
@@ -891,6 +913,18 @@ class _Failed extends StatelessWidget {
         null =>
           l10n.bugReportRequestFailedRefused,
       };
+}
+
+/// Calls off a queued report before the relay gets it. Rendered only while one
+/// is actually waiting — on either tab, because switching tabs does not cancel.
+class _CancelSend extends ConsumerWidget {
+  const _CancelSend();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => TextButton(
+        onPressed: ref.read(bugReportProvider.notifier).cancelSend,
+        child: Text(AppLocalizations.of(context).bugReportCancelSend),
+      ).tagged('bug_report.cancel_send');
 }
 
 class _SendButton extends StatelessWidget {

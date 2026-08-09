@@ -1400,6 +1400,7 @@
   "bugReportRequestFailedRefused": "Relay odmówił przyjęcia tego zgłoszenia. Możesz otworzyć je samodzielnie na GitHubie.",
   "bugReportRequestFailedUnreachable": "Nie udało się połączyć z relayem. Sprawdź połączenie i spróbuj ponownie.",
   "bugReportRequestFailedDemo": "Tryb demo nie publikuje zgłoszeń.",
+  "bugReportRequestNotPrepared": "Aplikacja nie zdołała przygotować zgłoszenia. Nic nie wysłano — spróbuj ponownie.",
 
   "usersTitle": "Użytkownicy",
   "usersMenu": "Użytkownicy",

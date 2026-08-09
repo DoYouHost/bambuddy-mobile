@@ -341,6 +341,24 @@ void main() {
       expect(await ReportOutbox(root: root).readLog(queued), isNull);
     });
 
+    test('what the screen is told names the report that is queued', () async {
+      final relay = FakeRelay(issued: ticket(wait: const Duration(minutes: 5)));
+      final sender = senderWith(relay);
+      addTearDown(sender.dispose);
+      final seen = <SendState>[];
+      sender.states.listen(seen.add);
+
+      await sender.prepare();
+      await submitRequest(sender, kind: ReportKind.change);
+      await pumpEventQueue();
+
+      // The kind cannot be read off whichever tab the user happens to be on:
+      // switching tabs does not call a queued report off, and the countdown,
+      // the cancel and the failure advice all describe *this* report.
+      expect(seen.last.phase, SendPhase.waiting);
+      expect(seen.last.kind, ReportKind.change);
+    });
+
     test('a slot from a build that only filed bugs is read as a bug', () async {
       // Written by hand in the old shape: no `kind`, which is exactly what an
       // install upgrading mid-wait has sitting in its outbox.

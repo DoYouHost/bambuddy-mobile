@@ -1545,6 +1545,7 @@
   "bugReportRequestFailedRefused": "The relay refused this request. You can open the issue yourself on GitHub.",
   "bugReportRequestFailedUnreachable": "Could not reach the relay. Check the connection and try again.",
   "bugReportRequestFailedDemo": "Demo mode does not publish reports.",
+  "bugReportRequestNotPrepared": "The app could not put the report together. Nothing was sent — try again.",
 
   "usersTitle": "Users",
   "usersMenu": "Users",

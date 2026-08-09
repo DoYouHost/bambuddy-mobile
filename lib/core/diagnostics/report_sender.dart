@@ -12,17 +12,31 @@ enum SendPhase { idle, waiting, sending, sent, failed }
 
 @immutable
 class SendState {
-  const SendState._(this.phase, {this.readyAt, this.issueUrl, this.failure});
+  const SendState._(
+    this.phase, {
+    this.kind = ReportKind.bug,
+    this.readyAt,
+    this.issueUrl,
+    this.failure,
+  });
 
   const SendState.idle() : this._(SendPhase.idle);
-  const SendState.waiting(DateTime readyAt)
-      : this._(SendPhase.waiting, readyAt: readyAt);
-  const SendState.sending() : this._(SendPhase.sending);
-  const SendState.sent(String url) : this._(SendPhase.sent, issueUrl: url);
-  const SendState.failed(RelayFailure failure)
-      : this._(SendPhase.failed, failure: failure);
+  const SendState.waiting(DateTime readyAt, {ReportKind kind = ReportKind.bug})
+      : this._(SendPhase.waiting, kind: kind, readyAt: readyAt);
+  const SendState.sending({ReportKind kind = ReportKind.bug})
+      : this._(SendPhase.sending, kind: kind);
+  const SendState.sent(String url, {ReportKind kind = ReportKind.bug})
+      : this._(SendPhase.sent, kind: kind, issueUrl: url);
+  const SendState.failed(RelayFailure failure, {ReportKind kind = ReportKind.bug})
+      : this._(SendPhase.failed, kind: kind, failure: failure);
 
   final SendPhase phase;
+
+  /// What is queued, which is not necessarily what the user is looking at: the
+  /// kind can be switched while a report waits out its delay, and the countdown,
+  /// the cancel and above all the failure advice have to describe the report
+  /// that is actually in flight.
+  final ReportKind kind;
 
   /// When the queued report becomes sendable. Drives the countdown.
   final DateTime? readyAt;
@@ -75,6 +89,9 @@ class ReportSender {
   RelayTicket? _ticket;
   Timer? _timer;
 
+  /// The challenge round trip while it is in flight. See [prepare].
+  Future<void>? _preparing;
+
   /// Called the moment the user decides to send, not when they tap send.
   ///
   /// That ordering is the entire reason the delay is tolerable: the relay starts
@@ -86,7 +103,16 @@ class ReportSender {
   /// challenge when it hands one out, not when one is used, so fetching a ticket
   /// the user turns out not to want makes their *next* report wait twice as
   /// long, and the one after that four times.
-  Future<void> prepare() async {
+  ///
+  /// Safe to call repeatedly, including on every keystroke: a call made while
+  /// the round trip is still running joins it rather than starting a second one.
+  /// The check below cannot cover that on its own — the ticket only reaches
+  /// [_ticket] once the trip is over, so two calls a frame apart would both find
+  /// nothing held and both pay for a challenge.
+  Future<void> prepare() =>
+      _preparing ??= _prepare().whenComplete(() => _preparing = null);
+
+  Future<void> _prepare() async {
     // Not even a challenge in demo mode: the relay meters challenges *issued*,
     // so asking for one it will never spend would push the real user's next
     // report further out.
@@ -147,7 +173,7 @@ class ReportSender {
     // report is never written to the outbox, so there is nothing for a later
     // flush to find either.
     if (_demoMode()) {
-      _emit(const SendState.failed(RelayFailure.demo));
+      _emit(SendState.failed(RelayFailure.demo, kind: kind));
       return;
     }
 
@@ -156,7 +182,7 @@ class ReportSender {
       // Nothing was reserved for us, or it went stale while the form was open.
       await prepare();
       if (_ticket == null) {
-        _emit(const SendState.failed(RelayFailure.unreachable));
+        _emit(SendState.failed(RelayFailure.unreachable, kind: kind));
         return;
       }
     }
@@ -199,7 +225,7 @@ class ReportSender {
     // publish. Checked after the peek so an empty outbox stays silent instead
     // of greeting every demo start with a failure.
     if (_demoMode()) {
-      _emit(const SendState.failed(RelayFailure.demo));
+      _emit(SendState.failed(RelayFailure.demo, kind: pending.kind));
       return;
     }
 
@@ -209,12 +235,16 @@ class ReportSender {
       await prepare();
       final fresh = _ticket;
       if (fresh == null) {
-        _emit(const SendState.failed(RelayFailure.unreachable));
+        _emit(SendState.failed(RelayFailure.unreachable, kind: pending.kind));
         return;
       }
       final log = await _outbox.readLog(pending);
       if (pending.hasLog && log == null) {
-        _emit(const SendState.failed(RelayFailure.rejected));
+        // Same dead end as below, and dropped for the same reason: a report
+        // whose log went missing can never be sent, so keeping it queued would
+        // hand every later start the same doomed slot to retry.
+        await _outbox.clear();
+        _emit(SendState.failed(RelayFailure.rejected, kind: pending.kind));
         return;
       }
       await _outbox.put(
@@ -230,20 +260,20 @@ class ReportSender {
     }
 
     if (!pending.ticket.ready) {
-      _emit(SendState.waiting(pending.ticket.notBefore));
+      _emit(SendState.waiting(pending.ticket.notBefore, kind: pending.kind));
       // One timer rather than polling: nothing else has to happen until then.
       _timer = Timer(pending.ticket.wait + const Duration(seconds: 1), flush);
       return;
     }
 
-    _emit(const SendState.sending());
+    _emit(SendState.sending(kind: pending.kind));
     final log = await _outbox.readLog(pending);
     // A report that should have a log and does not: the file went missing under
     // us, and sending the description alone would file it as something the user
     // did not write.
     if (pending.hasLog && log == null) {
       await _outbox.clear();
-      _emit(const SendState.failed(RelayFailure.rejected));
+      _emit(SendState.failed(RelayFailure.rejected, kind: pending.kind));
       return;
     }
 
@@ -258,17 +288,20 @@ class ReportSender {
         log: log,
       );
       await _outbox.clear();
-      _emit(SendState.sent(url));
+      _emit(SendState.sent(url, kind: pending.kind));
     } on RelayException catch (error) {
       if (error.retryable) {
         final delay = error.retryAfter ?? const Duration(minutes: 1);
-        _emit(SendState.waiting(DateTime.now().add(delay)));
+        _emit(SendState.waiting(
+          DateTime.now().add(delay),
+          kind: pending.kind,
+        ));
         _timer = Timer(delay, flush);
         return;
       }
       // A dead end: keeping the report queued would retry it forever.
       await _outbox.clear();
-      _emit(SendState.failed(error.failure));
+      _emit(SendState.failed(error.failure, kind: pending.kind));
     }
   }
 

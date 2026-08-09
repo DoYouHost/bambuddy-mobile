@@ -6,6 +6,7 @@ import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
 import '../../core/diagnostics/report_envelope.dart';
 import '../../core/diagnostics/report_sender.dart';
+import '../../core/diagnostics/session_facts.dart';
 import '../../providers.dart';
 
 enum BugReportPhase { idle, recording, review }
@@ -173,15 +174,11 @@ class BugReportController extends Notifier<BugReportState> {
     await ref
         .read(diagnosticRecorderProvider)
         .discardSession(recovered.session);
-    state = const BugReportState.idle();
+    state = BugReportState.idle(kind: state.kind);
   }
 
-  /// Picks what is being filed.
-  ///
-  /// Choosing a request is already the decision to publish — there is no "keep
-  /// it on the phone" option for an idea — so the ticket is fetched here, and
-  /// the relay's delay runs while the user writes. A bug takes the other route:
-  /// its decision comes at [chooseDestination], after the log exists.
+  /// Picks what is being filed. Costs nothing — see [describingRequest] for
+  /// where a request's ticket is actually bought.
   void chooseKind(ReportKind kind) {
     if (state.kind == kind) return;
     state = state.copyWith(
@@ -194,18 +191,56 @@ class BugReportController extends Notifier<BugReportState> {
         _ => state.send,
       },
     );
-    if (!kind.needsLog) unawaited(ref.read(reportSenderProvider).prepare());
+  }
+
+  /// The user is writing a request. Buys the ticket, so the relay's delay runs
+  /// while they finish the sentence.
+  ///
+  /// On the typing rather than on the segment, and that is the whole design: a
+  /// request has no "keep it on the phone" option, so picking one is already the
+  /// decision to publish — but the segment is also the cheapest thing on this
+  /// screen to tap out of curiosity, and the relay charges for a challenge when
+  /// it hands one out. A tap that costs the *next* report double its wait is too
+  /// much to charge for a look. Somebody typing has decided.
+  void describingRequest() {
+    if (state.kind.needsLog) return;
+    // Deliberately not awaited, and safe on every keystroke: the field has to
+    // stay typable, and the sender joins a trip already in flight.
+    unawaited(ref.read(reportSenderProvider).prepare());
   }
 
   /// Hands over a change or feature request. There is no recording behind it, so
   /// the envelope is built from the session's own facts.
-  Future<void> sendRequest(String description) async {
-    final facts = await ref.read(sessionFactsProvider)();
+  ///
+  /// Busy before the first await, and that is the point of the line: reading
+  /// those facts asks the server for its version, which against an unreachable
+  /// one takes a full HTTP timeout. Without it the send button stays live and
+  /// enabled for that whole wait, and a second tap queues a second report over
+  /// the first.
+  ///
+  /// Returns false when the facts could not be read at all. The sender never saw
+  /// that attempt, so nothing is queued and nothing will emit a failure — the
+  /// caller is the only one left who can say so.
+  Future<bool> sendRequest(String description) async {
+    if (state.send.phase == SendPhase.sending) return true;
+    state = state.copyWith(send: SendState.sending(kind: state.kind));
+
+    final SessionFacts facts;
+    try {
+      facts = await ref.read(sessionFactsProvider)();
+    } on Object {
+      // Back to idle rather than failed: nothing was handed over, so there is
+      // no report for a "failed" to be about, and the button has to come back.
+      state = state.copyWith(send: const SendState.idle());
+      return false;
+    }
+
     await ref.read(reportSenderProvider).submitRequest(
           kind: state.kind,
           description: description,
           envelope: requestEnvelope(facts),
         );
+    return true;
   }
 
   /// Calls off a queued request before the relay gets it.
@@ -213,7 +248,14 @@ class BugReportController extends Notifier<BugReportState> {
 
   /// Back to the start, keeping the kind the user is working in. For a request,
   /// which leaves nothing on disk, this is the whole of "done".
-  void reset() => state = BugReportState.idle(kind: state.kind);
+  ///
+  /// The salvaged session is carried over too. Nothing else offers it — the
+  /// crashed log is looked for once per process, in [build] — so dropping it
+  /// here would leave its files on disk with no way left to open or delete them.
+  void reset() => state = BugReportState.idle(
+        kind: state.kind,
+        recovered: state.recovered,
+      );
 
   Future<void> start() async {
     if (state.isRecording) return;

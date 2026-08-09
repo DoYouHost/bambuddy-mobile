@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
@@ -831,6 +832,24 @@ void main() {
       expect(sessionFile().existsSync(), isFalse);
     });
 
+    testWidgets('finishing something else does not take the offer away',
+        (tester) async {
+      final container = await pumpAfterCrash(
+        tester,
+        log: '$header\n{"t":5,"src":"app","evt":"user_marker"}\n',
+      );
+
+      // What sending a change or feature request from this screen ends on. The
+      // salvaged log is looked for once per process, in `build`, so a reset that
+      // dropped it would strand the files with nothing left to open or delete
+      // them for the rest of the session.
+      container.read(bugReportProvider.notifier).reset();
+      await tester.pumpAndSettle();
+
+      expect(container.read(bugReportProvider).recovered, isNotNull);
+      expect(find.text('Nagranie przetrwało awarię'), findsOneWidget);
+    });
+
     testWidgets('says nothing about a file with no records', (tester) async {
       // The crash beat the first record. Asking the user to decide about an
       // empty file is worse than staying quiet.
@@ -1118,9 +1137,46 @@ void main() {
       // Nothing to record, so nothing offers to.
       expect(find.text('Rozpocznij nagrywanie'), findsNothing);
       expect(find.text('Czego brakuje?'), findsOneWidget);
-      // Choosing a request *is* the decision to publish, so the wait starts
-      // here rather than at the send tap.
+      // The segment is the cheapest thing here to tap out of curiosity, and a
+      // challenge is charged for when it is handed out — so looking is free.
+      expect(relay.challenges, 0);
+    });
+
+    testWidgets('the wait starts on the first word, not on the segment',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+
+      await choose(tester, 'Zmianę');
+      await tester.enterText(find.byType(TextField), 'p');
+      await tester.pumpAndSettle();
+
+      // Somebody typing has decided, and from here the relay's delay runs while
+      // they finish the sentence — which is the only reason it is tolerable.
       expect(relay.challenges, 1);
+    });
+
+    testWidgets('typing on does not buy a challenge per keystroke',
+        (tester) async {
+      // The round trip is held open for all four keystrokes: a fast typist on a
+      // slow connection. The ticket only lands once the trip is over, so the
+      // "already have one" check cannot see it — without the sender joining a
+      // trip in flight, every one of these would pay for its own challenge, and
+      // each one doubles the user's next wait.
+      final gate = Completer<void>();
+      final relay = _FakeRelay(issued: _ticket(), gate: gate.future);
+      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+
+      await choose(tester, 'Zmianę');
+      for (final text in ['p', 'po', 'pow', 'powi']) {
+        await tester.enterText(find.byType(TextField), text);
+      }
+      await tester.pumpAndSettle();
+
+      expect(relay.challenges, 1);
+
+      gate.complete();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('the change wording is not the feature wording',
@@ -1141,12 +1197,15 @@ void main() {
       await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
 
       await choose(tester, 'Funkcję');
+      await tester.enterText(find.byType(TextField), 'niech to robi tamto');
+      await tester.pumpAndSettle();
       await choose(tester, 'Zmianę');
       await choose(tester, 'Błąd');
       await choose(tester, 'Funkcję');
 
       // Same reason as the destination picker: each extra challenge doubles the
-      // user's next wait, for a decision they were entitled to change.
+      // user's next wait, for a decision they were entitled to change. The text
+      // survives the flip, so the second description is the first one.
       expect(relay.challenges, 1);
     });
 
@@ -1244,6 +1303,75 @@ void main() {
       expect(queued, isNull);
     });
 
+    testWidgets('switching back to the bug keeps the queued request in sight',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final outbox = ReportOutbox(root: root);
+      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
+      final container = await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(relay),
+        reportOutboxProvider.overrideWithValue(outbox),
+      ]);
+
+      await choose(tester, 'Zmianę');
+      await tester.enterText(find.byType(TextField), 'inaczej to ułóż');
+      await scrollToActions(tester);
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.waiting,
+      );
+
+      // Back up to the picker and over to the tab the request is not on. The
+      // relay gets it either way, so hiding the countdown here would leave it
+      // running invisibly with the only way out a tab away.
+      await tester.drag(find.byType(ListView), const Offset(0, 600));
+      await tester.pumpAndSettle();
+      await choose(tester, 'Błąd');
+
+      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      await tapAndSettleAsync(
+        tester,
+        find.text('Anuluj wysyłanie'),
+        until: () async => await outbox.peek() == null,
+      );
+
+      expect(relay.sends, 0);
+      expect(await tester.runAsync(outbox.peek), isNull);
+    });
+
+    testWidgets('facts it cannot read say so instead of hanging the button',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket());
+      // Reading the facts is a platform channel and a request to the server for
+      // its version. Nothing downstream ever sees an attempt that dies here, so
+      // without this the tap would leave a live button and a silent screen.
+      final container = await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(relay),
+        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+        sessionFactsProvider.overrideWithValue(
+          () => Future.error(StateError('no package info')),
+        ),
+      ]);
+
+      await choose(tester, 'Funkcję');
+      await tester.enterText(find.byType(TextField), 'coś nowego');
+      await scrollToActions(tester);
+      await tester.tap(find.text('Zgłoś'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Nic nie wysłano'), findsOneWidget);
+      expect(relay.sends, 0);
+      // Idle, not failed: nothing was handed over, so there is no report for a
+      // failure to be about — and the button has to come back for the retry.
+      expect(container.read(bugReportProvider).send.phase, SendPhase.idle);
+      expect(find.text('Zgłoś'), findsOneWidget);
+    });
+
     testWidgets('a failed request is not told to save a log it never had',
         (tester) async {
       final root = Directory.systemTemp.createTempSync('outbox');
@@ -1286,9 +1414,14 @@ RelayTicket _ticket({Duration wait = Duration.zero}) {
 /// Stands in for the relay. What matters here is not the protocol — the worker's
 /// own suite covers that — but *when* this screen talks to it.
 class _FakeRelay extends RelayClient {
-  _FakeRelay({this.issued}) : super(Dio());
+  _FakeRelay({this.issued, this.gate}) : super(Dio());
 
   final RelayTicket? issued;
+
+  /// Holds the challenge open, for the one test that needs a second call made
+  /// while the first is still in flight. Counted before it is awaited, so what
+  /// [challenges] reports is attempts rather than answers.
+  final Future<void>? gate;
 
   int challenges = 0;
   int sends = 0;
@@ -1301,6 +1434,7 @@ class _FakeRelay extends RelayClient {
   @override
   Future<RelayTicket> challenge(String installId) async {
     challenges++;
+    await gate;
     final next = issued;
     if (next == null) throw const RelayException(RelayFailure.unreachable);
     return next;
