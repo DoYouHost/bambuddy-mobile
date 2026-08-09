@@ -4,11 +4,8 @@ import 'dart:io';
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
-import 'package:bambuddy_mobile/core/diagnostics/relay_client.dart';
-import 'package:bambuddy_mobile/core/diagnostics/relay_pow.dart';
-import 'package:bambuddy_mobile/core/diagnostics/report_envelope.dart';
-import 'package:bambuddy_mobile/core/diagnostics/report_outbox.dart';
-import 'package:bambuddy_mobile/core/diagnostics/report_sender.dart';
+import 'package:app_report_client/app_report_client.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
@@ -1414,7 +1411,8 @@ RelayTicket _ticket({Duration wait = Duration.zero}) {
 /// Stands in for the relay. What matters here is not the protocol — the worker's
 /// own suite covers that — but *when* this screen talks to it.
 class _FakeRelay extends RelayClient {
-  _FakeRelay({this.issued, this.gate}) : super(Dio());
+  _FakeRelay({this.issued, this.gate})
+      : super(Dio(), baseUrl: relayBaseUrl);
 
   final RelayTicket? issued;
 

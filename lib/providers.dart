@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:app_report_client/app_report_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -12,10 +13,7 @@ import 'core/auth/credentials_store.dart';
 import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/diagnostics/diagnostic_recorder.dart';
-import 'core/diagnostics/relay_client.dart';
-import 'core/diagnostics/relay_identity.dart';
-import 'core/diagnostics/report_outbox.dart';
-import 'core/diagnostics/report_sender.dart';
+import 'core/diagnostics/report_config.dart';
 import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
@@ -188,7 +186,7 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
 /// see none of the auth interceptors, none of the credentials and none of the
 /// base URL the user configured.
 final relayClientProvider = Provider<RelayClient>(
-  (ref) => RelayClient(ref.watch(bareDioProvider)),
+  (ref) => RelayClient(ref.watch(bareDioProvider), baseUrl: relayBaseUrl),
 );
 
 final reportOutboxProvider = Provider<ReportOutbox>((ref) => const ReportOutbox());
@@ -203,6 +201,7 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
     // Read, not watched: rebuilding this provider on a profile change would
     // hand out a second sender over the same outbox slot.
     demoMode: () => ref.read(serverProfileProvider)?.isDemo ?? false,
+    formatVersion: reportLogSchema,
   );
   ref.onDispose(sender.dispose);
   return sender;

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import 'diagnostic_recorder.dart';
 import 'log_event.dart';
+import 'log_store.dart';
 
 /// Records every call the app makes to bambuddy: method, path, status and how
 /// long it took, plus what failed when it failed.
@@ -153,21 +154,25 @@ class HttpProbe extends Interceptor {
               _isRead(response.requestOptions.method) && response.data == null
                   ? true
                   : null,
-          ..._sampleOf(response),
+          ..._sampleOf(store, response),
         },
       );
     }
     handler.next(response);
   }
 
-  /// One record of the answer, or `same` when it matches the last one sampled
-  /// for this request. Empty for anything outside [_sampledPaths].
+  /// One record of the answer with the user's content measured out — or `same`
+  /// when it matches the last one sampled for this request. Empty outside
+  /// [_sampledPaths].
   ///
-  /// Records go in as a map, not as text: [LogRedactor] checks field names at
-  /// every depth of a nested map and runs its shape passes on every string
-  /// inside it, so a token that turns up in a body it has no business being in
-  /// is caught either way.
-  static Map<String, Object?> _sampleOf(Response<dynamic> response) {
+  /// [LogRedactor.scrubSample], not the ordinary field pass: these endpoints
+  /// answer with what the user named, and a denylist cannot cover a field a
+  /// later server version adds. Records go in as a map so the redactor still
+  /// checks names at every depth.
+  static Map<String, Object?> _sampleOf(
+    LogStore store,
+    Response<dynamic> response,
+  ) {
     final options = response.requestOptions;
     final path = _pathOf(options);
     if (_neverSampled.hasMatch(path)) return const {};
@@ -175,7 +180,14 @@ class HttpProbe extends Interceptor {
     final record = _firstRecord(response.data);
     if (record == null) return const {};
 
-    final encoded = _encoded(record);
+    // Scrubbed before it is measured or compared: what is fingerprinted has to
+    // be what actually goes into the log, or a change the redactor removes would
+    // still count as a change — and every poll would log a "new" record whose
+    // visible half never moved.
+    // Non-null by construction: the input is a map, and the map branch of
+    // `scrubSample` always answers with one.
+    final sample = store.redactor.scrubSample(record)!;
+    final encoded = _encoded(sample);
     final key = '${options.method} $path?${options.uri.query.hashCode}';
     final stable = _timestamps.hasMatch(encoded)
         ? encoded.replaceAll(_timestamps, '"<ts>"')
@@ -189,7 +201,7 @@ class HttpProbe extends Interceptor {
     return {
       'first': encoded.length > _maxSampleChars
           ? '${encoded.substring(0, _maxClippedChars)}…'
-          : record,
+          : sample,
     };
   }
 
@@ -226,7 +238,8 @@ class HttpProbe extends Interceptor {
     // `SocketException` separates "TLS refused" from "nothing listening there",
     // which dio lumps together as `connectionError`.
     final cause = err.error?.runtimeType.toString();
-    DiagnosticRecorder.active?.add(
+    final store = DiagnosticRecorder.active;
+    store?.add(
       LogSource.http,
       'error',
       lvl: _levelOf(err),
@@ -240,7 +253,8 @@ class HttpProbe extends Interceptor {
         // dio's message only restates the status when there is a response, so
         // it earns its place exactly when there is none.
         'msg': status == null ? _reasonOf(err, cause) : null,
-        'body': status == null ? null : _bodyPreview(err.response?.data),
+        'body':
+            status == null ? null : _bodyPreview(err.response?.data, store),
       },
     );
     handler.next(err);
@@ -306,12 +320,23 @@ class HttpProbe extends Interceptor {
     return err.response == null ? LogLevel.error : LogLevel.warn;
   }
 
-  static String? _bodyPreview(Object? data) {
+  /// The server's answer to a failed call, minus what the user put in it.
+  ///
+  /// JSON is measured like a sampled record: FastAPI's 422 echoes the offending
+  /// input verbatim. `type` and `loc` survive, which is what the body is opened
+  /// for. Cost: bambuddy's constant `detail` messages are measured too, since
+  /// nothing here tells them from the 49 that interpolate values.
+  ///
+  /// Non-JSON is left alone — a proxy's HTML error page names the proxy and
+  /// holds nothing of anybody's.
+  static String? _bodyPreview(Object? data, LogStore store) {
     if (data == null) return null;
     // Bytes, i.e. a download that failed. Encoding those would spell out an
     // array of numbers; the size is the only useful thing in them.
     if (data is List<int>) return '<${data.length} bytes>';
-    final text = data is String ? data : _encoded(data);
+    final text = data is String
+        ? data
+        : _encoded(store.redactor.scrubSample(data) ?? data);
     if (text.isEmpty) return null;
     return text.length > _maxBodyChars
         ? '${text.substring(0, _maxBodyChars)}…'

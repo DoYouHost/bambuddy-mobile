@@ -10,9 +10,9 @@ import 'http_probe.dart';
 import 'interaction_probe.dart';
 import 'lifecycle_probe.dart';
 import 'log_event.dart';
+import 'report_config.dart';
 import 'log_file_sink.dart';
 import 'log_merge.dart';
-import 'log_redactor.dart';
 import 'log_store.dart';
 import 'navigation_probe.dart';
 import 'session_facts.dart';
@@ -107,7 +107,7 @@ class DiagnosticRecorder {
 
     final session = LogHeader.newSessionId();
     final facts = await loadFacts();
-    final redactor = LogRedactor();
+    final redactor = bambuddyRedactor();
     facts.secrets.forEach(redactor.remember);
 
     final header = facts.toHeader(ts: _clock(), session: session);
@@ -396,7 +396,7 @@ class DiagnosticRecorder {
       final elapsed = now.difference(uiHeader.ts);
       if (elapsed.isNegative || elapsed >= recordingLimit) return null;
 
-      final redactor = LogRedactor();
+      final redactor = bambuddyRedactor();
       (await loadSecrets?.call() ?? const <String, String>{})
           .forEach(redactor.remember);
 
