@@ -1,11 +1,8 @@
 import 'dart:convert';
 
-/// JWT expiry time extracted from `exp` claim (seconds since epoch, UTC).
-///
-/// Returns `null` if token is not a valid 3-part JWT, payload is not a map,
-/// or lacks numeric `exp` — caller then uses fallback (we don't assume server
-/// token format beyond standard). Pure function: no plugin dependencies,
-/// works in background isolate too.
+/// Expiry from the `exp` claim, or `null` for anything that is not a 3-part JWT
+/// carrying a numeric one — the caller falls back rather than assume a token
+/// format beyond the standard. Pure, so the background isolate can use it.
 DateTime? jwtExpiry(String? token) {
   if (token == null || token.isEmpty) return null;
   final parts = token.split('.');

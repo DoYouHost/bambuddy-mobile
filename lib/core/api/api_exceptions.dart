@@ -6,9 +6,8 @@ enum AppErrorCode {
   serverUnreachable,
   unauthorized,
 
-  /// 403 — authentication OK, but no permission for this action (e.g., API key
-  /// without `can_control_printer`). Unlike [unauthorized], does NOT indicate
-  /// session expiry — we don't log out, just block the action.
+  /// 403 — authenticated but not permitted. Unlike [unauthorized] this is not
+  /// session expiry, so it blocks the action rather than signing the user out.
   forbidden,
   badResponse,
   badCertificate,
@@ -16,50 +15,45 @@ enum AppErrorCode {
   malformedResponse,
   invalidCredentials,
 
-  /// The account needs a second factor and the caller has no way to ask for it
-  /// — silent re-login from an interceptor or the background isolate. The
-  /// interactive path never sees this: it gets a [TwoFactorChallenge] instead.
+  /// A second factor is needed and the caller cannot ask for one — silent
+  /// re-login from an interceptor or the background isolate. The interactive
+  /// path gets a `TwoFactorChallenge` instead and never sees this.
   twoFactorUnsupported,
 
-  /// The server checked the code and said no. The login challenge survives a
-  /// wrong code, so the user just types the next one.
+  /// The challenge survives a wrong code, so the user just types the next one.
   twoFactorCodeRejected,
 
-  /// The pre-auth token is gone: 5 minutes elapsed, it was already spent, or
-  /// the `2fa_challenge` cookie binding failed (a proxy that drops `Set-Cookie`
-  /// looks exactly like this). Only the password step can produce a new one.
+  /// The pre-auth token is gone: elapsed, spent, or the `2fa_challenge` binding
+  /// failed — a proxy dropping `Set-Cookie` looks exactly like this. Only the
+  /// password step can produce a new one.
   twoFactorChallengeExpired,
 
-  /// The chosen second factor is not usable on this account — TOTP turned off
-  /// between the two steps, or a backup code on an account without TOTP.
+  /// TOTP turned off between the two steps, or a backup code on an account
+  /// without TOTP.
   twoFactorMethodUnavailable,
 
-  /// The server cannot mail the code: no SMTP configured, or the send failed.
-  /// Another method (if the account has one) still works.
+  /// No SMTP configured, or the send failed. Another method still works.
   twoFactorEmailUnavailable,
 
   apiKeyRejected,
 
-  /// 429 — the server is refusing for now, not forever. bambuddy rate-limits
-  /// failed logins in two buckets (10 per username, 20 per IP, 15-minute
-  /// window) and answers 429 *before* checking the password, so a locked-out
-  /// user gets it even when they finally type the right one. Reported as its
-  /// own code because "wait 15 minutes" and "your password is wrong" send the
-  /// user in opposite directions.
+  /// 429 — refusing for now, not forever. bambuddy answers it *before* checking
+  /// the password, so a rate-limited user gets it even when they finally type
+  /// the right one; its own code because "wait 15 minutes" and "your password
+  /// is wrong" send the user in opposite directions.
   tooManyAttempts,
 }
 
-/// Base exception for the API layer. Carries error code (for localization) and
-/// optional technical details for logs.
+/// Carries the code the UI localizes, plus detail for the log.
 sealed class AppApiException implements Exception {
   const AppApiException(this.code, {this.statusCode, this.detail});
 
   final AppErrorCode code;
 
-  /// HTTP status code for [AppErrorCode.badResponse] (null for others).
+  /// Set for [AppErrorCode.badResponse], null for the rest.
   final int? statusCode;
 
-  /// Raw, user-invisible detail (e.g., `DioException.message`).
+  /// Raw and user-invisible, e.g. `DioException.message`.
   final String? detail;
 
   @override
@@ -68,26 +62,23 @@ sealed class AppApiException implements Exception {
       '${detail == null ? '' : ', detail=$detail'})';
 }
 
-/// Server responded with an error (4xx/5xx except 401/403) or
-/// response had unexpected shape.
+/// 4xx/5xx other than 401/403, or a response of unexpected shape.
 class ApiException extends AppApiException {
   const ApiException(super.code, {super.statusCode, super.detail});
 }
 
-/// Authentication problem: bad credentials, expired/invalidated token or key, or
-/// insufficient permissions.
+/// Bad credentials, an expired token or key, or missing permissions.
 class AuthException extends AppApiException {
   const AuthException(super.code, {super.detail});
 }
 
-/// Server unreachable: timeout, connection refused, or no network.
+/// Timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
   const NetworkException(super.code, {super.detail});
 }
 
-/// Runs [body], mapping any [DioException] to [AppApiException] via
-/// [mapDioException]. Centralizes the `try { ... } on DioException catch (e)
-/// { throw mapDioException(e); }` boilerplate repeated across repositories.
+/// The `on DioException catch (e) { throw mapDioException(e); }` every
+/// repository would otherwise repeat.
 Future<T> guard<T>(Future<T> Function() body) async {
   try {
     return await body();
@@ -96,10 +87,9 @@ Future<T> guard<T>(Future<T> Function() body) async {
   }
 }
 
-/// Like [guard], but non-auth failures degrade to `null` instead of
-/// rethrowing — for single-entity fetches (printer/plug status, etc.) where
-/// one unreachable resource shouldn't break a composite view (dashboard,
-/// maintenance overview). Auth errors still bubble up so the UI can redirect.
+/// [guard] for single-entity fetches inside a composite view: one unreachable
+/// printer must not empty the whole dashboard, so non-auth failures degrade to
+/// `null`. Auth errors still bubble up, or the UI could not redirect.
 Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
   try {
     return await body();
@@ -112,13 +102,10 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
   }
 }
 
-/// [mapDioException], but keeping what the server wrote in a 400 or 422.
-///
-/// For routes that enforce rules the app deliberately does not re-implement —
-/// "Cannot delete the last admin user", "Cannot rename system groups", "User
-/// is already in this group" — the reason exists only in the response's
-/// `detail`, which the plain mapper drops. A caller that shows the refusal to
-/// the user needs it.
+/// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
+/// enforcing rules the app deliberately does not re-implement — "Cannot delete
+/// the last admin user", "Cannot rename system groups" — the reason exists only
+/// in `detail`, which the plain mapper drops.
 AppApiException mapDioExceptionKeepingDetail(DioException e) {
   final mapped = mapDioException(e);
   final status = e.response?.statusCode;

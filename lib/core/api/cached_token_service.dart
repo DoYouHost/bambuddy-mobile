@@ -2,11 +2,9 @@ import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
 
-/// Shared cache + TTL + single-flight mint for short-lived server tokens
-/// (`WsTokenService` / `CameraTokenService`) — both mint via a bare `POST`
-/// returning `{"token": ...}`, cache for ~55 min, and re-mint on
-/// [invalidate]. Without single-flight, concurrent callers hitting an
-/// expired cache each fire their own mint request.
+/// Cache, TTL and single-flight mint shared by `WsTokenService` and
+/// `CameraTokenService`. Without the single flight, concurrent callers meeting
+/// an expired cache each fire their own mint.
 abstract class CachedTokenService {
   CachedTokenService(this._dio, this._endpoint);
 
@@ -19,18 +17,13 @@ abstract class CachedTokenService {
   String? _token;
   DateTime? _expiresAt;
 
-  /// When the currently cached token lapses (client-side TTL), or `null` if no
-  /// token is cached. Lets a proactive refresher schedule a re-mint before it.
+  /// Lets a proactive refresher schedule a re-mint ahead of the lapse.
   DateTime? get expiresAt => _expiresAt;
 
-  /// In-flight mint shared by concurrent callers instead of each starting
-  /// their own request.
   Future<String?>? _pending;
 
-  /// Returns a valid token, minting a new one if missing, expired, or when
-  /// [forceRefresh] is set (e.g. after a 401 on the protected resource).
-  /// Returns `null` on a 404 from [_endpoint] — meaning depends on the
-  /// subclass (see [WsTokenService] vs [CameraTokenService]).
+  /// `null` on a 404, which each subclass reads differently — an older server
+  /// for `WsTokenService`, an error for `CameraTokenService`.
   Future<String?> cachedToken({bool forceRefresh = false}) async {
     final cached = _token;
     final expiry = _expiresAt;
@@ -70,7 +63,7 @@ abstract class CachedTokenService {
     return token;
   }
 
-  /// Forces a fresh mint on the next [cachedToken] call (e.g. after a 401).
+  /// Forces a fresh mint on the next [cachedToken], e.g. after a 401.
   void invalidate() {
     _token = null;
     _expiresAt = null;

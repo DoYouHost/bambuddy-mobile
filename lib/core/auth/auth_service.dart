@@ -9,10 +9,9 @@ import '../settings/sign_in_reason.dart';
 import 'credentials_store.dart';
 import 'two_factor.dart';
 
-/// Result of server auth mode probe. [baseUrl] is the URL actually reached —
-/// it may differ from what the user typed when the server redirected the probe
-/// (e.g. `http://host` → `https://host`), so the caller persists this one to
-/// keep REST and WS (ws/wss) on the same scheme.
+/// [baseUrl] is the URL actually *reached*, which differs from what the user
+/// typed when the probe was redirected (`http://host` → `https://host`). The
+/// caller persists this one, keeping REST and WS on the same scheme.
 typedef AuthProbeResult = ({
   bool authEnabled,
   bool requiresSetup,
@@ -32,13 +31,13 @@ class LoginCompleted extends LoginResult {
 
   final String token;
 
-  /// Who signed in, from the `user` object the login answer embeds
-  /// (`LoginResponse.user`, `backend/app/schemas/auth.py:39`). Null when the
-  /// server sent none — then the identity has to come from `GET /auth/me`.
+  /// From the `user` object the login answer embeds (`LoginResponse.user`,
+  /// `backend/app/schemas/auth.py:39`). Null when the server sent none — the
+  /// identity then has to come from `GET /auth/me`.
   final CurrentUser? user;
 }
 
-/// Password accepted, second factor pending. Nothing was stored yet — see
+/// Password accepted, second factor pending. Nothing stored yet — see
 /// [AuthService.verifyTwoFactor].
 class LoginNeedsTwoFactor extends LoginResult {
   const LoginNeedsTwoFactor(this.challenge);
@@ -46,10 +45,9 @@ class LoginNeedsTwoFactor extends LoginResult {
   final TwoFactorChallenge challenge;
 }
 
-
-/// JWT login and auth mode detection. Uses bare Dio (no auth interceptor) —
-/// login by definition goes without headers, which breaks the AuthService ↔
-/// ApiClient cycle.
+/// JWT login and auth mode detection. Uses bare Dio: login by definition goes
+/// without headers, which is also what breaks the AuthService ↔ ApiClient
+/// cycle.
 class AuthService {
   AuthService({
     required Dio bareDio,
@@ -64,9 +62,8 @@ class AuthService {
   /// its own, so the app can tell the user why. See [_doSilentReLogin].
   final Future<void> Function(SignInReason)? onSignInRequired;
 
-  /// `GET /auth/status` → `{auth_enabled, requires_setup}`.
-  /// Fallback for older servers without this endpoint (404):
-  /// unauthenticated `GET /printers` — 200 means auth disabled.
+  /// `GET /auth/status`, falling back for servers old enough to 404 it: an
+  /// unauthenticated `GET /printers` answering 200 means auth is disabled.
   Future<AuthProbeResult> probeAuthStatus(String baseUrl) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -119,12 +116,9 @@ class AuthService {
     }
   }
 
-  /// `POST /auth/login`. On success stores the JWT in secure storage; when
-  /// [remember] is true also stores username+password (silent re-login after
-  /// 401).
-  ///
-  /// A `requires_2fa` answer carries no token and stores nothing — the caller
-  /// gets a [LoginNeedsTwoFactor] to finish through [verifyTwoFactor].
+  /// Stores the JWT on success, plus username and password when [remember] is
+  /// set — that pair is what [silentReLogin] runs on. A `requires_2fa` answer
+  /// stores nothing and comes back as [LoginNeedsTwoFactor].
   Future<LoginResult> login({
     required String baseUrl,
     required String username,
@@ -153,9 +147,7 @@ class AuthService {
         setCookie: res.headers.map['set-cookie'] ?? const [],
       );
       if (challenge == null) {
-        // 2FA demanded without anything to answer it with — nothing the user
-        // can do from here, and storing a token we weren't given is not an
-        // option either.
+        // 2FA demanded with nothing to answer it with.
         throw const ApiException(AppErrorCode.malformedResponse);
       }
       AuthProbe.twoFactorRequired(challenge);
@@ -173,17 +165,14 @@ class AuthService {
     return LoginCompleted(token, user: _userOrNull(body['user']));
   }
 
-  /// The embedded `UserResponse`, or null when the server sent none — an
-  /// answer without it is still a completed login, so this never throws.
+  /// An answer without a user is still a completed login, so this never throws.
   static CurrentUser? _userOrNull(Object? value) =>
       value is Map<String, dynamic> ? CurrentUser.fromJson(value) : null;
 
-  /// `POST /auth/2fa/email/send` — mails a 6-digit code.
-  ///
-  /// Returns the challenge to use from here on: the server consumes the token
-  /// it was given and issues a fresh one, so keeping the old one guarantees a
-  /// 401 at verification. A failed send leaves the passed-in challenge valid
-  /// (the server rolls back), so the caller can retry with what it already has.
+  /// Answers with the challenge to use from here on: the server consumes the
+  /// token it was given and issues a fresh one, so keeping the old one
+  /// guarantees a 401 at verification. A failed send rolls back, leaving the
+  /// passed-in challenge good for a retry.
   Future<TwoFactorChallenge> sendEmailOtp({
     required String baseUrl,
     required TwoFactorChallenge challenge,
@@ -202,21 +191,19 @@ class AuthService {
     }
     AuthProbe.emailCodeSent(ok: true, status: res.statusCode);
     final fresh = res.data?['pre_auth_token'];
-    // A server that answered 200 without a fresh token has kept the old one
-    // valid (it only re-issues after consuming), so carrying it forward is the
+    // A 200 without a fresh token means the old one was never consumed — the
+    // server only re-issues after consuming — so carrying it forward is the
     // recovery, not a guess.
     return fresh is String && fresh.isNotEmpty
         ? challenge.withToken(fresh)
         : challenge;
   }
 
-  /// `POST /auth/2fa/verify` — exchanges the challenge plus a code for the JWT,
-  /// which is then stored exactly as [login] would.
+  /// Exchanges the challenge plus a code for the JWT, stored as [login] would.
   ///
   /// Deliberately has no "remember me": a saved password cannot renew a 2FA
-  /// session on its own (the second factor is in the user's head or their
-  /// authenticator), and a stored secret that buys nothing is pure liability.
-  /// See `docs/plans/10-two-factor-login.md` §2.
+  /// session on its own, and a stored secret that buys nothing is pure
+  /// liability. `docs/plans/10-two-factor-login.md` §2.
   Future<LoginCompleted> verifyTwoFactor({
     required String baseUrl,
     required TwoFactorChallenge challenge,
@@ -248,9 +235,8 @@ class AuthService {
     }
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
-    // `TwoFAVerifyResponse` carries the same `user` object as the one-step
-    // login (`backend/app/schemas/auth.py:271`), so finishing 2FA identifies
-    // the session too and costs no extra `GET /auth/me`.
+    // `TwoFAVerifyResponse` carries the same `user` as the one-step login
+    // (`backend/app/schemas/auth.py:271`), so this costs no `GET /auth/me`.
     return LoginCompleted(token, user: _userOrNull(res.data?['user']));
   }
 
@@ -295,18 +281,17 @@ class AuthService {
     };
   }
 
-  /// Whether a 401 body blames the pre-auth token rather than the code. The
-  /// server says "Invalid or expired pre-auth token" for the first and names
-  /// the factor ("Invalid TOTP code", "Invalid OTP code", "Invalid backup
-  /// code") for the second — and they lead to opposite next steps: start over
-  /// from the password, or just type the code again.
+  /// Whether a 401 blames the pre-auth token rather than the code — opposite
+  /// next steps, start over from the password or just retype. The server says
+  /// "Invalid or expired pre-auth token" for the first and names the factor
+  /// ("Invalid TOTP code", "Invalid backup code") for the second.
   static bool _challengeGone(Object? body) {
     final detail = body is Map ? body['detail'] : null;
     return detail is String && detail.toLowerCase().contains('pre-auth');
   }
 
-  /// Verifies API key with a test `GET /printers` and stores it.
-  /// Throws [AuthException] if key is rejected.
+  /// Proves the key on a `GET /printers` before storing it, so a typo surfaces
+  /// in the form rather than as a dead app.
   Future<void> verifyAndStoreApiKey({
     required String baseUrl,
     required String apiKey,
@@ -328,17 +313,15 @@ class AuthService {
 
   Future<String?>? _pendingSilentReLogin;
 
-  /// Silent re-login with saved credentials. `null` if nothing was saved or
-  /// login failed — then UI should gently redirect user to settings screen,
-  /// never crash.
+  /// `null` when nothing was saved or the login failed; the UI then routes to
+  /// settings rather than crashing.
   ///
-  /// Memoized: `AuthInterceptor`, `WsClient` and `ProactiveTokenRefresher` can
-  /// all call this within the same window when a JWT expires. Without
-  /// coordination that's N parallel `POST /auth/login`, and a server that
-  /// invalidates the previous JWT on new login turns the retried request's
-  /// second 401 into a spurious logout. Concurrent callers share the same
-  /// in-flight future; it's cleared once that attempt settles so the next
-  /// expiry still triggers a fresh login.
+  /// Memoized because `AuthInterceptor`, `WsClient` and
+  /// `ProactiveTokenRefresher` all reach for this in the same window when a JWT
+  /// expires. Uncoordinated that is N parallel logins, and a server which
+  /// invalidates the previous JWT on each one turns the retried request's
+  /// second 401 into a spurious logout. Cleared once the attempt settles, so
+  /// the next expiry still gets a fresh login.
   Future<String?> silentReLogin(String baseUrl) {
     final pending = _pendingSilentReLogin;
     if (pending != null) return pending;
@@ -365,28 +348,22 @@ class AuthService {
         case LoginCompleted(:final token):
           return token;
         case LoginNeedsTwoFactor():
-          // The password is still right, but from here a code is needed and
-          // there is nobody to type it — this runs in an interceptor or a
-          // background timer. Same handling as a rejected password, and for the
-          // same reason: every later 401 would otherwise repeat this login and
-          // spend the server's failed-attempt budget (10 per username, 20 per
-          // IP in 15 minutes) on an attempt that cannot finish. The warning
-          // says 2FA rather than blaming the password.
+          // The password is still right, but this runs in an interceptor or a
+          // background timer and there is nobody to type a code. Handled like a
+          // rejected password for the same reason: every later 401 would repeat
+          // a login that cannot finish, against the budget quoted below.
           AuthProbe.twoFactorBlockedSilentLogin();
           await _credentials.clearRememberedLogin();
           await onSignInRequired?.call(SignInReason.twoFactorRequired);
           return null;
       }
     } on AppApiException catch (e) {
-      // A 401 is the server's final word on these credentials: it checked them
-      // and said no. Keeping them means replaying the same rejected password on
-      // every 401 the app runs into, and the server counts those — 10 per
-      // username and 20 per IP in a 15-minute window. Behind a reverse proxy
-      // that IP bucket is the proxy's, shared with the web UI, so a phone whose
-      // saved password went stale can lock the whole install out of signing in.
-      // Forget them instead: the next call finds nothing saved and stops there.
-      // Anything else (429, 5xx, no network) says nothing about the password, so
-      // those keep it and retry later.
+      // A 401 is the server's final word, and keeping the credentials would
+      // replay the rejected password on every 401 the app meets. The server
+      // counts those: 10 per username, 20 per IP in 15 minutes — and behind a
+      // reverse proxy that IP bucket is the proxy's, shared with the web UI, so
+      // one phone with a stale password can lock the whole install out.
+      // Anything else (429, 5xx, no network) says nothing about the password.
       if (e.code == AppErrorCode.invalidCredentials) {
         await _credentials.clearRememberedLogin();
         await onSignInRequired?.call(SignInReason.credentialsRejected);
