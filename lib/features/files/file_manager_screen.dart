@@ -895,16 +895,16 @@ class _FilterRow extends ConsumerWidget {
               CheckedPopupMenuItem<String?>(
                 value: null,
                 checked: state.typeFilter == null,
-                child: Text(l10n.fmAllTypes),
+                child: logTag('files.type_all', Text(l10n.fmAllTypes)),
               ),
               for (final ft in types)
                 CheckedPopupMenuItem<String?>(
                   value: ft,
                   checked: state.typeFilter == ft,
-                  child: Text(ft.toUpperCase()),
+                  child: logTag('files.type_option', Text(ft.toUpperCase())),
                 ),
             ],
-          ),
+          ).tagged('files.filter_type'),
         ],
       ],
     );

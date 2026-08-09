@@ -123,7 +123,10 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                 for (final p in roster)
                   DropdownMenuItem(
                     value: p.printer.id,
-                    child: Text(p.printer.name),
+                    // One id for every row: the printer's name is the user's
+                    // own text, and the field's tag does not reach the popup.
+                    child: logTag(
+                        'spool_assign.printer_option', Text(p.printer.name)),
                   ),
               ],
               onChanged: (v) => setState(() => _printerId = v),
@@ -155,7 +158,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                   selected: {_externalTray},
                   onSelectionChanged: (s) =>
                       setState(() => _externalTray = s.first),
-                ),
+                ).tagged('spool_assign.extruder'),
               ] else
                 Text(
                   l10n.inventoryAssignExternalHint,

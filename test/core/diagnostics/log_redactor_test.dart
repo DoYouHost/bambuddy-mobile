@@ -1,10 +1,11 @@
-import 'package:bambuddy_mobile/core/diagnostics/log_redactor.dart';
+import 'package:app_report_client/app_report_client.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late LogRedactor redactor;
 
-  setUp(() => redactor = LogRedactor());
+  setUp(() => redactor = bambuddyRedactor());
 
   group('known values', () {
     test('replaces a remembered secret wherever it appears', () {
@@ -343,13 +344,13 @@ void main() {
     });
 
     test('clips a long value so one stack trace cannot fill the buffer', () {
-      final short = LogRedactor(maxStringLength: 10);
+      final short = bambuddyRedactor(maxStringLength: 10);
 
       expect(short.scrubString('abcdefghijklmnop'), 'abcdefghij…[clipped]');
     });
 
     test('clipping happens after redaction, never mid-secret', () {
-      final short = LogRedactor(maxStringLength: 12)
+      final short = bambuddyRedactor(maxStringLength: 12)
         ..remember('long-secret-value-here', '[APIKEY]');
 
       // Clipping the raw string first would have left a secret fragment in
@@ -362,7 +363,7 @@ void main() {
   test('leaves a control identifier alone when a host looks like a word', () {
     // The demo server is `http://demo`, so `demo` is a known host — and the id
     // `setup.demo` came back as `setup.[HOST]` from a real session.
-    final redactor = LogRedactor()..remember('demo', '[HOST]');
+    final redactor = bambuddyRedactor()..remember('demo', '[HOST]');
 
     final fields = redactor.scrubFields(const {
       'id': 'setup.demo',
@@ -376,7 +377,7 @@ void main() {
   test('still scrubs an id that is not shaped like one of ours', () {
     // A dotted word is ours; anything with spaces or punctuation came from
     // somewhere else and gets the usual treatment.
-    final redactor = LogRedactor()..remember('demo', '[HOST]');
+    final redactor = bambuddyRedactor()..remember('demo', '[HOST]');
 
     expect(
       redactor.scrubFields(const {'id': 'Rain Gauge on demo'})['id'],
@@ -387,7 +388,7 @@ void main() {
   test('leaves the material alone when a host is named after one', () {
     // Same trap as `setup.demo`, one field over: a server called `pla` would
     // turn every `mat` into `[HOST]`.
-    final redactor = LogRedactor()..remember('PLA-CF', '[HOST]');
+    final redactor = bambuddyRedactor()..remember('PLA-CF', '[HOST]');
 
     expect(redactor.scrubFields(const {'mat': 'PLA-CF'})['mat'], 'PLA-CF');
   });
@@ -396,7 +397,7 @@ void main() {
     // The WebSocket probe reports an AMS slot's material one level down, inside
     // the `ams` list — the exemption is about what the key means, not how deep
     // it sits.
-    final redactor = LogRedactor()..remember('PLA-CF', '[HOST]');
+    final redactor = bambuddyRedactor()..remember('PLA-CF', '[HOST]');
 
     final fields = redactor.scrubFields(const {
       'ams': [
@@ -415,7 +416,7 @@ void main() {
   });
 
   test('still scrubs a material that is not shaped like one of ours', () {
-    final redactor = LogRedactor()..remember('Bambu PLA Basic', '[HOST]');
+    final redactor = bambuddyRedactor()..remember('Bambu PLA Basic', '[HOST]');
 
     expect(
       redactor.scrubFields(const {'mat': 'Bambu PLA Basic'})['mat'],
@@ -427,7 +428,7 @@ void main() {
     // A server at `http://printer:8080` registers `printer`, which turned
     // `printerError` into `[HOST]Error` — mangling the one field that says which
     // notification the record is about.
-    final redactor = LogRedactor()..rememberServerUrl('http://printer:8080');
+    final redactor = bambuddyRedactor()..rememberServerUrl('http://printer:8080');
 
     final fields = redactor.scrubFields(const {
       'event': 'printerError',
@@ -443,7 +444,7 @@ void main() {
   test('still scrubs an event that is not shaped like one of ours', () {
     // Letters only is the whole guarantee: anything carrying a space, a digit or
     // punctuation did not come from the enum and is treated as user content.
-    final redactor = LogRedactor()..rememberServerUrl('http://printer:8080');
+    final redactor = bambuddyRedactor()..rememberServerUrl('http://printer:8080');
 
     expect(
       redactor.scrubFields(const {'event': 'printer 3 finished'})['event'],

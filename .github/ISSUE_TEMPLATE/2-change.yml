@@ -5,9 +5,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        The in-app reporter files bugs only, so this form is the way to ask for a change. No log
-        belongs with a request like this — no amount of evidence about what the app does now settles
-        what it ought to do.
+        **The app can file this for you.** Printers → ☰ menu → *Report a bug or an idea* → *Change*
+        sends the same request without a GitHub account, and fills in the versions below by itself.
+        Use this form when that route is not available to you.
+
+        No log belongs with a request like this either way — no amount of evidence about what the
+        app does now settles what it ought to do.
   - type: textarea
     id: request
     attributes:

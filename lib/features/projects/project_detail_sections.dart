@@ -349,7 +349,7 @@ class _FolderTile extends StatelessWidget {
                     : null,
               ).tagged('project.file'),
         ],
-      ),
+      ).tagged('project.folder'),
     );
   }
 }

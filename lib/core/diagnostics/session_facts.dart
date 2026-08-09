@@ -28,15 +28,14 @@ class SessionFacts {
   final String flavor;
   final String? os;
 
-  /// Device model. Left empty for now: it needs a `device_info_plus`
-  /// dependency, which is a call worth making deliberately rather than as a
-  /// side effect of building the logger.
+  /// Left empty for now: it needs a `device_info_plus` dependency, worth taking
+  /// deliberately rather than as a side effect of building the logger.
   final String? device;
 
   final String? locale;
 
   /// bambuddy version, as the server reports it at `/updates/version`. Empty
-  /// when the server could not be reached or answered something unparseable —
+  /// when the server could not be reached or answered something unparseable,
   /// which is itself worth seeing in a report.
   final String? server;
 
@@ -68,15 +67,15 @@ class SessionFacts {
 
 /// The exact values a session's redactor must never let through.
 ///
-/// Split out of [loadSessionFacts] for the background isolates: they inherit the
-/// UI stream's header off disk, so they need none of the facts — but they do need
-/// these, and with an empty redactor the first records they write are the ones
-/// that carry secrets. A `SocketException` reads "Failed host lookup:
-/// 'nas.example'", which is not a URL, so only an exact value catches it.
+/// Split out of [loadSessionFacts] for the background isolates, which inherit
+/// the UI header off disk and so need none of the facts — but with an empty
+/// redactor the first records they write are the ones carrying secrets. A
+/// `SocketException` reads "Failed host lookup: 'nas.example'", which is not a
+/// URL, so only an exact value catches it.
 ///
 /// Deliberately without `PackageInfo`: this runs before the foreground service
-/// dials its socket, and one platform channel is one more thing that can hang or
-/// throw on the path to monitoring being live.
+/// dials its socket, and one platform channel is one more thing that can hang
+/// on the path to monitoring being live.
 Future<Map<String, String>> sessionSecrets({
   required ServerProfile? profile,
   required CredentialsStore credentials,
@@ -98,13 +97,11 @@ Future<Map<String, String>> sessionSecrets({
 
 /// Reads the real facts off the device and the stored profile.
 ///
-/// [readServerVersion] is awaited for the header's `server` field. It is a
-/// callback rather than a value because the version comes off the network, and
-/// the header is written once at the top of the log where it is most useful:
-/// which server build produced the behaviour below is the first question every
-/// report raises, and the queue-enum diagnosis
-/// (`docs/plans/07-queue-cali-enum.md`) cost a day for want of exactly this line.
-/// A failure to read it is swallowed — a recording must start regardless.
+/// [readServerVersion] is a callback rather than a value because the version
+/// comes off the network. Which server build produced the behaviour below is
+/// the first question every report raises — the queue-enum diagnosis
+/// (`docs/plans/07-queue-cali-enum.md`) cost a day for want of this line. A
+/// failure to read it is swallowed; a recording must start regardless.
 Future<SessionFacts> loadSessionFacts({
   required ServerProfile? profile,
   required CredentialsStore credentials,

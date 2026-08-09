@@ -40,7 +40,19 @@ ALWAYS = {
     "PopupMenuButton", "TextField", "TextFormField", "DropdownMenu",
     "DropdownButton", "DropdownButtonFormField", "Checkbox", "Switch",
     "Radio", "Slider", "RangeSlider", "ChoiceChip", "FilterChip", "ActionChip",
-    "InputChip", "Dismissible", "PopupMenuItem",
+    "InputChip", "Dismissible", "PopupMenuItem", "CheckedPopupMenuItem",
+    "DropdownMenuItem", "DropdownMenuEntry", "ExpansionTile",
+    "ReorderableDragStartListener", "ReorderableDelayedDragStartListener",
+}
+
+# Rows of a menu, which the framework builds into a route of its own. The tag on
+# the anchor — the `PopupMenuButton`, the `DropdownMenu` — stays behind in the
+# main tree, so it never reaches them: at runtime a row named that way still
+# records as a bare `menuItem`. Only a tag the row carries with it counts, which
+# means one written inside it (`child:`, `labelWidget:`) or hung off it.
+POPUP_ITEMS = {
+    "PopupMenuItem", "CheckedPopupMenuItem", "MenuItemButton",
+    "DropdownMenuItem", "DropdownMenuEntry",
 }
 
 # A control only when it is given a callback — a bare `ListTile` is a row of
@@ -51,14 +63,19 @@ NEEDS_CALLBACK = {
 }
 
 CALLBACK = re.compile(r"\bon(Tap|Pressed|Changed|Selected|LongPress|Submitted)\s*:")
+DISABLED_ARG = re.compile(r"\benabled\s*:\s*false\b")
 
 # Functions that tag whatever they are handed, so arguments to them inherit.
 # `dashAppBar` wraps the whole bar in `chrome.appbar`, which reaches the
 # framework-built back button and every action passed in.
 WRAPPERS = {"dashAppBar": "chrome.appbar"}
 
+# The type argument is optional and may itself be generic — `SegmentedButton<X>`,
+# `DropdownButtonFormField<int>`, `PopupMenuButton<String>`. Without it those
+# constructors matched nothing and a whole kind went unreported.
 WIDGET_CALL = re.compile(
-    r"\b(" + "|".join(sorted(ALWAYS | NEEDS_CALLBACK)) + r")(?:\.(\w+))?\s*\("
+    r"\b(" + "|".join(sorted(ALWAYS | NEEDS_CALLBACK))
+    + r")(?:<[^()\n]*?>)?(?:\.(\w+))?\s*\("
 )
 
 # `FilledButton.styleFrom(...)` builds a style, `Theme.of(...)` reads one —
@@ -228,10 +245,24 @@ class FileScan:
             # Back up past the constructor name too: `.tagged` hangs off
             # `FilledButton(...)`, and the widget's own occurrence is recorded at
             # the `F`, not at the `(`. Without this every postfix tag reads as a
-            # gap.
+            # gap. Type arguments are stepped over as a matched pair rather than
+            # by character class — `PopupMenuButton<String?>` has a `?` in it,
+            # and stopping there put the range past the widget's own start.
             start = open_paren_before(self.masked, close)
+            if start > 0 and self.masked[start - 1] == ">":
+                depth, i = 0, start - 1
+                while i >= 0:
+                    if self.masked[i] == ">":
+                        depth += 1
+                    elif self.masked[i] == "<":
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    i -= 1
+                if i >= 0:
+                    start = i
             while start > 0 and (self.masked[start - 1].isalnum()
-                                 or self.masked[start - 1] in "_.<>"):
+                                 or self.masked[start - 1] in "_."):
                 start -= 1
             ranges.append((max(start - 1, 0), close + 1))
         return ranges
@@ -286,6 +317,13 @@ class FileScan:
             end = match_paren(self.masked, open_at)
             if name in NEEDS_CALLBACK and not CALLBACK.search(self.masked[open_at:end]):
                 continue
+            # A greyed-out menu row — the model dropdown's series headings —
+            # takes no tap, so there is nothing for a name to describe. Only
+            # menu rows: on an anchor the same argument would be the *menu*
+            # holding a disabled row, which is still pressable itself.
+            if name in POPUP_ITEMS and DISABLED_ARG.search(
+                    self.masked[open_at:end]):
+                continue
             found.append({
                 "kind": name,
                 "start": m.start(),
@@ -297,6 +335,13 @@ class FileScan:
 
     def covered_by_tag(self, index: int) -> bool:
         return any(start < index < end for start, end in self.tag_ranges)
+
+    def tag_carried_by(self, start: int, end: int) -> bool:
+        """A tag the widget takes with it: written inside its own call, or hung
+        off it postfix. Any wider range belongs to an ancestor — which is what a
+        menu row leaves behind when the framework rebuilds it in a route.
+        """
+        return any(s >= start - 1 and e <= end for s, e in self.tag_ranges)
 
     def class_at(self, index: int) -> str | None:
         for name, start, end in self.classes:
@@ -417,7 +462,10 @@ def main() -> int:
                         if owner and owner.startswith("_") else owner)
             method = s.method_at(w["start"])
             method_id = f"{library[s.path]}::{method}" if method else None
-            if s.covered_by_tag(w["start"]):
+            if w["kind"] in POPUP_ITEMS:
+                state = ("tagged" if s.tag_carried_by(w["start"], w["end"])
+                         else "uncovered")
+            elif s.covered_by_tag(w["start"]):
                 state = "tagged"
             elif owner_id in inherited_classes or method_id in inherited_classes:
                 state = "inherited"

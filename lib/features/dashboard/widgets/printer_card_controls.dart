@@ -609,7 +609,9 @@ class _SpeedControl extends StatelessWidget {
           CheckedPopupMenuItem<int>(
             value: m,
             checked: level == m,
-            child: Text(_speedName(l10n, m)!),
+            // Named by level: which speed was chosen is the record, and the
+            // level is the printer's own scale, not the user's data.
+            child: logTag('controls.speed.$m', Text(_speedName(l10n, m)!)),
           ),
       ],
       child: Container(
@@ -637,7 +639,7 @@ class _SpeedControl extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).tagged('controls.speed');
   }
 }
 

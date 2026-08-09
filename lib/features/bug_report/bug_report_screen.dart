@@ -8,8 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
 import '../../core/diagnostics/log_tag.dart';
-import '../../core/diagnostics/relay_client.dart';
-import '../../core/diagnostics/report_sender.dart';
+import 'package:app_report_client/app_report_client.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -43,15 +42,45 @@ class BugReportScreen extends ConsumerWidget {
   }
 }
 
-class _IdleView extends ConsumerWidget {
+/// Where all three kinds start. A bug goes on to record; a change or feature
+/// request is written and sent from here, because there is nothing about the app
+/// running that would settle it.
+class _IdleView extends ConsumerStatefulWidget {
   const _IdleView();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_IdleView> createState() => _IdleViewState();
+}
+
+class _IdleViewState extends ConsumerState<_IdleView> {
+  final _description = TextEditingController();
+
+  /// Ticks the countdown while a queued request waits out the relay's delay —
+  /// the same job [_ReviewViewState] does for a bug report.
+  Timer? _tick;
+
+  @override
+  void dispose() {
+    _description.dispose();
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _syncTicker(SendPhase phase) {
+    final needed = phase == SendPhase.waiting;
+    if (needed == (_tick != null)) return;
+    _tick?.cancel();
+    _tick = needed
+        ? Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}))
+        : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final recovered = ref.watch(
-      bugReportProvider.select((s) => s.recovered),
-    );
+    final state = ref.watch(bugReportProvider);
+    final recovered = state.recovered;
+    _syncTicker(state.send.phase);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -91,18 +120,57 @@ class _IdleView extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
         ],
+        _KindChoice(
+          kind: state.kind,
+          onChanged: ref.read(bugReportProvider.notifier).chooseKind,
+        ),
+        const SizedBox(height: 12),
+        if (state.kind.needsLog) ...[
+          // A request queued a moment ago is still on its way out, and switching
+          // tabs does not call it off. Shown here too, or the countdown would run
+          // on a screen that says nothing about it and the one control that can
+          // still stop it would be a tab away.
+          if (state.send.phase == SendPhase.waiting ||
+              state.send.phase == SendPhase.sending) ...[
+            _SendStatus(send: state.send),
+            if (state.send.phase == SendPhase.waiting) const _CancelSend(),
+            const SizedBox(height: 12),
+          ],
+          ..._bugSteps(l10n),
+        ] else
+          ..._requestForm(l10n, state),
+      ],
+    );
+  }
+
+  List<Widget> _bugSteps(AppLocalizations l10n) => [
         _Card(
           title: l10n.bugReportIntroHeader,
-          body: l10n.bugReportIntroBody,
+          rows: [
+            _Step(1, l10n.bugReportStepRecord),
+            _Step(2, l10n.bugReportStepReproduce),
+            _Step(3, l10n.bugReportStepFinish),
+          ],
         ),
         const SizedBox(height: 12),
         _Card(
           title: l10n.bugReportPrivacyHeader,
-          body: l10n.bugReportPrivacyBody,
           icon: Icons.lock_outline_rounded,
+          rows: [
+            _Fact.kept(l10n.bugReportLogScreens),
+            _Fact.kept(l10n.bugReportLogRequests),
+            // The one nobody expects to be in there, and the reason the old
+            // version of this card needed a warning box of its own.
+            _Fact.kept(l10n.bugReportLogService),
+            _Fact.kept(l10n.bugReportLogErrors),
+            _Fact.kept(l10n.bugReportLogSetup),
+            _Fact.never(l10n.bugReportLogNoKey),
+            _Fact.never(l10n.bugReportLogNoTyping),
+            _Fact.never(l10n.bugReportLogNoAddress),
+            _Fact.never(l10n.bugReportLogNoData),
+          ],
+          note: l10n.bugReportReviewFirst,
         ),
-        const SizedBox(height: 12),
-        _Note(l10n.bugReportPending),
         const SizedBox(height: 20),
         logTag(
           'bug_report.start',
@@ -110,11 +178,101 @@ class _IdleView extends ConsumerWidget {
             style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
             icon: const Icon(Icons.fiber_manual_record_rounded, size: 16),
             label: Text(l10n.bugReportStart),
-            onPressed: () => _start(context, ref),
+            onPressed: _start,
           ),
         ),
+      ];
+
+  List<Widget> _requestForm(AppLocalizations l10n, BugReportState state) {
+    final feature = state.kind == ReportKind.feature;
+    final sent = state.send.phase == SendPhase.sent;
+    return [
+      _Card(
+        title:
+            feature ? l10n.bugReportFeatureHeader : l10n.bugReportChangeHeader,
+        body: feature ? l10n.bugReportFeatureBody : l10n.bugReportChangeBody,
+        icon: feature ? Icons.lightbulb_outline_rounded : Icons.tune_rounded,
+      ),
+      const SizedBox(height: 12),
+      _Card(
+        title: l10n.bugReportRequestPrivacyHeader,
+        icon: Icons.lock_outline_rounded,
+        rows: [
+          _Fact.kept(l10n.bugReportRequestWhatYouWrite),
+          // Named because it is the one thing about the phone that bears on an
+          // idea: whether it is already done in a build the user does not have.
+          _Fact.kept(l10n.bugReportRequestVersions),
+          _Fact.never(l10n.bugReportRequestNoLog),
+          _Fact.never(l10n.bugReportRequestNoData),
+        ],
+        note: l10n.bugReportRequestPublic,
+      ),
+      const SizedBox(height: 16),
+      _DescriptionField(
+        controller: _description,
+        // Frozen once the report is queued: what waits on disk is a copy, so
+        // typing on would edit something that is no longer what gets sent.
+        enabled: state.send.phase == SendPhase.idle ||
+            state.send.phase == SendPhase.failed,
+        label: feature ? l10n.bugReportFeatureLabel : l10n.bugReportChangeLabel,
+        hint: feature ? l10n.bugReportFeatureHint : l10n.bugReportChangeHint,
+        // Where a request's ticket is bought, so the relay's delay runs while
+        // the sentence is being finished rather than after the send tap.
+        onChanged: ref.read(bugReportProvider.notifier).describingRequest,
+      ),
+      _SendStatus(send: state.send),
+      const SizedBox(height: 8),
+      if (sent)
+        _SentActions(
+          url: state.send.issueUrl,
+          body: l10n.bugReportRequestSentBody,
+          onDone: _finishRequest,
+        )
+      else ...[
+        _SendButton(send: state.send, onSend: _sendRequest),
+        // Only while something is queued. Before that there is nothing to call
+        // off, and afterwards the relay already has it.
+        if (state.send.phase == SendPhase.waiting) ...[
+          const SizedBox(height: 8),
+          const _CancelSend(),
+        ],
       ],
-    );
+    ];
+  }
+
+  /// Refuses an empty request rather than disabling the button, for the same
+  /// reason the bug flow does: a dead button explains nothing.
+  Future<void> _sendRequest() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final description = _description.text.trim();
+    if (description.isEmpty) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestRequired)));
+      return;
+    }
+    // False means the app could not even describe itself — nothing was queued,
+    // so nothing downstream will ever put a failure on the screen.
+    if (await ref.read(bugReportProvider.notifier).sendRequest(description)) {
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestNotPrepared)));
+  }
+
+  /// Nothing to delete here — a request leaves no recording behind — so this
+  /// only clears the form and hands the user back.
+  void _finishRequest() {
+    final l10n = AppLocalizations.of(context);
+    final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.bugReportSent)));
+    _description.clear();
+    ref.read(bugReportProvider.notifier).reset();
+    GoRouter.of(context).go(home);
   }
 
   /// Hands the app straight back to the user: the bug waits on the screen they
@@ -123,10 +281,69 @@ class _IdleView extends ConsumerWidget {
   /// finishes. Without a server profile the dashboard would bounce off the
   /// router's redirect, so a pre-setup recording goes back to setup — which is
   /// the screen worth recording in that case.
-  Future<void> _start(BuildContext context, WidgetRef ref) async {
+  Future<void> _start() async {
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
     await ref.read(bugReportProvider.notifier).start();
-    if (context.mounted) context.go(home);
+    if (mounted) context.go(home);
+  }
+}
+
+/// The first decision: a bug, which is settled by evidence, or a request, which
+/// is settled by argument. It is what decides whether anything gets recorded at
+/// all.
+class _KindChoice extends StatelessWidget {
+  const _KindChoice({required this.kind, required this.onChanged});
+
+  final ReportKind kind;
+  final ValueChanged<ReportKind> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 8),
+          child: Text(
+            l10n.bugReportKindQuestion,
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.textSecondary,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<ReportKind>(
+            segments: [
+              ButtonSegment(
+                value: ReportKind.bug,
+                icon: const Icon(Icons.bug_report_outlined, size: 16),
+                label: Text(l10n.bugReportKindBug),
+              ),
+              ButtonSegment(
+                value: ReportKind.change,
+                icon: const Icon(Icons.tune_rounded, size: 16),
+                label: Text(l10n.bugReportKindChange),
+              ),
+              ButtonSegment(
+                value: ReportKind.feature,
+                icon: const Icon(Icons.lightbulb_outline_rounded, size: 16),
+                label: Text(l10n.bugReportKindFeature),
+              ),
+            ],
+            selected: {kind},
+            showSelectedIcon: false,
+            onSelectionChanged: (picked) => onChanged(picked.first),
+          ),
+        ).tagged('bug_report.kind'),
+      ],
+    );
   }
 }
 
@@ -474,13 +691,28 @@ class _DestinationChoice extends StatelessWidget {
 }
 
 class _DescriptionField extends StatelessWidget {
-  const _DescriptionField({required this.controller, required this.enabled});
+  const _DescriptionField({
+    required this.controller,
+    required this.enabled,
+    this.label,
+    this.hint,
+    this.onChanged,
+  });
 
   final TextEditingController controller;
+
+  /// Typing is what tells a request apart from a look around, so this fires on
+  /// it rather than on the choice that opened the field.
+  final VoidCallback? onChanged;
 
   /// False once the report has been handed over. What is queued is a copy, so
   /// carrying on typing would edit something that is no longer what gets sent.
   final bool enabled;
+
+  /// Defaults to the bug wording. A request asks for something that does not
+  /// exist yet, so "what went wrong" would be the wrong question.
+  final String? label;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -488,6 +720,7 @@ class _DescriptionField extends StatelessWidget {
     return TextField(
       controller: controller,
       enabled: enabled,
+      onChanged: onChanged == null ? null : (_) => onChanged!(),
       minLines: 3,
       maxLines: 5,
       // The relay's own ceiling. Counted here so the limit is visible while
@@ -496,8 +729,8 @@ class _DescriptionField extends StatelessWidget {
       textCapitalization: TextCapitalization.sentences,
       keyboardType: TextInputType.multiline,
       decoration: InputDecoration(
-        labelText: l10n.bugReportDescriptionLabel,
-        hintText: l10n.bugReportDescriptionHint,
+        labelText: label ?? l10n.bugReportDescriptionLabel,
+        hintText: hint ?? l10n.bugReportDescriptionHint,
         border: const OutlineInputBorder(),
         alignLabelWithHint: true,
       ),
@@ -527,7 +760,10 @@ class _SendStatus extends StatelessWidget {
     return switch (send.phase) {
       SendPhase.waiting => _Waiting(remaining: send.remaining),
       SendPhase.sending => const _Working(),
-      SendPhase.failed => _Failed(failure: send.failure),
+      // The kind of the report that failed, not the tab in front of the user:
+      // every fallback the bug wording offers is about the log, and a request
+      // has none.
+      SendPhase.failed => _Failed(failure: send.failure, kind: send.kind),
       SendPhase.idle || SendPhase.sent => const SizedBox.shrink(),
     };
   }
@@ -622,9 +858,10 @@ class _Working extends StatelessWidget {
 }
 
 class _Failed extends StatelessWidget {
-  const _Failed({required this.failure});
+  const _Failed({required this.failure, required this.kind});
 
   final RelayFailure? failure;
+  final ReportKind kind;
 
   @override
   Widget build(BuildContext context) {
@@ -632,7 +869,9 @@ class _Failed extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
-        _failureText(AppLocalizations.of(context), failure),
+        kind.needsLog
+            ? _failureText(AppLocalizations.of(context), failure)
+            : _requestFailureText(AppLocalizations.of(context), failure),
         style: TextStyle(
           fontFamily: DashTokens.fontUi,
           fontSize: 12,
@@ -652,6 +891,38 @@ class _Failed extends StatelessWidget {
         RelayFailure.demo => l10n.bugReportSendFailedDemo,
         RelayFailure.rejected || null => l10n.bugReportSendFailedRejected,
       };
+
+  /// The same failures, minus every "save the log to a file" — there is no log
+  /// behind a request, so that advice would send the reader looking for a file
+  /// that was never written.
+  static String _requestFailureText(
+    AppLocalizations l10n,
+    RelayFailure? failure,
+  ) =>
+      switch (failure) {
+        RelayFailure.notYet => l10n.bugReportRequestFailedNotYet,
+        RelayFailure.duplicate => l10n.bugReportSendFailedDuplicate,
+        RelayFailure.unreachable => l10n.bugReportRequestFailedUnreachable,
+        RelayFailure.demo => l10n.bugReportRequestFailedDemo,
+        // Both dead ends, and both leave the user the same one way through:
+        // GitHub's own form.
+        RelayFailure.refused ||
+        RelayFailure.rejected ||
+        null =>
+          l10n.bugReportRequestFailedRefused,
+      };
+}
+
+/// Calls off a queued report before the relay gets it. Rendered only while one
+/// is actually waiting — on either tab, because switching tabs does not cancel.
+class _CancelSend extends ConsumerWidget {
+  const _CancelSend();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => TextButton(
+        onPressed: ref.read(bugReportProvider.notifier).cancelSend,
+        child: Text(AppLocalizations.of(context).bugReportCancelSend),
+      ).tagged('bug_report.cancel_send');
 }
 
 class _SendButton extends StatelessWidget {
@@ -680,10 +951,14 @@ class _SendButton extends StatelessWidget {
 /// Replaces the actions once the issue exists: the URL is the one thing the user
 /// cannot get back if this screen closes without showing it.
 class _SentActions extends StatelessWidget {
-  const _SentActions({required this.url, required this.onDone});
+  const _SentActions({required this.url, required this.onDone, this.body});
 
   final String? url;
   final VoidCallback onDone;
+
+  /// Defaults to the bug wording, which promises an attached log a request does
+  /// not have.
+  final String? body;
 
   @override
   Widget build(BuildContext context) {
@@ -702,7 +977,7 @@ class _SentActions extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '${l10n.bugReportSent} — ${l10n.bugReportSentBody}',
+                '${l10n.bugReportSent} — ${body ?? l10n.bugReportSentBody}',
                 style: TextStyle(
                   fontFamily: DashTokens.fontUi,
                   fontSize: 12,
@@ -1005,13 +1280,27 @@ class _RawBlock extends StatelessWidget {
 class _Card extends StatelessWidget {
   const _Card({
     required this.title,
-    required this.body,
+    this.body,
+    this.rows = const [],
+    this.note,
     this.icon,
     this.footer,
   });
 
   final String title;
-  final String body;
+
+  /// A short lead. Optional, because most of these cards are better as [rows]:
+  /// a consent notice nobody reads is worse consent than a list of six lines
+  /// somebody skims.
+  final String? body;
+
+  /// The card's content as one scannable line each.
+  final List<Widget> rows;
+
+  /// A closing line under the rows, for the one thing that is not a fact about
+  /// the list above it.
+  final String? note;
+
   final IconData? icon;
 
   /// Buttons belonging to this card, when it asks for a decision.
@@ -1050,16 +1339,32 @@ class _Card extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              height: 1.45,
-              color: t.textSecondary,
+          if (body case final String lead) ...[
+            const SizedBox(height: 8),
+            Text(
+              lead,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                height: 1.45,
+                color: t.textSecondary,
+              ),
             ),
-          ),
+          ],
+          if (rows.isNotEmpty) ...[const SizedBox(height: 10), ...rows],
+          if (note case final String closing) ...[
+            const SizedBox(height: 10),
+            Text(
+              closing,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+                color: t.textTertiary,
+              ),
+            ),
+          ],
           if (footer != null) ...[const SizedBox(height: 14), footer!],
         ],
       ),
@@ -1067,37 +1372,102 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// Temporary: says out loud which sources are not instrumented yet, so a log
-/// that looks thin is not mistaken for a broken recorder.
-class _Note extends StatelessWidget {
-  const _Note(this.text);
+/// One line of a card's list, with a mark in front of it.
+///
+/// The marks do the work a sub-heading would otherwise do: a tick is something
+/// the report carries, a cross is something it does not. Both are good news
+/// here, so the cross is grey rather than red — it is not a warning, it is the
+/// half of the promise the reader came for.
+class _Fact extends StatelessWidget {
+  const _Fact(this.text, {required this.included});
+
+  const _Fact.kept(String text) : this(text, included: true);
+  const _Fact.never(String text) : this(text, included: false);
 
   final String text;
+  final bool included;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.subCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.subCardBorder),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.construction_rounded, size: 16, color: t.accentOrange),
-          const SizedBox(width: 10),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              included ? Icons.check_rounded : Icons.close_rounded,
+              size: 15,
+              color: included ? t.accentGreen : t.textTertiary,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                height: 1.4,
+                fontSize: 13,
+                height: 1.35,
+                color: included ? t.textSecondary : t.textTertiary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A numbered step. Three of these replace the paragraph that used to explain
+/// the same three things in prose.
+class _Step extends StatelessWidget {
+  const _Step(this.number, this.text);
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: t.cardBorder,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontFamily: DashTokens.fontMono,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
                 color: t.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                  color: t.textSecondary,
+                ),
               ),
             ),
           ),

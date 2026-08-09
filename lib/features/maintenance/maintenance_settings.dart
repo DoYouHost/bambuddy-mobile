@@ -539,16 +539,20 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
                     items: [
                       DropdownMenuItem(
                         value: 'hours',
-                        child: Text(l10n.maintenanceIntervalHours),
+                        child: logTag(
+                            'maintenance_type_form.interval_type.hours',
+                            Text(l10n.maintenanceIntervalHours)),
                       ),
                       DropdownMenuItem(
                         value: 'days',
-                        child: Text(l10n.maintenanceIntervalDays),
+                        child: logTag(
+                            'maintenance_type_form.interval_type.days',
+                            Text(l10n.maintenanceIntervalDays)),
                       ),
                     ],
                     onChanged: (v) =>
                         setState(() => _intervalType = v ?? 'hours'),
-                  ),
+                  ).tagged('maintenance_type_form.interval_type'),
                 ),
                 const SizedBox(width: 12),
                 SizedBox(

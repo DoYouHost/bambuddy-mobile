@@ -12,10 +12,15 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # Report transport, outbox and redaction, shared with lubelogger-mobile.
+  # Pinned to a tag, the way the OpenTofu modules are: a moving ref would let a
+  # change over there reach a release from here without a commit in this repo.
+  app_report_client:
+    git:
+      url: https://github.com/DoYouHost/app-shared.git
+      ref: v0.1.0
+      path: packages/app_report_client
   collection: ^1.19.0
-  # Used directly by the report relay client (SHA-256 for the proof of work).
-  # Was already resolved transitively; declared so the import is honest.
-  crypto: ^3.0.6
   cupertino_icons: ^1.0.8
   dio: ^5.7.0
   flutter_riverpod: ^2.6.1

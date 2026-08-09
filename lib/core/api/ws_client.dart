@@ -10,10 +10,9 @@ import '../models/printer_status.dart';
 import 'ws_backoff.dart';
 import 'ws_messages.dart';
 
-/// WebSocket connection state — source for UI banner.
-///
-/// `suspended` is separate from `disconnected`: it means intentional pausing
-/// while app is in background (zero reconnect attempts), not a failure.
+/// `suspended` is separate from `disconnected` because it is deliberate — the
+/// app went to the background and nothing is retrying — not a failure the
+/// banner should alarm anyone about.
 enum WsConnectionState {
   disconnected,
   connecting,
@@ -22,25 +21,21 @@ enum WsConnectionState {
   suspended,
 }
 
-/// Minimal WebSocket connection contract. Allows injecting a fake in tests
-/// without implementing full [WebSocketChannel]; in production wraps
-/// [IOWebSocketChannel] (supports auth headers on handshake — which browser
-/// WebSocket cannot do).
+/// Lets a test inject a fake without implementing all of [WebSocketChannel].
+/// Production wraps [IOWebSocketChannel], which can put auth headers on the
+/// handshake where a browser WebSocket cannot.
 abstract class WsConnection {
-  /// Completes after successful handshake; throws if connection fails
-  /// (server down, 401/403 on upgrade).
+  /// Throws when the connection fails — server down, 401/403 on upgrade.
   Future<void> get ready;
   Stream<dynamic> get stream;
   void send(String data);
   Future<void> close();
 
-  /// Close code the peer sent, once the stream is done — `null` while the
-  /// socket is live, or when the transport reports none. Diagnostics only:
-  /// 1000 (server shutting down cleanly) and 1006 (connection lost without a
-  /// close frame) are the same reconnect to the client and a different report.
+  /// Filled in by the peer once the stream is done, `null` while live.
+  /// Diagnostics only: 1000 (clean shutdown) and 1006 (lost without a close
+  /// frame) are the same reconnect to us and a different report.
   int? get closeCode;
 
-  /// Text the peer attached to the close, when it sent any.
   String? get closeReason;
 }
 
@@ -70,17 +65,13 @@ class _IoWsConnection implements WsConnection {
 WsConnection _defaultConnect(Uri url, Map<String, String> headers) =>
     _IoWsConnection(IOWebSocketChannel.connect(url, headers: headers));
 
-/// Bambuddy WebSocket client: single multiplexing connection to `/api/v1/ws`,
-/// streaming `printer_status` frames.
+/// One multiplexing connection to `/api/v1/ws`, streaming every printer's
+/// frames. Resilience is three things: jittered backoff ([WsBackoff]), a
+/// heartbeat ping with an idle watchdog behind it, and explicit
+/// [suspend]/[resume] tied to the app's lifecycle.
 ///
-/// Two outputs for upper layer: [connectionStates] (banner) and [statuses]
-/// (latest status per printer mounted by provider). Resilience per plan §3:
-/// backoff with jitter ([WsBackoff]), heartbeat ping + idle watchdog,
-/// explicit [suspend]/[resume] for app lifecycle.
-///
-/// Auth is header-based (see ws-contract-m2 memory) — no token minting;
-/// on credential change/expiry, reconnect with fresh headers (read from
-/// [authHeaders] at each attempt).
+/// Credentials are re-read on every attempt, so a refreshed JWT or a changed
+/// key needs nothing more than a reconnect.
 class WsClient {
   WsClient({
     required Uri url,
@@ -96,8 +87,8 @@ class WsClient {
     this.idleTimeout = const Duration(seconds: 60),
     this.stableThreshold = const Duration(seconds: 30),
   })  :
-        // Public parameter names + private fields: initializing formal
-        // cannot be private, so lint is unsatisfiable here.
+        // An initializing formal cannot be private, so the lint cannot be
+        // satisfied while the fields stay private.
         // ignore: prefer_initializing_formals
         _url = url,
         // ignore: prefer_initializing_formals
@@ -119,43 +110,38 @@ class WsClient {
   final WsConnector _connect;
   final WsBackoff _backoff;
 
-  /// Diagnostic log of the connection's life — attempts, closes, frame rates.
   /// Silent unless a bug-report recording is running.
   final WsProbe _probe;
 
-  /// Attempt to refresh credentials (silent JWT re-login) when server rejects
-  /// handshake. `true` = got fresh credentials, worth retrying immediately.
-  /// `null` (apiKey/none mode) → nothing to refresh, normal backoff.
+  /// Silent JWT re-login when the server rejects the handshake. `true` means
+  /// fresh credentials, worth retrying at once; `null` in apiKey/none mode,
+  /// where there is nothing to refresh.
   final Future<bool> Function()? _refreshAuth;
 
-  /// Mints the short-lived `?token=` value for the handshake (GHSA-r2qv:
-  /// the WS endpoint validates a query token before `accept()`, since the
-  /// upgrade can't carry `Authorization`/`X-API-Key` headers in browsers).
-  /// `null` token (or a server without `/auth/ws-token`) → connect without
-  /// the param, falling back to header auth for older servers.
+  /// GHSA-r2qv: the endpoint validates a query token before `accept()`, since
+  /// the upgrade cannot carry headers in browsers. A `null` token means a
+  /// server without the route, so we fall back to header auth.
   final Future<String?> Function()? _queryToken;
 
-  /// Drops the cached query token so the next attempt mints a fresh one
-  /// (called when the server rejects the handshake as unauthorized).
+  /// Called when the server rejects the handshake, so the next attempt mints
+  /// rather than re-sending a token the server has already refused.
   final void Function()? _invalidateQueryToken;
 
-  /// Whether handshake error is auth rejection (not connectivity failure).
   final bool Function(Object error) _isAuthError;
 
-  /// Re-login attempted at most once per failure series — reset after
-  /// successful connection. Protects against login→401→login loop when fresh
-  /// token is also rejected (e.g., account requires reconfiguration).
+  /// Re-login runs at most once per failure series, reset on a successful
+  /// connection — otherwise a fresh token that is also rejected (an account
+  /// needing reconfiguration) becomes a login→401→login loop.
   bool _authRefreshed = false;
 
-  /// Interval between heartbeat pings.
   final Duration heartbeatInterval;
 
-  /// No frame of ANY kind for this duration → force reconnect
-  /// (catches half-open TCP after Wi-Fi roam).
+  /// No frame of *any* kind for this long forces a reconnect, which is what
+  /// catches a half-open TCP after a Wi-Fi roam.
   final Duration idleTimeout;
 
-  /// Connection must survive this long to be considered stable and reset
-  /// backoff — otherwise flapping would prevent backoff growth.
+  /// How long a connection must survive before the backoff resets; without it
+  /// a flapping socket would keep the delay at its minimum forever.
   final Duration stableThreshold;
 
   final _stateController = StreamController<WsConnectionState>.broadcast();
@@ -174,8 +160,8 @@ class WsClient {
   bool _running = false;
   bool _disposed = false;
 
-  /// Increments on each connection attempt; invalidates stale callbacks
-  /// (frames/close) from old, abandoned socket.
+  /// Invalidates frame and close callbacks still arriving from an abandoned
+  /// socket.
   int _generation = 0;
 
   WsConnectionState get state => _state;
@@ -183,26 +169,23 @@ class WsClient {
   Stream<PrinterStatus> get statuses =>
       _statusController.stream.map((f) => f.status);
 
-  /// Full status frames including the raw server JSON — for consumers that
-  /// must forward server-shaped data (watch relay) without re-serializing.
+  /// Carries the raw server JSON too, for the watch relay, which forwards
+  /// server-shaped data rather than re-serializing.
   Stream<WsPrinterStatus> get statusFrames => _statusController.stream;
 
-  /// "Plate not empty" events (suspended print) — separate stream from
-  /// [statuses] because it's an event frame, not full printer state.
+  /// Its own stream rather than part of [statuses]: an event frame, not state.
   Stream<WsPlateNotEmpty> get plateAlerts => _plateController.stream;
 
-  /// Print lifecycle events (`print_start`/`print_complete`) — a trigger to
-  /// refresh queue/maintenance, which aren't pushed over WS themselves.
   Stream<WsPrintEvent> get printEvents => _printController.stream;
 
-  /// Start connecting (idempotent). After [suspend], resume via [resume].
+  /// Idempotent. After [suspend] the way back is [resume].
   void start() {
     if (_disposed || _running) return;
     _running = true;
     _openConnection();
   }
 
-  /// App in background: close socket, set state to `suspended`, no reconnects.
+  /// App went to the background: close the socket and stop reconnecting.
   void suspend() {
     if (_disposed || _state == WsConnectionState.suspended) return;
     _running = false;
@@ -212,11 +195,12 @@ class WsClient {
     _setState(WsConnectionState.suspended);
   }
 
-  /// Resume from background. Caller should do REST backfill first, then this.
+  /// The caller backfills over REST first, then calls this.
   void resume() {
     if (_disposed || _running) return;
     _backoff.reset();
-    _authRefreshed = false; // fresh attempt series — can retry re-login again
+    // A fresh attempt series, so re-login is on the table again.
+    _authRefreshed = false;
     start();
   }
 
@@ -239,7 +223,7 @@ class WsClient {
     final generation = ++_generation;
     _setState(WsConnectionState.connecting);
 
-    // Headers read on EVERY attempt — catches refreshed JWT/key.
+    // Read on *every* attempt, which is what picks up a refreshed JWT or key.
     Map<String, String> headers;
     try {
       headers = await _authHeaders();
@@ -248,8 +232,8 @@ class WsClient {
     }
     if (generation != _generation || !_running || _disposed) return;
 
-    // Append the freshly-minted `?token=` when available (new server); on a
-    // null token keep the bare URL so header auth still works on old servers.
+    // A null token keeps the bare URL, so header auth still works on servers
+    // without the mint route.
     var url = _url;
     var withToken = false;
     if (_queryToken != null) {
@@ -257,14 +241,10 @@ class WsClient {
       try {
         token = await _queryToken();
       } catch (e) {
-        // `_queryToken` (WsTokenService.token) returns `null` — no throw —
-        // specifically for "server lacks this endpoint" (404); anything it
-        // actually throws is a genuine transient mint failure (network blip,
-        // 5xx). Treat that like any other connect failure (backoff + retry,
-        // re-minting fresh next attempt) instead of silently falling back to
-        // header-only: on a server that REQUIRES `?token=`, a header-only
-        // handshake is certain to 401 and burns the one-shot re-login for
-        // nothing.
+        // A missing route answers `null` rather than throwing, so anything
+        // caught here is a transient mint failure. Retrying beats falling back
+        // to header-only: on a server that *requires* the token, a header-only
+        // handshake is a certain 401 that burns the one-shot re-login.
         if (generation != _generation) return;
         _probe.connectError(wsInnerError(e), phase: 'token');
         await _handleConnectError(e, generation);
@@ -294,15 +274,15 @@ class WsClient {
       await _handleConnectError(e, generation);
       return;
     }
-    // During handshake, suspend()/dispose() or newer generation could arrive
-    // — then discard fresh connection.
+    // A suspend, a dispose or a newer attempt can land mid-handshake, and the
+    // connection we just opened is then already obsolete.
     if (generation != _generation || !_running || _disposed) {
       await conn.close();
       return;
     }
 
     _conn = conn;
-    _authRefreshed = false; // successful connection → can retry re-login again
+    _authRefreshed = false;
     _probe.opened();
     _setState(WsConnectionState.connected);
     _sub = conn.stream.listen(
@@ -318,7 +298,8 @@ class WsClient {
 
   void _onFrame(int generation, dynamic data) {
     if (generation != _generation) return;
-    _resetWatchdog(generation); // any frame = live socket
+    // Any frame at all proves the socket is live.
+    _resetWatchdog(generation);
     if (data is! String) {
       _probe.binaryFrame();
       return;
@@ -332,15 +313,15 @@ class WsClient {
     } else if (msg is WsPrintEvent && !_printController.isClosed) {
       _printController.add(msg);
     }
-    // WsPong/WsUnknown/null: watchdog already reset — nothing more.
+    // A pong, an unknown type or unparseable text needs nothing beyond the
+    // watchdog reset above.
   }
 
-  /// Handshake error. If server rejected auth and we can refresh (JWT), try
-  /// silent re-login once — on success, reconnect immediately with new token.
-  /// Otherwise normal backoff.
+  /// On an auth rejection this tries a silent re-login once and reconnects at
+  /// once if it worked; everything else falls through to backoff.
   Future<void> _handleConnectError(Object error, int generation) async {
-    // Unauthorized handshake → the cached query token is likely stale; drop it
-    // so the next attempt (immediate after re-login, or after backoff) re-mints.
+    // The cached query token is the likely culprit, so drop it and let the next
+    // attempt re-mint.
     if (_isAuthError(error)) _invalidateQueryToken?.call();
     if (_running &&
         !_disposed &&
@@ -365,8 +346,8 @@ class WsClient {
     Object? error,
   }) {
     if (generation != _generation) return;
-    // Before teardown: the close code lives on the connection we are about to
-    // drop, and the peer only fills it in once the stream is done.
+    // Before teardown: the close code lives on the connection about to be
+    // dropped, and the peer only fills it in once the stream is done.
     _probe.disconnected(
       reason: reason,
       code: _conn?.closeCode,
@@ -393,11 +374,10 @@ class WsClient {
     _heartbeat = Timer.periodic(heartbeatInterval, (_) => _sendHeartbeat());
   }
 
-  /// A remote close can land between the last frame and the stream's
-  /// `onDone`/`onError` callback actually firing — `_conn` stays non-null for
-  /// that window, so a ping can hit an already-closed sink and throw
-  /// straight out of the timer callback (uncaught, no recovery). Swallow it;
-  /// `_onClosed` runs once onDone/onError actually delivers and reconnects.
+  /// A remote close can land between the last frame and `onDone`/`onError`
+  /// firing. `_conn` stays non-null across that window, so a ping can hit a
+  /// closed sink and throw straight out of the timer callback, uncaught. The
+  /// reconnect still happens when the callback finally delivers.
   void _sendHeartbeat() {
     final conn = _conn;
     if (conn == null) return;
@@ -416,8 +396,8 @@ class WsClient {
     );
   }
 
-  /// Close current connection and cancel all associated timers.
-  /// Does NOT touch `_retry` or state — callers handle per context.
+  /// Leaves `_retry` and the state alone — what those should become depends on
+  /// which caller got here.
   void _teardownConnection() {
     _heartbeat?.cancel();
     _watchdog?.cancel();
@@ -440,32 +420,29 @@ class WsClient {
   }
 }
 
-/// What actually went wrong: `package:web_socket_channel` wraps the original
-/// exception in `WebSocketChannelException.inner`, and the wrapper's type says
-/// nothing — `HandshakeException` versus `SocketException` is the difference
-/// between "TLS refused" and "nothing listening there".
+/// `package:web_socket_channel` wraps the original in
+/// `WebSocketChannelException.inner`, and the wrapper's type says nothing —
+/// `HandshakeException` versus `SocketException` is "TLS refused" versus
+/// "nothing listening there".
 Object wsInnerError(Object error) {
   final inner = error is WebSocketChannelException ? error.inner : error;
   return inner ?? error;
 }
 
-/// HTTP status `dart:io`'s `WebSocket.connect` attaches to the thrown
-/// `WebSocketException` (`response.statusCode` whenever a response came back but
-/// wasn't a 101 upgrade), or null when the server never responded at all.
+/// What `dart:io` attaches whenever a response came back and was not a 101,
+/// or null when the server never responded at all.
 int? wsHandshakeStatus(Object error) {
   final inner = wsInnerError(error);
   return inner is WebSocketException ? inner.httpStatusCode : null;
 }
 
-/// Default classifier: handshake error is auth rejection when server
-/// RESPONDED but didn't upgrade (401/403) — unlike connectivity failure
-/// (SocketException, timeout) where re-login won't help.
+/// An auth rejection is the server *responding* without upgrading, unlike a
+/// connectivity failure where re-login helps nothing.
 ///
-/// Anchored on the real HTTP status ([wsHandshakeStatus]) — NOT a substring
-/// match on `error.toString()`. A plain connectivity failure's message can embed
-/// the target host/port (e.g. a server on `host:8403`), which would otherwise
-/// false-match "403" and misclassify a routine network hiccup as an auth
-/// rejection.
+/// Anchored on the real status, **not** a substring match on `toString()`: a
+/// connectivity failure's message can embed the target port — a server on
+/// `host:8403` would false-match "403" and turn a network hiccup into a
+/// spurious re-login.
 bool _defaultIsAuthError(Object error) {
   final code = wsHandshakeStatus(error);
   return code == 401 || code == 403;

@@ -402,7 +402,17 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             }
           },
           dropdownMenuEntries: [
-            for (final o in options) DropdownMenuEntry(value: o, label: o),
+            // The menu opens in a route of its own, so the field's tag stays
+            // behind. `logTagMaterial` keeps the pick out of the identifier:
+            // on the material combo it rides in `mat`, and a brand or variant
+            // is not a known material, so it falls back to the bare id.
+            for (final o in options)
+              DropdownMenuEntry(
+                value: o,
+                label: o,
+                labelWidget:
+                    logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
+              ),
           ],
         ),
         ),
@@ -520,11 +530,19 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
         decoration: _dashDecoration(t, labelText: l10n.inventoryFieldEffect),
         items: [
-          DropdownMenuItem(value: null, child: Text(l10n.inventoryEffectNone)),
-          for (final e in options) DropdownMenuItem(value: e, child: Text(e)),
+          DropdownMenuItem(
+            value: null,
+            child: logTag('${_fieldTag('effect')}.none',
+                Text(l10n.inventoryEffectNone)),
+          ),
+          for (final e in options)
+            DropdownMenuItem(
+              value: e,
+              child: logTag('${_fieldTag('effect')}.option', Text(e)),
+            ),
         ],
         onChanged: (v) => setState(() => _effectType = v),
-      ),
+      ).tagged(_fieldTag('effect')),
     );
   }
 

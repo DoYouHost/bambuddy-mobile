@@ -4,109 +4,60 @@ import 'package:dio/dio.dart';
 
 import 'diagnostic_recorder.dart';
 import 'log_event.dart';
+import 'log_store.dart';
 
-/// Records every call the app makes to bambuddy: method, path, status and how
-/// long it took, plus what failed when it failed.
+/// Records every call the app makes to bambuddy: method, path, status, how long
+/// it took, and what failed when it failed. "The app is broken" usually turns
+/// out to be a 502 or a handshake that never completed, and the UI shows the
+/// same empty card either way.
 ///
-/// This is the layer where "the app is broken" usually turns out to mean the
-/// server answered 502, or the connection never got past the TLS handshake — and
-/// neither is visible from the UI, which shows the same empty card either way.
+/// Installed by [createBareDio], so it also covers the login calls that run
+/// before there is a client and the background isolate's client.
 ///
-/// Installed by [createBareDio], so it covers the authenticated client, the
-/// login and auth-probe calls that run before there is a client, and the
-/// background isolate's own client. Nothing here is built unless a recording
-/// runs, so an idle app pays for one clock reading per request and nothing else.
-///
-/// What deliberately never enters a record: headers (the API key lives there),
-/// the query string (the camera and thumbnail tokens live there), and the host
-/// (the user's private network — the session header carries scheme, port and
-/// whether it was a name or an IP).
-///
-/// ## What a successful answer contributes
-///
-/// Its record count ([_countOf]) plus **one** record in full, for the endpoints
-/// that carry the app's content ([_sampledPaths]). A status code cannot separate
-/// "the screen is empty" from "the screen shows the wrong thing": a 200 with
-/// twenty records the app then hides looks exactly like a 200 with nothing in
-/// it. One record settles both, and names the field when the server changed a
-/// type.
-///
-/// The rest of the list stays a number, and an unchanged sample degrades to
-/// `same` — a poll answering with the same first record twice a minute for half
-/// an hour would otherwise *be* the log.
+/// What is excluded and what a sampled answer contributes:
+/// `docs/diagnostics-log.md`.
 class HttpProbe extends Interceptor {
-  /// Where the clock reading for `ms` is parked. `extra` survives redirects and
-  /// the auth retry, which re-sends the very same [RequestOptions].
+  /// `extra` survives redirects and the auth retry, which re-send the very same
+  /// [RequestOptions].
   static const _startedAtKey = 'diagnosticsStartedAt';
 
-  /// Error bodies are clipped hard: bambuddy answers with a short `detail`, and
-  /// anything longer is a proxy's HTML error page, which says which proxy in its
-  /// first few tags.
+  /// bambuddy answers with a short `detail`; anything longer is a proxy's HTML
+  /// error page, which names the proxy in its first few tags.
   static const _maxBodyChars = 300;
 
-  /// Ceiling on one sampled record while it stays a map.
-  ///
-  /// Six kilobytes because that is what the records worth reading actually
-  /// measure: a printer status is 4.6 kB and a maintenance overview 3.2 kB on a
-  /// live server, and the first cut of this (1.9 kB, taken from a 1.4 kB queue
-  /// item) turned both into escaped, truncated text — losing the AMS tail and
-  /// most of the maintenance list, which is the half anybody would have opened
-  /// the log for. Repeats do not multiply it: an unchanged record degrades to
-  /// `same`.
+  /// Six kilobytes because that is what the records worth reading measure: a
+  /// live printer status is 4.6 kB and a maintenance overview 3.2 kB. The first
+  /// cut of this (1.9 kB) turned both into escaped, truncated text, losing the
+  /// AMS tail and most of the maintenance list.
   static const _maxSampleChars = 6 * 1024;
 
-  /// Ceiling on the degraded form. Past [_maxSampleChars] a record goes in as
-  /// clipped text — a library entry carrying an inline thumbnail must not put an
-  /// image in the log — and this stays under `LogRedactor.maxStringLength` so
-  /// such a clip is marked once rather than twice.
+  /// Ceiling on the degraded form — a library entry carrying an inline
+  /// thumbnail must not put an image in the log. Under
+  /// `LogRedactor.maxStringLength`, so such a clip is marked once, not twice.
   static const _maxClippedChars = 1900;
 
-  /// Endpoints whose answers are the app's content, and therefore the answer to
-  /// "it shows nothing" and "it shows the wrong thing".
-  ///
-  /// An allowlist, not a denylist: `auth`, `cloud`, `makerworld` and `settings`
-  /// answer with tokens and credentials, `users` answers with people, and
-  /// `filament-catalog` is a static table nobody reports bugs about. Forgetting
-  /// an endpoint here costs a diagnosis; forgetting one in a denylist costs a
-  /// secret.
+  /// Endpoints whose answers are the app's content.
   static final _sampledPaths = RegExp(
     r'/api/v1/(queue|archives|printers|inventory|spoolman'
     r'|smart-plugs|maintenance|projects|library)(/|$)',
   );
 
-  /// Checked before [_sampledPaths] and wins over it. A prefix on the allowlist
-  /// is not a promise that everything under it is content:
-  /// `/printers/camera/stream-token` mints a camera token and sat inside
-  /// `printers`, so a live recording logged `{"token":"[REDACTED]"}` — the
-  /// redactor caught the value, which is exactly the safety net the allowlist
-  /// exists so as not to lean on. Nothing that mints a credential is worth one
-  /// record of anybody's time.
+  /// Checked before [_sampledPaths] and wins over it.
   static final _neverSampled = RegExp(r'(token|api-keys)(/|$)');
 
-  /// The last record sampled per request, so a poll that keeps answering the
-  /// same thing says `same` instead of repeating itself.
-  ///
-  /// Keyed by method, path and the query's hash: `/queue/?status=pending` and
-  /// `?status=printing` are one path with two different answers, and they have to
-  /// dedupe against themselves rather than against each other. The hash lives
-  /// here and only here — the query string itself never reaches a record.
+  /// Keyed by method, path and the query's *hash* — two statuses behind one
+  /// path must dedupe against themselves, and the query never reaches a record.
   static final Map<String, String> _lastSample = {};
 
-  /// Called when a recording opens. Fingerprints left by the previous session
-  /// would silence the first answer of this one.
   static void openSession() => _lastSample.clear();
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // Stamped whether or not a recording runs. Starting one mid-flight is the
-    // normal case — the user reproduces the bug while the dashboard polls — and
-    // a response whose request was never stamped would have to log itself
-    // without a duration.
+    // Stamped whether or not a recording runs: starting one mid-flight is the
+    // normal case, and an unstamped response would log without a duration.
     options.extra[_startedAtKey] = DateTime.now().millisecondsSinceEpoch;
-    // Only calls that change something on the server. A GET that never comes
-    // back stands out as a response missing from the polling around it, but
-    // "did my save even leave the phone" has no other witness — and that is the
-    // request whose answer goes missing when the app dies mid-call.
+    // "Did my save even leave the phone" has no other witness; a GET that never
+    // returns shows up as a response missing from the polling around it.
     if (!_isRead(options.method)) {
       DiagnosticRecorder.active?.add(
         LogSource.http,
@@ -123,51 +74,46 @@ class HttpProbe extends Interceptor {
     Response<dynamic> response,
     ResponseInterceptorHandler handler,
   ) {
-    // A local null check rather than `?.`: the sample below has to be built
-    // (and the fingerprint kept) only while something is recording.
+    // Local null check rather than `?.`: the sample below must be built (and
+    // the fingerprint kept) only while something is recording.
     final store = DiagnosticRecorder.active;
     if (store != null) {
       final status = response.statusCode;
       store.add(
         LogSource.http,
         'response',
-        // A 4xx normally arrives as a DioException; it only reaches here when
-        // the call opted out of status validation, and it is still not good news.
+        // A 4xx only reaches here when the call opted out of status validation.
         lvl: status != null && status >= 400 ? LogLevel.warn : LogLevel.info,
         fields: {
           'method': response.requestOptions.method,
           'path': _pathOf(response.requestOptions),
           'status': status,
           'ms': _elapsedMs(response.requestOptions),
-          // How many records a list endpoint answered with. "The queue is empty"
-          // and "the queue came back full and the app dropped all of it" are the
-          // same 200 without this, and they have nothing in common as bugs.
+          // "The queue is empty" and "the queue came back full and the app
+          // dropped all of it" are the same 200 without this.
           'n': _countOf(response.data),
-          // A GET that answered 200 with nothing in it. dio hands back a null
-          // body for an empty response that claims to be JSON, and the data
-          // layer reads that as an empty list — the one way a truncated or
-          // dropped answer reaches a screen as "there is nothing here" instead
-          // of as an error. Reads only: a 200 with no body is the normal answer
-          // to a save.
+          // dio hands back a null body for an empty response claiming to be
+          // JSON, which the data layer reads as an empty list — the one way a
+          // truncated answer reaches a screen as "there is nothing here"
+          // instead of as an error.
           'empty':
               _isRead(response.requestOptions.method) && response.data == null
                   ? true
                   : null,
-          ..._sampleOf(response),
+          ..._sampleOf(store, response),
         },
       );
     }
     handler.next(response);
   }
 
-  /// One record of the answer, or `same` when it matches the last one sampled
-  /// for this request. Empty for anything outside [_sampledPaths].
-  ///
-  /// Records go in as a map, not as text: [LogRedactor] checks field names at
-  /// every depth of a nested map and runs its shape passes on every string
-  /// inside it, so a token that turns up in a body it has no business being in
-  /// is caught either way.
-  static Map<String, Object?> _sampleOf(Response<dynamic> response) {
+  /// [LogRedactor.scrubSample], not the ordinary field pass: a denylist cannot
+  /// cover a field a later server version adds. Records go in as a map so the
+  /// redactor still checks names at every depth.
+  static Map<String, Object?> _sampleOf(
+    LogStore store,
+    Response<dynamic> response,
+  ) {
     final options = response.requestOptions;
     final path = _pathOf(options);
     if (_neverSampled.hasMatch(path)) return const {};
@@ -175,41 +121,41 @@ class HttpProbe extends Interceptor {
     final record = _firstRecord(response.data);
     if (record == null) return const {};
 
-    final encoded = _encoded(record);
+    // Scrubbed before it is measured or compared, or a change the redactor
+    // removes would still count as a change and every poll would log a "new"
+    // record. Non-null by construction: the map branch always answers with one.
+    final sample = store.redactor.scrubSample(record)!;
+    final encoded = _encoded(sample);
     final key = '${options.method} $path?${options.uri.query.hashCode}';
-    final stable = _timestamps.hasMatch(encoded)
-        ? encoded.replaceAll(_timestamps, '"<ts>"')
-        : encoded;
-    // The count belongs in the comparison too: a queue that grew from one item
-    // to two answers with the same first record, and reporting that as `same`
-    // beside `n:2` reads as "nothing happened" at the moment something did.
-    final fingerprint = '${_countOf(response.data)}:$stable';
+    final fingerprint = _fingerprintOf(encoded, _countOf(response.data));
     if (_lastSample[key] == fingerprint) return const {'same': true};
     _lastSample[key] = fingerprint;
     return {
       'first': encoded.length > _maxSampleChars
           ? '${encoded.substring(0, _maxClippedChars)}…'
-          : record,
+          : sample,
     };
   }
 
-  /// Timestamps, as they look inside an encoded record. Compared out of the
-  /// fingerprint, never out of what gets logged.
-  ///
-  /// A server that stamps every answer defeats a fingerprint taken over the
-  /// whole record: a smart plug carries `last_checked` and `updated_at`, both
-  /// rewritten on each poll, so its 1.5 kB record went into a live log five times
-  /// in under a minute and never once as `same` — half a megabyte across a
-  /// half-hour recording, from one endpoint whose state had not changed. Matched
-  /// by the shape of an ISO-8601 value rather than by field name, so a server
-  /// that adds another such field needs no change here.
+  /// What "the same answer" means, given a server that restamps every record it
+  /// sends. Timestamps are compared out but never logged out, and the count is
+  /// part of the comparison — a queue that grew from one item to two answers
+  /// with the same first record.
+  static String _fingerprintOf(String encoded, int? count) {
+    final stable = _timestamps.hasMatch(encoded)
+        ? encoded.replaceAll(_timestamps, '"<ts>"')
+        : encoded;
+    return '$count:$stable';
+  }
+
+  /// Matched by ISO-8601 shape rather than by field name, so a server that adds
+  /// another such field needs no change here.
   static final _timestamps = RegExp(
     r'"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"',
   );
 
-  /// The record a body is sampled by: a list's first entry, or the object
-  /// itself. Anything else — an empty list, a list of scalars, a downloaded
-  /// image, a bare string — has no record to show.
+  /// A list's first entry, or the object itself. An empty list, a list of
+  /// scalars, an image or a bare string has no record to show.
   static Map<String, dynamic>? _firstRecord(Object? data) {
     if (data is Map<String, dynamic>) return data;
     if (data is List && data is! List<int>) {
@@ -222,11 +168,11 @@ class HttpProbe extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final status = err.response?.statusCode;
-    // The class of what actually broke: `HandshakeException` versus
-    // `SocketException` separates "TLS refused" from "nothing listening there",
-    // which dio lumps together as `connectionError`.
+    // `HandshakeException` versus `SocketException` separates "TLS refused"
+    // from "nothing listening there", which dio lumps into `connectionError`.
     final cause = err.error?.runtimeType.toString();
-    DiagnosticRecorder.active?.add(
+    final store = DiagnosticRecorder.active;
+    store?.add(
       LogSource.http,
       'error',
       lvl: _levelOf(err),
@@ -240,19 +186,17 @@ class HttpProbe extends Interceptor {
         // dio's message only restates the status when there is a response, so
         // it earns its place exactly when there is none.
         'msg': status == null ? _reasonOf(err, cause) : null,
-        'body': status == null ? null : _bodyPreview(err.response?.data),
+        'body':
+            status == null ? null : _bodyPreview(err.response?.data, store),
       },
     );
     handler.next(err);
   }
 
-  /// What failed, in as few characters as the truth allows.
-  ///
   /// The underlying exception before dio's wrapper: `SocketException` carries
-  /// the OS error and errno, which dio drops when it reformats the message. The
-  /// class name is stripped off the front because it is already the `cause`, and
-  /// dio's closing sentence goes because repeating "cannot be solved by the
-  /// library" seventy-eight characters at a time was, in an offline session, the
+  /// the OS error and errno, which dio drops when it reformats. The class name
+  /// is already the `cause`, and dio's closing sentence goes because repeating
+  /// it seventy-eight characters at a time was, in an offline session, the
   /// single largest thing in the log.
   static String? _reasonOf(DioException err, String? cause) {
     final text = (err.error?.toString() ?? err.message)?.trim();
@@ -269,13 +213,8 @@ class HttpProbe extends Interceptor {
     r'library\.?$',
   );
 
-  /// Element count for a JSON array body, null for anything else — an object
-  /// body's shape is the endpoint's business, and counting its keys would say
-  /// nothing.
-  ///
-  /// A downloaded image is a `List<int>` and is excluded: its length is a byte
-  /// count, and reported as `n` it would read as "the server sent 34 000
-  /// records".
+  /// A downloaded image is a `List<int>` whose length is a byte count, and
+  /// reported as `n` it would read as "the server sent 34 000 records".
   static int? _countOf(Object? data) =>
       data is List && data is! List<int> ? data.length : null;
 
@@ -284,34 +223,38 @@ class HttpProbe extends Interceptor {
     return upper == 'GET' || upper == 'HEAD';
   }
 
-  /// Path only. `uri` resolves the relative path against the base URL, and
-  /// taking `.path` off it drops both the host and the query string.
+  /// `uri` resolves the relative path against the base URL, and `.path` off it
+  /// drops both the host and the query string.
   static String _pathOf(RequestOptions options) => options.uri.path;
 
   static int? _elapsedMs(RequestOptions options) {
     final startedAt = options.extra[_startedAtKey];
     if (startedAt is! int) return null;
     final ms = DateTime.now().millisecondsSinceEpoch - startedAt;
-    // A clock moved backwards mid-request must not produce a negative duration
-    // that reads as a response arriving before it was asked for.
+    // A clock moved backwards must not produce a response arriving before it
+    // was asked for.
     return ms < 0 ? 0 : ms;
   }
 
   static LogLevel _levelOf(DioException err) {
-    // A cancelled request is usually the app's own doing (a screen closed while
-    // loading) and says nothing about a failure.
+    // Usually the app's own doing — a screen closed while loading.
     if (err.type == DioExceptionType.cancel) return LogLevel.info;
     // No response at all is ours to explain; a status means the server did
     // answer, and the summariser groups those by status anyway.
     return err.response == null ? LogLevel.error : LogLevel.warn;
   }
 
-  static String? _bodyPreview(Object? data) {
+  /// JSON is measured like a sampled record — FastAPI's 422 echoes the
+  /// offending input verbatim, while `type` and `loc` survive, which is what
+  /// the body is opened for. Non-JSON is left alone: a proxy's HTML error page
+  /// names the proxy and holds nothing of anybody's.
+  static String? _bodyPreview(Object? data, LogStore store) {
     if (data == null) return null;
-    // Bytes, i.e. a download that failed. Encoding those would spell out an
-    // array of numbers; the size is the only useful thing in them.
+    // A download that failed; encoding it would spell out an array of numbers.
     if (data is List<int>) return '<${data.length} bytes>';
-    final text = data is String ? data : _encoded(data);
+    final text = data is String
+        ? data
+        : _encoded(store.redactor.scrubSample(data) ?? data);
     if (text.isEmpty) return null;
     return text.length > _maxBodyChars
         ? '${text.substring(0, _maxBodyChars)}…'
@@ -322,8 +265,8 @@ class HttpProbe extends Interceptor {
     try {
       return jsonEncode(data);
     } on Object {
-      // A streamed or otherwise unencodable body: its type is all we can say
-      // about it, and a failing body must not fail the request it describes.
+      // A streamed or otherwise unencodable body must not fail the request it
+      // describes; its type is all we can say about it.
       return '<${data.runtimeType}>';
     }
   }

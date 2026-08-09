@@ -5,24 +5,18 @@ import 'log_store.dart';
 
 /// Records the app going to the background and coming back.
 ///
-/// Without it every such gap reads as a hang. A log that goes quiet for forty
-/// seconds and then resumes mid-poll looks exactly like an app that froze,
-/// while what usually happened is that the screen turned off: the UI isolate
-/// stops polling, the socket closes and the foreground service takes over. One
-/// record per transition turns "it stopped responding" into a timeline.
-///
-/// Attached for the session, like the other probes that need a buffer to write
-/// to. App-wide rather than hung off the dashboard's own lifecycle listener —
-/// a recording can start on the setup screen, where there is no dashboard.
+/// Without it every such gap reads as a hang: the UI isolate stops polling and
+/// the socket closes, so a screen-off looks exactly like a freeze. App-wide
+/// rather than hung off the dashboard, because a recording can start on the
+/// setup screen.
 class LifecycleProbe {
   LifecycleProbe({required this.store});
 
   final LogStore store;
 
-  /// What earns a record. `inactive` and `hidden` also fire for a pulled-down
-  /// notification shade, a permission dialog or the app switcher — states the
-  /// user does not experience as leaving the app, and which would put three
-  /// records where the interesting one is `paused`.
+  /// `inactive` and `hidden` are left out: they also fire for the notification
+  /// shade, a permission dialog or the app switcher, putting three records
+  /// where the interesting one is `paused`.
   static const _reported = {
     AppLifecycleState.resumed,
     AppLifecycleState.paused,

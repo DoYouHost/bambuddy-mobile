@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:app_report_client/app_report_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -12,10 +13,7 @@ import 'core/auth/credentials_store.dart';
 import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/diagnostics/diagnostic_recorder.dart';
-import 'core/diagnostics/relay_client.dart';
-import 'core/diagnostics/relay_identity.dart';
-import 'core/diagnostics/report_outbox.dart';
-import 'core/diagnostics/report_sender.dart';
+import 'core/diagnostics/report_config.dart';
 import 'core/diagnostics/session_facts.dart';
 import 'core/notifications/background_monitor.dart';
 import 'core/notifications/notification_prefs.dart';
@@ -152,22 +150,33 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(sharedPreferencesProvider)),
 );
 
+/// Describes the session for a report: app and server version, the device, the
+/// display settings.
+///
+/// A provider rather than a closure inside the recorder, because a change or
+/// feature request needs the same versions and has no recording to read them
+/// off — and two copies of this argument list would be two places for the
+/// server version to be fetched differently.
+final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
+  (ref) => () => loadSessionFacts(
+        profile: ref.read(serverProfileProvider),
+        credentials: ref.read(credentialsStoreProvider),
+        // Read through the provider only when a profile exists: without one
+        // [apiClientProvider] throws by design, and a recording started from the
+        // setup screen has no server to ask anyway.
+        readServerVersion: ref.read(serverProfileProvider) == null
+            ? null
+            : () => ref.read(serverVersionServiceProvider).reportedVersion(),
+      ),
+);
+
 /// Bug-report log recorder. Holding it in a provider keeps one instance per
 /// app, which matters: [DiagnosticRecorder.active] is process-wide state and
 /// two recorders would fight over it.
 final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
   (ref) => DiagnosticRecorder(
     settings: ref.watch(settingsRepositoryProvider),
-    loadFacts: () => loadSessionFacts(
-      profile: ref.read(serverProfileProvider),
-      credentials: ref.read(credentialsStoreProvider),
-      // Read through the provider only when a profile exists: without one
-      // [apiClientProvider] throws by design, and a recording started from the
-      // setup screen has no server to ask anyway.
-      readServerVersion: ref.read(serverProfileProvider) == null
-          ? null
-          : () => ref.read(serverVersionServiceProvider).reportedVersion(),
-    ),
+    loadFacts: ref.watch(sessionFactsProvider),
   ),
 );
 
@@ -177,7 +186,7 @@ final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
 /// see none of the auth interceptors, none of the credentials and none of the
 /// base URL the user configured.
 final relayClientProvider = Provider<RelayClient>(
-  (ref) => RelayClient(ref.watch(bareDioProvider)),
+  (ref) => RelayClient(ref.watch(bareDioProvider), baseUrl: relayBaseUrl),
 );
 
 final reportOutboxProvider = Provider<ReportOutbox>((ref) => const ReportOutbox());
@@ -192,6 +201,7 @@ final reportSenderProvider = Provider<ReportSender>((ref) {
     // Read, not watched: rebuilding this provider on a profile change would
     // hand out a second sender over the same outbox slot.
     demoMode: () => ref.read(serverProfileProvider)?.isDemo ?? false,
+    formatVersion: reportLogSchema,
   );
   ref.onDispose(sender.dispose);
   return sender;

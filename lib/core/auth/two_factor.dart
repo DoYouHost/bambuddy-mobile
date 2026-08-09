@@ -5,18 +5,16 @@
 /// `reference/bambuddy/backend/app/api/routes/mfa.py`.
 library;
 
-/// A second factor the account can be verified with. The names are wire values
-/// — they go out as `method` on `/2fa/verify`, which accepts exactly these
-/// three.
+/// Wire values: they go out as `method` on `/2fa/verify`, which accepts exactly
+/// these three.
 enum TwoFactorMethod {
-  /// Authenticator app, 6 digits, 30-second window.
+  /// Authenticator app, 30-second window.
   totp,
 
-  /// 6 digits mailed on request. Needs `/2fa/email/send` first.
+  /// Mailed on request, so `/2fa/email/send` has to come first.
   email,
 
-  /// One of the 10 single-use codes handed out with TOTP setup: 8 alphanumeric
-  /// characters, and one fewer left afterwards.
+  /// One of the 10 single-use codes from TOTP setup, one fewer afterwards.
   backup;
 
   static TwoFactorMethod? tryParse(Object? wire) {
@@ -26,28 +24,22 @@ enum TwoFactorMethod {
     return null;
   }
 
-  /// Codes are 6 digits everywhere except backup codes, which are 8 characters.
   /// The server rejects anything outside `^[A-Za-z0-9]{6,8}$`, so the field can
   /// stop the user before the round trip.
   int get codeLength => this == TwoFactorMethod.backup ? 8 : 6;
 
-  /// Backup codes carry letters; the other two are numeric, which is worth a
-  /// digits-only keyboard.
+  /// Worth a digits-only keyboard for the two that carry no letters.
   bool get isNumericCode => this != TwoFactorMethod.backup;
 }
 
 /// A login that got past the password and is waiting for a code.
 ///
-/// [challengeCookie] is the value of the HttpOnly `2fa_challenge` cookie the
-/// login response set. The server stores it next to the pre-auth token and
-/// refuses the token when a later call comes without the matching value
-/// (`peek_pre_auth_token` in `mfa.py`), so it has to travel back on every
-/// `/2fa/*` call. Dio carries no cookie jar — nothing does this implicitly.
-///
-/// `null` means the response had no such cookie. We then send none and let the
-/// server decide; a token issued with a binding will refuse us, which is the
-/// signature of a reverse proxy stripping `Set-Cookie` rather than of a wrong
-/// code — hence it is logged.
+/// `peek_pre_auth_token` in `mfa.py` refuses the token when a call arrives
+/// without the matching HttpOnly `2fa_challenge` cookie, so [challengeCookie]
+/// travels back on every `/2fa/*` call — dio has no cookie jar and nothing does
+/// this implicitly. `null` means the response set none, and a token issued
+/// *with* a binding then refuses us: the signature of a reverse proxy stripping
+/// `Set-Cookie`, not of a wrong code, which is why `AuthProbe` logs it.
 class TwoFactorChallenge {
   const TwoFactorChallenge({
     required this.preAuthToken,
@@ -55,9 +47,8 @@ class TwoFactorChallenge {
     this.challengeCookie,
   });
 
-  /// Reads the challenge out of a `/auth/login` body plus its response headers.
-  /// Returns `null` when the body is not a 2FA answer or carries no usable
-  /// token — the caller then treats the response as a plain login.
+  /// `null` when the body is not a 2FA answer or carries no usable token; the
+  /// caller then treats the response as a plain login.
   static TwoFactorChallenge? tryParse(
     Map<String, dynamic> body, {
     Iterable<String> setCookie = const [],
@@ -71,16 +62,14 @@ class TwoFactorChallenge {
     ];
     return TwoFactorChallenge(
       preAuthToken: token,
-      // An empty or unrecognised list still leaves TOTP: every account with 2FA
-      // on has at least one factor, and refusing to show a code field because
-      // the server named a method we don't know would strand the user for
-      // nothing. The code they type is checked server-side either way.
+      // Every account with 2FA on has at least one factor, so refusing to show
+      // a code field because the server named a method we do not know would
+      // strand the user for nothing. The code is checked server-side anyway.
       methods: methods.isEmpty ? const [TwoFactorMethod.totp] : methods,
       challengeCookie: readChallengeCookie(setCookie),
     );
   }
 
-  /// Value of the `2fa_challenge` cookie from `Set-Cookie` headers, or `null`.
   /// Attributes after the first `;` (Path, HttpOnly, …) are dropped.
   static String? readChallengeCookie(Iterable<String> setCookie) {
     for (final header in setCookie) {
@@ -96,26 +85,19 @@ class TwoFactorChallenge {
 
   static const cookieName = '2fa_challenge';
 
-  /// How long a pre-auth token stays usable (`PRE_AUTH_TOKEN_TTL` in `mfa.py`,
-  /// and the `Max-Age` of the binding cookie). The server never announces the
-  /// deadline in the body, so the app counts it down itself — otherwise the
-  /// code step sits there indefinitely and the user finds out it went stale
-  /// only by typing a correct code and being told it was wrong.
-  ///
-  /// Counted from the moment the answer arrives, which is already later than
-  /// the server's own start, so the app is never the one to cut a live
-  /// challenge short.
+  /// `PRE_AUTH_TOKEN_TTL` in `mfa.py`. The server never announces the deadline
+  /// in the body, so the app counts it down from the moment the answer arrives
+  /// — later than the server's own start, so it never cuts a live challenge
+  /// short. Otherwise the user learns it went stale by typing a correct code.
   static const lifetime = Duration(minutes: 5);
 
   final String preAuthToken;
 
-  /// What the account can be verified with, in the order the server listed.
-  /// Never empty — see [tryParse].
+  /// In the order the server listed, and never empty — see [tryParse].
   final List<TwoFactorMethod> methods;
 
   final String? challengeCookie;
 
-  /// Headers for a `/2fa/*` call: the binding cookie, when there is one.
   Map<String, String> get cookieHeader => {
         if (challengeCookie != null)
           'Cookie': '$cookieName=$challengeCookie',

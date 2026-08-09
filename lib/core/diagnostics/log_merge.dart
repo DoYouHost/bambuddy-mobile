@@ -1,29 +1,16 @@
 import 'dart:convert';
 
-/// Merges the UI stream with a background one onto a single timeline.
+/// Merges the UI stream with a background one onto a single timeline, rebasing
+/// and stamping `iso` as described in `docs/diagnostics-log.md`. The UI's own
+/// records stay unstamped, being the majority.
 ///
-/// Each isolate has its own heap and its own clock-from-zero, so each file's `t`
-/// counts from its own header `ts`. Sorting on raw `t` would interleave them
-/// wrongly; everything is rebased onto the earliest of the two headers, which is
-/// also the only origin that keeps every offset positive.
+/// Call it twice to fold in a third stream: the result keeps the earliest `ts`,
+/// so the second pass shifts nothing already placed.
 ///
-/// Records from [secondary] are stamped with `iso`, naming the stream they came
-/// from. Without it the merge would erase the distinction it just created: the
-/// merged header says `stream:"merged"`, and a `GET /printers/` from the service
-/// is otherwise indistinguishable from one made by the UI — which is exactly the
-/// bug this log has already caught once, both isolates polling at the same time.
-/// The value comes from the secondary file's own header, so a third stream needs
-/// no change here; the UI's records stay unstamped, being the majority.
-///
-/// Call it twice to fold in a third stream: the result keeps the earliest `ts`, so
-/// the second pass shifts nothing that was already placed, and records already
-/// stamped pass through untouched.
-///
-/// Anything unusable makes this return [primary] unchanged: a broken secondary
-/// stream must not cost the user the log they actually recorded. That promise is
-/// why the decoding below is defensive — these files are written by isolates the
-/// system may kill mid-write, and a throw here would reach the user as an empty
-/// report after five minutes of recording.
+/// Anything unusable returns [primary] unchanged — a broken secondary stream
+/// must not cost the user the log they actually recorded. That promise is why
+/// the decoding below is defensive: these files are written by isolates the
+/// system may kill mid-write.
 String mergeSessions(String primary, String secondary) {
   final primaryLines = _lines(primary);
   final secondaryLines = _lines(secondary);
@@ -61,8 +48,7 @@ String mergeSessions(String primary, String secondary) {
   ];
 
   // Sequence assigned across both streams at once, so a tie resolves to
-  // primary-then-secondary. Dart's sort is not stable on its own, and without
-  // the tiebreak records sharing a millisecond would shuffle.
+  // primary-then-secondary. Dart's sort is not stable on its own.
   final records = [
     for (var i = 0; i < rebased.length; i++)
       _Timed(rebased[i].$1, i, rebased[i].$2),
@@ -80,20 +66,14 @@ String mergeSessions(String primary, String secondary) {
 }
 
 /// Puts one stream's records in the order things happened, header line first.
+/// A file is in arrival order, which is not the same — `LogStore.export` sorts
+/// its ring for this reason, so a session read back from its file must too, or
+/// the report says a route change preceded the tap that caused it.
 ///
-/// A file is in arrival order, and that is not the same order: a record stamped
-/// with `LogStore.add`'s `at` — a tap, stamped with the moment the finger went
-/// down — is written after events that happened later than it. `LogStore.export`
-/// sorts its ring for exactly this reason, so a session read back from its file
-/// has to do it too, or the report says a route change preceded the tap that
-/// caused it. Ties keep arrival order, same sequence-number trick as
-/// [mergeSessions].
-///
-/// Lines carrying no `t` are dropped, headers and torn last lines included —
-/// same defensiveness, same reason. Input comes back unchanged when there is
-/// nothing to order: no second line, or a first line that is not a header. A
-/// file whose records are all unusable yields its header alone, which callers
-/// read as "nothing here".
+/// Lines carrying no `t` are dropped, headers and torn last lines included.
+/// Input comes back unchanged when there is nothing to order; a file whose
+/// records are all unusable yields its header alone, which callers read as
+/// "nothing here".
 String orderSession(String jsonl) {
   final lines = _lines(jsonl);
   if (lines.length < 2) return jsonl;
@@ -136,12 +116,9 @@ Iterable<(int, String)> _rebase(
   for (final line in lines) {
     final record = _decode(line);
     if (record == null) continue;
-    // Every event carries `t` and no header does, so this is also what skips a
-    // stray header — which is what a restarted background isolate can leave in
-    // the middle of its own file. Taken for a record it would sort to the front
-    // of the timeline with no source and no event name. Keyed on `t` rather than
-    // on the presence of `session`, because every record must have a `t`, so this
-    // test can never swallow a real one.
+    // Every event carries `t` and no header does, so this also skips the stray
+    // header a restarted background isolate can leave mid-file — taken for a
+    // record it would sort to the front with no source and no event name.
     final t = record['t'];
     if (t is! num) continue;
     // An unshifted, unstamped stream comes through byte-identical.

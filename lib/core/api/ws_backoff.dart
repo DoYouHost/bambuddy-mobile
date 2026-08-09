@@ -1,14 +1,12 @@
 import 'dart:math';
 
-/// Exponential backoff with **full jitter** for WebSocket reconnect.
+/// `delay = rand(0, min(cap, base * 2^attempt))`. Full jitter rather than plain
+/// exponential, so a server restart does not bring every client back at the
+/// same instant; the cap never lapses, because a home LAN server restarting is
+/// normal and giving up is not.
 ///
-/// `delay = rand(0, min(cap, base * 2^attempt))` — full jitter (not just
-/// exponential delay) disperses a herd of clients attempting server at once
-/// after restart. Cap applies forever: this is a home LAN app, server restarts,
-/// we don't give up.
-///
-/// Attempt counter reset by [reset] — called by [WsClient] only after
-/// connection survives stability threshold, so flapping doesn't reset backoff.
+/// `WsClient` calls [reset] only once a connection survives its stability
+/// threshold, so flapping cannot walk the backoff back to zero.
 class WsBackoff {
   WsBackoff({
     this.base = const Duration(seconds: 1),
@@ -22,13 +20,11 @@ class WsBackoff {
 
   int _attempt = 0;
 
-  /// Current attempt number (0 = first after reset) — helpful in tests/logs.
   int get attempt => _attempt;
 
-  /// Returns random delay for current attempt and increments counter.
   Duration nextDelay() {
-    // Exponent overflow protection: 2^attempt grows fast, but we cap it anyway,
-    // so clamping exponent to 30 is sufficient.
+    // The result is capped anyway, so clamping the exponent at 30 is enough to
+    // keep the shift from overflowing.
     final shifted = base.inMilliseconds * (1 << _attempt.clamp(0, 30));
     final ceilingMs = shifted.clamp(0, cap.inMilliseconds);
     _attempt++;

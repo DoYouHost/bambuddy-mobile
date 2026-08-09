@@ -22,10 +22,9 @@ enum NotifSkip {
   /// pair a print cancel always emits.
   userAction,
 
-  /// An HMS code with no description in the catalogue and no server message, or
-  /// severity below the notification floor. The firmware emits several
-  /// undocumented codes per physical fault; this is the largest silent drop on
-  /// the error path.
+  /// An HMS code with no catalogue description and no server message, or
+  /// severity below the notification floor. The firmware emits several such
+  /// codes per physical fault; the largest silent drop on the error path.
   undocumented,
 
   /// The printer came back before the offline grace period expired, so the
@@ -40,43 +39,30 @@ enum NotifSkip {
   /// A maintenance poll failed outright, so no alert could be decided at all.
   fetchFailed,
 
-  /// The printer was still preparing (calibration, layer 0), so the `progress`
-  /// it reported described that phase and not the job. Deliberate: acting on it
-  /// fires several milestones at once before the first layer is even down.
+  /// The printer was still preparing (calibration, layer 0), so its `progress`
+  /// described that phase and not the job. Acting on it fires several
+  /// milestones at once before the first layer is even down.
   prepPhase,
 }
 
-/// Records what the notification layer decided, and what it decided *not* to do.
+/// Records what the notification layer decided, and what it decided *not* to
+/// do — the useful half is usually a decision not to post, which by definition
+/// leaves no trace on the device.
 ///
-/// Four reports this answers: "the app buried me in notifications", "they arrive
-/// at the wrong time", "I got the wrong notification", and the mirror image "I got
-/// none when I should have". A posted alert is only half of that — the useful half
-/// is usually a decision not to post, which by definition leaves no trace on the
-/// device.
+/// Stateless and static like the other always-on probes, so an idle app pays
+/// nothing and the monitors need no extra constructor argument. In tests the
+/// static is null, which keeps the existing fakes silent.
 ///
-/// Stateless and static, like `HttpProbe`: every method reads
-/// `DiagnosticRecorder.active` per call, so an idle app pays nothing and the
-/// monitors need no extra constructor argument. In tests the static is null, which
-/// is what keeps the existing fakes silent.
-///
-/// ## What never enters a record
-///
-/// `title` and `body`. They carry `_jobLabel` — the user's model and file name —
-/// or the printer's name, and this log is uploaded to a public issue. The event
-/// type, the printer id and our own notification id say which notification it was
-/// without quoting anything the user typed. Same reason [postError] logs the
-/// exception's *class* and not its message: the only strings in scope there are
-/// the two we are not allowed to keep.
+/// `title` and `body` never enter a record (`docs/diagnostics-log.md`), which
+/// is also why [postError] logs the exception's *class*: the only strings in
+/// scope there are the two we may not keep.
 class NotifProbe {
   const NotifProbe._();
 
-  /// An alert was handed to the platform.
-  ///
-  /// "Handed to", not "shown": the platform may still drop it (permission,
-  /// blocked channel), which is what the session snapshot in [openSession] is
-  /// for. Written *before* the call is awaited, because eleven of the thirteen
-  /// call sites do not await it — a plugin call that hangs would otherwise leave
-  /// no record of the attempt.
+  /// An alert was handed to the platform — not "shown": it may still be dropped
+  /// on permission or a blocked channel, which [openSession] covers. Written
+  /// *before* the call is awaited, since most call sites do not await it and a
+  /// plugin call that hangs would leave no record of the attempt.
   static void posted({
     required NotifEvent event,
     required int printerId,
@@ -137,12 +123,11 @@ class NotifProbe {
 
   /// The baseline a fresh monitor latched from a printer's first frame.
   ///
-  /// The background isolate is rebuilt on every entry into the background, and a
-  /// new monitor deliberately fires nothing from the first frame it sees —
-  /// otherwise a print that started an hour ago would announce itself as just
-  /// begun. That silence is correct and invisible, and it is the answer to a
-  /// whole class of "the app swallowed my notification". One record per printer
-  /// says what was taken as already-happened.
+  /// The background isolate is rebuilt on every entry into the background, and
+  /// a new monitor fires nothing from the first frame it sees — otherwise a
+  /// print started an hour ago would announce itself as just begun. That
+  /// silence is correct, invisible, and the answer to a whole class of "the app
+  /// swallowed my notification".
   ///
   /// Not a [suppressed]: at priming no event was evaluated, so calling it a
   /// suppression would describe a decision that never took place.
@@ -153,14 +138,11 @@ class NotifProbe {
         fields: {'printer_id': printerId, ...fields},
       );
 
-  /// A print stopped, in whatever state the printer reported.
-  ///
-  /// Unconditional, including the states that produce no alert at all. `FINISH`
-  /// and `FAILED` are the only two the monitor acts on, so everything else — a
-  /// user cancel landing as `IDLE`, an unknown state, a partial frame — silently
-  /// drops both the alert *and* the maintenance reminder that hangs off the same
-  /// branch. This is the cheapest record in the lane and it explains more
-  /// reports than any other.
+  /// A print stopped, in whatever state the printer reported — including the
+  /// states that produce no alert. `FINISH` and `FAILED` are the only two the
+  /// monitor acts on, so everything else (a cancel landing as `IDLE`, an
+  /// unknown state, a partial frame) silently drops both the alert *and* the
+  /// maintenance reminder hanging off the same branch.
   static void printEnd(int printerId, {String? state, required bool handled}) =>
       DiagnosticRecorder.active?.add(
         LogSource.notif,
@@ -169,13 +151,10 @@ class NotifProbe {
         fields: {'printer_id': printerId, 'state': state},
       );
 
-  /// The ongoing progress notification changed content.
-  ///
-  /// One record per change, not per frame: the monitor already collapses frames
-  /// whose printer, whole percent, ETA minute and print count all match, so this
-  /// fires a handful of times a minute during a print. The fields are the ones
-  /// that make up that key — the notification's own text is the job name and
-  /// stays out.
+  /// The ongoing progress notification changed content. One record per change,
+  /// not per frame: the monitor already collapses frames whose printer, whole
+  /// percent, ETA minute and print count all match, and those are exactly the
+  /// fields here. The notification's own text is the job name and stays out.
   static void ongoing({
     required int printerId,
     required int percent,
@@ -209,12 +188,10 @@ class NotifProbe {
         fields: {'due': due, 'fresh': fresh},
       );
 
-  /// The user pressed an action button on a notification.
-  ///
-  /// Runs in whichever isolate the plugin picked: the UI's if the app is open, the
-  /// foreground service's if it is backgrounded, or a dedicated engine spawned for
-  /// this one callback if the app is gone. All three end up writing into the
-  /// stream that belongs to them, which is why nothing here names an isolate.
+  /// The user pressed an action button on a notification. Runs in whichever
+  /// isolate the plugin picked — the UI's, the foreground service's, or an
+  /// engine spawned for this one callback — and each writes into the stream
+  /// that belongs to it, which is why nothing here names an isolate.
   static void action({required String id, required int items}) =>
       DiagnosticRecorder.active?.add(
         LogSource.notif,
@@ -233,8 +210,8 @@ class NotifProbe {
       );
 
   /// There was no server to send the action to — no profile, or credentials the
-  /// keystore would not give up. Was a bare `return`, and it is the simplest
-  /// explanation for "I pressed Mark Done and the counter never reset".
+  /// keystore would not give up. The simplest explanation for "I pressed Mark
+  /// Done and the counter never reset".
   static void noClient() => DiagnosticRecorder.active?.add(
         LogSource.notif,
         'no_client',
@@ -256,16 +233,14 @@ class NotifProbe {
   /// types the user disabled, whether alerts are off wholesale, whether the OS
   /// permission is granted, and how important the alerts channel is.
   ///
-  /// This is the cheap answer to the whole "I did not get a notification"
-  /// class — one line instead of a record per suppressed event, and it works
-  /// even when the recording covers none of the moments an alert was due. Prints
-  /// run for hours; a session is capped at five minutes.
+  /// One line instead of a record per suppressed event, and it works even when
+  /// the recording covers none of the moments an alert was due — prints run for
+  /// hours, a session is capped at `recordingLimit`.
   ///
-  /// [permission] and [channelImportance] are injected rather than called
-  /// straight from the plugin so this is testable; both may answer null, which is
-  /// logged as an absent field rather than as a guess. A granted permission with
-  /// a muted channel is a real configuration and looks identical from
-  /// `areNotificationsEnabled` alone, which is why the importance is here too.
+  /// [permission] and [channelImportance] are injected so this is testable;
+  /// both may answer null, logged as an absent field rather than as a guess. A
+  /// granted permission with a muted channel is a real configuration and looks
+  /// identical from `areNotificationsEnabled` alone.
   static Future<void> openSession(
     NotificationPrefs prefs, {
     Future<bool?> Function()? permission,
@@ -300,18 +275,14 @@ class NotifProbe {
   }
 }
 
-/// Records every alert the app hands to the platform.
-///
-/// One decorator instead of a line in each implementation, and instead of a line
-/// at each of the thirteen call sites: this is the single place both production
-/// services funnel through, so it cannot be forgotten in new code the way a
-/// manual log call would be.
+/// Records every alert the app hands to the platform. One decorator rather than
+/// a log call at each site, so it cannot be forgotten in new code.
 ///
 /// Wraps the *outer* service in the foreground-service isolate, not the
-/// `LocalNotificationService` inside it — the isolate's own `showOngoing`
-/// deliberately does not delegate (it rewrites the service notification instead),
-/// so wrapping from underneath would miss it. Not used in the UI isolate at all:
-/// there the ongoing methods are no-ops, so a record would be a fabrication.
+/// `LocalNotificationService` inside it: that isolate's `showOngoing` rewrites
+/// the service notification instead of delegating, so wrapping from underneath
+/// would miss it. Unused in the UI isolate, where the ongoing methods are
+/// no-ops and a record would be a fabrication.
 class LoggingNotifications implements NotificationService {
   const LoggingNotifications(this._inner);
 
@@ -355,10 +326,9 @@ class LoggingNotifications implements NotificationService {
       payload: payload,
       actions: actions,
     )
-        // Rethrown with its original stack: this must record a failure, not
-        // absorb one. Most call sites do not await the future, so absorbing it
-        // here would quietly remove an error that today reaches the isolate's
-        // uncaught handler — and gets its own record from `ErrorProbe`.
+        // Rethrown with its original stack: absorbing it would remove an error
+        // that today reaches the isolate's uncaught handler and gets its own
+        // record from `ErrorProbe`.
         .catchError((Object error, StackTrace stack) {
       NotifProbe.postError(
         event: event,

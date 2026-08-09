@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
-import 'package:bambuddy_mobile/core/diagnostics/log_redactor.dart';
+import 'package:app_report_client/app_report_client.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_config.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -158,7 +159,7 @@ void main() {
   });
 
   test('records are redacted on the way in', () {
-    final redactor = LogRedactor()..remember('my-secret-key', '[APIKEY]');
+    final redactor = bambuddyRedactor()..remember('my-secret-key', '[APIKEY]');
     final store = makeStore(redactor: redactor);
 
     store.add(LogSource.http, 'error', fields: const {
