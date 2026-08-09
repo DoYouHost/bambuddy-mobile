@@ -1,0 +1,103 @@
+name: Bug
+description: Something in the app does not work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The app can file this for you.** Printers → ☰ menu → *Report a bug* records what you do,
+        shows you the whole log before anything leaves the phone, and opens an issue here with the
+        log attached. It answers most of what is below by itself. Use this form when that route is
+        not available to you — from the watch, for instance, which has no reporter of its own.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you write
+      options:
+        - label: This issue is public and permanent. I have not pasted my API key, my password, my server address, or my Bambu Cloud account — the in-app report redacts those, this form does not.
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What went wrong?
+      description: What you were doing, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      description: Phone and watch ship as two separate APKs.
+      options:
+        - Phone (Android)
+        - Watch (Wear OS)
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: At the bottom of the ☰ menu — "Bambuddy v0.12.1+1201000". Also in *About*.
+      placeholder: "0.12.1+1201000"
+    validations:
+      required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: bambuddy server version
+      description: Copy it exactly as the server's web interface shows it — beta numbering does not match the release it belongs to.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: "Google Pixel 7, Android 15"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where in the app?
+      options:
+        - Setup / login
+        - Printers (dashboard, controls, live view)
+        - Queue
+        - Archive or statistics
+        - Filaments, spools and AMS
+        - Maintenance
+        - Projects
+        - File manager, G-code preview or slicer
+        - MakerWorld import
+        - Notifications or background monitoring
+        - Home screen widget
+        - Watch app (Wear OS)
+        - Server administration (users, groups, API keys)
+        - Settings
+        - Somewhere else / everywhere
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Diagnostic log
+      description: >
+        Optional, and worth more than everything above. Printers → ☰ menu → *Report a bug*, record
+        the problem, then **Save to a file** and drop the file here. It is redacted on the phone and
+        you read all of it before saving.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, printer model, how often it happens, whether it started after an update.

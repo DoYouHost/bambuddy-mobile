@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report from inside the app (preferred for bugs)
+    url: https://doyouhost.github.io/bambuddy-mobile/privacy.html#sending-a-bug-report
+    about: Printers → ☰ menu → Report a bug. Records a redacted log, shows it to you first, and opens the issue with the log attached.
+  - name: bambuddy server (upstream project)
+    url: https://github.com/maziggy/bambuddy/issues
+    about: Problems with the bambuddy server itself — this app only talks to it.

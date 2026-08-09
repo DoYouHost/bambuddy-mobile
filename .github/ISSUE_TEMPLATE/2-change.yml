@@ -1,0 +1,41 @@
+name: Change
+description: Something works, but not the way it should
+labels: ["change"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The in-app reporter files bugs only, so this form is the way to ask for a change. No log
+        belongs with a request like this — no amount of evidence about what the app does now settles
+        what it ought to do.
+  - type: textarea
+    id: request
+    attributes:
+      label: What should change?
+      description: What it does now, and what it should do instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      options:
+        - Phone (Android)
+        - Watch (Wear OS)
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      placeholder: "0.12.1+1201000"
+    validations:
+      required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: bambuddy server version
+      description: So we can tell an idea from something a newer server already does.
+    validations:
+      required: false
