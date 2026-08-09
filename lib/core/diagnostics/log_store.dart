@@ -1,7 +1,8 @@
 import 'dart:collection';
 
 import 'log_event.dart';
-import 'log_redactor.dart';
+import 'report_config.dart';
+import 'package:app_report_client/app_report_client.dart';
 
 /// How long one recording may run before it cuts itself off.
 ///
@@ -52,7 +53,7 @@ class LogStore {
     DateTime? openedAt,
     this.onLine,
     this.onClosed,
-  })  : redactor = redactor ?? LogRedactor(),
+  })  : redactor = redactor ?? bambuddyRedactor(),
         _openedAtOverride = openedAt,
         _clock = clock ?? DateTime.now;
 

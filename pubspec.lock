@@ -17,6 +17,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "13.0.0"
+  app_report_client:
+    dependency: "direct main"
+    description:
+      path: "packages/app_report_client"
+      ref: "v0.1.0"
+      resolved-ref: "94c917f42861074089e1b0e44515561b90c95bfb"
+      url: "https://github.com/DoYouHost/app-shared.git"
+    source: git
+    version: "0.1.0"
   archive:
     dependency: transitive
     description:
@@ -178,7 +187,7 @@ packages:
     source: hosted
     version: "0.3.5+2"
   crypto:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf

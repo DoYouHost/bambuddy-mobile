@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        **The app can file this for you.** Printers → ☰ menu → *Report a bug* records what you do,
-        shows you the whole log before anything leaves the phone, and opens an issue here with the
-        log attached. It answers most of what is below by itself. Use this form when that route is
+        **The app can file this for you.** Printers → ☰ menu → *Report a bug or an idea* → *Bug*
+        records what you do, shows you the whole log before anything leaves the phone, and opens an
+        issue here with the log attached. It answers most of what is below by itself. Use this form when that route is
         not available to you — from the watch, for instance, which has no reporter of its own.
   - type: checkboxes
     id: privacy

@@ -43,10 +43,11 @@ ResponseBody _text(String body, int status) => ResponseBody.fromString(
       },
     );
 
-/// A body dio actually decodes — the count only exists for parsed JSON.
-ResponseBody _json(String body) => ResponseBody.fromString(
+/// A body dio actually decodes — the count only exists for parsed JSON, and so
+/// is the error-body measuring, which is why the status is settable.
+ResponseBody _json(String body, [int status = 200]) => ResponseBody.fromString(
       body,
-      200,
+      status,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
@@ -318,9 +319,12 @@ void main() {
       expect((await httpRecords()).single['first'], isA<Map<String, dynamic>>());
     });
 
-    test('a record too big even for that goes in as clipped text', () async {
+    test('an inline thumbnail is measured, not carried and not clipped',
+        () async {
       // A library entry can carry an inline thumbnail; an image does not belong
-      // in a bug report.
+      // in a bug report. It used to be cut by the size ceiling, which meant the
+      // first two kilobytes of the image went in. The sample rule gets there
+      // first now: it is not technical, so only its length survives.
       final dio = dioAnswering(
         (_) => _json('[{"id":1,"thumb":"${'A' * 8000}"}]'),
       );
@@ -328,12 +332,136 @@ void main() {
 
       await dio.get<dynamic>('/api/v1/library/files');
 
+      final first = (await httpRecords()).single['first']! as Map;
+      expect(first['thumb'], '<str:8000>');
+      expect(jsonEncode(first), isNot(contains('AAAA')));
+    });
+
+    test('a record too big even once measured goes in as clipped text',
+        () async {
+      // The ceiling still exists, for the record that is genuinely all content
+      // the log is meant to keep: hundreds of numeric telemetry fields, none of
+      // which the sample rule can shorten.
+      final fields = [for (var i = 0; i < 900; i++) '"t$i":${i / 10}'].join(',');
+      final dio = dioAnswering((_) => _json('[{"id":1,$fields}]'));
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/printers/1/status');
+
       final first = (await httpRecords()).single['first'];
       expect(first, isA<String>());
       // Clipped well below the redactor's own 2000-character ceiling, so the
       // clip is marked once rather than twice.
       expect((first as String).length, lessThan(2100));
       expect(first, endsWith('…'));
+    });
+
+    test('a 422 says which field failed without quoting what was sent',
+        () async {
+      // FastAPI echoes the offending input verbatim. The whole body used to go
+      // in as text, so a file named after a person rode along on every failed
+      // save — the same leak as the sampled record, one layer down.
+      final dio = dioAnswering(
+        (_) => _json(
+          '{"detail":[{"type":"string_type","loc":["body","archive_name"],'
+          '"input":"Prezent_dla_Ani_v3.3mf",'
+          '"msg":"Input should be a valid string"}]}',
+          422,
+        ),
+      );
+      await recorder.start();
+
+      // The call itself still throws; the probe's record is the point.
+      await expectLater(
+        dio.post<dynamic>('/api/v1/queue/', data: {'x': 1}),
+        throwsA(isA<DioException>()),
+      );
+
+      final body = (await httpRecords())
+          .firstWhere((r) => r['evt'] == 'error')['body'] as String;
+      // Which field, and how it was wrong — the two things the body is opened
+      // for.
+      expect(body, contains('string_type'));
+      expect(body, contains('archive_name'));
+      // And nothing of what the user typed.
+      expect(body, isNot(contains('Prezent')));
+      expect(body, contains('<str:22>'));
+    });
+
+    test('a proxy\'s error page is left readable, having nothing of anybody\'s',
+        () async {
+      // The other reason this field exists: an HTML page names the proxy in its
+      // first few tags, and measuring it would answer `<str:300>`.
+      final dio = dioAnswering(
+        (_) => _text('<html><head><title>502 Bad Gateway</title></head>', 502),
+      );
+      await recorder.start();
+
+      await expectLater(
+        dio.get<dynamic>('/api/v1/queue/'),
+        throwsA(isA<DioException>()),
+      );
+
+      final body = (await httpRecords())
+          .firstWhere((r) => r['evt'] == 'error')['body'] as String;
+      expect(body, contains('502 Bad Gateway'));
+    });
+
+    test('a plug keeps the wiring that explains it, and loses the house',
+        () async {
+      // The selectors were named as deliberately not secret — a JSON pointer
+      // like `state.power` is a field name, not an address, and it is what
+      // explains a plug reporting zero watts — and the sample rule measured
+      // them away regardless, because a dotted token is not a word, a number or
+      // a date. Caught only by running a whole real record through.
+      final dio = dioAnswering(
+        (_) => _json('[{"id":4,"name":"Gniazdko w garażu",'
+            '"plug_type":"homeassistant","ha_entity_id":"switch.szafa_biuro",'
+            '"mqtt_power_path":"data.power","mqtt_state_path":"state.power",'
+            '"mqtt_power_multiplier":1.0,"rest_method":"POST"}]'),
+      );
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/smart-plugs/');
+
+      final first = (await httpRecords()).single['first']! as Map;
+      expect(first['mqtt_power_path'], 'data.power');
+      expect(first['mqtt_state_path'], 'state.power');
+      expect(first['plug_type'], 'homeassistant');
+      expect(first['rest_method'], 'POST');
+      expect(first['mqtt_power_multiplier'], 1.0);
+      // And the half that names somebody's home still goes.
+      expect(first['ha_entity_id'], '[REDACTED]');
+      expect(first['name'], '<str:17>');
+      expect(jsonEncode(first), isNot(contains('szafa_biuro')));
+    });
+
+    test('what the user named is measured away, not published', () async {
+      // The endpoints sampled here answer with what the user called things, and
+      // the log ends up on a public branch. A denylist of field names never
+      // covered these — `archive_name` and `printer_name` are not secrets by
+      // name and not URLs, JWTs or serials by shape — so they went in verbatim
+      // while the consent screen promised they never would.
+      final dio = dioAnswering(
+        (_) => _json('[{"id":1,"status":"printing",'
+            '"archive_name":"Prezent_dla_Ani_v3.gcode.3mf",'
+            '"printer_name":"Drukarka w sypialni Kasi",'
+            '"printer_serial":"20P0AA000000001"}]'),
+      );
+      await recorder.start();
+
+      await dio.get<dynamic>('/api/v1/queue/');
+
+      final first = (await httpRecords()).single['first']! as Map;
+      expect(first['archive_name'], '<str:28>');
+      expect(first['printer_name'], '<str:24>');
+      expect(first['printer_serial'], '[REDACTED]');
+      // The schema is what the record is read for, and it survives whole: which
+      // fields came back, and the ones that are the machine's own vocabulary.
+      expect(first['id'], 1);
+      expect(first['status'], 'printing');
+      expect(jsonEncode(first), isNot(contains('Ani')));
+      expect(jsonEncode(first), isNot(contains('Kasi')));
     });
 
     test('a record that only restamps itself counts as unchanged', () async {

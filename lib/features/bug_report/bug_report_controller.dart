@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
-import '../../core/diagnostics/report_sender.dart';
+import 'package:app_report_client/app_report_client.dart';
+import '../../core/diagnostics/report_config.dart';
+import '../../core/diagnostics/session_facts.dart';
 import '../../providers.dart';
 
 enum BugReportPhase { idle, recording, review }
@@ -26,12 +28,17 @@ class BugReportState {
     this.log,
     this.autoStoppedBy,
     this.recovered,
+    this.kind = ReportKind.bug,
     this.destination = ReportDestination.file,
     this.send = const SendState.idle(),
   });
 
-  const BugReportState.idle({RecoveredSession? recovered})
-      : this._(BugReportPhase.idle, recovered: recovered);
+  const BugReportState.idle({RecoveredSession? recovered, ReportKind? kind})
+      : this._(
+          BugReportPhase.idle,
+          recovered: recovered,
+          kind: kind ?? ReportKind.bug,
+        );
 
   const BugReportState.recording(DateTime startedAt)
       : this._(BugReportPhase.recording, startedAt: startedAt);
@@ -40,6 +47,7 @@ class BugReportState {
       : this._(BugReportPhase.review, log: log, autoStoppedBy: autoStoppedBy);
 
   BugReportState copyWith({
+    ReportKind? kind,
     ReportDestination? destination,
     SendState? send,
   }) =>
@@ -49,11 +57,17 @@ class BugReportState {
         log: log,
         autoStoppedBy: autoStoppedBy,
         recovered: recovered,
+        kind: kind ?? this.kind,
         destination: destination ?? this.destination,
         send: send ?? this.send,
       );
 
   final BugReportPhase phase;
+
+  /// What the user is filing. Only [ReportKind.bug] reaches
+  /// [BugReportPhase.recording]; the other two are written and sent from the
+  /// idle screen.
+  final ReportKind kind;
   final DateTime? startedAt;
   final String? log;
 
@@ -160,8 +174,93 @@ class BugReportController extends Notifier<BugReportState> {
     await ref
         .read(diagnosticRecorderProvider)
         .discardSession(recovered.session);
-    state = const BugReportState.idle();
+    state = BugReportState.idle(kind: state.kind);
   }
+
+  /// Picks what is being filed. Costs nothing — see [describingRequest] for
+  /// where a request's ticket is actually bought.
+  void chooseKind(ReportKind kind) {
+    if (state.kind == kind) return;
+    state = state.copyWith(
+      kind: kind,
+      // A verdict about the last report is not a verdict about this one. Only a
+      // finished one is cleared: a send still in flight is a real thing
+      // happening and has to stay visible wherever the user goes.
+      send: switch (state.send.phase) {
+        SendPhase.sent || SendPhase.failed => const SendState.idle(),
+        _ => state.send,
+      },
+    );
+  }
+
+  /// The user is writing a request. Buys the ticket, so the relay's delay runs
+  /// while they finish the sentence.
+  ///
+  /// On the typing rather than on the segment, and that is the whole design: a
+  /// request has no "keep it on the phone" option, so picking one is already the
+  /// decision to publish — but the segment is also the cheapest thing on this
+  /// screen to tap out of curiosity, and the relay charges for a challenge when
+  /// it hands one out. A tap that costs the *next* report double its wait is too
+  /// much to charge for a look. Somebody typing has decided.
+  void describingRequest() {
+    if (state.kind.needsLog) return;
+    // Deliberately not awaited, and safe on every keystroke: the field has to
+    // stay typable, and the sender joins a trip already in flight.
+    unawaited(ref.read(reportSenderProvider).prepare());
+  }
+
+  /// Hands over a change or feature request. There is no recording behind it, so
+  /// the envelope is built from the session's own facts.
+  ///
+  /// Busy before the first await, and that is the point of the line: reading
+  /// those facts asks the server for its version, which against an unreachable
+  /// one takes a full HTTP timeout. Without it the send button stays live and
+  /// enabled for that whole wait, and a second tap queues a second report over
+  /// the first.
+  ///
+  /// Returns false when the facts could not be read at all. The sender never saw
+  /// that attempt, so nothing is queued and nothing will emit a failure — the
+  /// caller is the only one left who can say so.
+  Future<bool> sendRequest(String description) async {
+    if (state.send.phase == SendPhase.sending) return true;
+    state = state.copyWith(send: SendState.sending(kind: state.kind));
+
+    final SessionFacts facts;
+    try {
+      facts = await ref.read(sessionFactsProvider)();
+    } on Object {
+      // Back to idle rather than failed: nothing was handed over, so there is
+      // no report for a "failed" to be about, and the button has to come back.
+      state = state.copyWith(send: const SendState.idle());
+      return false;
+    }
+
+    await ref.read(reportSenderProvider).submitRequest(
+          kind: state.kind,
+          description: description,
+          envelope: requestEnvelope(
+            formatVersion: reportLogSchema,
+            app: facts.app,
+            server: facts.server,
+            locale: facts.locale,
+          ),
+        );
+    return true;
+  }
+
+  /// Calls off a queued request before the relay gets it.
+  Future<void> cancelSend() => ref.read(reportSenderProvider).cancel();
+
+  /// Back to the start, keeping the kind the user is working in. For a request,
+  /// which leaves nothing on disk, this is the whole of "done".
+  ///
+  /// The salvaged session is carried over too. Nothing else offers it — the
+  /// crashed log is looked for once per process, in [build] — so dropping it
+  /// here would leave its files on disk with no way left to open or delete them.
+  void reset() => state = BugReportState.idle(
+        kind: state.kind,
+        recovered: state.recovered,
+      );
 
   Future<void> start() async {
     if (state.isRecording) return;

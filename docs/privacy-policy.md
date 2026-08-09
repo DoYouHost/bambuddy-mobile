@@ -1,6 +1,6 @@
 # Bambuddy mobile — Privacy Policy
 
-_Last updated: 2 August 2026_
+_Last updated: 9 August 2026_
 
 Bambuddy mobile is an unofficial, open-source Android companion app for a **self-hosted
 bambuddy server** that manages Bambu Lab 3D printers. It is **not affiliated with,
@@ -10,18 +10,19 @@ This policy explains what data the app handles. In short: the app has **no analy
 advertising and no account you create with the developer**, and everything it does while
 you use it stays between your device and the bambuddy server address **you** configure.
 
-There is one exception, and only you can trigger it: if you decide to report a bug from
-inside the app, your description and a diagnostic log you have read through first are
-published as a **public issue on GitHub**. Nothing is sent unless you choose that, and
-the whole path is described under [Sending a bug report](#sending-a-bug-report).
+There is one exception, and only you can trigger it: if you decide to report something
+from inside the app — a bug, a change or a feature you would like — what you write is
+published as a **public issue on GitHub**, together with a diagnostic log you have read
+through first when the report is a bug. Nothing is sent unless you choose that, and the
+whole path is described under [Sending a report](#sending-a-report).
 
 ## Who the app talks to
 
 - **Your bambuddy server** — the self-hosted address you enter during setup. While you
   use the app, this is the only server it talks to. There is no cloud backend, no
   analytics service and no advertising SDK.
-- **The bug-report relay and GitHub** — contacted **only** when you open "Report a bug"
-  and choose to publish a report. The relay (`relay-bambu.morganmlg.com`) is a small
+- **The report relay and GitHub** — contacted **only** when you open the report screen
+  and choose to publish a report. The relay (`app-relay.morganmlg.com`) is a small
   Cloudflare Worker operated by the developer; it exists so that you can file a report
   without having a GitHub account. If you never send a report, the app never contacts
   either of them.
@@ -67,9 +68,10 @@ Signing out from the same screen tells your server to discard the token.
 
 ## Diagnostic logs
 
-The app **can** record a diagnostic log, but only when **you** start one yourself from
-"Report a bug". Nothing is recorded before you press start, and a recording stops by
-itself after 30 minutes, or sooner if it reaches 20 MB.
+The app **can** record a diagnostic log, but only when **you** start one yourself from the
+report screen, and only for a bug report — the other two kinds record nothing at all.
+Nothing is recorded before you press start, and a recording stops by itself after 30
+minutes, or sooner if it reaches 20 MB.
 
 Such a log describes what the app did: screens you opened, controls you pressed, requests
 to your server and the status codes that came back, live-view connection events, what the
@@ -87,30 +89,46 @@ You review the whole log on screen, and then you choose one of two destinations:
 
 Once the log has been saved, published or discarded, the app deletes its own copy.
 
-## Sending a bug report
+## Sending a report
 
 This happens only when you write a description in the report form and press Report. It is
 voluntary from beginning to end: if you do not send a report, nothing described in this
 section takes place.
 
+The report screen files three kinds, and they do not send the same thing. A **bug** is
+settled by evidence, so it carries the log you have just reviewed. A **change** or a
+**feature** request is an argument about what the app ought to do, which no recording
+settles — so neither carries a log, and neither records anything in the first place.
+
 ### What leaves your phone
 
+For every kind:
+
 - **Your description**, exactly as you wrote it, in whatever language you used.
+- **The installation identifier** described above.
+- **Your IP address**, which the relay necessarily sees, as does any server you connect
+  to.
+
+For a **bug report** only, and in addition:
+
 - **The diagnostic log** you have just reviewed, compressed.
 - **A short session header**: the app version and build number, whether it is the phone
   or the watch build, your Android version, your device's language tag (for example
   `pl-PL`), the bambuddy version your server reports, the *shape* of your server address
   as described above, and which authentication mode you use.
-- **The installation identifier** described above.
-- **Your IP address**, which the relay necessarily sees, as does any server you connect
-  to.
+
+For a **change or feature request**, the header is three fields instead: the app version
+and build number, the bambuddy version your server reports, and your device's language
+tag. The versions are there so that nobody asks you to wait for something already
+released, and the language tag says which language your description is likely written in.
+Nothing about your device, your server address or how you sign in is sent.
 
 ### Where it goes
 
-The relay checks the report, commits the log file to the `bug-report-assets` branch of the
-app's public GitHub repository, and opens a **public issue** that quotes your description
-and the session header and links to the log. The app then shows you the address of that
-issue.
+The relay checks the report and opens a **public issue** on the app's public GitHub
+repository that quotes your description and the session header. For a bug report it also
+commits the log file to the repository's `bug-report-assets` branch and links it from the
+issue. The app then shows you the address of that issue.
 
 **A public issue is public and permanent by its nature.** Anyone can read it, search
 engines index it, and other people can copy or quote it. Deleting an issue later cannot
@@ -172,10 +190,10 @@ Bambuddy mobile is a utility app for 3D-printer owners and is not directed at ch
 - **On your device** — uninstall the app or clear its storage in Android settings. That
   also removes the installation identifier and any log still waiting on the phone.
 - **A report you published** — send a deletion request to **info.doyouhost@gmail.com** with
-  the address of the issue. The issue and its log file are deleted from the repository, and
-  no account or proof of identity is needed — the issue address is enough. Because the
-  repository is public, copies that other people, forks, mirrors or search engines have
-  already taken are outside the developer's control.
+  the address of the issue. The issue, and its log file where it has one, are deleted from
+  the repository, and no account or proof of identity is needed — the issue address is
+  enough. Because the repository is public, copies that other people, forks, mirrors or
+  search engines have already taken are outside the developer's control.
 - **A Bambu Lab cloud session** — sign out in Settings → Cloud account, and your server
   discards the token it was holding. The Bambu Lab account itself is governed by Bambu Lab.
 - **Relay counters** — they expire on their own within about a day and hold nothing but
