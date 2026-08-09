@@ -4,13 +4,12 @@ import 'dart:io';
 
 import 'log_event.dart';
 
-/// Append-only JSONL file for one stream of one session.
+/// Append-only JSONL file for one stream of one session — the durable mirror
+/// described in `docs/diagnostics-log.md`.
 ///
-/// Exists for the foreground-service isolate: it has its own heap and can be
-/// killed by the system at any time, so anything it logs must already be on
-/// disk when the UI comes to collect it. Writes are serialised through a
-/// future chain — [writeLine] is fire-and-forget from the caller's side but
-/// lines can't interleave or land out of order.
+/// Writes are serialised through a future chain: [writeLine] is
+/// fire-and-forget from the caller's side, but lines cannot interleave or land
+/// out of order.
 class LogFileSink {
   LogFileSink(this.file);
 
@@ -33,12 +32,10 @@ class LogFileSink {
 
   void writeLine(String line) => unawaited(_enqueue(line));
 
-  /// The file's first line, or empty when there is none.
-  ///
-  /// Streams rather than reading the whole file: the UI stream can be hundreds of
-  /// kilobytes by the time the background isolate wants its header, and the
-  /// header is the first thing in it. Appends land at the end, so a concurrent
-  /// writer cannot disturb this.
+  /// The file's first line, or empty when there is none. Streams rather than
+  /// reading the whole file: the UI stream can be hundreds of kilobytes by the
+  /// time the background isolate wants its header. Appends land at the end, so
+  /// a concurrent writer cannot disturb this.
   Future<String> readFirstLine() async {
     try {
       if (!await file.exists()) return '';
@@ -55,12 +52,10 @@ class LogFileSink {
     }
   }
 
-  /// Whether the file already ends in a newline, so an append cannot glue itself
-  /// onto a half-written record. False for a file that does not exist.
-  ///
-  /// A killed process can leave the last line torn even with a flush per write.
-  /// Concatenating onto it costs two records: the tail of the old one and all of
-  /// the new one, both dropped as unparseable.
+  /// Whether the file already ends in a newline; false when it does not exist.
+  /// A killed process can leave the last line torn even with a flush per write,
+  /// and concatenating onto it costs two records — the tail of the old one and
+  /// all of the new, both dropped as unparseable.
   Future<bool> endsWithNewline() async {
     try {
       final length = await file.length();
@@ -82,9 +77,6 @@ class LogFileSink {
     if (_closed) return Future<void>.value();
     _chain = _chain.then((_) async {
       try {
-        // Flushing every line costs an fsync-ish write, which is fine at the
-        // rate the background isolate logs — and it's the whole point: an
-        // unflushed buffer dies with the service.
         await file.writeAsString('$line\n',
             mode: FileMode.append, flush: true);
       } on Object {
