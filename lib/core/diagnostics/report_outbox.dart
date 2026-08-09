@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'relay_client.dart';
+import 'report_envelope.dart';
 
 /// A report the user has already committed to sending, waiting for its ticket to
 /// mature.
@@ -12,37 +13,51 @@ import 'relay_client.dart';
 class PendingReport {
   const PendingReport({
     required this.id,
+    required this.kind,
     required this.description,
     required this.header,
-    required this.logSchema,
     required this.ticket,
-    required this.logPath,
+    this.logSchema,
+    this.logPath,
   });
 
   final String id;
+  final ReportKind kind;
   final String description;
   final Map<String, Object> header;
-  final int logSchema;
   final RelayTicket ticket;
-  final String logPath;
+
+  /// Both null for a change or feature request, which carries no recording.
+  final int? logSchema;
+  final String? logPath;
+
+  bool get hasLog => logPath != null;
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'kind': kind.name,
         'description': description,
         'header': header,
-        'logSchema': logSchema,
+        'logSchema': ?logSchema,
         'ticket': ticket.toJson(),
-        'logPath': logPath,
+        'logPath': ?logPath,
       };
 
   static PendingReport fromJson(Map<String, dynamic> json) => PendingReport(
         id: json['id'] as String,
+        // Absent in a slot written by a build that only knew how to file bugs.
+        // It is the user's report and it is still sendable, so it is read as
+        // what it must have been rather than thrown away.
+        kind: ReportKind.values.firstWhere(
+          (k) => k.name == json['kind'],
+          orElse: () => ReportKind.bug,
+        ),
         description: json['description'] as String,
         header: (json['header'] as Map).cast<String, Object>(),
-        logSchema: json['logSchema'] as int,
+        logSchema: json['logSchema'] as int?,
         ticket:
             RelayTicket.fromJson((json['ticket'] as Map).cast<String, dynamic>()),
-        logPath: json['logPath'] as String,
+        logPath: json['logPath'] as String?,
       );
 }
 
@@ -76,23 +91,28 @@ class ReportOutbox {
   /// on every read.
   Future<PendingReport> put({
     required String id,
+    required ReportKind kind,
     required String description,
     required Map<String, Object> header,
-    required int logSchema,
     required RelayTicket ticket,
-    required String log,
+    int? logSchema,
+    String? log,
   }) async {
     final dir = await _dir();
-    final logFile = File('${dir.path}/$id.jsonl');
-    await logFile.writeAsString(log, flush: true);
+    File? logFile;
+    if (log != null) {
+      logFile = File('${dir.path}/$id.jsonl');
+      await logFile.writeAsString(log, flush: true);
+    }
 
     final report = PendingReport(
       id: id,
+      kind: kind,
       description: description,
       header: header,
       logSchema: logSchema,
       ticket: ticket,
-      logPath: logFile.path,
+      logPath: logFile?.path,
     );
     await (await _slot()).writeAsString(jsonEncode(report.toJson()), flush: true);
     return report;
@@ -106,8 +126,8 @@ class ReportOutbox {
         (jsonDecode(await slot.readAsString()) as Map).cast<String, dynamic>(),
       );
       // A slot pointing at a log that is gone is worse than an empty one: it
-      // would fail on every retry forever.
-      if (!File(report.logPath).existsSync()) {
+      // would fail on every retry forever. A slot that never had one is fine.
+      if (report.logPath case final String path when !File(path).existsSync()) {
         await clear();
         return null;
       }
@@ -119,8 +139,12 @@ class ReportOutbox {
     }
   }
 
+  /// The queued log, or null — both when the report never had one and when the
+  /// file has gone missing. [PendingReport.hasLog] is what tells those apart.
   Future<String?> readLog(PendingReport report) async {
-    final file = File(report.logPath);
+    final path = report.logPath;
+    if (path == null) return null;
+    final file = File(path);
     return file.existsSync() ? await file.readAsString() : null;
   }
 

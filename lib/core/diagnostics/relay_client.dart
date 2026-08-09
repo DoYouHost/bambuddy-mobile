@@ -5,10 +5,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'relay_pow.dart';
+import 'report_envelope.dart';
 
 /// Where reports go. Public by necessity — it ships inside the APK — which is
 /// why the relay meters every caller rather than trusting this to stay unknown.
-const String relayBaseUrl = 'https://relay-bambu.morganmlg.com';
+///
+/// The path prefix names this application: one relay serves several, and it
+/// decides which repository a report reaches from the prefix the challenge was
+/// issued under. Both endpoints below hang off it, so this must not end in a
+/// slash.
+const String relayBaseUrl = 'https://app-relay.morganmlg.com/bambuddy';
 
 /// A challenge fetched when the report form opens.
 ///
@@ -165,18 +171,25 @@ class RelayClient {
   /// The log is gzipped and base64-encoded here rather than on the relay: the
   /// phone has the file already, compression costs more than decompression, and
   /// it keeps the relay's cost independent of how long the recording was.
+  ///
+  /// [log] is null for a change or feature request, and then `logGz` and
+  /// `logSchema` are absent from the body rather than sent empty — "there is no
+  /// recording" and "the recording came out empty" are different reports, and
+  /// only the second is a broken client worth knowing about.
   Future<String> send({
     required String installId,
     required RelayTicket ticket,
+    required ReportKind kind,
     required String description,
     required Map<String, Object> header,
-    required int logSchema,
-    required String log,
+    int? logSchema,
+    String? log,
   }) async {
     // Normally already solved while the user was writing; solving here is the
     // fallback for a report that outlived the process that queued it.
     final powNonce = ticket.powNonce ?? await solvePow(ticket.challenge);
-    final logGz = base64Encode(gzip.encode(utf8.encode(log)));
+    final logGz =
+        log == null ? null : base64Encode(gzip.encode(utf8.encode(log)));
 
     final Response<dynamic> response;
     try {
@@ -184,10 +197,11 @@ class RelayClient {
         '$baseUrl/report',
         data: {
           'installId': installId,
+          'kind': kind.name,
           'header': header,
           'description': description,
-          'logSchema': logSchema,
-          'logGz': logGz,
+          'logSchema': ?logSchema,
+          'logGz': ?logGz,
           'ticket': ticket.ticket,
           'powNonce': powNonce,
         },

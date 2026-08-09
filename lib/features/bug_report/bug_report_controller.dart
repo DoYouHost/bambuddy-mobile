@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
+import '../../core/diagnostics/report_envelope.dart';
 import '../../core/diagnostics/report_sender.dart';
 import '../../providers.dart';
 
@@ -26,12 +27,17 @@ class BugReportState {
     this.log,
     this.autoStoppedBy,
     this.recovered,
+    this.kind = ReportKind.bug,
     this.destination = ReportDestination.file,
     this.send = const SendState.idle(),
   });
 
-  const BugReportState.idle({RecoveredSession? recovered})
-      : this._(BugReportPhase.idle, recovered: recovered);
+  const BugReportState.idle({RecoveredSession? recovered, ReportKind? kind})
+      : this._(
+          BugReportPhase.idle,
+          recovered: recovered,
+          kind: kind ?? ReportKind.bug,
+        );
 
   const BugReportState.recording(DateTime startedAt)
       : this._(BugReportPhase.recording, startedAt: startedAt);
@@ -40,6 +46,7 @@ class BugReportState {
       : this._(BugReportPhase.review, log: log, autoStoppedBy: autoStoppedBy);
 
   BugReportState copyWith({
+    ReportKind? kind,
     ReportDestination? destination,
     SendState? send,
   }) =>
@@ -49,11 +56,17 @@ class BugReportState {
         log: log,
         autoStoppedBy: autoStoppedBy,
         recovered: recovered,
+        kind: kind ?? this.kind,
         destination: destination ?? this.destination,
         send: send ?? this.send,
       );
 
   final BugReportPhase phase;
+
+  /// What the user is filing. Only [ReportKind.bug] reaches
+  /// [BugReportPhase.recording]; the other two are written and sent from the
+  /// idle screen.
+  final ReportKind kind;
   final DateTime? startedAt;
   final String? log;
 
@@ -162,6 +175,45 @@ class BugReportController extends Notifier<BugReportState> {
         .discardSession(recovered.session);
     state = const BugReportState.idle();
   }
+
+  /// Picks what is being filed.
+  ///
+  /// Choosing a request is already the decision to publish — there is no "keep
+  /// it on the phone" option for an idea — so the ticket is fetched here, and
+  /// the relay's delay runs while the user writes. A bug takes the other route:
+  /// its decision comes at [chooseDestination], after the log exists.
+  void chooseKind(ReportKind kind) {
+    if (state.kind == kind) return;
+    state = state.copyWith(
+      kind: kind,
+      // A verdict about the last report is not a verdict about this one. Only a
+      // finished one is cleared: a send still in flight is a real thing
+      // happening and has to stay visible wherever the user goes.
+      send: switch (state.send.phase) {
+        SendPhase.sent || SendPhase.failed => const SendState.idle(),
+        _ => state.send,
+      },
+    );
+    if (!kind.needsLog) unawaited(ref.read(reportSenderProvider).prepare());
+  }
+
+  /// Hands over a change or feature request. There is no recording behind it, so
+  /// the envelope is built from the session's own facts.
+  Future<void> sendRequest(String description) async {
+    final facts = await ref.read(sessionFactsProvider)();
+    await ref.read(reportSenderProvider).submitRequest(
+          kind: state.kind,
+          description: description,
+          envelope: requestEnvelope(facts),
+        );
+  }
+
+  /// Calls off a queued request before the relay gets it.
+  Future<void> cancelSend() => ref.read(reportSenderProvider).cancel();
+
+  /// Back to the start, keeping the kind the user is working in. For a request,
+  /// which leaves nothing on disk, this is the whole of "done".
+  void reset() => state = BugReportState.idle(kind: state.kind);
 
   Future<void> start() async {
     if (state.isRecording) return;

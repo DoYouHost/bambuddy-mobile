@@ -3,6 +3,22 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'log_event.dart';
+import 'session_facts.dart';
+
+/// What the user is filing. The relay opens a different kind of issue for each,
+/// so these names are wire values.
+///
+/// Only [bug] carries a recording. A change or a feature request is an argument
+/// about what the app *should* do, and no amount of evidence about what it
+/// currently does settles that — asking someone to reproduce their own idea for
+/// fifteen minutes would be asking for nothing.
+enum ReportKind {
+  bug,
+  change,
+  feature;
+
+  bool get needsLog => this == ReportKind.bug;
+}
 
 /// The two envelope fields the relay wants beside the log: the session header it
 /// renders into the issue, and which record schema the log follows.
@@ -13,11 +29,35 @@ import 'log_event.dart';
 /// only ever surface as a public issue whose header contradicts its own log.
 @immutable
 class ReportEnvelope {
-  const ReportEnvelope({required this.header, required this.logSchema});
+  const ReportEnvelope({required this.header, this.logSchema});
 
   final Map<String, Object> header;
-  final int logSchema;
+
+  /// Null when the report carries no log — see [ReportKind.needsLog].
+  final int? logSchema;
 }
+
+/// The header for a report with no log to read one off.
+///
+/// Deliberately three fields where a bug report has a dozen. A feature request
+/// is answered by reading it, and the only thing about the phone that bears on
+/// it is whether the idea is already implemented in a build the user does not
+/// have — which is `app` and `server`. `locale` stays because it says which
+/// language the description is likely written in.
+///
+/// The Android version, the device, the flavor, the auth mode and the server's
+/// shape are all *bug* facts. Sending them anyway would put a person's setup in
+/// a public issue in exchange for nothing.
+ReportEnvelope requestEnvelope(SessionFacts facts, {DateTime? at}) =>
+    ReportEnvelope(
+      header: {
+        'v': LogHeader.formatVersion,
+        'ts': (at ?? DateTime.now()).toUtc().toIso8601String(),
+        'app': facts.app,
+        if (facts.server case final String server) 'server': server,
+        if (facts.locale case final String locale) 'locale': locale,
+      },
+    );
 
 /// The schema this build writes, and the number sent when a log does not say.
 ///
@@ -36,6 +76,8 @@ const reportLogSchema = LogHeader.formatVersion;
 /// A log with no readable header yields an empty header and the current schema.
 /// That is deliberate — the relay accepts an empty header, and a report without
 /// one still beats no report at all.
+///
+/// Bug reports only: [requestEnvelope] is what a kind with no recording uses.
 ReportEnvelope reportEnvelope(String log) {
   final fields = _headerFields(log);
   return ReportEnvelope(

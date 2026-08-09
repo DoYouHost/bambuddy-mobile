@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/diagnostics/relay_client.dart';
 import 'package:bambuddy_mobile/core/diagnostics/relay_pow.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_envelope.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_outbox.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_sender.dart';
+import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,6 +30,11 @@ class FakeRelay extends RelayClient {
   int challenges = 0;
   int sends = 0;
 
+  /// What the sender actually handed over, in order. Kept rather than counted
+  /// because a request has to be recognisable as one: the kind it claims and
+  /// the absence of a log are the whole difference on the wire.
+  final List<Map<String, Object?>> reports = [];
+
   @override
   Future<RelayTicket> challenge(String installId) async {
     challenges++;
@@ -40,12 +47,20 @@ class FakeRelay extends RelayClient {
   Future<String> send({
     required String installId,
     required RelayTicket ticket,
+    required ReportKind kind,
     required String description,
     required Map<String, Object> header,
-    required int logSchema,
-    required String log,
+    int? logSchema,
+    String? log,
   }) async {
     sends++;
+    reports.add({
+      'kind': kind,
+      'description': description,
+      'header': header,
+      'logSchema': logSchema,
+      'log': log,
+    });
     final handler = onSend;
     if (handler != null) return await handler();
     return 'https://github.example/issues/1';
@@ -81,6 +96,7 @@ void main() {
 
       await withRoot.put(
         id: 'r1',
+        kind: ReportKind.bug,
         description: 'it broke',
         header: const {'app': '0.11.7'},
         logSchema: 1,
@@ -99,13 +115,14 @@ void main() {
       final outbox = ReportOutbox(root: root);
       final report = await outbox.put(
         id: 'r2',
+        kind: ReportKind.bug,
         description: 'it broke',
         header: const {},
         logSchema: 1,
         ticket: ticket(),
         log: 'line\n',
       );
-      File(report.logPath).deleteSync();
+      File(report.logPath!).deleteSync();
 
       expect(await outbox.peek(), isNull);
     });
@@ -144,6 +161,7 @@ void main() {
     test('picks a report queued in an earlier run back up', () async {
       await ReportOutbox(root: root).put(
         id: 'r3',
+        kind: ReportKind.bug,
         description: 'from yesterday',
         header: const {'app': '0.11.7'},
         logSchema: 1,
@@ -164,6 +182,7 @@ void main() {
     test('asks for a new ticket when the old one expired unused', () async {
       await ReportOutbox(root: root).put(
         id: 'r4',
+        kind: ReportKind.bug,
         description: 'stale',
         header: const {},
         logSchema: 1,
@@ -233,6 +252,117 @@ void main() {
       expect(await ReportOutbox(root: root).peek(), isNull);
       expect(root.listSync(recursive: true).whereType<File>(), isEmpty);
     });
+
+    test('a bug report still says so on the wire', () async {
+      final relay = FakeRelay(issued: ticket());
+      final sender = senderWith(relay);
+      addTearDown(sender.dispose);
+
+      await sender.prepare();
+      await submit(sender);
+
+      expect(relay.reports.single['kind'], ReportKind.bug);
+      expect(relay.reports.single['logSchema'], 1);
+    });
+  });
+
+  group('change and feature requests', () {
+    Future<void> submitRequest(
+      ReportSender sender, {
+      ReportKind kind = ReportKind.feature,
+      String description = 'let it do the other thing',
+    }) =>
+        sender.submitRequest(
+          kind: kind,
+          description: description,
+          envelope: requestEnvelope(
+            const SessionFacts(
+              app: '0.11.7+1107000',
+              flavor: 'mobile',
+              server: '0.2.5b3',
+              locale: 'pl-PL',
+            ),
+          ),
+        );
+
+    test('a request goes out with no log at all', () async {
+      final relay = FakeRelay(issued: ticket());
+      final sender = senderWith(relay);
+      addTearDown(sender.dispose);
+
+      await sender.prepare();
+      await submitRequest(sender);
+
+      final report = relay.reports.single;
+      expect(report['kind'], ReportKind.feature);
+      // Absent, not empty: the relay has to be able to tell a request from a
+      // bug report whose recording came out blank, and only the second is a
+      // broken client worth knowing about.
+      expect(report['log'], isNull);
+      expect(report['logSchema'], isNull);
+      // Nothing is left on disk either — a request writes no log file to clean
+      // up after.
+      expect(root.listSync(recursive: true).whereType<File>(), isEmpty);
+    });
+
+    test('the header names the versions and nothing about the setup', () async {
+      final relay = FakeRelay(issued: ticket());
+      final sender = senderWith(relay);
+      addTearDown(sender.dispose);
+
+      await sender.prepare();
+      await submitRequest(sender, kind: ReportKind.change);
+
+      final header = relay.reports.single['header']! as Map<String, Object>;
+      expect(header['app'], '0.11.7+1107000');
+      expect(header['server'], '0.2.5b3');
+      expect(header['locale'], 'pl-PL');
+      // The bug facts stay out: a public issue is no place for a person's
+      // server address, their auth mode or which flavor they run.
+      expect(header.keys, isNot(contains('serverUrl')));
+      expect(header.keys, isNot(contains('auth')));
+      expect(header.keys, isNot(contains('flavor')));
+    });
+
+    test('a queued request survives the app without growing a log', () async {
+      final relay = FakeRelay(issued: ticket(wait: const Duration(minutes: 5)));
+      final sender = senderWith(relay);
+      addTearDown(sender.dispose);
+
+      await sender.prepare();
+      await submitRequest(sender, kind: ReportKind.change);
+
+      // Read back through a fresh outbox, as after a restart: the kind has to
+      // come off disk, or a request would be flushed as a bug with no log.
+      final queued = await ReportOutbox(root: root).peek();
+      expect(queued, isNotNull);
+      expect(queued!.kind, ReportKind.change);
+      expect(queued.hasLog, isFalse);
+      expect(await ReportOutbox(root: root).readLog(queued), isNull);
+    });
+
+    test('a slot from a build that only filed bugs is read as a bug', () async {
+      // Written by hand in the old shape: no `kind`, which is exactly what an
+      // install upgrading mid-wait has sitting in its outbox.
+      final outbox = ReportOutbox(root: root);
+      final report = await outbox.put(
+        id: 'r10',
+        kind: ReportKind.bug,
+        description: 'queued before the update',
+        header: const {'app': '0.11.7'},
+        logSchema: 1,
+        ticket: ticket(),
+        log: 'line\n',
+      );
+      final slot = File('${root.path}/outbox/pending.json');
+      slot.writeAsStringSync(
+        slot.readAsStringSync().replaceFirst('"kind":"bug",', ''),
+      );
+
+      final reopened = await ReportOutbox(root: root).peek();
+      expect(reopened!.kind, ReportKind.bug);
+      expect(reopened.logPath, report.logPath);
+    });
   });
 
   group('demo mode', () {
@@ -264,6 +394,7 @@ void main() {
     test('holds a report queued before demo instead of publishing it', () async {
       await ReportOutbox(root: root).put(
         id: 'r9',
+        kind: ReportKind.bug,
         description: 'from the real server',
         header: const {'app': '0.11.7'},
         logSchema: 1,

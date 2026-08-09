@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
 import 'package:bambuddy_mobile/core/diagnostics/log_store.dart';
 import 'package:bambuddy_mobile/core/diagnostics/relay_client.dart';
 import 'package:bambuddy_mobile/core/diagnostics/relay_pow.dart';
+import 'package:bambuddy_mobile/core/diagnostics/report_envelope.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_outbox.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_sender.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
@@ -40,9 +41,13 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  /// Memory-only recorder: no package-info channel, no files on disk.
+  /// Memory-only recorder: no package-info channel, no files on disk. The facts
+  /// are overridden at their own provider as well, because a change or feature
+  /// request reads them straight from there — there is no recording to carry
+  /// them.
   List<Override> overrides([List<Override> extra = const []]) => [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        sessionFactsProvider.overrideWithValue(() async => facts),
         diagnosticRecorderProvider.overrideWith(
           (ref) => DiagnosticRecorder(
             settings: ref.watch(settingsRepositoryProvider),
@@ -65,11 +70,23 @@ void main() {
     return container;
   }
 
+  /// Scrolls the idle screen down to its action button.
+  ///
+  /// Both kinds put one under a consent list taller than a test viewport, and a
+  /// lazy list does not build what it has not scrolled to. Deliberately below
+  /// the fold rather than above it: the list is what the user is agreeing to by
+  /// pressing the button.
+  Future<void> scrollToActions(WidgetTester tester) async {
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('opens on the explanation, not on a running recording',
       (tester) async {
     await pumpScreen(tester);
 
     expect(find.text('Jak to działa'), findsOneWidget);
+    await scrollToActions(tester);
     expect(find.text('Rozpocznij nagrywanie'), findsOneWidget);
     expect(DiagnosticRecorder.isRecording, isFalse);
   });
@@ -78,10 +95,25 @@ void main() {
       (tester) async {
     // The screen used to list what was *not* wired up yet. Now that the service
     // and its notification decisions are in the log, saying so is the point —
-    // this is the text the user agrees to before anything is recorded.
+    // this is what the user agrees to before anything is recorded, and it is a
+    // list rather than a paragraph because a consent notice nobody reads is
+    // worse consent than four lines somebody skims.
     await pumpScreen(tester);
 
     expect(find.textContaining('usługa w tle'), findsOneWidget);
+    // Both halves of the promise: what is kept, and what never goes in.
+    expect(find.text('Klucz API ani hasło'), findsOneWidget);
+    expect(find.text('Tekst, który wpisujesz'), findsOneWidget);
+    expect(find.textContaining('zanim opuści telefon'), findsOneWidget);
+  });
+
+  testWidgets('the three steps replace the paragraph that described them',
+      (tester) async {
+    await pumpScreen(tester);
+
+    expect(find.text('Włącz nagrywanie'), findsOneWidget);
+    expect(find.text('Odtwórz problem'), findsOneWidget);
+    expect(find.text('Wróć tutaj i zakończ'), findsOneWidget);
   });
 
   /// Gives real file I/O already in flight the real event loop it needs, then
@@ -173,6 +205,7 @@ void main() {
       (tester) async {
     final container = await pumpRouted(tester);
 
+    await scrollToActions(tester);
     await tester.tap(find.text('Rozpocznij nagrywanie'));
     await tester.pumpAndSettle();
 
@@ -190,6 +223,7 @@ void main() {
     // and there is no dashboard to go back to yet.
     final container = await pumpRouted(tester, withProfile: false);
 
+    await scrollToActions(tester);
     await tester.tap(find.text('Rozpocznij nagrywanie'));
     await tester.pumpAndSettle();
 
@@ -1049,6 +1083,192 @@ void main() {
       expect(find.text('Nagrywanie'), findsNothing);
     });
   });
+
+  group('changes and features', () {
+    Future<ProviderContainer> pumpIdle(
+      WidgetTester tester, {
+      List<Override> extra = const [],
+    }) =>
+        pumpRouted(tester, extra: extra);
+
+    /// Picks a kind on the screen everything starts from.
+    Future<void> choose(WidgetTester tester, String label) async {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opens on the bug, which is the kind that records',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+
+      await scrollToActions(tester);
+      expect(find.text('Rozpocznij nagrywanie'), findsOneWidget);
+      // No ticket bought for a screen the user has not asked anything of yet.
+      expect(relay.challenges, 0);
+    });
+
+    testWidgets('a request replaces the recording flow with a form',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+
+      await choose(tester, 'Funkcję');
+
+      // Nothing to record, so nothing offers to.
+      expect(find.text('Rozpocznij nagrywanie'), findsNothing);
+      expect(find.text('Czego brakuje?'), findsOneWidget);
+      // Choosing a request *is* the decision to publish, so the wait starts
+      // here rather than at the send tap.
+      expect(relay.challenges, 1);
+    });
+
+    testWidgets('the change wording is not the feature wording',
+        (tester) async {
+      await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(_FakeRelay(issued: _ticket())),
+      ]);
+
+      await choose(tester, 'Zmianę');
+
+      expect(find.text('Co powinno się zmienić?'), findsOneWidget);
+      expect(find.text('Czego brakuje?'), findsNothing);
+    });
+
+    testWidgets('flipping between requests does not buy a second challenge',
+        (tester) async {
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpIdle(tester, extra: [relayClientProvider.overrideWithValue(relay)]);
+
+      await choose(tester, 'Funkcję');
+      await choose(tester, 'Zmianę');
+      await choose(tester, 'Błąd');
+      await choose(tester, 'Funkcję');
+
+      // Same reason as the destination picker: each extra challenge doubles the
+      // user's next wait, for a decision they were entitled to change.
+      expect(relay.challenges, 1);
+    });
+
+    testWidgets('refuses to send an empty request', (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket());
+      await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(relay),
+        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+      ]);
+
+      await choose(tester, 'Funkcję');
+      await scrollToActions(tester);
+      await tester.tap(find.text('Zgłoś'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Napisz, o co prosisz'), findsOneWidget);
+      expect(relay.sends, 0);
+    });
+
+    testWidgets('sends the request with no log and offers the link back',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final relay = _FakeRelay(issued: _ticket());
+      final container = await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(relay),
+        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+      ]);
+
+      await choose(tester, 'Funkcję');
+      await tester.enterText(
+        find.byType(TextField),
+        'chciałbym harmonogram wydruków',
+      );
+      await scrollToActions(tester);
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.sent,
+      );
+
+      expect(relay.sends, 1);
+      expect(relay.lastKind, ReportKind.feature);
+      expect(relay.lastDescription, 'chciałbym harmonogram wydruków');
+      // No recording behind it, and the schema says so rather than claiming a
+      // log that was never written.
+      expect(relay.lastLog, isNull);
+      expect(relay.lastSchema, isNull);
+      // The versions travel, because "already released" is the one answer a
+      // request can get from the phone.
+      expect(relay.lastHeader?['app'], '0.11.2+1102');
+      expect(relay.lastHeader?.keys, isNot(contains('auth')));
+      expect(find.text('Otwórz zgłoszenie'), findsOneWidget);
+    });
+
+    testWidgets('a queued request can be called off before it goes',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final outbox = ReportOutbox(root: root);
+      final relay = _FakeRelay(issued: _ticket(wait: const Duration(minutes: 5)));
+      final container = await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(relay),
+        reportOutboxProvider.overrideWithValue(outbox),
+      ]);
+
+      await choose(tester, 'Zmianę');
+      await tester.enterText(find.byType(TextField), 'inaczej to ułóż');
+      await scrollToActions(tester);
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.waiting,
+      );
+
+      // There is no "discard the recording" here to double as a cancel, so the
+      // wait needs its own way out.
+      expect(find.textContaining(RegExp(r'Wysyłka za \d+:\d\d')), findsOneWidget);
+      // Below the fold on a test-sized screen, and a lazy list does not build
+      // what it has not scrolled to.
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      await tapAndSettleAsync(
+        tester,
+        find.text('Anuluj wysyłanie'),
+        until: () async => await outbox.peek() == null,
+      );
+
+      expect(relay.sends, 0);
+      final queued = await tester.runAsync(outbox.peek);
+      expect(queued, isNull);
+    });
+
+    testWidgets('a failed request is not told to save a log it never had',
+        (tester) async {
+      final root = Directory.systemTemp.createTempSync('outbox');
+      addTearDown(() => root.deleteSync(recursive: true));
+      // No ticket: the relay cannot be reached at all.
+      final container = await pumpIdle(tester, extra: [
+        relayClientProvider.overrideWithValue(_FakeRelay()),
+        reportOutboxProvider.overrideWithValue(ReportOutbox(root: root)),
+      ]);
+
+      await choose(tester, 'Funkcję');
+      await tester.enterText(find.byType(TextField), 'coś nowego');
+      await scrollToActions(tester);
+      await tapAndSettleAsync(
+        tester,
+        find.text('Zgłoś'),
+        until: () async =>
+            container.read(bugReportProvider).send.phase == SendPhase.failed,
+      );
+
+      expect(find.textContaining('Sprawdź połączenie i spróbuj ponownie'),
+          findsOneWidget);
+      expect(find.textContaining('zapisz log do pliku'), findsNothing);
+    });
+  });
 }
 
 RelayTicket _ticket({Duration wait = Duration.zero}) {
@@ -1075,6 +1295,8 @@ class _FakeRelay extends RelayClient {
   String? lastDescription;
   Map<String, Object>? lastHeader;
   int? lastSchema;
+  ReportKind? lastKind;
+  String? lastLog;
 
   @override
   Future<RelayTicket> challenge(String installId) async {
@@ -1088,15 +1310,18 @@ class _FakeRelay extends RelayClient {
   Future<String> send({
     required String installId,
     required RelayTicket ticket,
+    required ReportKind kind,
     required String description,
     required Map<String, Object> header,
-    required int logSchema,
-    required String log,
+    int? logSchema,
+    String? log,
   }) async {
     sends++;
     lastDescription = description;
     lastHeader = header;
     lastSchema = logSchema;
+    lastKind = kind;
+    lastLog = log;
     return 'https://github.example/issues/7';
   }
 }

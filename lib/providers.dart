@@ -152,22 +152,33 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(sharedPreferencesProvider)),
 );
 
+/// Describes the session for a report: app and server version, the device, the
+/// display settings.
+///
+/// A provider rather than a closure inside the recorder, because a change or
+/// feature request needs the same versions and has no recording to read them
+/// off — and two copies of this argument list would be two places for the
+/// server version to be fetched differently.
+final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
+  (ref) => () => loadSessionFacts(
+        profile: ref.read(serverProfileProvider),
+        credentials: ref.read(credentialsStoreProvider),
+        // Read through the provider only when a profile exists: without one
+        // [apiClientProvider] throws by design, and a recording started from the
+        // setup screen has no server to ask anyway.
+        readServerVersion: ref.read(serverProfileProvider) == null
+            ? null
+            : () => ref.read(serverVersionServiceProvider).reportedVersion(),
+      ),
+);
+
 /// Bug-report log recorder. Holding it in a provider keeps one instance per
 /// app, which matters: [DiagnosticRecorder.active] is process-wide state and
 /// two recorders would fight over it.
 final diagnosticRecorderProvider = Provider<DiagnosticRecorder>(
   (ref) => DiagnosticRecorder(
     settings: ref.watch(settingsRepositoryProvider),
-    loadFacts: () => loadSessionFacts(
-      profile: ref.read(serverProfileProvider),
-      credentials: ref.read(credentialsStoreProvider),
-      // Read through the provider only when a profile exists: without one
-      // [apiClientProvider] throws by design, and a recording started from the
-      // setup screen has no server to ask anyway.
-      readServerVersion: ref.read(serverProfileProvider) == null
-          ? null
-          : () => ref.read(serverVersionServiceProvider).reportedVersion(),
-    ),
+    loadFacts: ref.watch(sessionFactsProvider),
   ),
 );
 

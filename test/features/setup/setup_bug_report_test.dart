@@ -70,6 +70,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(router.state.matchedLocation, bugReportRoute);
+    // The start button sits under the consent list, which is taller than a test
+    // viewport, and a lazy list does not build what it has not scrolled to.
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
     expect(find.text('Rozpocznij nagrywanie'), findsOneWidget);
   });
 }

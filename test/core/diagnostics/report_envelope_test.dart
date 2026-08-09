@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:bambuddy_mobile/core/diagnostics/log_event.dart';
 import 'package:bambuddy_mobile/core/diagnostics/report_envelope.dart';
+import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A log the way a recording actually produces one: header line, then records.
@@ -106,6 +107,64 @@ void main() {
       // The number sent and the number in the log are the same constant. If this
       // fails, the relay is being told a schema the log does not follow.
       expect(reportLogSchema, LogHeader.formatVersion);
+    });
+  });
+
+  group('a request, which has no log to read a header off', () {
+    const facts = SessionFacts(
+      app: '0.11.7+11700',
+      flavor: 'mobile',
+      os: 'Android 15',
+      device: 'Pixel 9',
+      locale: 'pl-PL',
+      server: '0.2.5b3',
+      serverUrl: ServerFingerprint(
+        scheme: 'https',
+        hostKind: HostKind.name,
+        port: 443,
+      ),
+      auth: 'apiKey',
+    );
+
+    test('carries the versions and the language, and nothing else', () {
+      final envelope = requestEnvelope(facts, at: DateTime.utc(2026, 8, 9, 12));
+
+      expect(envelope.header['app'], '0.11.7+11700');
+      expect(envelope.header['server'], '0.2.5b3');
+      expect(envelope.header['locale'], 'pl-PL');
+      expect(envelope.header['ts'], '2026-08-09T12:00:00.000Z');
+      // Everything below is a *bug* fact. A public issue about an idea is no
+      // place for the reporter's phone, their server or how they sign in.
+      expect(envelope.header.keys, isNot(contains('os')));
+      expect(envelope.header.keys, isNot(contains('device')));
+      expect(envelope.header.keys, isNot(contains('flavor')));
+      expect(envelope.header.keys, isNot(contains('scheme')));
+      expect(envelope.header.keys, isNot(contains('auth')));
+    });
+
+    test('claims no schema, because it attaches no log', () {
+      expect(requestEnvelope(facts).logSchema, isNull);
+    });
+
+    test('leaves out what the session could not answer', () {
+      // No server reached, no locale: sending an empty string would read as a
+      // server that answered with nothing.
+      final envelope = requestEnvelope(
+        const SessionFacts(app: '0.11.7+11700', flavor: 'mobile'),
+      );
+
+      expect(envelope.header.keys, unorderedEquals(['v', 'ts', 'app']));
+    });
+
+    test('only the bug kind carries a recording', () {
+      expect(ReportKind.bug.needsLog, isTrue);
+      expect(ReportKind.change.needsLog, isFalse);
+      expect(ReportKind.feature.needsLog, isFalse);
+      // Wire values: the relay opens a different issue for each name.
+      expect(
+        ReportKind.values.map((k) => k.name),
+        ['bug', 'change', 'feature'],
+      );
     });
   });
 
