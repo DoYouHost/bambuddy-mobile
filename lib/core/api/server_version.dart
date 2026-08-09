@@ -1,11 +1,10 @@
 /// A bambuddy server version, comparable across both numbering schemes the
-/// project has used: `0.2.4.9` (four components), `1.2.5.1`, and prerelease /
-/// daily builds like `1.2.6b1-daily.20260729`.
+/// project has used (`0.2.4.9`, `1.2.5.1`) plus daily builds like
+/// `1.2.6b1-daily.20260729`.
 ///
-/// Parsing and ordering mirror the server's own
-/// `backend/app/api/routes/updates.py::parse_version` / `is_newer_version`, so
-/// "newer" means here what it means there — including the rule that a release
-/// outranks any prerelease of the same base version.
+/// Parsing and ordering mirror `updates.py::parse_version` / `is_newer_version`
+/// so that "newer" means here what it means there — including the rule that a
+/// release outranks any prerelease of the same base.
 class ServerVersion implements Comparable<ServerVersion> {
   const ServerVersion({
     required this.raw,
@@ -17,9 +16,8 @@ class ServerVersion implements Comparable<ServerVersion> {
     required this.prereleaseNum,
   });
 
-  /// The string the server reported, kept verbatim for logs and the About screen
-  /// — a build the parser flattens (`1.2.6b1-daily.20260729`) still has to be
-  /// reproducible from what we show.
+  /// Verbatim, because a build the parser flattens still has to be
+  /// reproducible from what the About screen and the log show.
   final String raw;
 
   final int major;
@@ -41,8 +39,7 @@ class ServerVersion implements Comparable<ServerVersion> {
   );
   static final _letter = RegExp('[a-zA-Z]');
 
-  /// Parses a reported version, or returns `null` when it is not a version at
-  /// all. Never throws: this runs on a value a server handed us.
+  /// Never throws: this runs on a value a server handed us.
   static ServerVersion? tryParse(String? value) {
     if (value == null) return null;
     final raw = value.trim();
@@ -67,7 +64,7 @@ class ServerVersion implements Comparable<ServerVersion> {
   }
 
   /// First version whose queue and settings schemas carry the tri-state
-  /// calibration options instead of booleans (see [CalibrationOption]).
+  /// calibration options instead of booleans.
   static const triStateCalibration = ServerVersion(
     raw: '1.2.5',
     major: 1,
@@ -78,20 +75,15 @@ class ServerVersion implements Comparable<ServerVersion> {
     prereleaseNum: 0,
   );
 
-  /// Whether this server stores `bed_levelling` / `flow_cali` /
-  /// `nozzle_offset_cali` as `off` / `on` / `auto`.
-  ///
-  /// Compares the numeric base only, so a `1.2.5b1` prerelease counts as
-  /// supporting it — the change landed during that cycle, and treating a beta as
-  /// the older shape would send it a boolean where the user asked for `auto`.
+  /// Numeric base only, so a `1.2.5b1` prerelease counts as supporting it: the
+  /// change landed during that cycle, and treating a beta as the older shape
+  /// would send a boolean where the user asked for `auto`.
   bool get supportsTriStateCalibration =>
       _compareBase(triStateCalibration) >= 0;
 
-  /// The `(major, minor, patch, micro)` tuple as a comparable list.
   List<int> get _base => [major, minor, patch, micro];
 
-  /// Numeric ordering only — prerelease status deliberately ignored, see
-  /// [supportsTriStateCalibration].
+  /// Prerelease status deliberately ignored — see [supportsTriStateCalibration].
   int _compareBase(ServerVersion other) {
     final mine = _base;
     final theirs = other._base;

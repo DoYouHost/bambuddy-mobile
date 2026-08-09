@@ -920,7 +920,7 @@ class _AirductToggle extends StatelessWidget {
           onSelectionChanged: onChanged == null
               ? null
               : (s) => onChanged!(s.first),
-        ),
+        ).tagged('controls.airduct'),
       ],
     );
   }

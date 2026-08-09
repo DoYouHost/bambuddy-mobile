@@ -45,14 +45,24 @@ Three states, matching how the probe resolves a name at runtime:
   their own `_FilterButton`.
 - **UNNAMED** — nothing reaches it.
 
+One kind never inherits: a **row of a menu** (`PopupMenuItem`,
+`CheckedPopupMenuItem`, `DropdownMenuItem`, `DropdownMenuEntry`,
+`MenuItemButton`). The framework rebuilds it in a route of its own, so the tag on
+the anchor — the `PopupMenuButton`, the `DropdownMenu`, the field around it —
+stays behind in the main tree and never reaches the row. Only a tag the row
+carries with it counts, and the scanner scores those rows on that rule alone.
+
 **A gap is a question, not a bug.** The scanner is a text scan, not the analyzer:
 it cannot follow a widget assigned to a local variable and inserted into a tagged
 tree later (the spool form's core-weight field does that), nor one passed through
 a `Widget` field. Open the file before believing the line — and when the gap is
 real but the fix belongs in the scanner, fix the scanner.
 
-As of the sweep that closed this out, `lib/` (phone flavour) reports **zero**
-unnamed controls; `--wear` still lists the watch app, which has no recorder.
+`lib/` (phone flavour) reports **zero** unnamed controls; `--wear` still lists the
+watch app, which has no recorder. The one control the scan leaves out is
+`SnackBarAction`: `SnackBar.action` is typed to it, so it cannot be wrapped and
+has no child to tag — the two in the app record as a bare `button`, and naming
+them would mean replacing the snackbar.
 
 ## Step 3 — decide what actually needs a name
 
@@ -88,6 +98,12 @@ Gotchas that have already cost time here:
 - **`PopupMenuItem` cannot be wrapped** — `Semantics` is not a `PopupMenuEntry`.
   Tag its `child:`; the identifier still resolves, because the probe carries what
   it finds on the hit path (there is a test for exactly this).
+- **`DropdownMenuEntry` is not a widget at all.** Its tag goes on `labelWidget:`,
+  which replaces the plain `Text(label)` the menu would have drawn — keep the
+  text identical, `label:` is still what the field shows and filters on.
+- **Tag the anchor as well as the rows.** They are two separate presses: opening
+  the menu and choosing from it. The anchor's tag names the first, and it is not
+  redundant with the rows precisely because it never reaches them.
 - **One `NavigatorObserver` per `Navigator`** — unrelated to tagging, but the same
   file: never share a `ModalObserver` instance.
 - **A misplaced `.tagged(...)` type-checks.** It lands happily on a `ButtonStyle`

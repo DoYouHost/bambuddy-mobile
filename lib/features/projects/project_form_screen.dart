@@ -140,12 +140,17 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         decoration:
                             dashFieldDecoration(t, labelText: l10n.projectStatus),
                         items: [
+                          // Named per value — a fixed server-side list, and
+                          // which status was set is the record.
                           for (final s in projectStatusValues)
                             DropdownMenuItem(
-                                value: s, child: Text(projectStatusLabel(l10n, s))),
+                              value: s,
+                              child: logTag('project_form.status.$s',
+                                  Text(projectStatusLabel(l10n, s))),
+                            ),
                         ],
                         onChanged: (v) => setState(() => _status = v ?? _status),
-                      ),
+                      ).tagged('project_form.status'),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -158,10 +163,13 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
                         items: [
                           for (final s in projectPriorityValues)
                             DropdownMenuItem(
-                                value: s, child: Text(projectPriorityLabel(l10n, s))),
+                              value: s,
+                              child: logTag('project_form.priority.$s',
+                                  Text(projectPriorityLabel(l10n, s))),
+                            ),
                         ],
                         onChanged: (v) => setState(() => _priority = v ?? _priority),
-                      ),
+                      ).tagged('project_form.priority'),
                     ),
                   ],
                 ),
@@ -325,20 +333,31 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
       dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
       decoration: dashFieldDecoration(t, labelText: l10n.projectParent),
       items: [
-        DropdownMenuItem(value: null, child: Text(l10n.projectParentNone)),
+        DropdownMenuItem(
+          value: null,
+          child:
+              logTag('project_form.parent_none', Text(l10n.projectParentNone)),
+        ),
         if (missingParent)
           DropdownMenuItem(
             value: parentId,
-            child: Text(
-              widget.existing?.parentName ?? '#$parentId',
-              overflow: TextOverflow.ellipsis,
+            // One id for every project row: the name is the user's own text.
+            child: logTag(
+              'project_form.parent_option',
+              Text(
+                widget.existing?.parentName ?? '#$parentId',
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         for (final p in options)
-          DropdownMenuItem(value: p.id, child: Text(p.name)),
+          DropdownMenuItem(
+            value: p.id,
+            child: logTag('project_form.parent_option', Text(p.name)),
+          ),
       ],
       onChanged: (v) => setState(() => _parentId = v),
-    );
+    ).tagged('project_form.parent');
   }
 
   Future<void> _pickDueDate() async {

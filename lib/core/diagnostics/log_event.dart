@@ -1,39 +1,30 @@
 import 'dart:convert';
 import 'dart:math';
 
-/// Source of a record. The enum names are wire values — they end up in the
-/// JSONL and the summarising GitHub Action groups by them, so renaming one
-/// breaks every log already attached to an issue.
+/// Subsystem a record came from, not an isolate — which isolate wrote it is the
+/// stream's business. Notifications get their own [notif] even though only the
+/// background service produces them: "the app buried me in notifications"
+/// should be one look at one lane's count.
 ///
-/// A subsystem, not an isolate: which isolate wrote a record is the stream's
-/// business, not the record's. Notifications get their own [notif] even though
-/// they are produced only in the background service — "the app buried me in
-/// notifications" should be one look at one lane's count. Declaration order is
-/// the order the review screen lists them in.
+/// The names are wire values, and declaration order is the order the review
+/// screen lists them in.
 enum LogSource { http, ws, ui, notif, fgs, err, app }
 
 /// Severity. [LogLevel.info] is the default and is omitted from the encoded
-/// record; most lines are info, so spelling it out would just pad the upload.
+/// record; most lines are info, so spelling it out would pad the upload.
 enum LogLevel { debug, info, warn, error }
 
-/// Which isolate produced the stream. Each has its own heap, so each writes its
-/// own file with its own header; the export merges them on absolute time
-/// (`ts` + `t`), never on `t` alone.
-///
-/// [action] is the plugin's notification-action engine — a third, short-lived
-/// isolate that wakes up only to perform "Mark Done" and does real HTTP on the
-/// way. The name is a wire value: it lands in a header and in every merged
-/// record's `iso`.
+/// Which isolate produced the stream; `docs/diagnostics-log.md` describes what
+/// each one is and how the export merges them.
 enum LogStream { ui, fgs, action }
 
 /// Shape of the server host. A bare IP means a direct LAN setup, a name means
-/// DNS or a reverse proxy in front — that distinction explains a good share of
-/// TLS and connectivity reports and says nothing about who the user is.
+/// DNS or a reverse proxy in front — a distinction that explains a good share
+/// of TLS reports and says nothing about who the user is.
 enum HostKind { ip, name }
 
 /// What we keep from the server URL: enough to reason about the setup, nothing
-/// that identifies the user's network. The address itself is the user's private
-/// host and never enters a log.
+/// that identifies the user's network. The address itself never enters a log.
 class ServerFingerprint {
   const ServerFingerprint({
     required this.scheme,
@@ -96,15 +87,10 @@ class LogHeader {
   /// Reads a header line back, or null when the line is not the header of
   /// [session].
   ///
-  /// Exists for the background isolates: they do not build a header of their own,
-  /// they continue the one the UI wrote, so they have to read it off disk. The
-  /// checks are the point. A header write is allowed to fail silently
-  /// (`LogFileSink` swallows it) while the writes after it succeed, so the first
-  /// line of a stream is not guaranteed to be a header at all — and accepting a
-  /// *record* as one yields a header with no `ts`, which makes the merge drop the
-  /// entire background stream from every report. Hence: it must decode to a map,
-  /// it must not carry `t` (every record does, no header does), the session must
-  /// be the one we were told to continue, and `ts` must be a real timestamp.
+  /// The checks are the point. A header write may fail silently while the
+  /// writes after it succeed, so a stream's first line is not guaranteed to be
+  /// a header — and accepting a *record* as one yields a header with no `ts`,
+  /// which makes the merge drop the whole background stream from every report.
   static LogHeader? tryParse(String line, {required String session}) {
     final Object? decoded;
     try {
@@ -193,8 +179,8 @@ class LogHeader {
   final String? server;
 
   /// Scheme / host shape / port of the server URL. http-vs-https alone explains
-  /// a whole class of reports, so it is a first-class header field rather than
-  /// something to dig out of redacted strings.
+  /// a whole class of reports, so it is a header field rather than something to
+  /// dig out of redacted strings.
   final ServerFingerprint? serverUrl;
 
   /// `apiKey`, `jwt` or `none` — `AuthMode.name` verbatim, camel case included.
@@ -230,12 +216,10 @@ class LogEvent {
     Map<String, Object?> fields = const {},
   }) : fields = _usableFields(fields);
 
-  /// Keys the record owns. A caller-supplied `t` or `evt` would silently
-  /// overwrite the record's own, so those are dropped rather than nested.
-  ///
-  /// `iso` is here although no record ever sets it: [mergeSessions] stamps it on
-  /// the way out, and a probe that used the same name for a field of its own
-  /// would make a record claim to come from an isolate it did not.
+  /// Keys the record owns; a caller-supplied one is dropped rather than nested.
+  /// `iso` is here although no record sets it — `mergeSessions` stamps it on the
+  /// way out, and a probe reusing the name would make a record claim to come
+  /// from an isolate it did not.
   static const reservedKeys = {'t', 'src', 'lvl', 'evt', 'iso'};
 
   /// Milliseconds since the header's `ts`.
@@ -250,7 +234,7 @@ class LogEvent {
     return {
       for (final e in fields.entries)
         // Nulls are dropped so call sites can pass optional values
-        // unconditionally without padding every line with `"x":null`.
+        // unconditionally without padding every line.
         if (e.value != null && !reservedKeys.contains(e.key)) e.key: e.value,
     };
   }

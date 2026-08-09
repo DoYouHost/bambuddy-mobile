@@ -434,7 +434,7 @@ class _CategoryTile extends StatelessWidget {
                   ),
                 ).tagged('group_form.permission'),
             ],
-          ),
+          ).tagged('group_form.category'),
         ),
       ),
     );
