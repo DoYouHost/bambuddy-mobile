@@ -399,24 +399,28 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           itemBuilder: (_) => [
             PopupMenuItem(
               value: 'reset',
-              child: Text(l10n.inventoryResetUsage),
+              child: logTag('inventory.bulk_reset_usage',
+                  Text(l10n.inventoryResetUsage)),
             ),
             if (filters.showArchived)
               PopupMenuItem(
                 value: 'restore',
-                child: Text(l10n.inventoryRestore),
+                child: logTag(
+                    'inventory.bulk_restore', Text(l10n.inventoryRestore)),
               )
             else
               PopupMenuItem(
                 value: 'archive',
-                child: Text(l10n.inventoryArchive),
+                child: logTag(
+                    'inventory.bulk_archive', Text(l10n.inventoryArchive)),
               ),
             PopupMenuItem(
               value: 'delete',
-              child: Text(l10n.inventoryDelete),
+              child:
+                  logTag('inventory.bulk_delete', Text(l10n.inventoryDelete)),
             ),
           ],
-        ),
+        ).tagged('inventory.bulk_menu'),
       ],
     );
   }

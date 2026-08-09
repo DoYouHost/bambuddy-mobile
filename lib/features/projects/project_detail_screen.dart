@@ -688,14 +688,31 @@ class _OverflowMenu extends ConsumerWidget {
         }
       },
       itemBuilder: (_) => [
-        PopupMenuItem(value: 'export', child: Text(l10n.projectMenuExport)),
-        PopupMenuItem(value: 'cover', child: Text(l10n.projectCoverUpload)),
+        PopupMenuItem(
+          value: 'export',
+          child: logTag('project.export', Text(l10n.projectMenuExport)),
+        ),
+        PopupMenuItem(
+          value: 'cover',
+          child: logTag('project.cover_upload', Text(l10n.projectCoverUpload)),
+        ),
         if (project.hasCover)
-          PopupMenuItem(value: 'cover_delete', child: Text(l10n.projectCoverDelete)),
-        PopupMenuItem(value: 'template', child: Text(l10n.projectMenuCreateTemplate)),
-        PopupMenuItem(value: 'delete', child: Text(l10n.projectDelete)),
+          PopupMenuItem(
+            value: 'cover_delete',
+            child:
+                logTag('project.cover_delete', Text(l10n.projectCoverDelete)),
+          ),
+        PopupMenuItem(
+          value: 'template',
+          child: logTag(
+              'project.create_template', Text(l10n.projectMenuCreateTemplate)),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: logTag('project.delete', Text(l10n.projectDelete)),
+        ),
       ],
-    );
+    ).tagged('project.overflow_menu');
   }
 
   Future<void> _uploadCover(BuildContext context, WidgetRef ref) async {

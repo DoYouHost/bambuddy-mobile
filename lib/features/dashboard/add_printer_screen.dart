@@ -461,13 +461,23 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
               }
             }),
             dropdownMenuEntries: [
-              for (final s in subnets) DropdownMenuEntry(value: s, label: s),
+              // The menu is a route of its own, so the field's tag does not
+              // reach these — each option carries one on its label widget.
+              for (final s in subnets)
+                DropdownMenuEntry(
+                  value: s,
+                  label: s,
+                  labelWidget:
+                      logTag('add_printer.subnet_option', Text(s)),
+                ),
               DropdownMenuEntry(
                 value: _customSubnetOption,
                 label: l10n.addPrinterSubnetCustomOption,
+                labelWidget: logTag('add_printer.subnet_custom_option',
+                    Text(l10n.addPrinterSubnetCustomOption)),
               ),
             ],
-          ),
+          ).tagged('add_printer.subnet'),
         if (custom) ...[
           if (subnets.isNotEmpty) const SizedBox(height: 8),
           TextField(
@@ -715,7 +725,12 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       inputDecorationTheme: _fieldTheme(t),
       onSelected: (v) => setState(() => _model = v ?? _modelNone),
       dropdownMenuEntries: [
-        DropdownMenuEntry(value: _modelNone, label: l10n.addPrinterModelNone),
+        DropdownMenuEntry(
+          value: _modelNone,
+          label: l10n.addPrinterModelNone,
+          labelWidget: logTag(
+              'add_printer.model_none', Text(l10n.addPrinterModelNone)),
+        ),
         for (final (series, models) in _modelGroups) ...[
           DropdownMenuEntry(
             value: '::$series',
@@ -732,10 +747,15 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
           ),
           for (final (value, label) in models)
-            DropdownMenuEntry(value: value, label: label),
+            DropdownMenuEntry(
+              value: value,
+              label: label,
+              labelWidget:
+                  logTag('add_printer.model_option', Text(label)),
+            ),
         ],
       ],
-    );
+    ).tagged('add_printer.model');
   }
 
   Widget _field(

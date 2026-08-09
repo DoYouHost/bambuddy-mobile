@@ -342,7 +342,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                 onSelectionChanged: (_verifying || _busy)
                     ? null
                     : (sel) => setState(() => _region = sel.first),
-              ),
+              ).tagged('cloud.region'),
               if (_verifying) ...[
                 const SizedBox(height: 20),
                 Text(

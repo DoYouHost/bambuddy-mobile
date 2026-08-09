@@ -43,12 +43,21 @@ class ProjectsScreen extends ConsumerWidget {
                   ref.read(projectStatusFilterProvider.notifier).state =
                       v == '' ? null : v,
               itemBuilder: (_) => [
-                PopupMenuItem(value: '', child: Text(l10n.projectsFilterAll)),
+                PopupMenuItem(
+                  value: '',
+                  child:
+                      logTag('projects.filter_all', Text(l10n.projectsFilterAll)),
+                ),
+                // Named per value: the statuses are a fixed server-side list,
+                // and which one was filtered on is the point of the record.
                 for (final s in projectStatusValues)
                   PopupMenuItem(
-                      value: s, child: Text(projectStatusLabel(l10n, s))),
+                    value: s,
+                    child: logTag('projects.filter_status.$s',
+                        Text(projectStatusLabel(l10n, s))),
+                  ),
               ],
-            ),
+            ).tagged('projects.filter_menu'),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, color: t.textSecondary),
               onSelected: (v) {
@@ -56,9 +65,12 @@ class ProjectsScreen extends ConsumerWidget {
               },
               itemBuilder: (_) => [
                 PopupMenuItem(
-                    value: 'import', child: Text(l10n.projectMenuImport)),
+                  value: 'import',
+                  child:
+                      logTag('projects.import', Text(l10n.projectMenuImport)),
+                ),
               ],
-            ),
+            ).tagged('projects.overflow_menu'),
           ],
         ),
         floatingActionButton: logTag(

@@ -1003,10 +1003,17 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             if (v != null) _applyFilament(v);
           },
           dropdownMenuEntries: [
+            // Preset keys are Bambu material names, so the pick rides in the
+            // `mat` field instead of turning the identifier into content.
             for (final f in _dryingPresets.keys)
-              DropdownMenuEntry(value: f, label: f),
+              DropdownMenuEntry(
+                value: f,
+                label: f,
+                labelWidget:
+                    logTagMaterial('drying.filament_option', f, Text(f)),
+              ),
           ],
-        ),
+        ).tagged('drying.filament'),
         const SizedBox(height: 16),
         _DrySlider(
           id: 'drying.temp',

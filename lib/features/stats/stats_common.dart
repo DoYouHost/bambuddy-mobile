@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'stats_computed.dart';
@@ -98,7 +99,7 @@ class MetricToggle extends StatelessWidget {
       ],
       selected: {value},
       onSelectionChanged: (s) => onChanged(s.first),
-    );
+    ).tagged('stats.metric');
   }
 }
 
