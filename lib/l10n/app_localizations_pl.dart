@@ -442,7 +442,7 @@ class AppLocalizationsPl extends AppLocalizations {
       'To anuluje bieżący wydruk. Nie da się go wznowić.';
 
   @override
-  String get ctrlForbidden => 'Ten klucz API nie może sterować drukarką';
+  String get ctrlForbidden => 'Brak uprawnień do sterowania tą drukarką';
 
   @override
   String get ctrlFailed => 'Nie udało się wysłać polecenia';
@@ -1180,7 +1180,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get errForbidden =>
-      'Brak uprawnień — Twój klucz API nie ma do tego dostępu';
+      'Brak uprawnień — serwer odmówił wykonania tej akcji';
+
+  @override
+  String errForbiddenDetail(String reason) {
+    return 'Brak uprawnień: $reason';
+  }
+
+  @override
+  String get errApiKeyOwnerDisabled =>
+      'Konto właściciela tego klucza API zostało wyłączone lub usunięte — klucz będzie odrzucany, dopóki to konto nie wróci.';
 
   @override
   String errBadResponse(int code) {
@@ -3263,8 +3272,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectSaved => 'Projekt zapisany';
 
   @override
-  String get projectActionForbidden =>
-      'Klucz API nie ma uprawnień do tej akcji';
+  String get projectActionForbidden => 'Brak uprawnień do tej akcji';
 
   @override
   String get projectActionFailed => 'Akcja nie powiodła się';

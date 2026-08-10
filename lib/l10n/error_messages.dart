@@ -1,13 +1,13 @@
 import '../core/api/api_exceptions.dart';
 import 'app_localizations.dart';
 
-/// Tłumaczy kod błędu warstwy API na komunikat w języku UI. Trzyma
-/// mapowanie kod → string poza rdzeniem, który pozostaje niezależny od l10n.
+/// Turns an API-layer error code into a message in the UI language. Keeps the
+/// code → string mapping out of the core, which stays independent of l10n.
 extension AppApiExceptionL10n on AppApiException {
   String localized(AppLocalizations l10n) => switch (code) {
         AppErrorCode.serverUnreachable => l10n.errServerUnreachable,
         AppErrorCode.unauthorized => l10n.errUnauthorized,
-        AppErrorCode.forbidden => l10n.errForbidden,
+        AppErrorCode.forbidden => _forbidden(l10n),
         AppErrorCode.badResponse => l10n.errBadResponse(statusCode ?? 0),
         AppErrorCode.badCertificate => l10n.errBadCertificate,
         AppErrorCode.connectionError => l10n.errConnection,
@@ -24,4 +24,17 @@ extension AppApiExceptionL10n on AppApiException {
         AppErrorCode.apiKeyRejected => l10n.errApiKeyRejected,
         AppErrorCode.tooManyAttempts => l10n.errTooManyAttempts,
       };
+
+  /// A refusal is the one error a code alone cannot explain: which permission
+  /// is missing exists only in what the server wrote. So the frame is
+  /// localized and the reason is quoted from the server, in its own English —
+  /// the alternative is telling everyone "not allowed" and leaving them to
+  /// guess which of a dozen permissions it was.
+  String _forbidden(AppLocalizations l10n) {
+    if (isApiKeyOwnerDisabled) return l10n.errApiKeyOwnerDisabled;
+    final reason = detail;
+    return reason == null
+        ? l10n.errForbidden
+        : l10n.errForbiddenDetail(reason);
+  }
 }

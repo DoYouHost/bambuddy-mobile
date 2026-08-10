@@ -362,7 +362,7 @@ void main() {
     test('rejected key → error, nothing saved', () async {
       await probed();
       mockPrinters(
-          (s) => s.reply(403, {'detail': 'Missing permission'}), 'bb_slaby');
+          (s) => s.reply(401, {'detail': 'Invalid API key'}), 'bb_slaby');
 
       await controller().connectWithApiKey('bb_slaby');
 
@@ -372,6 +372,29 @@ void main() {
             .having((e) => e.code, 'code', AppErrorCode.apiKeyRejected),
       );
       expect(state().busy, isFalse);
+      expect(savedProfile(), isNull);
+      expect(credentials.apiKey, isNull);
+    });
+
+    test('a key the server knows but refuses says which permission', () async {
+      // Not "rejected": the key is real. Calling it rejected here sent people
+      // looking for a typo while the actual fix was a scope or a group.
+      await probed();
+      mockPrinters(
+        (s) => s.reply(403, {
+          'detail': "API key does not have 'can_read_status' permission",
+        }),
+        'bb_waski',
+      );
+
+      await controller().connectWithApiKey('bb_waski');
+
+      expect(
+        state().error,
+        isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.forbidden)
+            .having((e) => e.detail, 'detail', contains('can_read_status')),
+      );
       expect(savedProfile(), isNull);
       expect(credentials.apiKey, isNull);
     });
