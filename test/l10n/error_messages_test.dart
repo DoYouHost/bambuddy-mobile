@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/l10n/error_messages.dart';
@@ -72,5 +73,38 @@ void main() {
   test('other codes are unaffected by the detail', () {
     const e = AuthException(AppErrorCode.unauthorized, detail: 'anything');
     expect(e.localized(pl), pl.errUnauthorized);
+  });
+
+  /// The policy every feature now follows: it decides *whether* to speak, never
+  /// *what to say*. `null` is what lets a caller write
+  /// `messageFor(l10n) ?? itsOwnConfirmation` — the success wording stays the
+  /// feature's, the failure wording never is.
+  group('an action outcome', () {
+    test('success says nothing, so the caller can fall back to its own line',
+        () {
+      expect(ActionOutcome.ok.messageFor(pl), isNull);
+    });
+
+    test('a failure reads exactly as the shared translator puts it', () {
+      const failure = AuthException(
+        AppErrorCode.forbidden,
+        detail: "API key does not have 'can_control_printer' permission",
+      );
+
+      final outcome = ActionOutcome.failed(failure);
+
+      expect(outcome.messageFor(pl), failure.localized(pl));
+      expect(outcome.messageFor(pl), contains('can_control_printer'));
+    });
+
+    test('a transport failure is explained too, not flattened to "failed"', () {
+      // The old per-feature wording said "could not send the command" for an
+      // unreachable server, a 500 and a refusal alike.
+      final outcome = ActionOutcome.failed(
+        const NetworkException(AppErrorCode.serverUnreachable),
+      );
+
+      expect(outcome.messageFor(pl), pl.errServerUnreachable);
+    });
   });
 }

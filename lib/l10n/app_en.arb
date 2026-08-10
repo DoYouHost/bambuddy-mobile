@@ -1169,8 +1169,6 @@
   "projectDeleted": "Project deleted",
   "projectDeleteFailed": "Could not delete project",
   "projectSaved": "Project saved",
-  "projectActionForbidden": "You do not have permission for this action",
-  "projectActionFailed": "Action failed",
   "projectName": "Name",
   "projectNameRequired": "Name is required",
   "projectDescription": "Description",

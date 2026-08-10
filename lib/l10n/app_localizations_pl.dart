@@ -3272,12 +3272,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectSaved => 'Projekt zapisany';
 
   @override
-  String get projectActionForbidden => 'Brak uprawnień do tej akcji';
-
-  @override
-  String get projectActionFailed => 'Akcja nie powiodła się';
-
-  @override
   String get projectName => 'Nazwa';
 
   @override

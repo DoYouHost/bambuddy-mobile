@@ -3216,13 +3216,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectSaved => 'Project saved';
 
   @override
-  String get projectActionForbidden =>
-      'You do not have permission for this action';
-
-  @override
-  String get projectActionFailed => 'Action failed';
-
-  @override
   String get projectName => 'Name';
 
   @override

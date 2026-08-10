@@ -18,9 +18,7 @@ import 'project_files.dart';
 import 'projects_providers.dart';
 
 String sectionErr(AppApiException e, AppLocalizations l10n) =>
-    e is AuthException && e.code == AppErrorCode.forbidden
-        ? l10n.projectActionForbidden
-        : l10n.projectActionFailed;
+    e.localized(l10n);
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
 /// over its body. Matches the web's stacked-card layout.
@@ -590,11 +588,7 @@ class ProjectBomSection extends ConsumerWidget {
         item == null ? await notifier.add(input) : await notifier.edit(item.id, input);
     if (!context.mounted) return;
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectSaved
-          : result == ProjectActionResult.forbidden
-              ? l10n.projectActionForbidden
-              : l10n.projectActionFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
     ));
   }
 }

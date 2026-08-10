@@ -663,11 +663,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
         .setFanSpeed(widget.printerId, widget.fan, speed);
     if (!mounted) return;
     navigator.pop();
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()

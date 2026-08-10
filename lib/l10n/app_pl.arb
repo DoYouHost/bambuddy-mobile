@@ -1025,8 +1025,6 @@
   "projectDeleted": "Projekt usunięty",
   "projectDeleteFailed": "Nie udało się usunąć projektu",
   "projectSaved": "Projekt zapisany",
-  "projectActionForbidden": "Brak uprawnień do tej akcji",
-  "projectActionFailed": "Akcja nie powiodła się",
   "projectName": "Nazwa",
   "projectNameRequired": "Nazwa jest wymagana",
   "projectDescription": "Opis",

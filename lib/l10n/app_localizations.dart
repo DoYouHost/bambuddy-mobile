@@ -5546,18 +5546,6 @@ abstract class AppLocalizations {
   /// **'Project saved'**
   String get projectSaved;
 
-  /// No description provided for @projectActionForbidden.
-  ///
-  /// In en, this message translates to:
-  /// **'You do not have permission for this action'**
-  String get projectActionForbidden;
-
-  /// No description provided for @projectActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get projectActionFailed;
-
   /// No description provided for @projectName.
   ///
   /// In en, this message translates to:

@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/smart_plug.dart';
 import '../../data/smart_plugs_repository.dart';
 import '../../providers.dart';
-import 'controls_providers.dart' show ControlResult;
 
 /// Smart plug polling rate. Status only via REST (not WS), so we maintain
 /// our own fixed interval — independent of printer WS health.
@@ -195,8 +195,9 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
   }
 
   /// Toggle plug (on/off/toggle) with optimistic override.
-  /// Returns [ControlResult] — widget decides what to show.
-  Future<ControlResult> control(int plugId, SmartPlugAction action) async {
+  /// Answers with the shared [ActionOutcome]; the widget decides whether to
+  /// show it, never what it says.
+  Future<ActionOutcome> control(int plugId, SmartPlugAction action) async {
     final plug = state.plugs.firstWhere(
       (p) => p.id == plugId,
       orElse: () => SmartPlug(id: plugId),
@@ -218,7 +219,7 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
       _clearInFlight(plugId);
       _scheduleClearOptimistic(plugId);
       unawaited(_poll(_generation)); // pull real state + power
-      return ControlResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       // Rollback override to pre-action state.
       final opt = {...state.optimistic};
@@ -231,11 +232,11 @@ class SmartPlugsNotifier extends AutoDisposeNotifier<SmartPlugsState> {
         optimistic: opt,
         inFlight: {...state.inFlight}..remove(plugId),
       );
-      if (e is AuthException && e.code == AppErrorCode.forbidden) {
-        state = state.copyWith(forbidden: true);
-        return ControlResult.forbidden;
-      }
-      return ControlResult.error;
+      final outcome = ActionOutcome.failed(e, action: 'plug.${action.name}');
+      // Sticky, like the printer controls: one refusal stops offering the
+      // switch rather than letting every tap fail the same way.
+      if (outcome.isForbidden) state = state.copyWith(forbidden: true);
+      return outcome;
     }
   }
 

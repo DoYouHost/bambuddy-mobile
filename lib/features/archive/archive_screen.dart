@@ -529,9 +529,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       );
 
   String _errText(AppApiException e, AppLocalizations l10n) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-      ? l10n.ctrlForbidden
-      : l10n.ctrlFailed;
+      e.localized(l10n);
 }
 
 class _ArchiveCard extends StatelessWidget {

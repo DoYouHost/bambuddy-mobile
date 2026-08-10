@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
@@ -7,16 +8,14 @@ import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
 import '../../providers.dart';
 
-/// Result of a project mutation returned to the widget (notifier has no
-/// [BuildContext]; the screen shows the SnackBar). 403 → forbidden.
-enum ProjectActionResult { ok, forbidden, error }
-
-ProjectActionResult _mapError(Object e) {
-  if (e is AuthException && e.code == AppErrorCode.forbidden) {
-    return ProjectActionResult.forbidden;
-  }
-  return ProjectActionResult.error;
-}
+/// A mutation that is not an [AppApiException] never reached the server, so
+/// there is no reason to report beyond the failure itself.
+ActionOutcome _mapError(Object e) => e is AppApiException
+    ? ActionOutcome.failed(e, action: 'project.action')
+    : ActionOutcome.failed(
+        const ApiException(AppErrorCode.malformedResponse),
+        action: 'project.action',
+      );
 
 /// Active status filter for the projects list (`null` = all).
 final projectStatusFilterProvider = StateProvider<String?>((_) => null);
@@ -46,7 +45,7 @@ class ProjectsListNotifier
   }
 
   /// Optimistic delete: remove locally, call server, restore on failure.
-  Future<ProjectActionResult> delete(int id) async {
+  Future<ActionOutcome> delete(int id) async {
     final previous = state.valueOrNull;
     if (previous != null) {
       state = AsyncValue.data([
@@ -56,7 +55,7 @@ class ProjectsListNotifier
     }
     try {
       await ref.read(projectsRepositoryProvider).delete(id);
-      return ProjectActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       if (previous != null) state = AsyncValue.data(previous);
       return _mapError(e);
@@ -90,12 +89,12 @@ class ProjectDetailNotifier
   }
 
   /// PATCH the project and replace state with the server response.
-  Future<ProjectActionResult> save(ProjectUpdate body) async {
+  Future<ActionOutcome> save(ProjectUpdate body) async {
     try {
       final updated =
           await ref.read(projectsRepositoryProvider).update(arg, body);
       state = AsyncValue.data(updated);
-      return ProjectActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       return _mapError(e);
     }
@@ -125,18 +124,18 @@ class ProjectArchivesNotifier
     );
   }
 
-  Future<ProjectActionResult> add(List<int> archiveIds) =>
+  Future<ActionOutcome> add(List<int> archiveIds) =>
       _mutate(() => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds));
 
-  Future<ProjectActionResult> remove(int archiveId) =>
+  Future<ActionOutcome> remove(int archiveId) =>
       _mutate(() => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]));
 
-  Future<ProjectActionResult> _mutate(Future<void> Function() action) async {
+  Future<ActionOutcome> _mutate(Future<void> Function() action) async {
     try {
       await action();
       await refresh();
       ref.invalidate(projectDetailProvider(arg));
-      return ProjectActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       return _mapError(e);
     }
@@ -164,21 +163,21 @@ class ProjectBomNotifier
     );
   }
 
-  Future<ProjectActionResult> add(BomItemInput body) =>
+  Future<ActionOutcome> add(BomItemInput body) =>
       _mutate(() => ref.read(projectsRepositoryProvider).addBomItem(arg, body));
 
-  Future<ProjectActionResult> edit(int itemId, BomItemInput body) => _mutate(
+  Future<ActionOutcome> edit(int itemId, BomItemInput body) => _mutate(
       () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body));
 
-  Future<ProjectActionResult> delete(int itemId) =>
+  Future<ActionOutcome> delete(int itemId) =>
       _mutate(() => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId));
 
-  Future<ProjectActionResult> _mutate(Future<void> Function() action) async {
+  Future<ActionOutcome> _mutate(Future<void> Function() action) async {
     try {
       await action();
       await refresh();
       ref.invalidate(projectDetailProvider(arg));
-      return ProjectActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       return _mapError(e);
     }
