@@ -60,9 +60,8 @@ class StatisticsScreen extends ConsumerWidget {
 }
 
 /// "Filter by user" menu in AppBar. Hidden entirely when [statsUsersProvider]
-/// comes back empty — either no users to pick from, or (more commonly) the
-/// server rejected `GET /users/` because this identity lacks
-/// `stats:filter_by_user`/admin (see [statsUsersProvider]).
+/// comes back empty — either no users to pick from, or the server refused both
+/// user listings to this identity (see [statsUsersProvider]).
 class _UserFilterMenu extends ConsumerWidget {
   const _UserFilterMenu({required this.filter});
 

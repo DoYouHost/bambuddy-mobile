@@ -415,10 +415,9 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// An empty `permissions` list is *not* unknown: it is a user whose groups
 /// grant nothing, and this answers `false` for them.
 ///
-/// **Not the gate for anything administrative.** An API-key session reports
-/// itself as an admin holding every permission, and yet the server refuses it
-/// every users/groups/api-keys route — use [identifiedPermissionProvider]
-/// there, which knows that.
+/// **Not the gate for anything administrative.** The server refuses an
+/// API-key session every users/groups/api-keys route no matter what `/auth/me`
+/// said about it — use [identifiedPermissionProvider] there, which knows that.
 ///
 /// A screen that would rather not flash a drawer entry and take it away again
 /// should watch [currentUserProvider] and handle `loading` itself, instead of
@@ -448,10 +447,12 @@ final isAdminProvider = Provider<bool>(
 ///
 /// An API-key session is refused outright, [CurrentUser.isAdmin] or not: the
 /// server denies a key **every** administrative permission
-/// (`_check_apikey_permissions`, `backend/app/core/auth.py:291` — anything
-/// outside the scope allowlist is a 403, and users/groups/api-keys are all
-/// outside it, `auth.py:207`). The synthetic admin `/auth/me` describes a key
-/// with (`backend/app/api/routes/auth.py:91`) says nothing about that gate.
+/// (`_check_apikey_permissions`, `backend/app/core/auth.py` — anything outside
+/// the scope allowlist is a 403, and users/groups/api-keys are all outside
+/// it). What `/auth/me` says about a key never described that gate: up to
+/// 1.2.5.x it claimed admin with every permission, and from 1.2.6 it reports
+/// the key's real, non-administrative set. Both are answered here the same
+/// way, on the auth mode rather than on the payload.
 final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
