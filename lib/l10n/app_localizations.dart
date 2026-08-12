@@ -4418,6 +4418,12 @@ abstract class AppLocalizations {
   /// **'Color distribution'**
   String get statsColorDistribution;
 
+  /// No description provided for @statsColorShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share of filament used, by weight'**
+  String get statsColorShareHint;
+
   /// No description provided for @statsColorsCount.
   ///
   /// In en, this message translates to:

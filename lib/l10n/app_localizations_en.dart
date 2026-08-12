@@ -2526,6 +2526,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsColorDistribution => 'Color distribution';
 
   @override
+  String get statsColorShareHint => 'Share of filament used, by weight';
+
+  @override
   String statsColorsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

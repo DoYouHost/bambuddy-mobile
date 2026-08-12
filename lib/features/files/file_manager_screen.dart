@@ -944,6 +944,10 @@ class _FilterRow extends ConsumerWidget {
   final TextEditingController controller;
   final ValueChanged<String> onSearch;
 
+  /// Menu value for "All types", which the filter itself stores as `null`.
+  /// See the item's own comment for why it cannot be `null`.
+  static const _allTypes = '*';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -978,7 +982,7 @@ class _FilterRow extends ConsumerWidget {
         ],
         if (types.isNotEmpty) ...[
           const SizedBox(width: 4),
-          PopupMenuButton<String?>(
+          PopupMenuButton<String>(
             tooltip: l10n.fmFilterType,
             icon: Icon(
               state.typeFilter == null
@@ -986,15 +990,21 @@ class _FilterRow extends ConsumerWidget {
                   : Icons.filter_list_alt,
               color: t.textSecondary,
             ),
-            onSelected: (v) => ref.read(fileManagerProvider.notifier).setType(v),
+            onSelected: (v) => ref
+                .read(fileManagerProvider.notifier)
+                .setType(v == _allTypes ? null : v),
             itemBuilder: (ctx) => [
-              CheckedPopupMenuItem<String?>(
-                value: null,
+              CheckedPopupMenuItem<String>(
+                // Not `null`, which the filter stores for "no type filter":
+                // `PopupMenuButton` cannot tell a null-valued item apart from a
+                // dismissed menu, so such a row calls `onCanceled` and can
+                // never be picked. A file extension is never `*`.
+                value: _allTypes,
                 checked: state.typeFilter == null,
                 child: logTag('files.type_all', Text(l10n.fmAllTypes)),
               ),
               for (final ft in types)
-                CheckedPopupMenuItem<String?>(
+                CheckedPopupMenuItem<String>(
                   value: ft,
                   checked: state.typeFilter == ft,
                   child: logTag('files.type_option', Text(ft.toUpperCase())),

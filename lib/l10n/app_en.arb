@@ -942,6 +942,7 @@
   "statsByMaterialTitle": "By material",
   "statsSuccessByMaterial": "Success by material",
   "statsColorDistribution": "Color distribution",
+  "statsColorShareHint": "Share of filament used, by weight",
   "statsColorsCount": "{count} {count, plural, one{color} other{colors}}",
   "@statsColorsCount": { "placeholders": { "count": { "type": "int" } } },
   "statsMoreCount": "+{count} more",

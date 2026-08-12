@@ -808,6 +808,7 @@
   "statsByMaterialTitle": "Wg materiału",
   "statsSuccessByMaterial": "Skuteczność wg materiału",
   "statsColorDistribution": "Rozkład kolorów",
+  "statsColorShareHint": "Udział zużytego filamentu, wagowo",
   "statsColorsCount": "{count, plural, one{{count} kolor} few{{count} kolory} many{{count} kolorów} other{{count} koloru}}",
   "@statsColorsCount": { "placeholders": { "count": { "type": "int" } } },
   "statsMoreCount": "+{count} więcej",
