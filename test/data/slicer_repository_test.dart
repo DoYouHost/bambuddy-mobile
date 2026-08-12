@@ -18,7 +18,7 @@ void main() {
   });
 
   group('presetValues', () {
-    test('parsuje rozwiązane wartości i włącza wsparcie nadpisań', () async {
+    test('parses resolved values and turns override support on', () async {
       adapter.onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(200, {
@@ -37,7 +37,7 @@ void main() {
       expect(await repo.supportsProcessOverrides(), isTrue);
     });
 
-    test('404 → null i wsparcie wyłączone (serwer < 1.2.6)', () async {
+    test('404 → null, support off (server < 1.2.6)', () async {
       adapter.onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(404, {'detail': 'Not Found'}),
@@ -48,10 +48,10 @@ void main() {
       expect(await repo.supportsProcessOverrides(), isFalse);
     });
 
-    test('resolved:false to NIE brak wsparcia — trasa odpowiedziała', () async {
-      // Nieodczytane wartości i nieistniejąca trasa to dwie różne rzeczy:
-      // pierwsza zostawia panel otwarty z domyślnymi ze schematu, druga chowa
-      // go w całości. Najczęstsza przyczyna to sidecar starszy niż endpoint.
+    test('resolved:false is NOT missing support — the route answered', () async {
+      // Unreadable values and a missing route are different things: the first
+      // leaves the panel open on schema defaults, the second hides it entirely.
+      // The usual cause is a sidecar older than the endpoint.
       adapter.onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(200, {
@@ -69,7 +69,7 @@ void main() {
       expect(await repo.supportsProcessOverrides(), isTrue);
     });
 
-    test('inna awaria degraduje do „nierozwiązane", nie rzuca', () async {
+    test('any other failure degrades to unresolved rather than throwing', () async {
       adapter.onGet(
         '/api/v1/slicer/preset-values',
         (s) => s.reply(500, {'detail': 'boom'}),

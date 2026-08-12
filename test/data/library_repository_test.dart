@@ -210,8 +210,8 @@ void main() {
     expect(result.added, 0);
   });
 
-  group('warianty cross-model (#671)', () {
-    /// Jedna linia listingu w kształcie 1.2.6 — pola wariantów obecne.
+  group('cross-model variants (#671)', () {
+    /// One listing row in the 1.2.6 shape — variant fields present.
     Map<String, dynamic> row126({int variantCount = 0, int? groupId}) => {
           'id': 7,
           'filename': 'mug.3mf',
@@ -222,7 +222,7 @@ void main() {
           'variant_count': variantCount,
         };
 
-    /// Ta sama linia sprzed 1.2.6 — kluczy wariantów nie ma w ogóle.
+    /// The same row before 1.2.6 — the variant keys are absent entirely.
     Map<String, dynamic> row125() => {
           'id': 7,
           'filename': 'mug.3mf',
@@ -231,7 +231,7 @@ void main() {
           'print_count': 0,
         };
 
-    test('obecność variant_count w listingu włącza wsparcie', () async {
+    test('variant_count present in the listing turns support on', () async {
       adapter.onGet(
         '/api/v1/library/files',
         (s) => s.reply(200, [row126(variantCount: 2, groupId: 3)]),
@@ -243,7 +243,7 @@ void main() {
       expect(await repo.supportsCrossModelVariants(), isTrue);
     });
 
-    test('brak variant_count w listingu wyłącza wsparcie', () async {
+    test('variant_count absent from the listing turns support off', () async {
       adapter.onGet(
         '/api/v1/library/files',
         (s) => s.reply(200, [row125()]),
@@ -255,10 +255,10 @@ void main() {
       expect(await repo.supportsCrossModelVariants(), isFalse);
     });
 
-    test('pusty listing niczego nie rozstrzyga — zostaje ostrożne „nie"',
+    test('an empty listing settles nothing — the cautious no stands',
         () async {
-      // Biblioteka bez plików nie mówi nic o generacji serwera, więc obserwacja
-      // musi zostać nieustalona, a nie zapisać się jako „brak wsparcia".
+      // A library with no files says nothing about the server generation, so
+      // the observation must stay undecided rather than record "unsupported".
       adapter.onGet(
         '/api/v1/library/files',
         (s) => s.reply(200, <dynamic>[]),
@@ -267,12 +267,12 @@ void main() {
 
       await repo.listFiles();
 
-      // Bez ServerVersionService fallback to false — istotne jest, że nie
-      // zatrzasnęliśmy odpowiedzi na podstawie pustej listy.
+      // With no ServerVersionService the fallback is false — what matters is
+      // that an empty list did not pin the answer.
       expect(await repo.supportsCrossModelVariants(), isFalse);
     });
 
-    test('parsuje grupę pliku', () async {
+    test('parses a file group', () async {
       adapter.onGet(
         '/api/v1/library/variant-groups/by-file/7',
         (s) => s.reply(200, {
@@ -301,7 +301,7 @@ void main() {
       expect(group!.targetModels, ['H2C', 'H2S']);
     });
 
-    test('404 → null: plik bez grupy i stary serwer czytają się tak samo',
+    test('404 → null: an ungrouped file and an old server read the same',
         () async {
       adapter.onGet(
         '/api/v1/library/variant-groups/by-file/7',
@@ -311,7 +311,7 @@ void main() {
       expect(await repo.variantGroupForFile(7), isNull);
     });
 
-    test('createVariantGroup wysyła członków w kolejności priorytetu', () async {
+    test('createVariantGroup sends members in priority order', () async {
       adapter.onPost(
         '/api/v1/library/variant-groups',
         (s) => s.reply(201, {'id': 3, 'name': 'Mug', 'members': <dynamic>[]}),

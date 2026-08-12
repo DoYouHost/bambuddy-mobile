@@ -1,19 +1,20 @@
 import 'package:bambuddy_mobile/core/models/user_summary.dart';
 import 'package:bambuddy_mobile/features/stats/statistics_screen.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// Regresja: pozycja „Wszyscy użytkownicy" musi dać się wybrać.
+/// Regression: the "All users" row has to be selectable.
 ///
-/// `PopupMenuButton` rozwiązuje trasę menu wartością `null`, gdy użytkownik je
-/// porzuci (tap obok, cofnięcie), i nie ma jak odróżnić tego od wybrania
-/// pozycji, której wartość *jest* nullem — w obu wypadkach woła `onCanceled`.
-/// Pozycja z `value: null` jest więc po prostu nieklikalna, co odcinało powrót
-/// do „wszystkich" po wybraniu kogokolwiek. Stąd wartownik zamiast nulla.
+/// `PopupMenuButton` resolves its menu route with `null` when the user dismisses
+/// it (tap outside, back gesture), and has no way to tell that apart from
+/// picking an item whose value *is* null — it calls `onCanceled` for both. A
+/// `value: null` row is therefore simply unclickable, which cut off the way back
+/// to "all" once any user had been chosen. Hence a sentinel instead of null.
 void main() {
   const users = [
     UserSummary(id: 7, username: 'ala'),
@@ -27,7 +28,18 @@ void main() {
         child: plApp(const StatisticsScreen()),
       );
 
-  /// Otwiera menu filtra użytkownika i klika pozycję o podanej etykiecie.
+  Element screen(WidgetTester tester) =>
+      tester.element(find.byType(StatisticsScreen));
+
+  /// Labels come from the running locale rather than being hardcoded, so the
+  /// test keeps passing when a translation is reworded.
+  AppLocalizations l10nOf(WidgetTester tester) =>
+      AppLocalizations.of(screen(tester));
+
+  ProviderContainer containerOf(WidgetTester tester) =>
+      ProviderScope.containerOf(screen(tester));
+
+  /// Opens the user-filter menu and taps the row carrying [label].
   Future<void> pick(WidgetTester tester, String label) async {
     await tester.tap(find.byIcon(Icons.people_outline));
     await tester.pumpAndSettle();
@@ -35,40 +47,31 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('wybór użytkownika, a potem powrót do „wszyscy"', (tester) async {
-    late ProviderContainer container;
-
+  testWidgets('picking a user, then going back to "all users"', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    container = ProviderScope.containerOf(
-      tester.element(find.byType(StatisticsScreen)),
-    );
-
+    final container = containerOf(tester);
     expect(container.read(statsFilterProvider).createdById, isNull,
-        reason: 'start: brak filtra');
+        reason: 'starts unfiltered');
 
     await pick(tester, 'bob');
     expect(container.read(statsFilterProvider).createdById, 8);
 
-    // Sedno regresji: z wybranym użytkownikiem wracamy na „wszyscy".
-    await pick(tester, 'Wszyscy użytkownicy');
+    // The regression itself: with a user selected, return to "all".
+    await pick(tester, l10nOf(tester).statsAllUsers);
     expect(container.read(statsFilterProvider).createdById, isNull,
-        reason: '„Wszyscy użytkownicy" musi czyścić filtr, nie być no-opem');
+        reason: '"All users" must clear the filter, not be a no-op');
   });
 
-  testWidgets('„bez użytkownika" nadal wysyła -1, nie null', (tester) async {
+  testWidgets('"no user" still sends -1 rather than null', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(StatisticsScreen)),
-    );
+    await pick(tester, l10nOf(tester).statsNoUser);
 
-    await pick(tester, 'Brak użytkownika (system)');
-
-    // -1 to filtr serwera „wydruki bez autora"; wartownik „wszyscy" nie może go
-    // przykryć ani odwrotnie.
-    expect(container.read(statsFilterProvider).createdById, -1);
+    // -1 is the server's "prints with no author" filter; the "all users"
+    // sentinel must not collide with it in either direction.
+    expect(containerOf(tester).read(statsFilterProvider).createdById, -1);
   });
 }

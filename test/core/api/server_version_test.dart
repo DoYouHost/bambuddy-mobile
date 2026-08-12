@@ -110,23 +110,23 @@ void main() {
     });
   });
 
-  group('mapa wersja → możliwości', () {
-    test('każda możliwość ma wpis — brak wpisu cicho wyłącza funkcję', () {
-      // supports() na niezmapowanej funkcji zwraca false, więc zapomniany wpis
-      // nie wysypie się na teście typów, tylko po cichu zabierze funkcję
-      // wszystkim. Ten test jest jedynym miejscem, które to złapie.
+  group('version → capability map', () {
+    test('every capability has a row — a missing one silently disables it', () {
+      // supports() answers false for an unmapped feature, so a forgotten row
+      // does not fail to compile — it quietly takes the feature away from
+      // everybody. This test is the only thing that catches it.
       for (final f in ServerFeature.values) {
         expect(ServerVersion.introducedIn[f], isNotNull,
-            reason: 'brak progu wersji dla $f');
+            reason: 'no version threshold for $f');
       }
     });
 
-    test('supports() czyta próg z mapy, nie z osobnego porównania', () {
+    test('supports() reads the threshold from the map, not a separate compare', () {
       final v125 = parse('1.2.5.2');
       final v126 = parse('1.2.6');
 
-      // Tri-state przyszło w 1.2.5, reszta w 1.2.6 — to jedyna różnica między
-      // tymi dwiema wersjami w całej tabeli.
+      // Tri-state arrived in 1.2.5 and everything else in 1.2.6 — the only
+      // difference between these two versions in the whole table.
       expect(v125.supports(ServerFeature.triStateCalibration), isTrue);
       expect(v126.supports(ServerFeature.triStateCalibration), isTrue);
 
@@ -137,25 +137,26 @@ void main() {
         ServerFeature.processOverrides,
         ServerFeature.usersSlimListing,
       ]) {
-        expect(v125.supports(f), isFalse, reason: '$f nie istnieje w 1.2.5');
-        expect(v126.supports(f), isTrue, reason: '$f istnieje w 1.2.6');
+        expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
+        expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
       }
     });
   });
 
-  group('bramki 1.2.6', () {
-    test('sufit komory: 60 do 1.2.5.x, 65 od 1.2.6', () {
-      // Serwer podniósł MAX_CHAMBER_TEMP_C z 60 na 65 (commit b04664c6), a bound
-      // jest w Query(le=…) — starszy serwer odpowiada 422, nie przycina.
+  group('1.2.6 gates', () {
+    test('chamber ceiling: 60 up to 1.2.5.x, 65 from 1.2.6', () {
+      // The server raised MAX_CHAMBER_TEMP_C from 60 to 65 (commit b04664c6),
+      // and the bound is a Query(le=…) — an older server answers 422 rather
+      // than clamping.
       expect(parse('1.2.5.2').chamberMaxTargetC, 60);
       expect(parse('1.2.6').chamberMaxTargetC, 65);
     });
 
-    test('beta 1.2.6 liczy się jako obsługująca — funkcje weszły w tym cyklu',
+    test('a 1.2.6 beta counts as supporting — the features landed in that cycle',
         () {
-      // 1.2.6b1 to wydanie, w którym te zmiany faktycznie są (tam siedzi #671
-      // i podniesiony sufit), więc czytanie bety jako starszego kontraktu
-      // odbierałoby funkcje serwerowi, który je ma.
+      // 1.2.6b1 is the release these changes actually shipped in (#671 and the
+      // raised ceiling both live there), so reading a beta as the older
+      // contract would take features away from a server that has them.
       final beta = parse('1.2.6b1');
       expect(beta.chamberMaxTargetC, 65);
       expect(beta.supportsCrossModelVariants, isTrue);
@@ -163,11 +164,11 @@ void main() {
       expect(beta.supportsProcessOverrides, isTrue);
     });
 
-    test('daily build bety też liczy się jako obsługujący', () {
+    test('a daily build of the beta counts too', () {
       expect(parse('1.2.6b1-daily.20260809').chamberMaxTargetC, 65);
     });
 
-    test('starszy serwer nie dostaje żadnej z bramek', () {
+    test('an older server gets none of the gates', () {
       final old = parse('1.2.5.2');
       expect(old.supportsCrossModelVariants, isFalse);
       expect(old.supportsSliceLayoutOptions, isFalse);

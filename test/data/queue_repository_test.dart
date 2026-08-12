@@ -531,9 +531,9 @@ void main() {
   });
 
   group('addCrossModel (#671)', () {
-    test('wysyła variants w kolejności i BEZ printer_id', () async {
-      // printer_id razem z variants serwer odrzuca wprost — wskazanie drukarki
-      // przeczy sensowi oferty alternatyw.
+    test('sends variants in order and WITHOUT printer_id', () async {
+      // The server rejects printer_id together with variants outright — naming
+      // a printer defeats the point of offering alternatives.
       adapter.onPost(
         '/api/v1/queue/',
         (s) => s.reply(200, {'id': 1}),
