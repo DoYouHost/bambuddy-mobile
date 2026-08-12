@@ -102,7 +102,9 @@ class SlicerRepository {
   /// panel opens with schema defaults and explains why.
   ///
   /// Any other failure degrades to [PresetValues.unresolved] rather than
-  /// throwing: a blank panel beats an error dialog over a nicety.
+  /// throwing: a blank panel beats an error dialog over a nicety. Auth is the
+  /// exception, as in [guardOrNull] — an expired session has to reach the app
+  /// or nothing redirects, and the user is left staring at empty fields.
   Future<PresetValues?> presetValues(SlicerPreset preset) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -116,6 +118,8 @@ class SlicerRepository {
         _observedPresetValues = false;
         return null;
       }
+      final mapped = mapDioException(e);
+      if (mapped is AuthException) throw mapped;
       return PresetValues.unresolved;
     }
   }

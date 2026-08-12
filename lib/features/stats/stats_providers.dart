@@ -178,7 +178,11 @@ final statsUsersProvider =
   ref.watch(serverProfileProvider);
   try {
     return await ref.read(statsRepositoryProvider).fetchUsers();
-  } on AppApiException {
+  } on AppApiException catch (e) {
+    // Only a refusal means "this identity may not list users". Absorbing
+    // everything else told the same story about a dropped connection, so a
+    // server that was merely unreachable read as one that said no.
+    if (e.code != AppErrorCode.forbidden) rethrow;
     return const [];
   }
 });

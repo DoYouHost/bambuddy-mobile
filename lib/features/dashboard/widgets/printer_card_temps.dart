@@ -50,9 +50,14 @@ class _GaugeTile extends ConsumerWidget {
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
     final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
-    // 60 until the server's version is known — see [chamberMaxTargetProvider].
-    final chamberMax =
-        ref.watch(chamberMaxTargetProvider).maybeWhen(data: (v) => v, orElse: () => 60);
+    // Only the chamber gauge scales against the ceiling, so watching it on every
+    // tile rebuilds nozzle and bed for nothing when the probe answers. 60 until
+    // the server's version is known — see [chamberMaxTargetProvider].
+    final chamberMax = reading.kind != _TempKind.chamber
+        ? 60
+        : ref
+            .watch(chamberMaxTargetProvider)
+            .maybeWhen(data: (v) => v, orElse: () => 60);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command

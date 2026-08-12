@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:dio/dio.dart';
@@ -80,6 +81,24 @@ void main() {
 
       expect(values, isNotNull);
       expect(values!.resolved, isFalse);
+    });
+
+    test('an expired session throws instead of degrading', () async {
+      // The one failure that must not be absorbed: swallowed here, nothing
+      // redirects to the login and the panel just sits there empty.
+      adapter.onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(401, {'detail': 'Not authenticated'}),
+        queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
+      );
+
+      await expectLater(
+        repo.presetValues(preset),
+        throwsA(isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.unauthorized)),
+      );
+      expect(repo.supportsProcessOverrides(), completion(isFalse),
+          reason: 'a rejected call proves nothing about the route');
     });
   });
 }

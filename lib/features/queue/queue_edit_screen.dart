@@ -1056,15 +1056,19 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           : null;
 
   /// The server's chamber ceiling — 65 from 1.2.6, 60 before it and until the
-  /// version is known. `watch` because the save path reads it too and the
-  /// answer can arrive while the form is open.
-  int get _chamberMax => ref
-      .watch(chamberMaxTargetProvider)
-      .maybeWhen(data: (v) => v, orElse: () => 60);
+  /// version is known.
+  static int _ceiling(AsyncValue<int> probe) =>
+      probe.maybeWhen(data: (v) => v, orElse: () => 60);
+
+  /// `watch`, so the helper text stops advertising 60 the moment the version
+  /// probe answers with the form already open.
+  int get _chamberMax => _ceiling(ref.watch(chamberMaxTargetProvider));
 
   int? get _chamberTargetValue {
     if (_preheatOverride == 'off') return null;
-    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, _chamberMax);
+    // `read`: this one runs from the save button, outside a build.
+    final max = _ceiling(ref.read(chamberMaxTargetProvider));
+    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, max);
   }
 
   /// A calibration option for the PATCH body, or `null` to leave the key out.

@@ -148,7 +148,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via
-  /// [QueueRepository.updateItem]. Error → mapped [QueueActionResult].
+  /// [QueueRepository.updateItem]. Error → mapped [ActionOutcome].
   Future<ActionOutcome> runAction(
     Future<void> Function(QueueRepository repo) action,
   ) =>

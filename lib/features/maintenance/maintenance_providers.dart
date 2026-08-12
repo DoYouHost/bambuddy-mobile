@@ -41,18 +41,21 @@ class MaintenanceOverviewNotifier
   /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
   Future<ActionOutcome> perform(int itemId, {String? notes}) =>
       _run(
+        'maintenance.perform',
         (repo) => repo.perform(itemId, notes: notes),
       );
 
   /// Mutes/unmutes a task (server `enabled`). Disabled tasks stop counting and
   /// alerting. Refreshes on success.
-  Future<ActionOutcome> setEnabled(int itemId, bool enabled) =>
-      _run((repo) => repo.updateItem(itemId, enabled: enabled));
+  Future<ActionOutcome> setEnabled(int itemId, bool enabled) => _run(
+        'maintenance.mute',
+        (repo) => repo.updateItem(itemId, enabled: enabled),
+      );
 
   /// Sets a per-printer interval override (hours), or clears it (back to the
   /// type default) when [hours] is null.
-  Future<ActionOutcome> setInterval(int itemId, double? hours) =>
-      _run(
+  Future<ActionOutcome> setInterval(int itemId, double? hours) => _run(
+        'maintenance.interval',
         (repo) => repo.updateItem(
           itemId,
           customIntervalHours: hours,
@@ -61,15 +64,19 @@ class MaintenanceOverviewNotifier
       );
 
   /// Runs a mutation, maps permission errors, and refreshes on success.
+  /// [action] is the control the user touched, in the `logTag` vocabulary —
+  /// one tag for all of them would make the log record say which screen failed
+  /// but not what the user was trying to do.
   Future<ActionOutcome> _run(
-    Future<void> Function(MaintenanceRepository) action,
+    String action,
+    Future<void> Function(MaintenanceRepository) mutate,
   ) async {
     try {
-      await action(ref.read(maintenanceRepositoryProvider));
+      await mutate(ref.read(maintenanceRepositoryProvider));
       await refresh();
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: 'maintenance.action');
+      return ActionOutcome.failed(e, action: action);
     }
   }
 }
@@ -106,7 +113,7 @@ class MaintenanceTypesNotifier
     MaintenanceTypeDraft draft,
     List<int> printerIds,
   ) =>
-      _run((repo) async {
+      _run('maintenance.type_create', (repo) async {
         final type = await repo.createType(draft);
         for (final pid in printerIds) {
           await repo.assignType(pid, type.id);
@@ -117,25 +124,34 @@ class MaintenanceTypesNotifier
     int typeId,
     MaintenanceTypeDraft draft,
   ) =>
-      _run((repo) => repo.updateType(typeId, draft), invalidateOverview: true);
+      _run('maintenance.type_edit', (repo) => repo.updateType(typeId, draft),
+          invalidateOverview: true);
 
-  Future<ActionOutcome> delete(int typeId) =>
-      _run((repo) => repo.deleteType(typeId), invalidateOverview: true);
+  Future<ActionOutcome> delete(int typeId) => _run(
+        'maintenance.type_delete',
+        (repo) => repo.deleteType(typeId),
+        invalidateOverview: true,
+      );
 
-  Future<ActionOutcome> restoreDefaults() =>
-      _run((repo) => repo.restoreDefaults(), invalidateOverview: true);
+  Future<ActionOutcome> restoreDefaults() => _run(
+        'maintenance.restore_defaults',
+        (repo) => repo.restoreDefaults(),
+        invalidateOverview: true,
+      );
 
+  /// See [MaintenanceOverviewNotifier._run] for why [action] is per-mutation.
   Future<ActionOutcome> _run(
-    Future<void> Function(MaintenanceRepository) action, {
+    String action,
+    Future<void> Function(MaintenanceRepository) mutate, {
     bool invalidateOverview = false,
   }) async {
     try {
-      await action(ref.read(maintenanceRepositoryProvider));
+      await mutate(ref.read(maintenanceRepositoryProvider));
       await refresh();
       if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: 'maintenance.action');
+      return ActionOutcome.failed(e, action: action);
     }
   }
 }

@@ -400,7 +400,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     try {
       projects = await ref.read(projectsRepositoryProvider).list();
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
       return;
     }
     if (!mounted) return;
@@ -452,7 +452,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.projectArchivesAdded)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -476,7 +476,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -527,9 +527,6 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         slicedForModel: archive.slicedForModel,
         manualStart: manualStart,
       );
-
-  String _errText(AppApiException e, AppLocalizations l10n) =>
-      e.localized(l10n);
 }
 
 class _ArchiveCard extends StatelessWidget {

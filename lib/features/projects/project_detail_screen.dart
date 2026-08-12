@@ -731,7 +731,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -745,7 +745,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -766,7 +766,7 @@ class _OverflowMenu extends ConsumerWidget {
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectExported(path))));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -778,7 +778,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.invalidate(projectTemplatesProvider);
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectTemplateCreated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     }
   }
 
@@ -801,6 +801,4 @@ class _OverflowMenu extends ConsumerWidget {
     ));
     if (result.isOk) navigator.pop();
   }
-
-  String _err(AppApiException e, AppLocalizations l10n) => e.localized(l10n);
 }
