@@ -28,6 +28,25 @@ enum ServerFeature {
   /// [sliceLayoutOptions]; the endpoint 404s on older servers, which
   /// `SlicerRepository` uses as the outranking observation.
   processOverrides,
+
+  /// `GET /users/slim` — id + username only, so `created_by_id` can be shown as
+  /// a name (server #1894).
+  ///
+  /// Listed for completeness of this table, but **`StatsRepository` decides by
+  /// probing and that must not be replaced with this**. Two reasons, both
+  /// load-bearing:
+  ///
+  /// - The route existing is not the same as *this session* being allowed to
+  ///   read it. A 1.2.6 server still answers 403 to a caller holding neither
+  ///   `users:read_slim` nor `users:read`, and the probe's answer covers both
+  ///   questions where a version can only answer the first.
+  /// - Using this to skip the attempt would resurrect the numbering trap: a
+  ///   server whose reported version parses below 1.2.6 while actually serving
+  ///   the route would be pinned to the full listing forever — which an API key
+  ///   is refused outright, removing exactly the picker #1894 added.
+  ///
+  /// See `docs/plans/13-users-slim-and-api-key-identity.md`.
+  usersSlimListing,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -123,6 +142,8 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.sliceLayoutOptions: (1, 2, 6, 0),
     // process_overrides on SliceRequest + GET /slicer/preset-values.
     ServerFeature.processOverrides: (1, 2, 6, 0),
+    // GET /users/slim (server #1894) — probed, not gated on this. See the enum.
+    ServerFeature.usersSlimListing: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

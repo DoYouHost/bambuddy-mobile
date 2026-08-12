@@ -135,6 +135,7 @@ void main() {
         ServerFeature.crossModelVariants,
         ServerFeature.sliceLayoutOptions,
         ServerFeature.processOverrides,
+        ServerFeature.usersSlimListing,
       ]) {
         expect(v125.supports(f), isFalse, reason: '$f nie istnieje w 1.2.5');
         expect(v126.supports(f), isTrue, reason: '$f istnieje w 1.2.6');

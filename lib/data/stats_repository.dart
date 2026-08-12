@@ -119,6 +119,14 @@ class StatsRepository {
   /// Whether this server has [Endpoints.usersSlim]; `null` until probed. Lives
   /// on the instance, which is rebuilt on every profile change — exactly how
   /// long the answer holds.
+  ///
+  /// The route's release is recorded in [ServerFeature.usersSlimListing], but
+  /// deliberately not consulted here: that table answers "does this generation
+  /// have the route", while this has to answer "will it serve *me*" — a 1.2.6
+  /// server still refuses a session holding neither `users:read_slim` nor
+  /// `users:read`. Swapping the probe for the version check would also strand
+  /// any server whose reported version parses low, on the full listing an API
+  /// key cannot read at all.
   bool? _hasSlimListing;
 
   /// Statuses that mean "this server will not serve me the slim listing".
