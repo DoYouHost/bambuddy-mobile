@@ -51,9 +51,23 @@ class ServerVersionService {
     }
   }
 
-  /// Unknown → `false`, so we send the boolean form every server accepts.
-  Future<bool> supportsTriStateCalibration() async =>
-      (await current())?.supportsTriStateCalibration ?? false;
+  /// Whether the connected server has [feature], per
+  /// [ServerVersion.introducedIn].
+  ///
+  /// Unknown → `false` for every feature, which is always the older contract: a
+  /// hidden control costs a new-server user one feature until the version read
+  /// lands, while a shown one costs an old-server user a 422 — or, for the
+  /// slice fields, a switch that silently does nothing.
+  Future<bool> supports(ServerFeature feature) async =>
+      (await current())?.supports(feature) ?? false;
+
+  Future<bool> supportsTriStateCalibration() =>
+      supports(ServerFeature.triStateCalibration);
+
+  /// Unknown → 60, the ceiling every server generation accepts. See
+  /// [ServerVersion.chamberMaxTargetC] for why this one cannot be observed.
+  Future<int> chamberMaxTargetC() async =>
+      (await current())?.chamberMaxTargetC ?? 60;
 
   Future<String?> reportedVersion() async => (await current())?.raw;
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
@@ -22,9 +23,8 @@ enum ControlAction {
   move,
 }
 
-/// Command result returned to the widget that initiated the action — it
-/// displays the SnackBar (notifier has no [BuildContext]).
-enum ControlResult { ok, forbidden, error }
+/// Commands answer with the shared [ActionOutcome] — see its doc for why the
+/// failure travels intact instead of as a code the widget re-words.
 
 /// Optimistic overrides and "in-flight" state for one printer.
 /// Overrides ([light]/[speedLevel]/[tempTargets]/[airductHeating]) overlay on
@@ -164,7 +164,7 @@ final controlsProvider =
     NotifierProvider<ControlsNotifier, ControlsState>(ControlsNotifier.new);
 
 /// Sends control commands and maintains optimistic UI state. No navigation or
-/// SnackBars — returns [ControlResult], and widget decides what to show.
+/// SnackBars — returns [ActionOutcome], and widget decides what to show.
 class ControlsNotifier extends Notifier<ControlsState> {
   /// How long to keep optimistic override after success before discarding
   /// (real status from WS/polling should have caught up by then —
@@ -186,16 +186,16 @@ class ControlsNotifier extends Notifier<ControlsState> {
   PrinterCommandsRepository get _repo =>
       ref.read(printerCommandsRepositoryProvider);
 
-  Future<ControlResult> pause(int id) =>
+  Future<ActionOutcome> pause(int id) =>
       _run(id, ControlAction.pause, () => _repo.pause(id));
 
-  Future<ControlResult> resume(int id) =>
+  Future<ActionOutcome> resume(int id) =>
       _run(id, ControlAction.resume, () => _repo.resume(id));
 
-  Future<ControlResult> stop(int id) =>
+  Future<ActionOutcome> stop(int id) =>
       _run(id, ControlAction.stop, () => _repo.stop(id));
 
-  Future<ControlResult> setLight(int id, {required bool on}) => _run(
+  Future<ActionOutcome> setLight(int id, {required bool on}) => _run(
         id,
         ControlAction.light,
         () => _repo.setChamberLight(id, on: on),
@@ -204,7 +204,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
         clearKey: 'light',
       );
 
-  Future<ControlResult> setSpeed(int id, int mode) => _run(
+  Future<ActionOutcome> setSpeed(int id, int mode) => _run(
         id,
         ControlAction.speed,
         () => _repo.setPrintSpeed(id, mode),
@@ -216,7 +216,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// Nozzle target. [key] is the sensor's raw key ('nozzle'/'nozzle_2') so the
   /// optimistic setpoint overlays the right gauge; [nozzle] is the hardware
   /// index (0=right/default, 1=left) sent to the server.
-  Future<ControlResult> setNozzleTemp(
+  Future<ActionOutcome> setNozzleTemp(
     int id,
     String key,
     int target, {
@@ -232,7 +232,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
         clearKey: 'temp:$key',
       );
 
-  Future<ControlResult> setBedTemp(int id, int target) => _run(
+  Future<ActionOutcome> setBedTemp(int id, int target) => _run(
         id,
         ControlAction.temp,
         () => _repo.setBedTemperature(id, target),
@@ -242,7 +242,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
         clearKey: 'temp:bed',
       );
 
-  Future<ControlResult> setChamberTemp(int id, int target) => _run(
+  Future<ActionOutcome> setChamberTemp(int id, int target) => _run(
         id,
         ControlAction.temp,
         () => _repo.setChamberTemperature(id, target),
@@ -252,7 +252,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
         clearKey: 'temp:chamber',
       );
 
-  Future<ControlResult> setAirduct(int id, {required bool heating}) => _run(
+  Future<ActionOutcome> setAirduct(int id, {required bool heating}) => _run(
         id,
         ControlAction.airduct,
         () => _repo.setAirductMode(id, heating: heating),
@@ -262,7 +262,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
       );
 
   /// Fan speed (%). [fan] is 'part', 'aux', or 'chamber'.
-  Future<ControlResult> setFanSpeed(int id, String fan, int speed) => _run(
+  Future<ActionOutcome> setFanSpeed(int id, String fan, int speed) => _run(
         id,
         ControlAction.fan,
         () => _repo.setFanSpeed(id, fan, speed),
@@ -274,7 +274,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   /// Start AMS drying. No optimistic overlay — the AMS `dry_time`/`dry_status`
   /// in status reflects it within a poll/WS frame.
-  Future<ControlResult> startDrying(
+  Future<ActionOutcome> startDrying(
     int id, {
     required int amsId,
     required int temp,
@@ -288,7 +288,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
             amsId: amsId, temp: temp, duration: duration, filament: filament),
       );
 
-  Future<ControlResult> stopDrying(int id, {required int amsId}) => _run(
+  Future<ActionOutcome> stopDrying(int id, {required int amsId}) => _run(
         id,
         ControlAction.dry,
         () => _repo.stopDrying(id, amsId: amsId),
@@ -297,7 +297,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
   /// No optimistic override — the caller keeps the switch locked until the live
   /// status reports the new active extruder (the physical switch takes time).
-  Future<ControlResult> setExtruder(int id, int extruder) => _run(
+  Future<ActionOutcome> setExtruder(int id, int extruder) => _run(
         id,
         ControlAction.extruder,
         () => _repo.selectExtruder(id, extruder),
@@ -308,27 +308,27 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// [ControlAction.move], so the movement sheet locks while one is in flight.
 
   /// Relative nozzle-bed gap jog (mm). Negative decreases the gap ("up").
-  Future<ControlResult> bedJog(int id, double distance, {bool force = false}) =>
+  Future<ActionOutcome> bedJog(int id, double distance, {bool force = false}) =>
       _run(id, ControlAction.move,
           () => _repo.bedJog(id, distance, force: force));
 
   /// Relative toolhead X/Y jog (mm).
-  Future<ControlResult> xyJog(int id, {double x = 0, double y = 0}) =>
+  Future<ActionOutcome> xyJog(int id, {double x = 0, double y = 0}) =>
       _run(id, ControlAction.move, () => _repo.xyJog(id, x: x, y: y));
 
   /// Relative extrusion (mm). Positive extrudes, negative retracts.
-  Future<ControlResult> extruderJog(int id, double distance) =>
+  Future<ActionOutcome> extruderJog(int id, double distance) =>
       _run(id, ControlAction.move, () => _repo.extruderJog(id, distance));
 
   /// Full auto-home sequence (`G28`).
-  Future<ControlResult> homeAxes(int id) =>
+  Future<ActionOutcome> homeAxes(int id) =>
       _run(id, ControlAction.move, () => _repo.homeAxes(id));
 
   /// Runs a command with optimistic apply + rollback-on-error. [apply] overlays
   /// the optimistic override; [rollback] restores the touched field from
   /// [before] (surgically, preserving any concurrent different action);
   /// [clearKey] schedules discarding the override once real status catches up.
-  Future<ControlResult> _run(
+  Future<ActionOutcome> _run(
     int id,
     ControlAction action,
     Future<void> Function() send, {
@@ -349,18 +349,17 @@ class ControlsNotifier extends Notifier<ControlsState> {
       // Success: remove "in flight", keep override and schedule cleanup.
       _setPending(id, _withoutInFlight(state.pendingFor(id), action));
       if (clearKey != null) _scheduleClear(id, clearKey);
-      return ControlResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       // Rollback: remove "in flight" and restore override to pre-action state.
       var rolled = _withoutInFlight(state.pendingFor(id), action);
       if (rollback != null) rolled = rollback(before, rolled);
       _setPending(id, rolled);
 
-      if (e is AuthException && e.code == AppErrorCode.forbidden) {
-        state = state.copyWith(forbidden: true);
-        return ControlResult.forbidden;
-      }
-      return ControlResult.error;
+      final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
+      // Sticky: one refusal is enough to stop offering controls this session.
+      if (outcome.isForbidden) state = state.copyWith(forbidden: true);
+      return outcome;
     }
   }
 

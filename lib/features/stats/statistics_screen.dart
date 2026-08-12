@@ -60,13 +60,21 @@ class StatisticsScreen extends ConsumerWidget {
 }
 
 /// "Filter by user" menu in AppBar. Hidden entirely when [statsUsersProvider]
-/// comes back empty — either no users to pick from, or (more commonly) the
-/// server rejected `GET /users/` because this identity lacks
-/// `stats:filter_by_user`/admin (see [statsUsersProvider]).
+/// comes back empty — either no users to pick from, or the server refused both
+/// user listings to this identity (see [statsUsersProvider]).
 class _UserFilterMenu extends ConsumerWidget {
   const _UserFilterMenu({required this.filter});
 
   final StatsFilter filter;
+
+  /// Menu value for "All users", which the filter itself stores as `null`.
+  ///
+  /// It cannot be `null` here. `PopupMenuButton` resolves its menu route with
+  /// `null` on dismissal and has no way to tell that apart from an item whose
+  /// value *is* null, so it calls `onCanceled` for both — a `value: null` row
+  /// is simply unpickable, which left "All users" unreachable once any user had
+  /// been chosen. `-1` is taken: it is the server's own "no user" filter.
+  static const _allUsers = -2;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,19 +93,20 @@ class _UserFilterMenu extends ConsumerWidget {
 
     return logTag(
       'stats.user_filter',
-      PopupMenuButton<int?>(
+      PopupMenuButton<int>(
         icon:
             Icon(Icons.people_outline, color: DashTokens.of(context).textSecondary),
         tooltip: labelFor(filter.createdById),
-        initialValue: filter.createdById,
-        onSelected: (id) =>
-            ref.read(statsFilterProvider.notifier).setCreatedById(id),
+        initialValue: filter.createdById ?? _allUsers,
+        onSelected: (id) => ref
+            .read(statsFilterProvider.notifier)
+            .setCreatedById(id == _allUsers ? null : id),
         // Tagging the item's child, not the item: a `PopupMenuItem` wrapped in
         // `Semantics` is no longer a `PopupMenuEntry`. Which user was picked is
         // not logged — that is the user's data, and one id per menu is enough.
         itemBuilder: (context) => [
           PopupMenuItem(
-            value: null,
+            value: _allUsers,
             child: logTag('stats.user_filter.all', Text(l10n.statsAllUsers)),
           ),
           PopupMenuItem(

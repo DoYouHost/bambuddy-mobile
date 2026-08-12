@@ -68,6 +68,15 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
   List<SlicerPreset?> _filaments = [];
   bool _submitting = false;
 
+  /// Let the slicer choose each object's orientation (`--orient 1`). Off by
+  /// default, exactly as the server has it: it rotates geometry, so a model the
+  /// designer laid flat on purpose would silently change.
+  bool _autoOrient = false;
+
+  /// Let the slicer lay the objects out on the plate (`--arrange 1`). Off by
+  /// default for the same reason — it discards a deliberate layout.
+  bool _autoArrange = false;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -181,6 +190,39 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                     onTap: _pickBedType,
                   ).tagged('slice.bed_type'),
                 ),
+                // Hidden entirely before server 1.2.6: the fields are dropped
+                // without a word there, and a switch that does nothing is worse
+                // than no switch. See [sliceLayoutOptionsProvider].
+                if (ref
+                    .watch(sliceLayoutOptionsProvider)
+                    .maybeWhen(data: (v) => v, orElse: () => false)) ...[
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          value: _autoOrient,
+                          onChanged: (v) => setState(() => _autoOrient = v),
+                          secondary:
+                              const Icon(Icons.screen_rotation_alt_outlined),
+                          title: Text(l10n.sliceAutoOrient,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoOrientHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_orient'),
+                        SwitchListTile(
+                          value: _autoArrange,
+                          onChanged: (v) => setState(() => _autoArrange = v),
+                          secondary: const Icon(Icons.grid_view_outlined),
+                          title: Text(l10n.sliceAutoArrange,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoArrangeHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_arrange'),
+                      ],
+                    ),
+                  ),
+                ],
                 for (var i = 0; i < slotCount; i++)
                   _slotTile(
                     label: slotCount == 1
@@ -324,6 +366,11 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
         'filament_presets': refs,
       // Override the plate only when the user picked one; null inherits.
       if (_bedType != null) 'bed_type': _bedType,
+      // Only when on: both default to false server-side, and an older server
+      // ignores unknown keys silently, so sending the default would be noise
+      // that also hides which servers actually honoured it.
+      if (_autoOrient) 'auto_orient': true,
+      if (_autoArrange) 'auto_arrange': true,
     };
     setState(() => _submitting = true);
     final int jobId;

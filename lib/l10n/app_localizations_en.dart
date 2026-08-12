@@ -434,7 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This cancels the current print. It cannot be resumed.';
 
   @override
-  String get ctrlForbidden => 'This API key can\'t control the printer';
+  String get ctrlForbidden => 'No permission to control this printer';
 
   @override
   String get ctrlFailed => 'Couldn\'t send the command';
@@ -552,6 +552,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueAmsFromSlicer => 'AMS from slicer';
+
+  @override
+  String queueAnyOfModels(String models) {
+    return 'Any of: $models';
+  }
 
   @override
   String get queueDeleteTitle => 'Remove from queue?';
@@ -1158,8 +1163,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errUnauthorized => 'Not authorized';
 
   @override
-  String get errForbidden =>
-      'Not allowed — your API key lacks permission for this';
+  String get errForbidden => 'Not allowed — the server refused this action';
+
+  @override
+  String errForbiddenDetail(String reason) {
+    return 'Not allowed: $reason';
+  }
+
+  @override
+  String get errApiKeyOwnerDisabled =>
+      'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.';
 
   @override
   String errBadResponse(int code) {
@@ -2513,6 +2526,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsColorDistribution => 'Color distribution';
 
   @override
+  String get statsColorShareHint => 'Share of filament used, by weight';
+
+  @override
   String statsColorsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2710,6 +2726,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fmAddedToQueue => 'Added to queue';
+
+  @override
+  String get fmGroupAsVariants => 'Group as alternatives';
+
+  @override
+  String get fmQueueAsVariants => 'Queue as one job';
+
+  @override
+  String get fmUngroupVariants => 'Ungroup alternatives';
+
+  @override
+  String fmVariantsGrouped(int count) {
+    return '$count files grouped as alternatives';
+  }
+
+  @override
+  String get fmVariantsUngrouped => 'Alternatives ungrouped';
+
+  @override
+  String fmVariantsMemberCount(int count) {
+    return '$count alternatives';
+  }
+
+  @override
+  String get fmVariantsGone => 'This group no longer exists';
 
   @override
   String get fmUpload => 'Upload file';
@@ -3208,13 +3249,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectSaved => 'Project saved';
 
   @override
-  String get projectActionForbidden =>
-      'Your API key lacks permission for this action';
-
-  @override
-  String get projectActionFailed => 'Action failed';
-
-  @override
   String get projectName => 'Name';
 
   @override
@@ -3596,6 +3630,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sliceAutoOrient => 'Auto orient';
+
+  @override
+  String get sliceAutoOrientHint =>
+      'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.';
+
+  @override
+  String get sliceAutoArrange => 'Auto arrange';
+
+  @override
+  String get sliceAutoArrangeHint =>
+      'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
+
+  @override
   String get sliceSelect => 'Tap to select';
 
   @override
@@ -3969,6 +4017,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueEditChamberTarget =>
       'Chamber target override (°C, blank = filament default)';
+
+  @override
+  String queueEditChamberTargetRange(int max) {
+    return '0–$max °C';
+  }
 
   @override
   String get queueEditWhenToPrint => 'When to print';

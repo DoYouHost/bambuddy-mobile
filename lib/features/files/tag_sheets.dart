@@ -7,6 +7,7 @@ import '../../core/models/library_file.dart';
 import '../../core/models/library_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/prompt_name_dialog.dart';
@@ -99,15 +100,11 @@ Future<void> showTagManageSheet(BuildContext context) =>
       builder: (_) => const _TagManageSheet(),
     );
 
-/// 409 is the catalog's duplicate-name answer and the only failure with a
-/// message worth writing; everything else falls back to the shared wording.
-String _tagErr(AppApiException e, AppLocalizations l10n) {
-  if (e.statusCode == 409) return l10n.fmTagExists;
-  if (e is AuthException && e.code == AppErrorCode.forbidden) {
-    return l10n.ctrlForbidden;
-  }
-  return l10n.ctrlFailed;
-}
+/// 409 is the catalog's duplicate-name answer, and the one status this screen
+/// words better than the shared translator — which everything else falls
+/// through to, so a refusal still names the permission it was refused for.
+String _tagErr(AppApiException e, AppLocalizations l10n) =>
+    e.statusCode == 409 ? l10n.fmTagExists : e.localized(l10n);
 
 /// Shared behaviour of the four sheets: snacks, and creating a tag from a prompt.
 mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {

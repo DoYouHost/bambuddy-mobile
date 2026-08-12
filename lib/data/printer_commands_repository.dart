@@ -55,8 +55,14 @@ class PrinterCommandsRepository {
 
   /// Chamber target temperature (°C, 0 turns heating off). Only call for models
   /// with an active chamber heater — the server 400s otherwise.
+  ///
+  /// The ceiling is the server's, not a constant: 60 up to 1.2.5.x and 65 from
+  /// 1.2.6 (`MAX_CHAMBER_TEMP_C`). The assert takes the higher one because it
+  /// guards against a caller bug, not against an old server — the UI never
+  /// offers more than [chamberMaxTargetProvider] allows, and a server that
+  /// disagrees answers 422, which is a server answer and not an assertion.
   Future<void> setChamberTemperature(int printerId, int target) {
-    assert(target >= 0 && target <= 60, 'chamber target out of range: $target');
+    assert(target >= 0 && target <= 65, 'chamber target out of range: $target');
     return _post(Endpoints.chamberTemperature(printerId),
         query: {'target': target});
   }

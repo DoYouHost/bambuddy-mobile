@@ -117,6 +117,64 @@ void main() {
     });
   });
 
+  /// The relay carries the server's own explanation so the watch can show the
+  /// same sentence the phone would. Optional on purpose: the envelope is
+  /// documented as additive, and a watch paired with an older phone must keep
+  /// working on the code alone.
+  group('the failure reason', () {
+    test('round-trips when the phone sent one', () {
+      final res = WearRpcResponse.failure(
+        'abc',
+        'forbidden',
+        reason: "API key does not have 'can_control_printer' permission",
+      );
+
+      final back = WearRpcResponse.decode(res.encode())!;
+
+      expect(back.ok, isFalse);
+      expect(back.error, 'forbidden');
+      expect(back.reason, contains('can_control_printer'));
+    });
+
+    test('an older phone omits the field and decoding still succeeds', () {
+      // Exactly what a pre-field phone puts on the wire.
+      final legacy = {
+        'v': wearRpcVersion,
+        'kind': 'res',
+        'id': 'abc',
+        'ok': false,
+        'error': 'forbidden',
+      };
+
+      final back = WearRpcResponse.decode(legacy)!;
+
+      expect(back.error, 'forbidden');
+      expect(back.reason, isNull);
+    });
+
+    test('an empty reason reads as none rather than as an empty sentence', () {
+      final back = WearRpcResponse.decode({
+        'v': wearRpcVersion,
+        'kind': 'res',
+        'id': 'abc',
+        'ok': false,
+        'error': 'forbidden',
+        'reason': '',
+      })!;
+
+      expect(back.reason, isNull);
+    });
+
+    test('a success carries none', () {
+      final back = WearRpcResponse.decode(
+        const WearRpcResponse.ok('abc', {'x': 1}).encode(),
+      )!;
+
+      expect(back.reason, isNull);
+      expect(back.ok, isTrue);
+    });
+  });
+
   group('deepSanitize', () {
     test('strips nulls recursively and re-keys maps', () {
       final out = deepSanitize({

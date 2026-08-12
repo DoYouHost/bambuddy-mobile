@@ -131,12 +131,20 @@ void main() {
     WidgetTester tester,
     Future<bool> Function() until,
   ) async {
+    var settled = false;
     await tester.runAsync(() async {
       final deadline = DateTime.now().add(const Duration(seconds: 10));
-      while (!await until() && DateTime.now().isBefore(deadline)) {
+      while (!(settled = await until()) && DateTime.now().isBefore(deadline)) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
       }
     });
+    // Fail here rather than letting the test walk on believing the condition
+    // held. The deadline is wall-clock, so it can be missed on a loaded machine
+    // (`flutter test` runs files across isolates) — and when it was, the give-up
+    // was silent: the run died several lines later on whatever the un-awaited
+    // state broke, naming an assertion that was never the problem.
+    expect(settled, isTrue,
+        reason: 'condition never became true within the settle deadline');
     await tester.pumpAndSettle();
   }
 

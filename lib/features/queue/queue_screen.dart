@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
@@ -420,6 +421,14 @@ class _Subtitle extends StatelessWidget {
     final t = DashTokens.of(context);
     final parts = <String>[
       if (item.printerName != null) item.printerName!,
+      // A cross-model item (server #671) has no printer yet and never will
+      // until dispatch picks one, so without this the row would say nothing
+      // about where it can run. Naming the candidates beats a bare "Any model":
+      // the whole point is that the user chose this specific set.
+      if (item.isCrossModel)
+        l10n.queueAnyOfModels(
+          [for (final v in item.variants) v.targetModel].join(', '),
+        ),
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
       // Says the print will land in the exact trays the slicer picked, rather
       // than trays the scheduler works out from the file's type and colour.
@@ -545,17 +554,12 @@ class _QueueActions extends ConsumerWidget {
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
             messenger.showSnackBar(SnackBar(
-                content: Text(r == QueueActionResult.ok
-                    ? l10n.mappingSaved
-                    : l10n.ctrlFailed)));
+                content: Text(r.messageFor(l10n) ?? l10n.mappingSaved)));
             return;
           }
 
-          final result = switch (value) {
-            'cancel' => await notifier.cancel(item.id),
-            _ => QueueActionResult.error,
-          };
-          _snackForResult(messenger, l10n, result);
+          if (value != 'cancel') return;
+          _snackForResult(messenger, l10n, await notifier.cancel(item.id));
         },
         itemBuilder: (_) => [
           if (canStart)
@@ -678,10 +682,7 @@ Future<void> _startQueueItem(
     try {
       await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text(e is AuthException && e.code == AppErrorCode.forbidden
-              ? l10n.ctrlForbidden
-              : l10n.ctrlFailed)));
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
       return;
     }
   }
@@ -689,11 +690,8 @@ Future<void> _startQueueItem(
   final result = await ref
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
-  if (result == QueueActionResult.ok) {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.queuePrintStarted)));
-  } else {
-    _snackForResult(messenger, l10n, result);
-  }
+  messenger.showSnackBar(SnackBar(
+      content: Text(result.messageFor(l10n) ?? l10n.queuePrintStarted)));
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -729,8 +727,8 @@ Future<Printer?> _pickQueuePrinter(
   final List<PrinterCandidate> candidates;
   try {
     candidates = await ref.read(availablePrintersProvider.future);
-  } on AppApiException {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.ctrlFailed)));
+  } on AppApiException catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     return null;
   }
   if (!context.mounted) return null;
@@ -762,18 +760,13 @@ Future<Printer?> _pickQueuePrinter(
 }
 
 
-/// Common SnackBar for queue action results (forbidden/error → message;
-/// ok → silent because change is visible in UI).
+/// Says nothing on success: the change is already visible in the list.
 void _snackForResult(
   ScaffoldMessengerState messenger,
   AppLocalizations l10n,
-  QueueActionResult result,
+  ActionOutcome result,
 ) {
-  final text = switch (result) {
-    QueueActionResult.ok => null,
-    QueueActionResult.forbidden => l10n.ctrlForbidden,
-    QueueActionResult.error => l10n.ctrlFailed,
-  };
+  final text = result.messageFor(l10n);
   if (text == null) return;
   messenger.showSnackBar(SnackBar(content: Text(text)));
 }

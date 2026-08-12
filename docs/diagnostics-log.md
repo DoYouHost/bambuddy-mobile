@@ -72,6 +72,25 @@ the server's own `status_key`, the tuple it deduplicates broadcasts on, so a
 `repeated` record means "identical in everything the server compares" rather than
 "changed something we chose not to look at".
 
+## What stopped somebody: `app action_failed`
+
+Every error response is already in the log as an `http` record, with its status
+and a preview of the body. What that cannot say is whether anyone was *stopped*
+by it: a screen that quietly hides a section on a 403 and one that refuses the
+tap the user just made look identical there.
+
+So the shared `ActionOutcome.failed` — the single funnel every feature's actions
+now pass through — writes one record for a failure the user is about to be told
+about: the `action` they touched (in the `logTag` vocabulary), the `code`, the
+`status`, and the server's own `reason`. That `reason` is the field worth having.
+A 403 is the one refusal a code cannot explain, and the sentence naming the
+missing permission (`API key owner does not have 'printers:control' permission`)
+exists nowhere else in structured form — only inside the `http` record's body
+blob, if it was not clipped.
+
+Reading a report, the `http` record above it says which call it was; this one
+says it reached the user and how it was worded to them.
+
 ## Repeats
 
 Three lanes collapse consecutive identical events into a count, for the same

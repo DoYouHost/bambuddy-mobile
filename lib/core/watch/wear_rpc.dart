@@ -34,6 +34,7 @@ const _kPrinterId = 'printerId';
 const _kOk = 'ok';
 const _kData = 'data';
 const _kError = 'error';
+const _kReason = 'reason';
 
 const _kindRequest = 'req';
 const _kindResponse = 'res';
@@ -113,9 +114,10 @@ class WearRpcRequest {
 class WearRpcResponse {
   const WearRpcResponse.ok(this.id, [this.data])
       : ok = true,
-        error = null;
+        error = null,
+        reason = null;
 
-  const WearRpcResponse.failure(this.id, this.error)
+  const WearRpcResponse.failure(this.id, this.error, {this.reason})
       : ok = false,
         data = null;
 
@@ -129,6 +131,12 @@ class WearRpcResponse {
   /// Short machine-readable reason (e.g. `phone-unconfigured`, `empty-queue`).
   final String? error;
 
+  /// What the *server* said, when the failure came from it — the sentence that
+  /// names the missing permission on a 403. Optional by design: an older phone
+  /// relays without it and the watch falls back to wording derived from
+  /// [error], exactly as it did before this field existed.
+  final String? reason;
+
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
         _kKind: _kindResponse,
@@ -136,6 +144,7 @@ class WearRpcResponse {
         _kOk: ok,
         if (data != null) _kData: deepSanitize(data),
         if (error != null) _kError: error,
+        if (reason != null) _kReason: reason,
       };
 
   /// Returns null for foreign/malformed maps and for requests.
@@ -151,6 +160,11 @@ class WearRpcResponse {
       );
     }
     final error = map[_kError];
-    return WearRpcResponse.failure(id, error is String ? error : 'unknown');
+    final reason = map[_kReason];
+    return WearRpcResponse.failure(
+      id,
+      error is String ? error : 'unknown',
+      reason: reason is String && reason.isNotEmpty ? reason : null,
+    );
   }
 }

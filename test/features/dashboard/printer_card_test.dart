@@ -6,8 +6,7 @@ import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
-import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart'
-    show ControlResult;
+import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
@@ -46,9 +45,9 @@ class _StubSmartPlugsNotifier extends SmartPlugsNotifier {
   SmartPlugsState build() => _fixed;
 
   @override
-  Future<ControlResult> control(int plugId, SmartPlugAction action) async {
+  Future<ActionOutcome> control(int plugId, SmartPlugAction action) async {
     calls.add((id: plugId, action: action));
-    return ControlResult.ok;
+    return ActionOutcome.ok;
   }
 }
 
@@ -79,6 +78,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(() => stub),
       ],
       child: plApp(
@@ -95,6 +95,7 @@ Widget _scope(Widget child) => ProviderScope(
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(child),
@@ -112,6 +113,7 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(
@@ -656,6 +658,8 @@ void main() {
           smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
           inertFirmwareOverride, // zwraca null
           inertTotalPrintHoursOverride,
+          inertChamberMaxOverride,
+        inertChamberMaxOverride,
         ],
         child: plApp(
           const Scaffold(

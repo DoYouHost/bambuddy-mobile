@@ -111,7 +111,7 @@ void main() {
     fake.gate!.complete();
     final result = await future;
 
-    expect(result, ControlResult.ok);
+    expect(result.isOk, isTrue);
     final after = c.read(controlsProvider).pendingFor(1);
     expect(after.isBusy(ControlAction.light), false, reason: 'zdjęte „w locie"');
     expect(after.light, true, reason: 'nadpisanie zostaje (sticky) do czasu');
@@ -124,20 +124,21 @@ void main() {
 
     final result = await c.read(controlsProvider.notifier).setSpeed(1, 3);
 
-    expect(result, ControlResult.error);
+    expect(result.isOk, isFalse);
+    expect(result.isForbidden, isFalse);
     final st = c.read(controlsProvider);
     expect(st.pendingFor(1).speedLevel, isNull, reason: 'rollback nadpisania');
     expect(st.pendingFor(1).isBusy(ControlAction.speed), false);
     expect(st.forbidden, false);
   });
 
-  test('403 → ControlResult.forbidden i lepka blokada sterowania', () async {
+  test('403 → odmowa i lepka blokada sterowania', () async {
     final fake = _FakeCommands()..error = const AuthException(AppErrorCode.forbidden);
     final c = _container(fake);
 
     final result = await c.read(controlsProvider.notifier).pause(1);
 
-    expect(result, ControlResult.forbidden);
+    expect(result.isForbidden, isTrue);
     expect(c.read(controlsProvider).forbidden, true);
     // Lifecycle nie ma nadpisania, ale „w locie" musi być zdjęte.
     expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),

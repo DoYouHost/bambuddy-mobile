@@ -7,10 +7,10 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printable_object.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
 import '../common/confirm_dialog.dart';
-import 'controls_providers.dart' show ControlResult;
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
 
@@ -156,14 +156,11 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     if (!mounted) return;
     setState(() {
       _inFlight.remove(obj.id);
-      if (result == ControlResult.forbidden) _forbidden = true;
+      if (result.isForbidden) _forbidden = true;
     });
 
-    final msg = switch (result) {
-      ControlResult.ok => l10n.skipObjectsSkippedToast(obj.name),
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg =
+        result.messageFor(l10n) ?? l10n.skipObjectsSkippedToast(obj.name);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg)));

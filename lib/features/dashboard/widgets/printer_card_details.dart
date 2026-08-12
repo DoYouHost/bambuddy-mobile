@@ -26,15 +26,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           .clearPlate(widget.printerId);
       messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            e is AuthException && e.code == AppErrorCode.forbidden
-                ? l10n.ctrlForbidden
-                : l10n.ctrlFailed,
-          ),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -841,7 +833,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     });
   }
 
-  Future<void> _run(Future<ControlResult> Function() action) async {
+  Future<void> _run(Future<ActionOutcome> Function() action) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
@@ -849,11 +841,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final result = await action();
     if (!mounted) return;
     navigator.pop();
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()

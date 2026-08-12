@@ -2,6 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 import 'calibration_option.dart';
 import 'json_utils.dart';
+import 'variant_group.dart';
 
 part 'queue_item.g.dart';
 
@@ -41,6 +42,7 @@ class QueueItem {
     this.filamentColor,
     this.amsMapping,
     this.beenJumped = false,
+    this.variants = const [],
     this.archiveHasSlicerAmsMapping = false,
     this.errorMessage,
     this.waitingReason,
@@ -242,7 +244,9 @@ class QueueItem {
   @JsonKey(defaultValue: 'inherit')
   final String preheatOverride;
 
-  /// Chamber target override in °C (0–60). Null = derive from filament defaults.
+  /// Chamber target override in °C. Null = derive from filament defaults. The
+  /// accepted ceiling is the server's, not a constant — see
+  /// [ServerVersion.chamberMaxTargetC].
   final int? preheatChamberTargetOverride;
 
   /// Auto-print G-code injection.
@@ -255,6 +259,20 @@ class QueueItem {
   /// Model the file was sliced for, e.g. "X2D". Drives the `Any <model>` label
   /// and dual-nozzle option visibility.
   final String? slicedForModel;
+
+  /// Cross-model alternatives in priority order (server #671) — several sliced
+  /// files, one job, whichever printer frees up first. Empty for every ordinary
+  /// item and on every server before 1.2.6.
+  ///
+  /// Present only until dispatch resolves one onto the row, after which
+  /// [libraryFileId] and [targetModel] name the candidate that actually ran. So
+  /// a non-empty list also means "not started yet".
+  @JsonKey(fromJson: _variantsFromJson)
+  final List<PrintVariant> variants;
+
+  /// Whether this item is still choosing between printers rather than waiting
+  /// for one. Drives the `Any of N` label instead of `Any <model>`.
+  bool get isCrossModel => variants.isNotEmpty;
 
   /// Tile title: archive name, else library file name, else `#id`.
   String get displayName => archiveName ?? libraryFileName ?? '#$id';
@@ -292,3 +310,6 @@ class QueueItem {
       statusKind == QueueItemStatusKind.pending ||
       statusKind == QueueItemStatusKind.scheduled;
 }
+
+List<PrintVariant> _variantsFromJson(dynamic value) =>
+    parseJsonList(value, PrintVariant.fromJson);

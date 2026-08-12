@@ -415,10 +415,9 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
 /// An empty `permissions` list is *not* unknown: it is a user whose groups
 /// grant nothing, and this answers `false` for them.
 ///
-/// **Not the gate for anything administrative.** An API-key session reports
-/// itself as an admin holding every permission, and yet the server refuses it
-/// every users/groups/api-keys route — use [identifiedPermissionProvider]
-/// there, which knows that.
+/// **Not the gate for anything administrative.** The server refuses an
+/// API-key session every users/groups/api-keys route no matter what `/auth/me`
+/// said about it — use [identifiedPermissionProvider] there, which knows that.
 ///
 /// A screen that would rather not flash a drawer entry and take it away again
 /// should watch [currentUserProvider] and handle `loading` itself, instead of
@@ -448,10 +447,12 @@ final isAdminProvider = Provider<bool>(
 ///
 /// An API-key session is refused outright, [CurrentUser.isAdmin] or not: the
 /// server denies a key **every** administrative permission
-/// (`_check_apikey_permissions`, `backend/app/core/auth.py:291` — anything
-/// outside the scope allowlist is a 403, and users/groups/api-keys are all
-/// outside it, `auth.py:207`). The synthetic admin `/auth/me` describes a key
-/// with (`backend/app/api/routes/auth.py:91`) says nothing about that gate.
+/// (`_check_apikey_permissions`, `backend/app/core/auth.py` — anything outside
+/// the scope allowlist is a 403, and users/groups/api-keys are all outside
+/// it). What `/auth/me` says about a key never described that gate: up to
+/// 1.2.5.x it claimed admin with every permission, and from 1.2.6 it reports
+/// the key's real, non-administrative set. Both are answered here the same
+/// way, on the auth mode rather than on the payload.
 final identifiedPermissionProvider = Provider.family<bool, String>((ref, p) {
   if (ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey) {
     return false;
@@ -527,6 +528,42 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(queueRepositoryProvider).supportsTriStateCalibration(),
 );
 
+/// Highest chamber target the connected server accepts, in °C — 65 from 1.2.6,
+/// 60 before it and whenever the version is not known yet.
+///
+/// Not `autoDispose`: the dashboard reads this on every gauge rebuild, and the
+/// underlying version is cached in the service anyway. Rebuilt when
+/// [serverVersionServiceProvider] is, so switching servers cannot carry the old
+/// ceiling over.
+///
+/// The one gate here with nothing to observe — see
+/// [ServerVersion.chamberMaxTargetC].
+final chamberMaxTargetProvider = FutureProvider<int>(
+  (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
+);
+
+/// Whether library files can be grouped as cross-model alternatives and queued
+/// as one job (server #671). Asks the library repository, which prefers what a
+/// file listing actually contained over the version number.
+///
+/// `autoDispose` so each time a library screen opens it asks again — a listing
+/// fetched in between is exactly what turns "unknown" into a real answer.
+final crossModelVariantsProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(libraryRepositoryProvider).supportsCrossModelVariants(),
+);
+
+/// Whether the slice sheet may offer `auto_orient` / `auto_arrange`.
+final sliceLayoutOptionsProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(slicerRepositoryProvider).supportsLayoutOptions(),
+);
+
+/// Whether the slice sheet may offer the process-override panel. Asks the
+/// slicer repository, which prefers what `/slicer/preset-values` answered over
+/// the version number.
+final processOverridesProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
+);
+
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
@@ -559,7 +596,10 @@ final firmwareRepositoryProvider = Provider<FirmwareRepository>(
 
 /// File manager / library. Shares authenticated Dio.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
-  (ref) => LibraryRepository(ref.watch(apiClientProvider).dio),
+  (ref) => LibraryRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Printer on-device storage (file manager). Shares authenticated Dio.
@@ -569,7 +609,10 @@ final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
 
 /// Server-side slicing (sidecar). Shares authenticated Dio.
 final slicerRepositoryProvider = Provider<SlicerRepository>(
-  (ref) => SlicerRepository(ref.watch(apiClientProvider).dio),
+  (ref) => SlicerRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags

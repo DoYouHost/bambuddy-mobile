@@ -23,4 +23,6 @@ LibraryFile _$LibraryFileFromJson(Map<String, dynamic> json) => LibraryFile(
   filamentUsedGrams: (json['filament_used_grams'] as num?)?.toDouble(),
   slicedForModel: json['sliced_for_model'] as String?,
   tags: json['tags'] == null ? const [] : _tagsFromJson(json['tags']),
+  variantGroupId: (json['variant_group_id'] as num?)?.toInt(),
+  variantCount: (json['variant_count'] as num?)?.toInt() ?? 0,
 );

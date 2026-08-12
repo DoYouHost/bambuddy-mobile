@@ -5,6 +5,7 @@ import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 
 /// Inertny firmware dla testów widgetów: karta drukarki czyta firmware przy
@@ -18,6 +19,14 @@ final inertFirmwareOverride =
 /// (analogicznie do [inertFirmwareOverride]).
 final inertTotalPrintHoursOverride =
     printerTotalPrintHoursProvider.overrideWith((ref, id) => null);
+
+/// Inert chamber ceiling for widget tests. The temperature tiles read the
+/// server's `MAX_CHAMBER_TEMP_C` at render time, which otherwise hits
+/// `/updates/version` and leaves a hanging Dio timer — the same trap as
+/// [inertFirmwareOverride]. 60 is what an unknown version resolves to anyway,
+/// so gauges and sliders behave exactly as they do before the probe lands.
+final inertChamberMaxOverride =
+    chamberMaxTargetProvider.overrideWith((ref) async => 60);
 
 /// Owija widżet w MaterialApp z polską lokalizacją — testy asertują
 /// polskie stringi, więc wymuszamy locale `pl`.

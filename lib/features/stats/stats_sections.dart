@@ -767,9 +767,32 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final entries = widget.data.byMaterial.entries.toList()
       ..sort((a, b) => _metric.of(b.value).compareTo(_metric.of(a.value)));
     final total = entries.fold<num>(0, (s, e) => s + _metric.of(e.value));
+
+    // Two ways a slice stops being worth its own colour, both pooled into one
+    // neutral arc at the end of the ring:
+    //
+    //  - under [pooledShare] it renders as a two-pixel splinter, which reads as
+    //    a rendering glitch rather than as data;
+    //  - past the palette it would *reuse* a colour already on the ring, so two
+    //    legend rows would carry the same dot and neither would identify its
+    //    own arc (the old `i % _palette.length`).
+    //
+    // The legend keeps every row and every number — nothing is hidden, the tail
+    // just stops pretending to be individually findable on a 120px ring.
+    const pooledShare = 0.02;
+    bool pooled(int i) =>
+        i >= _palette.length ||
+        (total > 0 && _metric.of(entries[i].value) / total < pooledShare);
+    Color colorFor(int i) => pooled(i) ? t.textTertiary : _palette[i];
+
+    final pooledTotal = [
+      for (var i = 0; i < entries.length; i++)
+        if (pooled(i)) _metric.of(entries[i].value),
+    ].fold<num>(0, (s, v) => s + v);
 
     return SectionCard(
       title: l10n.statsByMaterialTitle,
@@ -788,9 +811,17 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                 centerSpaceRadius: 32,
                 sections: [
                   for (var i = 0; i < entries.length; i++)
+                    if (!pooled(i))
+                      PieChartSectionData(
+                        value: _metric.of(entries[i].value).toDouble(),
+                        color: colorFor(i),
+                        radius: 22,
+                        showTitle: false,
+                      ),
+                  if (pooledTotal > 0)
                     PieChartSectionData(
-                      value: _metric.of(entries[i].value).toDouble(),
-                      color: _palette[i % _palette.length],
+                      value: pooledTotal.toDouble(),
+                      color: t.textTertiary,
                       radius: 22,
                       showTitle: false,
                     ),
@@ -810,7 +841,7 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                       children: [
                         Expanded(
                           child: LegendDot(
-                            color: _palette[i % _palette.length],
+                            color: colorFor(i),
                             text: entries[i].key,
                           ),
                         ),
@@ -820,7 +851,7 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                             fontFamily: DashTokens.fontMono,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: DashTokens.of(context).textTertiary,
+                            color: t.textTertiary,
                           ),
                         ),
                       ],
@@ -894,55 +925,101 @@ class ColorDistributionCard extends StatelessWidget {
     final top = entries.take(8).toList();
     final moreCount = entries.length - top.length;
 
+    // Colours under this share are drawn as one neutral slice instead of
+    // individually. At 16 colours the tail lands at one or two pixels a piece,
+    // which reads as noise on the ring and as banding between neighbours —
+    // and the legend never named them anyway (it stops at eight, with the
+    // "+N more" line below). Grouping keeps every proportion honest while
+    // leaving the ring legible.
+    const sliverShare = 0.02;
+    final sliverTotal = entries
+        .where((e) => e.value / total < sliverShare)
+        .fold<double>(0, (s, e) => s + e.value);
+    final drawn = entries.where((e) => e.value / total >= sliverShare);
+
     return SectionCard(
       title: l10n.statsColorDistribution,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // The percentages are shares of filament *mass*, which nothing on the
+          // card said — leaving the reader to guess between mass, print count
+          // and time, all three of which this screen also reports.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              l10n.statsColorShareHint,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 11.5,
+                color: t.textTertiary,
+              ),
+            ),
+          ),
           Row(
             children: [
               SizedBox(
-                width: 120,
-                height: 120,
+                width: 132,
+                height: 132,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     PieChart(
                       PieChartData(
                         sectionsSpace: 1,
-                        centerSpaceRadius: 34,
+                        // Wide enough that the readout below fits inside the
+                        // hole; the ring keeps its 20px thickness (44+20 = 64,
+                        // inside the 66 half-extent).
+                        centerSpaceRadius: 44,
                         sections: [
-                          for (final e in entries)
+                          for (final e in drawn)
                             PieChartSectionData(
                               value: e.value,
                               color: colorFromHex(e.key) ?? t.textTertiary,
                               radius: 20,
                               showTitle: false,
                             ),
+                          if (sliverTotal > 0)
+                            PieChartSectionData(
+                              value: sliverTotal,
+                              color: t.textTertiary,
+                              radius: 20,
+                              showTitle: false,
+                            ),
                         ],
                       ),
                     ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          fmtGrams(total),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
+                    // Bounded to the square that fits inside the hole
+                    // (side = r·√2 ≈ 62 for r = 44) and scaled down rather than
+                    // overflowing, so a long total like "10.24 kg" can never
+                    // paint over the ring the way it used to.
+                    SizedBox(
+                      width: 60,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              fmtGrams(total),
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontMono,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: t.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              l10n.statsColorsCount(entries.length),
+                              style: TextStyle(
+                                fontFamily: DashTokens.fontUi,
+                                fontSize: 11,
+                                color: t.textTertiary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          l10n.statsColorsCount(entries.length),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 11,
-                            color: t.textTertiary,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

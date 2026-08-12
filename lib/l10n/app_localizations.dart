@@ -893,7 +893,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlForbidden.
   ///
   /// In en, this message translates to:
-  /// **'This API key can\'t control the printer'**
+  /// **'No permission to control this printer'**
   String get ctrlForbidden;
 
   /// No description provided for @ctrlFailed.
@@ -1099,6 +1099,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
+
+  /// No description provided for @queueAnyOfModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Any of: {models}'**
+  String queueAnyOfModels(String models);
 
   /// No description provided for @queueDeleteTitle.
   ///
@@ -2129,8 +2135,20 @@ abstract class AppLocalizations {
   /// No description provided for @errForbidden.
   ///
   /// In en, this message translates to:
-  /// **'Not allowed — your API key lacks permission for this'**
+  /// **'Not allowed — the server refused this action'**
   String get errForbidden;
+
+  /// No description provided for @errForbiddenDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed: {reason}'**
+  String errForbiddenDetail(String reason);
+
+  /// No description provided for @errApiKeyOwnerDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.'**
+  String get errApiKeyOwnerDisabled;
 
   /// No description provided for @errBadResponse.
   ///
@@ -4400,6 +4418,12 @@ abstract class AppLocalizations {
   /// **'Color distribution'**
   String get statsColorDistribution;
 
+  /// No description provided for @statsColorShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share of filament used, by weight'**
+  String get statsColorShareHint;
+
   /// No description provided for @statsColorsCount.
   ///
   /// In en, this message translates to:
@@ -4729,6 +4753,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added to queue'**
   String get fmAddedToQueue;
+
+  /// No description provided for @fmGroupAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Group as alternatives'**
+  String get fmGroupAsVariants;
+
+  /// No description provided for @fmQueueAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue as one job'**
+  String get fmQueueAsVariants;
+
+  /// No description provided for @fmUngroupVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup alternatives'**
+  String get fmUngroupVariants;
+
+  /// No description provided for @fmVariantsGrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files grouped as alternatives'**
+  String fmVariantsGrouped(int count);
+
+  /// No description provided for @fmVariantsUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternatives ungrouped'**
+  String get fmVariantsUngrouped;
+
+  /// No description provided for @fmVariantsMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} alternatives'**
+  String fmVariantsMemberCount(int count);
+
+  /// No description provided for @fmVariantsGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This group no longer exists'**
+  String get fmVariantsGone;
 
   /// No description provided for @fmUpload.
   ///
@@ -5534,18 +5600,6 @@ abstract class AppLocalizations {
   /// **'Project saved'**
   String get projectSaved;
 
-  /// No description provided for @projectActionForbidden.
-  ///
-  /// In en, this message translates to:
-  /// **'Your API key lacks permission for this action'**
-  String get projectActionForbidden;
-
-  /// No description provided for @projectActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get projectActionFailed;
-
   /// No description provided for @projectName.
   ///
   /// In en, this message translates to:
@@ -6266,6 +6320,30 @@ abstract class AppLocalizations {
   /// **'Filament {n}'**
   String sliceFilamentNumbered(String n);
 
+  /// No description provided for @sliceAutoOrient.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto orient'**
+  String get sliceAutoOrient;
+
+  /// No description provided for @sliceAutoOrientHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.'**
+  String get sliceAutoOrientHint;
+
+  /// No description provided for @sliceAutoArrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto arrange'**
+  String get sliceAutoArrange;
+
+  /// No description provided for @sliceAutoArrangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
+  String get sliceAutoArrangeHint;
+
   /// No description provided for @sliceSelect.
   ///
   /// In en, this message translates to:
@@ -6925,6 +7003,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chamber target override (°C, blank = filament default)'**
   String get queueEditChamberTarget;
+
+  /// No description provided for @queueEditChamberTargetRange.
+  ///
+  /// In en, this message translates to:
+  /// **'0–{max} °C'**
+  String queueEditChamberTargetRange(int max);
 
   /// No description provided for @queueEditWhenToPrint.
   ///

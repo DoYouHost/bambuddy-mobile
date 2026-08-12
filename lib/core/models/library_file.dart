@@ -28,6 +28,8 @@ class LibraryFile {
     this.filamentUsedGrams,
     this.slicedForModel,
     this.tags = const [],
+    this.variantGroupId,
+    this.variantCount = 0,
   });
 
   factory LibraryFile.fromJson(Map<String, dynamic> json) =>
@@ -84,6 +86,25 @@ class LibraryFile {
   /// decides there is nothing to render.
   @JsonKey(fromJson: _tagsFromJson)
   final List<LibraryTag> tags;
+
+  /// Variant group this file belongs to (server #671), or null when it stands
+  /// alone. Members are the same job sliced for different printer models.
+  final int? variantGroupId;
+
+  /// Size of the whole group, not of the current listing — members can live in
+  /// different folders, so counting the rows on screen would under-report.
+  /// Absent (→ 0) on servers predating variant groups, which is also how
+  /// [LibraryRepository] tells the two generations apart.
+  @JsonKey(defaultValue: 0)
+  final int variantCount;
+
+  /// Whether this file is one of several alternatives for the same job.
+  ///
+  /// Compared against 1 rather than 0 only as belt-and-braces: the server never
+  /// leaves a one-member group standing — it dissolves the group when the
+  /// second-to-last member is removed — so in practice this matches
+  /// [variantGroupId] being set.
+  bool get hasVariants => variantCount > 1;
 
   /// Display name: print name if available, otherwise filename.
   String get displayName => printName ?? filename;
