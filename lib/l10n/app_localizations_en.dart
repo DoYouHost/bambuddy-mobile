@@ -434,7 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This cancels the current print. It cannot be resumed.';
 
   @override
-  String get ctrlForbidden => 'This API key can\'t control the printer';
+  String get ctrlForbidden => 'No permission to control this printer';
 
   @override
   String get ctrlFailed => 'Couldn\'t send the command';
@@ -1163,8 +1163,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errUnauthorized => 'Not authorized';
 
   @override
-  String get errForbidden =>
-      'Not allowed — your API key lacks permission for this';
+  String get errForbidden => 'Not allowed — the server refused this action';
+
+  @override
+  String errForbiddenDetail(String reason) {
+    return 'Not allowed: $reason';
+  }
+
+  @override
+  String get errApiKeyOwnerDisabled =>
+      'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.';
 
   @override
   String errBadResponse(int code) {
@@ -3236,13 +3244,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectSaved => 'Project saved';
-
-  @override
-  String get projectActionForbidden =>
-      'Your API key lacks permission for this action';
-
-  @override
-  String get projectActionFailed => 'Action failed';
 
   @override
   String get projectName => 'Name';

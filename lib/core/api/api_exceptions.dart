@@ -53,8 +53,30 @@ sealed class AppApiException implements Exception {
   /// Set for [AppErrorCode.badResponse], null for the rest.
   final int? statusCode;
 
-  /// Raw and user-invisible, e.g. `DioException.message`.
+  /// What the server wrote, when it wrote anything: the `detail` of a FastAPI
+  /// error, or `DioException.message` for a failure that never reached one.
+  ///
+  /// Shown to the user only where a code alone cannot say why — a 403 names
+  /// the missing permission and nothing else can. It is the server's own
+  /// English either way, so display it framed rather than bare.
   final String? detail;
+
+  /// Whether this is the 403 that means the API key's owner account is gone,
+  /// rather than a permission the key or the account is missing.
+  ///
+  /// Worth telling apart because the remedy is the opposite: no scope or group
+  /// change fixes it, the account has to come back. It also arrives on *every*
+  /// route at once, including `/auth/me`, so the app looks broken rather than
+  /// restricted (`resolve_apikey_owner`, `backend/app/core/auth.py:331`,
+  /// server 1.2.6+).
+  ///
+  /// Matched on the server's wording, so a reworded message degrades to the
+  /// framed detail — still the truth, just less specific.
+  bool get isApiKeyOwnerDisabled {
+    final text = detail?.toLowerCase();
+    if (text == null || !text.contains('api key owner')) return false;
+    return text.contains('deactivated') || text.contains('no longer exists');
+  }
 
   @override
   String toString() =>
@@ -105,7 +127,10 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
 /// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
 /// enforcing rules the app deliberately does not re-implement — "Cannot delete
 /// the last admin user", "Cannot rename system groups" — the reason exists only
-/// in `detail`, which the plain mapper drops.
+/// in `detail`, which the plain mapper drops for those two statuses.
+///
+/// A 403 needs no help here: the base mapper keeps its detail for every caller,
+/// because a refusal is worth explaining wherever it happens.
 AppApiException mapDioExceptionKeepingDetail(DioException e) {
   final mapped = mapDioException(e);
   final status = e.response?.statusCode;
@@ -154,7 +179,15 @@ AppApiException mapDioException(DioException e) {
         return const AuthException(AppErrorCode.unauthorized);
       }
       if (code == 403) {
-        return const AuthException(AppErrorCode.forbidden);
+        // The only party that knows *which* permission is missing is the
+        // server, and it always says: "Missing required permissions: x" for a
+        // login, "API key does not have 'y' permission" for a key. Dropping
+        // that left every refusal looking identical, which from 1.2.6 also
+        // covers the owner-narrowing refusals that are new to existing keys.
+        return AuthException(
+          AppErrorCode.forbidden,
+          detail: _detailOf(e.response?.data),
+        );
       }
       if (code == 429) {
         return const ApiException(AppErrorCode.tooManyAttempts,

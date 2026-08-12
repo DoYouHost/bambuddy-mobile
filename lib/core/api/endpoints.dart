@@ -4,6 +4,10 @@
 /// diffed across that range and none of them moved
 /// (`docs/plans/08-server-v1.2.5-migration.md`). When updating the server,
 /// compare with `/openapi.json` before changing anything here.
+///
+/// [usersSlim] is the one exception: it arrives in 1.2.6 and every server
+/// before it refuses the path (`docs/plans/13-users-slim-and-api-key-identity.md`).
+/// Callers probe rather than check a version number — see [StatsRepository].
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
@@ -18,10 +22,22 @@ abstract final class Endpoints {
 
   /// The signed-in identity — `UserResponse` (role, `is_admin`, permissions,
   /// groups), the same object `POST /auth/login` embeds as `user`
-  /// (`backend/app/api/routes/auth.py:627`). Also answers an `X-API-Key`
-  /// session, with a synthetic admin holding every permission
-  /// (`auth.py:91`), which is what a key actually grants. Without credentials
-  /// it is a 401 — a server with auth switched off has no identity to give.
+  /// (`backend/app/api/routes/auth.py:627`). Without credentials it is a 401 —
+  /// a server with auth switched off has no identity to give.
+  ///
+  /// An `X-API-Key` session is answered differently by the two server
+  /// generations, and both are still supported here:
+  ///  - **≤ 1.2.5.x** — a synthetic admin: `id: 0`, `role: "admin"`,
+  ///    `is_admin: true`, every permission in the enum. None of it was true;
+  ///    a key is refused every administrative route whatever it claims.
+  ///  - **1.2.6+** — the key owner's real `id` and `username`, `is_admin`
+  ///    always `false`, and a `permissions` list pinned to exactly what the
+  ///    route gate admits (`backend/app/api/routes/auth.py:93`). `email` and
+  ///    `groups` are withheld on purpose. A key predating per-user ownership
+  ///    keeps `id: 0` and the `api-key:` username, but no longer claims admin.
+  ///
+  /// So `permissions` is the field to branch on, never `is_admin` or `role`
+  /// (`docs/plans/13-users-slim-and-api-key-identity.md`).
   static const authMe = '$apiPrefix/auth/me';
 
   /// Second step of a login that answered `requires_2fa`: exchanges the
@@ -761,12 +777,35 @@ abstract final class Endpoints {
 
   // --- Users ---
 
-  /// User list (`UserResponse[]`) — the Stats "filter by user" picker and the
-  /// administration user list. Gated server-side on `USERS_READ` only
-  /// (`backend/app/api/routes/users.py:67`), so a custom group without the
-  /// admin role reaches it; the Stats picker treats a 403 as "can't filter by
-  /// user", not an error. Trailing slash required (FastAPI), like `/printers/`.
+  /// User list (`UserResponse[]`) — the administration user list, and the
+  /// fallback behind [usersSlim] for the Stats "filter by user" picker. Gated
+  /// server-side on `USERS_READ` only (`backend/app/api/routes/users.py:67`),
+  /// so a custom group without the admin role reaches it, but an API key never
+  /// does: `users:read` is unmapped in the key scope allowlist, which makes it
+  /// administrative. Ordered by `created_at`. Trailing slash required
+  /// (FastAPI), like `/printers/`.
   static const users = '$apiPrefix/users/';
+
+  /// Id → name only (`[{id, username}]` — `UserSlim`,
+  /// `backend/app/schemas/auth.py:96`), so the `created_by_id` values that come
+  /// back from archives, the queue and statistics can be shown as names.
+  /// Ordered by `username`. **1.2.6+ only.**
+  ///
+  /// Reachable where [users] is not: gated on `users:read_slim` *or*
+  /// `users:read` (any-of), and the slim permission is mapped to the API-key
+  /// `can_read_status` scope (`backend/app/core/auth.py:111`) — so a key reads
+  /// this and not the full listing, which is the whole point of server issue
+  /// #1894.
+  ///
+  /// **An older server cannot answer this successfully**, so support is probed
+  /// rather than derived from a version number (that numbering is a trap —
+  /// `docs/plans/08-server-v1.2.5-migration.md`). `/{user_id}` is declared
+  /// `int` there, so the path yields **422** for a caller that would otherwise
+  /// pass, and **403** for one refused before the path is even parsed. Never a
+  /// 404 — treat any non-200 as "not supported here" and fall back to [users].
+  ///
+  /// No trailing slash: `slim` is a literal segment, not a collection.
+  static const usersSlim = '$apiPrefix/users/slim';
 
   /// What this account owns (`{archives, queue_items, library_files}` —
   /// `backend/app/api/routes/users.py:317`). Read-only, `USERS_READ`; answers

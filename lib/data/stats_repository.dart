@@ -116,17 +116,58 @@ class StatsRepository {
     }
   }
 
-  /// Fetch all users, for the Stats "filter by user" picker. Permission-gated
-  /// server-side — a 403 is a normal outcome (caller hides the picker), not
-  /// an error to surface.
+  /// Whether this server has [Endpoints.usersSlim]; `null` until probed. Lives
+  /// on the instance, which is rebuilt on every profile change — exactly how
+  /// long the answer holds.
+  bool? _hasSlimListing;
+
+  /// Statuses that mean "this server will not serve me the slim listing".
+  ///
+  /// A pre-1.2.6 server declares `/{user_id}` as an `int`, so the path is a
+  /// **422**, or a **403** for a caller refused before it is parsed — never a
+  /// 404. Anything else (401, 5xx, no response at all) says nothing about the
+  /// route and must not pin the fallback.
+  static const _routeUnavailable = {403, 404, 422};
+
+  /// Fetch all users, for the Stats "filter by user" picker.
+  ///
+  /// [Endpoints.usersSlim] first, falling back to the full [Endpoints.users]
+  /// listing, so this works against both server generations — and, on 1.2.6+,
+  /// for the sessions the full listing has always refused: API keys, and groups
+  /// holding `users:read_slim` without `users:read`. A 403 from both is a
+  /// normal outcome (the caller hides the picker), not an error to surface.
   Future<List<UserSummary>> fetchUsers() async {
+    if (_hasSlimListing != false) {
+      try {
+        final res = await _dio.get<List<dynamic>>(Endpoints.usersSlim);
+        _hasSlimListing = true;
+        return _byUsername(res.data);
+      } on DioException catch (e) {
+        // The full listing is strictly harder to reach, so once slim is known
+        // to work, falling back would only turn one error into two.
+        if (_hasSlimListing == true ||
+            !_routeUnavailable.contains(e.response?.statusCode)) {
+          throw mapDioException(e);
+        }
+        _hasSlimListing = false;
+      }
+    }
     try {
       final res = await _dio.get<List<dynamic>>(Endpoints.users);
-      return parseJsonList(res.data, UserSummary.fromJson);
+      return _byUsername(res.data);
     } on DioException catch (e) {
       throw mapDioException(e);
     }
   }
+
+  /// Slim sorts by username, the full listing by `created_at`, so without this
+  /// the same server would present the same people differently depending on
+  /// which route answered. `toList()` because [parseJsonList] can hand back a
+  /// `const []`, which cannot be sorted in place.
+  static List<UserSummary> _byUsername(List<dynamic>? data) =>
+      parseJsonList(data, UserSummary.fromJson).toList()
+        ..sort((a, b) =>
+            a.username.toLowerCase().compareTo(b.username.toLowerCase()));
 
   /// Format date as `YYYY-MM-DD` (no timezone/time) — server contract.
   static String? _ymd(DateTime? d) {

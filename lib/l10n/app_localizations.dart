@@ -893,7 +893,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlForbidden.
   ///
   /// In en, this message translates to:
-  /// **'This API key can\'t control the printer'**
+  /// **'No permission to control this printer'**
   String get ctrlForbidden;
 
   /// No description provided for @ctrlFailed.
@@ -2135,8 +2135,20 @@ abstract class AppLocalizations {
   /// No description provided for @errForbidden.
   ///
   /// In en, this message translates to:
-  /// **'Not allowed — your API key lacks permission for this'**
+  /// **'Not allowed — the server refused this action'**
   String get errForbidden;
+
+  /// No description provided for @errForbiddenDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed: {reason}'**
+  String errForbiddenDetail(String reason);
+
+  /// No description provided for @errApiKeyOwnerDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.'**
+  String get errApiKeyOwnerDisabled;
 
   /// No description provided for @errBadResponse.
   ///
@@ -5581,18 +5593,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Project saved'**
   String get projectSaved;
-
-  /// No description provided for @projectActionForbidden.
-  ///
-  /// In en, this message translates to:
-  /// **'Your API key lacks permission for this action'**
-  String get projectActionForbidden;
-
-  /// No description provided for @projectActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get projectActionFailed;
 
   /// No description provided for @projectName.
   ///

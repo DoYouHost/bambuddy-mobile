@@ -72,8 +72,9 @@ class WearRelayHandler {
       // startNext with nothing pending — a first-class outcome, not a crash.
       res = WearRpcResponse.failure(req.id, e.message);
     } on AppApiException catch (e) {
-      // Short machine-readable code; the watch shows it as-is.
-      res = WearRpcResponse.failure(req.id, e.code.name);
+      // The code drives the watch's own wording; the detail is what the server
+      // said, and on a 403 it is the only place the missing permission appears.
+      res = WearRpcResponse.failure(req.id, e.code.name, reason: e.detail);
     } catch (_) {
       res = WearRpcResponse.failure(req.id, 'phone-error');
     }

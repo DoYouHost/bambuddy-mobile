@@ -84,8 +84,8 @@ class TrashScreen extends ConsumerWidget {
       ref.invalidate(libraryTrashProvider);
       ref.invalidate(fileManagerProvider);
       if (context.mounted) _snack(context, l10n.fmRestored);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      if (context.mounted) _snack(context, e.localized(l10n));
     }
   }
 
@@ -108,8 +108,8 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
       if (context.mounted) _snack(context, l10n.fmDeletedForever);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      if (context.mounted) _snack(context, e.localized(l10n));
     }
   }
 
@@ -131,8 +131,8 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
       if (context.mounted) _snack(context, l10n.fmDeletedForever);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      if (context.mounted) _snack(context, e.localized(l10n));
     }
   }
 

@@ -603,11 +603,7 @@ class _NotesSection extends ConsumerWidget {
         .read(projectDetailProvider(project.id).notifier)
         .save(ProjectUpdate(notes: saved));
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectSaved
-          : result == ProjectActionResult.forbidden
-              ? l10n.projectActionForbidden
-              : l10n.projectActionFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
     ));
   }
 }
@@ -801,15 +797,10 @@ class _OverflowMenu extends ConsumerWidget {
     if (!confirmed) return;
     final result = await ref.read(projectsListProvider.notifier).delete(project.id);
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectDeleted
-          : l10n.projectDeleteFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectDeleted),
     ));
-    if (result == ProjectActionResult.ok) navigator.pop();
+    if (result.isOk) navigator.pop();
   }
 
-  String _err(AppApiException e, AppLocalizations l10n) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-          ? l10n.projectActionForbidden
-          : l10n.projectActionFailed;
+  String _err(AppApiException e, AppLocalizations l10n) => e.localized(l10n);
 }

@@ -60,10 +60,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _snack(String msg) =>
       _messenger.showSnackBar(SnackBar(content: Text(msg)));
 
-  String _errText(AppApiException e) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-          ? _l10n.ctrlForbidden
-          : _l10n.ctrlFailed;
+  String _errText(AppApiException e) => e.localized(_l10n);
 
   @override
   Widget build(BuildContext context) {

@@ -96,7 +96,7 @@ class _ControlsActions extends ConsumerWidget {
       ControlAction.pause => await notifier.pause(printerId),
       ControlAction.resume => await notifier.resume(printerId),
       ControlAction.stop => await notifier.stop(printerId),
-      _ => ControlResult.ok,
+      _ => ActionOutcome.ok,
     };
     if (context.mounted) _showResult(context, result);
   }
@@ -117,13 +117,9 @@ class _ControlsActions extends ConsumerWidget {
     }
   }
 
-  void _showResult(BuildContext context, ControlResult result) {
+  void _showResult(BuildContext context, ActionOutcome result) {
     final l10n = AppLocalizations.of(context);
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg == null) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -216,11 +212,7 @@ class _LightSwitchRow extends ConsumerWidget {
     final result =
         await ref.read(controlsProvider.notifier).setLight(printerId, on: on);
     if (!context.mounted) return;
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
@@ -345,11 +337,7 @@ class _SmartPlugButton extends ConsumerWidget {
         .read(smartPlugsProvider.notifier)
         .control(plug.id, want ? SmartPlugAction.on : SmartPlugAction.off);
     if (!context.mounted) return;
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
@@ -569,11 +557,7 @@ class _SpeedControlTile extends ConsumerWidget {
     final result =
         await ref.read(controlsProvider.notifier).setSpeed(printerId, mode);
     if (!context.mounted) return;
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()

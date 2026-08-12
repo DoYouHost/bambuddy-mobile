@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printable_object.dart';
 import '../../providers.dart';
-import 'controls_providers.dart' show ControlResult;
 
 /// Refresh cadence while the skip screen is open. Objects flip to `skipped`
 /// server-side (and the printer may finish/skip on its own), so poll to keep the
@@ -50,17 +50,13 @@ class SkipObjectsNotifier
   }
 
   /// Skip one object, then refresh so its `skipped` flag reflects immediately.
-  Future<ControlResult> skip(int objectId) async {
+  Future<ActionOutcome> skip(int objectId) async {
     try {
       await ref.read(skipObjectsRepositoryProvider).skip(arg, [objectId]);
       await _poll();
-      return ControlResult.ok;
-    } on AuthException catch (e) {
-      return e.code == AppErrorCode.forbidden
-          ? ControlResult.forbidden
-          : ControlResult.error;
-    } on AppApiException {
-      return ControlResult.error;
+      return ActionOutcome.ok;
+    } on AppApiException catch (e) {
+      return ActionOutcome.failed(e, action: 'printer.skip_object');
     }
   }
 }

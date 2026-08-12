@@ -268,9 +268,10 @@ String _shortError(AppLocalizations l10n, Object e) {
   if (e is WearRelayTimeout) return l10n.wearPhoneNoResponse;
   // Relayed server error: the phone forwards the AppErrorCode name.
   if (e is WearRelayRemoteError) {
-    return e.code == AppErrorCode.forbidden.name
-        ? l10n.errForbidden
-        : l10n.ctrlFailed;
+    final reason = e.reason;
+    if (e.code != AppErrorCode.forbidden.name) return l10n.ctrlFailed;
+    // Same policy as the phone: quote the server when it explained itself.
+    return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
   final s = e.toString();

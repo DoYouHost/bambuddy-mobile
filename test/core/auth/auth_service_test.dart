@@ -543,31 +543,41 @@ void main() {
       expect(store.apiKey, 'bb_dobry');
     });
 
-    test('401 and 403 both mean the key is unusable, and nothing is stored',
-        () async {
-      // 401 is an unknown/revoked key, 403 a valid key without the permission.
-      // Neither can drive the app, and both must leave the store empty so the
-      // next launch does not retry with a key the server already refused.
-      for (final status in [401, 403]) {
-        final localDio = Dio();
-        final localAdapter = DioAdapter(dio: localDio);
-        final localStore = InMemoryCredentialsStore();
-        final localService =
-            AuthService(bareDio: localDio, credentials: localStore);
-        localAdapter.onGet(
-          '$baseUrl/api/v1/printers/',
-          (s) => s.reply(status, {'detail': 'denied'}),
-          headers: {'X-API-Key': 'bb_slaby'},
-        );
-        await expectLater(
-          localService.verifyAndStoreApiKey(
-              baseUrl: baseUrl, apiKey: 'bb_slaby'),
-          throwsA(isA<AuthException>()
-              .having((e) => e.code, 'code', AppErrorCode.apiKeyRejected)),
-          reason: 'status $status',
-        );
-        expect(localStore.apiKey, isNull, reason: 'status $status');
-      }
+    test('401 is the key being rejected, and nothing is stored', () async {
+      adapter.onGet(
+        '$baseUrl/api/v1/printers/',
+        (s) => s.reply(401, {'detail': 'Invalid API key'}),
+        headers: {'X-API-Key': 'bb_slaby'},
+      );
+
+      await expectLater(
+        service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_slaby'),
+        throwsA(isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.apiKeyRejected)),
+      );
+      expect(store.apiKey, isNull);
+    });
+
+    test('403 keeps the reason instead of blaming the key', () async {
+      // A key the server recognises and then refuses this route to — too few
+      // scopes, or (1.2.6+) an owner without printers:read. Answering "API key
+      // rejected" sends the user hunting for a typo that isn't there.
+      adapter.onGet(
+        '$baseUrl/api/v1/printers/',
+        (s) => s.reply(403, {
+          'detail': "API key owner does not have 'printers:read' permission",
+        }),
+        headers: {'X-API-Key': 'bb_slaby'},
+      );
+
+      await expectLater(
+        service.verifyAndStoreApiKey(baseUrl: baseUrl, apiKey: 'bb_slaby'),
+        throwsA(isA<AuthException>()
+            .having((e) => e.code, 'code', AppErrorCode.forbidden)
+            .having((e) => e.detail, 'detail', contains('printers:read'))),
+      );
+      // Still unusable, so it must not reach the store either way.
+      expect(store.apiKey, isNull);
     });
 
     test('a server-side failure is not the key\'s fault, and stores nothing',

@@ -31,12 +31,17 @@ class WearRelayTimeout implements Exception {
 /// The phone executed the request and the server (or the phone itself)
 /// returned an error. Retrying over REST would just repeat it.
 class WearRelayRemoteError implements Exception {
-  WearRelayRemoteError(this.code);
+  WearRelayRemoteError(this.code, {this.reason});
 
   final String code;
 
+  /// What the server said, when the phone relayed it. Null against a phone
+  /// older than the field, which is why the watch still needs wording of its
+  /// own for every [code].
+  final String? reason;
+
   @override
-  String toString() => code;
+  String toString() => reason == null ? code : '$code: $reason';
 }
 
 /// One watch poll: the printers plus the queue signal behind the
@@ -125,7 +130,7 @@ class RelayTransport implements WearTransport {
       if (code == 'phone-unconfigured') throw WearRelayUnreachable();
       // Same shape the REST path throws, so the UI label stays "Queue empty".
       if (code == 'empty-queue') throw StateError('empty-queue');
-      throw WearRelayRemoteError(code);
+      throw WearRelayRemoteError(code, reason: res.reason);
     }
     return res.data;
   }

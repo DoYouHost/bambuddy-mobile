@@ -13,6 +13,7 @@ import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
@@ -981,7 +982,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     // Remember the toggles only once a job was really created with them.
     // Editing an existing item is about THAT item — treating it as "what I print
     // with" would let a one-off tweak follow the user into every later job.
-    if (widget._isCreate && result == QueueActionResult.ok) {
+    if (widget._isCreate && result.isOk) {
       await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
     }
 
@@ -989,15 +990,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     setState(() => _saving = false);
     final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
     messenger.showSnackBar(SnackBar(
-      content: Text(switch (result) {
-        QueueActionResult.ok => ok,
-        QueueActionResult.forbidden => l10n.ctrlForbidden,
-        QueueActionResult.error => l10n.ctrlFailed,
-      }),
+      content: Text(result.messageFor(l10n) ?? ok),
     ));
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
-    if (result == QueueActionResult.ok) navigator.pop(widget._isCreate);
+    if (result.isOk) navigator.pop(widget._isCreate);
   }
 
   /// The print toggles as they stand in the form.

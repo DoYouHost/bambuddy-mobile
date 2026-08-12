@@ -472,15 +472,11 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
       _TempKind.bed => await notifier.setBedTemp(widget.printerId, target),
       _TempKind.chamber =>
         await notifier.setChamberTemp(widget.printerId, target),
-      _TempKind.unknown => ControlResult.ok,
+      _TempKind.unknown => ActionOutcome.ok,
     };
     if (!mounted) return;
     navigator.pop();
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()
@@ -497,15 +493,12 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
         .read(controlsProvider.notifier)
         .setAirduct(widget.printerId, heating: heating);
     if (!mounted) return;
-    if (result != ControlResult.ok) {
+    final failure = result.messageFor(l10n);
+    if (failure != null) {
       setState(() => _airductHeating = previous); // revert on failure
       messenger
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(
-          content: Text(result == ControlResult.forbidden
-              ? l10n.ctrlForbidden
-              : l10n.ctrlFailed),
-        ));
+        ..showSnackBar(SnackBar(content: Text(failure)));
     }
   }
 
@@ -519,14 +512,13 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
         .read(controlsProvider.notifier)
         .setExtruder(widget.printerId, widget.nozzleIndex);
     if (!mounted) return;
-    if (result == ControlResult.ok) return; // keep locked until live confirms
+    final failure = result.messageFor(l10n);
+    if (failure == null) return; // keep locked until live confirms
     setState(() => _switchingTo = null); // command failed — release the lock
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
-        content: Text(result == ControlResult.forbidden
-            ? l10n.ctrlForbidden
-            : l10n.ctrlFailed),
+        content: Text(failure),
       ));
   }
 

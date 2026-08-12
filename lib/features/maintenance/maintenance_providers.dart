@@ -2,12 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/api/action_outcome.dart';
 import '../../data/maintenance_repository.dart';
 import '../../providers.dart';
-
-/// Maintenance action result returned to widget — it shows SnackBar
-/// (notifier has no [BuildContext]). Analogous to queue (M5).
-enum MaintenanceActionResult { ok, forbidden, error }
 
 final maintenanceOverviewProvider = AutoDisposeAsyncNotifierProvider<
     MaintenanceOverviewNotifier, List<PrinterMaintenanceOverview>>(
@@ -42,19 +39,19 @@ class MaintenanceOverviewNotifier
   }
 
   /// Marks task as done (reset counter). On success, refresh list (state changes server-side).
-  Future<MaintenanceActionResult> perform(int itemId, {String? notes}) =>
+  Future<ActionOutcome> perform(int itemId, {String? notes}) =>
       _run(
         (repo) => repo.perform(itemId, notes: notes),
       );
 
   /// Mutes/unmutes a task (server `enabled`). Disabled tasks stop counting and
   /// alerting. Refreshes on success.
-  Future<MaintenanceActionResult> setEnabled(int itemId, bool enabled) =>
+  Future<ActionOutcome> setEnabled(int itemId, bool enabled) =>
       _run((repo) => repo.updateItem(itemId, enabled: enabled));
 
   /// Sets a per-printer interval override (hours), or clears it (back to the
   /// type default) when [hours] is null.
-  Future<MaintenanceActionResult> setInterval(int itemId, double? hours) =>
+  Future<ActionOutcome> setInterval(int itemId, double? hours) =>
       _run(
         (repo) => repo.updateItem(
           itemId,
@@ -64,18 +61,15 @@ class MaintenanceOverviewNotifier
       );
 
   /// Runs a mutation, maps permission errors, and refreshes on success.
-  Future<MaintenanceActionResult> _run(
+  Future<ActionOutcome> _run(
     Future<void> Function(MaintenanceRepository) action,
   ) async {
     try {
       await action(ref.read(maintenanceRepositoryProvider));
       await refresh();
-      return MaintenanceActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      if (e is AuthException && e.code == AppErrorCode.forbidden) {
-        return MaintenanceActionResult.forbidden;
-      }
-      return MaintenanceActionResult.error;
+      return ActionOutcome.failed(e, action: 'maintenance.action');
     }
   }
 }
@@ -108,7 +102,7 @@ class MaintenanceTypesNotifier
 
   /// Creates a custom type and assigns it to [printerIds] (custom types only
   /// show on printers they're assigned to). Refreshes types + overview.
-  Future<MaintenanceActionResult> create(
+  Future<ActionOutcome> create(
     MaintenanceTypeDraft draft,
     List<int> printerIds,
   ) =>
@@ -119,19 +113,19 @@ class MaintenanceTypesNotifier
         }
       }, invalidateOverview: true);
 
-  Future<MaintenanceActionResult> editType(
+  Future<ActionOutcome> editType(
     int typeId,
     MaintenanceTypeDraft draft,
   ) =>
       _run((repo) => repo.updateType(typeId, draft), invalidateOverview: true);
 
-  Future<MaintenanceActionResult> delete(int typeId) =>
+  Future<ActionOutcome> delete(int typeId) =>
       _run((repo) => repo.deleteType(typeId), invalidateOverview: true);
 
-  Future<MaintenanceActionResult> restoreDefaults() =>
+  Future<ActionOutcome> restoreDefaults() =>
       _run((repo) => repo.restoreDefaults(), invalidateOverview: true);
 
-  Future<MaintenanceActionResult> _run(
+  Future<ActionOutcome> _run(
     Future<void> Function(MaintenanceRepository) action, {
     bool invalidateOverview = false,
   }) async {
@@ -139,12 +133,9 @@ class MaintenanceTypesNotifier
       await action(ref.read(maintenanceRepositoryProvider));
       await refresh();
       if (invalidateOverview) ref.invalidate(maintenanceOverviewProvider);
-      return MaintenanceActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      if (e is AuthException && e.code == AppErrorCode.forbidden) {
-        return MaintenanceActionResult.forbidden;
-      }
-      return MaintenanceActionResult.error;
+      return ActionOutcome.failed(e, action: 'maintenance.action');
     }
   }
 }
