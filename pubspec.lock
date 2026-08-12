@@ -21,11 +21,11 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/app_report_client"
-      ref: "v0.1.0"
-      resolved-ref: "94c917f42861074089e1b0e44515561b90c95bfb"
+      ref: "v0.1.1"
+      resolved-ref: "1586d6049eca26da14d76751d6f6456ff5d28e52"
       url: "https://github.com/DoYouHost/app-shared.git"
     source: git
-    version: "0.1.0"
+    version: "0.1.1"
   archive:
     dependency: transitive
     description:
