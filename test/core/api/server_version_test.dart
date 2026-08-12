@@ -109,4 +109,68 @@ void main() {
       expect(parse('0.2.5b2') < parse('1.2.5'), isTrue);
     });
   });
+
+  group('mapa wersja → możliwości', () {
+    test('każda możliwość ma wpis — brak wpisu cicho wyłącza funkcję', () {
+      // supports() na niezmapowanej funkcji zwraca false, więc zapomniany wpis
+      // nie wysypie się na teście typów, tylko po cichu zabierze funkcję
+      // wszystkim. Ten test jest jedynym miejscem, które to złapie.
+      for (final f in ServerFeature.values) {
+        expect(ServerVersion.introducedIn[f], isNotNull,
+            reason: 'brak progu wersji dla $f');
+      }
+    });
+
+    test('supports() czyta próg z mapy, nie z osobnego porównania', () {
+      final v125 = parse('1.2.5.2');
+      final v126 = parse('1.2.6');
+
+      // Tri-state przyszło w 1.2.5, reszta w 1.2.6 — to jedyna różnica między
+      // tymi dwiema wersjami w całej tabeli.
+      expect(v125.supports(ServerFeature.triStateCalibration), isTrue);
+      expect(v126.supports(ServerFeature.triStateCalibration), isTrue);
+
+      for (final f in const [
+        ServerFeature.chamberTemp65,
+        ServerFeature.crossModelVariants,
+        ServerFeature.sliceLayoutOptions,
+        ServerFeature.processOverrides,
+      ]) {
+        expect(v125.supports(f), isFalse, reason: '$f nie istnieje w 1.2.5');
+        expect(v126.supports(f), isTrue, reason: '$f istnieje w 1.2.6');
+      }
+    });
+  });
+
+  group('bramki 1.2.6', () {
+    test('sufit komory: 60 do 1.2.5.x, 65 od 1.2.6', () {
+      // Serwer podniósł MAX_CHAMBER_TEMP_C z 60 na 65 (commit b04664c6), a bound
+      // jest w Query(le=…) — starszy serwer odpowiada 422, nie przycina.
+      expect(parse('1.2.5.2').chamberMaxTargetC, 60);
+      expect(parse('1.2.6').chamberMaxTargetC, 65);
+    });
+
+    test('beta 1.2.6 liczy się jako obsługująca — funkcje weszły w tym cyklu',
+        () {
+      // 1.2.6b1 to wydanie, w którym te zmiany faktycznie są (tam siedzi #671
+      // i podniesiony sufit), więc czytanie bety jako starszego kontraktu
+      // odbierałoby funkcje serwerowi, który je ma.
+      final beta = parse('1.2.6b1');
+      expect(beta.chamberMaxTargetC, 65);
+      expect(beta.supportsCrossModelVariants, isTrue);
+      expect(beta.supportsSliceLayoutOptions, isTrue);
+      expect(beta.supportsProcessOverrides, isTrue);
+    });
+
+    test('daily build bety też liczy się jako obsługujący', () {
+      expect(parse('1.2.6b1-daily.20260809').chamberMaxTargetC, 65);
+    });
+
+    test('starszy serwer nie dostaje żadnej z bramek', () {
+      final old = parse('1.2.5.2');
+      expect(old.supportsCrossModelVariants, isFalse);
+      expect(old.supportsSliceLayoutOptions, isFalse);
+      expect(old.supportsProcessOverrides, isFalse);
+    });
+  });
 }

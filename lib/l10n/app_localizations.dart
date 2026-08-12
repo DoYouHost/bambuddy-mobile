@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
 
+  /// No description provided for @queueAnyOfModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Any of: {models}'**
+  String queueAnyOfModels(String models);
+
   /// No description provided for @queueDeleteTitle.
   ///
   /// In en, this message translates to:
@@ -4730,6 +4736,48 @@ abstract class AppLocalizations {
   /// **'Added to queue'**
   String get fmAddedToQueue;
 
+  /// No description provided for @fmGroupAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Group as alternatives'**
+  String get fmGroupAsVariants;
+
+  /// No description provided for @fmQueueAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue as one job'**
+  String get fmQueueAsVariants;
+
+  /// No description provided for @fmUngroupVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup alternatives'**
+  String get fmUngroupVariants;
+
+  /// No description provided for @fmVariantsGrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files grouped as alternatives'**
+  String fmVariantsGrouped(int count);
+
+  /// No description provided for @fmVariantsUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternatives ungrouped'**
+  String get fmVariantsUngrouped;
+
+  /// No description provided for @fmVariantsMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} alternatives'**
+  String fmVariantsMemberCount(int count);
+
+  /// No description provided for @fmVariantsGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This group no longer exists'**
+  String get fmVariantsGone;
+
   /// No description provided for @fmUpload.
   ///
   /// In en, this message translates to:
@@ -6266,6 +6314,30 @@ abstract class AppLocalizations {
   /// **'Filament {n}'**
   String sliceFilamentNumbered(String n);
 
+  /// No description provided for @sliceAutoOrient.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto orient'**
+  String get sliceAutoOrient;
+
+  /// No description provided for @sliceAutoOrientHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.'**
+  String get sliceAutoOrientHint;
+
+  /// No description provided for @sliceAutoArrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto arrange'**
+  String get sliceAutoArrange;
+
+  /// No description provided for @sliceAutoArrangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
+  String get sliceAutoArrangeHint;
+
   /// No description provided for @sliceSelect.
   ///
   /// In en, this message translates to:
@@ -6925,6 +6997,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chamber target override (°C, blank = filament default)'**
   String get queueEditChamberTarget;
+
+  /// No description provided for @queueEditChamberTargetRange.
+  ///
+  /// In en, this message translates to:
+  /// **'0–{max} °C'**
+  String queueEditChamberTargetRange(int max);
 
   /// No description provided for @queueEditWhenToPrint.
   ///

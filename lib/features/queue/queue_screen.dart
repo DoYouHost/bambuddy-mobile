@@ -420,6 +420,14 @@ class _Subtitle extends StatelessWidget {
     final t = DashTokens.of(context);
     final parts = <String>[
       if (item.printerName != null) item.printerName!,
+      // A cross-model item (server #671) has no printer yet and never will
+      // until dispatch picks one, so without this the row would say nothing
+      // about where it can run. Naming the candidates beats a bare "Any model":
+      // the whole point is that the user chose this specific set.
+      if (item.isCrossModel)
+        l10n.queueAnyOfModels(
+          [for (final v in item.variants) v.targetModel].join(', '),
+        ),
       if (item.printTimeSeconds != null) _eta(l10n, item.printTimeSeconds!),
       // Says the print will land in the exact trays the slicer picked, rather
       // than trays the scheduler works out from the file's type and colour.

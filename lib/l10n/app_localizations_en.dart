@@ -554,6 +554,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueAmsFromSlicer => 'AMS from slicer';
 
   @override
+  String queueAnyOfModels(String models) {
+    return 'Any of: $models';
+  }
+
+  @override
   String get queueDeleteTitle => 'Remove from queue?';
 
   @override
@@ -2712,6 +2717,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fmAddedToQueue => 'Added to queue';
 
   @override
+  String get fmGroupAsVariants => 'Group as alternatives';
+
+  @override
+  String get fmQueueAsVariants => 'Queue as one job';
+
+  @override
+  String get fmUngroupVariants => 'Ungroup alternatives';
+
+  @override
+  String fmVariantsGrouped(int count) {
+    return '$count files grouped as alternatives';
+  }
+
+  @override
+  String get fmVariantsUngrouped => 'Alternatives ungrouped';
+
+  @override
+  String fmVariantsMemberCount(int count) {
+    return '$count alternatives';
+  }
+
+  @override
+  String get fmVariantsGone => 'This group no longer exists';
+
+  @override
   String get fmUpload => 'Upload file';
 
   @override
@@ -3596,6 +3626,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sliceAutoOrient => 'Auto orient';
+
+  @override
+  String get sliceAutoOrientHint =>
+      'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.';
+
+  @override
+  String get sliceAutoArrange => 'Auto arrange';
+
+  @override
+  String get sliceAutoArrangeHint =>
+      'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
+
+  @override
   String get sliceSelect => 'Tap to select';
 
   @override
@@ -3969,6 +4013,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueEditChamberTarget =>
       'Chamber target override (°C, blank = filament default)';
+
+  @override
+  String queueEditChamberTargetRange(int max) {
+    return '0–$max °C';
+  }
 
   @override
   String get queueEditWhenToPrint => 'When to print';

@@ -825,6 +825,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 t,
                 labelText: l10n.queueEditChamberTarget,
                 hintText: '—',
+                // States the ceiling rather than silently clamping to it: the
+                // value differs by server version (60 / 65), so a bare field
+                // gives no way to tell what this one will accept.
+                helperText: l10n.queueEditChamberTargetRange(_chamberMax),
               ),
             ).tagged('queue_edit.chamber_target'),
           ],
@@ -1054,9 +1058,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ? _scheduledTime!.toUtc().toIso8601String()
           : null;
 
+  /// The server's chamber ceiling — 65 from 1.2.6, 60 before it and until the
+  /// version is known. `watch` because the save path reads it too and the
+  /// answer can arrive while the form is open.
+  int get _chamberMax => ref
+      .watch(chamberMaxTargetProvider)
+      .maybeWhen(data: (v) => v, orElse: () => 60);
+
   int? get _chamberTargetValue {
     if (_preheatOverride == 'off') return null;
-    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, 60);
+    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, _chamberMax);
   }
 
   /// A calibration option for the PATCH body, or `null` to leave the key out.

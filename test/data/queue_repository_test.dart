@@ -529,4 +529,24 @@ void main() {
     await repo.addFromArchive(77,
         printerId: 1, options: const QueueCreateOptions());
   });
+
+  group('addCrossModel (#671)', () {
+    test('wysyła variants w kolejności i BEZ printer_id', () async {
+      // printer_id razem z variants serwer odrzuca wprost — wskazanie drukarki
+      // przeczy sensowi oferty alternatyw.
+      adapter.onPost(
+        '/api/v1/queue/',
+        (s) => s.reply(200, {'id': 1}),
+        data: {
+          'variants': [
+            {'library_file_id': 7},
+            {'library_file_id': 8},
+          ],
+          'quantity': 1,
+        },
+      );
+
+      await repo.addCrossModel([7, 8]);
+    });
+  });
 }

@@ -50,6 +50,9 @@ class _GaugeTile extends ConsumerWidget {
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
     final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    // 60 until the server's version is known — see [chamberMaxTargetProvider].
+    final chamberMax =
+        ref.watch(chamberMaxTargetProvider).maybeWhen(data: (v) => v, orElse: () => 60);
 
     final actual = reading.actual;
     // Optimistic overlay: setpoint and airduct glyph reflect a just-sent command
@@ -84,7 +87,8 @@ class _GaugeTile extends ConsumerWidget {
             top: 0,
             right: 0,
             child: TempGauge(
-              fraction: actual == null ? 0 : actual / reading.gaugeMax,
+              fraction:
+                  actual == null ? 0 : actual / reading.gaugeMax(chamberMax),
               color: accent,
               trackColor: t.gaugeTrack,
               centerText: hasTarget ? '${target.toStringAsFixed(0)}°' : '-',
@@ -269,10 +273,18 @@ class _TempReading {
       };
 
   /// Upper bound of the gauge sweep per sensor (approx working range).
-  double get gaugeMax => switch (kind) {
+  ///
+  /// [chamberMax] is the server's own chamber ceiling, read from
+  /// [chamberMaxTargetProvider] by whoever renders — 60 before server 1.2.6 and
+  /// 65 from it. Passed in on every call rather than stored on the reading
+  /// because this object is built by [PrinterCard], a plain `StatefulWidget`
+  /// with no `ref`, while both consumers of these three are Consumers already.
+  /// The chamber tracks it so a target at the ceiling cannot peg the needle
+  /// past the end of the sweep.
+  double gaugeMax(int chamberMax) => switch (kind) {
         _TempKind.nozzle => 300,
         _TempKind.bed => 120,
-        _TempKind.chamber => 60,
+        _TempKind.chamber => chamberMax.toDouble(),
         _TempKind.unknown => 300,
       };
 
@@ -290,10 +302,10 @@ class _TempReading {
 
   /// Upper bound the target slider allows. Slightly under the server's hard
   /// caps (nozzle 320 / bed 140) to a sane working range; chamber = server max.
-  int get maxTarget => switch (kind) {
+  int maxTarget(int chamberMax) => switch (kind) {
         _TempKind.nozzle => 300,
         _TempKind.bed => 120,
-        _TempKind.chamber => 60,
+        _TempKind.chamber => chamberMax,
         _TempKind.unknown => 300,
       };
 
@@ -302,10 +314,15 @@ class _TempReading {
 
   /// Common quick-pick targets shown as chips in the sheet (Off has its own
   /// button, so it's not listed here).
-  List<int> get presets => switch (kind) {
+  ///
+  /// The chamber keeps its familiar four and gains the ceiling as a fifth when
+  /// the server allows more than 60 — rather than moving the last chip up,
+  /// which would take away the 60 people actually use. The [Wrap] takes the
+  /// extra chip onto a second row if it has to.
+  List<int> presets(int chamberMax) => switch (kind) {
         _TempKind.nozzle => const [200, 220, 240, 260],
         _TempKind.bed => const [50, 60, 80, 100],
-        _TempKind.chamber => const [30, 40, 50, 60],
+        _TempKind.chamber => [30, 40, 50, 60, if (chamberMax > 60) chamberMax],
         _TempKind.unknown => const [],
       };
 }
@@ -420,8 +437,16 @@ class _TempControlSheet extends ConsumerStatefulWidget {
 }
 
 class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
-  late int _target =
-      widget.initialTarget.clamp(0, widget.reading.maxTarget).toInt();
+  /// The server's chamber ceiling, read once: the sheet is short-lived and the
+  /// server cannot change underneath it. 60 until the version is known, which
+  /// is the value every generation accepts.
+  late final int _chamberMax = ref
+      .read(chamberMaxTargetProvider)
+      .maybeWhen(data: (v) => v, orElse: () => 60);
+
+  late int _target = widget.initialTarget
+      .clamp(0, widget.reading.maxTarget(_chamberMax))
+      .toInt();
   late bool? _airductHeating = widget.reading.airductIsHeating;
   bool _busy = false;
 
@@ -431,8 +456,8 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
 
   _TempReading get _reading => widget.reading;
 
-  void _bump(int delta) => setState(
-      () => _target = (_target + delta).clamp(0, _reading.maxTarget).toInt());
+  void _bump(int delta) => setState(() =>
+      _target = (_target + delta).clamp(0, _reading.maxTarget(_chamberMax)).toInt());
 
   Future<void> _apply(int target) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -583,7 +608,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final max = _reading.maxTarget;
+    final max = _reading.maxTarget(_chamberMax);
     final step = _reading.targetStep;
     final accent = _reading.gaugeColor(t, target: _target.toDouble());
     final showAirduct =
@@ -730,7 +755,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              for (final p in _reading.presets)
+                              for (final p in _reading.presets(_chamberMax))
                                 _PresetChip(
                                   label: '$p°',
                                   id: 'temperature.preset',

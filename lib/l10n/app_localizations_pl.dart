@@ -563,6 +563,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get queueAmsFromSlicer => 'AMS ze slicera';
 
   @override
+  String queueAnyOfModels(String models) {
+    return 'Dowolny z: $models';
+  }
+
+  @override
   String get queueDeleteTitle => 'Usunąć z kolejki?';
 
   @override
@@ -2753,6 +2758,31 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fmAddedToQueue => 'Dodano do kolejki';
 
   @override
+  String get fmGroupAsVariants => 'Zgrupuj jako warianty';
+
+  @override
+  String get fmQueueAsVariants => 'Dodaj do kolejki jako jedno zadanie';
+
+  @override
+  String get fmUngroupVariants => 'Rozgrupuj warianty';
+
+  @override
+  String fmVariantsGrouped(int count) {
+    return 'Zgrupowano $count plików jako warianty';
+  }
+
+  @override
+  String get fmVariantsUngrouped => 'Rozgrupowano warianty';
+
+  @override
+  String fmVariantsMemberCount(int count) {
+    return '$count wariantów';
+  }
+
+  @override
+  String get fmVariantsGone => 'Ta grupa już nie istnieje';
+
+  @override
   String get fmUpload => 'Wgraj plik';
 
   @override
@@ -3653,6 +3683,20 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get sliceAutoOrient => 'Automatyczna orientacja';
+
+  @override
+  String get sliceAutoOrientHint =>
+      'Pozwól sliceowi obrócić każdy obiekt przed cięciem. Wyłączone zachowuje orientację wybraną przez projektanta.';
+
+  @override
+  String get sliceAutoArrange => 'Automatyczne rozmieszczenie';
+
+  @override
+  String get sliceAutoArrangeHint =>
+      'Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.';
+
+  @override
   String get sliceSelect => 'Dotknij, aby wybrać';
 
   @override
@@ -4031,6 +4075,11 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get queueEditChamberTarget =>
       'Nadpisanie temp. komory (°C, puste = domyślna filamentu)';
+
+  @override
+  String queueEditChamberTargetRange(int max) {
+    return '0–$max °C';
+  }
 
   @override
   String get queueEditWhenToPrint => 'Kiedy drukować';

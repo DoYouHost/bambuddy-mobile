@@ -376,6 +376,40 @@ class QueueRepository {
           insertAtTop: insertAtTop,
           options: options);
 
+  /// POST /queue/ — one job offering several sliced files, whichever printer
+  /// frees up first (server #671, **1.2.6+**).
+  ///
+  /// [fileIds] is the priority order: when more than one printer is idle at the
+  /// same moment, the earlier candidate wins. Two files minimum, and no
+  /// `printer_id` — naming a printer defeats the purpose and the server rejects
+  /// the combination outright.
+  ///
+  /// `target_model` per candidate is deliberately not sent: the server reads it
+  /// from each file's own `sliced_for_model`, and overriding that is only for
+  /// legacy 3MFs that declare none — which the phone has no way to identify.
+  ///
+  /// The caller must have checked [LibraryRepository.supportsCrossModelVariants]
+  /// first; an older server answers 422 for the unknown `variants` shape only
+  /// because the rest of the body is then invalid, which is a confusing way to
+  /// learn the feature is missing.
+  Future<void> addCrossModel(
+    List<int> fileIds, {
+    int quantity = 1,
+    bool insertAtTop = false,
+    QueueCreateOptions? options,
+  }) =>
+      _add(
+        {
+          'variants': [
+            for (final id in fileIds) <String, dynamic>{'library_file_id': id},
+          ],
+        },
+        printerId: null,
+        quantity: quantity,
+        insertAtTop: insertAtTop,
+        options: options,
+      );
+
   /// Shared POST for both sources — [source] is the one key that differs.
   Future<void> _add(
     Map<String, dynamic> source, {

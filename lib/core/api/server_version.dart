@@ -1,3 +1,35 @@
+/// A server capability the app has to gate, because an older bambuddy either
+/// refuses it or — worse — accepts the request and silently ignores it.
+///
+/// Paired with the release that introduced it in [ServerVersion.introducedIn].
+enum ServerFeature {
+  /// Queue and settings store `bed_levelling` / `flow_cali` /
+  /// `nozzle_offset_cali` as `off`/`on`/`auto` instead of booleans. Sending
+  /// `auto` to a server that stores booleans is a 422.
+  triStateCalibration,
+
+  /// The chamber accepts targets up to 65 °C instead of 60.
+  chamberTemp65,
+
+  /// `POST /library/variant-groups` and the `variants[]` field on queue create:
+  /// several sliced files, one job, whichever printer frees up first.
+  crossModelVariants,
+
+  /// `auto_orient` / `auto_arrange` on `SliceRequest`.
+  ///
+  /// `SliceRequest` does not forbid unknown fields, so an older server drops
+  /// these **without a word**. That is why the controls must be hidden rather
+  /// than merely left unsent: a switch that appears to work and changes nothing
+  /// is worse than no switch.
+  sliceLayoutOptions,
+
+  /// `process_overrides` on `SliceRequest`, plus the `GET
+  /// /slicer/preset-values` that seeds the panel. Same silent-drop hazard as
+  /// [sliceLayoutOptions]; the endpoint 404s on older servers, which
+  /// `SlicerRepository` uses as the outranking observation.
+  processOverrides,
+}
+
 /// A bambuddy server version, comparable across both numbering schemes the
 /// project has used (`0.2.4.9`, `1.2.5.1`) plus daily builds like
 /// `1.2.6b1-daily.20260729`.
@@ -63,23 +95,71 @@ class ServerVersion implements Comparable<ServerVersion> {
     );
   }
 
-  /// First version whose queue and settings schemas carry the tri-state
-  /// calibration options instead of booleans.
-  static const triStateCalibration = ServerVersion(
-    raw: '1.2.5',
-    major: 1,
-    minor: 2,
-    patch: 5,
-    micro: 0,
-    isPrerelease: false,
-    prereleaseNum: 0,
-  );
+  /// Which release introduced each capability — the whole version→capability
+  /// map, in one place, so adding a gate is a row here rather than a new
+  /// comparison somewhere in the app.
+  ///
+  /// Values are the **numeric base only** (`major, minor, patch, micro`),
+  /// because that is all [supports] compares. Deliberately: a feature ships
+  /// during its release's beta cycle, so `1.2.6b1` must count as 1.2.6 — the
+  /// alternative takes `auto` away from a server that stores it, or hides the
+  /// variant grouping from a server that has it.
+  ///
+  /// The values are *thresholds*, not observations. Where the server reveals a
+  /// capability in its own payloads, that reading outranks this table — see
+  /// `QueueRepository.supportsTriStateCalibration` and
+  /// `LibraryRepository.supportsCrossModelVariants`. This is the fallback for
+  /// before anything has been seen, and for the one case ([chamberMaxTargetC])
+  /// where nothing can be seen at all.
+  static const introducedIn = <ServerFeature, (int, int, int, int)>{
+    // Queue and settings store the three calibrations as off/on/auto rather
+    // than as booleans.
+    ServerFeature.triStateCalibration: (1, 2, 5, 0),
+    // MAX_CHAMBER_TEMP_C 60 → 65 (server commit b04664c6).
+    ServerFeature.chamberTemp65: (1, 2, 6, 0),
+    // Cross-model queue alternatives + library variant groups (server #671).
+    ServerFeature.crossModelVariants: (1, 2, 6, 0),
+    // auto_orient / auto_arrange on SliceRequest (server #2548).
+    ServerFeature.sliceLayoutOptions: (1, 2, 6, 0),
+    // process_overrides on SliceRequest + GET /slicer/preset-values.
+    ServerFeature.processOverrides: (1, 2, 6, 0),
+  };
 
-  /// Numeric base only, so a `1.2.5b1` prerelease counts as supporting it: the
-  /// change landed during that cycle, and treating a beta as the older shape
-  /// would send a boolean where the user asked for `auto`.
+  /// Whether this server is at or past the release that introduced [feature].
+  bool supports(ServerFeature feature) {
+    final since = introducedIn[feature];
+    // An unmapped feature is a programming error, but answering "no" keeps the
+    // app on the contract every server generation accepts.
+    if (since == null) return false;
+    final threshold = [since.$1, since.$2, since.$3, since.$4];
+    final mine = _base;
+    for (var i = 0; i < mine.length; i++) {
+      final c = mine[i].compareTo(threshold[i]);
+      if (c != 0) return c > 0;
+    }
+    return true;
+  }
+
   bool get supportsTriStateCalibration =>
-      _compareBase(triStateCalibration) >= 0;
+      supports(ServerFeature.triStateCalibration);
+
+  /// Highest chamber target the server will accept, in °C.
+  ///
+  /// The one gate that is a value rather than a yes/no, and the one that cannot
+  /// be settled by observation: no response reveals the ceiling, so the only
+  /// probe would be sending a target we expect to be refused — and that is a
+  /// real command that would heat somebody's chamber to ask a question. The
+  /// bound is a `Query(le=…)`, so an older server answers **422** for 61-65
+  /// rather than clamping. 60 whenever we don't know.
+  int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
+
+  bool get supportsCrossModelVariants =>
+      supports(ServerFeature.crossModelVariants);
+
+  bool get supportsSliceLayoutOptions =>
+      supports(ServerFeature.sliceLayoutOptions);
+
+  bool get supportsProcessOverrides => supports(ServerFeature.processOverrides);
 
   List<int> get _base => [major, minor, patch, micro];
 

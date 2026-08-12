@@ -160,7 +160,10 @@ abstract final class Endpoints {
   static String bedTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/bed';
 
-  /// Chamber target temperature. Query: `target` 0–60 (0 = off). Server returns
+  /// Chamber target temperature. Query: `target` 0 = off, up to the server's
+  /// own `MAX_CHAMBER_TEMP_C` — **60 up to 1.2.5.x, 65 from 1.2.6** (commit
+  /// `b04664c6`). The bound is a `Query(le=…)`, so an older server answers 422
+  /// rather than clamping; gate on [ServerVersion.chamberMaxTargetC]. Returns
   /// 400 unless the model has an active chamber heater (H2C/H2D/H2D Pro/H2S/X2D)
   /// — gate client-side via `supportsChamberHeater` before calling.
   static String chamberTemperature(int printerId) =>
@@ -316,6 +319,22 @@ abstract final class Endpoints {
   /// Unified preset list across local/cloud/standard tiers for the slice modal
   /// (`GET`, query `refresh`). Returns `UnifiedPresetsResponse`.
   static const slicerPresets = '$apiPrefix/slicer/presets';
+
+  /// Effective values of one process preset with its `inherits:` chain
+  /// flattened (`GET`, query `source` = tier, `id`, `slot` — only `process` is
+  /// supported and 400s otherwise). Lets the process-override fields start from
+  /// what the preset actually contains: a preset setting a 0.42 mm line width
+  /// would otherwise show the compiled-in default of 0.
+  ///
+  /// Answers `{resolved, values, reason}` and **never errors on a resolution
+  /// failure** — `resolved: false` with a `reason` (`sidecar_unavailable`,
+  /// `not_configured`, `preset_unresolved`, …) is the normal negative answer,
+  /// and the panel stays usable with blank fields. A sidecar older than the
+  /// endpoint is the common cause, which is why the reason is worth showing.
+  ///
+  /// **1.2.6+ only** — an older server 404s, and that (not `resolved: false`)
+  /// is what [SlicerRepository] reads as "not supported here".
+  static const slicerPresetValues = '$apiPrefix/slicer/preset-values';
 
   /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
   /// here to gate the slice UI; full settings management lives on the web.
@@ -561,6 +580,43 @@ abstract final class Endpoints {
   /// `{file_ids, tag_ids, action}` → `TagBulkAssignResponse`).
   static const libraryTagsBulkAssign =
       '$apiPrefix/library/tags/bulk-assign';
+
+  // --- Library variant groups (server #671) ---
+  //
+  // The same job sliced for different printer models, grouped so a queue item
+  // can offer them as alternatives and take whichever printer frees up first.
+  // **1.2.6+ only** — every path here 404s on an older server.
+
+  /// Create a group (`POST`, body `{members:[{library_file_id, target_model?}],
+  /// name?}` → `VariantGroupResponse`). Minimum two members: a group of one
+  /// expresses no choice and is refused. Member order is the priority order.
+  ///
+  /// `target_model` is normally omitted and read from the file's own
+  /// `sliced_for_model`; send it only for a legacy 3MF that declares none.
+  static const libraryVariantGroups = '$apiPrefix/library/variant-groups';
+
+  /// One group: `GET` (with members), `PATCH` (body `{name?,
+  /// member_file_ids?}` — a partial `member_file_ids` is rejected rather than
+  /// guessing, so send the full current membership), `DELETE` (ungroups; the
+  /// files themselves are untouched).
+  static String libraryVariantGroup(int groupId) =>
+      '$apiPrefix/library/variant-groups/$groupId';
+
+  /// The group a file belongs to (`GET`) → `VariantGroupResponse`. 404 when the
+  /// file is in none, which is the ordinary case and not an error.
+  static String libraryVariantGroupByFile(int fileId) =>
+      '$apiPrefix/library/variant-groups/by-file/$fileId';
+
+  /// Add a member (`POST`, body `{library_file_id, target_model?}`).
+  static String libraryVariantGroupMembers(int groupId) =>
+      '$apiPrefix/library/variant-groups/$groupId/members';
+
+  /// Remove one member (`DELETE`, 204). Removing the second-to-last member
+  /// **dissolves the whole group** server-side (`_dissolve_if_too_small`,
+  /// `library_variants.py:168`) — a one-member group is not a choice. So the
+  /// caller must refresh the other file's state too, not just this one's.
+  static String libraryVariantGroupMember(int groupId, int fileId) =>
+      '$apiPrefix/library/variant-groups/$groupId/members/$fileId';
 
   // --- Library trash ---
 

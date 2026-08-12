@@ -79,6 +79,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(() => stub),
       ],
       child: plApp(
@@ -95,6 +96,7 @@ Widget _scope(Widget child) => ProviderScope(
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(child),
@@ -112,6 +114,7 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
+        inertChamberMaxOverride,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(
@@ -656,6 +659,8 @@ void main() {
           smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
           inertFirmwareOverride, // zwraca null
           inertTotalPrintHoursOverride,
+          inertChamberMaxOverride,
+        inertChamberMaxOverride,
         ],
         child: plApp(
           const Scaffold(
