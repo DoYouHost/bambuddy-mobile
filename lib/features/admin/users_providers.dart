@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_failure.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
@@ -84,11 +85,18 @@ typedef UserWriteResult = ({bool ok, String? message, AppApiException? error});
 
 /// Runs an account write, turning a refusal into a [UserWriteResult] instead
 /// of an exception the form would have to catch itself.
-Future<UserWriteResult> runUserWrite(Future<void> Function() action) async {
+///
+/// Every caller reports the refusal, so the record is written here rather
+/// than seven times over. [logId] is the control that was touched.
+Future<UserWriteResult> runUserWrite(
+  Future<void> Function() action,
+  String logId,
+) async {
   try {
     await action();
     return (ok: true, message: null, error: null);
   } on AppApiException catch (e) {
+    recordActionFailure(e, action: logId);
     return (ok: false, message: e.detail, error: e);
   }
 }

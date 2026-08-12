@@ -250,9 +250,9 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         SnackBar(content: Text(l10n.inventorySpoolAssigned)),
       );
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'spool_assign.save');
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -359,6 +359,7 @@ class _SpoolActions extends ConsumerWidget {
                       assignment!.trayId,
                     ),
                 l10n.inventorySpoolUnassigned,
+                logId: 'spool_actions.unassign',
               ),
               icon: Icons.link_off,
               label: l10n.inventoryUnassign,
@@ -389,6 +390,7 @@ class _SpoolActions extends ConsumerWidget {
               l10n,
               ref.read(inventoryProvider.notifier).restoreSpool(spool.id),
               l10n.inventorySpoolRestored,
+              logId: 'spool_actions.restore',
             ),
             icon: Icons.unarchive_outlined,
             label: l10n.inventoryRestore,
@@ -402,6 +404,7 @@ class _SpoolActions extends ConsumerWidget {
               l10n,
               ref.read(inventoryProvider.notifier).archiveSpool(spool.id),
               l10n.inventorySpoolArchived,
+              logId: 'spool_actions.archive',
             ),
             icon: Icons.archive_outlined,
             label: l10n.inventoryArchive,
@@ -436,6 +439,7 @@ class _SpoolActions extends ConsumerWidget {
       l10n,
       ref.read(inventoryProvider.notifier).resetUsage(spool.id),
       l10n.inventoryUsageReset,
+      logId: 'spool_actions.reset_usage',
     );
   }
 
@@ -459,25 +463,30 @@ class _SpoolActions extends ConsumerWidget {
       l10n,
       ref.read(inventoryProvider.notifier).deleteSpool(spool.id),
       l10n.inventorySpoolDeleted,
+      logId: 'spool_actions.delete',
     );
   }
 
   /// Closes sheet, waits for [action], reports result to parent ScaffoldMessenger
   /// (captured before pop, since sheet context disappears).
+  ///
+  /// [logId] is the pill that was tapped: five actions share this runner, and a
+  /// tag chosen here instead would report all five as one.
   Future<void> _run(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     Future<void> action,
-    String successMsg,
-  ) async {
+    String successMsg, {
+    required String logId,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     try {
       await action;
       messenger.showSnackBar(SnackBar(content: Text(successMsg)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: logId);
     } on Object {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.inventoryActionFailed)),

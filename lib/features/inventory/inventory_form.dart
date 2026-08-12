@@ -182,9 +182,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       Navigator.of(context).pop();
       messenger.showSnackBar(SnackBar(content: Text(message)));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'spool_form.save');
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);

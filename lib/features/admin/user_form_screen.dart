@@ -291,7 +291,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    });
+    }, 'user_form.save');
 
     await ref.read(usersListProvider.notifier).refresh();
     // Editing your own account can change your own role, groups and therefore

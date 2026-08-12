@@ -409,6 +409,7 @@ class _SheetActions extends ConsumerWidget {
       () => ref
           .read(usersRepositoryProvider)
           .delete(user.id, deleteItems: choice.deleteItems),
+      'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
     messenger.showSnackBar(SnackBar(

@@ -56,7 +56,7 @@ class SkipObjectsNotifier
       await _poll();
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: 'printer.skip_object');
+      return ActionOutcome.failed(e, action: 'skip_objects.skip');
     }
   }
 }

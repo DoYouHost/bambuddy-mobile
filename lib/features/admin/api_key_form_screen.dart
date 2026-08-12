@@ -246,7 +246,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    });
+    }, 'api_key_form.save');
 
     await ref.read(apiKeysListProvider.notifier).refresh();
     if (!mounted) return;

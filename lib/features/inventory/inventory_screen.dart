@@ -13,6 +13,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';

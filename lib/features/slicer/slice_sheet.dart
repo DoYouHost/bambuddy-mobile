@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
@@ -380,9 +381,9 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
           ? await repo.sliceArchive(target.id, body)
           : await repo.sliceLibraryFile(target.id, body);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _submitting = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'slice.submit');
       return;
     }
     if (!mounted) return;

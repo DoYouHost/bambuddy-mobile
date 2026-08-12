@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/cloud_auth.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 
 /// Bambu Cloud account screen (login) — in app "settings" (drawer), intentionally
@@ -57,10 +57,8 @@ class _SignedInState extends ConsumerState<_SignedIn> {
       ref.invalidate(cloudAuthStatusProvider);
       ref.invalidate(makerworldStatusProvider);
     } on AppApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.localized(l10n))));
-      }
+      showApiFailure(mounted ? ScaffoldMessenger.of(context) : null, e, l10n,
+          action: 'cloud.sign_out');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -198,6 +196,13 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+  /// Both halves of a failed sign-in step: the sentence and the record that
+  /// somebody was stopped. Unmounted there is neither a messenger nor an
+  /// `l10n`, so only the record goes, marked as one that reached nobody.
+  void _failed(AppApiException e, String action) => mounted
+      ? showApiFailure(ScaffoldMessenger.of(context), e, _l10n, action: action)
+      : recordActionFailure(e, action: action, shown: false);
+
   Future<void> _signIn() async {
     FocusScope.of(context).unfocus();
     final email = _email.text.trim();
@@ -215,8 +220,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           );
       _handleResult(res);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(e.localized(_l10n));
+      _failed(e, 'cloud.sign_in');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -239,8 +243,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           );
       _handleResult(res);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(e.localized(_l10n));
+      _failed(e, 'cloud.verify');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

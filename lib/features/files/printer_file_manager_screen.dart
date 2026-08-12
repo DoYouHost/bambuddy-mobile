@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -194,7 +195,12 @@ class _PrinterFileManagerScreenState
         }
       }
     } on AppApiException catch (e) {
-      if (mounted) _snack(e.localized(l10n));
+      showApiFailure(
+        mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'printer_files.download',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -223,6 +229,9 @@ class _PrinterFileManagerScreenState
         await repo.deleteFile(widget.printerId, path);
         deleted++;
       } on AppApiException catch (e) {
+        // Each refusal is its own call and worth its own record; the snack
+        // below reports the last of them, which is what the user reads.
+        recordActionFailure(e, action: 'printer_files.delete');
         failure = e.localized(l10n);
       }
     }

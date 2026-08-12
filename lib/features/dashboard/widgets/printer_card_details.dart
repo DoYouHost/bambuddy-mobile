@@ -26,7 +26,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           .clearPlate(widget.printerId);
       messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1363,7 +1363,7 @@ class _AssignSlotSheet extends ConsumerWidget {
         SnackBar(content: Text(l10n.inventorySpoolAssigned)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
     } on Object {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.inventoryActionFailed)),
@@ -1386,7 +1386,7 @@ class _AssignSlotSheet extends ConsumerWidget {
         SnackBar(content: Text(l10n.inventorySpoolUnassigned)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
     } on Object {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.inventoryActionFailed)),

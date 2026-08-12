@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
@@ -400,7 +401,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     try {
       projects = await ref.read(projectsRepositoryProvider).list();
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
       return;
     }
     if (!mounted) return;
@@ -452,7 +453,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.projectArchivesAdded)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
     }
   }
 
@@ -476,7 +477,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.menu.purge');
     }
   }
 

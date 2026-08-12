@@ -977,7 +977,8 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     final result = await ref
         .read(queueProvider.notifier)
-        .runAction(widget._isCreate ? _create : _update);
+        .runAction(widget._isCreate ? _create : _update,
+            widget._isCreate ? 'queue_edit.create' : 'queue_edit.save');
 
     // Remember the toggles only once a job was really created with them.
     // Editing an existing item is about THAT item — treating it as "what I print
