@@ -9,6 +9,11 @@
 ///
 /// Ported from the server's `frontend/src/lib/slicerSettings.ts`, with one
 /// deliberate deviation at [_stringify].
+///
+/// Server paths cited here are relative to the bambuddy checkout — `reference/`
+/// `bambuddy` interactively, `/tmp/bambuddy-server-ref` in CI — at the commit
+/// pinned in `assets/slicer/PROVENANCE`. Neither is part of this repo, so the
+/// pin is what makes a citation resolvable later.
 library;
 
 import '../models/process_option.dart';
