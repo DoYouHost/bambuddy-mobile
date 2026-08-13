@@ -325,8 +325,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        // Six options fit at the default text scale and stop fitting well before
+        // the largest one, so this scrolls for the same reason the file sheet
+        // above does.
+        child: ListView(
+          shrinkWrap: true,
           children: [
             for (final entry in <(FileSort, String)>[
               (FileSort.dateDesc, l10n.fmSortDateNewest),
@@ -363,9 +366,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Scrollable, not a Column: this sheet reaches nine tiles plus the
+        // thumbnail header (print + preview *or* slice, two for variants, tags,
+        // and three more for a local file), which is taller than the half-screen
+        // a bottom sheet gets. As a Column that is a RenderFlex overflow with the
+        // last actions simply unreachable.
+        child: ListView(
+          shrinkWrap: true,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
