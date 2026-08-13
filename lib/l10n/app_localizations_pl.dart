@@ -3702,6 +3702,9 @@ class AppLocalizationsPl extends AppLocalizations {
       'Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.';
 
   @override
+  String get sliceAdvanced => 'Zaawansowane';
+
+  @override
   String get processSettingsTitle => 'Ustawienia procesu';
 
   @override

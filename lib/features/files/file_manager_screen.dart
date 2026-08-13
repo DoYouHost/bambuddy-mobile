@@ -23,7 +23,7 @@ import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
-import '../slicer/slice_sheet.dart';
+import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
 import 'tag_sheets.dart';
@@ -757,7 +757,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _sliceFile(LibraryFile file) async {
-    final sliced = await showSliceSheet(
+    final sliced = await showSliceScreen(
       context,
       SliceTarget.libraryFile(file.id, file.displayName),
     );

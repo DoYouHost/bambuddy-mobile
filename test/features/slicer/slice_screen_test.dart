@@ -1,11 +1,12 @@
 import 'dart:convert';
 
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/features/slicer/slice_sheet.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -14,8 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-/// The slice sheet's process-override wiring: whether the entry appears, and
-/// what reaches the request body.
+/// The slice screen: its shape, and its process-override wiring — whether the
+/// entry appears, and what reaches the request body.
 ///
 /// The body is the point. `SliceRequest` forbids no extra fields, so a mistake
 /// here does not fail — it slices with settings nobody asked for, or silently
@@ -96,6 +97,7 @@ void main() {
     WidgetTester tester, {
     bool available = true,
     PresetValues presetValues = const PresetValues(resolved: true, reason: 'ok'),
+    List<FilamentRequirement> requirements = const [],
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -104,7 +106,7 @@ void main() {
         ownedPrinterCodesProvider.overrideWith((ref) async => const <String>{}),
         ownedFilamentsProvider
             .overrideWith((ref) async => const <OwnedFilament>[]),
-        filamentRequirementsProvider.overrideWith((ref, arg) async => const []),
+        filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
         presetValuesProvider.overrideWith((ref, arg) async => presetValues),
@@ -113,7 +115,7 @@ void main() {
         builder: (context) => Scaffold(
           body: Center(
             child: ElevatedButton(
-              onPressed: () => showSliceSheet(
+              onPressed: () => showSliceScreen(
                   context, const SliceTarget.archive(5, 'thing.3mf')),
               child: const Text('open'),
             ),
@@ -138,6 +140,35 @@ void main() {
     }
     return repo.body!;
   }
+
+  group('the shape of the form', () {
+    testWidgets('the plate and layout switches start folded away',
+        (tester) async {
+      // Three rows nobody touches on a normal slice, above the filaments.
+      await openSheet(tester);
+      expect(find.text('Zaawansowane'), findsOneWidget);
+      expect(find.text('Płyta robocza'), findsNothing);
+
+      await tester.tap(find.text('Zaawansowane'));
+      await tester.pumpAndSettle();
+      expect(find.text('Płyta robocza'), findsOneWidget);
+    });
+
+    testWidgets('the submit button is reachable without scrolling to it',
+        (tester) async {
+      // The reason this is a screen: as the last item of a scrolling sheet the
+      // button sat below the fold on a multicolour file, and was clipped.
+      await openSheet(tester, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', color: '#FF0000'),
+        FilamentRequirement(slotId: 2, type: 'PETG', color: '#00FF00'),
+        FilamentRequirement(slotId: 3, type: 'PETG', color: '#0000FF'),
+      ]);
+      expect(find.text('Filament 3'), findsOneWidget);
+      // Tapping it without any scrolling is the assertion.
+      final body = await slice(tester);
+      expect(body['filament_presets'], hasLength(3));
+    });
+  });
 
   group('the entry point', () {
     testWidgets('is absent when the server or our assets cannot support it',

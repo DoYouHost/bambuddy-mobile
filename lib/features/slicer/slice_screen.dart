@@ -14,6 +14,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../core/models/process_option.dart';
 import '../../core/slicer/process_settings_codec.dart';
+import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
 import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'process_settings_screen.dart';
@@ -30,25 +31,27 @@ class SliceTarget {
   final bool isArchive;
 }
 
-/// Opens the slice modal for [target]. Returns true if a slice completed
+/// Opens the slice form for [target]. Returns true if a slice completed
 /// successfully (so callers can refresh their lists). Caller is responsible for
 /// gating on [slicerEnabledProvider] / capabilities before showing.
-Future<bool> showSliceSheet(BuildContext context, SliceTarget target) async {
-  final done = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => _SliceSheet(target: target),
+///
+/// A pushed route rather than a bottom sheet. The form is nine rows before a
+/// multicolour file adds more, and in a sheet the submit button was the last
+/// item of the scrolling list — reachable only by scrolling past everything and
+/// clipped at the bottom edge. A screen gets an app bar and a pinned action bar.
+Future<bool> showSliceScreen(BuildContext context, SliceTarget target) async {
+  final done = await Navigator.of(context).push<bool>(
+    MaterialPageRoute(builder: (_) => _SliceScreen(target: target)),
   );
   return done ?? false;
 }
 
-class _SliceSheet extends ConsumerStatefulWidget {
-  const _SliceSheet({required this.target});
+class _SliceScreen extends ConsumerStatefulWidget {
+  const _SliceScreen({required this.target});
   final SliceTarget target;
 
   @override
-  ConsumerState<_SliceSheet> createState() => _SliceSheetState();
+  ConsumerState<_SliceScreen> createState() => _SliceScreenState();
 }
 
 /// Canonical BambuStudio / OrcaSlicer bed types accepted by `SliceRequest`'s
@@ -63,7 +66,7 @@ const _bedTypes = <String>[
   'Supertack Plate',
 ];
 
-class _SliceSheetState extends ConsumerState<_SliceSheet> {
+class _SliceScreenState extends ConsumerState<_SliceScreen> {
   SlicerPreset? _printer;
   SlicerPreset? _process;
   String? _bedType; // null = inherit from the process preset
@@ -105,15 +108,12 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
             .valueOrNull ??
         const <FilamentRequirement>[];
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-            16, 0, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+    return Scaffold(
+      appBar: dashAppBar(context, title: l10n.sliceTitle),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: presetsAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(24),
             child: Text(err is AppApiException
@@ -158,16 +158,17 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                 : ref.watch(presetValuesProvider(processRef)).valueOrNull;
             final overrides = _overridesFrom(schema, presetValues);
 
-            return ListView(
-              shrinkWrap: true,
+            return Column(
               children: [
-                Text(l10n.sliceTitle, style: theme.textTheme.titleLarge),
-                const SizedBox(height: 2),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    children: [
                 Text(widget.target.name,
                     style: theme.textTheme.bodySmall,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _slotTile(
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
@@ -200,18 +201,6 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                         all: presets.processes);
                     if (p != null && mounted) setState(() => _process = p);
                   },
-                ),
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.grid_on_outlined),
-                    title: Text(l10n.sliceBedType,
-                        style: theme.textTheme.labelMedium),
-                    subtitle: Text(_bedType ?? l10n.sliceBedDefault,
-                        style: theme.textTheme.bodyMedium),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _pickBedType,
-                  ).tagged('slice.bed_type'),
                 ),
                 // Absent, not disabled, unless the server accepts
                 // `process_overrides` *and* our own vendored metadata loaded —
@@ -248,39 +237,6 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                               ),
                     ).tagged('slice.process_settings'),
                   ),
-                // Hidden entirely before server 1.2.6: the fields are dropped
-                // without a word there, and a switch that does nothing is worse
-                // than no switch. See [sliceLayoutOptionsProvider].
-                if (ref
-                    .watch(sliceLayoutOptionsProvider)
-                    .maybeWhen(data: (v) => v, orElse: () => false)) ...[
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          value: _autoOrient,
-                          onChanged: (v) => setState(() => _autoOrient = v),
-                          secondary:
-                              const Icon(Icons.screen_rotation_alt_outlined),
-                          title: Text(l10n.sliceAutoOrient,
-                              style: theme.textTheme.labelMedium),
-                          subtitle: Text(l10n.sliceAutoOrientHint,
-                              style: theme.textTheme.bodySmall),
-                        ).tagged('slice.auto_orient'),
-                        SwitchListTile(
-                          value: _autoArrange,
-                          onChanged: (v) => setState(() => _autoArrange = v),
-                          secondary: const Icon(Icons.grid_view_outlined),
-                          title: Text(l10n.sliceAutoArrange,
-                              style: theme.textTheme.labelMedium),
-                          subtitle: Text(l10n.sliceAutoArrangeHint,
-                              style: theme.textTheme.bodySmall),
-                        ).tagged('slice.auto_arrange'),
-                      ],
-                    ),
-                  ),
-                ],
                 for (var i = 0; i < slotCount; i++)
                   _slotTile(
                     label: slotCount == 1
@@ -300,20 +256,93 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                       if (p != null && mounted) setState(() => _filaments[i] = p);
                     },
                   ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.layers_outlined),
-                  label: Text(l10n.sliceStart),
-                  onPressed: ready ? _submit : null,
-                ).tagged('slice.submit'),
+                _advancedSection(l10n, theme),
+                    ],
+                  ),
+                ),
+                _submitBar(l10n, ready),
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// Build plate and the two layout switches, collapsed.
+  ///
+  /// All three inherit from the preset unless the user knows better, and none is
+  /// touched on a normal slice — so they cost a tap rather than three rows above
+  /// the filaments. The process-settings entry stays out in the open: it carries
+  /// a count of what was changed, which says nothing while it is folded away.
+  Widget _advancedSection(AppLocalizations l10n, ThemeData theme) {
+    final layoutOptions = ref
+        .watch(sliceLayoutOptionsProvider)
+        .maybeWhen(data: (v) => v, orElse: () => false);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ExpansionTile(
+        leading: const Icon(Icons.settings_outlined),
+        title: Text(l10n.sliceAdvanced, style: theme.textTheme.labelMedium),
+        shape: const Border(),
+        collapsedShape: const Border(),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.grid_on_outlined),
+            title:
+                Text(l10n.sliceBedType, style: theme.textTheme.labelMedium),
+            subtitle: Text(_bedType ?? l10n.sliceBedDefault,
+                style: theme.textTheme.bodyMedium),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _pickBedType,
+          ).tagged('slice.bed_type'),
+          // Hidden entirely before server 1.2.6: the fields are dropped without
+          // a word there, and a switch that does nothing is worse than no
+          // switch. See [sliceLayoutOptionsProvider].
+          if (layoutOptions) ...[
+            SwitchListTile(
+              value: _autoOrient,
+              onChanged: (v) => setState(() => _autoOrient = v),
+              secondary: const Icon(Icons.screen_rotation_alt_outlined),
+              title:
+                  Text(l10n.sliceAutoOrient, style: theme.textTheme.labelMedium),
+              subtitle: Text(l10n.sliceAutoOrientHint,
+                  style: theme.textTheme.bodySmall),
+            ).tagged('slice.auto_orient'),
+            SwitchListTile(
+              value: _autoArrange,
+              onChanged: (v) => setState(() => _autoArrange = v),
+              secondary: const Icon(Icons.grid_view_outlined),
+              title: Text(l10n.sliceAutoArrange,
+                  style: theme.textTheme.labelMedium),
+              subtitle: Text(l10n.sliceAutoArrangeHint,
+                  style: theme.textTheme.bodySmall),
+            ).tagged('slice.auto_arrange'),
+          ],
+        ],
+      ).tagged('slice.advanced'),
+    );
+  }
+
+  /// The submit button, pinned outside the scroll area so it is never something
+  /// the user has to scroll a nine-row form to find.
+  Widget _submitBar(AppLocalizations l10n, bool ready) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            icon: _submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.layers_outlined),
+            label: Text(l10n.sliceStart),
+            onPressed: ready ? _submit : null,
+          ).tagged('slice.submit'),
         ),
       ),
     );

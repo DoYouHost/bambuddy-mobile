@@ -1313,6 +1313,7 @@
   "sliceAutoArrange": "Auto arrange",
   "sliceAutoArrangeHint": "Let the slicer lay the objects out on the plate. Off keeps the layout in the file.",
 
+  "sliceAdvanced": "Advanced",
   "processSettingsTitle": "Process settings",
   "sliceProcessSettingsNeedsProcess": "Pick a process preset first",
   "sliceProcessSettingsUnchanged": "Using the preset as it is",
