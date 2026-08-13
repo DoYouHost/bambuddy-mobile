@@ -60,6 +60,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get back => 'Back';
+
+  @override
   String get searchPrinters => 'Search printers…';
 
   @override
@@ -697,6 +700,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gcodeViewerError => 'Couldn\'t load the G-code preview.';
+
+  @override
+  String get gcodeViewerUnsupported =>
+      'This server no longer provides the built-in G-code preview, and the app can\'t draw it on its own yet.';
 
   @override
   String get archiveDelete => 'Delete';

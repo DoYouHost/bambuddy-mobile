@@ -1,15 +1,63 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api/endpoints.dart';
+import '../../core/diagnostics/diagnostic_recorder.dart';
+import '../../core/diagnostics/log_event.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/state_views.dart';
+
+/// What the injected script reported back about the page it landed on.
+///
+/// The channel exists because the page can fail in a way no HTTP status shows:
+/// a server that dropped the vendored viewer answers `/gcode-viewer/` from the
+/// SPA catch-all with a **200**, so `onWebResourceError` never fires and the
+/// screen would sit black forever — see
+/// `docs/plans/17-gcode-preview-server-viewer-swap.md`.
+enum GcodeViewerReport {
+  /// The adapter answered and was told to load the source.
+  ready,
+
+  /// The page came up without `BambuddyPrettyGCode`. That is a server past the
+  /// 1.2.6-cycle commit that deleted the vendored PrettyGCode tree; the app
+  /// cannot drive what is there now.
+  noAdapter,
+
+  /// The injected script threw before it could decide either way.
+  scriptError,
+}
+
+/// Maps a channel message to a [GcodeViewerReport]; `null` for anything else.
+///
+/// Deliberately strict: an unrecognised message must **not** resolve to a
+/// verdict. The report is what decides whether the user sees the viewer or an
+/// error, so a garbled message may only be ignored — a wrong guess in either
+/// direction replaces a working preview with an error page, or the reverse.
+@visibleForTesting
+GcodeViewerReport? parseGcodeViewerReport(String message) =>
+    switch (message.trim()) {
+      'ready' => GcodeViewerReport.ready,
+      'no-adapter' => GcodeViewerReport.noAdapter,
+      'error' => GcodeViewerReport.scriptError,
+      _ => null,
+    };
+
+/// Why the screen is showing an error instead of the viewer.
+enum _Failure {
+  /// The page did not load at all (main-frame error).
+  load,
+
+  /// The page loaded, but this server no longer carries the embedded viewer.
+  viewerRemoved,
+}
 
 /// Full-screen 3D G-code viewer. Embeds hosted PrettyGCode page
 /// (`<baseUrl>/gcode-viewer/`) in WebView.
@@ -24,6 +72,11 @@ import '../common/state_views.dart';
 ///  - [AuthMode.apiKey]→ wrap `window.fetch`, add X-API-Key header
 ///                       (adapter sends only Bearer);
 ///  - [AuthMode.none]  → nothing; server allows no auth.
+///
+/// **Servers past the 1.2.6 cycle have no such page.** The vendored viewer was
+/// deleted server-side and replaced with an SPA route the app cannot drive, so
+/// this screen only detects that and says so — drawing the preview ourselves is
+/// the plan, not this change.
 class GcodeViewerScreen extends ConsumerStatefulWidget {
   const GcodeViewerScreen({
     super.key,
@@ -51,15 +104,35 @@ class GcodeViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
+  /// Name the injected script posts to. Must match the JS below.
+  static const _channel = 'BambuddyReport';
+
+  /// How long to wait for a report before giving up on getting one.
+  ///
+  /// The script's own poll ends after ~5 s, so a report normally lands well
+  /// inside this. Timing out **reveals the page rather than erroring**: no
+  /// report means the channel itself did not work, which says nothing about
+  /// what the page is showing, and the old behaviour — show it, whatever it is
+  /// — is the safe answer to that.
+  static const _reportTimeout = Duration(seconds: 15);
+
   WebViewController? _controller;
   bool _ready = false;
-  bool _failed = false;
+  _Failure? _failure;
 
   /// Guards [_onPageFinished] against re-entrancy: `onPageFinished` can fire
   /// twice (redirect / reload) before the first call's `await` chain — auth
-  /// read + `runJavaScript` — has finished, and `_ready` alone doesn't catch
-  /// that since it's only set true at the very end of a successful run.
+  /// read + `runJavaScript` — has finished.
   bool _injecting = false;
+  bool _injected = false;
+
+  Timer? _watchdog;
+
+  @override
+  void dispose() {
+    _watchdog?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -70,13 +143,14 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   void _init() {
     final profile = ref.read(serverProfileProvider);
     if (profile == null) {
-      setState(() => _failed = true);
+      setState(() => _failure = _Failure.load);
       return;
     }
 
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF000000))
+      ..addJavaScriptChannel(_channel, onMessageReceived: _onReport)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) => _onPageFinished(profile),
@@ -84,7 +158,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           // (e.g. webcam image) whose 404 must NOT break entire screen with error view.
           onWebResourceError: (error) {
             if (error.isForMainFrame == true && mounted) {
-              setState(() => _failed = true);
+              setState(() => _failure = _Failure.load);
             }
           },
         ),
@@ -94,11 +168,35 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     setState(() => _controller = controller);
   }
 
+  void _onReport(JavaScriptMessage message) {
+    final report = parseGcodeViewerReport(message.message);
+    if (report == null || !mounted) return;
+    _watchdog?.cancel();
+
+    switch (report) {
+      case GcodeViewerReport.ready:
+        setState(() => _ready = true);
+      case GcodeViewerReport.noAdapter:
+        // Worth a record: from the log alone this is indistinguishable from a
+        // screen the user simply left, and it is the whole reason issue #17
+        // took a server clone to explain.
+        DiagnosticRecorder.active?.add(
+          LogSource.app,
+          'gcode_viewer',
+          lvl: LogLevel.warn,
+          fields: const {'state': 'no_adapter'},
+        );
+        setState(() => _failure = _Failure.viewerRemoved);
+      case GcodeViewerReport.scriptError:
+        setState(() => _failure = _Failure.load);
+    }
+  }
+
   /// Injects auth and starts source loading after bare viewer loads. Waits (JS poll)
   /// until adapter viewmodel is ready, only then calls `loadArchive`/`loadLibraryFile` —
   /// otherwise G-code fetch won't trigger.
   Future<void> _onPageFinished(ServerProfile profile) async {
-    if (_ready || _injecting) return; // Inject only once (first full load).
+    if (_injected || _injecting) return; // Inject only once (first full load).
     _injecting = true;
     try {
       await _inject(profile);
@@ -138,6 +236,9 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
     final script = '''
 (function () {
+  function report(what) {
+    try { $_channel.postMessage(what); } catch (e) {}
+  }
   try {
     var TOKEN = $tokenJs;
     var APIKEY = $apiKeyJs;
@@ -164,8 +265,13 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       var api = window.BambuddyPrettyGCode;
       if (api && api.getViewModel && api.getViewModel()) {
         api.$loadCall;
+        report('ready');
       } else if (tries++ < 100) {
         setTimeout(waitVM, 50);
+      } else {
+        // Five seconds without the adapter: this is not a slow page, it is a
+        // page that has no viewer in it.
+        report('no-adapter');
       }
     })();
 
@@ -188,12 +294,20 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       }
       if (dtries++ < 100) setTimeout(applyDark, 50);
     })();
-  } catch (e) { /* best-effort */ }
+  } catch (e) {
+    report('error');
+  }
 })();
 ''';
 
     await controller.runJavaScript(script);
-    if (mounted) setState(() => _ready = true);
+    if (!mounted) return;
+    _injected = true;
+    _watchdog?.cancel();
+    _watchdog = Timer(_reportTimeout, () {
+      if (!mounted || _ready || _failure != null) return;
+      setState(() => _ready = true);
+    });
   }
 
   @override
@@ -224,32 +338,43 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           ),
         ),
       ),
-      body: _failed
-          ? AsyncErrorView(
-              message: l10n.gcodeViewerError,
-              onRetry: _retry,
-              retryLabel: l10n.retry,
-              icon: Icons.broken_image_outlined,
-            )
-          : controller == null
-              ? const Center(child: CircularProgressIndicator())
-              : Stack(
-                  children: [
-                    WebViewWidget(controller: controller),
-                    if (!_ready)
-                      const Center(child: CircularProgressIndicator()),
-                  ],
-                ),
+      body: switch (_failure) {
+        // Nothing to retry: the page is gone from this server for good, so the
+        // only useful button is the way out.
+        _Failure.viewerRemoved => AsyncErrorView(
+            message: l10n.gcodeViewerUnsupported,
+            // `canPop` first: this route lives outside the shell, so a session
+            // restored straight onto it has nothing to pop back to.
+            onRetry: () => context.canPop() ? context.pop() : context.go('/'),
+            retryLabel: l10n.back,
+            icon: Icons.info_outline,
+          ),
+        _Failure.load => AsyncErrorView(
+            message: l10n.gcodeViewerError,
+            onRetry: _retry,
+            retryLabel: l10n.retry,
+            icon: Icons.broken_image_outlined,
+          ),
+        null => controller == null
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
+                children: [
+                  WebViewWidget(controller: controller),
+                  if (!_ready) const Center(child: CircularProgressIndicator()),
+                ],
+              ),
+      },
     );
   }
 
   void _retry() {
+    _watchdog?.cancel();
     setState(() {
-      _failed = false;
+      _failure = null;
       _ready = false;
+      _injected = false;
       _controller = null;
     });
     _init();
   }
 }
-

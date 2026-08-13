@@ -194,6 +194,12 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get retry;
 
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
   /// No description provided for @searchPrinters.
   ///
   /// In en, this message translates to:
@@ -1381,6 +1387,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the G-code preview.'**
   String get gcodeViewerError;
+
+  /// Shown when the server dropped the embedded PrettyGCode page (bambuddy 1.2.6 cycle) — nothing to retry, so the action is Back
+  ///
+  /// In en, this message translates to:
+  /// **'This server no longer provides the built-in G-code preview, and the app can\'t draw it on its own yet.'**
+  String get gcodeViewerUnsupported;
 
   /// No description provided for @archiveDelete.
   ///
