@@ -58,10 +58,18 @@ jobs:
           fetch-depth: 1
 
       - name: Fetch bambuddy server reference
+        timeout-minutes: 3
         run: |
-          rm -rf /tmp/bambuddy-server-ref
-          git clone --depth 1 --single-branch \
-            https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref
+          for attempt in 1 2; do
+            rm -rf /tmp/bambuddy-server-ref
+            if timeout -k 5 60 git clone --progress --depth 1 --single-branch \
+                 https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref; then
+              exit 0
+            fi
+            echo "::warning::clone attempt $attempt failed or hit the 60s cap"
+            [ "$attempt" = 2 ] || sleep 5
+          done
+          exit 1
 
       # The action's own setup-bun runs with caching disabled, so it refetches the
       # release asset every run; the runners have hit connection resets on that host.
