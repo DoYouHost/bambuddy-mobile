@@ -111,7 +111,8 @@ Release builds and releases go through [`just`](https://github.com/casey/just) (
 ```sh
 just build            # phone release APK (mobile flavor) -> build/dist/
 just build-wear       # watch release APK (wear flavor)   -> build/dist/
-just build-aab        # AABs for both flavors for Google Play -> build/dist/
+just build-aab        # phone Play bundle (Google Play)   -> build/dist/
+just build-wear-aab   # watch Play bundle (Google Play)   -> build/dist/
 just ship X.Y.Z       # full pipeline: bump + test + build + GitHub release
 ```
 
