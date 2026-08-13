@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/process_option.dart';
 import '../../core/models/slicer_preset.dart';
+import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_schema_catalog.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/slicer/process_toggle_rules.dart';
@@ -29,6 +30,7 @@ Future<void> showProcessSettings(
   required ProcessPresetRef preset,
   required Map<String, Object> values,
   required ValueChanged<Map<String, Object>> onChanged,
+  List<FilamentSlotChoice> filamentSlots = const [],
 }) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -36,6 +38,7 @@ Future<void> showProcessSettings(
         preset: preset,
         initialValues: values,
         onChanged: onChanged,
+        filamentSlots: filamentSlots,
       ),
     ),
   );
@@ -47,11 +50,17 @@ class ProcessSettingsScreen extends ConsumerStatefulWidget {
     required this.preset,
     required this.initialValues,
     required this.onChanged,
+    this.filamentSlots = const [],
   });
 
   final ProcessPresetRef preset;
   final Map<String, Object> initialValues;
   final ValueChanged<Map<String, Object>> onChanged;
+
+  /// The slots the caller's form offers, in order. Empty leaves the eight
+  /// slot-naming options as plain number fields — an STL has no slot list, and
+  /// an empty dropdown is worse than the field it would replace.
+  final List<FilamentSlotChoice> filamentSlots;
 
   @override
   ConsumerState<ProcessSettingsScreen> createState() =>
@@ -193,6 +202,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
                                 catalog.schema[key]!, presetValues),
                             value: _values[key],
                             presetValue: presetValues.values[key],
+                            filamentSlots: widget.filamentSlots,
                             enabled: !disabled.contains(key),
                             onChanged: (value) => _setValue(key, value),
                             onRevert: () => _revert(catalog.schema[key]!,
@@ -442,6 +452,7 @@ class _OptionRow extends StatelessWidget {
     required this.controller,
     required this.value,
     required this.presetValue,
+    required this.filamentSlots,
     required this.enabled,
     required this.onChanged,
     required this.onRevert,
@@ -451,6 +462,9 @@ class _OptionRow extends StatelessWidget {
   final TextEditingController controller;
   final Object? value;
   final Object? presetValue;
+
+  /// The caller's filament slots, for the eight options whose value names one.
+  final List<FilamentSlotChoice> filamentSlots;
 
   /// False when the slicer's own rules say this setting does nothing right now.
   /// The row stays visible: a missing row reads as a missing feature, and the
@@ -533,10 +547,78 @@ class _OptionRow extends StatelessWidget {
   }
 
   Widget _control(BuildContext context, AppLocalizations l10n) {
+    // Before the type branches, as on the server panel: the value *is* an int,
+    // but a spinner over "1, 2, 3" leaves the user mapping slot numbers to their
+    // own filaments by hand.
+    if (filamentSlots.isNotEmpty && namesFilamentSlot(option)) {
+      return _filamentSlotControl(context, l10n);
+    }
     if (option.type == OptionType.coEnum && option.enumValues != null) {
       return _enumControl(context);
     }
     return _textControl(context, l10n);
+  }
+
+  /// Slot picker for the eight options that store a filament slot index.
+  ///
+  /// Values stay strings, exactly as the number field it replaces emits them, so
+  /// nothing downstream can tell which control produced an edit.
+  Widget _filamentSlotControl(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final current = value?.toString() ?? baselineForDisplay(option, presetValue);
+    final offered = ['0', for (final slot in filamentSlots) '${slot.slot}'];
+
+    // A preset (or the source file) can name a slot this file does not have. It
+    // is shown as its own entry rather than left unselected: a blank control
+    // would hide the one value worth seeing. An empty value is not one of those
+    // — it is malformed, and a slot named "" would be an invention.
+    final missing =
+        current.isEmpty || offered.contains(current) ? null : current;
+
+    String slotLabel(FilamentSlotChoice slot) {
+      final text = l10n.processSettingsFilamentSlot('${slot.slot}', slot.label);
+      return slot.unused ? '$text · ${l10n.sliceFilamentUnused}' : text;
+    }
+
+    DropdownMenuEntry<String> entry(String value, String label,
+            {bool dim = false}) =>
+        DropdownMenuEntry(
+          value: value,
+          label: label,
+          // A DropdownMenuEntry cannot be wrapped, so the tag rides on the label
+          // widget — as in [_enumControl]. Ellipsised because preset names run
+          // well past the field's width.
+          labelWidget: logTag(
+            'process_settings.option_filament_value',
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: dim
+                  ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
+                  : null,
+            ),
+          ),
+        );
+
+    return DropdownMenu<String>(
+      // Keyed by the selection for the reason spelled out in [_enumControl].
+      key: ValueKey(current),
+      initialSelection: current,
+      enabled: enabled,
+      expandedInsets: EdgeInsets.zero,
+      menuHeight: 320,
+      requestFocusOnTap: false,
+      onSelected: (selected) => onChanged(selected),
+      dropdownMenuEntries: [
+        entry('0', l10n.processSettingsFilamentDefault),
+        for (final slot in filamentSlots)
+          entry('${slot.slot}', slotLabel(slot), dim: slot.unused),
+        if (missing != null)
+          entry(missing, l10n.processSettingsFilamentSlotMissing(missing),
+              dim: true),
+      ],
+    ).tagged('process_settings.option_filament');
   }
 
   /// M3 [DropdownMenu] rather than `DropdownButtonFormField`: the latter uses the

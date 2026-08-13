@@ -6458,6 +6458,24 @@ abstract class AppLocalizations {
   /// **'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.'**
   String get processSettingsDefaultsUnavailable;
 
+  /// No description provided for @processSettingsFilamentDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (the region\'s own filament)'**
+  String get processSettingsFilamentDefault;
+
+  /// No description provided for @processSettingsFilamentSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'{slot}: {name}'**
+  String processSettingsFilamentSlot(String slot, String name);
+
+  /// No description provided for @processSettingsFilamentSlotMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} — this file has no such slot'**
+  String processSettingsFilamentSlotMissing(String slot);
+
   /// No description provided for @sliceSelect.
   ///
   /// In en, this message translates to:

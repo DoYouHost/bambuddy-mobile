@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../core/models/process_option.dart';
+import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
@@ -248,6 +249,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                                 values: _processValues,
                                 onChanged: (next) =>
                                     setState(() => _processValues = next),
+                                filamentSlots: _filamentSlots(
+                                    slotCount, reqs, discriminated),
                               ),
                     ).tagged('slice.process_settings'),
                   ),
@@ -362,6 +365,32 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       schema: schema,
       presetValues: presetValues.values,
     );
+  }
+
+  /// The slots as the process-settings screen needs them: what to call each one
+  /// in the eight pickers whose value is a slot index.
+  ///
+  /// [discriminated] gates the unused mark for the same reason it gates it on the
+  /// rows above — all-used is also what the server's own fallback produces.
+  List<FilamentSlotChoice> _filamentSlots(
+    int slotCount,
+    List<FilamentRequirement> reqs,
+    bool discriminated,
+  ) {
+    final l10n = _l10n;
+    return [
+      for (var i = 0; i < slotCount; i++)
+        FilamentSlotChoice(
+          slot: i + 1,
+          // The picker prefixes the number itself, so the type — or failing that
+          // the bare word — is a more useful fallback than repeating it.
+          label: _filaments[i]?.name ??
+              (i < reqs.length ? reqs[i].type : null) ??
+              l10n.sliceFilament,
+          unused:
+              discriminated && i < reqs.length && !reqs[i].usedInPlate,
+        ),
+    ];
   }
 
   /// Grow/shrink the per-slot list, preserving existing picks.

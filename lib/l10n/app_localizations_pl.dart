@@ -3773,6 +3773,20 @@ class AppLocalizationsPl extends AppLocalizations {
       'Pokazujemy wartości domyślne slicera: nie udało się odczytać własnych wartości wybranego presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.';
 
   @override
+  String get processSettingsFilamentDefault =>
+      'Domyślny (filament danego obszaru)';
+
+  @override
+  String processSettingsFilamentSlot(String slot, String name) {
+    return '$slot: $name';
+  }
+
+  @override
+  String processSettingsFilamentSlotMissing(String slot) {
+    return 'Slot $slot — ten plik nie ma takiego slotu';
+  }
+
+  @override
   String get sliceSelect => 'Dotknij, aby wybrać';
 
   @override

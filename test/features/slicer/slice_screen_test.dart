@@ -35,6 +35,13 @@ const _schema = {
     'sidetext': '%',
     'default': 15,
   },
+  'support_filament': {
+    'type': 'coInt',
+    'mode': 'simple',
+    'label': 'Support/raft base',
+    'min': 0,
+    'default': 0,
+  },
 };
 
 const _tree = [
@@ -43,7 +50,7 @@ const _tree = [
     'groups': [
       {
         'group': 'Layer height',
-        'options': ['layer_height', 'sparse_infill_density'],
+        'options': ['layer_height', 'sparse_infill_density', 'support_filament'],
       },
     ],
   },
@@ -257,6 +264,35 @@ void main() {
         // The percent keeps its sign, which the bare field does not show.
         'sparse_infill_density': '25%',
       });
+    });
+
+    testWidgets('carries a filament slot as the index the slicer stores',
+        (tester) async {
+      // The form's own picks are what name the slots in there, so this proves the
+      // whole path: pick → label → index → body.
+      await openSheet(tester, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
+      ]);
+      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+          of: find.byKey(const ValueKey('support_filament')),
+          matching: find.byType(DropdownMenu<String>)));
+      await tester.pumpAndSettle();
+
+      // Named after the preset the form auto-picked, not "1" and "2"; and the
+      // slot the plate ignores says so here too.
+      expect(find.textContaining('1: Bambu PLA Basic'), findsWidgets);
+      expect(find.textContaining('Nieużywany na tej płycie'), findsWidgets);
+
+      await tester.tap(find.textContaining('2: Bambu PLA Basic').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      final body = await slice(tester);
+      expect(body['process_overrides'], {'support_filament': '2'});
     });
 
     testWidgets('drops an edit that matches what the preset already says',

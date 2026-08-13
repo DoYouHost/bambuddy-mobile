@@ -1190,6 +1190,11 @@
   "processSettingsDefaultsNotConfigured": "Pokazujemy wartości domyślne slicera: żaden kontener slicera nie jest skonfigurowany, więc nie da się odczytać wartości presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.",
   "processSettingsDefaultsSidecarUnavailable": "Pokazujemy wartości domyślne slicera: kontener slicera nie odpowiedział, więc nie da się odczytać wartości presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.",
   "processSettingsDefaultsUnavailable": "Pokazujemy wartości domyślne slicera: nie udało się odczytać własnych wartości wybranego presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.",
+  "processSettingsFilamentDefault": "Domyślny (filament danego obszaru)",
+  "processSettingsFilamentSlot": "{slot}: {name}",
+  "@processSettingsFilamentSlot": { "placeholders": { "slot": { "type": "String" }, "name": { "type": "String" } } },
+  "processSettingsFilamentSlotMissing": "Slot {slot} — ten plik nie ma takiego slotu",
+  "@processSettingsFilamentSlotMissing": { "placeholders": { "slot": { "type": "String" } } },
 
   "sliceSelect": "Dotknij, aby wybrać",
   "sliceStart": "Potnij",

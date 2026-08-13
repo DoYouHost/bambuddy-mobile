@@ -3713,6 +3713,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.';
 
   @override
+  String get processSettingsFilamentDefault =>
+      'Default (the region\'s own filament)';
+
+  @override
+  String processSettingsFilamentSlot(String slot, String name) {
+    return '$slot: $name';
+  }
+
+  @override
+  String processSettingsFilamentSlotMissing(String slot) {
+    return 'Slot $slot — this file has no such slot';
+  }
+
+  @override
   String get sliceSelect => 'Tap to select';
 
   @override
