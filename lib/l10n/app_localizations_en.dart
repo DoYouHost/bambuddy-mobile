@@ -3644,6 +3644,61 @@ class AppLocalizationsEn extends AppLocalizations {
       'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
 
   @override
+  String get processSettingsTitle => 'Process settings';
+
+  @override
+  String get processSettingsModeSimple => 'Simple';
+
+  @override
+  String get processSettingsModeAdvanced => 'Advanced';
+
+  @override
+  String get processSettingsModeExpert => 'Expert';
+
+  @override
+  String get processSettingsSearchHint => 'Search settings';
+
+  @override
+  String get processSettingsNoMatches => 'No settings match this search.';
+
+  @override
+  String get processSettingsRevert => 'Reset to the preset\'s value';
+
+  @override
+  String processSettingsRevertAll(int count) {
+    return 'Reset $count';
+  }
+
+  @override
+  String processSettingsOutOfRange(String range) {
+    return 'The slicer accepts $range';
+  }
+
+  @override
+  String get processSettingsDisabledHint =>
+      'The slicer ignores this with your current settings.';
+
+  @override
+  String get processSettingsUnavailable =>
+      'This server cannot report process settings for the selected preset.';
+
+  @override
+  String get processSettingsDefaultsOutdatedSidecar =>
+      'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsNotConfigured =>
+      'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsSidecarUnavailable =>
+      'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsUnavailable =>
+      'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.';
+
+  @override
   String get sliceSelect => 'Tap to select';
 
   @override

@@ -3702,6 +3702,62 @@ class AppLocalizationsPl extends AppLocalizations {
       'Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.';
 
   @override
+  String get processSettingsTitle => 'Ustawienia procesu';
+
+  @override
+  String get processSettingsModeSimple => 'Proste';
+
+  @override
+  String get processSettingsModeAdvanced => 'Zaawansowane';
+
+  @override
+  String get processSettingsModeExpert => 'Eksperckie';
+
+  @override
+  String get processSettingsSearchHint => 'Szukaj ustawień';
+
+  @override
+  String get processSettingsNoMatches =>
+      'Żadne ustawienie nie pasuje do zapytania.';
+
+  @override
+  String get processSettingsRevert => 'Przywróć wartość z presetu';
+
+  @override
+  String processSettingsRevertAll(int count) {
+    return 'Przywróć $count';
+  }
+
+  @override
+  String processSettingsOutOfRange(String range) {
+    return 'Slicer przyjmuje $range';
+  }
+
+  @override
+  String get processSettingsDisabledHint =>
+      'Przy obecnych ustawieniach slicer to pomija.';
+
+  @override
+  String get processSettingsUnavailable =>
+      'Ten serwer nie potrafi podać ustawień procesu dla wybranego presetu.';
+
+  @override
+  String get processSettingsDefaultsOutdatedSidecar =>
+      'Pokazujemy wartości domyślne slicera: kontener slicera jest starszy niż ta funkcja i nie potrafi podać wartości presetu. Zaktualizuj jego obraz, żeby je zobaczyć. Wszystko, czego nie zmienisz, nadal bierze się z presetu.';
+
+  @override
+  String get processSettingsDefaultsNotConfigured =>
+      'Pokazujemy wartości domyślne slicera: żaden kontener slicera nie jest skonfigurowany, więc nie da się odczytać wartości presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.';
+
+  @override
+  String get processSettingsDefaultsSidecarUnavailable =>
+      'Pokazujemy wartości domyślne slicera: kontener slicera nie odpowiedział, więc nie da się odczytać wartości presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.';
+
+  @override
+  String get processSettingsDefaultsUnavailable =>
+      'Pokazujemy wartości domyślne slicera: nie udało się odczytać własnych wartości wybranego presetu. Wszystko, czego nie zmienisz, nadal bierze się z presetu.';
+
+  @override
   String get sliceSelect => 'Dotknij, aby wybrać';
 
   @override
