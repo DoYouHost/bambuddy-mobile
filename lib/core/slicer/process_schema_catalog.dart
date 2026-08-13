@@ -51,6 +51,12 @@ class ProcessSchemaCatalog {
 
   /// False until [load] has succeeded, and permanently false if the assets are
   /// missing or corrupt — which is a build error, not a server problem.
+  ///
+  /// [toggles] is deliberately not part of this. A rule set that parsed to
+  /// nothing disables nothing, which is the same fail-open answer the evaluator
+  /// gives for any condition it cannot decide, so it is no reason to withhold
+  /// the whole screen. What catches a re-vendor that renamed the rule file's
+  /// keys is `test/core/slicer/process_schema_catalog_test.dart`, at build time.
   bool get isLoaded => _schema.isNotEmpty && _tree.isNotEmpty;
 
   /// Reads and parses the assets. Concurrent callers share one load, and a

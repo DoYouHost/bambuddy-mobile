@@ -25,4 +25,7 @@ schema/tree key parity in both directions and no option type the codec cannot
 serialise — so a re-vendor that adds an option the app cannot render fails there
 rather than in front of a user.
 
-See docs/plans/16-slicer-process-overrides.md §4.
+Rationale and the wider feature live in docs/plans/16-slicer-process-overrides.md
+§4 — one of the maintainer's local planning notes, which .gitignore keeps out of
+the repo, so expect it to be absent from a fresh clone. Everything a re-vendor
+needs is above.
