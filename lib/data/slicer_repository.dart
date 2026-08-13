@@ -91,8 +91,36 @@ class SlicerRepository {
         return UnifiedPresets.fromJson(res.data ?? const {});
       });
 
-  /// Filament slots a model needs (one per color). Best-effort: any failure
-  /// degrades to a single generic slot so the slice modal still works.
+  /// Filament slots a model needs, one per **project** slot.
+  ///
+  /// `full_slots` is what makes this correct for slicing rather than for
+  /// print-time AMS matching, and the server draws that line itself: "Only the
+  /// slice modal wants this; print-time AMS matching must keep the used-only
+  /// list" (`routes/library.py`). Without it the response holds only the slots
+  /// the plate consumes, while `filament_presets` is **positional** — so a file
+  /// whose only used slot is 4 offered one picker whose choice the slicer bound
+  /// to slot 1, leaving slot 4 on whatever the source had baked in (server
+  /// #2712). Each row carries `used_in_plate` so the unused ones can be marked.
+  ///
+  /// `plate_id` is what makes `used_in_plate` mean anything on a file that has
+  /// never been sliced. The server can only tell used from unused there by
+  /// running a preview slice, and it does that **only** when a plate is named
+  /// (`if project_filaments and plate_id is not None`); without one it falls
+  /// back to flagging every slot used. 1 because that is the plate this request
+  /// will slice — `SliceRequest.plate` left null means plate 1 on the sidecar —
+  /// so the two answers describe the same job. Whenever plate picking arrives,
+  /// this has to follow it.
+  ///
+  /// That preview is a real slice, but it is cached server-side per
+  /// `(kind, source_id, plate_id, content hash)`, so it costs once per file
+  /// rather than once per opening of the form.
+  ///
+  /// Not version-gated: both parameters and the flag predate 1.2.6, and an older
+  /// server that lacked them would ignore an undeclared query parameter and
+  /// answer exactly as it does today.
+  ///
+  /// Best-effort: any failure degrades to no slots, and the slice form falls
+  /// back to a single generic one.
   Future<List<FilamentRequirement>> filamentRequirements({
     required int id,
     required bool isArchive,
@@ -101,7 +129,10 @@ class SlicerRepository {
         ? Endpoints.archiveFilamentRequirements(id)
         : Endpoints.libraryFileFilamentRequirements(id);
     try {
-      final res = await _dio.get<Map<String, dynamic>>(path);
+      final res = await _dio.get<Map<String, dynamic>>(
+        path,
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
       return FilamentRequirement.parseList(res.data ?? const {});
     } on DioException {
       return const [];

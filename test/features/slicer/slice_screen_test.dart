@@ -170,6 +170,36 @@ void main() {
     });
   });
 
+  group('slots the plate does not use', () {
+    testWidgets('are marked, and still pickable', (tester) async {
+      // With full_slots the list covers every project slot, so a slot the plate
+      // ignores still needs a preset — the slicer wants one per slot. Saying
+      // which ones it ignores is what stops a hunt for the wrong spool.
+      await openSheet(tester, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: false),
+      ]);
+      expect(find.text('Nieużywany na tej płycie'), findsOneWidget);
+      expect(find.text('Filament 2'), findsOneWidget);
+
+      // Every slot still reaches the request, positionally.
+      final body = await slice(tester);
+      expect(body['filament_presets'], hasLength(2));
+    });
+
+    testWidgets('are not marked when the server discriminated nothing',
+        (tester) async {
+      // Its own fallback flags every slot used, so all-true means either "all
+      // used" or "could not tell" — marking then would claim knowledge nobody
+      // has.
+      await openSheet(tester, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', usedInPlate: true),
+        FilamentRequirement(slotId: 2, type: 'PETG', usedInPlate: true),
+      ]);
+      expect(find.text('Nieużywany na tej płycie'), findsNothing);
+    });
+  });
+
   group('the entry point', () {
     testWidgets('is absent when the server or our assets cannot support it',
         (tester) async {

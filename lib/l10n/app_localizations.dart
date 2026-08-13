@@ -6344,6 +6344,12 @@ abstract class AppLocalizations {
   /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
   String get sliceAutoArrangeHint;
 
+  /// No description provided for @sliceFilamentUnused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used by this plate'**
+  String get sliceFilamentUnused;
+
   /// No description provided for @sliceAdvanced.
   ///
   /// In en, this message translates to:

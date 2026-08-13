@@ -1168,6 +1168,7 @@
   "sliceAutoArrange": "Automatyczne rozmieszczenie",
   "sliceAutoArrangeHint": "Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.",
 
+  "sliceFilamentUnused": "Nieużywany na tej płycie",
   "sliceAdvanced": "Zaawansowane",
   "processSettingsTitle": "Ustawienia procesu",
   "sliceProcessSettingsNeedsProcess": "Najpierw wybierz preset procesu",

@@ -121,9 +121,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 : l10n.sliceNoPresets),
           ),
           data: (presets) {
-            // One filament slot per requirement (at least one).
+            // One picker per *project* slot, because `filament_presets` is
+            // positional — see [SlicerRepository.filamentRequirements].
             final slotCount = reqs.isEmpty ? 1 : reqs.length;
             _resizeFilaments(slotCount);
+            final discriminated = anyUnused(reqs);
 
             final printers = _filterPrinters(presets.printers, ownedCodes);
             _printer ??= _firstLocalOr(printers);
@@ -245,6 +247,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     icon: Icons.cable,
                     swatch: i < reqs.length ? colorFromHex(reqs[i].color) : null,
                     typeHint: i < reqs.length ? reqs[i].type : null,
+                    // Only when the server actually told used from unused —
+                    // its own fallback flags everything used, and marking every
+                    // row then would claim knowledge nobody has.
+                    unused: discriminated &&
+                        i < reqs.length &&
+                        !reqs[i].usedInPlate,
                     selected: _filaments[i],
                     onTap: () async {
                       final p = await _openPicker(
@@ -385,6 +393,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required VoidCallback onTap,
     Color? swatch,
     String? typeHint,
+    bool unused = false,
   }) {
     final theme = Theme.of(context);
     final subtitle = selected?.name ??
@@ -404,13 +413,26 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
               )
             : Icon(icon),
         title: Text(label, style: theme.textTheme.labelMedium),
-        subtitle: Text(subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color:
-                  selected == null ? theme.colorScheme.onSurfaceVariant : null,
-            )),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selected == null
+                      ? theme.colorScheme.onSurfaceVariant
+                      : null,
+                )),
+            // The slot still has to be picked — the slicer wants one preset per
+            // project slot — but saying which ones the plate ignores stops the
+            // user hunting for the right spool for a slot that prints nothing.
+            if (unused)
+              Text(_l10n.sliceFilamentUnused,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          ],
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ).tagged('slice.slot'),

@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:dio/dio.dart';
@@ -162,6 +163,91 @@ void main() {
       expect(values!.resolved, isFalse);
       expect(await repo.supportsProcessOverrides(), isFalse,
           reason: 'no version and no observation — the older contract');
+    });
+  });
+
+  group('filamentRequirements', () {
+    const path = '/api/v1/library/files/9/filament-requirements';
+
+    test('names the plate, or used_in_plate can never discriminate', () async {
+      // For a file that was never sliced the server decides used-vs-unused by
+      // running a preview slice, and it only does that when a plate is named.
+      // Without plate_id it flags every slot used and the marking is dead code.
+      // 1 matches what the slice itself does: SliceRequest.plate left null is
+      // plate 1 on the sidecar. The mock answers only this exact query, so a
+      // missing or different plate_id fails the call rather than passing quietly.
+      adapter.onGet(
+        path,
+        (s) => s.reply(200, {
+          'filaments': [
+            {'slot_id': 1, 'used_in_plate': true},
+            {'slot_id': 2, 'used_in_plate': false},
+          ],
+        }),
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
+      expect(anyUnused(await repo.filamentRequirements(id: 9, isArchive: false)),
+          isTrue);
+    });
+
+    test('asks for every project slot, not only the used ones', () async {
+      // `filament_presets` is positional, so a used-only list binds the user's
+      // pick to the wrong slot (server #2712). full_slots is what the server
+      // itself says the slice modal must send.
+      adapter.onGet(
+        path,
+        (s) => s.reply(200, {
+          'filaments': [
+            {'slot_id': 1, 'type': 'PLA', 'color': '#FF0000', 'used_in_plate': false},
+            {'slot_id': 2, 'type': 'PETG', 'color': '#00FF00', 'used_in_plate': true},
+          ],
+        }),
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
+
+      final reqs = await repo.filamentRequirements(id: 9, isArchive: false);
+      expect(reqs, hasLength(2));
+      expect(reqs[0].usedInPlate, isFalse);
+      expect(reqs[1].usedInPlate, isTrue);
+      expect(anyUnused(reqs), isTrue);
+    });
+
+    test('a row without the flag counts as used', () async {
+      // Absent means "cannot tell", and used keeps the slot offered rather than
+      // implying the plate ignores it.
+      adapter.onGet(
+        path,
+        (s) => s.reply(200, {
+          'filaments': [
+            {'slot_id': 1, 'type': 'PLA'},
+          ],
+        }),
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
+
+      final reqs = await repo.filamentRequirements(id: 9, isArchive: false);
+      expect(reqs.single.usedInPlate, isTrue);
+      expect(anyUnused(reqs), isFalse,
+          reason: 'nothing was discriminated, so nothing may be marked');
+    });
+
+    test('all-used is not a discrimination — the server falls back to it', () {
+      // When its preview slice yields nothing the server flags every slot used,
+      // so all-true is indistinguishable from "could not tell".
+      const all = [
+        FilamentRequirement(slotId: 1, usedInPlate: true),
+        FilamentRequirement(slotId: 2, usedInPlate: true),
+      ];
+      expect(anyUnused(all), isFalse);
+    });
+
+    test('a failure degrades to no slots rather than throwing', () async {
+      adapter.onGet(
+        path,
+        (s) => s.reply(500, {'detail': 'boom'}),
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
+      expect(await repo.filamentRequirements(id: 9, isArchive: false), isEmpty);
     });
   });
 }

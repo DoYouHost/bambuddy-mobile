@@ -3644,6 +3644,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
 
   @override
+  String get sliceFilamentUnused => 'Not used by this plate';
+
+  @override
   String get sliceAdvanced => 'Advanced';
 
   @override
