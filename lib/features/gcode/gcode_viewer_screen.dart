@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -14,69 +14,22 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/state_views.dart';
+import 'gcode_viewer_page.dart';
 
-/// What the injected script reported back about the page it landed on.
+/// Full-screen 3D G-code preview, drawn by the app.
 ///
-/// The channel exists because the page can fail in a way no HTTP status shows:
-/// a server that dropped the vendored viewer answers `/gcode-viewer/` from the
-/// SPA catch-all with a **200**, so `onWebResourceError` never fires and the
-/// screen would sit black forever — see
-/// `docs/plans/17-gcode-preview-server-viewer-swap.md`.
-enum GcodeViewerReport {
-  /// The adapter answered and was told to load the source.
-  ready,
-
-  /// The page came up without `BambuddyPrettyGCode`. That is a server past the
-  /// 1.2.6-cycle commit that deleted the vendored PrettyGCode tree; the app
-  /// cannot drive what is there now.
-  noAdapter,
-
-  /// The injected script threw before it could decide either way.
-  scriptError,
-}
-
-/// Maps a channel message to a [GcodeViewerReport]; `null` for anything else.
+/// The WebView runs a page this app composes and ships — three.js plus the
+/// slicer's own toolpath renderer, vendored from the server (see
+/// `tool/gcode_viewer/PROVENANCE`). It is loaded with the server's base URL so
+/// the one request it makes, for the G-code itself, is same-origin and carries
+/// this session's auth header. Nothing is written to the WebView's storage.
 ///
-/// Deliberately strict: an unrecognised message must **not** resolve to a
-/// verdict. The report is what decides whether the user sees the viewer or an
-/// error, so a garbled message may only be ignored — a wrong guess in either
-/// direction replaces a working preview with an error page, or the reverse.
-@visibleForTesting
-GcodeViewerReport? parseGcodeViewerReport(String message) =>
-    switch (message.trim()) {
-      'ready' => GcodeViewerReport.ready,
-      'no-adapter' => GcodeViewerReport.noAdapter,
-      'error' => GcodeViewerReport.scriptError,
-      _ => null,
-    };
-
-/// Why the screen is showing an error instead of the viewer.
-enum _Failure {
-  /// The page did not load at all (main-frame error).
-  load,
-
-  /// The page loaded, but this server no longer carries the embedded viewer.
-  viewerRemoved,
-}
-
-/// Full-screen 3D G-code viewer. Embeds hosted PrettyGCode page
-/// (`<baseUrl>/gcode-viewer/`) in WebView.
-///
-/// Page authenticates its API calls with `Bearer` token from `localStorage.auth_token`.
-/// Load bare viewer first (NO params — no API calls, so no 401 or SPA redirect), then
-/// on `onPageFinished` inject auth and manually call adapter public API
-/// `BambuddyPrettyGCode.loadArchive(...)`.
-///
-/// Auth by [AuthMode]:
-///  - [AuthMode.jwt]   → JWT to `localStorage.auth_token` (adapter adds Bearer);
-///  - [AuthMode.apiKey]→ wrap `window.fetch`, add X-API-Key header
-///                       (adapter sends only Bearer);
-///  - [AuthMode.none]  → nothing; server allows no auth.
-///
-/// **Servers past the 1.2.6 cycle have no such page.** The vendored viewer was
-/// deleted server-side and replaced with an SPA route the app cannot drive, so
-/// this screen only detects that and says so — drawing the preview ourselves is
-/// the plan, not this change.
+/// It used to drive a viewer page the **server** served. That page was deleted
+/// server-side in the 1.2.6 cycle and the app was left staring at an SPA it
+/// could not drive (issue #17). What is left is
+/// `GET /library/files/{id}/gcode` / `GET /archives/{id}/gcode`, which predate
+/// both of the server's viewers — so this works on every server generation the
+/// app supports, and stops depending on a page anyone can move.
 class GcodeViewerScreen extends ConsumerStatefulWidget {
   const GcodeViewerScreen({
     super.key,
@@ -85,18 +38,19 @@ class GcodeViewerScreen extends ConsumerStatefulWidget {
     this.plate,
     this.title,
   }) : assert(archiveId != null || libraryFileId != null,
-            'archiveId lub libraryFileId wymagane');
+            'archiveId or libraryFileId required');
 
-  /// Archive id to view (`?archive=`). Mutually exclusive with [libraryFileId].
+  /// Archive id to view. Mutually exclusive with [libraryFileId].
   final int? archiveId;
 
-  /// Library file id (`?library_file=`). Mutually exclusive with [archiveId].
+  /// Library file id. Mutually exclusive with [archiveId].
   final int? libraryFileId;
 
-  /// Plate number (1..N) for multi-plate archives; null → first plate.
+  /// Plate number (1..N) for a multi-plate archive; null → first plate.
+  /// Ignored for a library file, which the server always answers with plate 1.
   final int? plate;
 
-  /// Title on bar (e.g. print name); fallback from l10n.
+  /// Title on the bar (e.g. print name); falls back to l10n.
   final String? title;
 
   @override
@@ -104,36 +58,30 @@ class GcodeViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
-  /// Name the injected script posts to. Must match the JS below.
+  /// Name the page posts its report to. Must match `entry.js`.
   static const _channel = 'BambuddyReport';
 
-  /// How long to wait for a report before giving up on getting one.
+  /// How long to wait for a report before assuming one is never coming.
   ///
-  /// The script's own poll ends after ~5 s, so a report normally lands well
-  /// inside this. Timing out **reveals the page rather than erroring**: no
-  /// report means the channel itself did not work, which says nothing about
-  /// what the page is showing, and the old behaviour — show it, whatever it is
-  /// — is the safe answer to that.
-  static const _reportTimeout = Duration(seconds: 15);
+  /// Generous on purpose: the page has to fetch the whole G-code — tens of
+  /// megabytes on a big plate — and then parse it, which is seconds of main
+  /// thread on a phone. Only a page that never speaks at all hits this.
+  static const _reportTimeout = Duration(minutes: 3);
 
   WebViewController? _controller;
   bool _ready = false;
-  _Failure? _failure;
+  GcodeViewerReport? _failure;
+  Timer? _watchdog;
 
-  /// Guards [_onPageFinished] against re-entrancy: `onPageFinished` can fire
-  /// twice (redirect / reload) before the first call's `await` chain — auth
-  /// read + `runJavaScript` — has finished.
-  bool _injecting = false;
-  bool _injected = false;
-
-  /// Which load these flags belong to. Bumped by [_retry], and every step of
-  /// [_inject] after an `await` checks it, because a retry can land while the
-  /// previous injection is still reading credentials: without this the stale
-  /// run would script the discarded controller, mark the *new* page injected
-  /// and arm a watchdog for it, leaving the fresh load with no auth at all.
+  /// Bumped by [_retry]; every step after an `await` checks it, so a load the
+  /// user has already abandoned cannot script the WebView it left behind.
   int _attempt = 0;
 
-  Timer? _watchdog;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
@@ -141,38 +89,148 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     super.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _init();
+  /// Path of the G-code for whichever source this screen was opened on.
+  ///
+  /// The plate rides as a query on the archive route only: the library route
+  /// takes no plate — it answers with the first `.gcode` in the file whatever
+  /// is asked (`backend/app/api/routes/library.py:4936`).
+  String get _gcodeUrl {
+    if (widget.archiveId == null) {
+      return Endpoints.libraryFileGcode(widget.libraryFileId!);
+    }
+    final path = Endpoints.archiveGcode(widget.archiveId!);
+    return widget.plate == null ? path : '$path?plate=${widget.plate}';
   }
 
-  void _init() {
+  Future<void> _load() async {
+    final attempt = _attempt;
     final profile = ref.read(serverProfileProvider);
     if (profile == null) {
-      setState(() => _failure = _Failure.load);
+      setState(() =>
+          _failure = const GcodeViewerReport.failed(GcodeViewerError.network));
       return;
     }
 
+    final headers = await _authHeaders(profile);
+    if (!mounted || attempt != _attempt) return;
+
+    final filamentColors = await _filamentColors();
+    if (!mounted || attempt != _attempt) return;
+
+    final shell = await rootBundle.loadString(gcodeViewerShellAsset);
+    final bundle = await rootBundle.loadString(gcodeViewerBundleAsset);
+    if (!mounted || attempt != _attempt) return;
+
+    final l10n = AppLocalizations.of(context);
+    final document = buildViewerDocument(
+      shell: shell,
+      bundle: bundle,
+      config: GcodeViewerConfig(
+        gcodeUrl: _gcodeUrl,
+        headers: headers,
+        // The preview follows the SYSTEM theme, like the canvas behind it.
+        dark: MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+        // Already logical pixels, which is what a CSS pixel is in the WebView.
+        insetRight: MediaQuery.systemGestureInsetsOf(context).right,
+        filamentColors: filamentColors,
+        labels: {
+          'loading': l10n.gcodeViewerLoading,
+          'parsing': l10n.gcodeViewerParsing,
+          'failed': l10n.gcodeViewerError,
+          'travels': l10n.gcodeViewerTravels,
+          'colorByFilament': l10n.gcodeViewerColorByFilament,
+          'colorByFeature': l10n.gcodeViewerColorByFeature,
+          'colorByHeight': l10n.gcodeViewerColorByHeight,
+          'colorByWidth': l10n.gcodeViewerColorByWidth,
+        },
+        // One label per slot the file actually has, so the page never has to
+        // interpolate a translated string itself.
+        filamentLabels: {
+          for (var i = 0; i < filamentColors.length; i++)
+            i: l10n.gcodeViewerFilamentSlot(i + 1),
+        },
+        featureLabels: {
+          1: l10n.gcodeFeatureWall,
+          2: l10n.gcodeFeatureSparseInfill,
+          3: l10n.gcodeFeatureSolidInfill,
+          4: l10n.gcodeFeatureSkirt,
+          5: l10n.gcodeFeatureSupport,
+          7: l10n.gcodeFeatureGapFill,
+          9: l10n.gcodeFeatureBridge,
+          10: l10n.gcodeFeatureIroning,
+          11: l10n.gcodeFeaturePrimeTower,
+        },
+      ),
+    );
+
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF000000))
+      ..setBackgroundColor(const Color(0xFF1A1A1A))
       ..addJavaScriptChannel(_channel, onMessageReceived: _onReport)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (_) => _onPageFinished(profile),
-          // Only main frame error = actual load failure. Viewer pulls many resources
-          // (e.g. webcam image) whose 404 must NOT break entire screen with error view.
+          // Only a main-frame error is this page failing; the G-code request is
+          // the page's own, and it reports that one itself with the status.
           onWebResourceError: (error) {
             if (error.isForMainFrame == true && mounted) {
-              setState(() => _failure = _Failure.load);
+              setState(() => _failure =
+                  const GcodeViewerReport.failed(GcodeViewerError.script));
             }
           },
         ),
       )
-      ..loadRequest(Uri.parse('${profile.baseUrl}${Endpoints.gcodeViewer}'));
+      ..loadHtmlString(document, baseUrl: profile.baseUrl);
+
+    _watchdog?.cancel();
+    _watchdog = Timer(_reportTimeout, () {
+      if (!mounted || _ready || _failure != null) return;
+      setState(() => _failure =
+          const GcodeViewerReport.failed(GcodeViewerError.script));
+    });
 
     setState(() => _controller = controller);
+  }
+
+  /// AMS colours in tool order, for colouring the toolpath by filament.
+  ///
+  /// Best-effort by design: the repository already swallows its own failures
+  /// and answers with an empty list, and the preview is worth showing without
+  /// colours — the page falls back to colouring by feature, which is the more
+  /// useful view anyway on a single-material file.
+  ///
+  /// The slots are project-wide, so a multi-plate archive previewing plate 3
+  /// still gets the right colours for the tools that plate uses.
+  Future<List<String?>> _filamentColors() async {
+    final requirements =
+        await ref.read(slicerRepositoryProvider).filamentRequirements(
+              id: widget.archiveId ?? widget.libraryFileId!,
+              isArchive: widget.archiveId != null,
+            );
+    if (requirements.isEmpty) return const [];
+
+    // `slot_id` is 1-based and the G-code's tool numbers are 0-based, so a
+    // colour indexed straight by the slot lands one filament out.
+    final highest = requirements.fold(0, (max, r) => r.slotId > max ? r.slotId : max);
+    final colors = List<String?>.filled(highest, null);
+    for (final requirement in requirements) {
+      if (requirement.slotId < 1) continue;
+      colors[requirement.slotId - 1] = requirement.color;
+    }
+    return colors;
+  }
+
+  Future<Map<String, String>> _authHeaders(ServerProfile profile) async {
+    final creds = ref.read(credentialsStoreProvider);
+    switch (profile.authMode) {
+      case AuthMode.jwt:
+        final jwt = await creds.readJwt();
+        return jwt == null ? {} : {'Authorization': 'Bearer $jwt'};
+      case AuthMode.apiKey:
+        final key = await creds.readApiKey();
+        return key == null ? {} : {'X-API-Key': key};
+      case AuthMode.none:
+        return {};
+    }
   }
 
   void _onReport(JavaScriptMessage message) {
@@ -180,155 +238,47 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     if (report == null || !mounted) return;
     _watchdog?.cancel();
 
-    switch (report) {
-      case GcodeViewerReport.ready:
-        setState(() => _ready = true);
-      case GcodeViewerReport.noAdapter:
-        // Worth a record: from the log alone this is indistinguishable from a
-        // screen the user simply left, and it is the whole reason issue #17
-        // took a server clone to explain.
-        DiagnosticRecorder.active?.add(
-          LogSource.app,
-          'gcode_viewer',
-          lvl: LogLevel.warn,
-          fields: const {'state': 'no_adapter'},
-        );
-        setState(() => _failure = _Failure.viewerRemoved);
-      case GcodeViewerReport.scriptError:
-        setState(() => _failure = _Failure.load);
-    }
-  }
-
-  /// Injects auth and starts source loading after bare viewer loads. Waits (JS poll)
-  /// until adapter viewmodel is ready, only then calls `loadArchive`/`loadLibraryFile` —
-  /// otherwise G-code fetch won't trigger.
-  Future<void> _onPageFinished(ServerProfile profile) async {
-    if (_injected || _injecting) return; // Inject only once (first full load).
-    _injecting = true;
-    try {
-      await _inject(profile);
-    } finally {
-      _injecting = false;
-    }
-  }
-
-  Future<void> _inject(ServerProfile profile) async {
-    final controller = _controller;
-    if (controller == null) return;
-    final attempt = _attempt;
-
-    String? token;
-    String? apiKey;
-    final creds = ref.read(credentialsStoreProvider);
-    switch (profile.authMode) {
-      case AuthMode.jwt:
-        token = await creds.readJwt();
-      case AuthMode.apiKey:
-        apiKey = await creds.readApiKey();
-      case AuthMode.none:
-        break;
-    }
-    if (!mounted || attempt != _attempt) return;
-
-    final loadCall = widget.archiveId != null
-        ? 'loadArchive(${widget.archiveId}, ${widget.plate ?? 'undefined'})'
-        : 'loadLibraryFile(${widget.libraryFileId}, ${widget.plate ?? 'undefined'})';
-
-    // Viewer dark mode follows SYSTEM theme (not app theme).
-    final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-        Brightness.dark;
-
-    // jsonEncode → safe embedding of token/key as JS literals.
-    final tokenJs = token == null ? 'null' : jsonEncode(token);
-    final apiKeyJs = apiKey == null ? 'null' : jsonEncode(apiKey);
-
-    final script = '''
-(function () {
-  function report(what) {
-    try { $_channel.postMessage(what); } catch (e) {}
-  }
-  try {
-    var TOKEN = $tokenJs;
-    var APIKEY = $apiKeyJs;
-    var DARK = $dark;
-    if (TOKEN) {
-      // Best-effort: storage access can throw in a sandboxed/incognito WebView.
-      // The X-API-Key fetch patch below is the real auth path, so ignore failures.
-      try { localStorage.setItem('auth_token', TOKEN); } catch (e) {}
-      try { sessionStorage.setItem('auth_token', TOKEN); } catch (e) {}
-    }
-    if (APIKEY && !window.__bbApiKeyPatched) {
-      window.__bbApiKeyPatched = true;
-      var _f = window.fetch;
-      window.fetch = function (res, init) {
-        init = init || {};
-        var h = Object.assign({}, init.headers || {});
-        h['X-API-Key'] = APIKEY;
-        init.headers = h;
-        return _f(res, init);
-      };
-    }
-    var tries = 0;
-    (function waitVM() {
-      var api = window.BambuddyPrettyGCode;
-      if (api && api.getViewModel && api.getViewModel()) {
-        api.$loadCall;
-        report('ready');
-      } else if (tries++ < 100) {
-        setTimeout(waitVM, 50);
-      } else {
-        // Five seconds without the adapter: this is not a slow page, it is a
-        // page that has no viewer in it.
-        report('no-adapter');
-      }
-    })();
-
-    // Dark mode: PrettyGCode controls it via dat.GUI checkbox ("darkMode").
-    // pgSettings is private in closure, localStorage NOT read by default (opt-in "save locally"),
-    // so toggle via checkbox click — fires original handler (scene background + CSS class + render).
-    // Gui created in onTabChange only, so poll until it exists.
-    var dtries = 0;
-    (function applyDark() {
-      var labels = document.querySelectorAll('#mygui .cr.boolean .property-name');
-      for (var i = 0; i < labels.length; i++) {
-        if (labels[i].textContent.trim() === 'darkMode') {
-          var row = labels[i].closest('.cr.boolean');
-          var cb = row && row.querySelector('input[type=checkbox]');
-          if (cb) {
-            if (cb.checked !== DARK) cb.click();
-            return;
-          }
-        }
-      }
-      if (dtries++ < 100) setTimeout(applyDark, 50);
-    })();
-  } catch (e) {
-    report('error');
-  }
-})();
-''';
-
-    await controller.runJavaScript(script);
-    if (!mounted || attempt != _attempt) return;
-    _injected = true;
-    _watchdog?.cancel();
-    _watchdog = Timer(_reportTimeout, () {
-      if (!mounted || _ready || _failure != null) return;
+    if (report.ready) {
       setState(() => _ready = true);
-    });
+      return;
+    }
+    // Worth a record: a preview that never appears looks, from the log alone,
+    // exactly like a screen the user opened and left.
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'gcode_viewer',
+      lvl: LogLevel.warn,
+      fields: {'state': report.error!.name, 'status': report.status},
+    );
+    setState(() => _failure = report);
   }
+
+  /// The message for a failure, and whether trying again could change it.
+  (String, bool) _failureText(AppLocalizations l10n, GcodeViewerReport f) =>
+      switch (f.error!) {
+        GcodeViewerError.empty => (l10n.gcodeViewerEmpty, false),
+        GcodeViewerError.http => (
+            l10n.gcodeViewerHttpError(f.status ?? 0),
+            // 401/403 outlive a retry; a 5xx or a proxy hiccup does not.
+            f.status == null || f.status! >= 500,
+          ),
+        GcodeViewerError.network || GcodeViewerError.script => (
+            l10n.gcodeViewerError,
+            true,
+          ),
+      };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = _controller;
     // Fixed dark tokens regardless of system theme: the WebView canvas behind
-    // this bar is always black (matches the embedded viewer), so the bar must
-    // stay light-on-black even in light mode.
+    // this bar is dark, so the bar must stay light-on-dark even in light mode.
     const t = DashTokens.dark();
+    final failure = _failure;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1A1A1A),
       appBar: loggedAppBar(
         AppBar(
           backgroundColor: Colors.transparent,
@@ -346,32 +296,39 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           ),
         ),
       ),
-      body: switch (_failure) {
-        // Nothing to retry: the page is gone from this server for good, so the
-        // only useful button is the way out.
-        _Failure.viewerRemoved => AsyncErrorView(
-            message: l10n.gcodeViewerUnsupported,
-            // `canPop` first: this route lives outside the shell, so a session
-            // restored straight onto it has nothing to pop back to.
-            onRetry: () => context.canPop() ? context.pop() : context.go('/'),
-            retryLabel: l10n.back,
-            icon: Icons.info_outline,
-          ),
-        _Failure.load => AsyncErrorView(
-            message: l10n.gcodeViewerError,
-            onRetry: _retry,
-            retryLabel: l10n.retry,
-            icon: Icons.broken_image_outlined,
-          ),
-        null => controller == null
-            ? const Center(child: CircularProgressIndicator())
-            : Stack(
-                children: [
-                  WebViewWidget(controller: controller),
-                  if (!_ready) const Center(child: CircularProgressIndicator()),
-                ],
-              ),
-      },
+      body: failure != null
+          ? _errorView(l10n, failure)
+          : controller == null
+              ? const Center(child: CircularProgressIndicator())
+              // The page keeps its controls at its own edges, so it must not
+              // extend under the navigation bar: down there the system takes
+              // the touch and the slider never sees it.
+              : SafeArea(
+                  top: false,
+                  child: Stack(
+                    children: [
+                      WebViewWidget(controller: controller),
+                      if (!_ready)
+                        const Center(child: CircularProgressIndicator()),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _errorView(AppLocalizations l10n, GcodeViewerReport failure) {
+    final (message, canRetry) = _failureText(l10n, failure);
+    return AsyncErrorView(
+      message: message,
+      // Nothing to retry on an unsliced file or a refusal: the only useful
+      // button is the way out.
+      onRetry: canRetry
+          ? _retry
+          : () => context.canPop() ? context.pop() : context.go('/'),
+      retryLabel: canRetry ? l10n.retry : l10n.back,
+      icon: failure.error == GcodeViewerError.empty
+          ? Icons.layers_clear_outlined
+          : Icons.broken_image_outlined,
     );
   }
 
@@ -381,10 +338,8 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     setState(() {
       _failure = null;
       _ready = false;
-      _injected = false;
-      _injecting = false;
       _controller = null;
     });
-    _init();
+    _load();
   }
 }

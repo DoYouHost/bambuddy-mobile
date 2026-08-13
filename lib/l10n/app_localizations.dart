@@ -1388,11 +1388,119 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the G-code preview.'**
   String get gcodeViewerError;
 
-  /// Shown when the server dropped the embedded PrettyGCode page (bambuddy 1.2.6 cycle) — nothing to retry, so the action is Back
+  /// No description provided for @gcodeViewerLoading.
   ///
   /// In en, this message translates to:
-  /// **'This server no longer provides the built-in G-code preview, and the app can\'t draw it on its own yet.'**
-  String get gcodeViewerUnsupported;
+  /// **'Downloading G-code…'**
+  String get gcodeViewerLoading;
+
+  /// No description provided for @gcodeViewerParsing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the toolpath…'**
+  String get gcodeViewerParsing;
+
+  /// No description provided for @gcodeViewerTravels.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel moves'**
+  String get gcodeViewerTravels;
+
+  /// No description provided for @gcodeViewerColorByFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get gcodeViewerColorByFilament;
+
+  /// No description provided for @gcodeViewerColorByFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature'**
+  String get gcodeViewerColorByFeature;
+
+  /// No description provided for @gcodeViewerColorByHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get gcodeViewerColorByHeight;
+
+  /// No description provided for @gcodeViewerColorByWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get gcodeViewerColorByWidth;
+
+  /// No description provided for @gcodeViewerFilamentSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {n}'**
+  String gcodeViewerFilamentSlot(int n);
+
+  /// No description provided for @gcodeViewerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no toolpath in this file — it hasn\'t been sliced yet.'**
+  String get gcodeViewerEmpty;
+
+  /// No description provided for @gcodeViewerHttpError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server would not hand over the G-code for this file ({status}).'**
+  String gcodeViewerHttpError(int status);
+
+  /// No description provided for @gcodeFeatureWall.
+  ///
+  /// In en, this message translates to:
+  /// **'Walls'**
+  String get gcodeFeatureWall;
+
+  /// No description provided for @gcodeFeatureSparseInfill.
+  ///
+  /// In en, this message translates to:
+  /// **'Sparse infill'**
+  String get gcodeFeatureSparseInfill;
+
+  /// No description provided for @gcodeFeatureSolidInfill.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid infill'**
+  String get gcodeFeatureSolidInfill;
+
+  /// No description provided for @gcodeFeatureSkirt.
+  ///
+  /// In en, this message translates to:
+  /// **'Skirt / brim'**
+  String get gcodeFeatureSkirt;
+
+  /// No description provided for @gcodeFeatureSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get gcodeFeatureSupport;
+
+  /// No description provided for @gcodeFeatureGapFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Gap fill'**
+  String get gcodeFeatureGapFill;
+
+  /// No description provided for @gcodeFeatureBridge.
+  ///
+  /// In en, this message translates to:
+  /// **'Bridge / overhang'**
+  String get gcodeFeatureBridge;
+
+  /// No description provided for @gcodeFeatureIroning.
+  ///
+  /// In en, this message translates to:
+  /// **'Ironing'**
+  String get gcodeFeatureIroning;
+
+  /// No description provided for @gcodeFeaturePrimeTower.
+  ///
+  /// In en, this message translates to:
+  /// **'Prime tower'**
+  String get gcodeFeaturePrimeTower;
 
   /// No description provided for @archiveDelete.
   ///

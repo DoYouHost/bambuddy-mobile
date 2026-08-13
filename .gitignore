@@ -207,3 +207,7 @@ docs/plans/
 # projektów i wydruków są jego), a tool/scrub_fixtures.py maskuje sekrety, nie
 # tożsamość. Odtwarzasz je u siebie: tool/capture_fixtures.sh https://twój.serwer
 test/fixtures/captured/
+
+# Build tooling for the in-app G-code viewer bundle (assets/gcode/viewer.js
+# is committed; what builds it is not).
+tool/gcode_viewer/node_modules/

@@ -11,12 +11,6 @@
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
 
-  /// G-code browser page (PrettyGCode) served outside `/api/v1`.
-  /// Trailing slash required — `/gcode-viewer` (without slash) intentionally
-  /// falls back to SPA. Control via query: `?archive=<id>` or `?library_file=<id>`
-  /// (+ optionally `&plate=<N>`); auth read from `localStorage.auth_token`.
-  static const gcodeViewer = '/gcode-viewer/';
-
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
@@ -301,6 +295,15 @@ abstract final class Endpoints {
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
+  /// The archive's G-code as `text/plain`, unzipped from its 3MF
+  /// (`backend/app/api/routes/archives.py:3302`). Query `plate=N` picks
+  /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
+  ///
+  /// Older than either embedded viewer the server has had, and untouched by the
+  /// one it deleted — which is what makes it safe to draw the preview from.
+  static String archiveGcode(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/gcode';
+
   /// Viewing/slicing capabilities of an archive's 3MF — `{has_model, has_gcode,
   /// has_source, build_volume, filament_colors}`. Slice is only meaningful when
   /// `has_source` or `has_model` is true (gcode-only archives can't be parsed).
@@ -556,6 +559,14 @@ abstract final class Endpoints {
   /// header, similar to [archiveThumbnail].
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
+
+  /// The file's G-code as `text/plain`: a `.gcode` served as it is, a
+  /// `.gcode.3mf` unzipped first (`backend/app/api/routes/library.py:4913`).
+  ///
+  /// Takes no plate: the server returns the **first** `.gcode` in the archive
+  /// whatever is asked, so a multi-plate sliced file always previews plate 1.
+  static String libraryFileGcode(int fileId) =>
+      '$apiPrefix/library/files/$fileId/gcode';
 
   /// Move files to folder (`POST`, body `FileMoveRequest`:
   /// `{file_ids, folder_id}`; `folder_id=null` = root).

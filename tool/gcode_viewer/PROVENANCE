@@ -1,0 +1,62 @@
+The two files in src/vendor/ are copied verbatim from the bambuddy server's
+frontend. src/entry.js is ours; it wires them into the page the app loads.
+
+    source:  https://github.com/maziggy/bambuddy
+             frontend/src/lib/gcodeToolpath.ts       → src/vendor/gcodeToolpath.ts
+             frontend/src/lib/vendor/toolpathRenderer.js → src/vendor/toolpathRenderer.js
+    commit:  7c117dc6bc5ffef66aa81b8ea23619a386e22285
+    date:    2026-08-10
+    version: APP_VERSION = 1.2.6b1
+
+toolpathRenderer.js is itself vendored by the server, from `three-slicer@0.1.1`
+(https://github.com/kimgh06/Web_Three_Slicer), which ports OrcaSlicer's
+`libvgcode` — the renderer the desktop slicer draws its own preview with. That
+lineage is why a plate here looks like a plate in Studio rather than an
+approximation of one. All of it is AGPL-3.0-or-later, as is this app; the
+bundled output carries the same licence.
+
+Both files are copied rather than depended on: the npm package behind the
+renderer carries an 8 MB WASM slicing kernel and pins its own three.js version,
+and the parser is a single module with no package at all.
+
+## Why the app carries this at all
+
+The preview used to be a page served by bambuddy itself. The server deleted it
+in the 1.2.6 cycle and answers the old path from its SPA catch-all with a 200,
+which left the app on a black screen with no error to show (issue #17). Drawing
+the toolpath in the app removes the dependency on any server page: what is left
+is `GET /library/files/{id}/gcode` and `GET /archives/{id}/gcode`, plain API
+routes that predate both viewers and outlived one of them.
+
+The trade this makes is deliberate and worth remembering: an upstream fix to the
+parser or the renderer no longer reaches users through a server update. It
+reaches them when someone re-vendors here and ships a release.
+
+## To re-vendor
+
+The maintainer's server clone lives at reference/bambuddy:
+
+    cp reference/bambuddy/frontend/src/lib/gcodeToolpath.ts \
+       tool/gcode_viewer/src/vendor/
+    cp reference/bambuddy/frontend/src/lib/vendor/toolpathRenderer.js \
+       tool/gcode_viewer/src/vendor/
+
+then update the commit/date/version above and run, from this directory:
+
+    npm ci
+    npm run check     # the copies still read a BambuStudio plate
+    npm run build     # regenerates assets/gcode/viewer.js
+
+`npm run check` is the tripwire for a copy that landed truncated or from a
+version whose annotations moved — it parses a plate written the way BambuStudio
+writes one ("; FEATURE:", "; CHANGE_LAYER", "; Z_HEIGHT:", G2 arcs) and asserts
+the layer count, the line width and the bounds.
+
+Commit the regenerated `assets/gcode/viewer.js` with the sources, the way the
+`*.g.dart` files are committed: CI has no node, and the asset is what ships.
+
+## Rebuilding without the server clone
+
+Nothing here needs the clone except the copy step — the sources in src/vendor/
+are complete. `npm ci && npm run build` reproduces the asset from what is in
+this repository.

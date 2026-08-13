@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>
+      :root { color-scheme: dark; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1a1a1a;
+        font-family: system-ui, sans-serif;
+        color: #e6e6e6;
+        /* The canvas handles its own gestures; without this the page pans
+           under the orbit controls on a phone. */
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #view { position: absolute; inset: 0; }
+      #view canvas { display: block; }
+      #status {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-size: 15px;
+        background: #1a1a1a;
+      }
+      #ui { position: absolute; inset: 0; display: none; pointer-events: none; }
+
+      /* Controls sit in a panel rather than on the canvas: over a pale print
+         loose white text is unreadable, and the toolpath is what the screen is
+         for. */
+      #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        max-width: min(62vw, 280px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(24, 24, 24, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: auto;
+      }
+      #modes { display: flex; flex-wrap: wrap; gap: 4px; }
+      #modes button {
+        font: inherit;
+        font-size: 12px;
+        color: #b9b9b9;
+        background: transparent;
+        border: 0;
+        border-radius: 8px;
+        padding: 5px 10px;
+      }
+      #modes button.on { background: #00ae42; color: #06210f; font-weight: 600; }
+      #legend { display: flex; flex-direction: column; gap: 5px; font-size: 11px; }
+      .chip { display: inline-flex; align-items: center; gap: 7px; }
+      .chip::before {
+        content: '';
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--c);
+        flex: none;
+      }
+      /* Height and width colour by value, so their legend is the scale. */
+      .ramp { height: 8px; border-radius: 4px; }
+      .scale { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.75; }
+      label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; }
+
+      /*
+       * The layer window stands on the right edge, the way every slicer draws
+       * it, held off that edge by the system's own gesture inset: a control
+       * flush against the side of the screen competes with the back swipe and
+       * loses.
+       */
+      #layers {
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        right: calc(var(--inset-right, 0px) + 10px);
+        width: 44px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 0;
+        border-radius: 22px;
+        background: rgba(24, 24, 24, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: auto;
+        box-sizing: border-box;
+      }
+      #label-hi, #label-lo {
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.85;
+      }
+      /* The whole 44px column is the touch target; the visible rail is thin. */
+      #track {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        touch-action: none;
+      }
+      #track::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 4px;
+        transform: translateX(-50%);
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+      #fill {
+        position: absolute;
+        left: 50%;
+        width: 4px;
+        transform: translateX(-50%);
+        border-radius: 2px;
+        background: #00ae42;
+      }
+      .thumb {
+        position: absolute;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        margin-left: -9px;
+        margin-bottom: -9px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="view"></div>
+    <div id="ui">
+      <div id="panel">
+        <div id="modes"></div>
+        <label><input type="checkbox" id="travels" /><span id="travels-label"></span></label>
+        <div id="legend"></div>
+      </div>
+      <div id="layers">
+        <span id="label-hi"></span>
+        <div id="track">
+          <div id="fill"></div>
+          <div class="thumb" id="thumb-hi"></div>
+          <div class="thumb" id="thumb-lo"></div>
+        </div>
+        <span id="label-lo"></span>
+      </div>
+    </div>
+    <div id="status"></div>
+    <script>__BB_CONFIG__</script>
+    <script>__BB_BUNDLE__</script>
+  </body>
+</html>
