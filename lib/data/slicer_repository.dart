@@ -34,6 +34,18 @@ class SlicerRepository {
   /// supports overrides, it just could not read the preset's values.
   bool? _observedPresetValues;
 
+  /// Whether this caller was refused the route outright (403).
+  ///
+  /// Kept apart from [_observedPresetValues] because it answers a different
+  /// question: the route exists, this session may not use it. Recording it as an
+  /// observation about the *route* would outrank a correct version read for a
+  /// reason that has nothing to do with the server's version.
+  ///
+  /// Latching for the instance's life is safe — the repository is rebuilt when
+  /// `apiClientProvider` changes, so new credentials get a fresh answer — and a
+  /// later success clears it anyway.
+  bool _presetValuesForbidden = false;
+
   /// Whether this server accepts `process_overrides` on a slice request.
   ///
   /// Observation first, version second, `false` when neither knows — the panel
@@ -41,6 +53,9 @@ class SlicerRepository {
   /// (nothing forbids extra fields in `SliceRequest`, so they vanish without a
   /// word on an older server).
   Future<bool> supportsProcessOverrides() async {
+    // A refusal outranks both: the route being there is no use to a caller who
+    // may not call it, and the slice itself needs the same permission.
+    if (_presetValuesForbidden) return false;
     final observed = _observedPresetValues;
     if (observed != null) return observed;
     return await _serverVersion?.supports(ServerFeature.processOverrides) ??
@@ -76,8 +91,36 @@ class SlicerRepository {
         return UnifiedPresets.fromJson(res.data ?? const {});
       });
 
-  /// Filament slots a model needs (one per color). Best-effort: any failure
-  /// degrades to a single generic slot so the slice modal still works.
+  /// Filament slots a model needs, one per **project** slot.
+  ///
+  /// `full_slots` is what makes this correct for slicing rather than for
+  /// print-time AMS matching, and the server draws that line itself: "Only the
+  /// slice modal wants this; print-time AMS matching must keep the used-only
+  /// list" (`routes/library.py`). Without it the response holds only the slots
+  /// the plate consumes, while `filament_presets` is **positional** — so a file
+  /// whose only used slot is 4 offered one picker whose choice the slicer bound
+  /// to slot 1, leaving slot 4 on whatever the source had baked in (server
+  /// #2712). Each row carries `used_in_plate` so the unused ones can be marked.
+  ///
+  /// `plate_id` is what makes `used_in_plate` mean anything on a file that has
+  /// never been sliced. The server can only tell used from unused there by
+  /// running a preview slice, and it does that **only** when a plate is named
+  /// (`if project_filaments and plate_id is not None`); without one it falls
+  /// back to flagging every slot used. 1 because that is the plate this request
+  /// will slice — `SliceRequest.plate` left null means plate 1 on the sidecar —
+  /// so the two answers describe the same job. Whenever plate picking arrives,
+  /// this has to follow it.
+  ///
+  /// That preview is a real slice, but it is cached server-side per
+  /// `(kind, source_id, plate_id, content hash)`, so it costs once per file
+  /// rather than once per opening of the form.
+  ///
+  /// Not version-gated: both parameters and the flag predate 1.2.6, and an older
+  /// server that lacked them would ignore an undeclared query parameter and
+  /// answer exactly as it does today.
+  ///
+  /// Best-effort: any failure degrades to no slots, and the slice form falls
+  /// back to a single generic one.
   Future<List<FilamentRequirement>> filamentRequirements({
     required int id,
     required bool isArchive,
@@ -86,7 +129,10 @@ class SlicerRepository {
         ? Endpoints.archiveFilamentRequirements(id)
         : Endpoints.libraryFileFilamentRequirements(id);
     try {
-      final res = await _dio.get<Map<String, dynamic>>(path);
+      final res = await _dio.get<Map<String, dynamic>>(
+        path,
+        queryParameters: {'full_slots': true, 'plate_id': 1},
+      );
       return FilamentRequirement.parseList(res.data ?? const {});
     } on DioException {
       return const [];
@@ -96,15 +142,17 @@ class SlicerRepository {
   /// GET /slicer/preset-values — the chosen process preset's effective values,
   /// so the override fields start from what it really contains.
   ///
-  /// Null means the route is absent (404, server < 1.2.6) — the panel must not
-  /// be shown at all. A [PresetValues] with `resolved: false` means the route
-  /// answered but the values could not be read, which is a different thing: the
-  /// panel opens with schema defaults and explains why.
+  /// Null means the panel must not be shown, for either of two reasons: the
+  /// route is absent (404, server < 1.2.6), or this caller is refused it (403 —
+  /// the route needs `library:upload`, which the slice itself needs too, so
+  /// there is nothing to collect edits for). A [PresetValues] with
+  /// `resolved: false` is a different thing: the route answered but could not
+  /// read the preset, so the panel opens on schema defaults and explains why.
   ///
   /// Any other failure degrades to [PresetValues.unresolved] rather than
-  /// throwing: a blank panel beats an error dialog over a nicety. Auth is the
-  /// exception, as in [guardOrNull] — an expired session has to reach the app
-  /// or nothing redirects, and the user is left staring at empty fields.
+  /// throwing: a blank panel beats an error dialog over a nicety. An expired
+  /// session is the one exception, as in [guardOrNull] — swallow the 401 and
+  /// nothing redirects, leaving the user staring at empty fields.
   Future<PresetValues?> presetValues(SlicerPreset preset) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
@@ -112,10 +160,20 @@ class SlicerRepository {
         queryParameters: {...preset.toRef(), 'slot': 'process'},
       );
       _observedPresetValues = true;
+      _presetValuesForbidden = false;
       return PresetValues.fromJson(res.data ?? const {});
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
+      final status = e.response?.statusCode;
+      if (status == 404) {
         _observedPresetValues = false;
+        return null;
+      }
+      if (status == 403) {
+        // Deliberately handled before the AuthException rethrow below, which a
+        // 403 also maps to: unlike a 401 this is a permanent per-permission
+        // answer, and throwing it out of a panel read would surface a dialog for
+        // a control the user simply cannot have.
+        _presetValuesForbidden = true;
         return null;
       }
       final mapped = mapDioException(e);

@@ -23,7 +23,7 @@ import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
-import '../slicer/slice_sheet.dart';
+import '../slicer/slice_screen.dart';
 import 'archive_providers.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
@@ -320,7 +320,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// Slice from the bottom sheet: close it, open the slice modal.
   Future<void> _slice(Archive archive) async {
     Navigator.pop(context);
-    await showSliceSheet(
+    await showSliceScreen(
       context,
       SliceTarget.archive(archive.id, archive.displayName),
     );

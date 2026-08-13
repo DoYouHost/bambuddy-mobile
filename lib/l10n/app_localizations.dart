@@ -6344,6 +6344,138 @@ abstract class AppLocalizations {
   /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
   String get sliceAutoArrangeHint;
 
+  /// No description provided for @sliceFilamentUnused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used by this plate'**
+  String get sliceFilamentUnused;
+
+  /// No description provided for @processSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Process settings'**
+  String get processSettingsTitle;
+
+  /// No description provided for @sliceProcessSettingsNeedsProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a process preset first'**
+  String get sliceProcessSettingsNeedsProcess;
+
+  /// No description provided for @sliceProcessSettingsUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the preset as it is'**
+  String get sliceProcessSettingsUnchanged;
+
+  /// No description provided for @sliceProcessSettingsChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} changed'**
+  String sliceProcessSettingsChanged(int count);
+
+  /// No description provided for @processSettingsModeSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get processSettingsModeSimple;
+
+  /// No description provided for @processSettingsModeAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get processSettingsModeAdvanced;
+
+  /// No description provided for @processSettingsModeExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get processSettingsModeExpert;
+
+  /// No description provided for @processSettingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get processSettingsSearchHint;
+
+  /// No description provided for @processSettingsNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No settings match this search.'**
+  String get processSettingsNoMatches;
+
+  /// No description provided for @processSettingsRevert.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to the preset\'s value'**
+  String get processSettingsRevert;
+
+  /// No description provided for @processSettingsRevertAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {count}'**
+  String processSettingsRevertAll(int count);
+
+  /// No description provided for @processSettingsOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer accepts {range}'**
+  String processSettingsOutOfRange(String range);
+
+  /// No description provided for @processSettingsDisabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer ignores this with your current settings.'**
+  String get processSettingsDisabledHint;
+
+  /// No description provided for @processSettingsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This server cannot report process settings for the selected preset.'**
+  String get processSettingsUnavailable;
+
+  /// No description provided for @processSettingsDefaultsOutdatedSidecar.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsOutdatedSidecar;
+
+  /// No description provided for @processSettingsDefaultsNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsNotConfigured;
+
+  /// No description provided for @processSettingsDefaultsSidecarUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsSidecarUnavailable;
+
+  /// No description provided for @processSettingsDefaultsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsUnavailable;
+
+  /// No description provided for @processSettingsFilamentDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (the region\'s own filament)'**
+  String get processSettingsFilamentDefault;
+
+  /// No description provided for @processSettingsFilamentSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'{slot}: {name}'**
+  String processSettingsFilamentSlot(String slot, String name);
+
+  /// No description provided for @processSettingsFilamentSlotMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} — this file has no such slot'**
+  String processSettingsFilamentSlotMissing(String slot);
+
   /// No description provided for @sliceSelect.
   ///
   /// In en, this message translates to:
