@@ -3647,9 +3647,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceFilamentUnused => 'Not used by this plate';
 
   @override
-  String get sliceAdvanced => 'Advanced';
-
-  @override
   String get processSettingsTitle => 'Process settings';
 
   @override

@@ -6350,12 +6350,6 @@ abstract class AppLocalizations {
   /// **'Not used by this plate'**
   String get sliceFilamentUnused;
 
-  /// No description provided for @sliceAdvanced.
-  ///
-  /// In en, this message translates to:
-  /// **'Advanced'**
-  String get sliceAdvanced;
-
   /// No description provided for @processSettingsTitle.
   ///
   /// In en, this message translates to:

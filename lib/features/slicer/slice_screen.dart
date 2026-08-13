@@ -204,6 +204,18 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     if (p != null && mounted) setState(() => _process = p);
                   },
                 ),
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: const Icon(Icons.grid_on_outlined),
+                    title: Text(l10n.sliceBedType,
+                        style: theme.textTheme.labelMedium),
+                    subtitle: Text(_bedType ?? l10n.sliceBedDefault,
+                        style: theme.textTheme.bodyMedium),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _pickBedType,
+                  ).tagged('slice.bed_type'),
+                ),
                 // Absent, not disabled, unless the server accepts
                 // `process_overrides` *and* our own vendored metadata loaded —
                 // `SliceRequest` forbids no extra fields, so an older server
@@ -239,6 +251,38 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                               ),
                     ).tagged('slice.process_settings'),
                   ),
+                // Hidden entirely before server 1.2.6: the fields are dropped
+                // without a word there, and a switch that does nothing is worse
+                // than no switch. See [sliceLayoutOptionsProvider].
+                if (ref
+                    .watch(sliceLayoutOptionsProvider)
+                    .maybeWhen(data: (v) => v, orElse: () => false))
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          value: _autoOrient,
+                          onChanged: (v) => setState(() => _autoOrient = v),
+                          secondary:
+                              const Icon(Icons.screen_rotation_alt_outlined),
+                          title: Text(l10n.sliceAutoOrient,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoOrientHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_orient'),
+                        SwitchListTile(
+                          value: _autoArrange,
+                          onChanged: (v) => setState(() => _autoArrange = v),
+                          secondary: const Icon(Icons.grid_view_outlined),
+                          title: Text(l10n.sliceAutoArrange,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoArrangeHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_arrange'),
+                      ],
+                    ),
+                  ),
                 for (var i = 0; i < slotCount; i++)
                   _slotTile(
                     label: slotCount == 1
@@ -264,7 +308,6 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       if (p != null && mounted) setState(() => _filaments[i] = p);
                     },
                   ),
-                _advancedSection(l10n, theme),
                     ],
                   ),
                 ),
@@ -274,61 +317,6 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           },
         ),
       ),
-    );
-  }
-
-  /// Build plate and the two layout switches, collapsed.
-  ///
-  /// All three inherit from the preset unless the user knows better, and none is
-  /// touched on a normal slice — so they cost a tap rather than three rows above
-  /// the filaments. The process-settings entry stays out in the open: it carries
-  /// a count of what was changed, which says nothing while it is folded away.
-  Widget _advancedSection(AppLocalizations l10n, ThemeData theme) {
-    final layoutOptions = ref
-        .watch(sliceLayoutOptionsProvider)
-        .maybeWhen(data: (v) => v, orElse: () => false);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ExpansionTile(
-        leading: const Icon(Icons.settings_outlined),
-        title: Text(l10n.sliceAdvanced, style: theme.textTheme.labelMedium),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        children: [
-          ListTile(
-            leading: const Icon(Icons.grid_on_outlined),
-            title:
-                Text(l10n.sliceBedType, style: theme.textTheme.labelMedium),
-            subtitle: Text(_bedType ?? l10n.sliceBedDefault,
-                style: theme.textTheme.bodyMedium),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _pickBedType,
-          ).tagged('slice.bed_type'),
-          // Hidden entirely before server 1.2.6: the fields are dropped without
-          // a word there, and a switch that does nothing is worse than no
-          // switch. See [sliceLayoutOptionsProvider].
-          if (layoutOptions) ...[
-            SwitchListTile(
-              value: _autoOrient,
-              onChanged: (v) => setState(() => _autoOrient = v),
-              secondary: const Icon(Icons.screen_rotation_alt_outlined),
-              title:
-                  Text(l10n.sliceAutoOrient, style: theme.textTheme.labelMedium),
-              subtitle: Text(l10n.sliceAutoOrientHint,
-                  style: theme.textTheme.bodySmall),
-            ).tagged('slice.auto_orient'),
-            SwitchListTile(
-              value: _autoArrange,
-              onChanged: (v) => setState(() => _autoArrange = v),
-              secondary: const Icon(Icons.grid_view_outlined),
-              title: Text(l10n.sliceAutoArrange,
-                  style: theme.textTheme.labelMedium),
-              subtitle: Text(l10n.sliceAutoArrangeHint,
-                  style: theme.textTheme.bodySmall),
-            ).tagged('slice.auto_arrange'),
-          ],
-        ],
-      ).tagged('slice.advanced'),
     );
   }
 

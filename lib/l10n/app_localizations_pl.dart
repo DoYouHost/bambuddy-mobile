@@ -3705,9 +3705,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceFilamentUnused => 'Nieużywany na tej płycie';
 
   @override
-  String get sliceAdvanced => 'Zaawansowane';
-
-  @override
   String get processSettingsTitle => 'Ustawienia procesu';
 
   @override

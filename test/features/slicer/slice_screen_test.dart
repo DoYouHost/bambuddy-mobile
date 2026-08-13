@@ -142,16 +142,14 @@ void main() {
   }
 
   group('the shape of the form', () {
-    testWidgets('the plate and layout switches start folded away',
+    testWidgets('the plate is a plain row, not folded behind Advanced',
         (tester) async {
-      // Three rows nobody touches on a normal slice, above the filaments.
+      // It was briefly collapsed together with the layout switches; the plate
+      // and how objects land on it are basic choices, not expert ones, so they
+      // sit in the list like everything else.
       await openSheet(tester);
-      expect(find.text('Zaawansowane'), findsOneWidget);
-      expect(find.text('Płyta robocza'), findsNothing);
-
-      await tester.tap(find.text('Zaawansowane'));
-      await tester.pumpAndSettle();
       expect(find.text('Płyta robocza'), findsOneWidget);
+      expect(find.text('Zaawansowane'), findsNothing);
     });
 
     testWidgets('the submit button is reachable without scrolling to it',
@@ -163,8 +161,10 @@ void main() {
         FilamentRequirement(slotId: 2, type: 'PETG', color: '#00FF00'),
         FilamentRequirement(slotId: 3, type: 'PETG', color: '#0000FF'),
       ]);
-      expect(find.text('Filament 3'), findsOneWidget);
-      // Tapping it without any scrolling is the assertion.
+      // The form really is longer than the viewport — the last filament is
+      // below the fold, which is what used to bury the button with it.
+      expect(find.text('Filament 3'), findsNothing);
+      // And the button is still tappable without a single scroll.
       final body = await slice(tester);
       expect(body['filament_presets'], hasLength(3));
     });
