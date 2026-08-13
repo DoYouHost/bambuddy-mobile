@@ -20,6 +20,11 @@ _RawCatalog _decode(List<String> sources) => (
       jsonDecode(sources[2]) as Map<String, dynamic>,
     );
 
+/// Reads one asset by key. Injectable so tests can drive the degrade-to-empty
+/// paths, which are otherwise unreachable: the real keys are constants and a
+/// bundled asset is always valid.
+typedef AssetReader = Future<String> Function(String key);
+
 /// The vendored OrcaSlicer process metadata (`assets/slicer/`), loaded once per
 /// isolate and kept.
 ///
@@ -28,10 +33,13 @@ _RawCatalog _decode(List<String> sources) => (
 /// code, while a settings screen with no schema has nothing to show, so callers
 /// gate on [isLoaded] and keep the screen out of reach.
 class ProcessSchemaCatalog {
-  ProcessSchemaCatalog();
+  ProcessSchemaCatalog({AssetReader? readAsset})
+      : _readAsset = readAsset ?? rootBundle.loadString;
 
   /// Shared instance per isolate.
   static final ProcessSchemaCatalog instance = ProcessSchemaCatalog();
+
+  final AssetReader _readAsset;
 
   Map<String, ProcessOption> _schema = const {};
   List<ProcessPage> _tree = const [];
@@ -67,9 +75,9 @@ class ProcessSchemaCatalog {
   Future<void> _load() async {
     try {
       final sources = await Future.wait([
-        rootBundle.loadString('assets/slicer/process-schema.json'),
-        rootBundle.loadString('assets/slicer/process-ui-tree.json'),
-        rootBundle.loadString('assets/slicer/process-toggle-rules.json'),
+        _readAsset('assets/slicer/process-schema.json'),
+        _readAsset('assets/slicer/process-ui-tree.json'),
+        _readAsset('assets/slicer/process-toggle-rules.json'),
       ]);
       final (rawSchema, rawTree, rawToggles) = await compute(_decode, sources);
 

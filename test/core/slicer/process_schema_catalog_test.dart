@@ -82,6 +82,71 @@ void main() {
     });
   });
 
+  group('degrading rather than throwing', () {
+    /// The real files, so a "corrupt one file" case is otherwise realistic.
+    String onDisk(String name) =>
+        File('assets/slicer/$name').readAsStringSync();
+
+    Future<ProcessSchemaCatalog> loadWith(AssetReader reader) async {
+      final catalog = ProcessSchemaCatalog(readAsset: reader);
+      await catalog.load();
+      return catalog;
+    }
+
+    test('an unreadable asset leaves an empty catalog, not an exception',
+        () async {
+      final loaded =
+          await loadWith((key) => Future.error(Exception('no such asset')));
+      expect(loaded.isLoaded, isFalse);
+      expect(loaded.schema, isEmpty);
+      expect(loaded.tree, isEmpty);
+      expect(loaded.toggles.rules, isEmpty);
+    });
+
+    test('an asset that is not JSON leaves an empty catalog', () async {
+      final loaded = await loadWith((key) async => 'not json at all');
+      expect(loaded.isLoaded, isFalse);
+    });
+
+    test('valid JSON of the wrong shape leaves an empty catalog', () async {
+      // The schema as a list and the tree as an object: both casts in the
+      // decoder fail, which is the shape a mis-copied re-vendor would produce.
+      final loaded = await loadWith((key) async => '[]');
+      expect(loaded.isLoaded, isFalse);
+    });
+
+    test('a broken rule file still opens the screen, with nothing disabled',
+        () async {
+      // The documented fail-open decision, pinned: `isLoaded` deliberately
+      // ignores the toggles. Renamed keys in a re-vendor parse to no rules,
+      // which disables nothing — the same answer the evaluator gives for a
+      // condition it cannot decide, and no reason to withhold 348 options.
+      final loaded = await loadWith((key) async => switch (key) {
+            'assets/slicer/process-toggle-rules.json' => '{"lokals": {}}',
+            _ => onDisk(key.split('/').last),
+          });
+      expect(loaded.isLoaded, isTrue);
+      expect(loaded.schema, isNotEmpty);
+      expect(loaded.toggles.rules, isEmpty);
+      expect(loaded.toggles.locals, isEmpty);
+    });
+
+    test('a failed attempt is not retried', () async {
+      // A corrupt bundled asset does not become valid on the second tap, so the
+      // load is latched either way. Without this, every open of the screen would
+      // re-read and re-decode 156 KB to reach the same answer.
+      var reads = 0;
+      final catalog = ProcessSchemaCatalog(readAsset: (key) {
+        reads++;
+        return Future.error(Exception('boom'));
+      });
+      await catalog.load();
+      await catalog.load();
+      expect(reads, 3, reason: 'three assets, read once between them');
+      expect(catalog.isLoaded, isFalse);
+    });
+  });
+
   group('schema and tree cover each other', () {
     test('every tree key exists in the schema', () {
       final missing = <String>[];
