@@ -185,6 +185,18 @@ void main() {
       expect(isModified(layerHeight, null), isFalse);
     });
 
+    test('every empty shape a vector can take is not a change', () {
+      // The shapes differ but they all mean "nothing entered". Judging the raw
+      // input let `[]` through as a change, which sent an empty array — a value
+      // nobody typed, written straight into the process JSON.
+      final vector = option(OptionType.coFloats, defaultValue: [500]);
+      expect(isModified(vector, <Object>[]), isFalse);
+      expect(isModified(vector, <Object>['', '']), isFalse);
+      expect(isModified(vector, ''), isFalse);
+      expect(isModified(vector, ' , '), isFalse);
+      expect(isModified(vector, <Object>[600]), isTrue);
+    });
+
     test('percent forms compare through the serialiser', () {
       final percent = option(OptionType.coPercent, defaultValue: 50);
       expect(isModified(percent, '50'), isFalse);
@@ -314,6 +326,16 @@ void main() {
               schema: schema,
               presetValues: {'layer_height': '0.28'}),
           isEmpty);
+    });
+
+    test('an emptied vector sends nothing rather than an empty array', () {
+      for (final emptied in <Object>[<Object>[], <Object>['', ''], '', ' , ']) {
+        expect(
+            buildProcessOverrides(
+                values: {'default_acceleration': emptied}, schema: schema),
+            isEmpty,
+            reason: '$emptied');
+      }
     });
 
     test('a key with no schema entry is dropped, never sent raw', () {

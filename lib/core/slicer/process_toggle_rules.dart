@@ -93,19 +93,28 @@ class _ConfigReader {
   final Map<String, SettingValue> _values;
   final Map<String, ProcessOption> _schema;
 
-  /// The user's override if set, else the schema default. Vector options are
-  /// per-extruder and every condition in the rule set tests the first entry,
-  /// which is what `opt_float_nullable(key, variant_index)` reads for the active
-  /// variant.
+  /// The user's override if they set one, else the schema default.
+  ///
+  /// Unwrapping runs before the fallback, unlike upstream, so that *every* empty
+  /// shape falls back: there, an empty-string override fell back to the default
+  /// while an empty vector did not, and instead read as a value the rules could
+  /// not decide on.
   Object? read(String key) {
-    Object? value = _values[key];
-    if (value == null || value == '') value = _schema[key]?.defaultValue;
-    if (value is List) value = value.isEmpty ? null : value.first;
-    if (value is bool || value is num || value is String) return value;
-    return null;
+    final own = _firstScalar(_values[key]);
+    if (own != null && own != '') return own;
+    return _firstScalar(_schema[key]?.defaultValue);
   }
 
   bool has(String key) => _schema.containsKey(key);
+
+  /// Vector options are per-extruder and every condition in the rule set tests
+  /// the first entry — what `opt_float_nullable(key, variant_index)` reads for
+  /// the active variant. Anything a config value cannot be reads as unknown.
+  static Object? _firstScalar(Object? value) {
+    var scalar = value;
+    if (scalar is List) scalar = scalar.isEmpty ? null : scalar.first;
+    return (scalar is bool || scalar is num || scalar is String) ? scalar : null;
+  }
 }
 
 /// Accessor names that read a config key named by their first string argument.

@@ -123,19 +123,26 @@ Object serializeSetting(ProcessOption option, SettingValue value) {
 /// default would flag every field the preset moved off the C++ default as
 /// user-changed.
 bool isModified(ProcessOption option, Object? value, [Object? presetValue]) {
-  if (value == null || value == '') return false;
+  if (value == null) return false;
 
-  // Both sides through the same serialiser, so `20` and `20%` compare equal.
-  String flatten(Object v) {
-    final serialized =
-        serializeSetting(option, v is List ? v.map(_stringify).join(', ') : v);
-    return serialized is List ? serialized.join(', ') : serialized as String;
-  }
+  final asString = _flatten(option, value);
+  // Emptiness is judged *after* serialising, so every shape an untouched or
+  // cleared field takes is one case: `''`, an empty vector, and a vector of
+  // blanks all serialise to nothing. Checking the raw input instead let `[]`
+  // through as a change, which sent an empty array nobody typed.
+  if (asString.isEmpty) return false;
 
-  final asString = flatten(value);
   final baseline = presetValue ?? option.defaultValue;
-  if (baseline == null) return asString.isNotEmpty;
-  return asString != flatten(baseline);
+  if (baseline == null) return true;
+  return asString != _flatten(option, baseline);
+}
+
+/// Both sides of a comparison through the same serialiser, so `20` and `20%`
+/// compare equal on a percent and a list and its comma form do not differ.
+String _flatten(ProcessOption option, Object value) {
+  final serialized =
+      serializeSetting(option, value is List ? value.map(_stringify).join(', ') : value);
+  return serialized is List ? serialized.join(', ') : serialized as String;
 }
 
 /// The `process_overrides` map for a slice request: only the options the user

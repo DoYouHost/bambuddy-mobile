@@ -217,6 +217,26 @@ void main() {
               schema: schema, values: {'x': ''}),
           isTrue);
     });
+
+    test('an emptied vector falls back to the default, like an empty field', () {
+      // Upstream unwraps the list *after* the fallback, so an empty vector
+      // override skipped the default and read as undecidable while an empty
+      // string fell back. Both are "nothing entered" and behave alike here.
+      expect(
+          disables('config->opt_float("v") == 7',
+              schema: schema, values: {'v': <Object>[]}),
+          isFalse,
+          reason: 'falls back to [7, 9] and its first entry is 7');
+      expect(
+          disables('config->opt_float("v") == 9',
+              schema: schema, values: {'v': <Object>[]}),
+          isTrue);
+      // A non-empty override still wins, read at its first entry.
+      expect(
+          disables('config->opt_float("v") == 3',
+              schema: schema, values: {'v': <Object>[3, 4]}),
+          isFalse);
+    });
   });
 
   group('named locals', () {
