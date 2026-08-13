@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
@@ -60,7 +61,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _snack(String msg) =>
       _messenger.showSnackBar(SnackBar(content: Text(msg)));
 
-  String _errText(AppApiException e) => e.localized(_l10n);
+  /// Both halves of a failed action: the sentence, and the record that somebody
+  /// was stopped. Unmounted — the screen was left while the request was in
+  /// flight — there is neither a messenger nor an `l10n` to resolve, so only
+  /// the record is written, marked as one that reached nobody.
+  void _failed(AppApiException e, String action) => mounted
+      ? showApiFailure(_messenger, e, _l10n, action: action)
+      : recordActionFailure(e, action: action, shown: false);
 
   @override
   Widget build(BuildContext context) {
@@ -497,8 +504,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmFolderCreated);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.new_folder');
     }
   }
 
@@ -518,8 +524,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.folder.rename');
     }
   }
 
@@ -540,8 +545,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.folder.delete');
     }
   }
 
@@ -561,8 +565,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.rename');
     }
   }
 
@@ -580,8 +583,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmMoved);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.move');
     }
   }
 
@@ -601,8 +603,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.delete');
     }
   }
 
@@ -624,8 +625,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.delete_selected');
     }
   }
 
@@ -662,8 +662,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmVariantsGrouped(group.members.length));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.group_variants');
     }
   }
 
@@ -688,8 +687,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.queue_variants');
     }
   }
 
@@ -704,8 +702,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmVariantsUngrouped);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.ungroup_variants');
     }
   }
 
@@ -717,8 +714,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ref.read(fileManagerProvider.notifier).clearSelection();
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.add_to_queue');
     }
   }
 
@@ -728,8 +724,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.add_to_queue');
     }
   }
 
@@ -794,8 +789,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ref.invalidate(libraryStatsProvider);
       _snack(l10n.fmUploaded(name));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.upload');
     }
   }
 

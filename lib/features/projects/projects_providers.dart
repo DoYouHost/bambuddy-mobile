@@ -10,11 +10,14 @@ import '../../providers.dart';
 
 /// A mutation that is not an [AppApiException] never reached the server, so
 /// there is no reason to report beyond the failure itself.
-ActionOutcome _mapError(Object e) => e is AppApiException
-    ? ActionOutcome.failed(e, action: 'project.action')
+///
+/// [action] is the control that was touched: nine mutations pass through
+/// here, and one tag for all of them names none of them.
+ActionOutcome _mapError(Object e, String action) => e is AppApiException
+    ? ActionOutcome.failed(e, action: action)
     : ActionOutcome.failed(
         const ApiException(AppErrorCode.malformedResponse),
-        action: 'project.action',
+        action: action,
       );
 
 /// Active status filter for the projects list (`null` = all).
@@ -58,7 +61,7 @@ class ProjectsListNotifier
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
       if (previous != null) state = AsyncValue.data(previous);
-      return _mapError(e);
+      return _mapError(e, 'projects.delete');
     }
   }
 }
@@ -96,7 +99,7 @@ class ProjectDetailNotifier
       state = AsyncValue.data(updated);
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return _mapError(e);
+      return _mapError(e, 'project_form.save');
     }
   }
 }
@@ -124,20 +127,25 @@ class ProjectArchivesNotifier
     );
   }
 
-  Future<ActionOutcome> add(List<int> archiveIds) =>
-      _mutate(() => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds));
+  Future<ActionOutcome> add(List<int> archiveIds) => _mutate(
+      () => ref.read(projectsRepositoryProvider).addArchives(arg, archiveIds),
+      'project.archive_add');
 
-  Future<ActionOutcome> remove(int archiveId) =>
-      _mutate(() => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]));
+  Future<ActionOutcome> remove(int archiveId) => _mutate(
+      () => ref.read(projectsRepositoryProvider).removeArchives(arg, [archiveId]),
+      'project.archive_remove');
 
-  Future<ActionOutcome> _mutate(Future<void> Function() action) async {
+  Future<ActionOutcome> _mutate(
+    Future<void> Function() action,
+    String logId,
+  ) async {
     try {
       await action();
       await refresh();
       ref.invalidate(projectDetailProvider(arg));
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return _mapError(e);
+      return _mapError(e, logId);
     }
   }
 }
@@ -163,23 +171,29 @@ class ProjectBomNotifier
     );
   }
 
-  Future<ActionOutcome> add(BomItemInput body) =>
-      _mutate(() => ref.read(projectsRepositoryProvider).addBomItem(arg, body));
+  Future<ActionOutcome> add(BomItemInput body) => _mutate(
+      () => ref.read(projectsRepositoryProvider).addBomItem(arg, body),
+      'bom_item.save');
 
   Future<ActionOutcome> edit(int itemId, BomItemInput body) => _mutate(
-      () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body));
+      () => ref.read(projectsRepositoryProvider).updateBomItem(arg, itemId, body),
+      'bom_menu.edit');
 
-  Future<ActionOutcome> delete(int itemId) =>
-      _mutate(() => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId));
+  Future<ActionOutcome> delete(int itemId) => _mutate(
+      () => ref.read(projectsRepositoryProvider).deleteBomItem(arg, itemId),
+      'bom_menu.delete');
 
-  Future<ActionOutcome> _mutate(Future<void> Function() action) async {
+  Future<ActionOutcome> _mutate(
+    Future<void> Function() action,
+    String logId,
+  ) async {
     try {
       await action();
       await refresh();
       ref.invalidate(projectDetailProvider(arg));
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return _mapError(e);
+      return _mapError(e, logId);
     }
   }
 }

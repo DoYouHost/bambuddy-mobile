@@ -233,6 +233,7 @@ class _ApiKeyCard extends ConsumerWidget {
 
     final result = await runUserWrite(
       () => ref.read(apiKeysRepositoryProvider).delete(apiKey.id),
+      'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
     messenger.showSnackBar(SnackBar(

@@ -92,7 +92,7 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
       state = AsyncValue.data(current); // rollback
-      return ActionOutcome.failed(e, action: 'queue.action');
+      return ActionOutcome.failed(e, action: 'queue.reorder');
     }
   }
 
@@ -109,24 +109,27 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
       state = AsyncValue.data(current); // rollback
-      return ActionOutcome.failed(e, action: 'queue.action');
+      return ActionOutcome.failed(e, action: 'queue.swipe_delete');
     }
   }
 
   /// Manually start item — triggers physical print. On success, fetch fresh list
   /// (status changes server-side).
-  Future<ActionOutcome> start(int itemId) =>
-      _serverAction(() => ref.read(queueRepositoryProvider).start(itemId));
+  Future<ActionOutcome> start(int itemId) => _serverAction(
+      () => ref.read(queueRepositoryProvider).start(itemId),
+      'queue.start');
 
   /// Cancel queue item. On success, refresh list.
-  Future<ActionOutcome> cancel(int itemId) =>
-      _serverAction(() => ref.read(queueRepositoryProvider).cancel(itemId));
+  Future<ActionOutcome> cancel(int itemId) => _serverAction(
+      () => ref.read(queueRepositoryProvider).cancel(itemId),
+      'queue.cancel');
 
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
   Future<ActionOutcome> saveMapping(int itemId, List<int> mapping) =>
       _serverAction(
-          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping));
+          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping),
+          'queue.save_mapping');
 
   /// Assign indicated (free) printer and start item — triggers physical print.
   /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
@@ -144,23 +147,29 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
           await repo.setAmsMapping(itemId, amsMapping);
         }
         await repo.start(itemId);
-      });
+      }, 'queue.start_on_printer');
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via
   /// [QueueRepository.updateItem]. Error → mapped [ActionOutcome].
+  /// [logId] is the control the caller offered, so the seven mutations behind
+  /// this notifier do not all report as one tag.
   Future<ActionOutcome> runAction(
     Future<void> Function(QueueRepository repo) action,
+    String logId,
   ) =>
-      _serverAction(() => action(ref.read(queueRepositoryProvider)));
+      _serverAction(() => action(ref.read(queueRepositoryProvider)), logId);
 
-  Future<ActionOutcome> _serverAction(Future<void> Function() send) async {
+  Future<ActionOutcome> _serverAction(
+    Future<void> Function() send,
+    String logId,
+  ) async {
     try {
       await send();
       await refresh();
       return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return ActionOutcome.failed(e, action: 'queue.action');
+      return ActionOutcome.failed(e, action: logId);
     }
   }
 }

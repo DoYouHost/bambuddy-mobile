@@ -125,6 +125,7 @@ class GroupDetailScreen extends ConsumerWidget {
       context,
       ref,
       () => ref.read(groupsRepositoryProvider).addMember(group.id, picked.id),
+      'group_detail.add_member',
     );
   }
 
@@ -148,6 +149,7 @@ class GroupDetailScreen extends ConsumerWidget {
       ref,
       () =>
           ref.read(groupsRepositoryProvider).removeMember(group.id, member.id),
+      'group_detail.remove_member',
     );
   }
 
@@ -157,10 +159,11 @@ class GroupDetailScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Future<void> Function() action,
+    String logId,
   ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final result = await runUserWrite(action);
+    final result = await runUserWrite(action, logId);
     await ref.read(groupDetailProvider(groupId).notifier).refresh();
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
@@ -228,6 +231,7 @@ class _GroupMenu extends ConsumerWidget {
 
     final result = await runUserWrite(
       () => ref.read(groupsRepositoryProvider).delete(group.id),
+      'group_detail.delete',
     );
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);

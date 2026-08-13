@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../diagnostics/log_path.dart';
+
 /// Error codes for the API/auth layer. The core layer is UI-independent:
 /// translation to text happens at display time (see `lib/l10n/error_messages.dart`).
 enum AppErrorCode {
@@ -46,12 +48,28 @@ enum AppErrorCode {
 
 /// Carries the code the UI localizes, plus detail for the log.
 sealed class AppApiException implements Exception {
-  const AppApiException(this.code, {this.statusCode, this.detail});
+  const AppApiException(
+    this.code, {
+    this.statusCode,
+    this.detail,
+    this.method,
+    this.path,
+  });
 
   final AppErrorCode code;
 
   /// Set for [AppErrorCode.badResponse], null for the rest.
   final int? statusCode;
+
+  /// The call that failed, for the `action_failed` record: without it a reader
+  /// has to guess which of the requests in flight the failure belongs to.
+  ///
+  /// [path] has been through [loggablePath], the same reduction `HttpProbe`
+  /// records with: no host, no query string, and no segment the user named.
+  /// Null for an exception the app raised itself rather than mapped from a
+  /// response.
+  final String? method;
+  final String? path;
 
   /// What the server wrote, when it wrote anything: the `detail` of a FastAPI
   /// error, or `DioException.message` for a failure that never reached one.
@@ -86,17 +104,33 @@ sealed class AppApiException implements Exception {
 
 /// 4xx/5xx other than 401/403, or a response of unexpected shape.
 class ApiException extends AppApiException {
-  const ApiException(super.code, {super.statusCode, super.detail});
+  const ApiException(
+    super.code, {
+    super.statusCode,
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// Bad credentials, an expired token or key, or missing permissions.
 class AuthException extends AppApiException {
-  const AuthException(super.code, {super.detail});
+  const AuthException(
+    super.code, {
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// Timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
-  const NetworkException(super.code, {super.detail});
+  const NetworkException(
+    super.code, {
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// The `on DioException catch (e) { throw mapDioException(e); }` every
@@ -139,7 +173,13 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   }
   final detail = _detailOf(e.response?.data);
   if (detail == null) return mapped;
-  return ApiException(mapped.code, statusCode: status, detail: detail);
+  return ApiException(
+    mapped.code,
+    statusCode: status,
+    detail: detail,
+    method: mapped.method,
+    path: mapped.path,
+  );
 }
 
 /// FastAPI answers a rule violation with `{"detail": "..."}` and a schema
@@ -166,17 +206,22 @@ AppApiException mapDioException(DioException e) {
   if (e.error is AppApiException) {
     return e.error! as AppApiException;
   }
+  final method = e.requestOptions.method;
+  // The same reduction `HttpProbe` records with: no host, no query, and no
+  // segment the user named.
+  final path = loggablePath(e.requestOptions.uri.path);
   switch (e.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
       return NetworkException(AppErrorCode.serverUnreachable,
-          detail: e.message);
+          detail: e.message, method: method, path: path);
     case DioExceptionType.badResponse:
       final code = e.response?.statusCode;
       if (code == 401) {
-        return const AuthException(AppErrorCode.unauthorized);
+        return AuthException(AppErrorCode.unauthorized,
+            method: method, path: path);
       }
       if (code == 403) {
         // The only party that knows *which* permission is missing is the
@@ -187,17 +232,22 @@ AppApiException mapDioException(DioException e) {
         return AuthException(
           AppErrorCode.forbidden,
           detail: _detailOf(e.response?.data),
+          method: method,
+          path: path,
         );
       }
       if (code == 429) {
-        return const ApiException(AppErrorCode.tooManyAttempts,
-            statusCode: 429);
+        return ApiException(AppErrorCode.tooManyAttempts,
+            statusCode: 429, method: method, path: path);
       }
-      return ApiException(AppErrorCode.badResponse, statusCode: code);
+      return ApiException(AppErrorCode.badResponse,
+          statusCode: code, method: method, path: path);
     case DioExceptionType.badCertificate:
-      return const NetworkException(AppErrorCode.badCertificate);
+      return NetworkException(AppErrorCode.badCertificate,
+          method: method, path: path);
     case DioExceptionType.cancel:
     case DioExceptionType.unknown:
-      return NetworkException(AppErrorCode.connectionError, detail: e.message);
+      return NetworkException(AppErrorCode.connectionError,
+          detail: e.message, method: method, path: path);
   }
 }

@@ -235,4 +235,62 @@ void main() {
       );
     });
   });
+
+  group('the call the failure came from', () {
+    // `action_failed` carries these so a reader is not left matching it against
+    // the `http` lane by eye, which is guesswork with two requests in flight.
+    test('every mapped failure names its method and path', () {
+      final cases = <String, AppApiException>{
+        '401': mapDioException(_badResponse(401)),
+        '403': mapDioException(_badResponse(403)),
+        '429': mapDioException(_badResponse(429)),
+        '500': mapDioException(_badResponse(500)),
+        'offline': mapDioException(_ofType(DioExceptionType.connectionError)),
+        'timeout': mapDioException(_ofType(DioExceptionType.receiveTimeout)),
+        'tls': mapDioException(_ofType(DioExceptionType.badCertificate)),
+      };
+      cases.forEach((name, mapped) {
+        expect(mapped.method, 'GET', reason: name);
+        expect(mapped.path, isNotEmpty, reason: name);
+      });
+    });
+
+    test('the path is the sanitised one, without host or query', () {
+      // Same reduction `HttpProbe` applies: the host is the user's private
+      // network and camera tokens live in the query string.
+      final options = RequestOptions(
+        path: '/api/v1/printers/1/camera',
+        baseUrl: 'http://192.168.1.50:8080',
+        queryParameters: const {'token': 'secret'},
+      );
+      final mapped = mapDioException(DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 500,
+        ),
+      ));
+
+      expect(mapped.path, '/api/v1/printers/1/camera');
+      expect(mapped.path, isNot(contains('192.168')));
+      expect(mapped.path, isNot(contains('secret')));
+    });
+
+    test('keeping a 422 detail keeps the call with it', () {
+      final options = RequestOptions(path: '/api/v1/inventory/spools');
+      final mapped = mapDioExceptionKeepingDetail(DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 422,
+          data: const {'detail': 'rgba must be RRGGBBAA'},
+        ),
+      ));
+
+      expect(mapped.detail, 'rgba must be RRGGBBAA');
+      expect(mapped.path, '/api/v1/inventory/spools');
+    });
+  });
 }

@@ -429,7 +429,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     } on Object {
       result = ActionOutcome.failed(
         const ApiException(AppErrorCode.malformedResponse),
-        action: 'project.save',
+        action: 'project_form.save',
       );
     }
 

@@ -302,7 +302,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       );
       if (body.isEmpty) return;
       await repo.update(existing.id, body);
-    });
+    }, 'group_form.save');
 
     ref.invalidate(groupsListProvider);
     if (existing != null) {

@@ -9,6 +9,7 @@ import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import 'project_common.dart';
@@ -731,7 +732,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.cover_upload');
     }
   }
 
@@ -745,7 +746,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.cover_delete');
     }
   }
 
@@ -766,7 +767,7 @@ class _OverflowMenu extends ConsumerWidget {
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectExported(path))));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.export');
     }
   }
 
@@ -778,7 +779,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.invalidate(projectTemplatesProvider);
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectTemplateCreated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.create_template');
     }
   }
 

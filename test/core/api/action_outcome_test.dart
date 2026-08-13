@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:bambuddy_mobile/core/api/action_failure.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
@@ -121,6 +122,51 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single['status'], 500);
       expect(rows.single.containsKey('action'), isFalse);
+    });
+
+    test('the record names the call, so it stands without the http lane',
+        () async {
+      // Two requests in flight and the `http` record above this one is a coin
+      // toss; the method and path make it unambiguous.
+      recordActionFailure(
+        const AuthException(
+          AppErrorCode.forbidden,
+          detail: 'nope',
+          method: 'POST',
+          path: '/api/v1/queue/12/start',
+        ),
+        action: 'queue.start',
+      );
+
+      final rows = await failures();
+      expect(rows.single['method'], 'POST');
+      expect(rows.single['path'], '/api/v1/queue/12/start');
+    });
+
+    test('a message nobody was there to read is marked as such', () async {
+      // The screen was left while the request was in flight. Before this the
+      // `if (!mounted) return;` dropped it, and a failed save read as a
+      // successful one.
+      recordActionFailure(
+        const ApiException(AppErrorCode.badResponse, statusCode: 500),
+        action: 'spool_form.save',
+        shown: false,
+      );
+
+      final rows = await failures();
+      expect(rows.single['shown'], isFalse);
+    });
+
+    test('the ordinary row does not carry a shown flag at all', () async {
+      // Written only in the negative, like `http`'s `empty` — the row that
+      // reached somebody is the common one and stays short.
+      recordActionFailure(
+        const ApiException(AppErrorCode.badResponse, statusCode: 500),
+        action: 'spool_form.save',
+      );
+
+      final rows = await failures();
+      expect(rows.single.containsKey('shown'), isFalse);
     });
   });
 }

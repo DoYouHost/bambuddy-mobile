@@ -295,9 +295,9 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
         );
       }
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _busy = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _busy = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'labels.print');
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);

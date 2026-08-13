@@ -1,5 +1,4 @@
-import '../diagnostics/diagnostic_recorder.dart';
-import '../diagnostics/log_event.dart';
+import 'action_failure.dart';
 import 'api_exceptions.dart';
 
 /// What a notifier hands back after running an action on the user's behalf.
@@ -16,24 +15,14 @@ import 'api_exceptions.dart';
 sealed class ActionOutcome {
   const ActionOutcome();
 
-  /// Records the failure as one the user is about to be told about. `http` logs
-  /// every error response, but nothing there separates a refusal that stopped
-  /// somebody from one a screen absorbed. [action] is the control they touched,
-  /// in the `logTag` vocabulary.
+  /// Records the failure as one the user is about to be told about, then
+  /// carries it out to the widget that can word it. [action] is the control
+  /// they touched, in the `logTag` vocabulary.
+  ///
+  /// The recording itself is [recordActionFailure], shared with the screens
+  /// that snack on the spot and never build an outcome.
   factory ActionOutcome.failed(AppApiException error, {String? action}) {
-    DiagnosticRecorder.active?.add(
-      LogSource.app,
-      'action_failed',
-      lvl: LogLevel.warn,
-      fields: {
-        'action': action,
-        'code': error.code.name,
-        'status': error.statusCode,
-        // What makes a 403 actionable. In the `http` record's body too, but
-        // only as an unparsed blob that clipping can take the end off.
-        'reason': error.detail,
-      },
-    );
+    recordActionFailure(error, action: action);
     return ActionFailed(error);
   }
 

@@ -13,6 +13,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
@@ -682,7 +683,7 @@ Future<void> _startQueueItem(
     try {
       await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'queue.plate_clear');
       return;
     }
   }
@@ -728,7 +729,7 @@ Future<Printer?> _pickQueuePrinter(
   try {
     candidates = await ref.read(availablePrintersProvider.future);
   } on AppApiException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+    showApiFailure(messenger, e, l10n, action: 'queue.pick_printer');
     return null;
   }
   if (!context.mounted) return null;

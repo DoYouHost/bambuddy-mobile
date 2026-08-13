@@ -37,11 +37,20 @@ and only `FilamentMaterial.known` values survive — checked on both sides, sinc
 | HTTP | headers | the API key lives there |
 | HTTP | query string | camera and thumbnail tokens live there |
 | HTTP | host | the user's private network; the header carries scheme, port and name-vs-IP instead |
+| HTTP | path segments that are not a route | `/projects/{id}/attachments/{filename}` puts the user's own text in a path |
 | HTTP | `/auth/*`, `/cloud/*`, `/makerworld/*`, `/settings/*`, `/users/*` bodies | tokens, credentials, people |
 | WebSocket | the frame payload | model and file names, spool names, printer serials |
 | notifications | `title` and `body` | the job label or the printer's name |
 | interactions | accessibility labels | see the naming rule |
 | 2FA | pre-auth token, cookie value, the code typed, the address | |
+
+The path is reduced by `loggablePath` before anything records it, and that rule
+is inverted for the same reason sampling is: a segment survives only if it looks
+like a route the server or we named. One endpoint today interpolates a filename,
+and a denylist of such routes would have to be remembered by whoever writes the
+next one. Measured against every route in `Endpoints`, the rule masks none of
+them — a test keeps it that way, so a future endpoint written in a style the
+rule eats fails in CI rather than in a report.
 
 Sampling is an **allowlist, not a denylist**: forgetting an endpoint costs a
 diagnosis, forgetting one in a denylist costs a secret. A prefix on the allowlist
@@ -79,17 +88,35 @@ and a preview of the body. What that cannot say is whether anyone was *stopped*
 by it: a screen that quietly hides a section on a 403 and one that refuses the
 tap the user just made look identical there.
 
-So the shared `ActionOutcome.failed` — the single funnel every feature's actions
-now pass through — writes one record for a failure the user is about to be told
-about: the `action` they touched (in the `logTag` vocabulary), the `code`, the
-`status`, and the server's own `reason`. That `reason` is the field worth having.
-A 403 is the one refusal a code cannot explain, and the sentence naming the
-missing permission (`API key owner does not have 'printers:control' permission`)
-exists nowhere else in structured form — only inside the `http` record's body
-blob, if it was not clipped.
+So `recordActionFailure` writes one record for a failure the user is about to be
+told about: the `action` they touched (in the `logTag` vocabulary), the `method`
+and `path` of the call, the `code`, the `status`, and the server's own `reason`.
+That `reason` is the field worth having. A 403 is the one refusal a code cannot
+explain, and the sentence naming the missing permission (`API key owner does not
+have 'printers:control' permission`) exists nowhere else in structured form —
+only inside the `http` record's body blob, if it was not clipped. `method` and
+`path` are what make the record stand on its own: matching it against the `http`
+lane by eye is guesswork whenever more than one call is in flight.
 
-Reading a report, the `http` record above it says which call it was; this one
-says it reached the user and how it was worded to them.
+**Two doors reach it**, because there are two shapes of caller and only one
+event. A notifier holds no `BuildContext`, so `ActionOutcome.failed` carries the
+failure out to a widget that can word it. A screen already holds one, so
+`showApiFailure` snacks on the spot. The recording used to live inside the
+outcome's constructor, which meant it marked "a notifier used the outcome type"
+rather than "a person was told something failed" — and three quarters of our
+error handling never builds an outcome. Recording belongs to the event.
+
+Not in `localized`, though it looks like the obvious place: about twenty of its
+call sites are error-state builders, and a widget stuck on an error rebuilds. See
+"Repeats" below for what that would do to the buffer.
+
+A `shown: false` says the message was built and then not delivered — the screen
+was left while the request was in flight. Absent means it landed. That case used
+to be an `if (!mounted) return;` and nothing at all in the log, which made a
+failed save indistinguishable from a successful one.
+
+Reading a report, the record says which control was touched, which call it made,
+that it reached the user, and how it was worded to them.
 
 ## Repeats
 
