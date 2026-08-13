@@ -100,5 +100,68 @@ void main() {
       expect(repo.supportsProcessOverrides(), completion(isFalse),
           reason: 'a rejected call proves nothing about the route');
     });
+
+    test('a refusal hides the panel without throwing', () async {
+      // 403 maps to AuthException like a 401 does, but it means something else
+      // entirely: this caller lacks `library:upload`, permanently. Throwing it
+      // out of a panel read would put a dialog in front of a control the user
+      // cannot have — and the slice needs the same permission anyway.
+      adapter.onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(403, {'detail': "API key does not have 'library:upload'"}),
+        queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
+      );
+
+      expect(await repo.presetValues(preset), isNull);
+      expect(await repo.supportsProcessOverrides(), isFalse);
+    });
+
+    test('a refusal is not recorded as an answer about the route', () async {
+      // The distinction that matters: a 403 says nothing about whether the
+      // server has the route, so it must not latch the observation that
+      // outranks the version. A caller who gains the permission gets the panel.
+      final dio = Dio(BaseOptions(baseUrl: 'http://s.local:8000'));
+      final repo = SlicerRepository(dio);
+      const query = {'source': 'local', 'id': '12', 'slot': 'process'};
+
+      // A second DioAdapter replaces the first on the same Dio, which is how the
+      // one repository instance gets to see two different answers.
+      DioAdapter(dio: dio).onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(403, {'detail': 'nope'}),
+        queryParameters: query,
+      );
+
+      expect(await repo.presetValues(preset), isNull);
+      expect(await repo.supportsProcessOverrides(), isFalse);
+
+      DioAdapter(dio: dio).onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(200, {'resolved': true, 'values': {}, 'reason': 'ok'}),
+        queryParameters: query,
+      );
+
+      expect(await repo.presetValues(preset), isNotNull);
+      expect(await repo.supportsProcessOverrides(), isTrue,
+          reason: 'the refusal was about the caller, not the server');
+    });
+
+    test('a 400 from a bad slot is not read as the route being absent', () async {
+      // Only `slot=process` is supported and anything else is a 400
+      // (routes/slicer_presets.py). We always send `process`, but a 400 must
+      // never latch "no such route" — that would hide the panel for the session
+      // on a server that has it.
+      adapter.onGet(
+        '/api/v1/slicer/preset-values',
+        (s) => s.reply(400, {'detail': "Only the 'process' slot is supported"}),
+        queryParameters: {'source': 'local', 'id': '12', 'slot': 'process'},
+      );
+
+      final values = await repo.presetValues(preset);
+      expect(values, isNotNull, reason: 'degrades to unresolved, not to null');
+      expect(values!.resolved, isFalse);
+      expect(await repo.supportsProcessOverrides(), isFalse,
+          reason: 'no version and no observation — the older contract');
+    });
   });
 }
