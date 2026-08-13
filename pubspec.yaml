@@ -62,6 +62,12 @@ flutter:
   generate: true
   assets:
     - assets/hms/
+    # Listed file by file rather than as a directory: these three are vendored
+    # from the server (assets/slicer/PROVENANCE), and that note has no business
+    # in the APK.
+    - assets/slicer/process-schema.json
+    - assets/slicer/process-ui-tree.json
+    - assets/slicer/process-toggle-rules.json
     - assets/icons/
     - assets/icon/icon.png
   fonts:

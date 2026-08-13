@@ -1,0 +1,28 @@
+The three JSON files in this directory are vendored verbatim from the bambuddy
+server's frontend, which generates them from OrcaSlicer's own PrintConfig.cpp
+and Tab.cpp via scripts/generate-slicer-schema.mjs.
+
+    source:  https://github.com/maziggy/bambuddy
+             frontend/src/data/slicer/
+    commit:  7c117dc6bc5ffef66aa81b8ea23619a386e22285
+    date:    2026-08-10
+    version: APP_VERSION = 1.2.6b1
+
+They are a copy of a copy: when OrcaSlicer changes an option, the server
+re-vendors and this directory has to follow, or the process-settings screen
+writes values the slicer no longer honours.
+
+To re-vendor (the maintainer's server clone lives at reference/bambuddy):
+
+    cp reference/bambuddy/frontend/src/data/slicer/process-schema.json \
+       reference/bambuddy/frontend/src/data/slicer/process-ui-tree.json \
+       reference/bambuddy/frontend/src/data/slicer/process-toggle-rules.json \
+       assets/slicer/
+
+then update the commit/date/version above and run `flutter test
+test/core/slicer/`. Those tests assert the invariants the screen depends on —
+schema/tree key parity in both directions and no option type the codec cannot
+serialise — so a re-vendor that adds an option the app cannot render fails there
+rather than in front of a user.
+
+See docs/plans/16-slicer-process-overrides.md §4.
