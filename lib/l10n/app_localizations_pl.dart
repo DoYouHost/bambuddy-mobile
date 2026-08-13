@@ -3705,6 +3705,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get processSettingsTitle => 'Ustawienia procesu';
 
   @override
+  String get sliceProcessSettingsNeedsProcess =>
+      'Najpierw wybierz preset procesu';
+
+  @override
+  String get sliceProcessSettingsUnchanged => 'Preset bez zmian';
+
+  @override
+  String sliceProcessSettingsChanged(int count) {
+    return 'Zmienione: $count';
+  }
+
+  @override
   String get processSettingsModeSimple => 'Proste';
 
   @override

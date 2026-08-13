@@ -546,8 +546,15 @@ class _OptionRow extends StatelessWidget {
     final labels = option.enumLabels;
     final current = value?.toString() ??
         baselineForDisplay(option, presetValue);
+    final selectable = values.contains(current);
     return DropdownMenu<String>(
-      initialSelection: values.contains(current) ? current : null,
+      // Keyed by the selection so `initialSelection` always takes effect.
+      // `DropdownMenu` re-applies it on update only when the value matches an
+      // entry, so a preset holding a value the vendored schema does not declare
+      // would keep displaying the last pick after a revert — showing a setting
+      // the slice is not going to use.
+      key: ValueKey(selectable ? current : null),
+      initialSelection: selectable ? current : null,
       enabled: enabled,
       expandedInsets: EdgeInsets.zero,
       menuHeight: 320,

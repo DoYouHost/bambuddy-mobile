@@ -3647,6 +3647,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get processSettingsTitle => 'Process settings';
 
   @override
+  String get sliceProcessSettingsNeedsProcess => 'Pick a process preset first';
+
+  @override
+  String get sliceProcessSettingsUnchanged => 'Using the preset as it is';
+
+  @override
+  String sliceProcessSettingsChanged(int count) {
+    return '$count changed';
+  }
+
+  @override
   String get processSettingsModeSimple => 'Simple';
 
   @override

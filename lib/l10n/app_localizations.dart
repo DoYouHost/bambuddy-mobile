@@ -6350,6 +6350,24 @@ abstract class AppLocalizations {
   /// **'Process settings'**
   String get processSettingsTitle;
 
+  /// No description provided for @sliceProcessSettingsNeedsProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a process preset first'**
+  String get sliceProcessSettingsNeedsProcess;
+
+  /// No description provided for @sliceProcessSettingsUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the preset as it is'**
+  String get sliceProcessSettingsUnchanged;
+
+  /// No description provided for @sliceProcessSettingsChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} changed'**
+  String sliceProcessSettingsChanged(int count);
+
   /// No description provided for @processSettingsModeSimple.
   ///
   /// In en, this message translates to:

@@ -1169,6 +1169,10 @@
   "sliceAutoArrangeHint": "Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.",
 
   "processSettingsTitle": "Ustawienia procesu",
+  "sliceProcessSettingsNeedsProcess": "Najpierw wybierz preset procesu",
+  "sliceProcessSettingsUnchanged": "Preset bez zmian",
+  "sliceProcessSettingsChanged": "Zmienione: {count}",
+  "@sliceProcessSettingsChanged": { "placeholders": { "count": { "type": "int" } } },
   "processSettingsModeSimple": "Proste",
   "processSettingsModeAdvanced": "Zaawansowane",
   "processSettingsModeExpert": "Eksperckie",

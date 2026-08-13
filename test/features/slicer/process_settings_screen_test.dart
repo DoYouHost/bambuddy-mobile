@@ -109,6 +109,13 @@ final _searchBox = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// The per-row revert button, by its tooltip: a `DropdownMenu` contributes an
+/// `IconButton` of its own for the chevron.
+Finder _revertOf(String key) => find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.byTooltip('Przywróć wartość z presetu'),
+    );
+
 Future<ProcessSchemaCatalog> _catalog() async {
   final catalog = ProcessSchemaCatalog(readAsset: (key) async => switch (key) {
         'assets/slicer/process-schema.json' => jsonEncode(_schema),
@@ -267,6 +274,39 @@ void main() {
       await tester.pumpAndSettle();
       // A bool, not '1': the codec spells it for the wire, the state stays typed.
       expect(reported.last['detect_thin_wall'], isTrue);
+    });
+
+    testWidgets('reverting an enum whose preset value is not a listed option',
+        (tester) async {
+      // A preset can hold a value the vendored schema does not declare, so the
+      // dropdown starts blank. Picking and then reverting has to go back to
+      // blank: leaving the old label up would show a setting the slice will not
+      // use.
+      await pump(
+        tester,
+        presetValues: const PresetValues(
+            resolved: true,
+            reason: 'ok',
+            values: {'seam_position': 'some_unlisted_mode'}),
+      );
+      String shown() => tester
+          .widget<TextField>(_fieldOf('seam_position'))
+          .controller!
+          .text;
+      expect(shown(), isEmpty);
+
+      await tester.tap(find.descendant(
+          of: find.byKey(const ValueKey('seam_position')),
+          matching: find.byType(DropdownMenu<String>)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nearest').last);
+      await tester.pumpAndSettle();
+      expect(shown(), 'Nearest');
+
+      await tester.tap(_revertOf('seam_position'));
+      await tester.pumpAndSettle();
+      expect(reported.last, isEmpty);
+      expect(shown(), isEmpty);
     });
 
     testWidgets('an enum reports the wire value, not its label', (tester) async {
