@@ -126,6 +126,13 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   bool _injecting = false;
   bool _injected = false;
 
+  /// Which load these flags belong to. Bumped by [_retry], and every step of
+  /// [_inject] after an `await` checks it, because a retry can land while the
+  /// previous injection is still reading credentials: without this the stale
+  /// run would script the discarded controller, mark the *new* page injected
+  /// and arm a watchdog for it, leaving the fresh load with no auth at all.
+  int _attempt = 0;
+
   Timer? _watchdog;
 
   @override
@@ -208,6 +215,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   Future<void> _inject(ServerProfile profile) async {
     final controller = _controller;
     if (controller == null) return;
+    final attempt = _attempt;
 
     String? token;
     String? apiKey;
@@ -220,7 +228,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       case AuthMode.none:
         break;
     }
-    if (!mounted) return;
+    if (!mounted || attempt != _attempt) return;
 
     final loadCall = widget.archiveId != null
         ? 'loadArchive(${widget.archiveId}, ${widget.plate ?? 'undefined'})'
@@ -301,7 +309,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 ''';
 
     await controller.runJavaScript(script);
-    if (!mounted) return;
+    if (!mounted || attempt != _attempt) return;
     _injected = true;
     _watchdog?.cancel();
     _watchdog = Timer(_reportTimeout, () {
@@ -369,10 +377,12 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
   void _retry() {
     _watchdog?.cancel();
+    _attempt++;
     setState(() {
       _failure = null;
       _ready = false;
       _injected = false;
+      _injecting = false;
       _controller = null;
     });
     _init();
