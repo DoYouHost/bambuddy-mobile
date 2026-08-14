@@ -53,6 +53,16 @@ function setStatus(text, sticky) {
   statusEl.dataset.sticky = sticky ? '1' : '';
 }
 
+/**
+ * Tells Flutter the page is up and showing its own progress, so the app can
+ * take its spinner down — two of them, one drawn over the other, is what the
+ * user sees otherwise. Deliberately not "ready": the preview is still coming,
+ * and the watchdog must keep running.
+ */
+function reportAlive() {
+  report('loading');
+}
+
 /** Yields to the compositor so a status change actually paints before the
  *  parse takes the main thread for a few seconds. */
 const paint = () =>
@@ -349,6 +359,7 @@ async function main() {
   document.documentElement.classList.toggle('light', cfg.dark === false);
 
   setStatus(labels.loading || 'Loading…');
+  reportAlive();
   const text = await fetchGcode();
 
   setStatus(labels.parsing || 'Reading G-code…');

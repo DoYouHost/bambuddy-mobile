@@ -12,6 +12,7 @@
     "three": "0.181.2"
   },
   "devDependencies": {
-    "esbuild": "0.27.2"
+    "esbuild": "0.27.2",
+    "subset-font": "^2.5.0"
   }
 }

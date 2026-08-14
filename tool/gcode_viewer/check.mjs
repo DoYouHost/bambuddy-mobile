@@ -48,3 +48,37 @@ assert.deepEqual(parsed.bounds.min, [10, 10, 0.2], 'bounds');
 assert.deepEqual(parsed.bounds.max, [20, 20, 0.4], 'bounds');
 
 console.log(`ok — ${parsed.layers.length} layers, ${parsed.segmentCount} segments`);
+
+// ── the fonts ────────────────────────────────────────────────────────────────
+//
+// A subset that came out empty, truncated or in the wrong format looks exactly
+// like a good one from the outside: the page just renders in the system face,
+// with nothing logged anywhere. So check the payloads rather than trusting the
+// build to have run.
+const { readFile } = await import('node:fs/promises');
+const stylesheet = await readFile(
+  new URL('../../assets/gcode/fonts.css', import.meta.url),
+  'utf8',
+);
+const faces = stylesheet.split('@font-face').slice(1);
+assert.equal(faces.length, 5, 'five faces (Manrope 400/600/700, mono 400/700)');
+
+for (const face of faces) {
+  const family = /font-family: '([^']+)'/.exec(face)?.[1];
+  const weight = /font-weight: (\d+)/.exec(face)?.[1];
+  const base64 = /base64,([^)]+)\)/.exec(face)?.[1];
+  assert.ok(family && weight && base64, 'face declares family, weight, payload');
+
+  const payload = Buffer.from(base64, 'base64');
+  const where = `${family} ${weight}`;
+  // 'wOF2' — the woff2 signature. Anything else means the format changed or
+  // the payload is not a font at all.
+  assert.equal(payload.subarray(0, 4).toString('latin1'), 'wOF2', where);
+  // A face carrying only ASCII lands around 12 KB; below that something was
+  // dropped, and Polish is the first thing to go.
+  assert.ok(payload.length > 10_000, `${where} is suspiciously small`);
+}
+
+// A stray closing tag would end the <style> block the app inlines this into.
+assert.ok(!stylesheet.includes('</style'), 'no literal </style');
+console.log(`ok — ${faces.length} font faces, ${(stylesheet.length / 1024).toFixed(1)} KiB inlined`);

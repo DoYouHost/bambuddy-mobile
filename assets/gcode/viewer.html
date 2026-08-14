@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>__BB_FONTS__</style>
     <style>
       /*
        * Dash tokens. Kept as custom properties so the light theme is one
@@ -48,10 +49,11 @@
         height: 100%;
         overflow: hidden;
         background: var(--bg);
-        /* Manrope is bundled in the APK, not on the server this page is
-           loaded from, so it cannot be @font-face'd here. The system UI face
-           is the closest honest match; readouts go monospace below. */
-        font-family: system-ui, sans-serif;
+        /* The app's own faces, subset and inlined by the build — the page
+           cannot fetch them, since they live in the APK while this document is
+           loaded from the user's server. The fallbacks stand in for a script
+           the subset does not carry. */
+        font-family: 'Manrope', system-ui, sans-serif;
         color: var(--text);
         touch-action: none;
         -webkit-user-select: none;
@@ -59,20 +61,38 @@
       }
       #view { position: absolute; inset: 0; }
       #view canvas { display: block; }
+      /* The page owns the whole loading state — text and spinner both. Flutter
+         drops its own the moment this script reports in, or the two stack on
+         top of each other. */
       #status {
         position: absolute;
         inset: 0;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 16px;
         padding: 24px;
         text-align: center;
-        font-size: 15px;
+        font-size: 14px;
+        color: var(--text-2);
         background: var(--bg);
       }
+      #status::before {
+        content: '';
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid var(--fill-weak);
+        border-top-color: var(--accent);
+        animation: spin 0.9s linear infinite;
+      }
+      /* A failure is not a wait: the ring would keep promising progress. */
+      #status[data-sticky='1']::before { display: none; }
+      @keyframes spin { to { transform: rotate(360deg); } }
       #ui { position: absolute; inset: 0; display: none; pointer-events: none; }
 
-      .num { font-family: ui-monospace, "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+      .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 
       /* ---- panel ------------------------------------------------------ */
 

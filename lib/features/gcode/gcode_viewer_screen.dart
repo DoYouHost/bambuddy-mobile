@@ -70,6 +70,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
   WebViewController? _controller;
   bool _ready = false;
+
+  /// Whether the page has started drawing its own progress. Until then the app
+  /// shows a spinner; after it, the page owns that job alone.
+  bool _alive = false;
   GcodeViewerReport? _failure;
   Timer? _watchdog;
 
@@ -119,12 +123,14 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
     final shell = await rootBundle.loadString(gcodeViewerShellAsset);
     final bundle = await rootBundle.loadString(gcodeViewerBundleAsset);
+    final fonts = await rootBundle.loadString(gcodeViewerFontsAsset);
     if (!mounted || attempt != _attempt) return;
 
     final l10n = AppLocalizations.of(context);
     final document = buildViewerDocument(
       shell: shell,
       bundle: bundle,
+      fonts: fonts,
       config: GcodeViewerConfig(
         gcodeUrl: _gcodeUrl,
         headers: headers,
@@ -244,6 +250,13 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   void _onReport(JavaScriptMessage message) {
     final report = parseGcodeViewerReport(message.message);
     if (report == null || !mounted) return;
+
+    if (report.error == null && !report.ready) {
+      // The watchdog keeps running: a page that says it is loading and then
+      // hangs is exactly what it is for.
+      setState(() => _alive = true);
+      return;
+    }
     _watchdog?.cancel();
 
     if (report.ready) {
@@ -316,7 +329,10 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
                   child: Stack(
                     children: [
                       WebViewWidget(controller: controller),
-                      if (!_ready)
+                      // Only until the page speaks: from then on it draws its
+                      // own progress, and two spinners would sit one on top of
+                      // the other with the page's text between them.
+                      if (!_alive)
                         const Center(child: CircularProgressIndicator()),
                     ],
                   ),
@@ -346,6 +362,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     setState(() {
       _failure = null;
       _ready = false;
+      _alive = false;
       _controller = null;
     });
     _load();

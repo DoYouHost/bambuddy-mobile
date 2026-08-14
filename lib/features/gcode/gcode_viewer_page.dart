@@ -12,13 +12,19 @@ library;
 
 import 'dart:convert';
 
-/// Asset paths of the two halves of the document.
+/// Asset paths of the three parts of the document.
 const gcodeViewerShellAsset = 'assets/gcode/viewer.html';
 const gcodeViewerBundleAsset = 'assets/gcode/viewer.js';
 
-/// Placeholders the shell reserves; both are replaced exactly once.
+/// The app's own faces, subset and base64'd by `tool/gcode_viewer`. They ship
+/// in the APK, and this document is loaded with the server's base URL, so the
+/// page has no way to fetch them — they travel inside it or not at all.
+const gcodeViewerFontsAsset = 'assets/gcode/fonts.css';
+
+/// Placeholders the shell reserves; each is replaced exactly once.
 const _configMarker = '__BB_CONFIG__';
 const _bundleMarker = '__BB_BUNDLE__';
+const _fontsMarker = '__BB_FONTS__';
 
 /// What the page needs to know before it starts.
 class GcodeViewerConfig {
@@ -93,19 +99,22 @@ class GcodeViewerConfig {
 
 /// Builds the single self-contained document the WebView loads.
 ///
-/// [shell] and [bundle] are the two assets; nothing else is fetched, because a
-/// relative `<script src>` would resolve against the **server** (the document's
-/// base URL) and ask it for a file it has never heard of.
+/// [shell], [bundle] and [fonts] are the assets; nothing else is fetched,
+/// because a relative `<script src>` or `url()` would resolve against the
+/// **server** (the document's base URL) and ask it for a file it has never
+/// heard of.
 String buildViewerDocument({
   required String shell,
   required String bundle,
   required GcodeViewerConfig config,
+  String fonts = '',
 }) {
   // `<` is escaped throughout so no label can close the script element early;
   // inside a JSON string `<` is the same character.
   final json = jsonEncode(config.toJson()).replaceAll('<', r'\u003c');
   return shell
       .replaceFirst(_configMarker, 'window.__BB = $json;')
+      .replaceFirst(_fontsMarker, fonts)
       .replaceFirst(_bundleMarker, bundle);
 }
 
@@ -124,16 +133,33 @@ enum GcodeViewerError {
   script,
 }
 
-/// What the page reported. Exactly one of [ready] / [error] is set.
+/// What the page reported.
 class GcodeViewerReport {
-  const GcodeViewerReport.ready()
-      : ready = true,
+  /// The page is up and showing its own progress — not finished, but far
+  /// enough along that the app's spinner would only stack on top of the
+  /// page's.
+  const GcodeViewerReport.alive()
+      : ready = false,
+        alive = true,
         error = null,
         status = null;
 
-  const GcodeViewerReport.failed(this.error, {this.status}) : ready = false;
+  const GcodeViewerReport.ready()
+      : ready = true,
+        alive = true,
+        error = null,
+        status = null;
+
+  const GcodeViewerReport.failed(this.error, {this.status})
+      : ready = false,
+        alive = true;
 
   final bool ready;
+
+  /// Whether the page's own script has started. False only before its first
+  /// word, which is the one moment the app has to show progress itself.
+  final bool alive;
+
   final GcodeViewerError? error;
 
   /// HTTP status behind [GcodeViewerError.http]; null for every other error.
@@ -143,14 +169,18 @@ class GcodeViewerReport {
   bool operator ==(Object other) =>
       other is GcodeViewerReport &&
       other.ready == ready &&
+      other.alive == alive &&
       other.error == error &&
       other.status == status;
 
   @override
-  int get hashCode => Object.hash(ready, error, status);
+  int get hashCode => Object.hash(ready, alive, error, status);
 
   @override
-  String toString() => ready ? 'ready' : 'failed($error, $status)';
+  String toString() => switch (error) {
+        null => ready ? 'ready' : 'loading',
+        final e => 'failed($e, $status)',
+      };
 }
 
 /// Reads a channel message; `null` for anything not in the protocol.
@@ -161,8 +191,12 @@ class GcodeViewerReport {
 /// a failure behind a spinner that never ends.
 GcodeViewerReport? parseGcodeViewerReport(String message) {
   final parts = message.trim().split(':');
-  if (parts.first == 'ready' && parts.length == 1) {
-    return const GcodeViewerReport.ready();
+  if (parts.length == 1) {
+    return switch (parts.first) {
+      'ready' => const GcodeViewerReport.ready(),
+      'loading' => const GcodeViewerReport.alive(),
+      _ => null,
+    };
   }
   if (parts.first != 'error' || parts.length < 2) return null;
 

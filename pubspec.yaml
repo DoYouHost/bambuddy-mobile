@@ -70,12 +70,15 @@ flutter:
     - assets/slicer/process-toggle-rules.json
     - assets/icons/
     - assets/icon/icon.png
-    # The in-app G-code preview: page shell plus the bundle built from
-    # tool/gcode_viewer (see its PROVENANCE). Both are inlined into one
-    # document at runtime, so they must ship as assets, not as files fetched
-    # over http.
+    # The in-app G-code preview: the page shell, the bundle, and the app's
+    # own faces subset into a stylesheet — all built by tool/gcode_viewer (see
+    # its PROVENANCE). The three are inlined into one document at runtime, so
+    # they must ship as assets rather than be fetched over http. The faces are
+    # a second copy of assets/fonts by necessity: Flutter reads the .ttf, and
+    # the WebView cannot reach it.
     - assets/gcode/viewer.html
     - assets/gcode/viewer.js
+    - assets/gcode/fonts.css
   fonts:
     - family: Manrope
       fonts:

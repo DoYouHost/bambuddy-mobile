@@ -39,6 +39,39 @@ void main() {
       expect(document, contains('console.log(1);'));
     });
 
+    test('the font faces land in their own block', () {
+      final document = buildViewerDocument(
+        shell: '<style>__BB_FONTS__</style><script>__BB_CONFIG__</script>'
+            '<script>__BB_BUNDLE__</script>',
+        bundle: '',
+        fonts: '@font-face { font-family: Manrope; src: url(data:font/woff2;'
+            'base64,AAAA) format("woff2"); }',
+        config: _config(),
+      );
+
+      expect(document, isNot(contains('__BB_FONTS__')));
+      expect(document, contains('font-family: Manrope'));
+      // Inside <style>, not <script>: a face in the wrong block is silently
+      // dead, and the page then renders in the system face with no error.
+      expect(
+        RegExp(r'<style>@font-face').hasMatch(document),
+        isTrue,
+        reason: 'faces must open the style block',
+      );
+    });
+
+    test('a document without fonts keeps no placeholder', () {
+      // The faces are optional to compose with — a test or a tool may leave
+      // them out — but the marker must never survive into the page.
+      final document = buildViewerDocument(
+        shell: '<style>__BB_FONTS__</style>__BB_CONFIG__ __BB_BUNDLE__',
+        bundle: '',
+        config: _config(),
+      );
+
+      expect(document, isNot(contains('__BB_FONTS__')));
+    });
+
     test('a bundle full of dollars and backslashes survives verbatim', () {
       // Minified three.js is full of both, and a replacement that treated them
       // as syntax would corrupt the renderer in ways nothing here would catch.
@@ -111,6 +144,16 @@ void main() {
       expect(parseGcodeViewerReport('ready'), const GcodeViewerReport.ready());
       expect(parseGcodeViewerReport(' ready\n'),
           const GcodeViewerReport.ready());
+    });
+
+    test('loading is alive but not ready', () {
+      // What takes the app's spinner down without claiming a preview exists —
+      // and, unlike the other two, must leave the watchdog running.
+      const report = GcodeViewerReport.alive();
+      expect(parseGcodeViewerReport('loading'), report);
+      expect(report.alive, isTrue);
+      expect(report.ready, isFalse);
+      expect(report.error, isNull);
     });
 
     test('each failure the page can name', () {
