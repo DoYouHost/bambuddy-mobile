@@ -10,6 +10,8 @@
          declaration + video, battery-optimization exemption), so declaring
          them in an APK that can't exercise them only invites rejection. -->
     <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
+    <!-- The watch has no gallery screen and starts at API 30 anyway. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />

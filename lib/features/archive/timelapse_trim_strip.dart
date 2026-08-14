@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class TimelapseTrimStrip extends StatefulWidget {
     required this.trim,
     required this.minClip,
     required this.onTrimChanged,
-    required this.onTrimChangeEnd,
+    required this.onTrimCommitted,
     required this.onSeek,
     this.position,
     this.loading = false,
@@ -41,9 +42,14 @@ class TimelapseTrimStrip extends StatefulWidget {
 
   final ValueChanged<RangeValues> onTrimChanged;
 
-  /// Fires once per gesture, so a seek per dragged pixel cannot flood the
+  /// Fires once when a handle drag ends, with the edge that moved, in
+  /// seconds. Once per gesture, so a seek per dragged pixel cannot flood the
   /// decoder with flushes.
-  final ValueChanged<RangeValues> onTrimChangeEnd;
+  ///
+  /// The edge is reported rather than the range because by the time a drag
+  /// ends the caller's own copy of the range has already been updated — it has
+  /// nothing left to compare against to tell which handle the user held.
+  final ValueChanged<double> onTrimCommitted;
 
   final ValueChanged<double> onSeek;
 
@@ -85,6 +91,14 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
 
   _Grab? _grab;
 
+  /// Where the dragged handle was last put, in seconds.
+  ///
+  /// Read at the end of the drag instead of `widget.trim`: the parent only
+  /// hands the new range back on its next build, which need not happen before
+  /// the finger lifts. Trusting the property there reported the edge as it was
+  /// when the gesture started.
+  double? _draggedTo;
+
   /// Width of the timeline itself: the strip minus a handle's width at each
   /// end, so a handle parked at either extreme sits in the margin instead of
   /// over the frames.
@@ -95,7 +109,7 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
   /// with the pixels: the playhead spent the first fraction of a second
   /// clamped at the edge before it appeared to move at all.
   double _trackWidth(double width) =>
-      (width - 2 * TimelapseTrimStrip.handleWidth).clamp(1.0, width);
+      math.max(1.0, width - 2 * TimelapseTrimStrip.handleWidth);
 
   static const _trackLeft = TimelapseTrimStrip.handleWidth;
 
@@ -123,29 +137,37 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
   void _update(double dx, double width) {
     final at = _seconds(dx, width);
     switch (_grab) {
+      // The bounds are held apart with max/min rather than passed straight to
+      // clamp: on a recording shorter than [TimelapseTrimStrip.minClip] the
+      // limits cross, and clamp throws from inside a gesture callback.
       case _Grab.start:
-        widget.onTrimChanged(
-          RangeValues(at.clamp(0, widget.trim.end - widget.minClip), widget.trim.end),
-        );
+        final limit = math.max(0.0, widget.trim.end - widget.minClip);
+        _draggedTo = at.clamp(0.0, limit);
+        widget.onTrimChanged(RangeValues(_draggedTo!, widget.trim.end));
       case _Grab.end:
-        widget.onTrimChanged(
-          RangeValues(
-            widget.trim.start,
-            at.clamp(widget.trim.start + widget.minClip, widget.duration),
-          ),
+        final limit = math.min(
+          widget.duration,
+          widget.trim.start + widget.minClip,
         );
+        _draggedTo = at.clamp(limit, widget.duration);
+        widget.onTrimChanged(RangeValues(widget.trim.start, _draggedTo!));
       case _Grab.playhead:
-        widget.onSeek(at.clamp(widget.trim.start, widget.trim.end));
+        widget.onSeek(
+          at.clamp(widget.trim.start, math.max(widget.trim.start, widget.trim.end)),
+        );
       case null:
         break;
     }
   }
 
   void _end() {
-    if (_grab == _Grab.start || _grab == _Grab.end) {
-      widget.onTrimChangeEnd(widget.trim);
-    }
+    final grab = _grab;
+    final edge = _draggedTo;
     _grab = null;
+    _draggedTo = null;
+    if (edge != null && (grab == _Grab.start || grab == _Grab.end)) {
+      widget.onTrimCommitted(edge);
+    }
   }
 
   @override
@@ -167,7 +189,10 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
             'timelapse_edit.trim',
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (d) {
+              // On tap *up*, not down: a press that turns into a handle drag
+              // would otherwise have already yanked the playhead to wherever
+              // the finger landed before the drag gesture won the arena.
+              onTapUp: (d) {
                 _grab = _Grab.playhead;
                 _update(d.localPosition.dx, width);
                 _grab = null;
@@ -228,7 +253,7 @@ class _TimelapseTrimStripState extends State<TimelapseTrimStrip> {
                       // the line still for the first moments of playback.
                       left: (_x(position, width) - 1).clamp(
                         _trackLeft,
-                        _trackLeft + track - 2,
+                        math.max(_trackLeft, _trackLeft + track - 2),
                       ),
                       width: 2,
                       top: 0,

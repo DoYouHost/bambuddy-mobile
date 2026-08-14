@@ -117,11 +117,16 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
 
     _seeking = true;
     () async {
-      await controller.seekTo(_at(trim.start));
-      // Reaching the natural end of the file stops playback, so resuming is
-      // part of looping rather than a no-op.
-      if (mounted && _wantPlay) await controller.play();
-      _seeking = false;
+      try {
+        await controller.seekTo(_at(trim.start));
+        // Reaching the natural end of the file stops playback, so resuming is
+        // part of looping rather than a no-op.
+        if (mounted && _wantPlay) await controller.play();
+      } finally {
+        // A seek that throws must not leave the guard set: the loop would go
+        // quiet for the rest of the screen's life.
+        _seeking = false;
+      }
     }();
   }
 
@@ -147,15 +152,15 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     await controller.play();
   }
 
-  /// Parks the preview on the handle that was dragged, so the trim is chosen
-  /// against a frame rather than against a number.
+  /// Parks the preview on the handle that was just released, so the trim is
+  /// chosen against a frame rather than against a number.
   ///
-  /// Fires when the drag ends, not on every pixel of it: a seek per slider
-  /// tick is dozens of decoder flushes for frames nobody sees.
-  Future<void> _previewEdge(RangeValues previous, RangeValues next) async {
+  /// Takes the edge from the strip: once a drag ends, this screen's own copy
+  /// of the range has already moved, so comparing before-and-after here could
+  /// only ever name the same handle.
+  Future<void> _previewEdge(double edge) async {
     final controller = _preview;
     if (controller == null) return;
-    final edge = next.start != previous.start ? next.start : next.end;
     if (_wantPlay) {
       setState(() => _wantPlay = false);
       await controller.pause();
@@ -249,7 +254,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
           trim: trim,
           minClip: _minClip,
           onTrimChanged: (v) => setState(() => _trim = v),
-          onTrimChangeEnd: (v) => _previewEdge(trim, v),
+          onTrimCommitted: _previewEdge,
           onSeek: _scrub,
         ),
         const SizedBox(height: 16),
@@ -328,10 +333,17 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       }
       // The player reloads on a true result — the file behind its URL changed.
       context.pop(true);
-    } on AppApiException catch (e) {
+    } catch (e) {
+      // Anything at all, not just AppApiException: a 200 whose body does not
+      // parse throws a TypeError, and leaving `_saving` set would freeze the
+      // screen on a spinner for work that already finished.
       if (!mounted) return;
       setState(() => _saving = false);
-      showApiFailure(messenger, e, l10n, action: 'timelapse_edit.save');
+      if (e is AppApiException) {
+        showApiFailure(messenger, e, l10n, action: 'timelapse_edit.save');
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.connectFailed)));
+      }
     }
   }
 }
@@ -413,7 +425,7 @@ class _TrimStrip extends ConsumerWidget {
     required this.trim,
     required this.minClip,
     required this.onTrimChanged,
-    required this.onTrimChangeEnd,
+    required this.onTrimCommitted,
     required this.onSeek,
   });
 
@@ -423,7 +435,7 @@ class _TrimStrip extends ConsumerWidget {
   final RangeValues trim;
   final double minClip;
   final ValueChanged<RangeValues> onTrimChanged;
-  final ValueChanged<RangeValues> onTrimChangeEnd;
+  final ValueChanged<double> onTrimCommitted;
   final ValueChanged<double> onSeek;
 
   @override
@@ -438,7 +450,7 @@ class _TrimStrip extends ConsumerWidget {
       minClip: minClip,
       position: position,
       onTrimChanged: onTrimChanged,
-      onTrimChangeEnd: onTrimChangeEnd,
+      onTrimCommitted: onTrimCommitted,
       onSeek: onSeek,
     );
 

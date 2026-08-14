@@ -255,6 +255,7 @@
   "timelapseShare": "Udostępnij",
   "timelapseSaved": "Zapisano w galerii",
   "timelapseSaveFailed": "Nie udało się zapisać filmu",
+  "timelapseSaveDenied": "Na tej wersji Androida zapis w galerii wymaga zgody na dostęp do plików.",
   "timelapseEdit": "Edytuj",
   "timelapseEditSave": "Zapisz",
   "timelapseEditTitle": "Edycja timelapse",

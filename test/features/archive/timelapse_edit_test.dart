@@ -86,9 +86,35 @@ void main() {
     });
   });
 
+  group('kontener pliku', () {
+    test('rozszerzenie bierze z typu treści, nie z założenia', () {
+      expect(timelapseExtension('video/mp4'), 'mp4');
+      expect(timelapseExtension('video/x-msvideo'), 'avi');
+      expect(timelapseExtension('video/x-matroska'), 'mkv');
+    });
+
+    test('parametry i wielkość liter nie mylą rozpoznania', () {
+      expect(timelapseExtension('Video/X-MSVideo; charset=binary'), 'avi');
+    });
+
+    test('brak lub nieznany typ to mp4, bo to serwuje serwer domyślnie', () {
+      expect(timelapseExtension(null), 'mp4');
+      expect(timelapseExtension('application/octet-stream'), 'mp4');
+    });
+
+    test('typ do udostępnienia wraca z rozszerzenia pliku', () {
+      expect(timelapseMimeType('/tmp/a_timelapse.avi'), 'video/x-msvideo');
+      expect(timelapseMimeType('/tmp/a_timelapse.mp4'), 'video/mp4');
+    });
+  });
+
   group('exportFilename', () {
     test('składa nazwę pliku z nazwy wydruku', () {
       expect(exportFilename('Part Studio 1'), 'Part_Studio_1_timelapse.mp4');
+    });
+
+    test('bierze kontener, którym serwer nazwał plik', () {
+      expect(exportFilename('Part', 'avi'), 'Part_timelapse.avi');
     });
 
     test('wycina znaki, które wywracają zapis albo udostępnianie', () {
@@ -166,9 +192,7 @@ void main() {
     const width = 300.0;
     const duration = 60.0;
 
-    Future<
-      ({List<RangeValues> trims, List<RangeValues> ends, List<double> seeks})
-    >
+    Future<({List<RangeValues> trims, List<double> ends, List<double> seeks})>
     pumpStrip(
       WidgetTester tester, {
       RangeValues trim = const RangeValues(0, duration),
@@ -176,22 +200,31 @@ void main() {
       List<Uint8List> frames = const [],
     }) async {
       final trims = <RangeValues>[];
-      final ends = <RangeValues>[];
+      final ends = <double>[];
       final seeks = <double>[];
+      var current = trim;
       await tester.pumpWidget(
         plApp(
           Center(
             child: SizedBox(
               width: width,
-              child: TimelapseTrimStrip(
-                frames: frames,
-                duration: duration,
-                trim: trim,
-                minClip: 1,
-                position: position,
-                onTrimChanged: trims.add,
-                onTrimChangeEnd: ends.add,
-                onSeek: seeks.add,
+              // Zakres wraca do paska tak, jak robi to edytor — bez tego
+              // sprzężenia widżet w teście widziałby wiecznie stary zakres i
+              // asercje mierzyłyby harness, nie produkt.
+              child: StatefulBuilder(
+                builder: (context, setState) => TimelapseTrimStrip(
+                  frames: frames,
+                  duration: duration,
+                  trim: current,
+                  minClip: 1,
+                  position: position,
+                  onTrimChanged: (v) {
+                    trims.add(v);
+                    setState(() => current = v);
+                  },
+                  onTrimCommitted: ends.add,
+                  onSeek: seeks.add,
+                ),
               ),
             ),
           ),
@@ -225,6 +258,79 @@ void main() {
       expect(r.trims.last.end, duration, reason: 'koniec nietknięty');
       expect(r.ends, hasLength(1),
           reason: 'seek dla podglądu tylko raz, po puszczeniu');
+      expect(r.ends.single, closeTo(r.trims.last.start, 0.01),
+          reason: 'podgląd parkuje na przeciągniętym początku, nie na końcu');
+    });
+
+    testWidgets('puszczenie prawego uchwytu parkuje podgląd na jego końcu',
+        (tester) async {
+      final r = await pumpStrip(tester);
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+
+      await tester.dragFrom(
+        Offset(strip.right - 2, strip.center.dy),
+        const Offset(-56, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(r.ends.single, closeTo(r.trims.last.end, 0.01));
+    });
+
+    testWidgets('chwyt za uchwyt nie przewija podglądu', (tester) async {
+      // onTapDown odpalał się, zanim przeciąganie wygrało arenę gestów, więc
+      // samo złapanie uchwytu szarpało znacznikiem w miejsce dotknięcia.
+      final r = await pumpStrip(tester, trim: const RangeValues(20, 40));
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+      final startHandle = rectOf(tester, TimelapseTrimStrip.startHandleKey);
+
+      // Palec najpierw chwilę stoi na uchwycie — tak się go łapie i dopiero
+      // wtedy rozpoznawanie tapnięcia zdąża minąć swój próg czasu. Natychmiast
+      // rozpoczęte przeciągnięcie nie odtworzyłoby tego błędu.
+      final gesture = await tester.startGesture(
+        Offset(startHandle.center.dx, strip.center.dy),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(r.trims, isNotEmpty, reason: 'uchwyt jednak ruszył');
+      expect(r.seeks, isEmpty, reason: 'żaden seek przy chwytaniu uchwytu');
+    });
+
+    testWidgets('nagranie krótsze niż minimalny fragment nie wywraca gestu',
+        (tester) async {
+      // clamp(0, end - minClip) rzuca, gdy granice się mijają — a przy 0,5 s
+      // materiału mijają się zawsze.
+      await tester.pumpWidget(
+        plApp(
+          Center(
+            child: SizedBox(
+              width: width,
+              child: TimelapseTrimStrip(
+                frames: const [],
+                duration: 0.5,
+                trim: const RangeValues(0, 0.5),
+                minClip: 1,
+                onTrimChanged: (_) {},
+                onTrimCommitted: (_) {},
+                onSeek: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+
+      await tester.dragFrom(
+        Offset(strip.left + 2, strip.center.dy),
+        const Offset(56, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('przeciągnięcie w środku paska przewija, nie tnie',

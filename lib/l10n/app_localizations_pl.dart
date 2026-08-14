@@ -738,6 +738,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get timelapseSaveFailed => 'Nie udało się zapisać filmu';
 
   @override
+  String get timelapseSaveDenied =>
+      'Na tej wersji Androida zapis w galerii wymaga zgody na dostęp do plików.';
+
+  @override
   String get timelapseEdit => 'Edytuj';
 
   @override

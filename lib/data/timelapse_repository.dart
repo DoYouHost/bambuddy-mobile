@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -74,24 +72,30 @@ class TimelapseRepository {
     return TimelapseProcessResult.fromJson(res.data ?? const {});
   });
 
-  /// The video itself, for saving or sharing. Takes the camera [token] because
-  /// this is the one route of the four that reads `?token=` instead of the
-  /// auth header.
-  Future<Uint8List> download(
+  /// Streams the video to [savePath] and answers with the `Content-Type` the
+  /// server sent, which is the only place the container is stated: the same
+  /// route serves MP4, AVI and MKV.
+  ///
+  /// Streamed rather than read into memory — a recording runs to hundreds of
+  /// megabytes, and holding one in a list of bytes (then copying it into a
+  /// file) peaks at twice its size on a phone that has no reason to spare it.
+  ///
+  /// Takes the camera [token] because this is the one route of the four that
+  /// reads `?token=` instead of the auth header.
+  Future<String?> downloadTo(
     int archiveId, {
     required String token,
+    required String savePath,
     void Function(int received, int total)? onProgress,
   }) => guard(() async {
-    final res = await _dio.get<List<int>>(
+    final res = await _dio.download(
       Endpoints.archiveTimelapse(archiveId),
+      savePath,
       queryParameters: {'token': token},
-      options: Options(
-        responseType: ResponseType.bytes,
-        // A hundred-megabyte recording over a slow LAN outlasts the default.
-        receiveTimeout: const Duration(minutes: 10),
-      ),
+      // A hundred-megabyte recording over a slow LAN outlasts the default.
+      options: Options(receiveTimeout: const Duration(minutes: 10)),
       onReceiveProgress: onProgress,
     );
-    return Uint8List.fromList(res.data ?? const []);
+    return res.headers.value(Headers.contentTypeHeader);
   });
 }

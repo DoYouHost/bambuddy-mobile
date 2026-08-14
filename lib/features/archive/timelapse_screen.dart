@@ -299,15 +299,23 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
         messenger.showSnackBar(SnackBar(content: Text(l10n.timelapseSaved)));
       }
     } catch (e) {
+      final denied = e is TimelapseGalleryDenied;
       DiagnosticRecorder.active?.add(
         LogSource.app,
         'timelapse',
         lvl: LogLevel.warn,
-        fields: {'archive': widget.archiveId, 'state': 'export_failed'},
+        fields: {
+          'archive': widget.archiveId,
+          'state': denied ? 'export_denied' : 'export_failed',
+        },
       );
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.timelapseSaveFailed)),
+        SnackBar(
+          content: Text(
+            denied ? l10n.timelapseSaveDenied : l10n.timelapseSaveFailed,
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -322,6 +330,11 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
   /// Opens the trim/speed editor and, if it re-encoded, reloads the player —
   /// the file behind the URL is a different video now.
   Future<void> _edit() async {
+    // The editor opens its own player on the same file. Two decoders on one
+    // recording is waste at best; on the way back the sound of the one left
+    // running behind the editor is the giveaway.
+    await _controller?.pause();
+    if (!mounted) return;
     final name = Uri.encodeQueryComponent(widget.title ?? '');
     final edited = await context.push<bool>(
       '/timelapse/edit?archive=${widget.archiveId}&name=$name',

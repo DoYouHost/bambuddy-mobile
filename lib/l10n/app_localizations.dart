@@ -1436,6 +1436,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the video'**
   String get timelapseSaveFailed;
 
+  /// No description provided for @timelapseSaveDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy needs permission to write to the gallery on this Android version.'**
+  String get timelapseSaveDenied;
+
   /// No description provided for @timelapseEdit.
   ///
   /// In en, this message translates to:

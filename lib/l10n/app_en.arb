@@ -298,6 +298,7 @@
   "timelapseShare": "Share",
   "timelapseSaved": "Saved to the gallery",
   "timelapseSaveFailed": "Couldn't save the video",
+  "timelapseSaveDenied": "Bambuddy needs permission to write to the gallery on this Android version.",
   "timelapseEdit": "Edit",
   "timelapseEditSave": "Save",
   "timelapseEditTitle": "Edit timelapse",

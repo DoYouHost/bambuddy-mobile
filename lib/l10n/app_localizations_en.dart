@@ -729,6 +729,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelapseSaveFailed => 'Couldn\'t save the video';
 
   @override
+  String get timelapseSaveDenied =>
+      'Bambuddy needs permission to write to the gallery on this Android version.';
+
+  @override
   String get timelapseEdit => 'Edit';
 
   @override
