@@ -238,22 +238,25 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     if (p != null && mounted) setState(() => _process = p);
                   },
                 ),
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.grid_on_outlined),
-                    // Patches a process JSON the embedded path never builds.
-                    enabled: !asDesigned,
-                    title: Text(l10n.sliceBedType,
-                        style: theme.textTheme.labelMedium),
-                    subtitle: Text(
-                        asDesigned
-                            ? l10n.sliceAsDesignedInactive
-                            : _bedType ?? l10n.sliceBedDefault,
-                        style: theme.textTheme.bodyMedium),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _pickBedType,
-                  ).tagged('slice.bed_type'),
+                _dimWhenLocked(
+                  !asDesigned,
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.grid_on_outlined),
+                      // Patches a process JSON the embedded path never builds.
+                      enabled: !asDesigned,
+                      title: Text(l10n.sliceBedType,
+                          style: theme.textTheme.labelMedium),
+                      subtitle: Text(
+                          asDesigned
+                              ? l10n.sliceAsDesignedInactive
+                              : _bedType ?? l10n.sliceBedDefault,
+                          style: theme.textTheme.bodyMedium),
+                      trailing: asDesigned ? null : const Icon(Icons.chevron_right),
+                      onTap: _pickBedType,
+                    ).tagged('slice.bed_type'),
+                  ),
                 ),
                 // Absent, not disabled, unless the server accepts
                 // `process_overrides` *and* our own vendored metadata loaded —
@@ -262,37 +265,41 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 if (ref
                     .watch(processSettingsAvailableProvider)
                     .maybeWhen(data: (v) => v, orElse: () => false))
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      leading: const Icon(Icons.tune_outlined),
-                      enabled: processRef != null && !asDesigned,
-                      title: Text(l10n.processSettingsTitle,
-                          style: theme.textTheme.labelMedium),
-                      subtitle: Text(
-                        asDesigned
-                            ? l10n.sliceAsDesignedInactive
-                            : processRef == null
-                                ? l10n.sliceProcessSettingsNeedsProcess
-                                : overrides.isEmpty
-                                    ? l10n.sliceProcessSettingsUnchanged
-                                    : l10n.sliceProcessSettingsChanged(
-                                        overrides.length),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: processRef == null || asDesigned
-                          ? null
-                          : () => showProcessSettings(
-                                context,
-                                preset: processRef,
-                                values: _processValues,
-                                onChanged: (next) =>
-                                    setState(() => _processValues = next),
-                                filamentSlots: _filamentSlots(
-                                    slotCount, reqs, discriminated),
-                              ),
-                    ).tagged('slice.process_settings'),
+                  _dimWhenLocked(
+                    !asDesigned,
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: const Icon(Icons.tune_outlined),
+                        enabled: processRef != null && !asDesigned,
+                        title: Text(l10n.processSettingsTitle,
+                            style: theme.textTheme.labelMedium),
+                        subtitle: Text(
+                          asDesigned
+                              ? l10n.sliceAsDesignedInactive
+                              : processRef == null
+                                  ? l10n.sliceProcessSettingsNeedsProcess
+                                  : overrides.isEmpty
+                                      ? l10n.sliceProcessSettingsUnchanged
+                                      : l10n.sliceProcessSettingsChanged(
+                                          overrides.length),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        trailing:
+                            asDesigned ? null : const Icon(Icons.chevron_right),
+                        onTap: processRef == null || asDesigned
+                            ? null
+                            : () => showProcessSettings(
+                                  context,
+                                  preset: processRef,
+                                  values: _processValues,
+                                  onChanged: (next) =>
+                                      setState(() => _processValues = next),
+                                  filamentSlots: _filamentSlots(
+                                      slotCount, reqs, discriminated),
+                                ),
+                      ).tagged('slice.process_settings'),
+                    ),
                   ),
                 // Hidden entirely before server 1.2.6: the fields are dropped
                 // without a word there, and a switch that does nothing is worse
@@ -389,6 +396,12 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       ),
     );
   }
+
+  /// `ListTile.enabled` alone barely reads on the dark theme — the row looked
+  /// tappable and its text still legible. Dimming the whole card is what shows
+  /// the lock.
+  Widget _dimWhenLocked(bool enabled, Widget card) =>
+      enabled ? card : Opacity(opacity: 0.4, child: card);
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
 
@@ -494,7 +507,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final theme = Theme.of(context);
     final subtitle = selected?.name ??
         (typeHint != null ? '${_l10n.sliceSelect} · $typeHint' : _l10n.sliceSelect);
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         enabled: enabled,
@@ -530,10 +543,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: enabled ? const Icon(Icons.chevron_right) : null,
         onTap: onTap,
       ).tagged('slice.slot'),
     );
+    return _dimWhenLocked(enabled, card);
   }
 
   Future<void> _pickBedType() async {

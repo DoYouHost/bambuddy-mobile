@@ -341,12 +341,12 @@ void main() {
             process: '0.20mm Standard @BBL X2D',
             serverSupportsAsDesigned: false,
           ));
-      expect(find.text('Użyj ustawień wbudowanych w plik'), findsNothing);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
     testWidgets('is absent for a file with no embedded profile', (tester) async {
       await openSheet(tester);
-      expect(find.text('Użyj ustawień wbudowanych w plik'), findsNothing);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
     testWidgets('is absent while the picked printer is a different model',
@@ -360,7 +360,7 @@ void main() {
             process: '0.20mm Standard @BBL P1S',
             serverSupportsAsDesigned: true,
           ));
-      expect(find.text('Użyj ustawień wbudowanych w plik'), findsNothing);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
     });
 
     testWidgets('defaults the printer to the one the file was designed for',
@@ -384,7 +384,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Użyj ustawień wbudowanych w plik'), findsOneWidget);
+      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
       final body = await slice(tester);
       expect(body['printer_preset'], {'source': 'local', 'id': '1'},
           reason: 'the design\'s printer, not the first in the list');
@@ -393,13 +393,10 @@ void main() {
     testWidgets('sends the field, and nothing the file overrules',
         (tester) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
-      // The panel says so rather than disappearing: it still describes what
-      // would happen with the switch off.
-      expect(find.text('Nieużywane — ten slice prowadzą ustawienia z pliku'),
-          findsWidgets);
+      expect(find.text('Nieużywane — decyduje plik'), findsWidgets);
 
       final body = await slice(tester);
       expect(body['use_embedded_settings'], isTrue);
@@ -416,7 +413,7 @@ void main() {
           of: find.text(label), matching: find.byType(ListTile)));
 
       expect(tile('Drukarka').enabled, isTrue);
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
       // The printer among them: moving off the design's target would drop the
@@ -428,6 +425,34 @@ void main() {
       expect(tile('Filament').enabled, isFalse);
     });
 
+    testWidgets('dims a locked row, and drops its chevron', (tester) async {
+      // ListTile.enabled alone barely reads on the dark theme — the row still
+      // looked tappable, which is what a live emulator showed.
+      await openSheet(tester, embedded: designed);
+      double dimOf(String label) => tester
+          .widgetList<Opacity>(
+              find.ancestor(of: find.text(label), matching: find.byType(Opacity)))
+          .map((o) => o.opacity)
+          .fold(1.0, (a, b) => a * b);
+      int chevronsIn(String label) => tester
+          .widgetList<Icon>(find.descendant(
+              of: find.ancestor(
+                  of: find.text(label), matching: find.byType(ListTile)),
+              matching: find.byIcon(Icons.chevron_right)))
+          .length;
+
+      expect(dimOf('Drukarka'), 1.0);
+      expect(chevronsIn('Drukarka'), 1);
+
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      expect(dimOf('Drukarka'), lessThan(0.6));
+      expect(dimOf('Płyta robocza'), lessThan(0.6));
+      expect(chevronsIn('Drukarka'), 0);
+      expect(chevronsIn('Płyta robocza'), 0);
+    });
+
     testWidgets('drops a build plate that was picked before it was turned on',
         (tester) async {
       // bed_type patches a process JSON the embedded path never builds, so
@@ -437,7 +462,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textured PEI Plate'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('bed_type'), isFalse);
@@ -471,7 +496,7 @@ void main() {
 
       // Recorded while off — the same edit reaches the body in the group above.
       expect(find.text('Zmienione: 1'), findsOneWidget);
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
       expect((await slice(tester)).containsKey('process_overrides'), isFalse);
@@ -490,7 +515,7 @@ void main() {
           filaments: [],
         ),
       );
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
       final filament = tester.widget<ListTile>(find.ancestor(
@@ -502,7 +527,7 @@ void main() {
       // They act on the geometry through the CLI, not through the process
       // config, so they work whatever the settings come from.
       await openSheet(tester, embedded: designed, layoutOptions: true);
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Automatyczna orientacja'));
       await tester.pumpAndSettle();
@@ -515,9 +540,9 @@ void main() {
     testWidgets('turned off again slices by the profile as before',
         (tester) async {
       await openSheet(tester, embedded: designed);
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Użyj ustawień wbudowanych w plik'));
+      await tester.tap(find.text('Użyj ustawień z pliku'));
       await tester.pumpAndSettle();
 
       final body = await slice(tester);
