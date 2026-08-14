@@ -296,6 +296,7 @@
   "gcodeViewerColorByFeature": "Feature",
   "gcodeViewerColorByHeight": "Height",
   "gcodeViewerColorByWidth": "Width",
+  "gcodeSingleLayer": "single layer",
   "gcodeViewerFilamentSlot": "Filament {n}",
   "@gcodeViewerFilamentSlot": { "placeholders": { "n": { "type": "int" } } },
   "gcodeViewerEmpty": "There is no toolpath in this file — it hasn't been sliced yet.",

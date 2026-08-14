@@ -211,3 +211,10 @@ test/fixtures/captured/
 # Build tooling for the in-app G-code viewer bundle (assets/gcode/viewer.js
 # is committed; what builds it is not).
 tool/gcode_viewer/node_modules/
+
+# ...but the G-code preview's own JavaScript is source, not dart2js output: the
+# glue, the renderer vendored from the server, and the bundle built from them
+# (committed like the *.g.dart files, because CI has no node).
+!assets/gcode/viewer.js
+!tool/gcode_viewer/src/entry.js
+!tool/gcode_viewer/src/vendor/toolpathRenderer.js

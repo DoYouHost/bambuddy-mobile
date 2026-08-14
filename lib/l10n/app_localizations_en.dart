@@ -723,6 +723,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gcodeViewerColorByWidth => 'Width';
 
   @override
+  String get gcodeSingleLayer => 'single layer';
+
+  @override
   String gcodeViewerFilamentSlot(int n) {
     return 'Filament $n';
   }

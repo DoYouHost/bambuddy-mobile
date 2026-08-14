@@ -128,8 +128,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       config: GcodeViewerConfig(
         gcodeUrl: _gcodeUrl,
         headers: headers,
-        // The preview follows the SYSTEM theme, like the canvas behind it.
-        dark: MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+        dark: Theme.of(context).brightness == Brightness.dark,
         // Already logical pixels, which is what a CSS pixel is in the WebView.
         insetRight: MediaQuery.systemGestureInsetsOf(context).right,
         filamentColors: filamentColors,
@@ -142,6 +141,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           'colorByFeature': l10n.gcodeViewerColorByFeature,
           'colorByHeight': l10n.gcodeViewerColorByHeight,
           'colorByWidth': l10n.gcodeViewerColorByWidth,
+          'singleLayer': l10n.gcodeSingleLayer,
         },
         // One label per slot the file actually has, so the page never has to
         // interpolate a translated string itself.
@@ -165,7 +165,9 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
 
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF1A1A1A))
+      // Matches --bg in the page, so the WebView does not flash the wrong
+      // ground before the first frame.
+      ..setBackgroundColor(_pageBackground(context))
       ..addJavaScriptChannel(_channel, onMessageReceived: _onReport)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -218,6 +220,12 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     }
     return colors;
   }
+
+  /// The page's `--bg`, so Flutter's ground and the WebView's agree.
+  static Color _pageBackground(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF0B0F0C)
+          : const Color(0xFFF6F8F4);
 
   Future<Map<String, String>> _authHeaders(ServerProfile profile) async {
     final creds = ref.read(credentialsStoreProvider);
@@ -272,13 +280,13 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = _controller;
-    // Fixed dark tokens regardless of system theme: the WebView canvas behind
-    // this bar is dark, so the bar must stay light-on-dark even in light mode.
-    const t = DashTokens.dark();
+    // The page has both themes now, so the bar follows the app instead of
+    // being pinned dark over what might be a light canvas.
+    final t = DashTokens.of(context);
     final failure = _failure;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: _pageBackground(context),
       appBar: loggedAppBar(
         AppBar(
           backgroundColor: Colors.transparent,

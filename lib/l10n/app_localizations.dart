@@ -1430,6 +1430,12 @@ abstract class AppLocalizations {
   /// **'Width'**
   String get gcodeViewerColorByWidth;
 
+  /// No description provided for @gcodeSingleLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'single layer'**
+  String get gcodeSingleLayer;
+
   /// No description provided for @gcodeViewerFilamentSlot.
   ///
   /// In en, this message translates to:

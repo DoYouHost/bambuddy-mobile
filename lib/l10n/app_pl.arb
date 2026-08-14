@@ -253,6 +253,7 @@
   "gcodeViewerColorByFeature": "Cechy",
   "gcodeViewerColorByHeight": "Wysokość",
   "gcodeViewerColorByWidth": "Szerokość",
+  "gcodeSingleLayer": "jedna warstwa",
   "gcodeViewerFilamentSlot": "Filament {n}",
   "gcodeViewerEmpty": "W tym pliku nie ma ścieżki narzędzia — nie został jeszcze pocięty.",
   "gcodeViewerHttpError": "Serwer nie wydał G-code tego pliku ({status}).",
