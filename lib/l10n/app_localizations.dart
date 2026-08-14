@@ -6470,6 +6470,24 @@ abstract class AppLocalizations {
   /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
   String get sliceAutoArrangeHint;
 
+  /// No description provided for @sliceAsDesigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the file\'s built-in settings'**
+  String get sliceAsDesigned;
+
+  /// No description provided for @sliceAsDesignedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Slice it the way the designer set it up (walls, infill, filament) instead of the profiles above. Offered because your printer matches the file\'s.'**
+  String get sliceAsDesignedHint;
+
+  /// No description provided for @sliceAsDesignedInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used — the file\'s own settings drive this slice'**
+  String get sliceAsDesignedInactive;
+
   /// No description provided for @sliceFilamentUnused.
   ///
   /// In en, this message translates to:

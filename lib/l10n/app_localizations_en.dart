@@ -3712,6 +3712,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
 
   @override
+  String get sliceAsDesigned => 'Use the file\'s built-in settings';
+
+  @override
+  String get sliceAsDesignedHint =>
+      'Slice it the way the designer set it up (walls, infill, filament) instead of the profiles above. Offered because your printer matches the file\'s.';
+
+  @override
+  String get sliceAsDesignedInactive =>
+      'Not used — the file\'s own settings drive this slice';
+
+  @override
   String get sliceFilamentUnused => 'Not used by this plate';
 
   @override

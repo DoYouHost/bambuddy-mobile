@@ -5,6 +5,7 @@ import '../core/api/endpoints.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive_capabilities.dart';
+import '../core/models/embedded_settings.dart';
 import '../core/models/filament_requirement.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/slice_job.dart';
@@ -136,6 +137,27 @@ class SlicerRepository {
       return FilamentRequirement.parseList(res.data ?? const {});
     } on DioException {
       return const [];
+    }
+  }
+
+  /// What the 3MF was prepared with, for the "slice as designed" switch.
+  ///
+  /// Deliberately not version-gated — [EmbeddedSettings] says why. Best-effort
+  /// like [filamentRequirements]: a failure hides the switch and leaves profile
+  /// slicing untouched.
+  Future<EmbeddedSettings> embeddedSettings({
+    required int id,
+    required bool isArchive,
+  }) async {
+    final path =
+        isArchive ? Endpoints.archivePlates(id) : Endpoints.libraryFilePlates(id);
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(path);
+      final data = res.data;
+      if (data == null) return EmbeddedSettings.none;
+      return EmbeddedSettings.fromJson(data);
+    } on DioException {
+      return EmbeddedSettings.none;
     }
   }
 

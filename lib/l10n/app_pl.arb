@@ -1189,6 +1189,10 @@
   "sliceAutoArrange": "Automatyczne rozmieszczenie",
   "sliceAutoArrangeHint": "Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.",
 
+  "sliceAsDesigned": "Użyj ustawień wbudowanych w plik",
+  "sliceAsDesignedHint": "Potnij tak, jak ustawił to projektant (ściany, wypełnienie, filament), zamiast profilami powyżej. Dostępne, bo twoja drukarka zgadza się z tą z pliku.",
+  "sliceAsDesignedInactive": "Nieużywane — ten slice prowadzą ustawienia z pliku",
+
   "sliceFilamentUnused": "Nieużywany na tej płycie",
   "processSettingsTitle": "Ustawienia procesu",
   "sliceProcessSettingsNeedsProcess": "Najpierw wybierz preset procesu",

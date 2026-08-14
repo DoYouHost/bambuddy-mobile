@@ -1336,6 +1336,10 @@
   "sliceAutoArrange": "Auto arrange",
   "sliceAutoArrangeHint": "Let the slicer lay the objects out on the plate. Off keeps the layout in the file.",
 
+  "sliceAsDesigned": "Use the file's built-in settings",
+  "sliceAsDesignedHint": "Slice it the way the designer set it up (walls, infill, filament) instead of the profiles above. Offered because your printer matches the file's.",
+  "sliceAsDesignedInactive": "Not used — the file's own settings drive this slice",
+
   "sliceFilamentUnused": "Not used by this plate",
   "processSettingsTitle": "Process settings",
   "sliceProcessSettingsNeedsProcess": "Pick a process preset first",

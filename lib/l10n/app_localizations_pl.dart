@@ -3770,6 +3770,17 @@ class AppLocalizationsPl extends AppLocalizations {
       'Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.';
 
   @override
+  String get sliceAsDesigned => 'Użyj ustawień wbudowanych w plik';
+
+  @override
+  String get sliceAsDesignedHint =>
+      'Potnij tak, jak ustawił to projektant (ściany, wypełnienie, filament), zamiast profilami powyżej. Dostępne, bo twoja drukarka zgadza się z tą z pliku.';
+
+  @override
+  String get sliceAsDesignedInactive =>
+      'Nieużywane — ten slice prowadzą ustawienia z pliku';
+
+  @override
   String get sliceFilamentUnused => 'Nieużywany na tej płycie';
 
   @override

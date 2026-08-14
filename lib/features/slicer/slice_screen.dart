@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
@@ -85,6 +86,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
   /// default for the same reason — it discards a deliberate layout.
   bool _autoArrange = false;
 
+  /// What the user asked for; whether it applies needs the gate too, so read it
+  /// through [_asDesigned].
+  bool _useEmbedded = false;
+
+  bool _printerPicked = false;
+  bool _designedPrinterAdopted = false;
+
   /// Process-option edits from the settings screen, as the user typed them.
   ///
   /// What actually goes on the wire is derived from these rather than stored, so
@@ -99,15 +107,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final l10n = _l10n;
     final theme = Theme.of(context);
     final presetsAsync = ref.watch(slicerPresetsProvider);
-    final ownedCodes =
-        ref.watch(ownedPrinterCodesProvider).valueOrNull ?? const <String>{};
+    final ownedCodesAsync = ref.watch(ownedPrinterCodesProvider);
+    final ownedCodes = ownedCodesAsync.valueOrNull ?? const <String>{};
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
     final reqs = ref
-            .watch(filamentRequirementsProvider(
-                (widget.target.isArchive, widget.target.id)))
+            .watch(filamentRequirementsProvider(_sourceKey))
             .valueOrNull ??
         const <FilamentRequirement>[];
+    final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
+    final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
 
     return Scaffold(
       appBar: dashAppBar(context, title: l10n.sliceTitle),
@@ -130,6 +139,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
             final printers = _filterPrinters(presets.printers, ownedCodes);
             _printer ??= _firstLocalOr(printers);
+            if (!embeddedAsync.isLoading && !ownedCodesAsync.isLoading) {
+              _adoptDesignedPrinter(printers, embedded);
+            }
             final code = _printer == null
                 ? null
                 : _codeOfPrinter(_printer!, ownedCodes);
@@ -150,6 +162,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 _process != null &&
                 _filaments.every((f) => f != null) &&
                 !_submitting;
+
+            final canUseEmbedded = embedded.matchesPrinter(_printer?.name);
+            final asDesigned = _useEmbedded && canUseEmbedded;
 
             // Watched rather than read so the count settles once the sidecar
             // answers; the same family key the settings screen uses, so opening
@@ -176,6 +191,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
                   selected: _printer,
+                  // Locked, not just inert: moving off the design's target would
+                  // drop the gate and take the switch with it.
+                  enabled: !asDesigned,
                   onTap: () async {
                     final p = await _openPicker(
                         title: l10n.slicePrinter,
@@ -184,6 +202,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     if (p != null && mounted) {
                       // Printer change can invalidate process/filament compatibility.
                       setState(() {
+                        _printerPicked = true;
                         _printer = p;
                         _process = null;
                         _filaments = List.filled(_filaments.length, null);
@@ -193,10 +212,24 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     }
                   },
                 ),
+                if (canUseEmbedded)
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: SwitchListTile(
+                      value: _useEmbedded,
+                      onChanged: (v) => setState(() => _useEmbedded = v),
+                      secondary: const Icon(Icons.auto_awesome_outlined),
+                      title: Text(l10n.sliceAsDesigned,
+                          style: theme.textTheme.labelMedium),
+                      subtitle: Text(l10n.sliceAsDesignedHint,
+                          style: theme.textTheme.bodySmall),
+                    ).tagged('slice.as_designed'),
+                  ),
                 _slotTile(
                   label: l10n.sliceProcess,
                   icon: Icons.tune,
                   selected: _process,
+                  enabled: !asDesigned,
                   onTap: () async {
                     final p = await _openPicker(
                         title: l10n.sliceProcess,
@@ -209,9 +242,14 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
                     leading: const Icon(Icons.grid_on_outlined),
+                    // Patches a process JSON the embedded path never builds.
+                    enabled: !asDesigned,
                     title: Text(l10n.sliceBedType,
                         style: theme.textTheme.labelMedium),
-                    subtitle: Text(_bedType ?? l10n.sliceBedDefault,
+                    subtitle: Text(
+                        asDesigned
+                            ? l10n.sliceAsDesignedInactive
+                            : _bedType ?? l10n.sliceBedDefault,
                         style: theme.textTheme.bodyMedium),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _pickBedType,
@@ -228,20 +266,22 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     child: ListTile(
                       leading: const Icon(Icons.tune_outlined),
-                      enabled: processRef != null,
+                      enabled: processRef != null && !asDesigned,
                       title: Text(l10n.processSettingsTitle,
                           style: theme.textTheme.labelMedium),
                       subtitle: Text(
-                        processRef == null
-                            ? l10n.sliceProcessSettingsNeedsProcess
-                            : overrides.isEmpty
-                                ? l10n.sliceProcessSettingsUnchanged
-                                : l10n.sliceProcessSettingsChanged(
-                                    overrides.length),
+                        asDesigned
+                            ? l10n.sliceAsDesignedInactive
+                            : processRef == null
+                                ? l10n.sliceProcessSettingsNeedsProcess
+                                : overrides.isEmpty
+                                    ? l10n.sliceProcessSettingsUnchanged
+                                    : l10n.sliceProcessSettingsChanged(
+                                        overrides.length),
                         style: theme.textTheme.bodyMedium,
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: processRef == null
+                      onTap: processRef == null || asDesigned
                           ? null
                           : () => showProcessSettings(
                                 context,
@@ -301,6 +341,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         i < reqs.length &&
                         !reqs[i].usedInPlate,
                     selected: _filaments[i],
+                    // An empty slot stays pickable: the validator wants a ref per
+                    // slot on this path too, so locking it dead-ends the form.
+                    enabled: !asDesigned || _filaments[i] == null,
                     onTap: () async {
                       final p = await _openPicker(
                           title: slotCount == 1
@@ -345,6 +388,41 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         ),
       ),
     );
+  }
+
+  (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
+
+  /// Re-checked against the gate, so a switch left on by a stale read cannot
+  /// reach the request.
+  bool get _asDesigned {
+    if (!_useEmbedded) return false;
+    final embedded =
+        ref.read(embeddedSettingsProvider(_sourceKey)).valueOrNull;
+    return embedded?.matchesPrinter(_printer?.name) ?? false;
+  }
+
+  /// Default the printer to the design's target once the plates read lands —
+  /// without it nobody would guess which printer makes the switch appear.
+  ///
+  /// Once, over a default the user has not replaced, and only from [printers],
+  /// which is already narrowed to the ones they own.
+  void _adoptDesignedPrinter(
+    List<SlicerPreset> printers,
+    EmbeddedSettings embedded,
+  ) {
+    if (_designedPrinterAdopted) return;
+    _designedPrinterAdopted = true;
+    if (_printerPicked || !embedded.isAvailable) return;
+    if (embedded.matchesPrinter(_printer?.name)) return;
+
+    final designed =
+        printers.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    if (designed == null) return;
+    _printer = designed;
+    // Same reset as picking it by hand.
+    _process = null;
+    _filaments = List.filled(_filaments.length, null);
+    _processValues = {};
   }
 
   /// The picked process preset as `/slicer/preset-values` takes it.
@@ -411,6 +489,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     Color? swatch,
     String? typeHint,
     bool unused = false,
+    bool enabled = true,
   }) {
     final theme = Theme.of(context);
     final subtitle = selected?.name ??
@@ -418,6 +497,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
+        enabled: enabled,
         leading: swatch != null
             ? Container(
                 width: 28,
@@ -501,12 +581,15 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final target = widget.target;
     final refs = [for (final f in _filaments) f!.toRef()];
-    final overrides = _overridesFrom(
-      ref.read(processSchemaProvider).valueOrNull?.schema,
-      _processRef == null
-          ? null
-          : ref.read(presetValuesProvider(_processRef!)).valueOrNull,
-    );
+    final asDesigned = _asDesigned;
+    final overrides = asDesigned
+        ? const <String, Object>{}
+        : _overridesFrom(
+            ref.read(processSchemaProvider).valueOrNull?.schema,
+            _processRef == null
+                ? null
+                : ref.read(presetValuesProvider(_processRef!)).valueOrNull,
+          );
     final body = <String, dynamic>{
       'printer_preset': _printer!.toRef(),
       'process_preset': _process!.toRef(),
@@ -516,8 +599,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         'filament_preset': refs.first
       else
         'filament_presets': refs,
+      // The preset refs above stay: the validator wants them here too, unused.
+      if (asDesigned) 'use_embedded_settings': true,
       // Override the plate only when the user picked one; null inherits.
-      if (_bedType != null) 'bed_type': _bedType,
+      if (_bedType != null && !asDesigned) 'bed_type': _bedType,
       // Only when on: both default to false server-side, and an older server
       // ignores unknown keys silently, so sending the default would be noise
       // that also hides which servers actually honoured it.
