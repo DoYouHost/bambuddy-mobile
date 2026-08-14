@@ -702,6 +702,85 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveAddToQueue => 'Dodaj do kolejki';
 
   @override
+  String get archiveTimelapse => 'Obejrzyj timelapse';
+
+  @override
+  String get timelapseTitle => 'Timelapse';
+
+  @override
+  String get timelapseError => 'Nie udało się odtworzyć tego timelapse.';
+
+  @override
+  String timelapseHttpError(int status) {
+    return 'Serwer nie wydał tego timelapse ($status).';
+  }
+
+  @override
+  String get timelapseStalled =>
+      'Serwer wydaje wideo, ale odtwarzacz go nie uruchomił.';
+
+  @override
+  String get timelapsePlay => 'Odtwórz';
+
+  @override
+  String get timelapsePause => 'Wstrzymaj';
+
+  @override
+  String get timelapseSave => 'Zapisz w galerii';
+
+  @override
+  String get timelapseShare => 'Udostępnij';
+
+  @override
+  String get timelapseSaved => 'Zapisano w galerii';
+
+  @override
+  String get timelapseSaveFailed => 'Nie udało się zapisać filmu';
+
+  @override
+  String get timelapseSaveDenied =>
+      'Na tej wersji Androida zapis w galerii wymaga zgody na dostęp do plików.';
+
+  @override
+  String get timelapseEdit => 'Edytuj';
+
+  @override
+  String get timelapseEditSave => 'Zapisz';
+
+  @override
+  String get timelapseEditTitle => 'Edycja timelapse';
+
+  @override
+  String get timelapseEditTrim => 'Przycięcie';
+
+  @override
+  String get timelapseEditSpeed => 'Prędkość';
+
+  @override
+  String timelapseEditOutput(String length) {
+    return 'Wynik: $length';
+  }
+
+  @override
+  String timelapseEditSource(String length, int width, int height) {
+    return 'Oryginał: $length w $width×$height';
+  }
+
+  @override
+  String get timelapseEditSaveTitle => 'Nadpisać nagranie?';
+
+  @override
+  String get timelapseEditSaveMessage =>
+      'Serwer przekoduje timelapse i zastąpi oryginał. Nie ma kopii, do której da się wrócić.';
+
+  @override
+  String get timelapseEditProcessing =>
+      'Serwer przekodowuje film. Na słabszym sprzęcie to kilka minut — wyjście z tego ekranu tego nie przerwie.';
+
+  @override
+  String get timelapseEdited => 'Timelapse zaktualizowany';
+
+  @override
   String get gcodeViewerTitle => 'Podgląd G-code';
 
   @override

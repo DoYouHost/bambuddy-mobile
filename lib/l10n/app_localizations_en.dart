@@ -693,6 +693,85 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddToQueue => 'Add to queue';
 
   @override
+  String get archiveTimelapse => 'Watch timelapse';
+
+  @override
+  String get timelapseTitle => 'Timelapse';
+
+  @override
+  String get timelapseError => 'Couldn\'t play this timelapse.';
+
+  @override
+  String timelapseHttpError(int status) {
+    return 'The server would not hand over this timelapse ($status).';
+  }
+
+  @override
+  String get timelapseStalled =>
+      'The server is serving the video, but the player never started it.';
+
+  @override
+  String get timelapsePlay => 'Play';
+
+  @override
+  String get timelapsePause => 'Pause';
+
+  @override
+  String get timelapseSave => 'Save to gallery';
+
+  @override
+  String get timelapseShare => 'Share';
+
+  @override
+  String get timelapseSaved => 'Saved to the gallery';
+
+  @override
+  String get timelapseSaveFailed => 'Couldn\'t save the video';
+
+  @override
+  String get timelapseSaveDenied =>
+      'Bambuddy needs permission to write to the gallery on this Android version.';
+
+  @override
+  String get timelapseEdit => 'Edit';
+
+  @override
+  String get timelapseEditSave => 'Save';
+
+  @override
+  String get timelapseEditTitle => 'Edit timelapse';
+
+  @override
+  String get timelapseEditTrim => 'Trim';
+
+  @override
+  String get timelapseEditSpeed => 'Speed';
+
+  @override
+  String timelapseEditOutput(String length) {
+    return 'Result: $length';
+  }
+
+  @override
+  String timelapseEditSource(String length, int width, int height) {
+    return 'Original: $length at $width×$height';
+  }
+
+  @override
+  String get timelapseEditSaveTitle => 'Overwrite the recording?';
+
+  @override
+  String get timelapseEditSaveMessage =>
+      'The server re-encodes the timelapse and replaces the original. There is no copy to go back to.';
+
+  @override
+  String get timelapseEditProcessing =>
+      'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.';
+
+  @override
+  String get timelapseEdited => 'Timelapse updated';
+
+  @override
   String get gcodeViewerTitle => 'G-code preview';
 
   @override

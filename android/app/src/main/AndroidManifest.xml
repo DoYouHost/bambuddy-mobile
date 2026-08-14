@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Saving a print's timelapse to the gallery. Android 11 (API 30) and up
+         need nothing: MediaStore lets an app write its own entries. Below that
+         — and this flavor still supports API 24 — writing into an album is a
+         storage write, which is what `gal` checks for (hasAccess(toAlbum) is
+         false for SDK 23..29), so the video would silently fail to save.
+         maxSdkVersion keeps the request off every device that does not need
+         it; the app asks for it at the moment of the first save, not at
+         startup. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
     <!-- Ongoing print notification + background alerts (Android 13+ needs the
          runtime permission). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

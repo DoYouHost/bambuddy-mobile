@@ -48,6 +48,7 @@ import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
+import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
 
 /// Overridden in main() after SharedPreferences.getInstance().
@@ -572,6 +573,12 @@ final processOverridesProvider = FutureProvider.autoDispose<bool>(
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Timelapse metadata, filmstrip, server-side re-encode and download. Shares
+/// authenticated Dio.
+final timelapseRepositoryProvider = Provider<TimelapseRepository>(
+  (ref) => TimelapseRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Projects (group prints toward a goal + BOM/stats/timeline). Shares

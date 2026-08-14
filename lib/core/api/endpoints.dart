@@ -300,6 +300,39 @@ abstract final class Endpoints {
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
+  /// The archive's timelapse video, authenticated via `?token=` (camera token)
+  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the camera
+  /// stream token, not the auth header. 404 while the print has no video yet.
+  ///
+  /// Container is whatever the printer produced: MP4 from most models, AVI from
+  /// a P1S until the server's background conversion catches up.
+  static String archiveTimelapse(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse';
+
+  /// Timelapse metadata read with ffprobe server-side — `{duration, width,
+  /// height, fps, codec, file_size, has_audio}`. Unlike the video itself this
+  /// one takes the ordinary auth header.
+  static String archiveTimelapseInfo(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/info';
+
+  /// Evenly spaced frames for the editor's filmstrip — `{thumbnails: [base64
+  /// JPEG], timestamps: [seconds]}`. Query `count` (1..30) and `width`
+  /// (80..320); the server renders them with ffmpeg per request.
+  static String archiveTimelapseThumbnails(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/thumbnails';
+
+  /// Trim/speed/audio re-encode of the timelapse (`POST`, multipart:
+  /// `trim_start`, `trim_end`, `speed` 0.25–4.0, `save_mode`,
+  /// `output_filename`, `audio`) → `{status, output_path, message}`.
+  ///
+  /// Runs ffmpeg inline and answers only when it is done, so this one needs a
+  /// timeout measured in minutes rather than the client default. `save_mode`
+  /// `replace` overwrites the recording; `new` writes a file alongside it that
+  /// nothing then points at — which is why the web UI only ever sends
+  /// `replace`.
+  static String archiveTimelapseProcess(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/process';
+
   /// The archive's G-code as `text/plain`, unzipped from its 3MF
   /// (`archives.py::get_gcode`). Query `plate=N` picks
   /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
