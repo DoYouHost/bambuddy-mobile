@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
@@ -105,12 +106,18 @@ void main() {
     bool available = true,
     PresetValues presetValues = const PresetValues(resolved: true, reason: 'ok'),
     List<FilamentRequirement> requirements = const [],
+    EmbeddedSettings embedded = EmbeddedSettings.none,
+    UnifiedPresets presets = _presets,
+    bool layoutOptions = false,
+    Set<String> ownedCodes = const {},
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         slicerRepositoryProvider.overrideWithValue(repo),
-        slicerPresetsProvider.overrideWith((ref) async => _presets),
-        ownedPrinterCodesProvider.overrideWith((ref) async => const <String>{}),
+        slicerPresetsProvider.overrideWith((ref) async => presets),
+        embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
+        sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
+        ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider
             .overrideWith((ref) async => const <OwnedFilament>[]),
         filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
@@ -315,6 +322,327 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('process_overrides'), isFalse,
           reason: 'an override equal to the preset is noise in the process JSON');
+    });
+  });
+
+  group('the printer a file was designed for', () {
+    // The case that makes the note necessary: the design targets a printer the
+    // user does not own, so it is filtered out of the offered list and the
+    // switch would otherwise live behind the picker's "all presets" toggle.
+    const foreign = EmbeddedSettings(
+      printer: 'Bambu Lab X1 Carbon 0.4 nozzle',
+      process: '0.20mm Standard @BBL X1C',
+      serverSupportsAsDesigned: true,
+    );
+    const catalog = UnifiedPresets(
+      printers: [
+        SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D 0.4 nozzle'),
+        SlicerPreset(
+            source: 'standard',
+            id: '9',
+            name: 'Bambu Lab X1 Carbon 0.4 nozzle'),
+      ],
+      processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm')],
+      filaments: [SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA')],
+    );
+
+    Future<void> open(WidgetTester tester,
+            {EmbeddedSettings embedded = foreign,
+            UnifiedPresets presets = catalog}) =>
+        openSheet(tester,
+            embedded: embedded,
+            presets: presets,
+            ownedCodes: const {'X2D'});
+
+    testWidgets('is named on the printer row when it is not the picked one',
+        (tester) async {
+      await open(tester);
+
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsOneWidget);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+    });
+
+    testWidgets('switches to it, which is what reveals the switch',
+        (tester) async {
+      await open(tester);
+      await tester.tap(find.text('Przełącz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bambu Lab X1 Carbon 0.4 nozzle'), findsWidgets);
+      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsNothing,
+          reason: 'nothing left to point at once it is the picked printer');
+    });
+
+    testWidgets('offers the action as a button, not as a word in a sentence',
+        (tester) async {
+      // It started as a tappable fragment at the end of the sentence, which the
+      // printer's name pushed onto a line of its own — an orphan "·" that read
+      // as a rendering fault, with a tap target the size of the words.
+      await open(tester);
+      final size = tester.getSize(find.widgetWithText(FilledButton, 'Przełącz'));
+
+      expect(size.height, greaterThanOrEqualTo(36));
+      expect(size.width, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('is named without an action when no preset matches it',
+        (tester) async {
+      // Knowing what the file wants is worth something even when there is
+      // nothing to switch to; an action that cannot work is not.
+      await open(tester, presets: _presets);
+
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsOneWidget);
+      expect(find.text('Przełącz'), findsNothing);
+    });
+
+    testWidgets('says nothing when the file names no printer', (tester) async {
+      await open(tester, embedded: EmbeddedSettings.none);
+      expect(find.textContaining('Plik jest pod'), findsNothing);
+    });
+  });
+
+  group('slice as designed', () {
+    const designed = EmbeddedSettings(
+      printer: 'Bambu Lab X2D',
+      process: '0.20mm Standard @BBL X2D',
+      serverSupportsAsDesigned: true,
+    );
+
+    testWidgets('is absent while the server cannot honour it', (tester) async {
+      // Absent rather than disabled, for the same reason the layout switches
+      // are: nothing rejects the field, so a switch that looks live and slices
+      // by the profile anyway is worse than no switch.
+      await openSheet(tester,
+          embedded: const EmbeddedSettings(
+            printer: 'Bambu Lab X2D',
+            process: '0.20mm Standard @BBL X2D',
+            serverSupportsAsDesigned: false,
+          ));
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+    });
+
+    testWidgets('is absent for a file with no embedded profile', (tester) async {
+      await openSheet(tester);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+    });
+
+    testWidgets('is absent while the picked printer is a different model',
+        (tester) async {
+      // The design's printer is not among the offered ones, so the form keeps
+      // its own default and the offer never applies — honouring another
+      // printer's embedded settings would lay the model out for the wrong bed.
+      await openSheet(tester,
+          embedded: const EmbeddedSettings(
+            printer: 'Bambu Lab P1S 0.4 nozzle',
+            process: '0.20mm Standard @BBL P1S',
+            serverSupportsAsDesigned: true,
+          ));
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+    });
+
+    testWidgets('defaults the printer to the one the file was designed for',
+        (tester) async {
+      // Without this the switch is unreachable in practice: the user would have
+      // to guess which printer makes the offer appear.
+      await openSheet(
+        tester,
+        embedded: designed,
+        presets: const UnifiedPresets(
+          printers: [
+            SlicerPreset(source: 'local', id: '2', name: 'Bambu Lab A1'),
+            SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D'),
+          ],
+          processes: [
+            SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard')
+          ],
+          filaments: [
+            SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic')
+          ],
+        ),
+      );
+
+      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
+      final body = await slice(tester);
+      expect(body['printer_preset'], {'source': 'local', 'id': '1'},
+          reason: 'the design\'s printer, not the first in the list');
+    });
+
+    testWidgets('sends the field, and nothing the file overrules',
+        (tester) async {
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nieużywane — decyduje plik'), findsWidgets);
+
+      final body = await slice(tester);
+      expect(body['use_embedded_settings'], isTrue);
+      // Still required by the server's validator on this path, and ignored
+      // there — so they stay in the body.
+      expect(body['printer_preset'], {'source': 'local', 'id': '1'});
+      expect(body['process_preset'], {'source': 'local', 'id': '12'});
+      expect(body['filament_preset'], {'source': 'local', 'id': '30'});
+    });
+
+    testWidgets('locks every control the profiles drive', (tester) async {
+      await openSheet(tester, embedded: designed);
+      ListTile tile(String label) => tester.widget<ListTile>(find.ancestor(
+          of: find.text(label), matching: find.byType(ListTile)));
+
+      expect(tile('Drukarka').enabled, isTrue);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      // The printer among them: moving off the design's target would drop the
+      // gate and take the switch with it.
+      expect(tile('Drukarka').enabled, isFalse);
+      expect(tile('Proces / Jakość').enabled, isFalse);
+      expect(tile('Płyta robocza').enabled, isFalse);
+      expect(tile('Ustawienia procesu').enabled, isFalse);
+      expect(tile('Filament').enabled, isFalse);
+    });
+
+    testWidgets('cannot have the printer changed under it', (tester) async {
+      // Why the flag needs no reset on a printer change: there is no way to
+      // make one. The row does not open, so a switch left on cannot be carried
+      // to a printer the design does not target.
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Drukarka'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Szukaj profili'), findsNothing,
+          reason: 'the preset picker must not have opened');
+    });
+
+    testWidgets('dims a locked row, and drops its chevron', (tester) async {
+      // ListTile.enabled alone barely reads on the dark theme — the row still
+      // looked tappable, which is what a live emulator showed.
+      await openSheet(tester, embedded: designed);
+      double dimOf(String label) => tester
+          .widgetList<Opacity>(
+              find.ancestor(of: find.text(label), matching: find.byType(Opacity)))
+          .map((o) => o.opacity)
+          .fold(1.0, (a, b) => a * b);
+      int chevronsIn(String label) => tester
+          .widgetList<Icon>(find.descendant(
+              of: find.ancestor(
+                  of: find.text(label), matching: find.byType(ListTile)),
+              matching: find.byIcon(Icons.chevron_right)))
+          .length;
+
+      expect(dimOf('Drukarka'), 1.0);
+      expect(chevronsIn('Drukarka'), 1);
+
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      expect(dimOf('Drukarka'), lessThan(0.6));
+      expect(dimOf('Płyta robocza'), lessThan(0.6));
+      expect(chevronsIn('Drukarka'), 0);
+      expect(chevronsIn('Płyta robocza'), 0);
+    });
+
+    testWidgets('drops a build plate that was picked before it was turned on',
+        (tester) async {
+      // bed_type patches a process JSON the embedded path never builds, so
+      // sending it would only misreport what this slice did.
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Płyta robocza'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Textured PEI Plate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      expect((await slice(tester)).containsKey('bed_type'), isFalse);
+    });
+
+    testWidgets('keeps the plate when it is turned off again', (tester) async {
+      // The other half of the case above, or the assertion proves nothing: an
+      // absent key is also what an untouched picker produces.
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Płyta robocza'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Textured PEI Plate'));
+      await tester.pumpAndSettle();
+
+      expect((await slice(tester))['bed_type'], 'Textured PEI Plate');
+    });
+
+    testWidgets('drops process overrides that were edited before it was on',
+        (tester) async {
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Ustawienia procesu'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.descendant(
+              of: find.byKey(const ValueKey('layer_height')),
+              matching: find.byType(TextField)),
+          '0.28');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      // Recorded while off — the same edit reaches the body in the group above.
+      expect(find.text('Zmienione: 1'), findsOneWidget);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      expect((await slice(tester)).containsKey('process_overrides'), isFalse);
+    });
+
+    testWidgets('leaves a filament slot nothing could fill still pickable',
+        (tester) async {
+      // The validator wants a ref per slot on this path too, so locking an
+      // empty slot would dead-end the form: unsubmittable and unfixable.
+      await openSheet(
+        tester,
+        embedded: designed,
+        presets: const UnifiedPresets(
+          printers: [SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D')],
+          processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm')],
+          filaments: [],
+        ),
+      );
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      final filament = tester.widget<ListTile>(find.ancestor(
+          of: find.text('Filament'), matching: find.byType(ListTile)));
+      expect(filament.enabled, isTrue);
+    });
+
+    testWidgets('leaves the layout switches live', (tester) async {
+      // They act on the geometry through the CLI, not through the process
+      // config, so they work whatever the settings come from.
+      await openSheet(tester, embedded: designed, layoutOptions: true);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Automatyczna orientacja'));
+      await tester.pumpAndSettle();
+
+      final body = await slice(tester);
+      expect(body['use_embedded_settings'], isTrue);
+      expect(body['auto_orient'], isTrue);
+    });
+
+    testWidgets('turned off again slices by the profile as before',
+        (tester) async {
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+
+      final body = await slice(tester);
+      expect(body.containsKey('use_embedded_settings'), isFalse,
+          reason: 'the default path must stay byte-identical to before');
     });
   });
 }

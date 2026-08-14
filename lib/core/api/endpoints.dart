@@ -325,6 +325,10 @@ abstract final class Endpoints {
   static String archiveFilamentRequirements(int archiveId) =>
       '$apiPrefix/archives/$archiveId/filament-requirements';
 
+  /// See [libraryFilePlates].
+  static String archivePlates(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/plates';
+
   // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
 
   /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).
@@ -336,6 +340,12 @@ abstract final class Endpoints {
   /// [archiveFilamentRequirements].
   static String libraryFileFilamentRequirements(int fileId) =>
       '$apiPrefix/library/files/$fileId/filament-requirements';
+
+  /// Plates in a library file's 3MF, plus `embedded_printer` /
+  /// `embedded_process` / `design_overrides`. Read for the "slice as designed"
+  /// gate rather than for the plates — see `EmbeddedSettings`.
+  static String libraryFilePlates(int fileId) =>
+      '$apiPrefix/library/files/$fileId/plates';
 
   /// Poll a slice job (`GET`) → status/progress/result. See [archiveSlice].
   static String sliceJob(int jobId) => '$apiPrefix/slice-jobs/$jobId';

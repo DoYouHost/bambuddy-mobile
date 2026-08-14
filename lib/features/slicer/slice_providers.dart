@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/archive_capabilities.dart';
+import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/slicer/process_schema_catalog.dart';
@@ -68,6 +69,16 @@ final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>(
 final filamentRequirementsProvider = FutureProvider.autoDispose
     .family<List<FilamentRequirement>, (bool, int)>(
   (ref, key) => ref.watch(slicerRepositoryProvider).filamentRequirements(
+        id: key.$2,
+        isArchive: key.$1,
+      ),
+);
+
+/// What the source 3MF was prepared with, keyed by `(isArchive, id)` like
+/// [filamentRequirementsProvider]. Drives the "slice as designed" switch.
+final embeddedSettingsProvider =
+    FutureProvider.autoDispose.family<EmbeddedSettings, (bool, int)>(
+  (ref, key) => ref.watch(slicerRepositoryProvider).embeddedSettings(
         id: key.$2,
         isArchive: key.$1,
       ),

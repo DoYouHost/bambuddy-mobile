@@ -3760,14 +3760,31 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get sliceAutoOrientHint =>
-      'Pozwól sliceowi obrócić każdy obiekt przed cięciem. Wyłączone zachowuje orientację wybraną przez projektanta.';
+      'Obraca obiekty na najlepszą stronę do druku.';
 
   @override
   String get sliceAutoArrange => 'Automatyczne rozmieszczenie';
 
   @override
-  String get sliceAutoArrangeHint =>
-      'Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.';
+  String get sliceAutoArrangeHint => 'Rozkłada obiekty na stole od nowa.';
+
+  @override
+  String sliceDesignedFor(String printer) {
+    return 'Plik jest pod $printer';
+  }
+
+  @override
+  String get sliceUseDesignedPrinter => 'Przełącz';
+
+  @override
+  String get sliceAsDesigned => 'Użyj ustawień z pliku';
+
+  @override
+  String get sliceAsDesignedHint =>
+      'Ustawienia projektanta zamiast profili powyżej.';
+
+  @override
+  String get sliceAsDesignedInactive => 'Nieużywane — decyduje plik';
 
   @override
   String get sliceFilamentUnused => 'Nieużywany na tej płycie';

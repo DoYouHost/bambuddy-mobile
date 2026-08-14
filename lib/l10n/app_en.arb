@@ -1332,9 +1332,16 @@
   "sliceFilamentNumbered": "Filament {n}",
   "@sliceFilamentNumbered": { "placeholders": { "n": { "type": "String" } } },
   "sliceAutoOrient": "Auto orient",
-  "sliceAutoOrientHint": "Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.",
+  "sliceAutoOrientHint": "Turns each object onto its best printing side.",
   "sliceAutoArrange": "Auto arrange",
-  "sliceAutoArrangeHint": "Let the slicer lay the objects out on the plate. Off keeps the layout in the file.",
+  "sliceAutoArrangeHint": "Lays the objects out on the plate again.",
+
+  "sliceDesignedFor": "This file is for {printer}",
+  "@sliceDesignedFor": { "placeholders": { "printer": { "type": "String" } } },
+  "sliceUseDesignedPrinter": "Switch",
+  "sliceAsDesigned": "Use the file's own settings",
+  "sliceAsDesignedHint": "The designer's settings instead of the profiles above.",
+  "sliceAsDesignedInactive": "Not used — the file decides",
 
   "sliceFilamentUnused": "Not used by this plate",
   "processSettingsTitle": "Process settings",

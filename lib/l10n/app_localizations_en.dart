@@ -3702,14 +3702,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceAutoOrientHint =>
-      'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.';
+      'Turns each object onto its best printing side.';
 
   @override
   String get sliceAutoArrange => 'Auto arrange';
 
   @override
-  String get sliceAutoArrangeHint =>
-      'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.';
+  String get sliceAutoArrangeHint => 'Lays the objects out on the plate again.';
+
+  @override
+  String sliceDesignedFor(String printer) {
+    return 'This file is for $printer';
+  }
+
+  @override
+  String get sliceUseDesignedPrinter => 'Switch';
+
+  @override
+  String get sliceAsDesigned => 'Use the file\'s own settings';
+
+  @override
+  String get sliceAsDesignedHint =>
+      'The designer\'s settings instead of the profiles above.';
+
+  @override
+  String get sliceAsDesignedInactive => 'Not used — the file decides';
 
   @override
   String get sliceFilamentUnused => 'Not used by this plate';

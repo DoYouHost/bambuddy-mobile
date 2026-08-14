@@ -1185,9 +1185,16 @@
   "sliceFilamentNumbered": "Filament {n}",
   "@sliceFilamentNumbered": { "placeholders": { "n": { "type": "String" } } },
   "sliceAutoOrient": "Automatyczna orientacja",
-  "sliceAutoOrientHint": "Pozwól sliceowi obrócić każdy obiekt przed cięciem. Wyłączone zachowuje orientację wybraną przez projektanta.",
+  "sliceAutoOrientHint": "Obraca obiekty na najlepszą stronę do druku.",
   "sliceAutoArrange": "Automatyczne rozmieszczenie",
-  "sliceAutoArrangeHint": "Pozwól sliceowi rozłożyć obiekty na stole. Wyłączone zachowuje układ z pliku.",
+  "sliceAutoArrangeHint": "Rozkłada obiekty na stole od nowa.",
+
+  "sliceDesignedFor": "Plik jest pod {printer}",
+  "@sliceDesignedFor": { "placeholders": { "printer": { "type": "String" } } },
+  "sliceUseDesignedPrinter": "Przełącz",
+  "sliceAsDesigned": "Użyj ustawień z pliku",
+  "sliceAsDesignedHint": "Ustawienia projektanta zamiast profili powyżej.",
+  "sliceAsDesignedInactive": "Nieużywane — decyduje plik",
 
   "sliceFilamentUnused": "Nieużywany na tej płycie",
   "processSettingsTitle": "Ustawienia procesu",

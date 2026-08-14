@@ -6455,7 +6455,7 @@ abstract class AppLocalizations {
   /// No description provided for @sliceAutoOrientHint.
   ///
   /// In en, this message translates to:
-  /// **'Let the slicer rotate each object before slicing. Off keeps the orientation the designer chose.'**
+  /// **'Turns each object onto its best printing side.'**
   String get sliceAutoOrientHint;
 
   /// No description provided for @sliceAutoArrange.
@@ -6467,8 +6467,38 @@ abstract class AppLocalizations {
   /// No description provided for @sliceAutoArrangeHint.
   ///
   /// In en, this message translates to:
-  /// **'Let the slicer lay the objects out on the plate. Off keeps the layout in the file.'**
+  /// **'Lays the objects out on the plate again.'**
   String get sliceAutoArrangeHint;
+
+  /// No description provided for @sliceDesignedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is for {printer}'**
+  String sliceDesignedFor(String printer);
+
+  /// No description provided for @sliceUseDesignedPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get sliceUseDesignedPrinter;
+
+  /// No description provided for @sliceAsDesigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the file\'s own settings'**
+  String get sliceAsDesigned;
+
+  /// No description provided for @sliceAsDesignedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The designer\'s settings instead of the profiles above.'**
+  String get sliceAsDesignedHint;
+
+  /// No description provided for @sliceAsDesignedInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used — the file decides'**
+  String get sliceAsDesignedInactive;
 
   /// No description provided for @sliceFilamentUnused.
   ///
