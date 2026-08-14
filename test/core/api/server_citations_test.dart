@@ -43,4 +43,67 @@ void main() {
           '${offenders.join('\n')}',
     );
   });
+
+  test('every cited symbol still exists in the server source', () {
+    // Where the server's own checkout is: the maintainer's clone locally, the
+    // one the CI workflow makes before the job starts. Absent on a fresh clone
+    // that has neither, and then there is nothing to check against.
+    final clone = [
+      Directory('reference/bambuddy'),
+      Directory('/tmp/bambuddy-server-ref'),
+    ].firstWhere((d) => d.existsSync(), orElse: () => Directory('nowhere'));
+    if (!clone.existsSync()) {
+      printOnFailure('no server checkout — nothing to verify against');
+      return;
+    }
+
+    final citation = RegExp(r'`([\w/]+\.(?:py|ts|tsx))::(\w+)`');
+    // A def, a class, or a module-level constant — every shape a citation
+    // points at. Deliberately loose: this asks "does this name exist here",
+    // not "is this the right one for the sentence", which no test can answer.
+    String declaration(String symbol) =>
+        r'(?:^|\s)(?:async\s+)?(?:def|class|function|const|interface|type)\s+' +
+        RegExp.escape(symbol) +
+        r'\b|^' +
+        RegExp.escape(symbol) +
+        r'\s*[:=]';
+
+    final missing = <String>[];
+    final files = <String, File?>{};
+
+    for (final directory in ['lib', 'test']) {
+      for (final source in Directory(directory)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))) {
+        for (final match in citation.allMatches(source.readAsStringSync())) {
+          final path = match.group(1)!;
+          final symbol = match.group(2)!;
+
+          final file = files.putIfAbsent(path, () {
+            final candidates = clone
+                .listSync(recursive: true)
+                .whereType<File>()
+                .where((f) => f.path.endsWith('/$path'))
+                .toList();
+            return candidates.length == 1 ? candidates.first : null;
+          });
+          if (file == null) continue; // Ambiguous or gone: not this test's call.
+
+          final declared = RegExp(declaration(symbol), multiLine: true);
+          if (!declared.hasMatch(file.readAsStringSync())) {
+            missing.add('${source.path}: $path::$symbol');
+          }
+        }
+      }
+    }
+
+    expect(
+      missing,
+      isEmpty,
+      reason: 'The server renamed or removed these. Follow what replaced them '
+          'and update both the citation and the sentence around it — the '
+          'behaviour it describes may have moved too.\n${missing.join('\n')}',
+    );
+  });
 }
