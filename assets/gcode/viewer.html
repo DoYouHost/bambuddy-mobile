@@ -89,7 +89,30 @@
       }
       /* A failure is not a wait: the ring would keep promising progress. */
       #status[data-sticky='1']::before { display: none; }
+      /* Neither is a measured download — the bar says it better. */
+      #status[data-progress='1']::before { display: none; }
       @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Only the download can be measured: its length is in the response.
+         Parsing is one call into the vendored parser, with nothing to report
+         from inside it, so that phase keeps the ring. */
+      #progress { display: none; width: min(62vw, 220px); }
+      #status[data-progress='1'] #progress { display: block; }
+      #bar {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--fill-weak);
+        overflow: hidden;
+      }
+      #bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 2px;
+        background: var(--accent);
+        transition: width 0.15s linear;
+      }
+      #size { display: block; margin-top: 7px; font-size: 11px; color: var(--text-3); }
       #ui { position: absolute; inset: 0; display: none; pointer-events: none; }
 
       .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
@@ -320,7 +343,10 @@
         <span class="num" id="r-range"></span>
       </div>
     </div>
-    <div id="status"></div>
+    <div id="status">
+      <span id="status-text"></span>
+      <div id="progress"><div id="bar"><i id="bar-fill"></i></div><span id="size" class="num"></span></div>
+    </div>
     <script>__BB_CONFIG__</script>
     <script>__BB_BUNDLE__</script>
   </body>

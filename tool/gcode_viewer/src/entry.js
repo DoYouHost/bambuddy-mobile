@@ -44,23 +44,71 @@ function fail(reason) {
 }
 
 const statusEl = document.getElementById('status');
+const statusText = document.getElementById('status-text');
 const uiEl = document.getElementById('ui');
 
 function setStatus(text, sticky) {
   if (!statusEl) return;
-  statusEl.textContent = text || '';
+  statusText.textContent = text || '';
   statusEl.style.display = text ? 'flex' : 'none';
   statusEl.dataset.sticky = sticky ? '1' : '';
+  if (!text) statusEl.dataset.progress = '';
+}
+
+const MB = 1024 * 1024;
+
+/**
+ * Shows how much of the G-code has arrived.
+ *
+ * `total` is 0 when the server sends no length — a proxy that re-chunks the
+ * response, say — and then there is a count but no bar, because a bar that
+ * cannot say how full it is is a lie.
+ */
+function setProgress(received, total) {
+  // A length smaller than what has already arrived is a compressed one: with
+  // gzip on the proxy the header counts the wire bytes while this counts the
+  // decoded ones. Better to show a plain count than a bar past its own end.
+  const measurable = total > 0 && received <= total;
+  statusEl.dataset.progress = '1';
+  document.getElementById('bar').style.display = measurable ? '' : 'none';
+  if (measurable) {
+    document.getElementById('bar-fill').style.width = `${(received / total) * 100}%`;
+  }
+  document.getElementById('size').textContent = measurable
+    ? `${(received / MB).toFixed(1)} / ${(total / MB).toFixed(1)} MB`
+    : `${(received / MB).toFixed(1)} MB`;
 }
 
 /**
- * Tells Flutter the page is up and showing its own progress, so the app can
- * take its spinner down — two of them, one drawn over the other, is what the
- * user sees otherwise. Deliberately not "ready": the preview is still coming,
- * and the watchdog must keep running.
+ * Tells Flutter the page is alive and showing its own progress.
+ *
+ * Sent once to take the app's spinner down — two of them, one drawn over the
+ * other, is what the user sees otherwise — and then repeatedly, as a heartbeat.
+ * Deliberately not "ready": the preview is still coming, and the app's watchdog
+ * must keep running. What it does do is restart that watchdog, which is why the
+ * app can hold a short silence budget instead of one long enough to cover a
+ * whole download.
  */
 function reportAlive() {
   report('loading');
+}
+
+/**
+ * Beats while `work` runs, so a download that is slow but healthy never looks
+ * like a page that died.
+ *
+ * The interval cannot fire during a synchronous stretch — the parse takes the
+ * main thread for seconds on a big plate — so a beat goes out immediately
+ * before the caller starts one, buying that stretch a fresh budget.
+ */
+async function withHeartbeat(work) {
+  reportAlive();
+  const beat = setInterval(reportAlive, 2000);
+  try {
+    return await work();
+  } finally {
+    clearInterval(beat);
+  }
 }
 
 /** Yields to the compositor so a status change actually paints before the
@@ -79,7 +127,32 @@ async function fetchGcode() {
     throw { reason: 'network' };
   }
   if (!res.ok) throw { reason: `http:${res.status}` };
-  return res.text();
+  if (!res.body) return res.text(); // No streaming here: take it in one piece.
+
+  const total = Number(res.headers.get('content-length')) || 0;
+  const reader = res.body.getReader();
+  // Decoded as it arrives rather than kept as bytes and converted at the end,
+  // which would hold the whole file twice at the moment of the conversion.
+  const decoder = new TextDecoder();
+  const parts = [];
+  let received = 0;
+  let painted = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(decoder.decode(value, { stream: true }));
+    received += value.length;
+    // Every 256 KiB rather than every chunk: a fast LAN delivers thousands of
+    // them and each one would cost a layout.
+    if (received - painted > 256 * 1024) {
+      painted = received;
+      setProgress(received, total);
+    }
+  }
+  parts.push(decoder.decode());
+  setProgress(received, total);
+  return parts.join('');
 }
 
 function frameCamera(camera, controls, bounds, volume) {
@@ -359,13 +432,18 @@ async function main() {
   document.documentElement.classList.toggle('light', cfg.dark === false);
 
   setStatus(labels.loading || 'Loading…');
-  reportAlive();
-  const text = await fetchGcode();
+  const text = await withHeartbeat(fetchGcode);
 
+  // Back to the indeterminate ring: nothing about the parse can be measured.
+  statusEl.dataset.progress = '';
   setStatus(labels.parsing || 'Reading G-code…');
   await paint();
+  reportAlive();
   const parsed = parseGcodeToolpath(text);
   if (!parsed.layers.length) throw { reason: 'empty' };
+  // Building the buffers and the mesh is the other stretch that blocks; it runs
+  // inside build() below, which is why the beat goes out here.
+  reportAlive();
 
   const scene = new THREE.Scene();
   // Matches --bg in the shell, so the canvas and the chrome are one surface.

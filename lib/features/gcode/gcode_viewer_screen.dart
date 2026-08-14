@@ -61,12 +61,21 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   /// Name the page posts its report to. Must match `entry.js`.
   static const _channel = 'BambuddyReport';
 
-  /// How long to wait for a report before assuming one is never coming.
+  /// How long the page gets to say its first word.
   ///
-  /// Generous on purpose: the page has to fetch the whole G-code — tens of
-  /// megabytes on a big plate — and then parse it, which is seconds of main
-  /// thread on a phone. Only a page that never speaks at all hits this.
-  static const _reportTimeout = Duration(minutes: 3);
+  /// A script that never reports `loading` never started — a bundle that failed
+  /// to parse, a re-vendor that shipped broken JavaScript. No amount of waiting
+  /// fixes that, so it is not worth [_silenceTimeout] of spinner to find out.
+  static const _bootTimeout = Duration(seconds: 20);
+
+  /// How long the page may then go quiet.
+  ///
+  /// A budget for *silence*, not for the work: the page beats every two seconds
+  /// while it downloads, and again either side of the stretches that block the
+  /// main thread. So this has to cover the longest single blocking step — the
+  /// parse of an enormous plate — rather than the download, the parse and the
+  /// mesh build added together.
+  static const _silenceTimeout = Duration(seconds: 60);
 
   WebViewController? _controller;
   bool _ready = false;
@@ -189,12 +198,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       )
       ..loadHtmlString(document, baseUrl: profile.baseUrl);
 
-    _watchdog?.cancel();
-    _watchdog = Timer(_reportTimeout, () {
-      if (!mounted || _ready || _failure != null) return;
-      setState(() => _failure =
-          const GcodeViewerReport.failed(GcodeViewerError.script));
-    });
+    _armWatchdog(_bootTimeout);
 
     setState(() => _controller = controller);
   }
@@ -227,6 +231,20 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     return colors;
   }
 
+  /// Arms the single watchdog, replacing whatever it was waiting for.
+  ///
+  /// Two stages, because "the script never ran" and "the plate is enormous"
+  /// deserve very different patience, and only the page can tell them apart —
+  /// by speaking at all.
+  void _armWatchdog(Duration limit) {
+    _watchdog?.cancel();
+    _watchdog = Timer(limit, () {
+      if (!mounted || _ready || _failure != null) return;
+      setState(() => _failure =
+          const GcodeViewerReport.failed(GcodeViewerError.script));
+    });
+  }
+
   /// The page's `--bg`, so Flutter's ground and the WebView's agree.
   static Color _pageBackground(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
@@ -252,8 +270,9 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     if (report == null || !mounted) return;
 
     if (report.error == null && !report.ready) {
-      // The watchdog keeps running: a page that says it is loading and then
-      // hangs is exactly what it is for.
+      // Still watched, on the longer clock now: a page that says it is loading
+      // and then hangs is exactly what the watchdog is for.
+      _armWatchdog(_silenceTimeout);
       setState(() => _alive = true);
       return;
     }
