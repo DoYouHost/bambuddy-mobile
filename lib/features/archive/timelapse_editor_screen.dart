@@ -15,6 +15,8 @@ import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
+import 'timelapse_trim.dart';
+import 'timelapse_trim_strip.dart';
 import 'timelapse_url.dart';
 
 /// Trim and speed for a recorded timelapse.
@@ -55,6 +57,14 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
 
   VideoPlayerController? _preview;
 
+  /// Whether the user wants the preview running. Not the same as the player's
+  /// `isPlaying`, which also goes false at the end of the file and in the
+  /// middle of the loop's own seek — this is what those two then resume from.
+  bool _wantPlay = false;
+
+  /// Guards the loop against re-entering while its seek is still in flight.
+  bool _seeking = false;
+
   @override
   void initState() {
     super.initState();
@@ -89,50 +99,76 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     setState(() => _preview = controller);
   }
 
-  /// Keeps playback inside the trimmed region, looping back to its start —
-  /// the same thing the web editor's preview does, so what you watch here is
-  /// what the saved file will contain.
+  /// Loops playback back to the start of the trimmed region when it runs past
+  /// the end of it — the same rule the web editor's preview follows, so what
+  /// you watch here is what the saved file will contain.
+  ///
+  /// Only the *end* is policed. A seek lands on a frame, not on an exact
+  /// millisecond, so a rule that also pulled the position up to the start
+  /// would re-fire on its own undershoot and seek in a loop: the decoder
+  /// spends the whole time flushing and the picture never moves.
   void _holdInsideTrim() {
     final controller = _preview;
     final trim = _trim;
-    if (controller == null || trim == null || !controller.value.isPlaying) {
-      return;
-    }
+    if (controller == null || trim == null || !_wantPlay || _seeking) return;
+
     final position = controller.value.position.inMilliseconds / 1000;
-    if (position >= trim.end || position < trim.start) {
-      controller.seekTo(
-        Duration(milliseconds: (trim.start * 1000).round()),
-      );
-    }
+    if (!timelapseReachedEnd(position, trim.end)) return;
+
+    _seeking = true;
+    () async {
+      await controller.seekTo(_at(trim.start));
+      // Reaching the natural end of the file stops playback, so resuming is
+      // part of looping rather than a no-op.
+      if (mounted && _wantPlay) await controller.play();
+      _seeking = false;
+    }();
   }
 
   Future<void> _togglePreview() async {
     final controller = _preview;
     final trim = _trim;
     if (controller == null || trim == null) return;
-    if (controller.value.isPlaying) {
+
+    if (_wantPlay) {
+      setState(() => _wantPlay = false);
       await controller.pause();
       return;
     }
-    // Starting before the trim would play material the save is about to drop.
-    if (controller.value.position.inMilliseconds / 1000 < trim.start) {
-      await controller.seekTo(
-        Duration(milliseconds: (trim.start * 1000).round()),
-      );
+
+    setState(() => _wantPlay = true);
+    // Anywhere outside the trim (including the tail left by a previous loop)
+    // would play material the save is about to drop.
+    final position = controller.value.position.inMilliseconds / 1000;
+    if (timelapseNeedsRewind(position, trim.start, trim.end)) {
+      await controller.seekTo(_at(trim.start));
     }
     await controller.setPlaybackSpeed(_speed);
     await controller.play();
   }
 
-  /// Parks the preview on the handle being dragged, so the trim is chosen
+  /// Parks the preview on the handle that was dragged, so the trim is chosen
   /// against a frame rather than against a number.
+  ///
+  /// Fires when the drag ends, not on every pixel of it: a seek per slider
+  /// tick is dozens of decoder flushes for frames nobody sees.
   Future<void> _previewEdge(RangeValues previous, RangeValues next) async {
     final controller = _preview;
     if (controller == null) return;
     final edge = next.start != previous.start ? next.start : next.end;
-    if (controller.value.isPlaying) await controller.pause();
-    await controller.seekTo(Duration(milliseconds: (edge * 1000).round()));
+    if (_wantPlay) {
+      setState(() => _wantPlay = false);
+      await controller.pause();
+    }
+    await controller.seekTo(_at(edge));
   }
+
+  /// Drag on the strip outside the handles: move the playhead, leaving
+  /// playback as it was — scrubbing a running preview is how you check a cut.
+  void _scrub(double seconds) => _preview?.seekTo(_at(seconds));
+
+  static Duration _at(double seconds) =>
+      Duration(milliseconds: (seconds * 1000).round());
 
   @override
   Widget build(BuildContext context) {
@@ -191,11 +227,13 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         if (_preview case final preview?) ...[
-          _Preview(controller: preview, onToggle: _togglePreview),
+          _Preview(
+            controller: preview,
+            playing: _wantPlay,
+            onToggle: _togglePreview,
+          ),
           const SizedBox(height: 16),
         ],
-        _Filmstrip(archiveId: widget.archiveId),
-        const SizedBox(height: 16),
         _SectionHeader(
           icon: Icons.content_cut,
           label: l10n.timelapseEditTrim,
@@ -203,24 +241,18 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
               '${formatClock(trim.start)} – ${formatClock(trim.end)}'
               ' (${formatClock(trim.end - trim.start)})',
         ),
-        logTag(
-          'timelapse_edit.trim',
-          RangeSlider(
-            values: trim,
-            max: info.duration,
-            labels: RangeLabels(
-              formatClock(trim.start),
-              formatClock(trim.end),
-            ),
-            onChanged: (v) {
-              if (v.end - v.start < _minClip) return;
-              final previous = trim;
-              setState(() => _trim = v);
-              _previewEdge(previous, v);
-            },
-          ),
-        ),
         const SizedBox(height: 8),
+        _TrimStrip(
+          archiveId: widget.archiveId,
+          preview: _preview,
+          duration: info.duration,
+          trim: trim,
+          minClip: _minClip,
+          onTrimChanged: (v) => setState(() => _trim = v),
+          onTrimChangeEnd: (v) => _previewEdge(trim, v),
+          onSeek: _scrub,
+        ),
+        const SizedBox(height: 16),
         _SectionHeader(
           icon: Icons.speed,
           label: l10n.timelapseEditSpeed,
@@ -307,9 +339,19 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
 /// The trimmed clip as it will look after saving, with the big centre play
 /// button the web editor also puts over its preview.
 class _Preview extends StatelessWidget {
-  const _Preview({required this.controller, required this.onToggle});
+  const _Preview({
+    required this.controller,
+    required this.playing,
+    required this.onToggle,
+  });
 
   final VideoPlayerController controller;
+
+  /// The editor's intent, not the player's state: at the loop point the
+  /// player stops for a moment, and a button that flashed back to ▶ there
+  /// would read as the preview having ended.
+  final bool playing;
+
   final VoidCallback onToggle;
 
   @override
@@ -331,7 +373,7 @@ class _Preview extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     VideoPlayer(controller),
-                    if (!value.isPlaying)
+                    if (!playing)
                       DecoratedBox(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
@@ -358,45 +400,56 @@ class _Preview extends StatelessWidget {
   }
 }
 
-/// The frames the server renders for the trim range. Purely orienting — a
-/// failure here costs the strip, not the editor, so it degrades to nothing.
-class _Filmstrip extends ConsumerWidget {
-  const _Filmstrip({required this.archiveId});
+/// The trim control, fed with the frames the server renders and — while a
+/// preview exists — with its live position for the playhead.
+///
+/// The frames are orienting, not load-bearing: if they never arrive the strip
+/// still trims, against a plain background.
+class _TrimStrip extends ConsumerWidget {
+  const _TrimStrip({
+    required this.archiveId,
+    required this.preview,
+    required this.duration,
+    required this.trim,
+    required this.minClip,
+    required this.onTrimChanged,
+    required this.onTrimChangeEnd,
+    required this.onSeek,
+  });
 
   final int archiveId;
-
-  static const _height = 64.0;
+  final VideoPlayerController? preview;
+  final double duration;
+  final RangeValues trim;
+  final double minClip;
+  final ValueChanged<RangeValues> onTrimChanged;
+  final ValueChanged<RangeValues> onTrimChangeEnd;
+  final ValueChanged<double> onSeek;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strip = ref.watch(timelapseFilmstripProvider(archiveId));
-    final frames = strip.valueOrNull?.frames ?? const [];
-    if (frames.isEmpty) {
-      return SizedBox(
-        height: _height,
-        child: strip.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : const SizedBox.shrink(),
-      );
-    }
-    return SizedBox(
-      height: _height,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Row(
-          children: [
-            for (final frame in frames)
-              Expanded(
-                child: Image.memory(
-                  frame,
-                  height: _height,
-                  fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                ),
-              ),
-          ],
-        ),
-      ),
+
+    Widget build(double? position) => TimelapseTrimStrip(
+      frames: strip.valueOrNull?.frames ?? const [],
+      loading: strip.isLoading,
+      duration: duration,
+      trim: trim,
+      minClip: minClip,
+      position: position,
+      onTrimChanged: onTrimChanged,
+      onTrimChangeEnd: onTrimChangeEnd,
+      onSeek: onSeek,
+    );
+
+    final controller = preview;
+    if (controller == null) return build(null);
+    // Rebuilt from the player's own value, so the playhead follows playback
+    // rather than the screen's setState calls.
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, _) =>
+          build(value.position.inMilliseconds / 1000),
     );
   }
 }

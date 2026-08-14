@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:bambuddy_mobile/core/models/timelapse.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_export.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_format.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_providers.dart';
+import 'package:bambuddy_mobile/features/archive/timelapse_trim.dart';
+import 'package:bambuddy_mobile/features/archive/timelapse_trim_strip.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +61,31 @@ void main() {
     });
   });
 
+  group('pętla podglądu', () {
+    test('w środku zakresu nie zawija', () {
+      expect(timelapseReachedEnd(5, 30), isFalse);
+    });
+
+    test('koniec zakresu łapie z zapasem na odstęp klatek', () {
+      expect(timelapseReachedEnd(29.95, 30), isTrue);
+      expect(timelapseReachedEnd(31, 30), isTrue);
+    });
+
+    test('niedostrzelony seek pod początek zakresu NIE zawija w kółko', () {
+      // Regresja: reguła pilnująca też początku wyzwalała się na własnym
+      // niedostrzeleniu — seek, niedostrzelenie, seek. Dekoder tylko czyścił
+      // bufory, obraz nie ruszał.
+      expect(timelapseReachedEnd(9.98, 30), isFalse,
+          reason: 'pozycja tuż pod startem 10 s to nie koniec zakresu');
+    });
+
+    test('start odtwarzania cofa spoza zakresu i z jego końca', () {
+      expect(timelapseNeedsRewind(9.98, 10, 30), isTrue);
+      expect(timelapseNeedsRewind(29.99, 10, 30), isTrue);
+      expect(timelapseNeedsRewind(15, 10, 30), isFalse);
+    });
+  });
+
   group('exportFilename', () {
     test('składa nazwę pliku z nazwy wydruku', () {
       expect(exportFilename('Part Studio 1'), 'Part_Studio_1_timelapse.mp4');
@@ -96,6 +124,200 @@ void main() {
 
     test('brak pól to pusty pasek, nie wyjątek', () {
       expect(TimelapseFilmstrip.fromJson(const {}).isEmpty, isTrue);
+    });
+  });
+
+  group('framesFitting', () {
+    final all = List.generate(14, (i) => i);
+
+    test('na wąskim pasku żadna klatka nie schodzi poniżej czytelnej szerokości',
+        () {
+      const stripWidth = 517.0;
+      final shown = framesFitting(all, stripWidth);
+
+      expect(stripWidth / shown.length, greaterThanOrEqualTo(56.0));
+      expect(shown, hasLength(lessThan(all.length)),
+          reason: 'przy tej szerokości komplet się nie mieści');
+    });
+
+    test('próbkuje z całego materiału, nie z jego początku', () {
+      final shown = framesFitting(all, 517);
+
+      expect(shown, orderedEquals(shown.toList()..sort()));
+      expect(shown.toSet(), hasLength(shown.length), reason: 'bez powtórek');
+      expect(shown.first, all.first, reason: 'początek materiału');
+      expect(shown.last, greaterThan(all.length ~/ 2),
+          reason: 'ostatnia próbka z końcowej połowy, nie z pierwszej');
+    });
+
+    test('gdy wszystkie się mieszczą, nie gubi żadnej', () {
+      expect(framesFitting(all, 2000), all);
+    });
+
+    test('pusta lista i zerowa szerokość nie wywracają się', () {
+      expect(framesFitting(<int>[], 500), isEmpty);
+      expect(framesFitting(all, 0), hasLength(1));
+    });
+  });
+
+  group('pasek przycinania', () {
+    // 300 px na 60 s materiału. Oś czasu jest wcięta o szerokość uchwytu z
+    // każdej strony, więc środek paska wypada na 30 s.
+    const width = 300.0;
+    const duration = 60.0;
+
+    Future<
+      ({List<RangeValues> trims, List<RangeValues> ends, List<double> seeks})
+    >
+    pumpStrip(
+      WidgetTester tester, {
+      RangeValues trim = const RangeValues(0, duration),
+      double? position,
+      List<Uint8List> frames = const [],
+    }) async {
+      final trims = <RangeValues>[];
+      final ends = <RangeValues>[];
+      final seeks = <double>[];
+      await tester.pumpWidget(
+        plApp(
+          Center(
+            child: SizedBox(
+              width: width,
+              child: TimelapseTrimStrip(
+                frames: frames,
+                duration: duration,
+                trim: trim,
+                minClip: 1,
+                position: position,
+                onTrimChanged: trims.add,
+                onTrimChangeEnd: ends.add,
+                onSeek: seeks.add,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (trims: trims, ends: ends, seeks: seeks);
+    }
+
+    Rect rectOf(WidgetTester tester, Key key) =>
+        tester.getRect(find.byKey(key));
+
+    Rect playheadRect(WidgetTester tester) =>
+        rectOf(tester, TimelapseTrimStrip.playheadKey);
+
+    testWidgets('przeciągnięcie lewego uchwytu przesuwa początek zakresu',
+        (tester) async {
+      final r = await pumpStrip(tester);
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+
+      // Chwyt na lewym uchwycie (start = 0 s siedzi na 12 px), przeciągnięcie
+      // do 58 px, czyli 46 px po torze = 10 s.
+      await tester.dragFrom(
+        Offset(strip.left + 2, strip.center.dy),
+        const Offset(56, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(r.trims, isNotEmpty);
+      expect(r.trims.last.start, closeTo(10, 0.5));
+      expect(r.trims.last.end, duration, reason: 'koniec nietknięty');
+      expect(r.ends, hasLength(1),
+          reason: 'seek dla podglądu tylko raz, po puszczeniu');
+    });
+
+    testWidgets('przeciągnięcie w środku paska przewija, nie tnie',
+        (tester) async {
+      final r = await pumpStrip(tester);
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+
+      // Przeciągnięcie musi przekroczyć próg dotyku (18 px), inaczej system
+      // uzna je za tapnięcie — stąd 30 px, a nie kilkanaście.
+      await tester.dragFrom(strip.center, const Offset(30, 0));
+      await tester.pumpAndSettle();
+
+      expect(r.trims, isEmpty, reason: 'zakres bez zmian');
+      expect(r.seeks.last, closeTo(36.5, 0.5),
+          reason: '180 px to 168 px po torze, czyli 36,5 s');
+    });
+
+    testWidgets('znacznik czasu nie wchodzi pod uchwyty', (tester) async {
+      // Na obu krańcach materiału znacznik nie może zachodzić na wyrenderowany
+      // uchwyt — sprawdzane na prostokątach, nie na stałej z widżetu.
+      for (final at in [0.0, duration]) {
+        await pumpStrip(tester, position: at);
+        final line = playheadRect(tester);
+
+        expect(line.overlaps(rectOf(tester, TimelapseTrimStrip.startHandleKey)),
+            isFalse, reason: 'znacznik na $at s wchodzi pod lewy uchwyt');
+        expect(line.overlaps(rectOf(tester, TimelapseTrimStrip.endHandleKey)),
+            isFalse, reason: 'znacznik na $at s wchodzi pod prawy uchwyt');
+      }
+    });
+
+    testWidgets('znacznik jedzie od pierwszej sekundy, bez postoju na starcie',
+        (tester) async {
+      // Regresja: znacznik był docinany do krawędzi wyliczanych z zakresu
+      // przycięcia, więc przez pierwsze ~2,5 s stał w miejscu, choć materiał
+      // już leciał. Test nie przelicza wzoru — sprawdza, że kolejne sekundy
+      // dają kolejne, rosnące położenia.
+      final seen = <double>[];
+      for (final second in [0.0, 1.0, 2.0, 3.0, 30.0, duration]) {
+        await pumpStrip(tester, position: second);
+        seen.add(playheadRect(tester).center.dx);
+      }
+
+      for (var i = 1; i < seen.length; i++) {
+        expect(seen[i], greaterThan(seen[i - 1]),
+            reason: 'sekunda $i nie przesunęła znacznika');
+      }
+    });
+
+    testWidgets('przycięcie nie przesuwa ani nie skaluje klatek',
+        (tester) async {
+      await pumpStrip(tester);
+      final full = rectOf(tester, TimelapseTrimStrip.framesKey);
+
+      await pumpStrip(tester, trim: const RangeValues(20, 40));
+      final trimmed = rectOf(tester, TimelapseTrimStrip.framesKey);
+
+      expect(trimmed, full,
+          reason: 'klatki to oś czasu — zakres je przyciemnia, nie przelicza');
+    });
+
+    testWidgets('uchwyt nie zasłania materiału, który zostaje',
+        (tester) async {
+      // Uchwyt może leżeć na przyciemnionej części — tę i tak wycinamy.
+      // Nie może wejść na kadr między przyciemnieniami, czyli na to, co
+      // zostanie po zapisie.
+      for (final trim in [
+        const RangeValues(0, duration),
+        const RangeValues(20, 40),
+      ]) {
+        await pumpStrip(tester, trim: trim);
+        final keptLeft = rectOf(tester, TimelapseTrimStrip.dimStartKey).right;
+        final keptRight = rectOf(tester, TimelapseTrimStrip.dimEndKey).left;
+
+        expect(rectOf(tester, TimelapseTrimStrip.startHandleKey).right,
+            lessThanOrEqualTo(keptLeft + 0.01),
+            reason: 'lewy uchwyt wchodzi na zachowany kadr przy $trim');
+        expect(rectOf(tester, TimelapseTrimStrip.endHandleKey).left,
+            greaterThanOrEqualTo(keptRight - 0.01),
+            reason: 'prawy uchwyt wchodzi na zachowany kadr przy $trim');
+      }
+    });
+
+    testWidgets('przewijanie nie wychodzi poza przycięty zakres',
+        (tester) async {
+      final r = await pumpStrip(tester, trim: const RangeValues(20, 40));
+      final strip = tester.getRect(find.byType(TimelapseTrimStrip));
+
+      // Tap tuż przy prawej krawędzi paska, czyli poza zakresem (40 s).
+      await tester.tapAt(Offset(strip.right - 4, strip.center.dy));
+      await tester.pumpAndSettle();
+
+      expect(r.seeks.single, 40, reason: 'docięte do końca zakresu');
     });
   });
 
@@ -146,7 +368,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(RangeSlider), findsOneWidget);
+      expect(find.byType(TimelapseTrimStrip), findsOneWidget);
       expect(find.text('Zapisz'), findsOneWidget);
     });
 
