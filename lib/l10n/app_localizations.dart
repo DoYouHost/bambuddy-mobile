@@ -1370,6 +1370,138 @@ abstract class AppLocalizations {
   /// **'Add to queue'**
   String get archiveAddToQueue;
 
+  /// No description provided for @archiveTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch timelapse'**
+  String get archiveTimelapse;
+
+  /// No description provided for @timelapseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get timelapseTitle;
+
+  /// No description provided for @timelapseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t play this timelapse.'**
+  String get timelapseError;
+
+  /// No description provided for @timelapseHttpError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server would not hand over this timelapse ({status}).'**
+  String timelapseHttpError(int status);
+
+  /// No description provided for @timelapseStalled.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is serving the video, but the player never started it.'**
+  String get timelapseStalled;
+
+  /// No description provided for @timelapsePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get timelapsePlay;
+
+  /// No description provided for @timelapsePause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get timelapsePause;
+
+  /// No description provided for @timelapseSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to gallery'**
+  String get timelapseSave;
+
+  /// No description provided for @timelapseShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get timelapseShare;
+
+  /// No description provided for @timelapseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to the gallery'**
+  String get timelapseSaved;
+
+  /// No description provided for @timelapseSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the video'**
+  String get timelapseSaveFailed;
+
+  /// No description provided for @timelapseEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get timelapseEdit;
+
+  /// No description provided for @timelapseEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get timelapseEditSave;
+
+  /// No description provided for @timelapseEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit timelapse'**
+  String get timelapseEditTitle;
+
+  /// No description provided for @timelapseEditTrim.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim'**
+  String get timelapseEditTrim;
+
+  /// No description provided for @timelapseEditSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get timelapseEditSpeed;
+
+  /// No description provided for @timelapseEditOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Result: {length}'**
+  String timelapseEditOutput(String length);
+
+  /// No description provided for @timelapseEditSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Original: {length} at {width}×{height}'**
+  String timelapseEditSource(String length, int width, int height);
+
+  /// No description provided for @timelapseEditSaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the recording?'**
+  String get timelapseEditSaveTitle;
+
+  /// No description provided for @timelapseEditSaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The server re-encodes the timelapse and replaces the original. There is no copy to go back to.'**
+  String get timelapseEditSaveMessage;
+
+  /// No description provided for @timelapseEditProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.'**
+  String get timelapseEditProcessing;
+
+  /// No description provided for @timelapseEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse updated'**
+  String get timelapseEdited;
+
   /// No description provided for @gcodeViewerTitle.
   ///
   /// In en, this message translates to:

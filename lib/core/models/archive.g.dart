@@ -13,6 +13,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   printerId: (json['printer_id'] as num?)?.toInt(),
   printName: json['print_name'] as String?,
   thumbnailPath: json['thumbnail_path'] as String?,
+  timelapsePath: json['timelapse_path'] as String?,
   printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
   filamentUsedGrams: (json['filament_used_grams'] as num?)?.toDouble(),
   filamentType: json['filament_type'] as String?,

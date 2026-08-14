@@ -16,6 +16,7 @@ class Archive {
     this.printerId,
     this.printName,
     this.thumbnailPath,
+    this.timelapsePath,
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.filamentType,
@@ -53,6 +54,14 @@ class Archive {
 
   /// Thumbnail path for the print.
   final String? thumbnailPath;
+
+  /// Server-side path of the recorded timelapse, or null when the print has
+  /// none. Read as a presence flag only — the video is fetched through
+  /// `Endpoints.archiveTimelapse`, never from this path.
+  final String? timelapsePath;
+
+  /// Whether a timelapse video exists for this print.
+  bool get hasTimelapse => (timelapsePath ?? '').isNotEmpty;
 
   /// Print time in seconds.
   final int? printTimeSeconds;
@@ -121,6 +130,7 @@ class Archive {
     printerId: printerId,
     printName: printName,
     thumbnailPath: thumbnailPath,
+    timelapsePath: timelapsePath,
     printTimeSeconds: printTimeSeconds,
     filamentUsedGrams: filamentUsedGrams,
     filamentType: filamentType,

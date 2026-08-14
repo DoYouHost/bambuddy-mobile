@@ -266,6 +266,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
+        onTimelapse: () => _openTimelapse(archive),
         onSlice: () => _slice(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
@@ -488,6 +489,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     context.push('/gcode-viewer?archive=${archive.id}&name=$name');
   }
 
+  /// Timelapse: closes the sheet and opens the full-screen player.
+  void _openTimelapse(Archive archive) {
+    Navigator.pop(context);
+    final name = Uri.encodeQueryComponent(archive.displayName);
+    context.push('/timelapse?archive=${archive.id}&name=$name');
+  }
+
   /// Reprint: printer selection → confirmation → enqueue at top of the
   /// printer's queue (the scheduler starts it next). The direct `/reprint`
   /// endpoint was removed server-side; a reprint is now a top-priority queue
@@ -669,6 +677,7 @@ class _ArchiveSheet extends StatelessWidget {
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
+    required this.onTimelapse,
     required this.onSlice,
     required this.onDelete,
   });
@@ -677,6 +686,7 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
+  final VoidCallback onTimelapse;
   final VoidCallback onSlice;
   final VoidCallback onDelete;
 
@@ -739,6 +749,22 @@ class _ArchiveSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Only for a print the server actually recorded — the button
+                // would otherwise open a player onto a 404.
+                if (archive.hasTimelapse) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: logTag(
+                      'archive.timelapse',
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.movie_outlined),
+                        label: Text(l10n.archiveTimelapse),
+                        onPressed: onTimelapse,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _SliceArchiveButton(archive: archive, onSlice: onSlice),
                 SizedBox(
