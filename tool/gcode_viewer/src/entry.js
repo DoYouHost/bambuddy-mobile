@@ -419,6 +419,51 @@ function makeLayerRange(onChange) {
   };
 }
 
+/**
+ * Sizes the panel to the text it actually holds.
+ *
+ * The mode labels are translated, and Polish runs half again as wide as
+ * English — before this the width was a constant picked from a table of font
+ * metrics, which is a guess about a face, a locale and the reader's own text
+ * scaling all at once. The browser knows all three, so ask it: lay the row out
+ * on one line, read what it came to, and hand that back as the width.
+ *
+ * Fonts first. Measuring before they load returns the fallback face's widths,
+ * which is how a panel ends up correct in a test and wrong on a phone.
+ */
+async function fitPanel() {
+  const panel = document.getElementById('panel');
+  const modes = document.getElementById('modes');
+  if (!panel || !modes || !modes.children.length) return;
+  try {
+    await document.fonts.ready;
+  } catch (e) {
+    /* No font loading API: the measurement below is still better than a guess. */
+  }
+
+  // `flex: 1 1 auto` lets a pill grow into spare room, so its rendered width is
+  // not its natural one. Pin them, measure, put them back.
+  const previous = [...modes.children].map((b) => b.style.flex);
+  for (const button of modes.children) button.style.flex = '0 0 auto';
+  modes.style.flexWrap = 'nowrap';
+  const row = modes.scrollWidth;
+  modes.style.flexWrap = '';
+  [...modes.children].forEach((b, i) => {
+    b.style.flex = previous[i];
+  });
+
+  const style = getComputedStyle(panel);
+  const frame =
+    parseFloat(style.paddingLeft) +
+    parseFloat(style.paddingRight) +
+    parseFloat(style.borderLeftWidth) * 2;
+  // Never past the layer rail, and never so narrow that the legend is a column
+  // of single words. Past the ceiling the row wraps, which is the honest
+  // outcome for a language this panel cannot hold on one line.
+  const ceiling = Math.max(160, window.innerWidth * 0.72);
+  panel.style.width = `${Math.min(ceiling, Math.max(180, row + frame))}px`;
+}
+
 async function main() {
   const volume = cfg.volume || { x: 256, y: 256, z: 256 };
   const container = document.getElementById('view');
@@ -622,6 +667,8 @@ async function main() {
   }
 
   const resize = () => {
+    // Rotation changes both the ceiling and the room the labels have.
+    fitPanel();
     const w = container.clientWidth || 1;
     const h = container.clientHeight || 1;
     camera.aspect = w / h;
@@ -639,6 +686,9 @@ async function main() {
 
   setStatus('');
   if (uiEl) uiEl.style.display = 'block';
+  // After the panel is on screen: a `display: none` element measures zero, and
+  // the width would come out as the floor every time.
+  fitPanel();
   // Only after a frame exists: "ready" is what takes the app's spinner down.
   requestAnimationFrame(() => report('ready'));
 }

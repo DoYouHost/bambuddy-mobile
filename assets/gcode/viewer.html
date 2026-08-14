@@ -129,7 +129,10 @@
         box-sizing: border-box;
       }
       #panel {
-        width: min(62vw, 214px);
+        /* Starting width only: `fitPanel()` measures the laid-out labels once
+           the fonts are in and replaces it. This is what shows if scripting
+           dies before that. */
+        width: min(70vw, 236px);
         display: flex;
         flex-direction: column;
         gap: 11px;
@@ -183,17 +186,30 @@
       }
       #travels svg { width: 17px; height: 17px; }
 
-      #modes { display: flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--fill-weak); }
+      /* Wraps rather than squeezes: the labels are translated, and Polish
+         ("Szerokość") runs half again as wide as English ("Width"). Four equal
+         columns cannot hold it at any panel width that fits a phone, so the
+         row takes a second line instead of clipping. */
+      #modes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 3px;
+        border-radius: 14px;
+        background: var(--fill-weak);
+      }
       #modes button {
-        flex: 1;
+        flex: 1 1 auto;
+        min-width: max-content;
         font: inherit;
         font-size: 10.5px;
         font-weight: 600;
+        white-space: nowrap;
         color: var(--text-2);
         background: transparent;
         border: 0;
         border-radius: 11px;
-        padding: 6px 0;
+        padding: 6px 5px;
       }
       #modes button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
