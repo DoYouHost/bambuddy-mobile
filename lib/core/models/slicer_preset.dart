@@ -129,7 +129,7 @@ class PresetValues {
   final String reason;
 
   /// Why the values are missing, as one of the four causes the server
-  /// deliberately keeps apart (`ResolvedProfile`, `services/slicer_api.py:57`)
+  /// deliberately keeps apart (`services/slicer_api.py::ResolvedProfile`)
   /// so the panel can say something actionable instead of one generic failure.
   PresetValuesCause get cause => switch (reason) {
         'ok' => PresetValuesCause.ok,

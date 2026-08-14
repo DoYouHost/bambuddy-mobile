@@ -2,9 +2,9 @@ import 'json_utils.dart';
 
 /// What an API key is allowed to do. The server gates a key on these flags
 /// rather than on permissions (`_APIKEY_SCOPE_BY_PERMISSION`,
-/// `backend/app/core/auth.py:64`): each maps to a slice of the permission
-/// catalog, and everything administrative is outside all of them — a key can
-/// never manage users, groups, keys or settings.
+/// `backend/app/core/auth.py::_resolve_apikey_scope`): each maps to a slice of
+/// the permission catalog, and everything administrative is outside all of them
+/// — a key can never manage users, groups, keys or settings.
 enum ApiKeyScope {
   readStatus('can_read_status'),
   queue('can_queue'),
@@ -17,11 +17,11 @@ enum ApiKeyScope {
 
   /// Reads `/cloud/*` as the account that created the key. Refused at creation
   /// on a server with authentication off — there is no per-user cloud token to
-  /// read against (`backend/app/api/routes/api_keys.py:47`).
+  /// read against (`backend/app/api/routes/api_keys.py::create_api_key`).
   accessCloud('can_access_cloud'),
 
   /// The one narrow door into settings: `POST /settings/electricity-price`
-  /// (`core/auth.py:338`).
+  /// (`core/auth.py::resolve_apikey_owner`).
   updateEnergyCost('can_update_energy_cost');
 
   const ApiKeyScope(this.wire);
@@ -30,9 +30,9 @@ enum ApiKeyScope {
   final String wire;
 }
 
-/// A key as `GET /api-keys/` sends it (`APIKeyResponse`,
-/// `backend/app/schemas/api_key.py:44`) — never the key itself, only enough to
-/// recognise it.
+/// A key as `GET /api-keys/` sends it
+/// (`backend/app/schemas/api_key.py::APIKeyResponse`) — never the key itself,
+/// only enough to recognise it.
 class ApiKey {
   const ApiKey({
     required this.id,
@@ -98,7 +98,7 @@ class ApiKey {
 }
 
 /// The one moment the full key exists in the app: the answer to `POST
-/// /api-keys/` (`APIKeyCreateResponse`, `schemas/api_key.py:69`). Never
+/// /api-keys/` (`APIKeyCreateResponse`, `schemas/api_key.py::Config`). Never
 /// stored, never logged — the server cannot show it again.
 class CreatedApiKey {
   const CreatedApiKey({required this.key, required this.apiKey});
@@ -112,7 +112,7 @@ class CreatedApiKey {
   final ApiKey apiKey;
 }
 
-/// Body for `POST /api-keys/` (`APIKeyCreate`, `schemas/api_key.py:6`).
+/// Body for `POST /api-keys/` (`schemas/api_key.py::APIKeyCreate`).
 ///
 /// Every flag is sent explicitly: the server's defaults are generous (queue,
 /// library, inventory, maintenance, archives and projects all default to
@@ -139,7 +139,7 @@ class ApiKeyCreateInput {
       };
 }
 
-/// Body for `PATCH /api-keys/{id}` (`APIKeyUpdate`, `schemas/api_key.py:26`).
+/// Body for `PATCH /api-keys/{id}` (`schemas/api_key.py::APIKeyUpdate`).
 /// Omitted means unchanged, as everywhere else.
 class ApiKeyUpdateInput {
   const ApiKeyUpdateInput({

@@ -20,8 +20,8 @@ import 'users_providers.dart';
 ///
 /// A system group is opened read-only apart from its description: the server
 /// refuses to rename one or to change what it grants
-/// (`backend/app/api/routes/groups.py:187`, `:200`), so the fields are shown
-/// disabled instead of accepting input that would come back a 400.
+/// (`backend/app/api/routes/groups.py::update_group`, `:200`), so the fields
+/// are shown disabled instead of accepting input that would come back a 400.
 class GroupFormScreen extends ConsumerStatefulWidget {
   const GroupFormScreen({super.key, this.existing});
 

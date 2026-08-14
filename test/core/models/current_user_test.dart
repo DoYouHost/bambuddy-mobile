@@ -2,7 +2,7 @@ import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A full `UserResponse` as the server builds it in `_user_to_response`
-/// (`backend/app/api/routes/auth.py:75`).
+/// (`backend/app/api/routes/auth.py::_user_to_response`).
 Map<String, dynamic> _response({
   bool isAdmin = false,
   Object? permissions = const ['users:read', 'queue:read'],
@@ -221,7 +221,7 @@ void main() {
   });
 
   test('Permissions holds the strings the server declares', () {
-    // `backend/app/core/permissions.py:164,170,176`.
+    // `backend/app/core/permissions.py::Permission,170,176`.
     expect(Permissions.usersRead, 'users:read');
     expect(Permissions.groupsRead, 'groups:read');
     expect(Permissions.apiKeysRead, 'api_keys:read');

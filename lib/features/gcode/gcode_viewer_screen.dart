@@ -86,9 +86,16 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   GcodeViewerReport? _failure;
   Timer? _watchdog;
 
-  /// Bumped by [_retry]; every step after an `await` checks it, so a load the
-  /// user has already abandoned cannot script the WebView it left behind.
+  /// Which load owns the screen. Bumped by [_retry], so an earlier one that is
+  /// still in flight can tell that it has been replaced.
   int _attempt = 0;
+
+  /// Whether a retry has taken the screen over since this load started.
+  ///
+  /// Kept apart from `mounted`, which the analyzer only recognises spelled out
+  /// at the call site, and which answers a different question anyway: this one
+  /// is about a load being replaced, not about the widget being gone.
+  bool _replaced(int attempt) => attempt != _attempt;
 
   @override
   void initState() {
@@ -106,7 +113,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
   ///
   /// The plate rides as a query on the archive route only: the library route
   /// takes no plate — it answers with the first `.gcode` in the file whatever
-  /// is asked (`backend/app/api/routes/library.py:4936`).
+  /// is asked (`library.py::get_gcode` reads `gcode_files[0]`).
   String get _gcodeUrl {
     if (widget.archiveId == null) {
       return Endpoints.libraryFileGcode(widget.libraryFileId!);
@@ -115,6 +122,14 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     return widget.plate == null ? path : '$path?plate=${widget.plate}';
   }
 
+  /// Loads the preview, in two halves that one gate separates.
+  ///
+  /// **Everything above the gate only reads** — credentials, colours, assets.
+  /// Below it are the only side effects there are: the WebView, the watchdog
+  /// and the state. A retry during the reading half therefore has nothing to
+  /// undo, and a step added there cannot outlive its attempt however it is
+  /// written. Adding one *below* the gate is the case to think about, and the
+  /// block is short and marked so that it is obvious when you do.
   Future<void> _load() async {
     final attempt = _attempt;
     final profile = ref.read(serverProfileProvider);
@@ -125,15 +140,19 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     }
 
     final headers = await _authHeaders(profile);
-    if (!mounted || attempt != _attempt) return;
+    if (!mounted || _replaced(attempt)) return;
 
     final filamentColors = await _filamentColors();
-    if (!mounted || attempt != _attempt) return;
+    if (!mounted || _replaced(attempt)) return;
 
     final shell = await rootBundle.loadString(gcodeViewerShellAsset);
     final bundle = await rootBundle.loadString(gcodeViewerBundleAsset);
     final fonts = await rootBundle.loadString(gcodeViewerFontsAsset);
-    if (!mounted || attempt != _attempt) return;
+
+    // ── the gate ──────────────────────────────────────────────────────────
+    // The earlier checks only save work; this one is load-bearing. Nothing
+    // below may run for a load the user has already walked away from.
+    if (!mounted || _replaced(attempt)) return;
 
     final l10n = AppLocalizations.of(context);
     final document = buildViewerDocument(

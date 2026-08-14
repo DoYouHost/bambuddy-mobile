@@ -18,9 +18,9 @@ import 'users_providers.dart';
 /// The accounts on the server (full screen, pushed from the dashboard drawer).
 ///
 /// Read-only: `GET /users/` is gated on `users:read` alone server-side
-/// (`backend/app/api/routes/users.py:67`), so a household member in a custom
-/// group reaches this without the admin role. Creating, editing and deleting
-/// an account is admin-only and is not offered here yet.
+/// (`backend/app/api/routes/users.py::_user_to_response`), so a household
+/// member in a custom group reaches this without the admin role. Creating,
+/// editing and deleting an account is admin-only and is not offered here yet.
 class UsersScreen extends ConsumerWidget {
   const UsersScreen({super.key});
 
@@ -363,8 +363,8 @@ class _SheetActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     // Deleting the account you are signed in with is refused server-side
-    // (`users.py:403`); bambuddy's own UI leaves the button out rather than
-    // offer it and explain afterwards.
+    // (`users.py::delete_user`); bambuddy's own UI leaves the button out rather
+    // than offer it and explain afterwards.
     final isSelf = ref.watch(
       currentUserProvider.select((u) => u.valueOrNull?.id == user.id),
     );

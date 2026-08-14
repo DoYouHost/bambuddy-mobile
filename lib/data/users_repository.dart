@@ -10,12 +10,12 @@ import '../core/models/user_write.dart';
 /// REST data source for the accounts on the server.
 ///
 /// The list carries `UserResponse`, the very shape `/auth/me` answers with
-/// (`backend/app/api/routes/users.py:48`), so [CurrentUser] parses both; only
-/// which account it describes differs.
+/// (`backend/app/api/routes/users.py::_user_to_response`), so [CurrentUser]
+/// parses both; only which account it describes differs.
 ///
 /// Writes are admin-only server-side on top of the `users:*` permission
-/// (`RequireAdminIfAuthEnabled`, `users.py:86`), and an API-key session is
-/// refused every one of them.
+/// (`RequireAdminIfAuthEnabled`, `users.py::list_users`), and an API-key
+/// session is refused every one of them.
 class UsersRepository {
   UsersRepository(this._dio);
 
@@ -75,7 +75,8 @@ class UsersRepository {
   /// [deleteItems] decides what happens to the archives, queue items and
   /// library files the account created: `true` deletes them with it, `false`
   /// (the server's own default) leaves them in place with no owner
-  /// (`users.py:409`). There is no third option, so the caller has to ask.
+  /// (`users.py::delete_user`). There is no third option, so the caller has to
+  /// ask.
   Future<void> delete(int userId, {required bool deleteItems}) async {
     try {
       await _dio.delete<void>(

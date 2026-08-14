@@ -1,9 +1,9 @@
 import 'json_utils.dart';
 
 /// What an account owns — `GET /users/{id}/items-count`
-/// (`backend/app/api/routes/users.py:317`). Deleting the account asks what
-/// happens to exactly these three, so the list shows them before anyone gets
-/// that far.
+/// (`backend/app/api/routes/users.py::update_user`). Deleting the account asks
+/// what happens to exactly these three, so the list shows them before anyone
+/// gets that far.
 class UserItemsCount {
   const UserItemsCount({
     required this.archives,

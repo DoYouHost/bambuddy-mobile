@@ -93,8 +93,8 @@ final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
   return handler;
 });
 
-/// Background monitoring mechanism. Currently always foreground service; gate for
-/// push = swap implementation here (see [BackgroundMonitor]).
+/// Background monitoring mechanism. Currently always foreground service; gate
+/// for push = swap implementation here (see [BackgroundMonitor]).
 final backgroundMonitorProvider =
     Provider<BackgroundMonitor>((ref) => ForegroundServiceMonitor());
 
@@ -114,7 +114,8 @@ class BgMonitoringNotifier extends Notifier<bool> {
 }
 
 /// Notification preferences (which events, which thresholds). Persisted via
-/// [SettingsRepository]; background isolate reads same prefs independently on startup.
+/// [SettingsRepository]; background isolate reads same prefs independently on
+/// startup.
 final notificationPrefsProvider =
     NotifierProvider<NotificationPrefsNotifier, NotificationPrefs>(
   NotificationPrefsNotifier.new,
@@ -162,8 +163,8 @@ final sessionFactsProvider = Provider<Future<SessionFacts> Function()>(
         profile: ref.read(serverProfileProvider),
         credentials: ref.read(credentialsStoreProvider),
         // Read through the provider only when a profile exists: without one
-        // [apiClientProvider] throws by design, and a recording started from the
-        // setup screen has no server to ask anyway.
+        // [apiClientProvider] throws by design, and a recording started from
+        // the setup screen has no server to ask anyway.
         readServerVersion: ref.read(serverProfileProvider) == null
             ? null
             : () => ref.read(serverVersionServiceProvider).reportedVersion(),
@@ -244,12 +245,13 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   return refresher;
 });
 
-/// Proactive camera-token refresh: re-mints the shared camera token (thumbnails,
-/// covers, camera stream) just before its client TTL lapses, so foreground image
-/// loads don't hit a 401 first. Reactive re-mint on 401 stays the safety net
-/// ([PrintThumbnail], [CameraView]). UI-only (background cover fetch in the FGS
-/// isolate re-mints reactively); kept alive + lifecycle-controlled by the
-/// dashboard, like [tokenRefresherProvider]. Demo mode has no token to refresh.
+/// Proactive camera-token refresh: re-mints the shared camera token
+/// (thumbnails, covers, camera stream) just before its client TTL lapses, so
+/// foreground image loads don't hit a 401 first. Reactive re-mint on 401 stays
+/// the safety net ([PrintThumbnail], [CameraView]). UI-only (background cover
+/// fetch in the FGS isolate re-mints reactively); kept alive +
+/// lifecycle-controlled by the dashboard, like [tokenRefresherProvider]. Demo
+/// mode has no token to refresh.
 final cameraTokenRefresherProvider =
     Provider<ProactiveTokenRefresher?>((ref) {
   final profile = ref.watch(serverProfileProvider);
@@ -264,7 +266,8 @@ final cameraTokenRefresherProvider =
         return null; // Fall back; reactive 401 recovery still covers it.
       }
       // Consumers read the token via cameraTokenProvider, so push the fresh one
-      // to them. gaplessPlayback keeps already-shown thumbnails from flickering.
+      // to them. gaplessPlayback keeps already-shown thumbnails from
+      // flickering.
       ref.invalidate(cameraTokenProvider);
       return service.expiresAt;
     },
@@ -303,12 +306,12 @@ class ServerProfileNotifier extends Notifier<ServerProfile?> {
 /// Most recently built client. Survives the transient frame between "change
 /// server" clearing the profile and the router redirecting to /setup: the many
 /// non-autoDispose repository providers that `watch` [apiClientProvider] stay
-/// alive while the dashboard is still mounted under the drawer, so on clear they
-/// rebuild and would hit the null-profile throw before the redirect unmounts
-/// them. Returning the last client keeps them from crashing; it's never used for
-/// requests (its consumers are guarded / about to unmount) and is replaced as
-/// soon as a new profile is set. Safe to cache — [ApiClient] holds no resources
-/// needing disposal.
+/// alive while the dashboard is still mounted under the drawer, so on clear
+/// they rebuild and would hit the null-profile throw before the redirect
+/// unmounts them. Returning the last client keeps them from crashing; it's
+/// never used for requests (its consumers are guarded / about to unmount) and
+/// is replaced as soon as a new profile is set. Safe to cache — [ApiClient]
+/// holds no resources needing disposal.
 ApiClient? _lastApiClient;
 
 /// API client for active profile. Requires configured profile — routes without
@@ -319,8 +322,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     final cached = _lastApiClient;
     if (cached != null) {
       // Expected only during the teardown frame on "change server". If it fires
-      // elsewhere, a consumer is reading the client without a null-profile guard
-      // and would hit the previous server — surface it in debug.
+      // elsewhere, a consumer is reading the client without a null-profile
+      // guard and would hit the previous server — surface it in debug.
       assert(() {
         debugPrint('apiClientProvider: reusing last client (profile is null)');
         return true;
@@ -371,9 +374,10 @@ class CurrentUserNotifier extends AsyncNotifier<CurrentUser?> {
     _handedOver = null;
     if (profile == null) return null;
     if (handed != null) return handed;
-    // A no-auth server answers 401 here (`auth.py:706`) — there is no identity
-    // behind an anonymous session, and nothing it could be restricted from.
-    // The demo backend does serve `/auth/me`, so it stays included.
+    // A no-auth server answers 401 here (`auth.py::get_current_user_info`) —
+    // there is no identity behind an anonymous session, and nothing it could be
+    // restricted from. The demo backend does serve `/auth/me`, so it stays
+    // included.
     if (profile.authMode == AuthMode.none && !profile.isDemo) return null;
     try {
       return await ref.read(accountRepositoryProvider).me();
@@ -495,7 +499,8 @@ final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// AMS sensor history (temperature + humidity charts). Shares authenticated Dio.
+/// AMS sensor history (temperature + humidity charts). Shares authenticated
+/// Dio.
 final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
@@ -516,8 +521,8 @@ final queueRepositoryProvider = Provider<QueueRepository>(
 
 /// Whether the server stores the three calibration options as `off`/`on`/`auto`
 /// rather than as booleans. Drives whether the print form offers an `auto`
-/// position — while this is loading, or when nothing knows, the form stays on two
-/// states and no `auto` is ever sent to a server that would reject it.
+/// position — while this is loading, or when nothing knows, the form stays on
+/// two states and no `auto` is ever sent to a server that would reject it.
 ///
 /// Asks the queue repository rather than the version service directly: it has
 /// seen the server's own payloads, and that beats reasoning from a version
@@ -569,7 +574,8 @@ final archiveRepositoryProvider = Provider<ArchiveRepository>(
   (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
 );
 
-/// Projects (group prints toward a goal + BOM/stats/timeline). Shares authenticated Dio.
+/// Projects (group prints toward a goal + BOM/stats/timeline). Shares
+/// authenticated Dio.
 final projectsRepositoryProvider = Provider<ProjectsRepository>(
   (ref) => ProjectsRepository(ref.watch(apiClientProvider).dio),
 );
@@ -631,8 +637,9 @@ final requirePlateClearProvider = FutureProvider<bool>(
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
-/// Gates the print form's `gcode_injection` checkbox (see [gcodeSnippetModels]):
-/// without snippets the flag does nothing, so the web hides it too.
+/// Gates the print form's `gcode_injection` checkbox (see
+/// [gcodeSnippetModels]): without snippets the flag does nothing, so the web
+/// hides it too.
 final gcodeSnippetModelsProvider = FutureProvider<Set<String>>(
   (ref) async => gcodeSnippetModels(
     (await ref.watch(serverSettingsProvider.future))['gcode_snippets'],
@@ -704,15 +711,15 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
   (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
 );
 
-/// Service minting camera stream token (print cover; from M2 also camera preview).
-/// Rebuilt with client on profile change.
+/// Service minting camera stream token (print cover; from M2 also camera
+/// preview). Rebuilt with client on profile change.
 final cameraTokenServiceProvider = Provider<CameraTokenService>(
   (ref) => CameraTokenService(ref.watch(apiClientProvider).dio),
 );
 
 /// Camera token for widgets (cover). Service holds cache; this future provides
-/// current token for building image URL. Invalidate: `ref.invalidate(cameraTokenProvider)`
-/// after 401 from protected resource.
+/// current token for building image URL. Invalidate:
+/// `ref.invalidate(cameraTokenProvider)` after 401 from protected resource.
 final cameraTokenProvider = FutureProvider<String>(
   (ref) => ref.watch(cameraTokenServiceProvider).token(),
 );

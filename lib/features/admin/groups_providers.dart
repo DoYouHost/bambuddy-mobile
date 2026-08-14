@@ -67,7 +67,8 @@ final canReadGroupsProvider = Provider<bool>(
 
 /// Whether it may change who is in a group. Adding and removing a member
 /// carries `RequireAdminIfAuthEnabled` on top of `groups:update`
-/// (`backend/app/api/routes/groups.py:263`), so the admin flag decides.
+/// (`backend/app/api/routes/groups.py::delete_group`), so the admin flag
+/// decides.
 final canManageGroupsProvider = Provider<bool>((ref) {
   if (!ref.watch(canReadGroupsProvider)) return false;
   return ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;

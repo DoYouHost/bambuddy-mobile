@@ -42,7 +42,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
   bool _saving = false;
 
   /// LDAP accounts live in the directory: the server refuses a password for
-  /// them (`users.py:281`), so the field is not offered.
+  /// them (`users.py::update_user`), so the field is not offered.
   bool get _isLdap => widget.existing?.authSource == 'ldap';
 
   @override
@@ -79,8 +79,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       fontWeight: FontWeight.w600,
       color: t.textPrimary,
     );
-    // With advanced authentication on, the server picks the password itself
-    // and mails it — an admin neither sets nor sees one (`users.py:137`).
+    // With advanced authentication on, the server picks the password itself and
+    // mails it — an admin neither sets nor sees one (`users.py::create_user`).
     final serverPicksPassword = advanced.enabled && !widget.isEdit;
 
     return DashBackground(
@@ -146,8 +146,8 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                   if (!advanced.smtpConfigured) ...[
                     const SizedBox(height: 8),
                     // Creation succeeds and the mail silently doesn't go out
-                    // (`users.py:181` logs it and returns 201), leaving an
-                    // account nobody can sign in to.
+                    // (`users.py::create_user` logs it and returns 201),
+                    // leaving an account nobody can sign in to.
                     _Notice(
                       icon: Icons.warning_amber_rounded,
                       text: l10n.usersNoSmtpWarning,
@@ -270,11 +270,12 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           // one anyway would be ignored, so nothing is sent.
           password: password.isEmpty ? null : password,
           email: email.isEmpty ? null : email,
-          // The role is deliberately left at its default and never offered as
-          // a field: admin is granted by putting the account in the
+          // The role is deliberately left at its default and never offered as a
+          // field: admin is granted by putting the account in the
           // Administrators group, which is the one path bambuddy's own UI
           // shows. `is_admin` is computed from either
-          // (`backend/app/models/user.py:99`), so the group is enough.
+          // (`backend/app/models/user.py::get_permissions`), so the group is
+          // enough.
           groupIds: groupIds,
         ));
         return;
@@ -284,7 +285,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         password: password.isEmpty ? null : password,
         // An empty field on an account that had an e-mail is a deliberate
         // clearing, and the server takes "" for that — null would mean
-        // "unchanged" (`users.py:268`).
+        // "unchanged" (`users.py::update_user`).
         email: email == (existing.email ?? '') ? null : email,
         isActive: _isActive == existing.isActive ? null : _isActive,
         groupIds: _sameGroups(existing.groups, groupIds) ? null : groupIds,

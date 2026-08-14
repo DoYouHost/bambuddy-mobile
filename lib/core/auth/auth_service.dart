@@ -32,8 +32,8 @@ class LoginCompleted extends LoginResult {
   final String token;
 
   /// From the `user` object the login answer embeds (`LoginResponse.user`,
-  /// `backend/app/schemas/auth.py:39`). Null when the server sent none — the
-  /// identity then has to come from `GET /auth/me`.
+  /// `backend/app/schemas/auth.py::LoginResponse`). Null when the server sent
+  /// none — the identity then has to come from `GET /auth/me`.
   final CurrentUser? user;
 }
 
@@ -236,7 +236,8 @@ class AuthService {
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
     // `TwoFAVerifyResponse` carries the same `user` as the one-step login
-    // (`backend/app/schemas/auth.py:271`), so this costs no `GET /auth/me`.
+    // (`backend/app/schemas/auth.py::TwoFAVerifyRequest`), so this costs no
+    // `GET /auth/me`.
     return LoginCompleted(token, user: _userOrNull(res.data?['user']));
   }
 
