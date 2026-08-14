@@ -1,0 +1,369 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>__BB_FONTS__</style>
+    <style>
+      /*
+       * Dash tokens. Kept as custom properties so the light theme is one
+       * class on <html> rather than a second copy of every rule.
+       */
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f0c;
+        --surface: #0e1310;
+        --hairline: rgba(255, 255, 255, 0.14);
+        --fill-weak: rgba(255, 255, 255, 0.06);
+        --fill-weaker: rgba(255, 255, 255, 0.02);
+        --text: #fbfcf9;
+        --text-2: rgba(242, 244, 239, 0.6);
+        --text-3: rgba(242, 244, 239, 0.4);
+        --accent: #5fe08a;
+        --on-accent: #06210f;
+        --accent-wash: rgba(95, 224, 138, 0.16);
+        --tick: rgba(255, 255, 255, 0.16);
+        --thumb: #fbfcf9;
+        --thumb-border: transparent;
+      }
+      html.light {
+        color-scheme: light;
+        --bg: #f6f8f4;
+        --surface: #f6f8f4;
+        --hairline: rgba(16, 19, 14, 0.12);
+        --fill-weak: rgba(16, 19, 14, 0.05);
+        --fill-weaker: rgba(16, 19, 14, 0.02);
+        --text: #10130e;
+        --text-2: rgba(32, 35, 24, 0.6);
+        --text-3: rgba(32, 35, 24, 0.45);
+        --accent: #34c46e;
+        --on-accent: #0a2a16;
+        --accent-wash: rgba(52, 196, 110, 0.18);
+        --tick: rgba(16, 19, 14, 0.18);
+        --thumb: #ffffff;
+        --thumb-border: rgba(16, 19, 14, 0.2);
+      }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        /* The app's own faces, subset and inlined by the build — the page
+           cannot fetch them, since they live in the APK while this document is
+           loaded from the user's server. The fallbacks stand in for a script
+           the subset does not carry. */
+        font-family: 'Manrope', system-ui, sans-serif;
+        color: var(--text);
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #view { position: absolute; inset: 0; }
+      #view canvas { display: block; }
+      /* The page owns the whole loading state — text and spinner both. Flutter
+         drops its own the moment this script reports in, or the two stack on
+         top of each other. */
+      #status {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--text-2);
+        background: var(--bg);
+      }
+      #status::before {
+        content: '';
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid var(--fill-weak);
+        border-top-color: var(--accent);
+        animation: spin 0.9s linear infinite;
+      }
+      /* A failure is not a wait: the ring would keep promising progress. */
+      #status[data-sticky='1']::before { display: none; }
+      /* Neither is a measured download — the bar says it better. */
+      #status[data-progress='1']::before { display: none; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Only the download can be measured: its length is in the response.
+         Parsing is one call into the vendored parser, with nothing to report
+         from inside it, so that phase keeps the ring. */
+      #progress { display: none; width: min(62vw, 220px); }
+      #status[data-progress='1'] #progress { display: block; }
+      #bar {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--fill-weak);
+        overflow: hidden;
+      }
+      #bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 2px;
+        background: var(--accent);
+        transition: width 0.15s linear;
+      }
+      #size { display: block; margin-top: 7px; font-size: 11px; color: var(--text-3); }
+      #ui { position: absolute; inset: 0; display: none; pointer-events: none; }
+
+      .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+      /* ---- panel ------------------------------------------------------ */
+
+      #panel, #dock {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        pointer-events: auto;
+        box-sizing: border-box;
+      }
+      #panel {
+        /* Starting width only: `fitPanel()` measures the laid-out labels once
+           the fonts are in and replaces it. This is what shows if scripting
+           dies before that. */
+        width: min(70vw, 236px);
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+        padding: 10px;
+        border-radius: 16px;
+      }
+      #dock {
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        padding: 5px;
+        border-radius: 24px;
+      }
+      html.collapsed #panel { display: none; }
+      html.collapsed #dock { display: flex; }
+      /* Landscape has width to spare and no height: the dock lies down. */
+      @media (orientation: landscape) {
+        #panel { width: 236px; }
+        #dock { flex-direction: row; }
+      }
+
+      /* One row: collapse, reset view, travels — the three things you reach
+         for without opening anything. */
+      #panel-head { display: flex; align-items: center; gap: 6px; }
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        border-radius: 20px;
+        background: var(--fill-weak);
+        color: var(--text);
+      }
+      #dock .icon-btn { width: 36px; height: 36px; background: transparent; }
+      #dock #expand { background: var(--fill-weak); }
+      .icon-btn svg { width: 19px; height: 19px; display: block; }
+      .icon-btn[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent); }
+      #travels {
+        flex: 1;
+        width: auto;
+        gap: 6px;
+        font: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        color: var(--text-2);
+      }
+      #travels svg { width: 17px; height: 17px; }
+
+      /* Wraps rather than squeezes: the labels are translated, and Polish
+         ("Szerokość") runs half again as wide as English ("Width"). Four equal
+         columns cannot hold it at any panel width that fits a phone, so the
+         row takes a second line instead of clipping. */
+      #modes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 3px;
+        border-radius: 14px;
+        background: var(--fill-weak);
+      }
+      #modes button {
+        flex: 1 1 auto;
+        min-width: max-content;
+        font: inherit;
+        font-size: 10.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        color: var(--text-2);
+        background: transparent;
+        border: 0;
+        border-radius: 11px;
+        padding: 6px 5px;
+      }
+      #modes button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+
+      #legend-head { display: flex; align-items: center; justify-content: space-between; }
+      #legend-head .label { font-size: 9px; letter-spacing: 1.4px; color: var(--text-3); }
+      #legend-head .count { font-size: 9px; color: var(--accent); }
+      #legend { display: flex; flex-wrap: wrap; gap: 5px; }
+
+      /* Chips are filters, not a key: tapping one drops that feature from the
+         toolpath entirely, so a hidden support stops occluding the model. */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 20px;
+        border: 1px solid var(--hairline);
+        background: var(--fill-weak);
+        font: inherit;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .chip::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--c);
+        flex: none;
+      }
+      .chip[aria-pressed="false"] { background: var(--fill-weaker); color: var(--text-3); }
+      .chip[aria-pressed="false"]::before { background: var(--tick); }
+
+      /* Height and width colour by value, so their legend stays a scale. */
+      .ramp { height: 8px; width: 100%; border-radius: 4px; }
+      .scale { display: flex; width: 100%; justify-content: space-between; font-size: 10px; color: var(--text-3); }
+
+      /* ---- layer rail -------------------------------------------------- */
+
+      /*
+       * The window stands on the right edge the way a slicer draws it, held
+       * off that edge by the system's gesture inset. The rail itself is the
+       * layer stack: one tick per sample, lit inside the window.
+       */
+      #layers {
+        position: absolute;
+        top: 16px;
+        bottom: 20px;
+        right: calc(var(--inset-right, 0px) + 8px);
+        width: 56px;
+        pointer-events: auto;
+        touch-action: none;
+      }
+      #ticks {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column-reverse;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding-right: 6px;
+        box-sizing: border-box;
+      }
+      #ticks i { width: 22px; height: 2px; border-radius: 1px; background: var(--tick); }
+      #ticks i.on { background: var(--accent); }
+      .thumb {
+        position: absolute;
+        right: 0;
+        border-radius: 20px;
+        background: var(--thumb);
+        border: 1px solid var(--thumb-border);
+        box-sizing: border-box;
+      }
+      #thumb-hi { width: 44px; height: 12px; margin-bottom: -6px; }
+      #thumb-lo { width: 28px; height: 10px; margin-bottom: -5px; opacity: 0.62; }
+
+      /* Rides with the top thumb, clamped so it never leaves the canvas. */
+      #readout {
+        position: absolute;
+        right: calc(var(--inset-right, 0px) + 70px);
+        margin-bottom: -30px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1px;
+        padding: 7px 10px;
+        border-radius: 14px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        pointer-events: none;
+      }
+      #r-layer { font-size: 16px; font-weight: 700; line-height: 1.1; }
+      #r-z { font-size: 10px; color: var(--accent); white-space: nowrap; }
+      #r-range { font-size: 8.5px; letter-spacing: 0.6px; color: var(--text-3); white-space: nowrap; }
+      @media (orientation: landscape) {
+        #readout { flex-direction: row; align-items: baseline; gap: 7px; margin-bottom: -16px; }
+        #r-layer { font-size: 15px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="view"></div>
+    <div id="ui">
+      <div id="panel">
+        <div id="panel-head">
+          <button type="button" class="icon-btn" id="collapse" aria-label="Collapse">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 4v16M17 9l-3 3 3 3"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="reset" aria-label="Reset view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/><circle cx="12" cy="12" r="2.5"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="travels" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 4-7 5 4"/></svg>
+            <span id="travels-label"></span>
+          </button>
+        </div>
+        <div id="modes"></div>
+        <div id="legend-head">
+          <span class="label num">PATHS</span>
+          <span class="count num" id="legend-count"></span>
+        </div>
+        <div id="legend"></div>
+      </div>
+
+      <div id="dock">
+        <button type="button" class="icon-btn" id="expand" aria-label="Show controls">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 4v16M14 9l3 3-3 3"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="dock-reset" aria-label="Reset view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/><circle cx="12" cy="12" r="2.5"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="dock-travels" aria-pressed="false" aria-label="Travel moves">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 4-7 5 4"/></svg>
+        </button>
+      </div>
+
+      <div id="layers">
+        <div id="ticks"></div>
+        <div class="thumb" id="thumb-hi"></div>
+        <div class="thumb" id="thumb-lo"></div>
+      </div>
+      <div id="readout">
+        <span class="num" id="r-layer"></span>
+        <span class="num" id="r-z"></span>
+        <span class="num" id="r-range"></span>
+      </div>
+    </div>
+    <div id="status">
+      <span id="status-text"></span>
+      <div id="progress"><div id="bar"><i id="bar-fill"></i></div><span id="size" class="num"></span></div>
+    </div>
+    <script>__BB_CONFIG__</script>
+    <script>__BB_BUNDLE__</script>
+  </body>
+</html>

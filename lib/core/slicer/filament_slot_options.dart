@@ -1,10 +1,11 @@
 import '../models/process_option.dart';
 
 /// The options whose integer value names a filament slot: 0 = "no specific
-/// filament, use whatever the region already prints with", 1..N = a project slot.
+/// filament, use whatever the region already prints with", 1..N = a project
+/// slot.
 ///
 /// The server panel's own set, copied rather than widened
-/// (`frontend/src/components/SlicerSettingsPanel.tsx:107`).
+/// (`frontend/src/components/SlicerSettingsPanel.tsx::FILAMENT_SLOT_OPTIONS`).
 /// `wipe_tower_filament` holds the same kind of integer and is deliberately not
 /// among them: its 0 means "whichever is available, preferring non-soluble", so
 /// offering it as "Default" would name a behaviour the slicer does not have.

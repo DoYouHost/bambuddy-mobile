@@ -62,6 +62,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get retry => 'Spróbuj ponownie';
 
   @override
+  String get back => 'Wróć';
+
+  @override
   String get searchPrinters => 'Szukaj drukarek…';
 
   @override
@@ -706,6 +709,71 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get gcodeViewerError => 'Nie udało się załadować podglądu G-code.';
+
+  @override
+  String get gcodeViewerLoading => 'Pobieranie G-code…';
+
+  @override
+  String get gcodeViewerParsing => 'Wczytywanie ścieżki narzędzia…';
+
+  @override
+  String get gcodeViewerTravels => 'Ruchy jałowe';
+
+  @override
+  String get gcodeViewerColorByFilament => 'Filament';
+
+  @override
+  String get gcodeViewerColorByFeature => 'Cechy';
+
+  @override
+  String get gcodeViewerColorByHeight => 'Wysokość';
+
+  @override
+  String get gcodeViewerColorByWidth => 'Szerokość';
+
+  @override
+  String get gcodeSingleLayer => 'jedna warstwa';
+
+  @override
+  String gcodeViewerFilamentSlot(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get gcodeViewerEmpty =>
+      'W tym pliku nie ma ścieżki narzędzia — nie został jeszcze pocięty.';
+
+  @override
+  String gcodeViewerHttpError(int status) {
+    return 'Serwer nie wydał G-code tego pliku ($status).';
+  }
+
+  @override
+  String get gcodeFeatureWall => 'Ściany';
+
+  @override
+  String get gcodeFeatureSparseInfill => 'Wypełnienie rzadkie';
+
+  @override
+  String get gcodeFeatureSolidInfill => 'Wypełnienie pełne';
+
+  @override
+  String get gcodeFeatureSkirt => 'Obwódka / rant';
+
+  @override
+  String get gcodeFeatureSupport => 'Podpory';
+
+  @override
+  String get gcodeFeatureGapFill => 'Wypełnianie szczelin';
+
+  @override
+  String get gcodeFeatureBridge => 'Mosty / nawisy';
+
+  @override
+  String get gcodeFeatureIroning => 'Prasowanie';
+
+  @override
+  String get gcodeFeaturePrimeTower => 'Wieża czyszcząca';
 
   @override
   String get archiveDelete => 'Usuń';

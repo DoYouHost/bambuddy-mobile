@@ -12,8 +12,9 @@ import 'users_providers.dart';
 /// Not [confirmDialog]: this is not a yes/no. The server takes
 /// `delete_items=true|false` and does one of two irreversible things with the
 /// account's archives, queue items and library files — delete them too, or
-/// leave them in place with no owner (`backend/app/api/routes/users.py:409`).
-/// Picking one silently for the user is exactly what should not happen here.
+/// leave them in place with no owner
+/// (`backend/app/api/routes/users.py::delete_user`). Picking one silently for
+/// the user is exactly what should not happen here.
 ///
 /// Returns the choice to carry into the request, or null when the user backed
 /// out.

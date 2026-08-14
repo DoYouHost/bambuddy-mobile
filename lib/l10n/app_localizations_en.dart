@@ -60,6 +60,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get back => 'Back';
+
+  @override
   String get searchPrinters => 'Search printers…';
 
   @override
@@ -697,6 +700,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gcodeViewerError => 'Couldn\'t load the G-code preview.';
+
+  @override
+  String get gcodeViewerLoading => 'Downloading G-code…';
+
+  @override
+  String get gcodeViewerParsing => 'Reading the toolpath…';
+
+  @override
+  String get gcodeViewerTravels => 'Travel moves';
+
+  @override
+  String get gcodeViewerColorByFilament => 'Filament';
+
+  @override
+  String get gcodeViewerColorByFeature => 'Feature';
+
+  @override
+  String get gcodeViewerColorByHeight => 'Height';
+
+  @override
+  String get gcodeViewerColorByWidth => 'Width';
+
+  @override
+  String get gcodeSingleLayer => 'single layer';
+
+  @override
+  String gcodeViewerFilamentSlot(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get gcodeViewerEmpty =>
+      'There is no toolpath in this file — it hasn\'t been sliced yet.';
+
+  @override
+  String gcodeViewerHttpError(int status) {
+    return 'The server would not hand over the G-code for this file ($status).';
+  }
+
+  @override
+  String get gcodeFeatureWall => 'Walls';
+
+  @override
+  String get gcodeFeatureSparseInfill => 'Sparse infill';
+
+  @override
+  String get gcodeFeatureSolidInfill => 'Solid infill';
+
+  @override
+  String get gcodeFeatureSkirt => 'Skirt / brim';
+
+  @override
+  String get gcodeFeatureSupport => 'Support';
+
+  @override
+  String get gcodeFeatureGapFill => 'Gap fill';
+
+  @override
+  String get gcodeFeatureBridge => 'Bridge / overhang';
+
+  @override
+  String get gcodeFeatureIroning => 'Ironing';
+
+  @override
+  String get gcodeFeaturePrimeTower => 'Prime tower';
 
   @override
   String get archiveDelete => 'Delete';

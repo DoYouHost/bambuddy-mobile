@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 import '../diagnostics/log_path.dart';
 
 /// Error codes for the API/auth layer. The core layer is UI-independent:
-/// translation to text happens at display time (see `lib/l10n/error_messages.dart`).
+/// translation to text happens at display time (see
+/// `lib/l10n/error_messages.dart`).
 enum AppErrorCode {
   serverUnreachable,
   unauthorized,
@@ -85,7 +86,7 @@ sealed class AppApiException implements Exception {
   /// Worth telling apart because the remedy is the opposite: no scope or group
   /// change fixes it, the account has to come back. It also arrives on *every*
   /// route at once, including `/auth/me`, so the app looks broken rather than
-  /// restricted (`resolve_apikey_owner`, `backend/app/core/auth.py:331`,
+  /// restricted (`backend/app/core/auth.py::resolve_apikey_owner`,
   /// server 1.2.6+).
   ///
   /// Matched on the server's wording, so a reworded message degrades to the

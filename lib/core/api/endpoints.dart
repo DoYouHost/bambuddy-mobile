@@ -6,35 +6,31 @@
 /// compare with `/openapi.json` before changing anything here.
 ///
 /// [usersSlim] is the one exception: it arrives in 1.2.6 and every server
-/// before it refuses the path (`docs/plans/13-users-slim-and-api-key-identity.md`).
-/// Callers probe rather than check a version number — see [StatsRepository].
+/// before it refuses the path
+/// (`docs/plans/13-users-slim-and-api-key-identity.md`). Callers probe rather
+/// than check a version number — see [StatsRepository].
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
-
-  /// G-code browser page (PrettyGCode) served outside `/api/v1`.
-  /// Trailing slash required — `/gcode-viewer` (without slash) intentionally
-  /// falls back to SPA. Control via query: `?archive=<id>` or `?library_file=<id>`
-  /// (+ optionally `&plate=<N>`); auth read from `localStorage.auth_token`.
-  static const gcodeViewer = '/gcode-viewer/';
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
   /// The signed-in identity — `UserResponse` (role, `is_admin`, permissions,
   /// groups), the same object `POST /auth/login` embeds as `user`
-  /// (`backend/app/api/routes/auth.py:627`). Without credentials it is a 401 —
-  /// a server with auth switched off has no identity to give.
+  /// (`backend/app/api/routes/auth.py::login`). Without credentials it is a 401
+  /// — a server with auth switched off has no identity to give.
   ///
   /// An `X-API-Key` session is answered differently by the two server
   /// generations, and both are still supported here:
   ///  - **≤ 1.2.5.x** — a synthetic admin: `id: 0`, `role: "admin"`,
-  ///    `is_admin: true`, every permission in the enum. None of it was true;
-  ///    a key is refused every administrative route whatever it claims.
+  /// `is_admin: true`, every permission in the enum. None of it was true; a key
+  /// is refused every administrative route whatever it claims.
   ///  - **1.2.6+** — the key owner's real `id` and `username`, `is_admin`
-  ///    always `false`, and a `permissions` list pinned to exactly what the
-  ///    route gate admits (`backend/app/api/routes/auth.py:93`). `email` and
-  ///    `groups` are withheld on purpose. A key predating per-user ownership
-  ///    keeps `id: 0` and the `api-key:` username, but no longer claims admin.
+  /// always `false`, and a `permissions` list pinned to exactly what the route
+  /// gate admits (`backend/app/api/routes/auth.py::_api_key_to_user_response`).
+  /// `email` and `groups` are withheld on purpose. A key predating per-user
+  /// ownership keeps `id: 0` and the `api-key:` username, but no longer claims
+  /// admin.
   ///
   /// So `permissions` is the field to branch on, never `is_admin` or `role`
   /// (`docs/plans/13-users-slim-and-api-key-identity.md`).
@@ -45,7 +41,8 @@ abstract final class Endpoints {
   static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
 
   /// Mails a 6-digit code to the user and answers with a **fresh** pre-auth
-  /// token — the one sent in is consumed. See `docs/plans/10-two-factor-login.md`.
+  /// token — the one sent in is consumed. See
+  /// `docs/plans/10-two-factor-login.md`.
   static const authTwoFactorEmailSend = '$apiPrefix/auth/2fa/email/send';
 
   /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
@@ -84,8 +81,9 @@ abstract final class Endpoints {
   /// subnets:[cidr]}` — drives the subnet picker in the Add-Printer flow.
   static const discoveryInfo = '$apiPrefix/discovery/info';
 
-  /// Start a subnet scan (`POST`, body `{subnet, timeout}`) → `SubnetScanStatus`
-  /// `{running, scanned, total}`. Runs in the background; poll [discoveryScanStatus].
+  /// Start a subnet scan (`POST`, body `{subnet, timeout}`) →
+  /// `SubnetScanStatus` `{running, scanned, total}`. Runs in the background;
+  /// poll [discoveryScanStatus].
   static const discoveryScan = '$apiPrefix/discovery/scan';
 
   /// Current subnet-scan progress (`GET`) → `{running, scanned, total}`.
@@ -180,8 +178,9 @@ abstract final class Endpoints {
   /// own `MAX_CHAMBER_TEMP_C` — **60 up to 1.2.5.x, 65 from 1.2.6** (commit
   /// `b04664c6`). The bound is a `Query(le=…)`, so an older server answers 422
   /// rather than clamping; gate on [ServerVersion.chamberMaxTargetC]. Returns
-  /// 400 unless the model has an active chamber heater (H2C/H2D/H2D Pro/H2S/X2D)
-  /// — gate client-side via `supportsChamberHeater` before calling.
+  /// 400 unless the model has an active chamber heater (H2C/H2D/H2D
+  /// Pro/H2S/X2D) — gate client-side via `supportsChamberHeater` before
+  /// calling.
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
 
@@ -209,9 +208,9 @@ abstract final class Endpoints {
   static String dryingStop(int printerId) =>
       '$apiPrefix/printers/$printerId/drying/stop';
 
-  // --- Movement / jog (manual control; idle only) ---
-  // All POST, empty body, params in query. Relative moves; the server maps the
-  // Z sign per model (A1 bed-slingers are inverted). Require `can_control_printer`.
+  // --- Movement / jog (manual control; idle only) --- All POST, empty body,
+  // params in query. Relative moves; the server maps the Z sign per model (A1
+  // bed-slingers are inverted). Require `can_control_printer`.
 
   /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200;
   /// negative = decrease gap / "up"), `force` (bypass soft endstops when Z is
@@ -246,8 +245,8 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/print/skip-objects';
 
   /// Current print cover image. Query `view=top` gives the top-down build-plate
-  /// render used for the skip-objects overlay. Auth via `?token=` (camera stream
-  /// token), NOT via header — same as [PrinterStatus.coverUrl].
+  /// render used for the skip-objects overlay. Auth via `?token=` (camera
+  /// stream token), NOT via header — same as [PrinterStatus.coverUrl].
   static String printerCover(int printerId) =>
       '$apiPrefix/printers/$printerId/cover';
 
@@ -300,6 +299,15 @@ abstract final class Endpoints {
   /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
+
+  /// The archive's G-code as `text/plain`, unzipped from its 3MF
+  /// (`archives.py::get_gcode`). Query `plate=N` picks
+  /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
+  ///
+  /// Older than either embedded viewer the server has had, and untouched by the
+  /// one it deleted — which is what makes it safe to draw the preview from.
+  static String archiveGcode(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/gcode';
 
   /// Viewing/slicing capabilities of an archive's 3MF — `{has_model, has_gcode,
   /// has_source, build_volume, filament_colors}`. Slice is only meaningful when
@@ -363,7 +371,8 @@ abstract final class Endpoints {
   /// Trailing slash required (FastAPI), similar to `/printers/`.
   static const smartPlugs = '$apiPrefix/smart-plugs/';
 
-  /// Live smart plug status (SmartPlugStatus): on/off state + power/energy measurement.
+  /// Live smart plug status (SmartPlugStatus): on/off state + power/energy
+  /// measurement.
   static String smartPlugStatus(int plugId) =>
       '$apiPrefix/smart-plugs/$plugId/status';
 
@@ -398,7 +407,8 @@ abstract final class Endpoints {
 
   /// Single printer maintenance item: `PATCH` (body `PrinterMaintenanceUpdate`:
   /// `custom_interval_hours`, `custom_interval_type`, `enabled`), `DELETE`
-  /// (unassign a custom type from the printer). Requires update/delete permission.
+  /// (unassign a custom type from the printer). Requires update/delete
+  /// permission.
   static String maintenanceItem(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId';
 
@@ -557,6 +567,14 @@ abstract final class Endpoints {
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
+  /// The file's G-code as `text/plain`: a `.gcode` served as it is, a
+  /// `.gcode.3mf` unzipped first (`library.py::get_gcode`).
+  ///
+  /// Takes no plate: the server returns the **first** `.gcode` in the archive
+  /// whatever is asked, so a multi-plate sliced file always previews plate 1.
+  static String libraryFileGcode(int fileId) =>
+      '$apiPrefix/library/files/$fileId/gcode';
+
   /// Move files to folder (`POST`, body `FileMoveRequest`:
   /// `{file_ids, folder_id}`; `folder_id=null` = root).
   static const libraryFilesMove = '$apiPrefix/library/files/move';
@@ -628,9 +646,10 @@ abstract final class Endpoints {
       '$apiPrefix/library/variant-groups/$groupId/members';
 
   /// Remove one member (`DELETE`, 204). Removing the second-to-last member
-  /// **dissolves the whole group** server-side (`_dissolve_if_too_small`,
-  /// `library_variants.py:168`) — a one-member group is not a choice. So the
-  /// caller must refresh the other file's state too, not just this one's.
+  /// **dissolves the whole group** server-side
+  /// (`library_variants.py::_dissolve_if_too_small`) — a one-member group is
+  /// not a choice. So the caller must refresh the other file's state too, not
+  /// just this one's.
   static String libraryVariantGroupMember(int groupId, int fileId) =>
       '$apiPrefix/library/variant-groups/$groupId/members/$fileId';
 
@@ -746,7 +765,8 @@ abstract final class Endpoints {
   static String projectAddQueue(int projectId) =>
       '$apiPrefix/projects/$projectId/add-queue';
 
-  /// BOM items (`GET` → `BOMItemResponse[]`; `POST` create body `BOMItemCreate`).
+  /// BOM items (`GET` → `BOMItemResponse[]`; `POST` create body
+  /// `BOMItemCreate`).
   static String projectBom(int projectId) =>
       '$apiPrefix/projects/$projectId/bom';
 
@@ -779,23 +799,24 @@ abstract final class Endpoints {
 
   /// User list (`UserResponse[]`) — the administration user list, and the
   /// fallback behind [usersSlim] for the Stats "filter by user" picker. Gated
-  /// server-side on `USERS_READ` only (`backend/app/api/routes/users.py:67`),
-  /// so a custom group without the admin role reaches it, but an API key never
-  /// does: `users:read` is unmapped in the key scope allowlist, which makes it
-  /// administrative. Ordered by `created_at`. Trailing slash required
-  /// (FastAPI), like `/printers/`.
+  /// server-side on `USERS_READ` only
+  /// (`backend/app/api/routes/users.py::_user_to_response`), so a custom group
+  /// without the admin role reaches it, but an API key never does: `users:read`
+  /// is unmapped in the key scope allowlist, which makes it administrative.
+  /// Ordered by `created_at`. Trailing slash required (FastAPI), like
+  /// `/printers/`.
   static const users = '$apiPrefix/users/';
 
-  /// Id → name only (`[{id, username}]` — `UserSlim`,
-  /// `backend/app/schemas/auth.py:96`), so the `created_by_id` values that come
-  /// back from archives, the queue and statistics can be shown as names.
-  /// Ordered by `username`. **1.2.6+ only.**
+  /// Id → name only (`[{id, username}]` —
+  /// `backend/app/schemas/auth.py::UserSlim`), so the `created_by_id` values
+  /// that come back from archives, the queue and statistics can be shown as
+  /// names. Ordered by `username`. **1.2.6+ only.**
   ///
   /// Reachable where [users] is not: gated on `users:read_slim` *or*
   /// `users:read` (any-of), and the slim permission is mapped to the API-key
-  /// `can_read_status` scope (`backend/app/core/auth.py:111`) — so a key reads
-  /// this and not the full listing, which is the whole point of server issue
-  /// #1894.
+  /// `can_read_status` scope
+  /// (`backend/app/core/auth.py::_resolve_apikey_scope`) — so a key reads this
+  /// and not the full listing, which is the whole point of server issue #1894.
   ///
   /// **An older server cannot answer this successfully**, so support is probed
   /// rather than derived from a version number (that numbering is a trap —
@@ -808,28 +829,30 @@ abstract final class Endpoints {
   static const usersSlim = '$apiPrefix/users/slim';
 
   /// What this account owns (`{archives, queue_items, library_files}` —
-  /// `backend/app/api/routes/users.py:317`). Read-only, `USERS_READ`; answers
-  /// what a later edit or deletion would be touching.
+  /// `backend/app/api/routes/users.py::update_user`). Read-only, `USERS_READ`;
+  /// answers what a later edit or deletion would be touching.
   static String userItemsCount(int userId) =>
       '$apiPrefix/users/$userId/items-count';
 
-  /// One account: `PATCH` (edit, `users.py:208`) and `DELETE` (`users.py:359`,
-  /// query `delete_items=true|false` — see [UsersRepository.delete]). Both are
-  /// admin-only *and* permission-gated; API keys are refused outright.
+  /// One account: `PATCH` (edit, `users.py::list_users_slim`) and `DELETE`
+  /// (`users.py::get_user_items_count`, query `delete_items=true|false` — see
+  /// [UsersRepository.delete]). Both are admin-only *and* permission-gated; API
+  /// keys are refused outright.
   static String userById(int userId) => '$apiPrefix/users/$userId';
 
   /// Whether the server generates and mails the password instead of the admin
   /// setting one (`{advanced_auth_enabled, smtp_configured, ...}` —
-  /// `backend/app/api/routes/auth.py:908`). Unauthenticated server-side, and
-  /// what decides the shape of the account form.
+  /// `backend/app/api/routes/auth.py::disable_advanced_auth`). Unauthenticated
+  /// server-side, and what decides the shape of the account form.
   static const advancedAuthStatus = '$apiPrefix/auth/advanced-auth/status';
 
   // --- API keys ---
 
   /// Key list (`GET`, `APIKeyResponse[]` — never the keys themselves) and
   /// creation (`POST`, whose answer carries the full key **once**;
-  /// `backend/app/api/routes/api_keys.py:34`). Gated on `api_keys:read` /
-  /// `api_keys:create` — no admin role on top, unlike users and groups.
+  /// `backend/app/api/routes/api_keys.py::create_api_key`). Gated on
+  /// `api_keys:read` / `api_keys:create` — no admin role on top, unlike users
+  /// and groups.
   static const apiKeys = '$apiPrefix/api-keys/';
 
   /// One key: `PATCH` (rename, scopes, enable/disable, expiry) and `DELETE`
@@ -838,23 +861,24 @@ abstract final class Endpoints {
 
   // --- Groups ---
 
-  /// Group list (`GroupResponse[]` — `backend/app/api/routes/groups.py:62`),
-  /// gated on `groups:read`. Trailing slash required, like `/users/`.
+  /// Group list (`GroupResponse[]` —
+  /// `backend/app/api/routes/groups.py::list_permissions`), gated on
+  /// `groups:read`. Trailing slash required, like `/users/`.
   static const groups = '$apiPrefix/groups/';
 
-  /// Every permission the server knows, by category
-  /// (`PermissionsListResponse`, `groups.py:43`). Gated on `groups:read` —
-  /// the same key that opens the group screens.
+  /// Every permission the server knows, by category (`PermissionsListResponse`,
+  /// `groups.py::_permission_label`). Gated on `groups:read` — the same key
+  /// that opens the group screens.
   static const groupPermissions = '$apiPrefix/groups/permissions';
 
-  /// One group with its member list (`GroupDetailResponse`, `groups.py:133`).
-  /// `PATCH` and `DELETE` on the same path are admin-only and refuse system
-  /// groups.
+  /// One group with its member list (`GroupDetailResponse`,
+  /// `groups.py::create_group`). `PATCH` and `DELETE` on the same path are
+  /// admin-only and refuse system groups.
   static String groupById(int groupId) => '$apiPrefix/groups/$groupId';
 
   /// Membership from the group's side: `POST` adds, `DELETE` removes
-  /// (`groups.py:259`, `:297`). Admin-only on top of `groups:update`, and
-  /// both answer 204 with no body.
+  /// (`groups.py::delete_group`, `:297`). Admin-only on top of `groups:update`,
+  /// and both answer 204 with no body.
   static String groupMember(int groupId, int userId) =>
       '$apiPrefix/groups/$groupId/users/$userId';
 }

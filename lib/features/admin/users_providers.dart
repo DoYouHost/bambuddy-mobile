@@ -45,10 +45,10 @@ final canReadUsersProvider = Provider<bool>(
 /// Whether this identity may create, edit and delete accounts.
 ///
 /// Every write carries `RequireAdminIfAuthEnabled` *on top of* its `users:*`
-/// permission (`backend/app/api/routes/users.py:86`, `:212`, `:363`), so the
-/// admin flag is the deciding one — a custom group granting `users:create`
-/// without the role still gets a 403. Reading is a lower bar and stays
-/// separate ([canReadUsersProvider]).
+/// permission (`backend/app/api/routes/users.py::list_users`, `:212`, `:363`),
+/// so the admin flag is the deciding one — a custom group granting
+/// `users:create` without the role still gets a 403. Reading is a lower bar and
+/// stays separate ([canReadUsersProvider]).
 final canManageUsersProvider = Provider<bool>((ref) {
   if (!ref.watch(canReadUsersProvider)) return false;
   return ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;

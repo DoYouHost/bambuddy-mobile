@@ -21,7 +21,7 @@ import 'users_providers.dart';
 /// Membership is editable from both ends — here and in the account form —
 /// because "put Zosia in Operators" and "who is in Operators?" are different
 /// questions. The server keeps one state either way
-/// (`backend/app/api/routes/groups.py:259`).
+/// (`backend/app/api/routes/groups.py::delete_group`).
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
 
@@ -180,7 +180,8 @@ class GroupDetailScreen extends ConsumerWidget {
 
 /// Edit and delete for the group itself. Deleting is offered only for a group
 /// the server would actually delete: a system group is refused
-/// (`groups.py:249`), so the entry is left out rather than shown and refused.
+/// (`groups.py::delete_group`), so the entry is left out rather than shown and
+/// refused.
 class _GroupMenu extends ConsumerWidget {
   const _GroupMenu({required this.group});
 
@@ -309,7 +310,8 @@ class _GroupHeader extends StatelessWidget {
           if (group.isSystem) ...[
             const SizedBox(height: 8),
             // The server refuses to rename a system group or to touch what it
-            // grants (`groups.py:187`, `:200`); only its membership moves.
+            // grants (`groups.py::update_group`, `:200`); only its membership
+            // moves.
             Text(
               l10n.groupsSystemNote,
               style: TextStyle(

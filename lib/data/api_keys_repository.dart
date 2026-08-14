@@ -9,7 +9,8 @@ import '../core/models/json_utils.dart';
 /// not this app (Home Assistant, SpoolBuddy, a script).
 ///
 /// Unlike users and groups these routes carry no admin gate: the `api_keys:*`
-/// permissions alone decide (`backend/app/api/routes/api_keys.py:27`).
+/// permissions alone decide
+/// (`backend/app/api/routes/api_keys.py::list_api_keys`).
 class ApiKeysRepository {
   ApiKeysRepository(this._dio);
 

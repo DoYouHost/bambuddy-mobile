@@ -1,7 +1,7 @@
 import 'json_utils.dart';
 
 /// One permission the server knows, with the label it wants shown
-/// (`PermissionInfo`, `backend/app/schemas/group.py:67`).
+/// (`backend/app/schemas/group.py::PermissionInfo`).
 class PermissionInfo {
   const PermissionInfo({required this.value, required this.label});
 
@@ -20,7 +20,7 @@ class PermissionInfo {
 }
 
 /// A named group of permissions, as the server groups them
-/// (`PERMISSION_CATEGORIES`, `backend/app/core/permissions.py:191`).
+/// (`PERMISSION_CATEGORIES`, `backend/app/core/permissions.py::Permission`).
 class PermissionCategory {
   const PermissionCategory({required this.name, required this.permissions});
 

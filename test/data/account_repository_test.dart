@@ -47,8 +47,9 @@ void main() {
 
   test('an API-key session gets the synthetic admin the server answers with',
       () async {
-    // `_api_key_to_user_response` (`backend/app/api/routes/auth.py:91`) — a key
-    // is admin with every permission, so nothing here is gated for it.
+    // `_api_key_to_user_response`
+    // (`backend/app/api/routes/auth.py::_api_key_to_user_response`) — a key is
+    // admin with every permission, so nothing here is gated for it.
     adapter.onGet(
       '/api/v1/auth/me',
       (s) => s.reply(200, {
@@ -71,7 +72,7 @@ void main() {
 
   test('a 401 comes back as an AppApiException, not a DioException', () async {
     // What a server with auth switched off answers — `/auth/me` requires
-    // credentials (`auth.py:706`).
+    // credentials (`auth.py::get_current_user_info`).
     adapter.onGet(
       '/api/v1/auth/me',
       (s) => s.reply(401, {'detail': 'Authentication required'}),
