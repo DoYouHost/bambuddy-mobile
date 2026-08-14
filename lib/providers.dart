@@ -35,6 +35,7 @@ import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
 import 'data/makerworld_repository.dart';
+import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
@@ -621,11 +622,33 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
   ),
 );
 
+/// Slicer pipelines — reusable preset bundles and their runs. Shares
+/// authenticated Dio.
+///
+/// Not `autoDispose`: it caches whether the routes are there at all, and
+/// throwing that away between screens would put the entry point back to
+/// guessing. Rebuilt with [apiClientProvider], so a new server or new
+/// credentials get a fresh answer.
+final pipelinesRepositoryProvider = Provider<PipelinesRepository>(
+  (ref) => PipelinesRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// Raw server `AppSettings` (best-effort, cached per session). Feature flags
 /// derive from this so we fetch `/settings` once.
 final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
 );
+
+/// Highest `copies` a pipeline run accepts (`pipeline_max_copies`). The server
+/// answers **422** above it rather than clamping, so the stepper has to know.
+/// 50 is the server's own fallback for an unset or unparseable value
+/// (`routes/pipeline_runs.py::run_pipeline`).
+final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
+  final settings = await ref.watch(serverSettingsProvider.future);
+  final raw = settings['pipeline_max_copies'];
+  final parsed = raw is num ? raw.toInt() : int.tryParse('$raw');
+  return parsed != null && parsed > 0 ? parsed : 50;
+});
 
 /// Whether the scheduler requires per-printer plate-clear confirmation before
 /// starting queued prints. Gates the plate badge / "clear plate" button and the

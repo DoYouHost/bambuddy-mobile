@@ -23,6 +23,10 @@ import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
+import '../../data/pipelines_repository.dart' show PipelineSource;
+import '../pipelines/pipeline_run_screen.dart';
+import '../pipelines/pipelines_providers.dart'
+    show canRunPipelinesProvider, pipelinesSupportedProvider;
 import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
@@ -442,6 +446,20 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _sliceFile(file);
                 },
               ).tagged('file_actions.slice'),
+            // Slice and dispatch in one go, using a saved bundle. Sits next to
+            // Slice because it needs the same source and the same permission
+            // to produce a print — only the picking of profiles differs.
+            if (canSlice &&
+                ref.watch(pipelinesSupportedProvider).valueOrNull == true &&
+                ref.watch(canRunPipelinesProvider))
+              ListTile(
+                leading: const Icon(Icons.account_tree_outlined),
+                title: Text(l10n.pipelineRun),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _runPipeline(file);
+                },
+              ).tagged('file_actions.run_pipeline'),
             ListTile(
               leading: const Icon(Icons.playlist_add),
               title: Text(l10n.fmAddToQueue),
@@ -754,6 +772,16 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _previewGcode(LibraryFile file) {
     final name = Uri.encodeQueryComponent(file.displayName);
     context.push('/gcode-viewer?library_file=${file.id}&name=$name');
+  }
+
+  /// Run a saved pipeline against this file — slices it and dispatches the
+  /// copies without going through the four pickers.
+  Future<void> _runPipeline(LibraryFile file) async {
+    await showPipelineRunScreen(
+      context,
+      source: PipelineSource.libraryFile(file.id),
+      sourceName: file.displayName,
+    );
   }
 
   Future<void> _sliceFile(LibraryFile file) async {

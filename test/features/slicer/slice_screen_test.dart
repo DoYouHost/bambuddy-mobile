@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/models/embedded_settings.dart';
 import 'package:bambuddy_mobile/core/models/filament_requirement.dart';
 import 'package:bambuddy_mobile/core/models/slice_job.dart';
+import 'package:bambuddy_mobile/core/models/slicer_pipeline.dart';
 import 'package:bambuddy_mobile/core/models/slicer_preset.dart';
 import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
+import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -110,6 +112,8 @@ void main() {
     UnifiedPresets presets = _presets,
     bool layoutOptions = false,
     Set<String> ownedCodes = const {},
+    List<SlicerPipeline> pipelines = const [],
+    bool pipelinesSupported = false,
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -124,6 +128,13 @@ void main() {
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
         presetValuesProvider.overrideWith((ref, arg) async => presetValues),
+        // Inert by default: without these the bar probes the pipeline routes
+        // over a real Dio and leaves a hanging timer, the same trap as
+        // [inertFirmwareOverride].
+        pipelinesSupportedProvider.overrideWith((ref) async => pipelinesSupported),
+        pipelinesProvider.overrideWith((ref) async => pipelines),
+        // Reaches `currentUserProvider`, which these tests do not stand up.
+        canWritePipelinesProvider.overrideWithValue(true),
       ],
       child: plApp(Builder(
         builder: (context) => Scaffold(
@@ -643,6 +654,145 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('use_embedded_settings'), isFalse,
           reason: 'the default path must stay byte-identical to before');
+    });
+  });
+
+  group('applying a pipeline', () {
+    const bundle = SlicerPipeline(
+      id: 3,
+      name: 'X2D Gridfinity PETG',
+      printerPreset: PresetRef(source: 'local', id: '1'),
+      processPreset: PresetRef(source: 'local', id: '99'),
+      filamentPresets: [PresetRef(source: 'local', id: '31')],
+      bedType: 'Engineering Plate',
+    );
+
+    /// A catalog that can actually resolve [bundle] — the presets the default
+    /// `_presets` lacks.
+    const catalogWithBundle = UnifiedPresets(
+      printers: [SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D')],
+      processes: [
+        SlicerPreset(source: 'local', id: '12', name: '0.20 mm Standard'),
+        SlicerPreset(source: 'local', id: '99', name: '0.30 mm Gridfinity'),
+      ],
+      filaments: [
+        SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA Basic'),
+        SlicerPreset(source: 'local', id: '31', name: 'Bambu PETG HF'),
+      ],
+    );
+
+    Future<void> apply(WidgetTester tester) async {
+      await tester.tap(find.text('Zastosuj pipeline…'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('X2D Gridfinity PETG').last);
+      await tester.pumpAndSettle();
+      // The "applied" SnackBar sits over the submit button, and its display
+      // window is a Timer rather than an animation — so `pumpAndSettle` returns
+      // with it still up. Wait it out, or the slice tap lands on the toast.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    }
+
+    /// The form is a lazy `ListView`, and the pipeline card pushed the filament
+    /// rows past the fold — off-screen children are never built, so a finder
+    /// would report them missing whatever the state says. Scrolls them in.
+    Future<void> revealSlots(WidgetTester tester) async {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the row is absent on a server without the routes',
+        (tester) async {
+      // Older servers 404 the whole feature, and an API-key session is refused
+      // it — a control that can only fail is worse than none.
+      await openSheet(tester, pipelines: const [bundle]);
+      expect(find.text('Pipeline'), findsNothing);
+    });
+
+    testWidgets('fills every slot from one pick', (tester) async {
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('0.30 mm Gridfinity'), findsOneWidget);
+      expect(find.text('Bambu PETG HF'), findsOneWidget);
+      expect(find.text('Engineering Plate'), findsOneWidget);
+
+      final body = await slice(tester);
+      expect(body['printer_preset'], {'source': 'local', 'id': '1'});
+      expect(body['process_preset'], {'source': 'local', 'id': '99'});
+      expect(body['filament_preset'], {'source': 'local', 'id': '31'});
+      expect(body['bed_type'], 'Engineering Plate');
+    });
+
+    testWidgets('does not clear the slots it just filled', (tester) async {
+      // Picking a printer normally wipes the process and filaments, because
+      // they were chosen for the old one. A pipeline supplies all four at once,
+      // so routing it through that reset would undo the pick.
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Dotknij, aby wybrać'), findsNothing);
+    });
+
+    testWidgets('a shorter pipeline leaves the slots it does not reach',
+        (tester) async {
+      // `filament_presets` is positional, so entry i only ever lands on slot i
+      // and the tail keeps whatever was auto-picked for it.
+      await openSheet(
+        tester,
+        presets: catalogWithBundle,
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+        requirements: const [
+          FilamentRequirement(slotId: 1, type: 'PETG', color: '#00FF00'),
+          FilamentRequirement(slotId: 2, type: 'PLA', color: '#FF0000'),
+        ],
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Bambu PETG HF'), findsOneWidget);
+      expect(find.text('Bambu PLA Basic'), findsOneWidget,
+          reason: 'slot 2 is beyond the pipeline and must keep its own pick');
+
+      final body = await slice(tester);
+      expect(body['filament_presets'], [
+        {'source': 'local', 'id': '31'},
+        {'source': 'local', 'id': '30'},
+      ]);
+    });
+
+    testWidgets('a preset this catalog does not list still reaches the request',
+        (tester) async {
+      // A pipeline outlives the preset list it was saved from, and a cloud tier
+      // that failed to load empties whole slots. Dropping the ref would rewrite
+      // the user's pipeline silently on the next slice.
+      await openSheet(
+        tester,
+        presets: _presets, // knows neither process 99 nor filament 31
+        pipelines: const [bundle],
+        pipelinesSupported: true,
+      );
+      await apply(tester);
+      await revealSlots(tester);
+
+      expect(find.text('Nie ma go już w katalogu'), findsWidgets);
+
+      final body = await slice(tester);
+      expect(body['process_preset'], {'source': 'local', 'id': '99'});
+      expect(body['filament_preset'], {'source': 'local', 'id': '31'});
     });
   });
 }

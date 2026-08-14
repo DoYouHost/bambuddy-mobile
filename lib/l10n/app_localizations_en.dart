@@ -3865,6 +3865,353 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceTierStandard => 'Built-in';
 
   @override
+  String get pipelineSection => 'Pipeline';
+
+  @override
+  String get pipelineApply => 'Apply pipeline…';
+
+  @override
+  String get pipelineApplyEmpty => 'No saved pipelines';
+
+  @override
+  String pipelineApplied(String name) {
+    return 'Applied \"$name\"';
+  }
+
+  @override
+  String get pipelineSaveAs => 'Save as pipeline';
+
+  @override
+  String get pipelineNameHint => 'Pipeline name';
+
+  @override
+  String get pipelineSaveConfirm => 'Save';
+
+  @override
+  String get pipelineSaved => 'Pipeline saved';
+
+  @override
+  String get pipelineSaveHint =>
+      'The printer, process, filaments and plate above, under a name you can reapply to the next file.';
+
+  @override
+  String get pipelinesMenu => 'Pipelines';
+
+  @override
+  String get pipelinesTitle => 'Pipelines';
+
+  @override
+  String get pipelinesEmpty => 'No pipelines yet';
+
+  @override
+  String get pipelinesEmptyHint =>
+      'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.';
+
+  @override
+  String get pipelineProfiles => 'Profiles';
+
+  @override
+  String pipelineFilamentsCount(int count) {
+    return 'Filaments ($count)';
+  }
+
+  @override
+  String pipelineSlotNumbered(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get pipelineBed => 'Plate';
+
+  @override
+  String get pipelinePresetGone => 'No longer in the catalog';
+
+  @override
+  String get pipelineNeedsTarget =>
+      'Set a target before running this pipeline.';
+
+  @override
+  String get pipelineNoTargetChip => 'No target';
+
+  @override
+  String get pipelineEditTitle => 'Edit pipeline';
+
+  @override
+  String get pipelineDescriptionHint => 'Description (optional)';
+
+  @override
+  String get pipelineTargetType => 'Target';
+
+  @override
+  String get pipelineTargetSpecific => 'One printer';
+
+  @override
+  String get pipelineTargetClass => 'Printer model';
+
+  @override
+  String get pipelineTargetPickPrinter => 'Pick a printer';
+
+  @override
+  String get pipelineTargetPickClass => 'Pick a model';
+
+  @override
+  String get pipelineTargetNone => '— no target —';
+
+  @override
+  String pipelineTargetPrinterGone(int id) {
+    return 'Printer #$id (gone)';
+  }
+
+  @override
+  String get pipelineFanout => 'Spreading the copies';
+
+  @override
+  String get pipelineFanoutMaxParallel =>
+      'Max parallel — across any idle matching printer';
+
+  @override
+  String get pipelineFanoutRoundRobin =>
+      'Round robin — cycle through eligible printers';
+
+  @override
+  String get pipelineFanoutFillOneFirst =>
+      'Fill one first — every copy on one printer';
+
+  @override
+  String get pipelineDelete => 'Delete pipeline';
+
+  @override
+  String pipelineDeleteConfirm(String name) {
+    return 'Delete \"$name\"? Runs already made keep their name.';
+  }
+
+  @override
+  String get pipelineDeleted => 'Pipeline deleted';
+
+  @override
+  String get pipelineDescriptionNoClear =>
+      'A description cannot be emptied once saved — this server only ever writes a new one.';
+
+  @override
+  String get pipelineRun => 'Run';
+
+  @override
+  String pipelineRunTitle(String name) {
+    return 'Run \"$name\"';
+  }
+
+  @override
+  String get pipelineRunCopies => 'Copies';
+
+  @override
+  String get pipelineRunStart => 'Start';
+
+  @override
+  String get pipelineRunStarted => 'Run started';
+
+  @override
+  String get pipelineRunAnyway => 'Run anyway';
+
+  @override
+  String pipelineRunMaxCopies(int max) {
+    return 'This server allows $max at most.';
+  }
+
+  @override
+  String get pipelineCheckingEligibility => 'Checking printers…';
+
+  @override
+  String get pipelineEligibilityOk => 'Ready to run.';
+
+  @override
+  String pipelineEligibilityClassCount(int ok, int total) {
+    return '$ok of $total printers ready';
+  }
+
+  @override
+  String get pipelineEligibilityBlocked =>
+      'Nothing can take this run right now.';
+
+  @override
+  String get pipelineEligibilityAdvisory => 'Worth a look before you start.';
+
+  @override
+  String get pipelineIssuePrinterNotSet =>
+      'This pipeline has no target printer.';
+
+  @override
+  String get pipelineIssuePrinterNotFound =>
+      'The target printer no longer exists.';
+
+  @override
+  String get pipelineIssuePrinterDisabled =>
+      'The target printer is switched off in bambuddy.';
+
+  @override
+  String get pipelineIssuePrinterOffline => 'The target printer is offline.';
+
+  @override
+  String get pipelineIssueFilamentType => 'Wrong filament type loaded.';
+
+  @override
+  String get pipelineIssueFilamentColor =>
+      'The loaded filament is a different colour.';
+
+  @override
+  String get pipelineIssueAmsSlotMissing =>
+      'The AMS has fewer slots than this pipeline needs.';
+
+  @override
+  String get pipelineIssueFilamentUnverified =>
+      'This filament preset cannot be checked from here — worth confirming yourself.';
+
+  @override
+  String get pipelineIssueNoClassMatches =>
+      'No printer of this model is installed.';
+
+  @override
+  String get pipelineIssueClassNotSet =>
+      'This pipeline has no printer model set.';
+
+  @override
+  String pipelineIssueSlot(int n) {
+    return 'Slot $n';
+  }
+
+  @override
+  String pipelineIssueWantedGot(String expected, String actual) {
+    return 'wanted $expected, loaded $actual';
+  }
+
+  @override
+  String pipelineIssueWanted(String expected) {
+    return 'wanted $expected';
+  }
+
+  @override
+  String get pipelineRunsTitle => 'Pipeline runs';
+
+  @override
+  String get pipelineRunsEmpty => 'No runs yet';
+
+  @override
+  String get pipelineRunsClear => 'Clear finished';
+
+  @override
+  String pipelineRunsCleared(int count) {
+    return '$count removed';
+  }
+
+  @override
+  String get pipelineRunsClearConfirm =>
+      'Remove every finished run from this list?';
+
+  @override
+  String pipelineRunCopiesProgress(int done, int total) {
+    return '$done of $total copies';
+  }
+
+  @override
+  String get pipelineRunCancel => 'Cancel run';
+
+  @override
+  String get pipelineRunCancelConfirm =>
+      'Cancel this run? Copies not yet sent are dropped; anything already printing has to be stopped on the printer itself.';
+
+  @override
+  String get pipelineRunCancelled => 'Run cancelled';
+
+  @override
+  String get pipelineRunRetry => 'Retry failed';
+
+  @override
+  String pipelineRunRetryStarted(int count) {
+    return 'Retrying $count copies';
+  }
+
+  @override
+  String get pipelineRunOverridden => 'Started past a failed check';
+
+  @override
+  String get pipelineRunDeletedPipeline => 'Deleted pipeline';
+
+  @override
+  String pipelineRunSource(String name) {
+    return 'From $name';
+  }
+
+  @override
+  String pipelineRunRetryOf(int id) {
+    return 'Retry of run #$id';
+  }
+
+  @override
+  String pipelineRunOnPrinter(String printer) {
+    return 'On $printer';
+  }
+
+  @override
+  String pipelineRunOnClass(String model) {
+    return 'On any $model';
+  }
+
+  @override
+  String get pipelineStatusQueued => 'Queued';
+
+  @override
+  String get pipelineStatusSlicing => 'Slicing';
+
+  @override
+  String get pipelineStatusDispatching => 'Dispatching';
+
+  @override
+  String get pipelineStatusInProgress => 'Printing';
+
+  @override
+  String get pipelineStatusCompleted => 'Completed';
+
+  @override
+  String get pipelineStatusFailed => 'Failed';
+
+  @override
+  String get pipelineStatusPartial => 'Partly failed';
+
+  @override
+  String get pipelineStatusCancelled => 'Cancelled';
+
+  @override
+  String get pipelineStatusUnknown => 'Unknown';
+
+  @override
+  String pipelineJobCopy(int n) {
+    return 'Copy $n';
+  }
+
+  @override
+  String get pipelineJobPending => 'Pending';
+
+  @override
+  String get pipelineJobAwaitingPrinter => 'Waiting for a printer';
+
+  @override
+  String get pipelineJobQueued => 'Queued';
+
+  @override
+  String get pipelineJobPrinting => 'Printing';
+
+  @override
+  String get pipelineJobCompleted => 'Done';
+
+  @override
+  String get pipelineJobFailed => 'Failed';
+
+  @override
+  String get pipelineJobCancelled => 'Cancelled';
+
+  @override
+  String get pipelineJobUnknown => 'Unknown';
+
+  @override
   String get queueFilamentMapping => 'Filament mapping';
 
   @override

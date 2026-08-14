@@ -16,6 +16,7 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
+import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
@@ -671,6 +672,19 @@ class _AppDrawer extends ConsumerWidget {
                   },
                   id: 'drawer.stats',
                 ),
+                // Absent until a call has proved the routes are there and this
+                // session may use them — an older server 404s, and an API-key
+                // session is denied every pipeline permission outright.
+                if (ref.watch(pipelinesSupportedProvider).valueOrNull == true)
+                  _DrawerTile(
+                    icon: Icons.account_tree_outlined,
+                    label: l10n.pipelinesMenu,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/pipelines');
+                    },
+                    id: 'drawer.pipelines',
+                  ),
                 _DrawerTile(
                   icon: Icons.tune_rounded,
                   label: l10n.notifEventsMenu,

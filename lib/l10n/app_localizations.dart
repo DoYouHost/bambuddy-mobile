@@ -6728,6 +6728,588 @@ abstract class AppLocalizations {
   /// **'Built-in'**
   String get sliceTierStandard;
 
+  /// No description provided for @pipelineSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline'**
+  String get pipelineSection;
+
+  /// No description provided for @pipelineApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply pipeline…'**
+  String get pipelineApply;
+
+  /// No description provided for @pipelineApplyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved pipelines'**
+  String get pipelineApplyEmpty;
+
+  /// No description provided for @pipelineApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied \"{name}\"'**
+  String pipelineApplied(String name);
+
+  /// No description provided for @pipelineSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as pipeline'**
+  String get pipelineSaveAs;
+
+  /// No description provided for @pipelineNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline name'**
+  String get pipelineNameHint;
+
+  /// No description provided for @pipelineSaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get pipelineSaveConfirm;
+
+  /// No description provided for @pipelineSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline saved'**
+  String get pipelineSaved;
+
+  /// No description provided for @pipelineSaveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer, process, filaments and plate above, under a name you can reapply to the next file.'**
+  String get pipelineSaveHint;
+
+  /// No description provided for @pipelinesMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipelines'**
+  String get pipelinesMenu;
+
+  /// No description provided for @pipelinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipelines'**
+  String get pipelinesTitle;
+
+  /// No description provided for @pipelinesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pipelines yet'**
+  String get pipelinesEmpty;
+
+  /// No description provided for @pipelinesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save one from the slice form — printer, process, filaments and plate as a bundle you can reapply in one tap.'**
+  String get pipelinesEmptyHint;
+
+  /// No description provided for @pipelineProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get pipelineProfiles;
+
+  /// No description provided for @pipelineFilamentsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Filaments ({count})'**
+  String pipelineFilamentsCount(int count);
+
+  /// No description provided for @pipelineSlotNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {n}'**
+  String pipelineSlotNumbered(int n);
+
+  /// No description provided for @pipelineBed.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get pipelineBed;
+
+  /// No description provided for @pipelinePresetGone.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer in the catalog'**
+  String get pipelinePresetGone;
+
+  /// No description provided for @pipelineNeedsTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a target before running this pipeline.'**
+  String get pipelineNeedsTarget;
+
+  /// No description provided for @pipelineNoTargetChip.
+  ///
+  /// In en, this message translates to:
+  /// **'No target'**
+  String get pipelineNoTargetChip;
+
+  /// No description provided for @pipelineEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit pipeline'**
+  String get pipelineEditTitle;
+
+  /// No description provided for @pipelineDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get pipelineDescriptionHint;
+
+  /// No description provided for @pipelineTargetType.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get pipelineTargetType;
+
+  /// No description provided for @pipelineTargetSpecific.
+  ///
+  /// In en, this message translates to:
+  /// **'One printer'**
+  String get pipelineTargetSpecific;
+
+  /// No description provided for @pipelineTargetClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model'**
+  String get pipelineTargetClass;
+
+  /// No description provided for @pipelineTargetPickPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a printer'**
+  String get pipelineTargetPickPrinter;
+
+  /// No description provided for @pipelineTargetPickClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a model'**
+  String get pipelineTargetPickClass;
+
+  /// No description provided for @pipelineTargetNone.
+  ///
+  /// In en, this message translates to:
+  /// **'— no target —'**
+  String get pipelineTargetNone;
+
+  /// No description provided for @pipelineTargetPrinterGone.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer #{id} (gone)'**
+  String pipelineTargetPrinterGone(int id);
+
+  /// No description provided for @pipelineFanout.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreading the copies'**
+  String get pipelineFanout;
+
+  /// No description provided for @pipelineFanoutMaxParallel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max parallel — across any idle matching printer'**
+  String get pipelineFanoutMaxParallel;
+
+  /// No description provided for @pipelineFanoutRoundRobin.
+  ///
+  /// In en, this message translates to:
+  /// **'Round robin — cycle through eligible printers'**
+  String get pipelineFanoutRoundRobin;
+
+  /// No description provided for @pipelineFanoutFillOneFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill one first — every copy on one printer'**
+  String get pipelineFanoutFillOneFirst;
+
+  /// No description provided for @pipelineDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete pipeline'**
+  String get pipelineDelete;
+
+  /// No description provided for @pipelineDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Runs already made keep their name.'**
+  String pipelineDeleteConfirm(String name);
+
+  /// No description provided for @pipelineDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline deleted'**
+  String get pipelineDeleted;
+
+  /// No description provided for @pipelineDescriptionNoClear.
+  ///
+  /// In en, this message translates to:
+  /// **'A description cannot be emptied once saved — this server only ever writes a new one.'**
+  String get pipelineDescriptionNoClear;
+
+  /// No description provided for @pipelineRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get pipelineRun;
+
+  /// No description provided for @pipelineRunTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run \"{name}\"'**
+  String pipelineRunTitle(String name);
+
+  /// No description provided for @pipelineRunCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get pipelineRunCopies;
+
+  /// No description provided for @pipelineRunStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get pipelineRunStart;
+
+  /// No description provided for @pipelineRunStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Run started'**
+  String get pipelineRunStarted;
+
+  /// No description provided for @pipelineRunAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Run anyway'**
+  String get pipelineRunAnyway;
+
+  /// No description provided for @pipelineRunMaxCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'This server allows {max} at most.'**
+  String pipelineRunMaxCopies(int max);
+
+  /// No description provided for @pipelineCheckingEligibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking printers…'**
+  String get pipelineCheckingEligibility;
+
+  /// No description provided for @pipelineEligibilityOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to run.'**
+  String get pipelineEligibilityOk;
+
+  /// No description provided for @pipelineEligibilityClassCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} of {total} printers ready'**
+  String pipelineEligibilityClassCount(int ok, int total);
+
+  /// No description provided for @pipelineEligibilityBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing can take this run right now.'**
+  String get pipelineEligibilityBlocked;
+
+  /// No description provided for @pipelineEligibilityAdvisory.
+  ///
+  /// In en, this message translates to:
+  /// **'Worth a look before you start.'**
+  String get pipelineEligibilityAdvisory;
+
+  /// No description provided for @pipelineIssuePrinterNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'This pipeline has no target printer.'**
+  String get pipelineIssuePrinterNotSet;
+
+  /// No description provided for @pipelineIssuePrinterNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer no longer exists.'**
+  String get pipelineIssuePrinterNotFound;
+
+  /// No description provided for @pipelineIssuePrinterDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer is switched off in bambuddy.'**
+  String get pipelineIssuePrinterDisabled;
+
+  /// No description provided for @pipelineIssuePrinterOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The target printer is offline.'**
+  String get pipelineIssuePrinterOffline;
+
+  /// No description provided for @pipelineIssueFilamentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong filament type loaded.'**
+  String get pipelineIssueFilamentType;
+
+  /// No description provided for @pipelineIssueFilamentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'The loaded filament is a different colour.'**
+  String get pipelineIssueFilamentColor;
+
+  /// No description provided for @pipelineIssueAmsSlotMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS has fewer slots than this pipeline needs.'**
+  String get pipelineIssueAmsSlotMissing;
+
+  /// No description provided for @pipelineIssueFilamentUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'This filament preset cannot be checked from here — worth confirming yourself.'**
+  String get pipelineIssueFilamentUnverified;
+
+  /// No description provided for @pipelineIssueNoClassMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer of this model is installed.'**
+  String get pipelineIssueNoClassMatches;
+
+  /// No description provided for @pipelineIssueClassNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'This pipeline has no printer model set.'**
+  String get pipelineIssueClassNotSet;
+
+  /// No description provided for @pipelineIssueSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {n}'**
+  String pipelineIssueSlot(int n);
+
+  /// No description provided for @pipelineIssueWantedGot.
+  ///
+  /// In en, this message translates to:
+  /// **'wanted {expected}, loaded {actual}'**
+  String pipelineIssueWantedGot(String expected, String actual);
+
+  /// No description provided for @pipelineIssueWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'wanted {expected}'**
+  String pipelineIssueWanted(String expected);
+
+  /// No description provided for @pipelineRunsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline runs'**
+  String get pipelineRunsTitle;
+
+  /// No description provided for @pipelineRunsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs yet'**
+  String get pipelineRunsEmpty;
+
+  /// No description provided for @pipelineRunsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear finished'**
+  String get pipelineRunsClear;
+
+  /// No description provided for @pipelineRunsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} removed'**
+  String pipelineRunsCleared(int count);
+
+  /// No description provided for @pipelineRunsClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove every finished run from this list?'**
+  String get pipelineRunsClearConfirm;
+
+  /// No description provided for @pipelineRunCopiesProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} copies'**
+  String pipelineRunCopiesProgress(int done, int total);
+
+  /// No description provided for @pipelineRunCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel run'**
+  String get pipelineRunCancel;
+
+  /// No description provided for @pipelineRunCancelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this run? Copies not yet sent are dropped; anything already printing has to be stopped on the printer itself.'**
+  String get pipelineRunCancelConfirm;
+
+  /// No description provided for @pipelineRunCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Run cancelled'**
+  String get pipelineRunCancelled;
+
+  /// No description provided for @pipelineRunRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed'**
+  String get pipelineRunRetry;
+
+  /// No description provided for @pipelineRunRetryStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying {count} copies'**
+  String pipelineRunRetryStarted(int count);
+
+  /// No description provided for @pipelineRunOverridden.
+  ///
+  /// In en, this message translates to:
+  /// **'Started past a failed check'**
+  String get pipelineRunOverridden;
+
+  /// No description provided for @pipelineRunDeletedPipeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted pipeline'**
+  String get pipelineRunDeletedPipeline;
+
+  /// No description provided for @pipelineRunSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String pipelineRunSource(String name);
+
+  /// No description provided for @pipelineRunRetryOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry of run #{id}'**
+  String pipelineRunRetryOf(int id);
+
+  /// No description provided for @pipelineRunOnPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'On {printer}'**
+  String pipelineRunOnPrinter(String printer);
+
+  /// No description provided for @pipelineRunOnClass.
+  ///
+  /// In en, this message translates to:
+  /// **'On any {model}'**
+  String pipelineRunOnClass(String model);
+
+  /// No description provided for @pipelineStatusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get pipelineStatusQueued;
+
+  /// No description provided for @pipelineStatusSlicing.
+  ///
+  /// In en, this message translates to:
+  /// **'Slicing'**
+  String get pipelineStatusSlicing;
+
+  /// No description provided for @pipelineStatusDispatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Dispatching'**
+  String get pipelineStatusDispatching;
+
+  /// No description provided for @pipelineStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get pipelineStatusInProgress;
+
+  /// No description provided for @pipelineStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get pipelineStatusCompleted;
+
+  /// No description provided for @pipelineStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get pipelineStatusFailed;
+
+  /// No description provided for @pipelineStatusPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly failed'**
+  String get pipelineStatusPartial;
+
+  /// No description provided for @pipelineStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get pipelineStatusCancelled;
+
+  /// No description provided for @pipelineStatusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get pipelineStatusUnknown;
+
+  /// No description provided for @pipelineJobCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy {n}'**
+  String pipelineJobCopy(int n);
+
+  /// No description provided for @pipelineJobPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pipelineJobPending;
+
+  /// No description provided for @pipelineJobAwaitingPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a printer'**
+  String get pipelineJobAwaitingPrinter;
+
+  /// No description provided for @pipelineJobQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get pipelineJobQueued;
+
+  /// No description provided for @pipelineJobPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing'**
+  String get pipelineJobPrinting;
+
+  /// No description provided for @pipelineJobCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get pipelineJobCompleted;
+
+  /// No description provided for @pipelineJobFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get pipelineJobFailed;
+
+  /// No description provided for @pipelineJobCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get pipelineJobCancelled;
+
+  /// No description provided for @pipelineJobUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get pipelineJobUnknown;
+
   /// No description provided for @queueFilamentMapping.
   ///
   /// In en, this message translates to:

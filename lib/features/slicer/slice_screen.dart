@@ -18,6 +18,9 @@ import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
+import '../../core/models/slicer_pipeline.dart';
+import '../pipelines/pipeline_presets.dart';
+import '../pipelines/pipeline_slice_bar.dart';
 import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'process_settings_screen.dart';
 import 'slice_providers.dart';
@@ -187,6 +190,17 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
+                // Above the slots it fills, and hidden entirely on a server
+                // without the routes — see [PipelineSliceBar].
+                PipelineSliceBar(
+                  printer: _printer,
+                  process: _process,
+                  filaments: _filaments,
+                  bedType: _bedType,
+                  busy: _submitting,
+                  onApply: (p) =>
+                      setState(() => _applyPipeline(p, presets, slotCount)),
+                ),
                 _slotTile(
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
@@ -436,6 +450,47 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     );
   }
 
+  /// Fold a saved bundle into the form's slots.
+  ///
+  /// Deliberately not routed through [_pickPrinter], which clears the process
+  /// and filaments on purpose: here the whole bundle arrives together and was
+  /// authored to fit, so wiping the very fields the pipeline just supplied
+  /// would undo it. [_printerPicked] is set for the same reason the picker sets
+  /// it — the design's printer must not be adopted over a deliberate choice.
+  ///
+  /// The filament list is right-padded from what is already there, so applying
+  /// a one-slot pipeline to a four-slot model fills slot 1 and leaves the rest
+  /// as they were rather than blanking them. `filament_presets` is positional,
+  /// so an entry only ever lands on the slot of the same index.
+  ///
+  /// Process overrides are dropped: they were measured against whatever process
+  /// preset was selected before, and the pipeline brings a different one.
+  void _applyPipeline(
+    SlicerPipeline pipeline,
+    UnifiedPresets catalog,
+    int slotCount,
+  ) {
+    _printerPicked = true;
+    _printer =
+        resolvePresetRef(catalog, pipeline.printerPreset, PresetSlot.printer);
+    _process =
+        resolvePresetRef(catalog, pipeline.processPreset, PresetSlot.process);
+    _bedType = pipeline.bedType;
+    _processValues = {};
+
+    _resizeFilaments(slotCount);
+    for (var i = 0; i < _filaments.length; i++) {
+      if (i >= pipeline.filamentPresets.length) continue;
+      _filaments[i] = resolvePresetRef(
+          catalog, pipeline.filamentPresets[i], PresetSlot.filament);
+    }
+
+    // A bundle authored for a different printer must not keep the "as designed"
+    // gate alive — that switch is only meaningful while the form sits on the
+    // printer the file was made for, and the pipeline has just moved it.
+    _useEmbedded = false;
+  }
+
   /// Everything a printer change invalidates, in one place: the process and
   /// filaments were chosen for the old one, and the edits measured against a
   /// preset that is gone.
@@ -554,8 +609,17 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     Widget? footnote,
   }) {
     final theme = Theme.of(context);
-    final subtitle = selected?.name ??
-        (typeHint != null ? '${_l10n.sliceSelect} · $typeHint' : _l10n.sliceSelect);
+    // An applied pipeline can name a preset this catalog does not list — the
+    // ref still slices, so the row says so rather than reading as empty, which
+    // would invite a re-pick of something that is already set.
+    final unresolved = selected != null && isUnresolved(selected);
+    final subtitle = switch (selected) {
+      null => typeHint != null
+          ? '${_l10n.sliceSelect} · $typeHint'
+          : _l10n.sliceSelect,
+      _ when unresolved => _l10n.pipelinePresetGone,
+      _ => selected.name,
+    };
     final card = Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
@@ -579,7 +643,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: selected == null
+                  color: selected == null || unresolved
                       ? theme.colorScheme.onSurfaceVariant
                       : null,
                 )),

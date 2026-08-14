@@ -374,6 +374,61 @@ abstract final class Endpoints {
   /// here to gate the slice UI; full settings management lives on the web.
   static const appSettings = '$apiPrefix/settings';
 
+  // --- Slicer pipelines (reusable preset bundles + their runs) ---
+
+  /// Pipeline list (`GET` → `{pipelines: […]}`) and create (`POST`, body
+  /// `SlicerPipelineCreate` → 201). Trailing slash required: the routes are
+  /// registered as `""`-prefixed `/`, like `/printers/`.
+  ///
+  /// **404 on a server older than 0.2.4.9**, which is the whole compatibility
+  /// story for this feature — see [PipelinesRepository.supportsPipelines].
+  static const slicerPipelines = '$apiPrefix/slicer-pipelines/';
+
+  /// One pipeline: `GET`, `PUT` (partial — only the keys present are written)
+  /// and `DELETE` (soft, so run history can still name it). No trailing slash.
+  static String slicerPipeline(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId';
+
+  /// Pre-flight for a run (`POST`, body `{source_library_file_id |
+  /// source_archive_id}` → `EligibilityReportResponse`). Exactly one source key
+  /// may be set; both or neither is a 422.
+  static String slicerPipelineCheckEligibility(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId/check-eligibility';
+
+  /// Start a run (`POST`, body adds `copies` + `force` → `202 PipelineRun`).
+  ///
+  /// Answers **409 with the eligibility report as its `detail`** when the
+  /// pre-flight fails and `force` is not set — that body is the same shape
+  /// [slicerPipelineCheckEligibility] returns, deliberately, so one screen
+  /// renders both.
+  static String slicerPipelineRun(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId/run';
+
+  /// Recent runs of one pipeline (`GET`, query `limit`, server-clamped 1..100).
+  static String slicerPipelineRuns(int pipelineId) =>
+      '$apiPrefix/slicer-pipelines/$pipelineId/runs';
+
+  /// The runs dashboard (`GET`, query `limit`/`offset`/`pipeline_id`/`status`).
+  /// **No trailing slash** — this router registers the bare path, unlike
+  /// [slicerPipelines].
+  static const pipelineRuns = '$apiPrefix/pipeline-runs';
+
+  /// Drop every terminal run (`POST`, no body → `{deleted: n}`).
+  static const pipelineRunsClear = '$apiPrefix/pipeline-runs/clear';
+
+  /// One run (`GET`) — the poll target while a run is in flight.
+  static String pipelineRun(int runId) => '$apiPrefix/pipeline-runs/$runId';
+
+  /// Cancel a run (`POST`, no body). Cascades to its pending queue entries;
+  /// a print already on the printer keeps going and needs a manual stop.
+  static String pipelineRunCancel(int runId) =>
+      '$apiPrefix/pipeline-runs/$runId/cancel';
+
+  /// Re-run the failed + cancelled copies as a fresh run (`POST` → `202`).
+  /// 400s when the pipeline or the source is gone, or nothing failed.
+  static String pipelineRunRetryFailed(int runId) =>
+      '$apiPrefix/pipeline-runs/$runId/retry-failed';
+
   // --- Smart plugs (M7) ---
 
   /// List of all smart plugs (SmartPlugResponse[]). Each entry carries

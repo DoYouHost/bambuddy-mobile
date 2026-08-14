@@ -26,6 +26,9 @@ void main() {
         'the scheduler gate inside the start flow, not a button of its own',
     'project.link_folder': 'the section action, which carries no id of its own',
     'project.attachment_upload': 'likewise',
+    'pipeline_run.check':
+        'the eligibility pre-flight, which runs itself between the pipeline '
+            'pick and the start button rather than from a control',
   };
 
   /// Every way a control declares its id, including the material variant and
