@@ -425,6 +425,20 @@ void main() {
       expect(tile('Filament').enabled, isFalse);
     });
 
+    testWidgets('cannot have the printer changed under it', (tester) async {
+      // Why the flag needs no reset on a printer change: there is no way to
+      // make one. The row does not open, so a switch left on cannot be carried
+      // to a printer the design does not target.
+      await openSheet(tester, embedded: designed);
+      await tester.tap(find.text('Użyj ustawień z pliku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Drukarka'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Szukaj profili'), findsNothing,
+          reason: 'the preset picker must not have opened');
+    });
+
     testWidgets('dims a locked row, and drops its chevron', (tester) async {
       // ListTile.enabled alone barely reads on the dark theme — the row still
       // looked tappable, which is what a live emulator showed.

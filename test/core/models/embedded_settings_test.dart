@@ -65,6 +65,24 @@ void main() {
     test('survives a printer field that is not a string', () {
       expect(EmbeddedSettings.fromJson(plates(printer: 42)).printer, isNull);
     });
+
+    test('reads the short answer a current server gives for an unparsable 3MF',
+        () {
+      // `routes/library.py::get_library_file_plates` returns early for a
+      // non-3MF and for one that is not a readable zip, naming neither the
+      // design nor the key — so a current server can answer in the shape of an
+      // old one. Both halves read false, which is the same conclusion.
+      final settings = EmbeddedSettings.fromJson(const {
+        'file_id': 9,
+        'filename': 'thing.stl',
+        'plates': [],
+        'is_multi_plate': false,
+      });
+
+      expect(settings.serverSupportsAsDesigned, isFalse);
+      expect(settings.printer, isNull);
+      expect(settings.isAvailable, isFalse);
+    });
   });
 
   group('printer match', () {
