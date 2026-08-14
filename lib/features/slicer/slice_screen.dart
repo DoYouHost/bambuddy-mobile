@@ -191,6 +191,10 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
                   selected: _printer,
+                  // The design's own printer is often one the user does not
+                  // own, so it is not in `printers` — without this the switch
+                  // would live behind the picker's "all presets" toggle.
+                  footnote: _designedPrinterNote(presets.printers, embedded),
                   // Locked, not just inert: moving off the design's target would
                   // drop the gate and take the switch with it.
                   enabled: !asDesigned,
@@ -199,17 +203,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
                         title: l10n.slicePrinter,
                         filtered: printers,
                         all: presets.printers);
-                    if (p != null && mounted) {
-                      // Printer change can invalidate process/filament compatibility.
-                      setState(() {
-                        _printerPicked = true;
-                        _printer = p;
-                        _process = null;
-                        _filaments = List.filled(_filaments.length, null);
-                        // The edits were made against a preset that is gone.
-                        _processValues = {};
-                      });
-                    }
+                    if (p != null && mounted) setState(() => _pickPrinter(p));
                   },
                 ),
                 if (canUseEmbedded)
@@ -397,6 +391,62 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     );
   }
 
+  /// The line under the printer naming the one the design targets, with the
+  /// action that switches to it. Null once they are the same printer, or when
+  /// the file names none.
+  ///
+  /// [all] is the unfiltered catalog on purpose: the design's printer is
+  /// usually one the user does not own.
+  Widget? _designedPrinterNote(
+    List<SlicerPreset> all,
+    EmbeddedSettings embedded,
+  ) {
+    if (!embedded.isAvailable || embedded.matchesPrinter(_printer?.name)) {
+      return null;
+    }
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final designed =
+        all.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_l10n.sliceDesignedFor(_shortPresetName(embedded.printer!)),
+            style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+        // Naming the printer is worth something even with nothing to switch to.
+        if (designed != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: FilledButton.tonal(
+              onPressed: () => setState(() => _pickPrinter(designed)),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                // Material's dense floor. `shrinkWrap` only drops the invisible
+                // 48px tap padding a button reserves in a form, which inside a
+                // list subtitle would push the rows apart.
+                minimumSize: const Size(48, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: theme.textTheme.labelLarge,
+              ),
+              child: Text(_l10n.sliceUseDesignedPrinter),
+            ).tagged('slice.use_designed_printer'),
+          ),
+      ],
+    );
+  }
+
+  /// Everything a printer change invalidates, in one place: the process and
+  /// filaments were chosen for the old one, and the edits measured against a
+  /// preset that is gone.
+  void _pickPrinter(SlicerPreset printer) {
+    _printerPicked = true;
+    _printer = printer;
+    _process = null;
+    _filaments = List.filled(_filaments.length, null);
+    _processValues = {};
+  }
+
   /// `ListTile.enabled` alone barely reads on the dark theme — the row looked
   /// tappable and its text still legible. Dimming the whole card is what shows
   /// the lock.
@@ -431,11 +481,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final designed =
         printers.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
     if (designed == null) return;
-    _printer = designed;
-    // Same reset as picking it by hand.
-    _process = null;
-    _filaments = List.filled(_filaments.length, null);
-    _processValues = {};
+    _pickPrinter(designed);
+    // Adopted, not chosen: the note below must still offer the other printers.
+    _printerPicked = false;
   }
 
   /// The picked process preset as `/slicer/preset-values` takes it.
@@ -503,6 +551,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     String? typeHint,
     bool unused = false,
     bool enabled = true,
+    Widget? footnote,
   }) {
     final theme = Theme.of(context);
     final subtitle = selected?.name ??
@@ -541,6 +590,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
               Text(_l10n.sliceFilamentUnused,
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ?footnote,
           ],
         ),
         trailing: enabled ? const Icon(Icons.chevron_right) : null,
@@ -718,6 +768,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     return _firstLocalOr(filtered);
   }
 }
+
+/// `Bambu Lab X1 Carbon 0.4 nozzle` → `X1 Carbon 0.4`. On one line inside a list
+/// row only the middle tells the printers apart; anything not in that shape is
+/// left alone.
+String _shortPresetName(String name) => name
+    .replaceFirst(RegExp(r'^Bambu Lab\s+'), '')
+    .replaceFirst(RegExp(r'\s+nozzle$'), '');
 
 bool _typeMatches(String material, String type) {
   final m = material.toUpperCase();

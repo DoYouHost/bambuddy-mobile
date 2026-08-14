@@ -3769,6 +3769,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get sliceAutoArrangeHint => 'Rozkłada obiekty na stole od nowa.';
 
   @override
+  String sliceDesignedFor(String printer) {
+    return 'Plik jest pod $printer';
+  }
+
+  @override
+  String get sliceUseDesignedPrinter => 'Przełącz';
+
+  @override
   String get sliceAsDesigned => 'Użyj ustawień z pliku';
 
   @override

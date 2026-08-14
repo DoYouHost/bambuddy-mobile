@@ -6470,6 +6470,18 @@ abstract class AppLocalizations {
   /// **'Lays the objects out on the plate again.'**
   String get sliceAutoArrangeHint;
 
+  /// No description provided for @sliceDesignedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is for {printer}'**
+  String sliceDesignedFor(String printer);
+
+  /// No description provided for @sliceUseDesignedPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get sliceUseDesignedPrinter;
+
   /// No description provided for @sliceAsDesigned.
   ///
   /// In en, this message translates to:

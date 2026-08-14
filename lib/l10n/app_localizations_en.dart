@@ -3711,6 +3711,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sliceAutoArrangeHint => 'Lays the objects out on the plate again.';
 
   @override
+  String sliceDesignedFor(String printer) {
+    return 'This file is for $printer';
+  }
+
+  @override
+  String get sliceUseDesignedPrinter => 'Switch';
+
+  @override
   String get sliceAsDesigned => 'Use the file\'s own settings';
 
   @override

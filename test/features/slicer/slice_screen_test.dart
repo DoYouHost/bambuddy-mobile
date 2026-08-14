@@ -109,6 +109,7 @@ void main() {
     EmbeddedSettings embedded = EmbeddedSettings.none,
     UnifiedPresets presets = _presets,
     bool layoutOptions = false,
+    Set<String> ownedCodes = const {},
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -116,7 +117,7 @@ void main() {
         slicerPresetsProvider.overrideWith((ref) async => presets),
         embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
         sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
-        ownedPrinterCodesProvider.overrideWith((ref) async => const <String>{}),
+        ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
         ownedFilamentsProvider
             .overrideWith((ref) async => const <OwnedFilament>[]),
         filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
@@ -321,6 +322,86 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('process_overrides'), isFalse,
           reason: 'an override equal to the preset is noise in the process JSON');
+    });
+  });
+
+  group('the printer a file was designed for', () {
+    // The case that makes the note necessary: the design targets a printer the
+    // user does not own, so it is filtered out of the offered list and the
+    // switch would otherwise live behind the picker's "all presets" toggle.
+    const foreign = EmbeddedSettings(
+      printer: 'Bambu Lab X1 Carbon 0.4 nozzle',
+      process: '0.20mm Standard @BBL X1C',
+      serverSupportsAsDesigned: true,
+    );
+    const catalog = UnifiedPresets(
+      printers: [
+        SlicerPreset(source: 'local', id: '1', name: 'Bambu Lab X2D 0.4 nozzle'),
+        SlicerPreset(
+            source: 'standard',
+            id: '9',
+            name: 'Bambu Lab X1 Carbon 0.4 nozzle'),
+      ],
+      processes: [SlicerPreset(source: 'local', id: '12', name: '0.20 mm')],
+      filaments: [SlicerPreset(source: 'local', id: '30', name: 'Bambu PLA')],
+    );
+
+    Future<void> open(WidgetTester tester,
+            {EmbeddedSettings embedded = foreign,
+            UnifiedPresets presets = catalog}) =>
+        openSheet(tester,
+            embedded: embedded,
+            presets: presets,
+            ownedCodes: const {'X2D'});
+
+    testWidgets('is named on the printer row when it is not the picked one',
+        (tester) async {
+      await open(tester);
+
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsOneWidget);
+      expect(find.text('Użyj ustawień z pliku'), findsNothing);
+    });
+
+    testWidgets('switches to it, which is what reveals the switch',
+        (tester) async {
+      await open(tester);
+      await tester.tap(find.text('Przełącz'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bambu Lab X1 Carbon 0.4 nozzle'), findsWidgets);
+      expect(find.text('Użyj ustawień z pliku'), findsOneWidget);
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsNothing,
+          reason: 'nothing left to point at once it is the picked printer');
+    });
+
+    testWidgets('offers the action as a button, not as a word in a sentence',
+        (tester) async {
+      // It started as a tappable fragment at the end of the sentence, which the
+      // printer's name pushed onto a line of its own — an orphan "·" that read
+      // as a rendering fault, with a tap target the size of the words.
+      await open(tester);
+      final size = tester.getSize(find.widgetWithText(FilledButton, 'Przełącz'));
+
+      expect(size.height, greaterThanOrEqualTo(36));
+      expect(size.width, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('is named without an action when no preset matches it',
+        (tester) async {
+      // Knowing what the file wants is worth something even when there is
+      // nothing to switch to; an action that cannot work is not.
+      await open(tester, presets: _presets);
+
+      expect(find.text('Plik jest pod X1 Carbon 0.4'),
+          findsOneWidget);
+      expect(find.text('Przełącz'), findsNothing);
+    });
+
+    testWidgets('says nothing when the file names no printer', (tester) async {
+      await open(tester, embedded: EmbeddedSettings.none);
+      expect(find.textContaining('Plik jest pod'), findsNothing);
     });
   });
 
