@@ -10,8 +10,12 @@ import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
+import 'finish_alert_memory.dart';
+import 'finish_photo_image.dart';
+import 'finish_photo_notifier.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
+import '../../data/archive_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
 import '../api/camera_token.dart';
@@ -57,6 +61,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
+  FinishPhotoNotifier? _finishPhoto;
   _FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
@@ -174,7 +179,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // platform. Outside `_FgsNotificationService`, not inside it — the ongoing
     // notification there does not delegate to [alerts], so a decorator underneath
     // would never see it. `_fgs` itself stays raw for [repost].
-    final notify = LoggingNotifications(fgs);
+    // Wrapped so a print-ended alert leaves a record the finish photo can find
+    // its way back to — including from the UI isolate, after this one is gone.
+    final notify = RememberingNotifications(
+      LoggingNotifications(fgs),
+      FinishAlertMemory(prefs),
+      DateTime.now,
+    );
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
@@ -275,6 +286,22 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _plateSub = ws.plateAlerts.listen((e) {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
+    // The finish photo is announced long after the print-ended alert went out,
+    // so it rides the same socket rather than any polling of ours. Needs the
+    // authenticated client for the archive lookup — without one there is no way
+    // to tell which printer the photo belongs to.
+    if (api != null) {
+      final archives = ArchiveRepository(api.dio);
+      _finishPhoto = FinishPhotoNotifier(
+        updates: ws.archiveUpdates,
+        fetchArchive: archives.byId,
+        fetchPicture: (archiveId, filename) =>
+            _fetchFinishPhoto(profile.baseUrl, archiveId, filename),
+        notifications: notify,
+        memory: FinishAlertMemory(prefs),
+        isEnabled: () => notifPrefs.finishPhoto,
+      )..start();
+    }
     ws.start();
 
     // After `ws.start()` on purpose: two platform reads must never sit between
@@ -393,6 +420,26 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
   }
 
+  /// Downloads a finished print's photo to files the notification can carry.
+  /// Same auth shape as the cover above: camera token in `?token=`, bare Dio.
+  Future<AlertPicture?> _fetchFinishPhoto(
+    String baseUrl,
+    int archiveId,
+    String filename,
+  ) {
+    final tokenSvc = _cameraToken;
+    final dio = _coverDio;
+    if (tokenSvc == null || dio == null) return Future.value(null);
+    return FinishPhotoImage.store(
+      baseUrl: baseUrl,
+      archiveId: archiveId,
+      filename: filename,
+      dio: dio,
+      token: ({bool forceRefresh = false}) =>
+          tokenSvc.token(forceRefresh: forceRefresh),
+    );
+  }
+
   // Events are driven by the WS stream, not by periodic ticking — but
   // the method is required by the TaskHandler contract.
   @override
@@ -466,6 +513,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
     await _connSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
+    // Before the socket goes: a photo update already in flight still gets to
+    // finish, and what it was doing is on the record below rather than cut off.
+    await _finishPhoto?.stop();
     await _ws?.dispose();
     // Last, and after `_ws.dispose()` on purpose: that call writes the socket's
     // final records (why it disconnected, and any frames still being counted)
@@ -549,6 +599,7 @@ class _FgsNotificationService implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) =>
       _alerts.showAlert(
         event: event,
@@ -558,5 +609,9 @@ class _FgsNotificationService implements NotificationService {
         body: body,
         payload: payload,
         actions: actions,
+        picture: picture,
       );
+
+  @override
+  Future<bool> isAlertActive(int id) => _alerts.isAlertActive(id);
 }

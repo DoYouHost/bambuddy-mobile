@@ -64,4 +64,14 @@ void main() {
         NotificationPrefs.decode('{"enabled":["printFinished"]}').alertsEnabled,
         isTrue);
   });
+
+  test('finishPhoto przechodzi round-trip; brak klucza → true (wstecz)', () {
+    const off = NotificationPrefs(enabled: {}, finishPhoto: false);
+    expect(NotificationPrefs.decode(off.encode()).finishPhoto, isFalse);
+    // Instalacja sprzed tej funkcji dostaje ją włączoną, nie po cichu wyłączoną.
+    expect(
+        NotificationPrefs.decode('{"enabled":["printFinished"]}').finishPhoto,
+        isTrue);
+    expect(NotificationPrefs.defaults.finishPhoto, isTrue);
+  });
 }

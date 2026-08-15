@@ -91,6 +91,33 @@ void main() {
       expect(ev.completed, isFalse);
     });
 
+    test('archive_updated z photo_added → WsArchiveUpdated', () {
+      final raw = jsonEncode({
+        'type': 'archive_updated',
+        'data': {'id': 82, 'photo_added': 'finish_20260815_120000_ab12.jpg'},
+      });
+      final msg = parseWsMessage(raw);
+      expect(msg, isA<WsArchiveUpdated>());
+      final archive = msg! as WsArchiveUpdated;
+      expect(archive.archiveId, 82);
+      expect(archive.photoAdded, 'finish_20260815_120000_ab12.jpg');
+    });
+
+    test('archive_updated bez zdjęcia (np. timelapse) → photoAdded null', () {
+      final raw = jsonEncode({
+        'type': 'archive_updated',
+        'data': {'id': 82, 'timelapse_attached': true},
+      });
+      final msg = parseWsMessage(raw);
+      expect(msg, isA<WsArchiveUpdated>());
+      expect((msg! as WsArchiveUpdated).photoAdded, isNull);
+    });
+
+    test('archive_updated bez id w data → WsUnknown', () {
+      final msg = parseWsMessage('{"type":"archive_updated","data":{"x":1}}');
+      expect(msg, isA<WsUnknown>());
+    });
+
     test('print_complete bez printer_id → WsUnknown', () {
       final msg = parseWsMessage('{"type":"print_complete"}');
       expect(msg, isA<WsUnknown>());

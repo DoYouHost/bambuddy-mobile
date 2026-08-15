@@ -1524,6 +1524,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEventsHeader => 'Events';
 
   @override
+  String get notifExtrasHeader => 'Details';
+
+  @override
+  String get notifFinishPhotoTitle => 'Photo of the finished print';
+
+  @override
+  String get notifFinishPhotoDesc =>
+      'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
+
+  @override
   String get notifThresholdsHeader => 'Thresholds';
 
   @override

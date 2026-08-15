@@ -148,6 +148,7 @@ class WsClient {
   final _statusController = StreamController<WsPrinterStatus>.broadcast();
   final _plateController = StreamController<WsPlateNotEmpty>.broadcast();
   final _printController = StreamController<WsPrintEvent>.broadcast();
+  final _archiveController = StreamController<WsArchiveUpdated>.broadcast();
 
   WsConnection? _conn;
   StreamSubscription<dynamic>? _sub;
@@ -177,6 +178,10 @@ class WsClient {
   Stream<WsPlateNotEmpty> get plateAlerts => _plateController.stream;
 
   Stream<WsPrintEvent> get printEvents => _printController.stream;
+
+  /// Archive changes that arrive after the print itself is over — the finish
+  /// photo landing in the archive is the one this app listens for.
+  Stream<WsArchiveUpdated> get archiveUpdates => _archiveController.stream;
 
   /// Idempotent. After [suspend] the way back is [resume].
   void start() {
@@ -216,6 +221,7 @@ class WsClient {
     await _statusController.close();
     await _plateController.close();
     await _printController.close();
+    await _archiveController.close();
   }
 
   Future<void> _openConnection() async {
@@ -312,6 +318,8 @@ class WsClient {
       _plateController.add(msg);
     } else if (msg is WsPrintEvent && !_printController.isClosed) {
       _printController.add(msg);
+    } else if (msg is WsArchiveUpdated && !_archiveController.isClosed) {
+      _archiveController.add(msg);
     }
     // A pong, an unknown type or unparseable text needs nothing beyond the
     // watchdog reset above.

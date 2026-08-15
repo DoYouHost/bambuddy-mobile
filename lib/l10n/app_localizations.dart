@@ -2708,6 +2708,24 @@ abstract class AppLocalizations {
   /// **'Events'**
   String get notifEventsHeader;
 
+  /// No description provided for @notifExtrasHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get notifExtrasHeader;
+
+  /// No description provided for @notifFinishPhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of the finished print'**
+  String get notifFinishPhotoTitle;
+
+  /// No description provided for @notifFinishPhotoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives'**
+  String get notifFinishPhotoDesc;
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:

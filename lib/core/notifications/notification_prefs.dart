@@ -30,6 +30,7 @@ class NotificationPrefs {
   const NotificationPrefs({
     required this.enabled,
     this.alertsEnabled = true,
+    this.finishPhoto = true,
     this.bedCooledTemp = defaultBedCooledTemp,
     this.amsHumidityThreshold = defaultAmsHumidity,
     this.lowFilamentThreshold = defaultLowFilament,
@@ -43,6 +44,13 @@ class NotificationPrefs {
 
   /// Set of events for which we send notifications.
   final Set<NotifEvent> enabled;
+
+  /// Whether the photo the server takes when a print ends is added to the
+  /// finished/failed alert once it arrives. Not an event of its own — it only
+  /// decorates an alert those two switches already allowed — so it lives here
+  /// rather than in [enabled], and the download it costs is opt-out for anyone
+  /// watching their data.
+  final bool finishPhoto;
 
   /// Threshold for "bed cooled": alert when bed temperature falls below (°C).
   final int bedCooledTemp;
@@ -74,6 +82,7 @@ class NotificationPrefs {
 
   NotificationPrefs copyWith({
     bool? alertsEnabled,
+    bool? finishPhoto,
     Set<NotifEvent>? enabled,
     int? bedCooledTemp,
     int? amsHumidityThreshold,
@@ -81,6 +90,7 @@ class NotificationPrefs {
   }) =>
       NotificationPrefs(
         alertsEnabled: alertsEnabled ?? this.alertsEnabled,
+        finishPhoto: finishPhoto ?? this.finishPhoto,
         enabled: enabled ?? this.enabled,
         bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
         amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
@@ -100,6 +110,7 @@ class NotificationPrefs {
 
   Map<String, dynamic> toJson() => {
         'alertsEnabled': alertsEnabled,
+        'finishPhoto': finishPhoto,
         'enabled': [for (final e in enabled) e.name],
         'bedCooledTemp': bedCooledTemp,
         'amsHumidityThreshold': amsHumidityThreshold,
@@ -120,6 +131,9 @@ class NotificationPrefs {
     return NotificationPrefs(
       // Missing key (prefs saved before this flag existed) → alerts stay on.
       alertsEnabled: json['alertsEnabled'] is bool ? json['alertsEnabled'] as bool : true,
+      // Same rule for the finish photo: an install that predates it gets the
+      // feature rather than a silently disabled one.
+      finishPhoto: json['finishPhoto'] is bool ? json['finishPhoto'] as bool : true,
       enabled: enabled,
       bedCooledTemp: _asInt(json['bedCooledTemp'], defaultBedCooledTemp),
       amsHumidityThreshold:

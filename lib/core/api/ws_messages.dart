@@ -41,6 +41,19 @@ class WsPrintEvent extends WsMessage {
   final bool completed;
 }
 
+/// An archive gained something after the print was already over. The only part
+/// read here is the finish photo the server captures off the camera once the
+/// toolhead parks — it lands seconds to minutes after the print-complete frame,
+/// and this is the announcement that it is there ([photoAdded] is its filename).
+///
+/// The same frame carries other updates (a timelapse attached, metadata edited);
+/// those leave [photoAdded] null and the listener ignores them.
+class WsArchiveUpdated extends WsMessage {
+  const WsArchiveUpdated(this.archiveId, {this.photoAdded});
+  final int archiveId;
+  final String? photoAdded;
+}
+
 /// Any arriving frame resets the watchdog; this one is told apart so the
 /// manager can separate control traffic from data.
 class WsPong extends WsMessage {
@@ -91,6 +104,18 @@ WsMessage? parseWsMessage(String raw) {
       final printerId = _toIntOrNull(decoded['printer_id']);
       if (printerId == null) return WsUnknown(type);
       return WsPrintEvent(printerId, completed: type == 'print_complete');
+    case 'archive_updated':
+      // Unlike the frames above, the id lives inside `data` — the server sends
+      // the changed archive, not a printer-scoped event.
+      final data = decoded['data'];
+      if (data is! Map<String, dynamic>) return WsUnknown(type);
+      final archiveId = _toIntOrNull(data['id']);
+      if (archiveId == null) return WsUnknown(type);
+      final photo = data['photo_added'];
+      return WsArchiveUpdated(
+        archiveId,
+        photoAdded: photo is String && photo.isNotEmpty ? photo : null,
+      );
     case 'pong':
       return const WsPong();
     default:

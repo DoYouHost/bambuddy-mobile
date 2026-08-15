@@ -1551,6 +1551,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notifEventsHeader => 'Zdarzenia';
 
   @override
+  String get notifExtrasHeader => 'Szczegóły';
+
+  @override
+  String get notifFinishPhotoTitle => 'Zdjęcie skończonego wydruku';
+
+  @override
+  String get notifFinishPhotoDesc =>
+      'Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie';
+
+  @override
   String get notifThresholdsHeader => 'Progi';
 
   @override

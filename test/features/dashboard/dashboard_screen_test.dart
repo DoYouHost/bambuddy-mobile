@@ -44,7 +44,10 @@ class _NoopNotifications implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async {}
+  @override
+  Future<bool> isAlertActive(int id) async => true;
 }
 
 late SharedPreferences _prefs;
