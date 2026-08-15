@@ -21,19 +21,28 @@ import 'dart:typed_data';
 const _archiveId = 82;
 const _printerId = 1;
 const _printName = 'Benchy';
-/// Named the way the server names a finish shot, with the extension of whatever
-/// is actually being served — the app picks the archive's photo by this name.
-late final String _photoName;
+late final String _photoExtension;
+
+/// Deliberately old, and never touched by a run: a reprint reuses its archive
+/// row the same way, so anything picking the print by row age picks wrong here
+/// exactly as it would against a real server.
+final _createdAt = DateTime.now().subtract(const Duration(days: 7));
+
+/// When the print last ended — the field a run actually moves.
+DateTime? _completedAt;
 
 /// What the printer reports, and therefore what the app's monitor sees.
 String _state = 'RUNNING';
 int _progress = 40;
 
-/// Whether the archive already carries the finish photo. Separate from sending
-/// the frame on purpose: the real server attaches the ordinary capture with
-/// nothing on the wire (`main.py` write phase) and only broadcasts when it later
-/// replaces it with a frame off the timelapse.
-bool _photoAttached = false;
+/// The archive's photo list, in the server's own order. Attaching is separate
+/// from sending the frame on purpose: the real server writes the ordinary
+/// capture with nothing on the wire (`main.py` write phase) and only broadcasts
+/// when it later replaces it with a frame off the timelapse — which it puts at
+/// the FRONT, while ordinary captures and uploads go on the end.
+List<String> _photos = [];
+
+bool get _photoAttached => _photos.isNotEmpty;
 
 final _sockets = <WebSocket>[];
 late final List<int> _photoBytes;
@@ -44,8 +53,9 @@ Future<void> main(List<String> args) async {
   _photoBytes = photo == null
       ? _generatePhoto(1600, 900)
       : File(photo).readAsBytesSync();
-  final extension = photo == null ? 'png' : photo.split('.').last.toLowerCase();
-  _photoName = 'finish_20260815_120000_ab12cd34.$extension';
+  _photoExtension = photo == null
+      ? 'png'
+      : photo.split('.').last.toLowerCase();
 
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
   stdout.writeln('fake bambuddy on http://localhost:$port');
@@ -81,6 +91,10 @@ Future<void> _command(String cmd) async {
   reset    forget the photo, so the next round starts clean
   status   what this server currently reports''');
     case 'print':
+      // Clears the photo too: a round that starts with one already on the
+      // archive is the false pass this server exists to avoid — the app would
+      // attach it while the print is still running.
+      _photos = [];
       _set('RUNNING', 40);
     case 'finish':
       _set('FINISH', 100);
@@ -96,8 +110,8 @@ Future<void> _command(String cmd) async {
       await Future<void>.delayed(const Duration(seconds: 15));
       _attachPhoto(broadcast: false);
     case 'reset':
-      _photoAttached = false;
-      stdout.writeln('  archive has no photo again');
+      _photos = [];
+      stdout.writeln('  archive has no photos again');
     case 'status':
       stdout.writeln(
         '  $_state $_progress% · photo: ${_photoAttached ? 'attached' : 'none'}'
@@ -111,6 +125,7 @@ Future<void> _command(String cmd) async {
 void _set(String state, int progress) {
   _state = state;
   _progress = progress;
+  if (state == 'FINISH' || state == 'FAILED') _completedAt = DateTime.now();
   _broadcastStatus();
   stdout.writeln('  printer → $state $progress%');
 }
@@ -119,17 +134,30 @@ void _set(String state, int progress) {
 /// the real server only sends from its photo-upgrade path
 /// (`main.py::_upgrade_finish_photo_from_timelapse`).
 void _attachPhoto({required bool broadcast}) {
-  _photoAttached = true;
-  stdout.writeln('  archive now has $_photoName');
+  final name = _photoName(DateTime.now());
+  // The upgrade goes to the front, the ordinary capture to the back, which is
+  // what makes "newest photo" a question the app has to answer by name.
+  broadcast ? _photos.insert(0, name) : _photos.add(name);
+  stdout.writeln('  archive photos: ${_photos.join(', ')}');
   if (!broadcast) {
     stdout.writeln('  (no frame sent — the app has to poll for it)');
     return;
   }
   _broadcast({
     'type': 'archive_updated',
-    'data': {'id': _archiveId, 'photo_added': _photoName},
+    'data': {'id': _archiveId, 'photo_added': name},
   });
-  stdout.writeln('  archive_updated photo_added=$_photoName');
+  stdout.writeln('  archive_updated photo_added=$name');
+}
+
+/// The server's own naming, which is what orders the photos: `finish_` plus a
+/// fixed-width local timestamp.
+String _photoName(DateTime at) {
+  String two(int v) => v.toString().padLeft(2, '0');
+  final stamp = '${at.year}${two(at.month)}${two(at.day)}_'
+      '${two(at.hour)}${two(at.minute)}${two(at.second)}';
+  return 'finish_${stamp}_${at.millisecond.toString().padLeft(3, '0')}a'
+      '.$_photoExtension';
 }
 
 void _broadcastStatus() => _broadcast({
@@ -144,7 +172,9 @@ Map<String, Object?> _archive() => {
   'filename': '$_printName.gcode.3mf',
   'print_name': _printName,
   'status': 'completed',
-  'photos': _photoAttached ? [_photoName] : <String>[],
+  'completed_at': _completedAt?.toUtc().toIso8601String(),
+  'created_at': _createdAt.toUtc().toIso8601String(),
+  'photos': _photos,
 };
 
 Map<String, Object?> _statusData() => {
@@ -210,7 +240,9 @@ Future<void> _serve(HttpServer server) async {
       await _json(request, [_archive()]);
       continue;
     }
-    if (path == '/api/v1/archives/$_archiveId/photos/$_photoName') {
+    // Any name the archive actually lists, so the app has to have picked one
+    // of them rather than guessed — the real route checks membership too.
+    if (_photos.any((n) => path == '/api/v1/archives/$_archiveId/photos/$n')) {
       // Same gate as the real route: the camera token rides in `?token=`, and a
       // request without one is exactly how a stale token fails in production.
       if (request.uri.queryParameters['token'] == null) {
@@ -220,7 +252,7 @@ Future<void> _serve(HttpServer server) async {
       }
       request.response.headers.contentType = ContentType(
         'image',
-        _photoName.endsWith('.png') ? 'png' : 'jpeg',
+        _photoExtension == 'png' ? 'png' : 'jpeg',
       );
       request.response.add(_photoBytes);
       await request.response.close();

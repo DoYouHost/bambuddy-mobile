@@ -15,6 +15,7 @@ class Archive {
     required this.status,
     this.printerId,
     this.printName,
+    this.completedAt,
     this.thumbnailPath,
     this.timelapsePath,
     this.photos = const [],
@@ -96,6 +97,14 @@ class Archive {
   @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? createdAt;
 
+  /// When the print on this archive last ended. Unlike [createdAt] it is
+  /// rewritten on every run — a reprint reuses the archive row and refreshes
+  /// this and `started_at`, leaving `created_at` on the original print
+  /// (`main.py`, expected-archive branch; `ArchiveService.update_status`). So
+  /// this, not the row's age, says which print just finished.
+  @JsonKey(fromJson: dateTimeFromJson)
+  final DateTime? completedAt;
+
   /// Model designer/author (e.g. from MakerWorld).
   final String? designer;
 
@@ -140,6 +149,7 @@ class Archive {
     status: status,
     printerId: printerId,
     printName: printName,
+    completedAt: completedAt,
     thumbnailPath: thumbnailPath,
     timelapsePath: timelapsePath,
     photos: photos,

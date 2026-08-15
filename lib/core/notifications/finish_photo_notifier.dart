@@ -27,7 +27,7 @@ class FinishPhotoNotifier {
   FinishPhotoNotifier({
     required this._updates,
     required this._fetchArchive,
-    required this._newestArchive,
+    required this._recentArchives,
     required this._fetchPicture,
     required this._notifications,
     required this._memory,
@@ -38,9 +38,11 @@ class FinishPhotoNotifier {
   final Stream<WsArchiveUpdated> _updates;
   final Future<Archive?> Function(int archiveId) _fetchArchive;
 
-  /// The printer's most recent archive — the print that just ended, since the
-  /// server orders the list by `created_at` descending.
-  final Future<Archive?> Function(int printerId) _newestArchive;
+  /// The printer's latest archives. A list rather than the single newest one:
+  /// the server orders by `created_at`, which a reprint does not touch (it
+  /// reuses the original row), so the print that just ended can sit behind
+  /// anything created since — see [runForAlert].
+  final Future<List<Archive>> Function(int printerId) _recentArchives;
   final Future<AlertPicture?> Function(int archiveId, String filename)
   _fetchPicture;
   final NotificationService _notifications;
@@ -49,6 +51,11 @@ class FinishPhotoNotifier {
   final DateTime Function() _now;
 
   static const pollInterval = Duration(minutes: 1);
+
+  /// How many of a printer's archives to look at when finding the print that
+  /// just ended. Only rows created after it can push it down the list, and that
+  /// takes new files uploaded in the same quarter of an hour.
+  static const archiveLookback = 10;
 
   /// Matches the server's own ceiling for replacing the live grab with a frame
   /// off the timelapse (`_FINISH_PHOTO_UPGRADE_TIMEOUT_SECONDS`, 900 s): past
@@ -83,7 +90,12 @@ class FinishPhotoNotifier {
     _timer = null;
     await _sub?.cancel();
     _sub = null;
-    await _pending;
+    // Bounded, because this is awaited inside
+    // `PrintMonitorTaskHandler.onDestroy` ahead of the socket's dispose and the
+    // recording's flush: a poll against an unreachable server sits on Dio's
+    // connect and receive timeouts. Whatever is in flight finishes on its own —
+    // nothing after this depends on it.
+    await _pending.timeout(const Duration(seconds: 2), onTimeout: () {});
   }
 
   /// One sweep over the alerts still live: for each, ask whether its print has
@@ -97,13 +109,58 @@ class FinishPhotoNotifier {
     final now = _now();
     for (final alert in await _memory.recallAll(now)) {
       if (now.difference(alert.postedAt) > pollWindow) continue;
-      final archive = await _newestArchive(alert.printerId);
-      // The server prepends the upgraded frame, so the head of the list is the
-      // best shot it has for this print.
-      final filename = archive?.photos.firstOrNull;
-      if (archive == null || filename == null) continue;
-      await _attach(archive.id, filename, alert);
+      // Per printer, so one unreachable lookup does not end the sweep for the
+      // others and leave them unserved for the rest of the window.
+      try {
+        final archive = runForAlert(
+          await _recentArchives(alert.printerId),
+          alert,
+        );
+        final filename = archive == null
+            ? null
+            : finishPhotoIn(archive.photos);
+        if (archive == null || filename == null) continue;
+        await _attach(archive.id, filename, alert);
+      } on Object catch (error) {
+        _failed(0, error, printerId: alert.printerId);
+      }
     }
+  }
+
+  /// Which of [recent] is the print [alert] was posted for, or null when none
+  /// of them fits.
+  ///
+  /// Never the first: the server orders by `created_at`, which a reprint leaves
+  /// on the original print because it reuses that archive row. `completed_at`
+  /// moves with the run, so it is the one to match — and requiring it near the
+  /// alert is what puts no photo, rather than a wrong one, on a notification
+  /// when nothing here belongs to this print.
+  static Archive? runForAlert(List<Archive> recent, PostedAlert alert) {
+    Archive? best;
+    for (final archive in recent) {
+      final ended = archive.completedAt;
+      if (ended == null) continue;
+      if (ended.difference(alert.postedAt).abs() > pollWindow) continue;
+      if (best == null || ended.isAfter(best.completedAt!)) best = archive;
+    }
+    return best;
+  }
+
+  /// The newest shot the server itself took, out of everything hanging off the
+  /// archive, or null when there is none.
+  ///
+  /// Neither end of the list is the answer — captures and uploads append, the
+  /// timelapse upgrade prepends, and a reused row keeps every run's photos. The
+  /// name each capture path builds does order them: `finish_<YYYYMMDD>_<HHMMSS>`
+  /// sorts chronologically as text. Uploads carry no such name and are skipped;
+  /// this is about the shot the printer took, not the user's own.
+  static String? finishPhotoIn(List<String> photos) {
+    String? best;
+    for (final name in photos) {
+      if (!name.startsWith('finish_')) continue;
+      if (best == null || name.compareTo(best) > 0) best = name;
+    }
+    return best;
   }
 
   Future<void> _handleFrame(WsArchiveUpdated frame) async {
@@ -180,8 +237,10 @@ class FinishPhotoNotifier {
     );
   }
 
-  void _failed(int archiveId, Object error) => NotifProbe.finishPhoto(
-    archiveId: archiveId,
-    state: 'failed:${error.runtimeType}',
-  );
+  void _failed(int archiveId, Object error, {int? printerId}) =>
+      NotifProbe.finishPhoto(
+        archiveId: archiveId,
+        printerId: printerId,
+        state: 'failed:${error.runtimeType}',
+      );
 }

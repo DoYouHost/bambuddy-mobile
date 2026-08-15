@@ -27,8 +27,10 @@ final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
   final notifier = FinishPhotoNotifier(
     updates: ref.watch(wsClientProvider).archiveUpdates,
     fetchArchive: archives.byId,
-    newestArchive: (printerId) async =>
-        (await archives.list(limit: 1, printerId: printerId)).firstOrNull,
+    recentArchives: (printerId) => archives.list(
+      limit: FinishPhotoNotifier.archiveLookback,
+      printerId: printerId,
+    ),
     fetchPicture: (archiveId, filename) => FinishPhotoImage.store(
       baseUrl: profile.baseUrl,
       archiveId: archiveId,

@@ -56,8 +56,22 @@ class _FakeNotifications implements NotificationService {
 
 final _now = DateTime(2026, 8, 15, 12);
 
-Archive _archive({int id = 82, int? printerId = 3}) =>
-    Archive(id: id, filename: 'a.gcode', status: 'completed', printerId: printerId);
+Archive _archive({
+  int id = 82,
+  int? printerId = 3,
+  List<String> photos = const [],
+  DateTime? completedAt,
+  DateTime? createdAt,
+}) => Archive(
+  id: id,
+  filename: 'a.gcode',
+  status: 'completed',
+  printerId: printerId,
+  photos: photos,
+  // Domyślnie ten sam moment co alert: to wydruk, który właśnie się skończył.
+  completedAt: completedAt ?? _now.subtract(const Duration(minutes: 1)),
+  createdAt: createdAt,
+);
 
 PostedAlert _alert({
   NotifEvent event = NotifEvent.printFinished,
@@ -117,9 +131,9 @@ void main() {
         archiveFetches++;
         return archive;
       },
-      newestArchive: (printerId) async {
+      recentArchives: (printerId) async {
         newestFetches++;
-        return newest;
+        return [if (newest != null) newest!];
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
@@ -148,9 +162,9 @@ void main() {
         archiveFetches++;
         return archive;
       },
-      newestArchive: (printerId) async {
+      recentArchives: (printerId) async {
         newestFetches++;
-        return newest;
+        return [if (newest != null) newest!];
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
@@ -165,17 +179,96 @@ void main() {
     await notifier.stop();
   }
 
+  group('FinishPhotoNotifier.runForAlert', () {
+    test('bierze wydruk po completed_at, nie po kolejności z serwera', () {
+      // Serwer sortuje po created_at, a wznowienie druku reużywa starego wpisu
+      // i nie rusza tego pola — więc plik wgrany po nim wychodzi na czoło listy.
+      // Wgrany plik, jeszcze nigdy nie drukowany: nowy wpis, bez completed_at.
+      final justUploaded = Archive(
+        id: 90,
+        filename: 'nowy.gcode',
+        status: 'uploaded',
+        printerId: 3,
+        createdAt: _now,
+      );
+      final reprint = _archive(
+        id: 82,
+        completedAt: _now.subtract(const Duration(seconds: 30)),
+        createdAt: DateTime(2026, 1, 1),
+      );
+
+      expect(
+        FinishPhotoNotifier.runForAlert([justUploaded, reprint], _alert())?.id,
+        82,
+      );
+    });
+
+    test('nic nie pasuje czasowo → null zamiast losowego archiwum', () {
+      final old = _archive(
+        completedAt: _now.subtract(const Duration(hours: 3)),
+      );
+
+      expect(FinishPhotoNotifier.runForAlert([old], _alert()), isNull);
+    });
+
+    test('pusta lista i archiwa bez completed_at → null', () {
+      expect(FinishPhotoNotifier.runForAlert(const [], _alert()), isNull);
+      const neverPrinted = Archive(
+        id: 90,
+        filename: 'nowy.gcode',
+        status: 'uploaded',
+        printerId: 3,
+      );
+      expect(
+        FinishPhotoNotifier.runForAlert(const [neverPrinted], _alert()),
+        isNull,
+      );
+    });
+  });
+
+  group('FinishPhotoNotifier.finishPhotoIn', () {
+    test('bierze najnowsze ujęcie serwera, nie pierwsze z brzegu', () {
+      // Zwykłe ujęcie dopisuje na koniec, ulepszone z timelapse'a wstawia na
+      // początek, a wznowiony wydruk zostawia zdjęcia poprzednich przebiegów.
+      const photos = [
+        'finish_20260814_101500_aaaa.jpg', // poprzedni przebieg
+        'finish_20260815_115900_bbbb.jpg', // ten przebieg
+      ];
+
+      expect(FinishPhotoNotifier.finishPhotoIn(photos),
+          'finish_20260815_115900_bbbb.jpg');
+    });
+
+    test('ujęcie ulepszone (wstawione na początek) wygrywa z wcześniejszym', () {
+      const photos = [
+        'finish_20260815_120200_cccc.jpg', // ulepszone, wstawione na czoło
+        'finish_20260815_115900_bbbb.jpg',
+      ];
+
+      expect(FinishPhotoNotifier.finishPhotoIn(photos),
+          'finish_20260815_120200_cccc.jpg');
+    });
+
+    test('zdjęcia wgrane przez usera nie udają ujęcia z drukarki', () {
+      expect(FinishPhotoNotifier.finishPhotoIn(const ['ab12cd34.jpg']), isNull);
+      expect(
+        FinishPhotoNotifier.finishPhotoIn(
+          const ['ab12cd34.jpg', 'finish_20260815_115900_bbbb.jpg'],
+        ),
+        'finish_20260815_115900_bbbb.jpg',
+      );
+    });
+
+    test('pusta lista → null', () {
+      expect(FinishPhotoNotifier.finishPhotoIn(const []), isNull);
+    });
+  });
+
   group('odpytywanie archiwum (serwer nie ogłasza zwykłego zdjęcia)', () {
     test('zdjęcie znalezione przy odpytywaniu trafia na powiadomienie',
         () async {
       await memory.remember(_alert());
-      newest = Archive(
-        id: 82,
-        filename: 'a.gcode',
-        status: 'completed',
-        printerId: 3,
-        photos: const ['finish_1.jpg'],
-      );
+      newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
       await pollOnce();
 
@@ -198,13 +291,7 @@ void main() {
 
     test('po doklejeniu kolejny przebieg już nic nie robi', () async {
       await memory.remember(_alert());
-      newest = Archive(
-        id: 82,
-        filename: 'a.gcode',
-        status: 'completed',
-        printerId: 3,
-        photos: const ['finish_1.jpg'],
-      );
+      newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
       await pollOnce();
       await pollOnce();
@@ -214,13 +301,7 @@ void main() {
 
     test('po 15 minutach przestaje szukać', () async {
       await memory.remember(_alert(postedAt: _now));
-      newest = Archive(
-        id: 82,
-        filename: 'a.gcode',
-        status: 'completed',
-        printerId: 3,
-        photos: const ['finish_1.jpg'],
-      );
+      newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
       await pollOnce(now: _now.add(const Duration(minutes: 16)));
 
@@ -347,7 +428,7 @@ void main() {
     final notifier = FinishPhotoNotifier(
       updates: frames.stream,
       fetchArchive: (id) async => archive,
-      newestArchive: (printerId) async => newest,
+      recentArchives: (printerId) async => [if (newest != null) newest!],
       fetchPicture: (id, filename) async => picture,
       notifications: notifications,
       memory: memory,

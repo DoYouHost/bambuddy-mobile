@@ -286,17 +286,19 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _plateSub = ws.plateAlerts.listen((e) {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
-    // The finish photo is announced long after the print-ended alert went out,
-    // so it rides the same socket rather than any polling of ours. Needs the
-    // authenticated client for the archive lookup — without one there is no way
-    // to tell which printer the photo belongs to.
+    // The finish photo turns up long after the print-ended alert went out, and
+    // the server only announces some of them — hence both the socket and the
+    // notifier's own poll. Needs the authenticated client either way: without it
+    // there is no archive to read the photo from.
     if (api != null) {
       final archives = ArchiveRepository(api.dio);
       _finishPhoto = FinishPhotoNotifier(
         updates: ws.archiveUpdates,
         fetchArchive: archives.byId,
-        newestArchive: (printerId) async =>
-            (await archives.list(limit: 1, printerId: printerId)).firstOrNull,
+        recentArchives: (printerId) => archives.list(
+          limit: FinishPhotoNotifier.archiveLookback,
+          printerId: printerId,
+        ),
         fetchPicture: (archiveId, filename) =>
             _fetchFinishPhoto(profile.baseUrl, archiveId, filename),
         notifications: notify,

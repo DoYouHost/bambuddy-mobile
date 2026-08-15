@@ -399,8 +399,9 @@ class _Frames extends StatelessWidget {
 /// slides every picture towards the beginning and drops the tail entirely: at
 /// 14 frames in 6 tiles the last tile covers 83–100 % but showed 78.6 %, and
 /// nothing past that was on screen to trim against. Rounding to the tile's
-/// midpoint keeps each picture under the moment it depicts and puts the final
-/// frame in the final tile.
+/// midpoint keeps each picture under the moment it depicts; the last tile also
+/// gets the last frame rendered as long as the server keeps sending fewer than
+/// three per tile, which at its fourteen it does on any strip we draw.
 List<T> framesFitting<T>(
   List<T> frames,
   double width, {
