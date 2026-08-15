@@ -269,9 +269,15 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     announce: false,
   );
 
+  /// Dio reports progress per received chunk, which on a hundred-megabyte video
+  /// is thousands of callbacks — each one rebuilding this whole screen, player
+  /// included, for a bar that moves by a fraction of a pixel. Only a change the
+  /// bar can actually show is worth a frame.
   void _onExportProgress(double? progress) {
     if (!mounted) return;
-    setState(() => _exportProgress = progress);
+    final next = progress == null ? null : (progress * 100).floor() / 100;
+    if (next == _exportProgress) return;
+    setState(() => _exportProgress = next);
   }
 
   /// Downloads the video once and hands it to [action].

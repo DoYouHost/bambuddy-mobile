@@ -384,12 +384,23 @@ class _Frames extends StatelessWidget {
   }
 }
 
-/// As many of [frames] as fit across [width] at [minFrameWidth], sampled
-/// evenly from the whole recording.
+/// As many of [frames] as fit across [width] at [minFrameWidth], each one the
+/// closest the server rendered to the middle of the tile that will show it.
 ///
 /// The server renders a fixed count sized for a desktop-width strip; squeezing
 /// all of them onto a phone leaves each a sliver too narrow to recognise, and
 /// the point of the strip is telling one moment of the print from another.
+///
+/// Which frame goes in which tile is not free choice: the tiles are drawn at
+/// equal width across the whole recording, so tile `i` of `fits` covers the
+/// slice `[i / fits, (i + 1) / fits]` of it, and frame `j` of `n` was rendered
+/// at `j / n` of it (`timelapse_processor.py`: `timestamp = i * duration /
+/// count`). Picking `frames[i * n ~/ fits]` — the frame at the tile's *start* —
+/// slides every picture towards the beginning and drops the tail entirely: at
+/// 14 frames in 6 tiles the last tile covers 83–100 % but showed 78.6 %, and
+/// nothing past that was on screen to trim against. Rounding to the tile's
+/// midpoint keeps each picture under the moment it depicts and puts the final
+/// frame in the final tile.
 List<T> framesFitting<T>(
   List<T> frames,
   double width, {
@@ -398,6 +409,9 @@ List<T> framesFitting<T>(
   if (frames.isEmpty) return frames;
   final fits = (width / minFrameWidth).floor().clamp(1, frames.length);
   if (fits >= frames.length) return frames;
-  final step = frames.length / fits;
-  return [for (var i = 0; i < fits; i++) frames[(i * step).floor()]];
+  final n = frames.length;
+  return [
+    for (var i = 0; i < fits; i++)
+      frames[(n * (i + 0.5) / fits).round().clamp(0, n - 1)],
+  ];
 }

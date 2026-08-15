@@ -82,8 +82,10 @@ void main() {
   late StreamController<WsArchiveUpdated> frames;
 
   int archiveFetches = 0;
+  int newestFetches = 0;
   int pictureFetches = 0;
   Archive? archive;
+  Archive? newest;
   AlertPicture? picture;
   bool enabled = true;
 
@@ -94,8 +96,10 @@ void main() {
     notifications = _FakeNotifications();
     frames = StreamController<WsArchiveUpdated>.broadcast();
     archiveFetches = 0;
+    newestFetches = 0;
     pictureFetches = 0;
     archive = _archive();
+    newest = null;
     picture = const AlertPicture(
       photoPath: '/tmp/finish_photo.png',
       thumbnailPath: '/tmp/finish_photo_thumb.png',
@@ -112,6 +116,10 @@ void main() {
       fetchArchive: (id) async {
         archiveFetches++;
         return archive;
+      },
+      newestArchive: (printerId) async {
+        newestFetches++;
+        return newest;
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
@@ -131,6 +139,106 @@ void main() {
   }
 
   const photoFrame = WsArchiveUpdated(82, photoAdded: 'finish_1.jpg');
+
+  /// Jeden przebieg odpytywania archiwum — to, co w tle robi timer.
+  Future<void> pollOnce({DateTime? now}) async {
+    final notifier = FinishPhotoNotifier(
+      updates: frames.stream,
+      fetchArchive: (id) async {
+        archiveFetches++;
+        return archive;
+      },
+      newestArchive: (printerId) async {
+        newestFetches++;
+        return newest;
+      },
+      fetchPicture: (id, filename) async {
+        pictureFetches++;
+        return picture;
+      },
+      notifications: notifications,
+      memory: memory,
+      isEnabled: () => enabled,
+      clock: () => now ?? _now,
+    );
+    await notifier.poll();
+    await notifier.stop();
+  }
+
+  group('odpytywanie archiwum (serwer nie ogłasza zwykłego zdjęcia)', () {
+    test('zdjęcie znalezione przy odpytywaniu trafia na powiadomienie',
+        () async {
+      await memory.remember(_alert());
+      newest = Archive(
+        id: 82,
+        filename: 'a.gcode',
+        status: 'completed',
+        printerId: 3,
+        photos: const ['finish_1.jpg'],
+      );
+
+      await pollOnce();
+
+      expect(notifications.posted, hasLength(1));
+      expect(notifications.posted.single['id'], 1003);
+      expect(notifications.posted.single['photo'], '/tmp/finish_photo.png');
+    });
+
+    test('archiwum bez zdjęcia → nic, wpis zostaje na kolejny przebieg',
+        () async {
+      await memory.remember(_alert());
+      newest = _archive();
+
+      await pollOnce();
+
+      expect(notifications.posted, isEmpty);
+      expect(pictureFetches, 0);
+      expect(await memory.recall(3, _now), isNotNull);
+    });
+
+    test('po doklejeniu kolejny przebieg już nic nie robi', () async {
+      await memory.remember(_alert());
+      newest = Archive(
+        id: 82,
+        filename: 'a.gcode',
+        status: 'completed',
+        printerId: 3,
+        photos: const ['finish_1.jpg'],
+      );
+
+      await pollOnce();
+      await pollOnce();
+
+      expect(notifications.posted, hasLength(1));
+    });
+
+    test('po 15 minutach przestaje szukać', () async {
+      await memory.remember(_alert(postedAt: _now));
+      newest = Archive(
+        id: 82,
+        filename: 'a.gcode',
+        status: 'completed',
+        printerId: 3,
+        photos: const ['finish_1.jpg'],
+      );
+
+      await pollOnce(now: _now.add(const Duration(minutes: 16)));
+
+      expect(newestFetches, 0, reason: 'serwer nie dośle już nic dla tego druku');
+      expect(notifications.posted, isEmpty);
+    });
+
+    test('wyłączone w ustawieniach → zero ruchu', () async {
+      await memory.remember(_alert());
+      newest = _archive();
+      enabled = false;
+
+      await pollOnce();
+
+      expect(newestFetches, 0);
+      expect(notifications.posted, isEmpty);
+    });
+  });
 
   test('dokłada zdjęcie do alertu, który wciąż wisi', () async {
     await memory.remember(_alert());
@@ -228,6 +336,38 @@ void main() {
     await send(const WsArchiveUpdated(82, photoAdded: 'finish_2.jpg'));
 
     expect(notifications.posted, hasLength(1));
+  });
+
+  test('wyjątek przy jednej ramce nie zabija obsługi kolejnych', () async {
+    await memory.remember(_alert());
+    // Rzuca zanim `_handle` wejdzie w swój try — to ten przypadek zostawiał
+    // odrzucony future w łańcuchu, przez co żadna następna ramka nie była już
+    // obsłużona, a `stop()` rzucał w `onDestroy` przed zamknięciem gniazda.
+    var explode = true;
+    final notifier = FinishPhotoNotifier(
+      updates: frames.stream,
+      fetchArchive: (id) async => archive,
+      newestArchive: (printerId) async => newest,
+      fetchPicture: (id, filename) async => picture,
+      notifications: notifications,
+      memory: memory,
+      isEnabled: () {
+        if (explode) throw StateError('prefs niedostępne');
+        return true;
+      },
+      clock: () => _now,
+    )..start();
+
+    frames.add(photoFrame);
+    await Future<void>.delayed(Duration.zero);
+    expect(notifications.posted, isEmpty);
+
+    explode = false;
+    frames.add(photoFrame);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(notifications.posted, hasLength(1), reason: 'łańcuch dalej żyje');
+    await expectLater(notifier.stop(), completes);
   });
 
   test('archiwum bez drukarki → nie zgaduje, do którego alertu to pasuje',

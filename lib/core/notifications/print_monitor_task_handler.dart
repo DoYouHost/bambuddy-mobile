@@ -295,6 +295,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
       _finishPhoto = FinishPhotoNotifier(
         updates: ws.archiveUpdates,
         fetchArchive: archives.byId,
+        newestArchive: (printerId) async =>
+            (await archives.list(limit: 1, printerId: printerId)).firstOrNull,
         fetchPicture: (archiveId, filename) =>
             _fetchFinishPhoto(profile.baseUrl, archiveId, filename),
         notifications: notify,

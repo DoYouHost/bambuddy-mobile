@@ -105,6 +105,13 @@ class FinishAlertMemory {
     return alert;
   }
 
+  /// Every alert still inside the window, in no particular order — the work
+  /// list for the poll that goes looking for photos the server never announces.
+  Future<List<PostedAlert>> recallAll(DateTime now) async => [
+    for (final alert in (await _read()).values)
+      if (!_expired(alert, now)) alert,
+  ];
+
   /// Drops the entry once its notification has been updated — the photo is on
   /// it, and the server's later "upgraded" shot for the same print would
   /// otherwise re-post a notification the user may have dismissed in between.

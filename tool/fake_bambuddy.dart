@@ -29,6 +29,12 @@ late final String _photoName;
 String _state = 'RUNNING';
 int _progress = 40;
 
+/// Whether the archive already carries the finish photo. Separate from sending
+/// the frame on purpose: the real server attaches the ordinary capture with
+/// nothing on the wire (`main.py` write phase) and only broadcasts when it later
+/// replaces it with a frame off the timelapse.
+bool _photoAttached = false;
+
 final _sockets = <WebSocket>[];
 late final List<int> _photoBytes;
 
@@ -63,12 +69,17 @@ Future<void> _command(String cmd) async {
   switch (cmd) {
     case 'help' || '':
       stdout.writeln('''
-  print   printer starts printing (RUNNING) — the state to end from
-  finish  print ends well  → app posts "print finished"
-  fail    print ends badly → app posts "print failed"
-  photo   server attached the finish photo → app adds it to that notification
-  go      finish, wait 15 s, then photo — the whole sequence
-  status  what this server currently reports''');
+  print    printer starts printing (RUNNING) — the state to end from
+  finish   print ends well  → app posts "print finished"
+  fail     print ends badly → app posts "print failed"
+  photo    attach the finish photo the way the server normally does: written to
+           the archive, nothing on the wire. The app has to find it by polling,
+           so allow up to a minute.
+  upgrade  attach it AND broadcast archive_updated — the rarer path, where the
+           server replaces the live grab with a frame off the timelapse
+  go       finish, wait 15 s, then `photo` — the ordinary sequence end to end
+  reset    forget the photo, so the next round starts clean
+  status   what this server currently reports''');
     case 'print':
       _set('RUNNING', 40);
     case 'finish':
@@ -76,14 +87,22 @@ Future<void> _command(String cmd) async {
     case 'fail':
       _set('FAILED', 61);
     case 'photo':
-      _sendPhotoAttached();
+      _attachPhoto(broadcast: false);
+    case 'upgrade':
+      _attachPhoto(broadcast: true);
     case 'go':
       _set('FINISH', 100);
       stdout.writeln('  waiting 15 s, as the server does while it captures…');
       await Future<void>.delayed(const Duration(seconds: 15));
-      _sendPhotoAttached();
+      _attachPhoto(broadcast: false);
+    case 'reset':
+      _photoAttached = false;
+      stdout.writeln('  archive has no photo again');
     case 'status':
-      stdout.writeln('  $_state $_progress% · ${_sockets.length} client(s)');
+      stdout.writeln(
+        '  $_state $_progress% · photo: ${_photoAttached ? 'attached' : 'none'}'
+        ' · ${_sockets.length} client(s)',
+      );
     default:
       stdout.writeln('  ? `help` lists the commands');
   }
@@ -96,9 +115,16 @@ void _set(String state, int progress) {
   stdout.writeln('  printer → $state $progress%');
 }
 
-/// The frame the real server sends once the finish photo is on the archive
-/// (`main.py::ws_manager.send_archive_updated`).
-void _sendPhotoAttached() {
+/// Puts the photo on the archive; [broadcast] adds the `archive_updated` frame
+/// the real server only sends from its photo-upgrade path
+/// (`main.py::_upgrade_finish_photo_from_timelapse`).
+void _attachPhoto({required bool broadcast}) {
+  _photoAttached = true;
+  stdout.writeln('  archive now has $_photoName');
+  if (!broadcast) {
+    stdout.writeln('  (no frame sent — the app has to poll for it)');
+    return;
+  }
   _broadcast({
     'type': 'archive_updated',
     'data': {'id': _archiveId, 'photo_added': _photoName},
@@ -111,6 +137,15 @@ void _broadcastStatus() => _broadcast({
   'printer_id': _printerId,
   'data': _statusData(),
 });
+
+Map<String, Object?> _archive() => {
+  'id': _archiveId,
+  'printer_id': _printerId,
+  'filename': '$_printName.gcode.3mf',
+  'print_name': _printName,
+  'status': 'completed',
+  'photos': _photoAttached ? [_photoName] : <String>[],
+};
 
 Map<String, Object?> _statusData() => {
   'name': 'X1C (atrapa)',
@@ -167,14 +202,12 @@ Future<void> _serve(HttpServer server) async {
       continue;
     }
     if (path == '/api/v1/archives/$_archiveId') {
-      await _json(request, {
-        'id': _archiveId,
-        'printer_id': _printerId,
-        'filename': '$_printName.gcode.3mf',
-        'print_name': _printName,
-        'status': 'completed',
-        'photos': [_photoName],
-      });
+      await _json(request, _archive());
+      continue;
+    }
+    // What the app polls while an alert is live, newest first.
+    if (path == '/api/v1/archives/') {
+      await _json(request, [_archive()]);
       continue;
     }
     if (path == '/api/v1/archives/$_archiveId/photos/$_photoName') {

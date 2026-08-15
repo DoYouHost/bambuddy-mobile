@@ -171,9 +171,33 @@ void main() {
 
       expect(shown, orderedEquals(shown.toList()..sort()));
       expect(shown.toSet(), hasLength(shown.length), reason: 'bez powtórek');
-      expect(shown.first, all.first, reason: 'początek materiału');
       expect(shown.last, greaterThan(all.length ~/ 2),
           reason: 'ostatnia próbka z końcowej połowy, nie z pierwszej');
+    });
+
+    test('każda klatka trafia pod moment, który pokazuje', () {
+      // 14 klatek na 6 kafelków. Kafelek i zajmuje [i/6, (i+1)/6] materiału,
+      // klatka j jest z chwili j/14 — więc do kafelka pasuje ta najbliższa
+      // jego środkowi. Przy próbkowaniu „od początku kafelka" ostatni kafelek
+      // (83–100%) dostawał klatkę z 78,6% i końcówki nie dało się przyciąć.
+      final shown = framesFitting(all, 360);
+
+      expect(shown, hasLength(6));
+      for (var i = 0; i < shown.length; i++) {
+        final tileStart = i / shown.length;
+        final tileEnd = (i + 1) / shown.length;
+        final frameAt = shown[i] / all.length;
+        expect(frameAt, greaterThanOrEqualTo(tileStart - 0.001),
+            reason: 'klatka $i sprzed swojego kafelka');
+        expect(frameAt, lessThanOrEqualTo(tileEnd + 0.001),
+            reason: 'klatka $i zza swojego kafelka');
+      }
+    });
+
+    test('ostatni kafelek pokazuje ostatnią klatkę, jaką serwer wyrenderował',
+        () {
+      expect(framesFitting(all, 360).last, all.last);
+      expect(framesFitting(all, 517).last, all.last);
     });
 
     test('gdy wszystkie się mieszczą, nie gubi żadnej', () {
