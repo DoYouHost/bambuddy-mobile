@@ -17,6 +17,7 @@ class Archive {
     this.printName,
     this.thumbnailPath,
     this.timelapsePath,
+    this.photos = const [],
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.filamentType,
@@ -62,6 +63,16 @@ class Archive {
 
   /// Whether a timelapse video exists for this print.
   bool get hasTimelapse => (timelapsePath ?? '').isNotEmpty;
+
+  /// Filenames of the photos attached to the print — the shot the server
+  /// captures from the camera when the print ends (named `finish_…`) plus
+  /// anything uploaded in the web UI. Fetched through `Endpoints.archivePhoto`;
+  /// the server only serves a name that appears in this list.
+  @JsonKey(fromJson: toStringList)
+  final List<String> photos;
+
+  /// Whether the print has at least one photo.
+  bool get hasPhotos => photos.isNotEmpty;
 
   /// Print time in seconds.
   final int? printTimeSeconds;
@@ -131,6 +142,7 @@ class Archive {
     printName: printName,
     thumbnailPath: thumbnailPath,
     timelapsePath: timelapsePath,
+    photos: photos,
     printTimeSeconds: printTimeSeconds,
     filamentUsedGrams: filamentUsedGrams,
     filamentType: filamentType,

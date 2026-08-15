@@ -167,6 +167,12 @@ final archiveProvider =
       ArchiveNotifier.new,
     );
 
+/// One archive read fresh from the server — what the photo viewer opens on, so
+/// a shot attached after the list was loaded still shows up.
+final archiveDetailProvider = FutureProvider.autoDispose.family<Archive, int>(
+  (ref, archiveId) => ref.watch(archiveRepositoryProvider).byId(archiveId),
+);
+
 /// Full archive list, loaded once and filtered client-side (M5, filters M7).
 /// All filtering/sorting lives in [applyArchiveFilters] over this list.
 class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {

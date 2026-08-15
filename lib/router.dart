@@ -9,6 +9,7 @@ import 'features/admin/api_keys_screen.dart';
 import 'features/admin/group_detail_screen.dart';
 import 'features/admin/groups_screen.dart';
 import 'features/admin/users_screen.dart';
+import 'features/archive/archive_photos_screen.dart';
 import 'features/archive/archive_screen.dart';
 import 'features/archive/timelapse_editor_screen.dart';
 import 'features/archive/timelapse_screen.dart';
@@ -229,6 +230,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return TimelapseScreen(
+            archiveId: int.parse(q['archive']!),
+            title: q['name'],
+          );
+        },
+      ),
+
+      // Photos of a finished print — same shape as the timelapse route above.
+      GoRoute(
+        path: '/archive/photos',
+        redirect: (_, state) =>
+            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+            ? '/archive'
+            : null,
+        builder: (_, state) {
+          final q = state.uri.queryParameters;
+          return ArchivePhotosScreen(
             archiveId: int.parse(q['archive']!),
             title: q['name'],
           );

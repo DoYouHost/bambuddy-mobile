@@ -14,6 +14,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   printName: json['print_name'] as String?,
   thumbnailPath: json['thumbnail_path'] as String?,
   timelapsePath: json['timelapse_path'] as String?,
+  photos: json['photos'] == null ? const [] : toStringList(json['photos']),
   printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
   filamentUsedGrams: (json['filament_used_grams'] as num?)?.toDouble(),
   filamentType: json['filament_type'] as String?,

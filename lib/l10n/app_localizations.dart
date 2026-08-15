@@ -1376,6 +1376,42 @@ abstract class AppLocalizations {
   /// **'Watch timelapse'**
   String get archiveTimelapse;
 
+  /// No description provided for @archivePhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
+  String archivePhotos(int count);
+
+  /// No description provided for @archivePhotosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get archivePhotosTitle;
+
+  /// No description provided for @archivePhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos for this print'**
+  String get archivePhotosEmpty;
+
+  /// No description provided for @archivePhotoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this photo.'**
+  String get archivePhotoFailed;
+
+  /// No description provided for @archiveHasTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Has a timelapse'**
+  String get archiveHasTimelapse;
+
+  /// No description provided for @archiveHasPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Has a photo} other{Has {count} photos}}'**
+  String archiveHasPhotos(int count);
+
   /// No description provided for @timelapseTitle.
   ///
   /// In en, this message translates to:
