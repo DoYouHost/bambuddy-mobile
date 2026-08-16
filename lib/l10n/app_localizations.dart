@@ -2993,31 +2993,31 @@ abstract class AppLocalizations {
   /// No description provided for @hmsActionResume.
   ///
   /// In en, this message translates to:
-  /// **'Resume printing'**
+  /// **'Resume'**
   String get hmsActionResume;
 
   /// No description provided for @hmsActionResumeDefects.
   ///
   /// In en, this message translates to:
-  /// **'Resume (defects acceptable)'**
+  /// **'Resume anyway'**
   String get hmsActionResumeDefects;
 
   /// No description provided for @hmsActionResumeSolved.
   ///
   /// In en, this message translates to:
-  /// **'Resume (problem solved)'**
+  /// **'Fixed, resume'**
   String get hmsActionResumeSolved;
 
   /// No description provided for @hmsActionProblemSolvedResume.
   ///
   /// In en, this message translates to:
-  /// **'Problem solved, resume'**
+  /// **'Fixed, resume'**
   String get hmsActionProblemSolvedResume;
 
   /// No description provided for @hmsActionFilamentLoadedResume.
   ///
   /// In en, this message translates to:
-  /// **'Filament loaded, resume'**
+  /// **'Loaded, resume'**
   String get hmsActionFilamentLoadedResume;
 
   /// No description provided for @hmsActionProceed.
@@ -3029,55 +3029,55 @@ abstract class AppLocalizations {
   /// No description provided for @hmsActionStopPrinting.
   ///
   /// In en, this message translates to:
-  /// **'Stop printing'**
+  /// **'Stop'**
   String get hmsActionStopPrinting;
 
   /// No description provided for @hmsActionIgnoreResume.
   ///
   /// In en, this message translates to:
-  /// **'Ignore this and resume'**
+  /// **'Ignore, resume'**
   String get hmsActionIgnoreResume;
 
   /// No description provided for @hmsActionIgnoreNoReminder.
   ///
   /// In en, this message translates to:
-  /// **'Ignore, don\'t remind me again'**
+  /// **'Ignore always'**
   String get hmsActionIgnoreNoReminder;
 
   /// No description provided for @hmsActionDontRemind.
   ///
   /// In en, this message translates to:
-  /// **'Don\'t remind me'**
+  /// **'Don\'t remind'**
   String get hmsActionDontRemind;
 
   /// No description provided for @hmsActionNoReminder.
   ///
   /// In en, this message translates to:
-  /// **'No reminder next time'**
+  /// **'Dismiss'**
   String get hmsActionNoReminder;
 
   /// No description provided for @hmsActionFilamentExtruded.
   ///
   /// In en, this message translates to:
-  /// **'Filament extruded, continue'**
+  /// **'Extruded'**
   String get hmsActionFilamentExtruded;
 
   /// No description provided for @hmsActionRetryFilamentExtruded.
   ///
   /// In en, this message translates to:
-  /// **'Not extruded yet, retry'**
+  /// **'Not yet, retry'**
   String get hmsActionRetryFilamentExtruded;
 
   /// No description provided for @hmsActionContinue.
   ///
   /// In en, this message translates to:
-  /// **'Finished, continue'**
+  /// **'Done, continue'**
   String get hmsActionContinue;
 
   /// No description provided for @hmsActionRetrySolved.
   ///
   /// In en, this message translates to:
-  /// **'Retry (problem solved)'**
+  /// **'Fixed, retry'**
   String get hmsActionRetrySolved;
 
   /// No description provided for @hmsActionDone.
@@ -3125,7 +3125,7 @@ abstract class AppLocalizations {
   /// No description provided for @hmsActionTurnOffFireAlarm.
   ///
   /// In en, this message translates to:
-  /// **'Got it, turn off the fire alarm'**
+  /// **'Turn off alarm'**
   String get hmsActionTurnOffFireAlarm;
 
   /// No description provided for @hmsActionStopDrying.
@@ -3137,7 +3137,7 @@ abstract class AppLocalizations {
   /// No description provided for @hmsActionDisablePurification.
   ///
   /// In en, this message translates to:
-  /// **'Disable purification for this print'**
+  /// **'Disable purification'**
   String get hmsActionDisablePurification;
 
   /// No description provided for @batteryOptTitle.

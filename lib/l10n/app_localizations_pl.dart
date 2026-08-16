@@ -1715,50 +1715,49 @@ class AppLocalizationsPl extends AppLocalizations {
   String get hmsStopConfirmAction => 'Zatrzymaj wydruk';
 
   @override
-  String get hmsActionResume => 'Wznów drukowanie';
+  String get hmsActionResume => 'Wznów';
 
   @override
-  String get hmsActionResumeDefects => 'Wznów (akceptuję wady)';
+  String get hmsActionResumeDefects => 'Wznów mimo wad';
 
   @override
-  String get hmsActionResumeSolved => 'Wznów (problem rozwiązany)';
+  String get hmsActionResumeSolved => 'Naprawione, wznów';
 
   @override
-  String get hmsActionProblemSolvedResume => 'Problem rozwiązany, wznów';
+  String get hmsActionProblemSolvedResume => 'Naprawione, wznów';
 
   @override
-  String get hmsActionFilamentLoadedResume => 'Filament załadowany, wznów';
+  String get hmsActionFilamentLoadedResume => 'Załadowany, wznów';
 
   @override
   String get hmsActionProceed => 'Kontynuuj';
 
   @override
-  String get hmsActionStopPrinting => 'Zatrzymaj wydruk';
+  String get hmsActionStopPrinting => 'Zatrzymaj';
 
   @override
   String get hmsActionIgnoreResume => 'Zignoruj i wznów';
 
   @override
-  String get hmsActionIgnoreNoReminder => 'Zignoruj, nie przypominaj';
+  String get hmsActionIgnoreNoReminder => 'Zignoruj na stałe';
 
   @override
-  String get hmsActionDontRemind => 'Nie przypominaj mi';
+  String get hmsActionDontRemind => 'Nie przypominaj';
 
   @override
-  String get hmsActionNoReminder => 'Nie przypominaj następnym razem';
+  String get hmsActionNoReminder => 'Ukryj ostrzeżenie';
 
   @override
-  String get hmsActionFilamentExtruded => 'Filament wytłoczony, kontynuuj';
+  String get hmsActionFilamentExtruded => 'Wytłoczony';
 
   @override
-  String get hmsActionRetryFilamentExtruded =>
-      'Jeszcze nie wytłoczony, spróbuj ponownie';
+  String get hmsActionRetryFilamentExtruded => 'Jeszcze nie, ponów';
 
   @override
   String get hmsActionContinue => 'Gotowe, kontynuuj';
 
   @override
-  String get hmsActionRetrySolved => 'Ponów (problem rozwiązany)';
+  String get hmsActionRetrySolved => 'Naprawione, ponów';
 
   @override
   String get hmsActionDone => 'Gotowe';
@@ -1779,17 +1778,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String get hmsActionOk => 'OK';
 
   @override
-  String get hmsActionRecheck => 'Sprawdź ponownie';
+  String get hmsActionRecheck => 'Sprawdź';
 
   @override
-  String get hmsActionTurnOffFireAlarm => 'Rozumiem, wyłącz alarm pożarowy';
+  String get hmsActionTurnOffFireAlarm => 'Wyłącz alarm';
 
   @override
   String get hmsActionStopDrying => 'Zatrzymaj suszenie';
 
   @override
-  String get hmsActionDisablePurification =>
-      'Wyłącz oczyszczanie na ten wydruk';
+  String get hmsActionDisablePurification => 'Wyłącz oczyszczanie';
 
   @override
   String get batteryOptTitle => 'Niezawodne powiadomienia w tle';

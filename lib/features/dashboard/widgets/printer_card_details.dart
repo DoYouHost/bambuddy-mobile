@@ -229,6 +229,12 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
   /// user actually pressed rather than on all of them.
   String? _pending;
 
+  /// Bambu writes for the printer's own screen, where a fault gets a dialog to
+  /// itself — half its descriptions run past 100 characters and one reaches
+  /// 330. Two lines is what the card can spend on each fault when several are
+  /// reported at once; the rest is a tap away.
+  bool _fullText = false;
+
   Future<void> _run(String action) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -284,21 +290,36 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
     final actions = error.fullCode == null
         ? const <String>[]
         : hmsRenderableActions(error.actions);
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        // Its own tile inside the red panel: with several faults reported at
+        // once, one unbroken column of text and buttons reads as a single long
+        // error rather than as three separate things to decide about.
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: t.subCardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label != null) ...[
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textPrimary,
+            InkWell(
+              onTap: () => setState(() => _fullText = !_fullText),
+              child: Text(
+                label,
+                maxLines: _fullText ? null : 2,
+                overflow: _fullText ? null : TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13,
+                  height: 1.25,
+                  color: t.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
+            ).tagged('printer.hms_description'),
+            const SizedBox(height: 4),
           ],
           Row(
             children: [
@@ -339,10 +360,14 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
             ],
           ),
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
+            // A row per fault, not a button per line: the labels are short
+            // enough that three fit across a phone, and Wrap still breaks
+            // rather than overflowing when a translation or a font scale makes
+            // them wider.
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 for (final action in actions)
                   // One id per action, not one for the whole row: the log has
@@ -355,6 +380,14 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       onPressed: widget.busy ? null : () => _run(action),
                       style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        minimumSize: const Size(0, 34),
+                        textStyle: const TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
                         backgroundColor: action == hmsStopAction
                             ? scheme.errorContainer
                             : null,
@@ -364,8 +397,8 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                       ),
                       child: _pending == action
                           ? const SizedBox(
-                              width: 16,
-                              height: 16,
+                              width: 14,
+                              height: 14,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(hmsActionLabel(l10n, action)),

@@ -1687,49 +1687,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hmsStopConfirmAction => 'Stop printing';
 
   @override
-  String get hmsActionResume => 'Resume printing';
+  String get hmsActionResume => 'Resume';
 
   @override
-  String get hmsActionResumeDefects => 'Resume (defects acceptable)';
+  String get hmsActionResumeDefects => 'Resume anyway';
 
   @override
-  String get hmsActionResumeSolved => 'Resume (problem solved)';
+  String get hmsActionResumeSolved => 'Fixed, resume';
 
   @override
-  String get hmsActionProblemSolvedResume => 'Problem solved, resume';
+  String get hmsActionProblemSolvedResume => 'Fixed, resume';
 
   @override
-  String get hmsActionFilamentLoadedResume => 'Filament loaded, resume';
+  String get hmsActionFilamentLoadedResume => 'Loaded, resume';
 
   @override
   String get hmsActionProceed => 'Proceed';
 
   @override
-  String get hmsActionStopPrinting => 'Stop printing';
+  String get hmsActionStopPrinting => 'Stop';
 
   @override
-  String get hmsActionIgnoreResume => 'Ignore this and resume';
+  String get hmsActionIgnoreResume => 'Ignore, resume';
 
   @override
-  String get hmsActionIgnoreNoReminder => 'Ignore, don\'t remind me again';
+  String get hmsActionIgnoreNoReminder => 'Ignore always';
 
   @override
-  String get hmsActionDontRemind => 'Don\'t remind me';
+  String get hmsActionDontRemind => 'Don\'t remind';
 
   @override
-  String get hmsActionNoReminder => 'No reminder next time';
+  String get hmsActionNoReminder => 'Dismiss';
 
   @override
-  String get hmsActionFilamentExtruded => 'Filament extruded, continue';
+  String get hmsActionFilamentExtruded => 'Extruded';
 
   @override
-  String get hmsActionRetryFilamentExtruded => 'Not extruded yet, retry';
+  String get hmsActionRetryFilamentExtruded => 'Not yet, retry';
 
   @override
-  String get hmsActionContinue => 'Finished, continue';
+  String get hmsActionContinue => 'Done, continue';
 
   @override
-  String get hmsActionRetrySolved => 'Retry (problem solved)';
+  String get hmsActionRetrySolved => 'Fixed, retry';
 
   @override
   String get hmsActionDone => 'Done';
@@ -1753,14 +1753,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hmsActionRecheck => 'Recheck';
 
   @override
-  String get hmsActionTurnOffFireAlarm => 'Got it, turn off the fire alarm';
+  String get hmsActionTurnOffFireAlarm => 'Turn off alarm';
 
   @override
   String get hmsActionStopDrying => 'Stop drying';
 
   @override
-  String get hmsActionDisablePurification =>
-      'Disable purification for this print';
+  String get hmsActionDisablePurification => 'Disable purification';
 
   @override
   String get batteryOptTitle => 'Reliable background notifications';

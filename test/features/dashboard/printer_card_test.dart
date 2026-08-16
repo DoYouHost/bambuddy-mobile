@@ -1030,8 +1030,8 @@ void main() {
       await tester.tap(find.text('1 błąd'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Wznów drukowanie'), findsOneWidget);
-      expect(find.text('Zatrzymaj wydruk'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Wznów'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Zatrzymaj'), findsOneWidget);
       expect(find.textContaining('Asystent'), findsNothing);
     });
 
@@ -1046,7 +1046,7 @@ void main() {
       ));
       await tester.tap(find.text('1 błąd'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Wznów drukowanie'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['action:9:03008004:RESUME_PRINTING:746795586']);
@@ -1063,7 +1063,7 @@ void main() {
       ));
       await tester.tap(find.text('1 błąd'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zatrzymaj wydruk'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Zatrzymaj'));
       await tester.pumpAndSettle();
 
       // The dialog names the printer, and nothing has been sent yet.
@@ -1092,6 +1092,40 @@ void main() {
       expect(commands.calls, ['clear:9']);
     });
 
+    testWidgets('a long description is cut to two lines until tapped',
+        (tester) async {
+      // 0300_8016 is one of the wordy ones. Three faults each spending five
+      // lines on prose is how the card ran off the screen.
+      final clog = HmsError.fromJson(const {
+        'code': '0x8016',
+        'attr': 0x03008016,
+        'full_code': '03008016',
+      });
+      await tester.pumpWidget(_cardWithProviders(itemWith([clog])));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      final description = find.textContaining('Dysza jest zatkana');
+      expect(tester.widget<Text>(description).maxLines, 2);
+
+      await tester.tap(description);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Text>(description).maxLines, isNull);
+    });
+
+    testWidgets('the description no longer names the button below it',
+        (tester) async {
+      // Bambu writes for its own dialog: "…or select 'Resume' to resume the
+      // print job", with a Resume button right there. The app draws that button
+      // from the fault's actions, so the sentence was the button said twice.
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [_runout])));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("wybierz 'Wznów'"), findsNothing);
+      expect(find.textContaining('Wznów”'), findsNothing);
+    });
+
     testWidgets('a blank full code offers no buttons either', (tester) async {
       // The server's own default for the field is `""`, which would otherwise
       // pass the null check and post an empty code the route rejects with 422.
@@ -1106,7 +1140,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
-      expect(find.text('Wznów drukowanie'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
     });
 
     testWidgets('feedback survives the fault clearing under the card',
@@ -1130,7 +1164,7 @@ void main() {
       ));
       await tester.tap(find.text('1 błąd'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Wznów drukowanie'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
       item.value = itemWith(const []); // the fault clears mid-command
       await tester.pumpAndSettle();
 
@@ -1156,7 +1190,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
-      expect(find.text('Wznów drukowanie'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
     });
   });
 }
