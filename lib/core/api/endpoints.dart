@@ -105,6 +105,13 @@ abstract final class Endpoints {
   static String amsHistory(int printerId, int amsId) =>
       '$apiPrefix/ams-history/$printerId/$amsId';
 
+  /// Heater history (nozzle / bed / chamber) for one printer. Query
+  /// `?hours=1..168` and `?kinds=` (comma-separated `nozzle,nozzle_2,bed,
+  /// chamber`; all of them when omitted). Reference: bambuddy
+  /// `printer_sensor_history.py`.
+  static String printerSensorHistory(int printerId) =>
+      '$apiPrefix/printer-sensor-history/$printerId';
+
   /// Mint camera stream token (valid ~60 min). Required as `?token=`
   /// for print cover (`cover_url`) and — from M2 — for camera preview.
   static const cameraStreamToken = '$apiPrefix/printers/camera/stream-token';

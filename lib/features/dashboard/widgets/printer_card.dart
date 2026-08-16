@@ -33,6 +33,7 @@ import '../skip_objects_screen.dart';
 import '../smart_plugs_providers.dart';
 import '../../../core/theme/dash_theme.dart';
 import 'ams_history_sheet.dart';
+import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
 
 part 'printer_card_details.dart';

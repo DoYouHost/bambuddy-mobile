@@ -352,7 +352,11 @@ class _DetailsPanel extends ConsumerWidget {
 
 /// One AMS unit as a titled list: header (unit + extruder + humidity/temp),
 /// then a filament row per slot.
-class _AmsSection extends StatelessWidget {
+///
+/// The humidity/temperature readings open their history chart, but only where
+/// the server keeps one and this session may read it — otherwise they stay as
+/// plain readings.
+class _AmsSection extends ConsumerWidget {
   const _AmsSection({
     required this.unit,
     required this.unitIndex,
@@ -376,36 +380,37 @@ class _AmsSection extends StatelessWidget {
   final bool supportsDrying;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
+    final history = ref
+        .watch(amsHistorySupportedProvider)
+        .maybeWhen(data: (v) => v, orElse: () => false);
+
+    VoidCallback? openHistory(AmsHistoryMetric metric) => history
+        ? () => showAmsHistorySheet(
+              context,
+              printerId: printerId,
+              amsId: unit.id ?? unitIndex,
+              amsLabel: l10n.amsUnit(unitIndex + 1),
+              initialMetric: metric,
+            )
+        : null;
 
     final metaParts = <Widget>[];
     if (unit.humidity != null) {
       metaParts.add(_AmsMeta(
         icon: Icons.water_drop_outlined,
         text: '${unit.humidity}%',
-        onTap: () => showAmsHistorySheet(
-          context,
-          printerId: printerId,
-          amsId: unit.id ?? unitIndex,
-          amsLabel: l10n.amsUnit(unitIndex + 1),
-          initialMetric: AmsHistoryMetric.humidity,
-        ),
+        onTap: openHistory(AmsHistoryMetric.humidity),
       ));
     }
     if (unit.temp != null) {
       metaParts.add(_AmsMeta(
         icon: Icons.thermostat,
         text: '${unit.temp!.toStringAsFixed(0)}°',
-        onTap: () => showAmsHistorySheet(
-          context,
-          printerId: printerId,
-          amsId: unit.id ?? unitIndex,
-          amsLabel: l10n.amsUnit(unitIndex + 1),
-          initialMetric: AmsHistoryMetric.temperature,
-        ),
+        onTap: openHistory(AmsHistoryMetric.temperature),
       ));
     }
 
@@ -665,7 +670,9 @@ class _AmsMeta extends StatelessWidget {
 
   final IconData icon;
   final String text;
-  final VoidCallback onTap;
+
+  /// Null where there is no history to open — the chip stays as a reading.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

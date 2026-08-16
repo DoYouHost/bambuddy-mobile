@@ -1928,53 +1928,53 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get amsHistoryTemperature;
 
-  /// No description provided for @amsHistoryCurrent.
+  /// No description provided for @sensorHistoryCurrent.
   ///
   /// In en, this message translates to:
   /// **'Current'**
-  String get amsHistoryCurrent;
+  String get sensorHistoryCurrent;
 
-  /// No description provided for @amsHistoryAverage.
+  /// No description provided for @sensorHistoryAverage.
   ///
   /// In en, this message translates to:
   /// **'Average'**
-  String get amsHistoryAverage;
+  String get sensorHistoryAverage;
 
-  /// No description provided for @amsHistoryMin.
+  /// No description provided for @sensorHistoryMin.
   ///
   /// In en, this message translates to:
   /// **'Min'**
-  String get amsHistoryMin;
+  String get sensorHistoryMin;
 
-  /// No description provided for @amsHistoryMax.
+  /// No description provided for @sensorHistoryMax.
   ///
   /// In en, this message translates to:
   /// **'Max'**
-  String get amsHistoryMax;
+  String get sensorHistoryMax;
 
-  /// No description provided for @amsHistoryRange6h.
+  /// No description provided for @sensorHistoryRange6h.
   ///
   /// In en, this message translates to:
   /// **'6h'**
-  String get amsHistoryRange6h;
+  String get sensorHistoryRange6h;
 
-  /// No description provided for @amsHistoryRange24h.
+  /// No description provided for @sensorHistoryRange24h.
   ///
   /// In en, this message translates to:
   /// **'24h'**
-  String get amsHistoryRange24h;
+  String get sensorHistoryRange24h;
 
-  /// No description provided for @amsHistoryRange48h.
+  /// No description provided for @sensorHistoryRange48h.
   ///
   /// In en, this message translates to:
   /// **'48h'**
-  String get amsHistoryRange48h;
+  String get sensorHistoryRange48h;
 
-  /// No description provided for @amsHistoryRange7d.
+  /// No description provided for @sensorHistoryRange7d.
   ///
   /// In en, this message translates to:
   /// **'7d'**
-  String get amsHistoryRange7d;
+  String get sensorHistoryRange7d;
 
   /// No description provided for @amsHistoryGood.
   ///
@@ -1988,23 +1988,53 @@ abstract class AppLocalizations {
   /// **'Fair'**
   String get amsHistoryFair;
 
-  /// No description provided for @amsHistoryEmpty.
+  /// No description provided for @sensorHistoryEmpty.
   ///
   /// In en, this message translates to:
   /// **'No data for this range'**
-  String get amsHistoryEmpty;
+  String get sensorHistoryEmpty;
 
-  /// No description provided for @amsHistoryError.
+  /// No description provided for @sensorHistoryError.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load history'**
-  String get amsHistoryError;
+  String get sensorHistoryError;
 
   /// No description provided for @amsHistoryRecordingInfo.
   ///
   /// In en, this message translates to:
   /// **'Recorded every 5 minutes while the printer is connected'**
   String get amsHistoryRecordingInfo;
+
+  /// No description provided for @heaterHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature history'**
+  String get heaterHistoryTitle;
+
+  /// No description provided for @heaterHistoryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature history'**
+  String get heaterHistoryOpen;
+
+  /// No description provided for @heaterHistoryReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get heaterHistoryReading;
+
+  /// No description provided for @heaterHistoryTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get heaterHistoryTarget;
+
+  /// No description provided for @heaterHistoryRecordingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded every minute while the printer is connected'**
+  String get heaterHistoryRecordingInfo;
 
   /// No description provided for @wifiTooltip.
   ///

@@ -1063,28 +1063,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsHistoryTemperature => 'Temperature';
 
   @override
-  String get amsHistoryCurrent => 'Current';
+  String get sensorHistoryCurrent => 'Current';
 
   @override
-  String get amsHistoryAverage => 'Average';
+  String get sensorHistoryAverage => 'Average';
 
   @override
-  String get amsHistoryMin => 'Min';
+  String get sensorHistoryMin => 'Min';
 
   @override
-  String get amsHistoryMax => 'Max';
+  String get sensorHistoryMax => 'Max';
 
   @override
-  String get amsHistoryRange6h => '6h';
+  String get sensorHistoryRange6h => '6h';
 
   @override
-  String get amsHistoryRange24h => '24h';
+  String get sensorHistoryRange24h => '24h';
 
   @override
-  String get amsHistoryRange48h => '48h';
+  String get sensorHistoryRange48h => '48h';
 
   @override
-  String get amsHistoryRange7d => '7d';
+  String get sensorHistoryRange7d => '7d';
 
   @override
   String get amsHistoryGood => 'Good';
@@ -1093,14 +1093,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsHistoryFair => 'Fair';
 
   @override
-  String get amsHistoryEmpty => 'No data for this range';
+  String get sensorHistoryEmpty => 'No data for this range';
 
   @override
-  String get amsHistoryError => 'Couldn\'t load history';
+  String get sensorHistoryError => 'Couldn\'t load history';
 
   @override
   String get amsHistoryRecordingInfo =>
       'Recorded every 5 minutes while the printer is connected';
+
+  @override
+  String get heaterHistoryTitle => 'Temperature history';
+
+  @override
+  String get heaterHistoryOpen => 'Temperature history';
+
+  @override
+  String get heaterHistoryReading => 'Reading';
+
+  @override
+  String get heaterHistoryTarget => 'Target';
+
+  @override
+  String get heaterHistoryRecordingInfo =>
+      'Recorded every minute while the printer is connected';
 
   @override
   String get wifiTooltip => 'Wi-Fi signal';

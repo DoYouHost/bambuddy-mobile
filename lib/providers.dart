@@ -34,6 +34,7 @@ import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
+import 'data/heater_history_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
@@ -507,6 +508,16 @@ final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
 /// Dio.
 final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Printer heater history (nozzle / bed / chamber charts). Shares authenticated
+/// Dio; the version service answers whether to offer the chart until the route
+/// itself has.
+final heaterHistoryRepositoryProvider = Provider<HeaterHistoryRepository>(
+  (ref) => HeaterHistoryRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Connected server's version, read once per profile. Rebuilt with
