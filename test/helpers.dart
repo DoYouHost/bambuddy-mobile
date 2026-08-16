@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -27,6 +29,16 @@ final inertTotalPrintHoursOverride =
 /// so gauges and sliders behave exactly as they do before the probe lands.
 final inertChamberMaxOverride =
     chamberMaxTargetProvider.overrideWith((ref) async => 60);
+
+/// Inert history gating for widget tests. The temperature tiles and the AMS
+/// humidity/temperature chips ask whether the server keeps history, which reads
+/// the server version over the network — the same hanging-timer trap as
+/// [inertFirmwareOverride]. `true` is what any current server answers, so the
+/// shortcuts render exactly as they do in the app.
+final inertHistorySupportOverrides = [
+  heaterHistorySupportedProvider.overrideWith((ref) async => true),
+  amsHistorySupportedProvider.overrideWith((ref) async => true),
+];
 
 /// Owija widżet w MaterialApp z polską lokalizacją — testy asertują
 /// polskie stringi, więc wymuszamy locale `pl`.

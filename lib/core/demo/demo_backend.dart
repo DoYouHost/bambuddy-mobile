@@ -283,6 +283,13 @@ class DemoBackend {
       case 'ams-history':
         return _ok(_amsHistory(id(1) ?? 1, id(2) ?? 0, int.tryParse(q['hours'] ?? '') ?? 24));
 
+      case 'printer-sensor-history':
+        return _ok(_heaterHistory(
+          id(1) ?? 1,
+          int.tryParse(q['hours'] ?? '') ?? 24,
+          (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
+        ));
+
       case 'queue':
         return _queueRoute(m, s, body);
 
@@ -734,6 +741,59 @@ class DemoBackend {
       'max_temperature': 29.5,
       'avg_temperature': 27.5,
     };
+  }
+
+  // --- Heater history ---
+
+  /// One series per requested sensor: the printer idles, then runs a print over
+  /// the last two hours, so the chart shows a ramp, a hold and the setpoint.
+  Map<String, dynamic> _heaterHistory(
+    int printerId,
+    int hours,
+    List<String> kinds,
+  ) {
+    const idle = {'nozzle': 26.0, 'nozzle_2': 26.0, 'bed': 24.0, 'chamber': 28.0};
+    const hot = {'nozzle': 220.0, 'nozzle_2': 218.0, 'bed': 60.0, 'chamber': 38.0};
+    const printMinutes = 120;
+    const rampMinutes = 10;
+
+    final now = DateTime.now();
+    final samples = math.min(hours * 60, 1000); // every minute, as the server
+    final series = <Map<String, dynamic>>[];
+
+    for (final kind in kinds) {
+      final cold = idle[kind];
+      if (cold == null) continue;
+      final points = <Map<String, dynamic>>[];
+      var min = double.infinity;
+      var max = -double.infinity;
+      var sum = 0.0;
+      for (var i = samples; i >= 0; i--) {
+        final printing = i < printMinutes;
+        final ramp = printing
+            ? math.min(1.0, (printMinutes - i) / rampMinutes)
+            : 0.0;
+        final noise = math.sin(i / 7) * (printing ? 1.2 : 0.3);
+        final value = _r1(cold + (hot[kind]! - cold) * ramp + noise);
+        points.add({
+          'recorded_at': now.subtract(Duration(minutes: i)).toUtc().toIso8601String(),
+          'value': value,
+          'target': printing ? hot[kind] : 0.0,
+        });
+        min = math.min(min, value);
+        max = math.max(max, value);
+        sum += value;
+      }
+      series.add({
+        'sensor_kind': kind,
+        'data': points,
+        'min_value': min,
+        'max_value': max,
+        'avg_value': _r1(sum / points.length),
+      });
+    }
+
+    return {'printer_id': printerId, 'series': series};
   }
 
   // --- Queue ---

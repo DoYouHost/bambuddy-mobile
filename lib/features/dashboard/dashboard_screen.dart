@@ -477,7 +477,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // reclaiming space; scrolling back to the top restores both. Being driven
     // by the sliver's own shrinkOffset (not a scroll listener) keeps it smooth.
     return RefreshIndicator(
-      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+      onRefresh: () {
+        // Also forget what the two history routes last answered. A 403 or 404
+        // takes their chart shortcuts off the cards, and with the shortcut gone
+        // nothing calls the route again — so a permission granted on the server
+        // would otherwise need an app restart to show up. Recreating the
+        // repositories drops the latch; the "supported" providers watch them.
+        ref.invalidate(heaterHistoryRepositoryProvider);
+        ref.invalidate(amsHistoryRepositoryProvider);
+        return ref.read(dashboardProvider.notifier).refresh();
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [

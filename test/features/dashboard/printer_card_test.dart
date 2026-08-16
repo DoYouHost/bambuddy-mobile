@@ -1,4 +1,7 @@
 import 'package:bambuddy_mobile/core/models/firmware.dart';
+import 'package:bambuddy_mobile/core/models/heater_history.dart';
+import 'package:bambuddy_mobile/data/heater_history_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
@@ -10,6 +13,8 @@ import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +84,7 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
+        ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(() => stub),
       ],
       child: plApp(
@@ -86,23 +92,44 @@ Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
       ),
     );
 
+/// Historia grzałek bez sieci: karta odpowiada tylko za otwarcie arkusza, co
+/// arkusz rysuje z danych sprawdza `heater_history_sheet_test.dart`.
+class _EmptyHeaterHistory extends HeaterHistoryRepository {
+  _EmptyHeaterHistory() : super(Dio());
+
+  @override
+  Future<HeaterHistory> fetch(
+    int printerId, {
+    int hours = 24,
+    List<String> kinds = const [],
+  }) async =>
+      const HeaterHistory(printerId: 3, series: []);
+}
+
 /// Owija drzewo w ProviderScope — karta zawiera teraz interaktywny pasek
 /// sterowania (`_ControlsActions`, ConsumerWidget), więc każdy render karty
 /// ze statusem potrzebuje scope'a. Profil = bez auth, token kamery zaślepiony.
-Widget _scope(Widget child) => ProviderScope(
+Widget _scope(Widget child, {List<Override> extra = const []}) => ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
+        ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+        ...extra,
       ],
       child: plApp(child),
     );
 
-Widget _cardWithProviders(PrinterWithStatus item) => _scope(
+Widget _cardWithProviders(
+  PrinterWithStatus item, {
+  List<Override> extra = const [],
+}) =>
+    _scope(
       Scaffold(body: SingleChildScrollView(child: PrinterCard(item: item))),
+      extra: extra,
     );
 
 /// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
@@ -114,6 +141,7 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
         inertChamberMaxOverride,
+        ...inertHistorySupportOverrides,
         smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
       ],
       child: plApp(
@@ -235,6 +263,85 @@ void main() {
     expect(find.text('12°'), findsOneWidget);
   });
 
+  testWidgets('ikona wykresu na kafelku otwiera historię temperatur',
+      (tester) async {
+    await tester.pumpWidget(_cardWithProviders(
+      const PrinterWithStatus(
+        printer: Printer(id: 3, name: 'X2D'),
+        status: PrinterStatus(
+          id: 3,
+          connected: true,
+          state: 'IDLE',
+          temperatures: {'nozzle': 244, 'bed': 70},
+        ),
+      ),
+      extra: [
+        heaterHistoryRepositoryProvider.overrideWithValue(_EmptyHeaterHistory())
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byWidgetPredicate((w) =>
+          w is Semantics &&
+          w.properties.identifier == 'printer.temperature_history_nozzle'),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Historia temperatur'), findsOneWidget);
+    // Arkusz przełącza się między czujnikami tej drukarki (etykiety kafelków).
+    expect(find.text('Dysza'), findsOneWidget);
+    expect(find.text('Stół'), findsOneWidget);
+  });
+
+  /// Sama ikonka to celownik 22 px wewnątrz InkWella kafelka: chybienie
+  /// otwierało arkusz nastawy temperatury. Klikalny jest cały pasek etykiety.
+  testWidgets('etykieta czujnika otwiera historię, nie arkusz nastawy',
+      (tester) async {
+    await tester.pumpWidget(_cardWithProviders(
+      const PrinterWithStatus(
+        printer: Printer(id: 3, name: 'X2D'),
+        status: PrinterStatus(
+          id: 3,
+          connected: true,
+          state: 'IDLE',
+          temperatures: {'nozzle': 244, 'bed': 70},
+        ),
+      ),
+      extra: [
+        heaterHistoryRepositoryProvider.overrideWithValue(_EmptyHeaterHistory())
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('DYSZA'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Historia temperatur'), findsOneWidget);
+    expect(find.text('Ustaw'), findsNothing); // arkusz nastawy się nie otwarł
+  });
+
+  testWidgets('serwer bez historii grzałek: kafelki bez ikony wykresu',
+      (tester) async {
+    await tester.pumpWidget(_cardWithProviders(
+      const PrinterWithStatus(
+        printer: Printer(id: 3, name: 'X2D'),
+        status: PrinterStatus(
+          id: 3,
+          connected: true,
+          state: 'IDLE',
+          temperatures: {'nozzle': 244, 'bed': 70},
+        ),
+      ),
+      extra: [heaterHistorySupportedProvider.overrideWith((ref) async => false)],
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.show_chart), findsNothing);
+    expect(find.text('DYSZA'), findsOneWidget); // sam kafelek zostaje
+  });
+
   testWidgets('karta bez statusu zwija się do nagłówka z etykietą OFFLINE',
       (tester) async {
     const item = PrinterWithStatus(
@@ -338,6 +445,36 @@ void main() {
 
       // Rozwinięte: kafelek ruchu osi.
       expect(find.text('Ruch'), findsOneWidget);
+    });
+
+    testWidgets('bez dostępu do historii AMS odczyty przestają być klikalne',
+        (tester) async {
+      /// Wilgotność i temperatura AMS to normalne odczyty — gdy serwer nie da
+      /// historii (403 dla okrojonego klucza), zostają na ekranie, tracą tylko
+      /// tapnięcie, które mogłoby skończyć się wyłącznie błędem.
+      Future<Iterable<InkWell>> metaTaps(WidgetTester tester) async {
+        await tester.ensureVisible(find.text('Szczegóły'));
+        await tester.tap(find.text('Szczegóły'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        return tester.widgetList<InkWell>(find.descendant(
+          of: find.byWidgetPredicate((w) =>
+              w is Semantics && w.properties.identifier == 'printer.ams_meta'),
+          matching: find.byType(InkWell),
+        ));
+      }
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(child: PrinterCard(item: realItem())),
+        ),
+        extra: [amsHistorySupportedProvider.overrideWith((ref) async => false)],
+      ));
+
+      final taps = await metaTaps(tester);
+      expect(taps, isNotEmpty);
+      expect(taps.every((w) => w.onTap == null), isTrue);
+      expect(find.textContaining('%'), findsWidgets); // odczyty zostają
     });
   });
 
@@ -659,7 +796,7 @@ void main() {
           inertFirmwareOverride, // zwraca null
           inertTotalPrintHoursOverride,
           inertChamberMaxOverride,
-        inertChamberMaxOverride,
+          ...inertHistorySupportOverrides,
         ],
         child: plApp(
           const Scaffold(
@@ -710,6 +847,29 @@ void main() {
         'printer.temperature_nozzle_2',
         'printer.temperature_bed',
       }));
+    });
+
+    testWidgets('skrót do historii ma własny identyfikator per czujnik',
+        (tester) async {
+      await tester.pumpWidget(_cardWithProviders(const PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X2D'),
+        status: PrinterStatus(
+          id: 1,
+          connected: true,
+          temperatures: {'nozzle': 220, 'bed': 55, 'cośdziwnego': 12},
+        ),
+      )));
+      await tester.pumpAndSettle();
+
+      final ids = identifiersIn(tester).toSet();
+      expect(ids, containsAll(<String>{
+        'printer.temperature_history_nozzle',
+        'printer.temperature_history_bed',
+      }));
+      // Czujnik, którego serwer nie zapisuje, nie dostaje ikony wykresu —
+      // wykres byłby pusty.
+      expect(ids.where((i) => i.startsWith('printer.temperature_history')),
+          hasLength(2));
     });
 
     testWidgets('„wyłącz" i „ustaw" w arkuszu to dwie różne nazwy',

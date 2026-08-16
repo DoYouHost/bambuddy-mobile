@@ -9,6 +9,10 @@ part of 'printer_card.dart';
 /// active heater) are tappable and open [_TempControlSheet]. Setpoint and
 /// airduct glyph overlay the optimistic override from [controlsProvider] so a
 /// just-sent change shows instantly. Read-only when control is forbidden.
+///
+/// Sensors the server keeps history for also carry a chart glyph next to the
+/// label, opening [showHeaterHistorySheet] — the tile's own tap is taken by the
+/// setpoint sheet, and history stays reachable on read-only tiles too.
 class _GaugeTile extends ConsumerWidget {
   const _GaugeTile({
     required this.reading,
@@ -18,11 +22,16 @@ class _GaugeTile extends ConsumerWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
+    required this.historyKinds,
   });
 
   final _TempReading reading;
   final int printerId;
   final String? model;
+
+  /// Every sensor on this printer the history sheet can switch between; empty
+  /// when none of them is recorded (then no tile shows the chart glyph).
+  final List<HeaterKindOption> historyKinds;
 
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
   /// non-nozzle sensors.
@@ -78,6 +87,53 @@ class _GaugeTile extends ConsumerWidget {
         : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     final editable = _isEditable && !forbidden;
+    // Hidden until the server is known to have the route: a shortcut that can
+    // only ever error is worse than no shortcut.
+    final hasHistory = historyKinds.any((k) => k.kind == reading.raw) &&
+        ref
+            .watch(heaterHistorySupportedProvider)
+            .maybeWhen(data: (v) => v, orElse: () => false);
+
+    // The sensor label, preceded by the chart glyph when this sensor is
+    // recorded. The whole strip is the history button, not just the glyph: a
+    // 14 px icon is a 22 px target sitting inside the tile's own InkWell, so a
+    // near-miss opened the setpoint sheet instead of the chart. Taking the
+    // label's full width and the 6 px gap below it costs no tile height — the
+    // strip ends up exactly as tall as a label with no glyph at all.
+    Widget labelStrip = Row(
+      children: [
+        if (hasHistory) ...[
+          Icon(Icons.show_chart, size: 14, color: t.textSecondary),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            reading.label(l10n).toUpperCase(),
+            style: TextStyle(
+              fontFamily: DashTokens.fontUi,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: t.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+    if (hasHistory) {
+      labelStrip = _HistoryButton(
+        logId: reading.historyLogId,
+        onTap: () => showHeaterHistorySheet(
+          context,
+          printerId: printerId,
+          kinds: historyKinds,
+          initialKind: reading.raw,
+        ),
+        child: labelStrip,
+      );
+    }
 
     final tile = Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -107,20 +163,10 @@ class _GaugeTile extends ConsumerWidget {
               // Reserve the gauge's corner: pad the label so it never collides.
               Padding(
                 padding: const EdgeInsets.only(right: 40),
-                child: Text(
-                  reading.label(l10n).toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: labelStrip,
               ),
-              const SizedBox(height: 6),
+              // With the glyph the gap belongs to the button (see [labelStrip]).
+              if (!hasHistory) const SizedBox(height: 6),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,6 +230,62 @@ class _GaugeTile extends ConsumerWidget {
     );
   }
 }
+
+/// The tile's label strip turned into a button that opens the heater history
+/// sheet. Brings its own [Material] because read-only tiles are not wrapped in
+/// one, and the ink would have nowhere to draw. The 6 px of air above the
+/// temperature reading is the button's own padding: it is hit area the tile
+/// cannot spare in height, since the big number owns the rest of it.
+class _HistoryButton extends StatelessWidget {
+  const _HistoryButton({
+    required this.logId,
+    required this.onTap,
+    required this.child,
+  });
+
+  final String logId;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return logTag(
+      logId,
+      Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Tooltip(
+            message: AppLocalizations.of(context).heaterHistoryOpen,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sensor keys the server records history for — bambuddy's own `VALID_KINDS`
+/// (`printer_sensor_history.py`). A key outside this set gets no chart glyph:
+/// the endpoint would answer with an empty series for it.
+const _heaterHistoryKinds = {'nozzle', 'nozzle_2', 'bed', 'chamber'};
+
+/// The sensors of one printer the history sheet can switch between, labelled
+/// exactly as their tiles are.
+List<HeaterKindOption> _heaterKindOptions(
+  List<_TempReading> readings,
+  AppLocalizations l10n,
+) =>
+    [
+      for (final r in readings)
+        if (_heaterHistoryKinds.contains(r.raw))
+          (kind: r.raw, label: r.label(l10n)),
+    ];
 
 /// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
 /// green; offline → red tinted with a vivid border.
@@ -265,9 +367,14 @@ class _TempReading {
   /// (`nozzle`, `nozzle_2`, `bed`), which keeps the log's vocabulary the same on
   /// both sides — but it is the server's string, so anything not shaped like an
   /// identifier falls back to the bare tile name rather than going in verbatim.
-  String get logId => RegExp(r'^\w+$').hasMatch(raw)
-      ? 'printer.temperature_$raw'
-      : 'printer.temperature';
+  String get logId => _logId('printer.temperature');
+
+  /// Identifier of the tile's history shortcut, sensor by sensor for the same
+  /// reason [logId] is.
+  String get historyLogId => _logId('printer.temperature_history');
+
+  String _logId(String base) =>
+      RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 
   String label(AppLocalizations l10n) => switch (kind) {
         _TempKind.nozzle =>

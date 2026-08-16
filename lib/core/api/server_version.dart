@@ -29,6 +29,14 @@ enum ServerFeature {
   /// `SlicerRepository` uses as the outranking observation.
   processOverrides,
 
+  /// `GET /printer-sensor-history/{id}` — recorded nozzle / bed / chamber
+  /// readings behind the temperature tiles' chart shortcut.
+  ///
+  /// The route 404s before it, and reading it also needs
+  /// `printer_sensor_history:read`, so `HeaterHistoryRepository` treats both
+  /// answers as outranking this row — the version cannot see the permission.
+  printerSensorHistory,
+
   /// `GET /users/slim` — id + username only, so `created_by_id` can be shown as
   /// a name (server #1894).
   ///
@@ -144,6 +152,12 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.processOverrides: (1, 2, 6, 0),
     // GET /users/slim (server #1894) — probed, not gated on this. See the enum.
     ServerFeature.usersSlimListing: (1, 2, 6, 0),
+    // Heater history (server commit 090c180e). The threshold is written in the
+    // *old* numbering because that is where the route shipped — v0.2.4.8, two
+    // releases before the scheme changed to 1.2.5. Every 1.x version outranks
+    // it, so this one row covers both schemes; writing it as (1, 2, 4, 8) would
+    // hide the chart on exactly the 0.2.4.x servers that have it.
+    ServerFeature.printerSensorHistory: (0, 2, 4, 8),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

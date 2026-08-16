@@ -429,6 +429,10 @@ class _TempGrid extends StatelessWidget {
     // plain `nozzle` is the default → index 0.
     final hasSecondNozzle =
         readings.any((r) => r.kind == _TempKind.nozzle && r.index != null);
+    // Built once for the whole grid: every tile's chart glyph opens the same
+    // sheet, which switches between all of this printer's recorded sensors.
+    final historyKinds =
+        _heaterKindOptions(readings, AppLocalizations.of(context));
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -451,6 +455,7 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
+                  historyKinds: historyKinds,
                 ),
               ),
           ],

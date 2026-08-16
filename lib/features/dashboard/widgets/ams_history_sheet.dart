@@ -9,6 +9,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import 'history_chart_parts.dart';
 
 /// Which metric the AMS history chart is showing.
 enum AmsHistoryMetric { humidity, temperature }
@@ -24,6 +25,13 @@ final amsHistoryDataProvider = FutureProvider.autoDispose
       .watch(amsHistoryRepositoryProvider)
       .fetch(q.printerId, q.amsId, hours: q.hours);
 });
+
+/// Whether the AMS humidity/temperature chips open a chart at all: the route is
+/// there and this session may read it. Invalidated by the sheet after a failed
+/// fetch, so a 403 leaves plain readings rather than a tap that only errors.
+final amsHistorySupportedProvider = FutureProvider<bool>(
+  (ref) => ref.watch(amsHistoryRepositoryProvider).supportsHistory(),
+);
 
 /// AMS "Good"/"Fair" status thresholds. Chart reference lines. Sourced from
 /// server settings, with the same keys and defaults as bambuddy.
@@ -108,11 +116,17 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final isHumidity = _metric == AmsHistoryMetric.humidity;
-    final async = ref.watch(amsHistoryDataProvider((
+    final query = (
       printerId: widget.printerId,
       amsId: widget.amsId,
       hours: _hours,
-    )));
+    );
+    // A failure is also an observation about the route: re-ask whether the
+    // chips should still open a chart.
+    ref.listen(amsHistoryDataProvider(query), (_, next) {
+      if (next.hasError) ref.invalidate(amsHistorySupportedProvider);
+    });
+    final async = ref.watch(amsHistoryDataProvider(query));
     final thresholds =
         ref.watch(amsThresholdsProvider).valueOrNull ?? _defaultAmsThresholds;
     final good =
@@ -151,7 +165,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 onSelectionChanged: (s) => setState(() => _metric = s.first),
               ),
               const SizedBox(height: 8),
-              _RangeSelector(
+              HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
                 labelOf: (h) => _rangeLabel(l10n, h),
@@ -165,7 +179,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 ),
                 error: (_, _) => SizedBox(
                   height: 260,
-                  child: Center(child: Text(l10n.amsHistoryError)),
+                  child: Center(child: Text(l10n.sensorHistoryError)),
                 ),
                 data: (history) => _Content(
                   history: history,
@@ -190,40 +204,11 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
   }
 
   String _rangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-        6 => l10n.amsHistoryRange6h,
-        48 => l10n.amsHistoryRange48h,
-        168 => l10n.amsHistoryRange7d,
-        _ => l10n.amsHistoryRange24h,
+        6 => l10n.sensorHistoryRange6h,
+        48 => l10n.sensorHistoryRange48h,
+        168 => l10n.sensorHistoryRange7d,
+        _ => l10n.sensorHistoryRange24h,
       };
-}
-
-/// Compact segmented time-range picker (its own row so it wraps independently
-/// of the metric toggle on narrow screens).
-class _RangeSelector extends StatelessWidget {
-  const _RangeSelector({
-    required this.ranges,
-    required this.selected,
-    required this.labelOf,
-    required this.onChanged,
-  });
-
-  final List<int> ranges;
-  final int selected;
-  final String Function(int hours) labelOf;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<int>(
-      showSelectedIcon: false,
-      segments: [
-        for (final h in ranges)
-          ButtonSegment(value: h, label: Text(labelOf(h))),
-      ],
-      selected: {selected},
-      onSelectionChanged: (s) => onChanged(s.first),
-    );
-  }
 }
 
 class _Content extends StatelessWidget {
@@ -249,7 +234,7 @@ class _Content extends StatelessWidget {
 
     // Read the selected metric off each point; skip nulls so gaps don't distort.
     final spots = <FlSpot>[
-      for (final p in history.points)
+      for (final p in thinnedForChart(history.points))
         if (_valueOf(p) case final v?)
           FlSpot(p.recordedAt.millisecondsSinceEpoch.toDouble(), v),
     ];
@@ -257,7 +242,7 @@ class _Content extends StatelessWidget {
     if (spots.isEmpty) {
       return SizedBox(
         height: 260,
-        child: Center(child: Text(l10n.amsHistoryEmpty)),
+        child: Center(child: Text(l10n.sensorHistoryEmpty)),
       );
     }
 
@@ -273,10 +258,12 @@ class _Content extends StatelessWidget {
       children: [
         Row(
           children: [
-            _Stat(label: l10n.amsHistoryCurrent, value: _fmt(current, unit)),
-            _Stat(label: l10n.amsHistoryAverage, value: _fmt(avg, unit)),
-            _Stat(label: l10n.amsHistoryMin, value: _fmt(min, unit)),
-            _Stat(label: l10n.amsHistoryMax, value: _fmt(max, unit)),
+            HistoryStat(
+                label: l10n.sensorHistoryCurrent, value: _fmt(current, unit)),
+            HistoryStat(
+                label: l10n.sensorHistoryAverage, value: _fmt(avg, unit)),
+            HistoryStat(label: l10n.sensorHistoryMin, value: _fmt(min, unit)),
+            HistoryStat(label: l10n.sensorHistoryMax, value: _fmt(max, unit)),
           ],
         ),
         const SizedBox(height: 16),
@@ -397,35 +384,6 @@ class _Content extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
         labelResolver: (_) => label,
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }
