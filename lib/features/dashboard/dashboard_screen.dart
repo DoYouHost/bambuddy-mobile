@@ -17,6 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
@@ -314,6 +315,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
+
+    // Not read — watched so it exists while this screen (and with it the UI's
+    // socket) does. It waits for the finish photo the server attaches after a
+    // print, which lands once the print-ended notification is already out.
+    ref.watch(finishPhotoNotifierProvider);
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.

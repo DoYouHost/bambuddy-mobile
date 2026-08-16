@@ -47,9 +47,13 @@ class _FakeNotifications implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async {
     if (failWith != null) throw failWith!;
   }
+
+  @override
+  Future<bool> isAlertActive(int id) async => true;
 }
 
 void main() {

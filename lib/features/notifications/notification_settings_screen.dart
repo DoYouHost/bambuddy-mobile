@@ -65,6 +65,25 @@ class NotificationSettingsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
+            _Header(l10n.notifExtrasHeader),
+            _DashSection(
+              rows: [
+                _DashSwitchRow(
+                  tag: 'notification_settings.finish_photo',
+                  title: l10n.notifFinishPhotoTitle,
+                  subtitle: l10n.notifFinishPhotoDesc,
+                  value: prefs.finishPhoto,
+                  // It decorates the two print-ended alerts, so it is only worth
+                  // touching while at least one of them can fire.
+                  onChanged:
+                      prefs.isOn(NotifEvent.printFinished) ||
+                          prefs.isOn(NotifEvent.printFailed)
+                      ? notifier.setFinishPhoto
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             _Header(l10n.notifThresholdsHeader),
             _DashSection(
               rows: [
@@ -186,12 +205,18 @@ class _DashSwitchRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.tag = 'notification_settings.event',
   });
 
   final String title;
   final String subtitle;
   final bool value;
   final ValueChanged<bool>? onChanged;
+
+  /// Name this row taps under in a diagnostic log. Defaults to the per-event
+  /// rows, which is what most of this screen is; a row that switches something
+  /// other than an event passes its own.
+  final String tag;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +225,7 @@ class _DashSwitchRow extends StatelessWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: logTag(
-        'notification_settings.event',
+        tag,
         InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: enabled ? () => onChanged!(!value) : null,

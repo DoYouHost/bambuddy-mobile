@@ -89,6 +89,45 @@ void main() {
     });
   });
 
+  group('Archive.photos / hasPhotos / hasTimelapse', () {
+    Archive parse(Map<String, dynamic> extra) => Archive.fromJson({
+      'id': 1,
+      'filename': 'a.gcode',
+      'status': 'completed',
+      ...extra,
+    });
+
+    test('brak pola photos → pusta lista, hasPhotos false', () {
+      final archive = parse(const {});
+      expect(archive.photos, isEmpty);
+      expect(archive.hasPhotos, isFalse);
+    });
+
+    test('photos: null → pusta lista', () {
+      expect(parse(const {'photos': null}).photos, isEmpty);
+    });
+
+    test('parsuje nazwy plików, pomijając elementy niebędące stringiem', () {
+      final archive = parse(const {
+        'photos': ['finish_20260815_120000_ab12cd34.jpg', 42, 'ab12cd34.png'],
+      });
+      expect(archive.photos, [
+        'finish_20260815_120000_ab12cd34.jpg',
+        'ab12cd34.png',
+      ]);
+      expect(archive.hasPhotos, isTrue);
+    });
+
+    test('hasTimelapse: puste/brak timelapse_path → false', () {
+      expect(parse(const {}).hasTimelapse, isFalse);
+      expect(parse(const {'timelapse_path': ''}).hasTimelapse, isFalse);
+      expect(
+        parse(const {'timelapse_path': 'archive/1/video.mp4'}).hasTimelapse,
+        isTrue,
+      );
+    });
+  });
+
   group('Archive.isSliced', () {
     Archive withFile(String filename, {int? totalLayers, int? printTime}) =>
         Archive(
@@ -144,6 +183,8 @@ void main() {
         filamentType: 'PLA',
         fileSize: 999,
         duplicateCount: 2,
+        timelapsePath: 'archive/7/video.mp4',
+        photos: ['finish_1.jpg'],
       );
       final fav = a.withFavorite(true);
       expect(fav.isFavorite, isTrue);
@@ -152,6 +193,8 @@ void main() {
       expect(fav.filamentType, 'PLA');
       expect(fav.fileSize, 999);
       expect(fav.duplicateCount, 2);
+      expect(fav.hasTimelapse, isTrue);
+      expect(fav.photos, ['finish_1.jpg']);
       // Oryginał nietknięty (niemutowalny).
       expect(a.isFavorite, isFalse);
     });

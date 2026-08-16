@@ -696,6 +696,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveTimelapse => 'Watch timelapse';
 
   @override
+  String archivePhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'View photos ($count)',
+      one: 'View photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePhotosTitle => 'Photos';
+
+  @override
+  String get archivePhotosEmpty => 'No photos for this print';
+
+  @override
+  String get archivePhotoFailed => 'Couldn\'t load this photo.';
+
+  @override
+  String get archiveHasTimelapse => 'Has a timelapse';
+
+  @override
+  String archiveHasPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Has $count photos',
+      one: 'Has a photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get timelapseTitle => 'Timelapse';
 
   @override
@@ -1488,6 +1522,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifEventsHeader => 'Events';
+
+  @override
+  String get notifExtrasHeader => 'Details';
+
+  @override
+  String get notifFinishPhotoTitle => 'Photo of the finished print';
+
+  @override
+  String get notifFinishPhotoDesc =>
+      'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
 
   @override
   String get notifThresholdsHeader => 'Thresholds';

@@ -309,6 +309,14 @@ abstract final class Endpoints {
   static String archiveTimelapse(int archiveId) =>
       '$apiPrefix/archives/$archiveId/timelapse';
 
+  /// One photo attached to the archive, authenticated via `?token=` (camera
+  /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
+  /// `archives.py::get_photo` serves nothing that is not on that list.
+  static String archivePhoto(int archiveId, String filename) {
+    final name = Uri.encodeComponent(filename);
+    return '$apiPrefix/archives/$archiveId/photos/$name';
+  }
+
   /// Timelapse metadata read with ffprobe server-side — `{duration, width,
   /// height, fps, codec, file_size, has_audio}`. Unlike the video itself this
   /// one takes the ordinary auth header.

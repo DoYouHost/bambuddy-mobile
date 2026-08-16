@@ -705,6 +705,44 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveTimelapse => 'Obejrzyj timelapse';
 
   @override
+  String archivePhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zobacz zdjęcia ($count)',
+      many: 'Zobacz zdjęcia ($count)',
+      few: 'Zobacz zdjęcia ($count)',
+      one: 'Zobacz zdjęcie',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePhotosTitle => 'Zdjęcia';
+
+  @override
+  String get archivePhotosEmpty => 'Ten wydruk nie ma zdjęć';
+
+  @override
+  String get archivePhotoFailed => 'Nie udało się wczytać tego zdjęcia.';
+
+  @override
+  String get archiveHasTimelapse => 'Ma timelapse';
+
+  @override
+  String archiveHasPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ma $count zdjęć',
+      many: 'Ma $count zdjęć',
+      few: 'Ma $count zdjęcia',
+      one: 'Ma zdjęcie',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get timelapseTitle => 'Timelapse';
 
   @override
@@ -1511,6 +1549,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get notifEventsHeader => 'Zdarzenia';
+
+  @override
+  String get notifExtrasHeader => 'Szczegóły';
+
+  @override
+  String get notifFinishPhotoTitle => 'Zdjęcie skończonego wydruku';
+
+  @override
+  String get notifFinishPhotoDesc =>
+      'Dokłada do powiadomienia o zakończeniu lub błędzie zdjęcie, które serwer robi po wydruku — gdy tylko dojdzie';
 
   @override
   String get notifThresholdsHeader => 'Progi';

@@ -138,6 +138,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
   Future<void> setEvent(NotifEvent event, bool on) =>
       _save(state.withEvent(event, on));
 
+  Future<void> setFinishPhoto(bool on) =>
+      _save(state.copyWith(finishPhoto: on));
+
   Future<void> setBedCooledTemp(int value) =>
       _save(state.copyWith(bedCooledTemp: value));
 

@@ -53,6 +53,7 @@ class _FakeNotifications implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async {
     alerts.add({
       'event': event,
@@ -63,6 +64,9 @@ class _FakeNotifications implements NotificationService {
       'payload': payload,
     });
   }
+
+  @override
+  Future<bool> isAlertActive(int id) async => true;
 }
 
 PrinterStatus _status({
@@ -998,6 +1002,7 @@ class _ThrowingNotifications extends _FakeNotifications {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async =>
       throw StateError('plugin not initialised');
 }

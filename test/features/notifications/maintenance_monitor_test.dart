@@ -28,6 +28,7 @@ class _FakeNotifications implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async {
     alerts.add({
       'event': event,
@@ -38,6 +39,9 @@ class _FakeNotifications implements NotificationService {
       'actionIds': [for (final a in actions ?? const []) a.id],
     });
   }
+
+  @override
+  Future<bool> isAlertActive(int id) async => true;
 
   @override
   Future<void> clearOngoing() async {}

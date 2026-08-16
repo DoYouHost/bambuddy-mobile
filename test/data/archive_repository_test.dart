@@ -29,6 +29,23 @@ void main() {
     expect(archives.first.displayName, 'The Smoothy - Y Splitter Connector');
   });
 
+  test('byId: GET /archives/82 zwraca pojedynczy wpis ze zdjęciami', () async {
+    final withPhoto = {
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      'photos': ['finish_20260815_120000_ab12cd34.jpg'],
+    };
+    adapter.onGet(
+      '/api/v1/archives/82',
+      (server) => server.reply(200, withPhoto),
+    );
+
+    final archive = await repo.byId(82);
+
+    expect(archive.id, 82);
+    expect(archive.photos, ['finish_20260815_120000_ab12cd34.jpg']);
+    expect(archive.hasPhotos, isTrue);
+  });
+
   test('search: parsuje listę wyników wyszukiwania', () async {
     adapter.onGet(
       '/api/v1/archives/search',
