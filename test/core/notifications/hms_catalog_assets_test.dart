@@ -9,23 +9,30 @@ import '../../helpers.dart';
 /// named is decided by an asset, so a stubbed resolver proves nothing about
 /// what a user actually sees.
 ///
-/// Codes below come from `fixtures/printer_status_hms.json` — a real
-/// `GET /printers/{id}/status` capture, hence the odd trio: one code missing
-/// from the catalog and two that share a short code with different meanings.
+/// The app names the faults bambuddy names and no others: the `print_error`
+/// channel — what pauses or kills a print and offers the user a button. The
+/// `hms[]` channel (component diagnostics) is deliberately unnamed, which is
+/// what `fixtures/printer_status_hms.json` below is evidence of: three real
+/// errors from a live printer, none of which bambuddy would show either.
 ///
-/// It has its own fixture, and it lives outside `captured/`, for two reasons
-/// that both come down to it being **irreproducible**. HMS errors are transient:
-/// they belong to a print job, and this printer stopped reporting these the
-/// moment it reconnected, so a fresh capture of the same endpoint holds one error
-/// instead of three and the whole scenario below evaporates. And `captured/` is
-/// untracked (see `test/fixtures/README.md`), so anything left in there exists
-/// only on the machine that captured it — which for a payload nobody can capture
-/// again would mean losing this coverage for everyone else.
-///
-/// Hence a frozen, committed file with a pre-1.2.5.1 field set. Nothing here
-/// reads the fields 1.2.5.1 added.
+/// That fixture lives outside `captured/` because it is **irreproducible**. HMS
+/// errors belong to a print job, and this printer stopped reporting these the
+/// moment it reconnected; `captured/` is untracked (see
+/// `test/fixtures/README.md`), so anything left there exists only on the
+/// machine that captured it.
 void main() {
   late HmsCatalog en;
+
+  /// A fault as the server builds it from the 32-bit `print_error` field
+  /// (`bambu_mqtt.py::_update_state`): `attr` holds the whole value, `code` its
+  /// low half, `full_code` the 8-hex key.
+  HmsError printError(int value, {int severity = 3}) => HmsError(
+        code: '0x${(value & 0xFFFF).toRadixString(16)}',
+        attr: value,
+        module: (value >> 24) & 0xFF,
+        severity: severity,
+        fullCode: value.toRadixString(16).padLeft(8, '0').toUpperCase(),
+      );
 
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,9 +41,9 @@ void main() {
     // The loader swallows a missing/corrupt asset and leaves an empty table, so
     // without this guard every expectation below would pass by saying "unknown".
     expect(
-      en.describe(const HmsError(code: '0x1000a', attr: 50331904)),
+      en.describe(printError(0x03008004)),
       isNotNull,
-      reason: 'assets/hms/hms_en.json did not load — the rest is vacuous',
+      reason: 'assets/hms/print_errors_en.json did not load — the rest is vacuous',
     );
   });
 
@@ -49,79 +56,99 @@ void main() {
     return errors!;
   }
 
-  group('real capture through the real catalog', () {
-    test('the uncataloged code is hidden, the two known ones are shown', () {
-      final [unknown, heatbed, chamber] = capturedErrors();
+  group('the print errors a user is meant to act on', () {
+    test('the codes that pause a print resolve to Bambu\'s own text', () {
+      expect(en.describe(printError(0x03008004)), contains('Filament ran out'));
+      expect(en.describe(printError(0x0300800F)), contains('door'));
+      expect(en.describe(printError(0x03008011)), contains('build plate'));
+      expect(en.describe(printError(0x07008011)), contains('AMS'));
+    });
 
-      // 0500_0600_0002_0070 — absent from BambuStudio's device_hms table, so
-      // the app has nothing to say about it and therefore says nothing.
-      expect(unknown.ecode, '0500060000020070');
+    test('a described error is shown, and shown by its description', () {
+      final runout = printError(0x03008004);
+      final description = en.describe(runout);
+      expect(hmsIsDisplayable(runout, description: description), isTrue);
+      expect(hmsLabel(runout, description: description), description);
+      expect(hmsHumanText(runout, description: description), description);
+    });
+
+    test('the code renders in the two-group form the printer screen uses', () {
+      expect(printError(0x03008004).displayCode, '0300-8004');
+    });
+
+    test('a print error outside bambuddy\'s table stays unnamed', () {
+      final unknown = printError(0x0300FFFF);
       expect(en.describe(unknown), isNull);
-      expect(hmsIsDisplayable(unknown, description: en.describe(unknown)),
-          isFalse);
-      expect(hmsLabel(unknown, description: en.describe(unknown)), isNull);
+      expect(hmsIsDisplayable(unknown, description: en.describe(unknown)), isFalse);
+    });
 
-      for (final e in [heatbed, chamber]) {
+    test('a server too old to send full_code still names the fault', () {
+      // Pre-0.2.4.8 payload: no `full_code`, so the lookup falls back to the
+      // short form the server itself composes. Actions are what such a server
+      // cannot offer — the description is not.
+      const legacy = HmsError(code: '0x8004', attr: 0x03008004, module: 3);
+      expect(legacy.fullCode, isNull);
+      expect(legacy.shortCode, '0300_8004');
+      expect(en.describe(legacy), contains('Filament ran out'));
+    });
+
+    test('the fault that explains a silent printer is carried by full code', () {
+      // 0500_0500_0001_0007 — "MQTT command verification failed". An hms[]-channel
+      // code, kept because it is the one that explains why nothing the app sends
+      // arrives. Its meaning lives in the bits the short form discards, so it
+      // resolves by the 16-hex key and its short form must NOT.
+      const verifyFailed = HmsError(
+        code: '0x10007',
+        attr: 0x05000500,
+        fullCode: '0500050000010007',
+      );
+      expect(en.describe(verifyFailed), contains('rejected a command'));
+      expect(verifyFailed.shortCode, '0500_0007');
+      expect(en.describe(const HmsError(code: '0x7', attr: 0x05000500)), isNull);
+    });
+  });
+
+  group('real capture through the real catalog', () {
+    test('component diagnostics stay silent — bambuddy does not show them', () {
+      for (final e in capturedErrors()) {
         final description = en.describe(e);
-        expect(description, isNotNull, reason: '${e.ecode} should resolve');
-        expect(hmsIsDisplayable(e, description: description), isTrue);
-        expect(hmsHumanText(e, description: description), description);
+        expect(description, isNull, reason: '${e.fullCode} is an hms[] fault');
+        expect(hmsIsDisplayable(e, description: description), isFalse);
+        expect(hmsIsNotifiable(e, description: description), isFalse);
+        expect(hmsLabel(e, description: description), isNull);
       }
     });
 
-    test('the module byte alone never speaks for a code', () {
-      // Both known codes report `module: 3`, and so does the hidden one's
-      // family — module is not what makes an error nameable.
+    test('neither module nor severity can make a code speak', () {
       final [unknown, heatbed, _] = capturedErrors();
       expect(unknown.module, 5);
       expect(heatbed.module, 3);
+      expect([unknown.severity, heatbed.severity], [6, 1]);
       expect(hmsIsDisplayable(unknown), isFalse);
-      expect(hmsIsDisplayable(heatbed), isFalse,
-          reason: 'without the catalog even a real fault stays unnamed');
-    });
-
-    test('severity 1 from the server is not evidence of anything', () {
-      // Both codes the capture marks `severity: 1` — bambuddy computes that
-      // from `(attr >> 8) & 0xF`, i.e. BambuStudio's part_id. One of them is a
-      // real heatbed fault, and the field is what used to print "Fatal".
-      final [_, heatbed, chamber] = capturedErrors();
-      expect([heatbed.severity, chamber.severity], [1, 1]);
-      for (final e in [heatbed, chamber]) {
-        expect(hmsIsDisplayable(e), isFalse);
-        expect(hmsIsDisplayable(e, description: en.describe(e)), isTrue);
-      }
+      expect(hmsIsDisplayable(heatbed), isFalse);
     });
   });
 
   group('lookup granularity', () {
-    test('codes sharing a short code do not share a meaning', () {
-      // 0300_000A twice, differing only in part_id (0x01 vs 0x91): the heated
-      // bed and chamber heater 1. This is why the lookup is the full 16-hex
-      // code and must never fall back to the short form — 660 of the 801 short
-      // codes in the table cover several parts with different text.
-      final [_, heatbed, chamber] = capturedErrors();
-      expect(heatbed.ecode!.substring(12), chamber.ecode!.substring(12));
-      expect(en.describe(heatbed), isNot(en.describe(chamber)));
-      expect(en.describe(heatbed), contains('heatbed'));
-      expect(en.describe(chamber), contains('chamber heater 1'));
-    });
-
-    test('a code whose part_id is not in the table stays unknown', () {
-      // 0704_2200_0002_0025 is catalogued ("AMS E slot 3 feed resistance");
-      // the same code from part 0x99 is not, and must not borrow that text.
-      const catalogued = HmsError(code: '0x20025', attr: 0x07042200);
-      const otherPart = HmsError(code: '0x20025', attr: 0x07049900);
-      expect(en.describe(catalogued), contains('AMS'));
-      expect(en.describe(otherPart), isNull);
-      expect(hmsIsDisplayable(otherPart, description: en.describe(otherPart)),
-          isFalse);
-    });
-
-    test('an error with no attr cannot be looked up at all', () {
+    test('an error with neither full code nor attr cannot be looked up', () {
       const noAttr = HmsError(code: '0x1000a');
-      expect(noAttr.ecode, isNull);
+      expect(noAttr.shortCode, isNull);
       expect(en.describe(noAttr), isNull);
       expect(hmsIsDisplayable(noAttr, description: en.describe(noAttr)), isFalse);
+    });
+
+    test('an unknown action-bearing fault is still not shown', () {
+      // bambuddy keeps an uncataloged error when the firmware offers actions;
+      // the app does not (see hmsIsDisplayable). A card headed by bare hex is
+      // not something to hand a user a button on.
+      final unknown = HmsError(
+        code: '0xffff',
+        attr: 0x0300FFFF,
+        fullCode: '0300FFFF',
+        actions: const ['RESUME_PRINTING'],
+      );
+      expect(en.describe(unknown), isNull);
+      expect(hmsIsDisplayable(unknown, description: en.describe(unknown)), isFalse);
     });
   });
 
@@ -147,18 +174,15 @@ void main() {
         () async {
       final pl = HmsCatalog();
       await pl.load(const Locale('pl'));
-      final [unknown, heatbed, _] = capturedErrors();
-      expect(pl.describe(heatbed), contains('stołu'));
-      expect(pl.describe(unknown), isNull);
-      expect(hmsIsDisplayable(unknown, description: pl.describe(unknown)),
-          isFalse);
+      expect(pl.describe(printError(0x03008004)), contains('filament'));
+      expect(pl.describe(printError(0x0300FFFF)), isNull);
     });
 
     test('an unsupported locale falls back to the English table', () async {
       final de = HmsCatalog();
       await de.load(const Locale('de'));
-      final [_, heatbed, _] = capturedErrors();
-      expect(de.describe(heatbed), en.describe(heatbed));
+      expect(de.describe(printError(0x03008004)),
+          en.describe(printError(0x03008004)));
     });
   });
 }

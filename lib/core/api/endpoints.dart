@@ -163,6 +163,18 @@ abstract final class Endpoints {
   static String printerClearPlate(int printerId) =>
       '$apiPrefix/printers/$printerId/clear-plate';
 
+  /// Clear the printer's active error dialog (`clean_print_error`) — one call
+  /// per printer, not per error. Empty body. 400 when it is not connected.
+  static String hmsClear(int printerId) =>
+      '$apiPrefix/printers/$printerId/hms/clear';
+
+  /// Run one of the firmware's remediation actions for a fault. JSON body
+  /// `{print_error, action, job_id}` — see [PrinterCommandsRepository].
+  /// The server waits ~2.5s for the printer to acknowledge and answers 502 if
+  /// it stays silent, so this call is slower than every other control route.
+  static String hmsExecuteAction(int printerId) =>
+      '$apiPrefix/printers/$printerId/hms/execute-action';
+
   /// Chamber light. Query: `on=true|false`.
   static String chamberLight(int printerId) =>
       '$apiPrefix/printers/$printerId/chamber-light';

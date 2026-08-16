@@ -81,6 +81,14 @@ class _FakeCommands implements PrinterCommandsRepository {
       _do('extruderJog:$id:$distance');
   @override
   Future<void> homeAxes(int id) => _do('homeAxes:$id');
+  @override
+  Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
+  @override
+  Future<void> executeHmsAction(int id,
+          {required String printError,
+          required String action,
+          String? jobId}) =>
+      _do('hmsAction:$id:$printError:$action:${jobId ?? ''}');
 }
 
 ProviderContainer _container(_FakeCommands fake) {

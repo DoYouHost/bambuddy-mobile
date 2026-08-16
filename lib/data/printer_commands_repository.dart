@@ -141,9 +141,41 @@ class PrinterCommandsRepository {
   Future<void> homeAxes(int printerId) =>
       _post(Endpoints.homeAxes(printerId), query: {'axes': 'all'});
 
-  Future<void> _post(String path, {Map<String, dynamic>? query}) async {
+  /// Clear the printer's active error dialog. Printer-wide by nature: the
+  /// firmware command behind it (`clean_print_error`) takes no code and drops
+  /// whatever is on screen, so there is no per-error variant to offer.
+  Future<void> clearHmsErrors(int printerId) =>
+      _post(Endpoints.hmsClear(printerId));
+
+  /// Run one of the firmware's remediation actions for a fault.
+  ///
+  /// [printError] must be the fault's `full_code` **verbatim** — the server
+  /// validates it as 8 or 16 hex digits and the firmware matches on it; a code
+  /// rebuilt from `attr`/`code` is silently ignored by the printer. [jobId] is
+  /// the fault's own `job_id` snapshot, omitted for an idle-state error.
+  ///
+  /// Throws `ApiException(statusCode: 502)` when the publish succeeded but the
+  /// printer sent nothing back within the server's 2.5s window — a real outcome
+  /// worth its own message, not a transport failure.
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _post(Endpoints.hmsExecuteAction(printerId), data: {
+        'print_error': printError,
+        'action': action,
+        if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
+      });
+
+  Future<void> _post(
+    String path, {
+    Map<String, dynamic>? query,
+    Map<String, dynamic>? data,
+  }) async {
     try {
-      await _dio.post<dynamic>(path, queryParameters: query);
+      await _dio.post<dynamic>(path, queryParameters: query, data: data);
     } on DioException catch (e) {
       throw mapDioException(e);
     }

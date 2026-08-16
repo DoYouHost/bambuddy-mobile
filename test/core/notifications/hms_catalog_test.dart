@@ -220,8 +220,17 @@ void main() {
       );
     });
 
-    test('null when the full code cannot be composed', () {
-      expect(hmsWikiUrl(const HmsError(code: '0500_0100')), isNull);
+    test('a print error links to the index, not to a made-up code page', () {
+      // Bambu publishes no per-code page for the print_error channel, and the
+      // 16-hex code this class could compose out of its 32-bit attr would name
+      // a different fault — so the link goes where bambuddy's own does.
+      const e = HmsError(code: '0x8004', attr: 0x03008004, fullCode: '03008004');
+      expect(hmsWikiUrl(e), 'https://wiki.bambulab.com/en/hms/home');
+    });
+
+    test('the index also covers a code too incomplete to link precisely', () {
+      expect(hmsWikiUrl(const HmsError(code: '0500_0100')),
+          'https://wiki.bambulab.com/en/hms/home');
     });
   });
 }

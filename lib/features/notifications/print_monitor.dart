@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart' show Locale;
 
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/background_api.dart';
+import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
@@ -26,6 +28,10 @@ const int _bedCooledAlertBase = 11000;
 
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
+
+/// Buttons an alert may carry. Android's notification shade lays out three and
+/// drops whatever follows without a word.
+const int _maxAlertActions = 3;
 
 /// Grace period before declaring printer offline — `connected` can flicker
 /// (similar to OFFLINE card collapse in printer_card.dart).
@@ -717,21 +723,42 @@ class PrintMonitor {
   void _alertError(int id, PrinterStatus status, HmsError err) {
     final l = _l10n();
     final detail = hmsHumanText(err, description: _hmsDescribe?.call(err));
+    final fullCode = err.fullCode;
     _notifications.showAlert(
       event: NotifEvent.printerError,
       printerId: id,
       id: _errorAlertId(id, err),
       title: l.notifErrorTitle,
       body: l.notifErrorBody(_printerLabel(status, l), detail),
-      payload: 'printer:$id',
+      payload: fullCode == null
+          ? 'printer:$id'
+          : hmsPayload(printerId: id, fullCode: fullCode, jobId: err.jobId),
+      actions: fullCode == null ? null : _errorActions(err, l),
     );
+  }
+
+  /// Remediation buttons for a fault, or null when it offers none the app can
+  /// send. Capped at [_maxAlertActions]: Android draws three and silently drops
+  /// the rest, and the firmware lists the important ones first.
+  List<NotificationAction>? _errorActions(HmsError err, AppLocalizations l) {
+    final actions = hmsRenderableActions(err.actions).take(_maxAlertActions);
+    if (actions.isEmpty) return null;
+    return [
+      for (final action in actions)
+        NotificationAction(
+          id: '$hmsActionIdPrefix$action',
+          title: hmsActionLabel(l, action),
+          // Stopping a print is confirmed in the app, never on the tap itself.
+          opensApp: action == hmsStopAction,
+        ),
+    ];
   }
 
   /// HMS error alert ID — unique per (printer, code) so concurrent errors on same
   /// printer don't overwrite (same code re-hits same notification). Separate high
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
-    final code = err.ecode ?? err.code ?? err.displayCode;
+    final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
     return _errorAlertBase * 1000 + (Object.hash(id, code) & 0xfffff);
   }
 

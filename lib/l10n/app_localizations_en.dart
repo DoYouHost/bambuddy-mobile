@@ -1646,6 +1646,123 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hmsViewInWiki => 'Open in Bambu wiki';
 
   @override
+  String hmsErrorsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count errors',
+      one: '1 error',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get hmsDismissAll => 'Dismiss all';
+
+  @override
+  String get hmsDismissed => 'Errors cleared on the printer';
+
+  @override
+  String get hmsDismissFailed => 'Could not clear the errors';
+
+  @override
+  String get hmsActionSent => 'Sent to the printer';
+
+  @override
+  String get hmsActionFailed => 'The printer refused the action';
+
+  @override
+  String get hmsActionNotAcknowledged =>
+      'The printer did not confirm the action — check its screen';
+
+  @override
+  String get hmsStopConfirmTitle => 'Stop the print?';
+
+  @override
+  String hmsStopConfirmBody(String printer) {
+    return '$printer will abandon the print job. This cannot be undone.';
+  }
+
+  @override
+  String get hmsStopConfirmAction => 'Stop printing';
+
+  @override
+  String get hmsActionResume => 'Resume printing';
+
+  @override
+  String get hmsActionResumeDefects => 'Resume (defects acceptable)';
+
+  @override
+  String get hmsActionResumeSolved => 'Resume (problem solved)';
+
+  @override
+  String get hmsActionProblemSolvedResume => 'Problem solved, resume';
+
+  @override
+  String get hmsActionFilamentLoadedResume => 'Filament loaded, resume';
+
+  @override
+  String get hmsActionProceed => 'Proceed';
+
+  @override
+  String get hmsActionStopPrinting => 'Stop printing';
+
+  @override
+  String get hmsActionIgnoreResume => 'Ignore this and resume';
+
+  @override
+  String get hmsActionIgnoreNoReminder => 'Ignore, don\'t remind me again';
+
+  @override
+  String get hmsActionDontRemind => 'Don\'t remind me';
+
+  @override
+  String get hmsActionNoReminder => 'No reminder next time';
+
+  @override
+  String get hmsActionFilamentExtruded => 'Filament extruded, continue';
+
+  @override
+  String get hmsActionRetryFilamentExtruded => 'Not extruded yet, retry';
+
+  @override
+  String get hmsActionContinue => 'Finished, continue';
+
+  @override
+  String get hmsActionRetrySolved => 'Retry (problem solved)';
+
+  @override
+  String get hmsActionDone => 'Done';
+
+  @override
+  String get hmsActionRetry => 'Retry';
+
+  @override
+  String get hmsActionResumePlain => 'Resume';
+
+  @override
+  String get hmsActionConfirm => 'Confirm';
+
+  @override
+  String get hmsActionAbort => 'Abort';
+
+  @override
+  String get hmsActionOk => 'OK';
+
+  @override
+  String get hmsActionRecheck => 'Recheck';
+
+  @override
+  String get hmsActionTurnOffFireAlarm => 'Got it, turn off the fire alarm';
+
+  @override
+  String get hmsActionStopDrying => 'Stop drying';
+
+  @override
+  String get hmsActionDisablePurification =>
+      'Disable purification for this print';
+
+  @override
   String get batteryOptTitle => 'Reliable background notifications';
 
   @override

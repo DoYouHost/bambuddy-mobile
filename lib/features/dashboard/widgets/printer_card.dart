@@ -11,6 +11,7 @@ import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
+import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
 import '../../../data/printers_repository.dart';
 import '../../../data/smart_plugs_repository.dart';
@@ -223,7 +224,11 @@ class _PrinterCardState extends State<PrinterCard> {
             _PlateClearBanner(printerId: printerId, status: status),
           if (hmsErrors.isNotEmpty) ...[
             const SizedBox(height: 10),
-            _HmsErrorsPanel(errors: hmsErrors),
+            _HmsErrorsPanel(
+              printerId: printerId,
+              printerName: name,
+              errors: hmsErrors,
+            ),
           ],
           if (printing) ...[
             const SizedBox(height: 12),

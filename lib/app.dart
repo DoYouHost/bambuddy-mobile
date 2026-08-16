@@ -5,10 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'core/notifications/hms_actions.dart';
+import 'core/notifications/hms_stop_request.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/bug_report/recording_banner.dart';
+import 'features/common/confirm_dialog.dart';
+import 'features/dashboard/controls_providers.dart';
+import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
 import 'l10n/app_localizations.dart';
+import 'l10n/error_messages.dart';
 import 'providers.dart';
 import 'router.dart';
 
@@ -21,9 +27,11 @@ class BambuddyApp extends ConsumerStatefulWidget {
 
 class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   StreamSubscription<Uri?>? _widgetClickSub;
+  StreamSubscription<HmsStopRequest>? _hmsStopSub;
   // Guard against multiple scanner triggers from one widget tap (cold start may
   // get URI from both initiallyLaunched and stream).
   bool _scanInFlight = false;
+  bool _hmsStopInFlight = false;
 
   @override
   void initState() {
@@ -32,6 +40,11 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     // (stream). Both carry deep-link `bambuddy://widget?...`.
     _widgetClickSub = HomeWidget.widgetClicked.listen(_onWidgetUri);
     unawaited(HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri));
+    // "Stop printing" tapped on an HMS notification. Same two entrances as the
+    // widget above: the stream while the app runs, the parked request when the
+    // tap is what started it.
+    _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
+    _onHmsStopRequest(takeHmsStop());
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
     final profile = ref.read(serverProfileProvider);
@@ -45,7 +58,63 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
   @override
   void dispose() {
     _widgetClickSub?.cancel();
+    _hmsStopSub?.cancel();
     super.dispose();
+  }
+
+  /// Ask before abandoning the print, then send the action the notification
+  /// carried. Runs on a post-frame callback for the same reason the scanner
+  /// does: a cold start reaches here before there is a navigator to show a
+  /// dialog on.
+  void _onHmsStopRequest(HmsStopRequest? request) {
+    if (request == null || _hmsStopInFlight) return;
+    if (ref.read(serverProfileProvider) == null) return;
+    _hmsStopInFlight = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = rootNavigatorKey.currentContext;
+      if (context == null) {
+        _hmsStopInFlight = false;
+        return;
+      }
+      try {
+        final l10n = AppLocalizations.of(context);
+        final confirmed = await confirmDialog(
+          context,
+          title: l10n.hmsStopConfirmTitle,
+          message: l10n.hmsStopConfirmBody(_printerName(request.printerId)),
+          confirmLabel: l10n.hmsStopConfirmAction,
+          destructive: true,
+          id: 'notif.hms_stop_confirm',
+        );
+        if (!confirmed || !context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        final result = await ref
+            .read(controlsProvider.notifier)
+            .executeHmsAction(request.printerId,
+                printError: request.fullCode,
+                action: hmsStopAction,
+                jobId: request.jobId);
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: Text(result.messageFor(l10n) ?? l10n.hmsActionSent),
+          ));
+      } finally {
+        _hmsStopInFlight = false;
+      }
+    });
+  }
+
+  /// The dialog names the printer the fault belongs to. The roster is whatever
+  /// the dashboard last loaded; on a cold start it may not be there yet, and an
+  /// id is a poorer name but an honest one.
+  String _printerName(int printerId) {
+    final printers = ref.read(dashboardProvider).printers;
+    final match = printers
+        ?.where((p) => p.printer.id == printerId)
+        .map((p) => p.printer.name)
+        .firstOrNull;
+    return match ?? '#$printerId';
   }
 
   void _onWidgetUri(Uri? uri) {

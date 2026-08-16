@@ -21,6 +21,7 @@ enum ControlAction {
   dry,
   extruder,
   move,
+  hms,
 }
 
 /// Commands answer with the shared [ActionOutcome] — see its doc for why the
@@ -194,6 +195,26 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   Future<ActionOutcome> stop(int id) =>
       _run(id, ControlAction.stop, () => _repo.stop(id));
+
+  /// Clear the printer's error dialog. One in-flight marker covers every HMS
+  /// button on the card on purpose: the firmware handles one error command at a
+  /// time, and a second tap while the first is in the air is how a resume and a
+  /// stop race each other.
+  Future<ActionOutcome> clearHmsErrors(int id) =>
+      _run(id, ControlAction.hms, () => _repo.clearHmsErrors(id));
+
+  Future<ActionOutcome> executeHmsAction(
+    int id, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _run(
+        id,
+        ControlAction.hms,
+        () => _repo.executeHmsAction(id,
+            printError: printError, action: action, jobId: jobId),
+      );
 
   Future<ActionOutcome> setLight(int id, {required bool on}) => _run(
         id,

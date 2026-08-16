@@ -85,17 +85,52 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   }
 }
 
-/// Active HMS errors panel: red-bordered card with readable description, code,
-/// and a wiki link when the full code can be composed.
-class _HmsErrorsPanel extends StatelessWidget {
-  const _HmsErrorsPanel({required this.errors});
+/// Active HMS errors panel: red-bordered, collapsed to a count until tapped.
+///
+/// Collapsed is the default even mid-fault — an error card that expands itself
+/// pushes the print progress and the controls below the fold on a phone, and
+/// the count in the header already says how bad it is.
+class _HmsErrorsPanel extends ConsumerStatefulWidget {
+  const _HmsErrorsPanel({
+    required this.printerId,
+    required this.printerName,
+    required this.errors,
+  });
 
+  final int printerId;
+  final String printerName;
   final List<HmsError> errors;
+
+  @override
+  ConsumerState<_HmsErrorsPanel> createState() => _HmsErrorsPanelState();
+}
+
+class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
+  bool _expanded = false;
+
+  Future<void> _dismissAll() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .clearHmsErrors(widget.printerId);
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(result.messageFor(l10n) ?? l10n.hmsDismissed),
+      ));
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final busy = ref
+        .watch(controlsProvider)
+        .pendingFor(widget.printerId)
+        .inFlight
+        .contains(ControlAction.hms);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -107,45 +142,141 @@ class _HmsErrorsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
-              const SizedBox(width: 6),
-              Text(
-                l10n.hmsErrorsHeader,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.hmsErrorsCount(widget.errors.length),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.error,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
                   color: scheme.error,
                 ),
+              ],
+            ),
+          ).tagged('printer.hms_expand'),
+          if (_expanded) ...[
+            for (final e in widget.errors)
+              _HmsErrorCard(
+                printerId: widget.printerId,
+                printerName: widget.printerName,
+                error: e,
+                busy: busy,
               ),
-            ],
-          ),
-          for (final e in errors) _HmsErrorRow(error: e),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: logTag(
+                'printer.hms_dismiss_all',
+                TextButton.icon(
+                  onPressed: busy ? null : _dismissAll,
+                  icon: const Icon(Icons.done_all, size: 18),
+                  label: Text(l10n.hmsDismissAll),
+                  style: TextButton.styleFrom(foregroundColor: scheme.error),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _HmsErrorRow extends StatelessWidget {
-  const _HmsErrorRow({required this.error});
+/// One fault: what it is, its code, a wiki link, and the buttons its firmware
+/// offers for it.
+class _HmsErrorCard extends ConsumerStatefulWidget {
+  const _HmsErrorCard({
+    required this.printerId,
+    required this.printerName,
+    required this.error,
+    required this.busy,
+  });
 
+  final int printerId;
+  final String printerName;
   final HmsError error;
+
+  /// Another HMS command is in the air for this printer — every button waits,
+  /// not just the one that was tapped.
+  final bool busy;
+
+  @override
+  ConsumerState<_HmsErrorCard> createState() => _HmsErrorCardState();
+}
+
+class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
+  /// The action this card is waiting on, so the spinner sits on the button the
+  /// user actually pressed rather than on all of them.
+  String? _pending;
+
+  Future<void> _run(String action) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (action == hmsStopAction) {
+      final confirmed = await confirmDialog(
+        context,
+        title: l10n.hmsStopConfirmTitle,
+        message: l10n.hmsStopConfirmBody(widget.printerName),
+        confirmLabel: l10n.hmsStopConfirmAction,
+        destructive: true,
+        id: 'printer.hms_stop_confirm',
+      );
+      if (!confirmed || !mounted) return;
+    }
+    setState(() => _pending = action);
+    final result = await ref.read(controlsProvider.notifier).executeHmsAction(
+          widget.printerId,
+          printError: widget.error.fullCode!,
+          action: action,
+          jobId: widget.error.jobId,
+        );
+    if (!mounted) return;
+    setState(() => _pending = null);
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(_resultText(result, l10n))));
+  }
+
+  /// A 502 here is not a broken server: the command went out and the printer
+  /// never answered, which the user can only resolve at the machine.
+  String _resultText(ActionOutcome result, AppLocalizations l10n) =>
+      switch (result) {
+        ActionFailed(:final error) when error.statusCode == 502 =>
+          l10n.hmsActionNotAcknowledged,
+        _ => result.messageFor(l10n) ?? l10n.hmsActionSent,
+      };
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final error = widget.error;
     final label = hmsLabel(
       error,
       description: HmsCatalog.instance.describe(error),
     );
     final url = hmsWikiUrl(error);
+    // No `full_code`, no action: the server (pre-0.2.4.8) cannot tell the
+    // firmware which fault a command is about, and a guessed code is dropped.
+    final actions = error.fullCode == null
+        ? const <String>[]
+        : hmsRenderableActions(error.actions);
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -198,6 +329,42 @@ class _HmsErrorRow extends StatelessWidget {
                 ).tagged('printer.open_url'),
             ],
           ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final action in actions)
+                  // One id per action, not one for the whole row: the log has
+                  // to tell "resumed" from "stopped the print". Safe to
+                  // interpolate — the key comes from `hmsEffectiveActions`, a
+                  // fixed vocabulary, never from anything the user typed.
+                  logTag(
+                    'printer.hms_${action.toLowerCase()}',
+                    FilledButton.tonal(
+                      onPressed: widget.busy ? null : () => _run(action),
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: action == hmsStopAction
+                            ? scheme.errorContainer
+                            : null,
+                        foregroundColor: action == hmsStopAction
+                            ? scheme.onErrorContainer
+                            : null,
+                      ),
+                      child: _pending == action
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(hmsActionLabel(l10n, action)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

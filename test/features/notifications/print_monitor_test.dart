@@ -62,6 +62,7 @@ class _FakeNotifications implements NotificationService {
       'title': title,
       'body': body,
       'payload': payload,
+      'actions': actions,
     });
   }
 
@@ -449,6 +450,76 @@ void main() {
     // …ale genuinie nowy kod B po powrocie już tak.
     m.update({1: _status(state: 'IDLE', connected: true, hms: [err, other])});
     expect(errorAlerts(fake), hasLength(1));
+  });
+
+  test('an HMS alert carries the fault it is about, and its buttons', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake, hmsDescribe: describeAll);
+    const err = HmsError(
+      code: '0x8004',
+      attr: 0x03008004,
+      severity: 3,
+      fullCode: '03008004',
+      jobId: '746795586',
+      actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+    );
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+
+    final alert = errorAlerts(fake).single;
+    // The payload is what the background handler rebuilds the command from.
+    expect(alert['payload'], 'hms:1:03008004:746795586');
+    final actions = alert['actions']! as List<NotificationAction>;
+    expect(actions.map((a) => a.id),
+        ['hms:RESUME_PRINTING', 'hms:STOP_PRINTING']);
+    // Resuming runs on the tap; stopping a print opens the app to ask first.
+    expect(actions.map((a) => a.opensApp), [false, true]);
+  });
+
+  test('an HMS alert offers no buttons the app could not send', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake, hmsDescribe: describeAll);
+    // No full_code (server pre-0.2.4.8): nothing identifies the fault to the
+    // firmware, so the alert stays a plain message.
+    const legacy = HmsError(code: 'A', severity: 2, actions: ['RESUME_PRINTING']);
+    // A code whose only offer is handled by the printer's own screen.
+    const screenOnly = HmsError(
+      code: '0x8011',
+      attr: 0x03008011,
+      severity: 3,
+      fullCode: '03008011',
+      actions: ['CHECK_ASSISTANT'],
+    );
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({1: _status(state: 'RUNNING', hms: [legacy, screenOnly])});
+
+    final alerts = errorAlerts(fake);
+    expect(alerts, hasLength(2));
+    expect(alerts.map((a) => a['actions']), everyElement(isNull));
+    expect(alerts.first['payload'], 'printer:1');
+  });
+
+  test('an alert never grows more buttons than Android draws', () {
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake, hmsDescribe: describeAll);
+    const err = HmsError(
+      code: '0x801a',
+      attr: 0x0300801A,
+      severity: 3,
+      fullCode: '0300801A',
+      actions: [
+        'RESUME_PRINTING',
+        'IGNORE_RESUME',
+        'NO_REMINDER_NEXT_TIME',
+        'STOP_PRINTING',
+      ],
+    );
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+
+    final actions =
+        errorAlerts(fake).single['actions']! as List<NotificationAction>;
+    expect(actions, hasLength(3));
   });
 
   test('błąd HMS: kilka nowych kodów w jednej ramce → osobne alerty (różne id)',

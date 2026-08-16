@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
@@ -22,6 +23,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
+
+/// Filament runout as the server reports it on the `print_error` channel — the
+/// fault the panel exists for.
+const _runout = HmsError(
+  code: '0x8004',
+  attr: 0x03008004,
+  module: 3,
+  severity: 3,
+  fullCode: '03008004',
+);
+
+/// The same fault with the buttons Bambu's catalog lists for it.
+const _runoutWithActions = HmsError(
+  code: '0x8004',
+  attr: 0x03008004,
+  module: 3,
+  severity: 3,
+  fullCode: '03008004',
+  jobId: '746795586',
+  actions: ['RESUME_PRINTING', 'STOP_PRINTING'],
+);
+
+/// Records HMS commands instead of sending them. Only the two routes the panel
+/// can reach are implemented; anything else would be a test reaching somewhere
+/// it did not mean to, and says so.
+class _RecordingCommands implements PrinterCommandsRepository {
+  final List<String> calls = [];
+
+  @override
+  Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) async =>
+      calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not part of this test');
+}
 
 class _FakeProfileNotifier extends ServerProfileNotifier {
   @override
@@ -936,26 +981,136 @@ void main() {
       expect(find.text('RUNNING'), findsOneWidget);
     });
 
-    testWidgets('a catalogued code renders the panel with its real description',
+    testWidgets('a print error is announced by count and opens on a tap',
         (tester) async {
-      await tester.pumpWidget(_cardWithProviders(itemWith(const [
-        HmsError(code: '0x1000a', attr: 50331904, module: 3, severity: 1),
-      ])));
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [_runout])));
 
-      expect(find.text('Aktywne błędy'), findsOneWidget);
-      expect(find.textContaining('Regulacja temperatury stołu'), findsOneWidget);
-      expect(find.text('0300-0100-0001-000A'), findsOneWidget);
+      // Collapsed: the count, and nothing that would push the print progress
+      // off a phone screen.
+      expect(find.text('1 błąd'), findsOneWidget);
+      expect(find.textContaining('Skończył się filament'), findsNothing);
+
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Skończył się filament'), findsOneWidget);
+      expect(find.text('0300-8004'), findsOneWidget);
+      expect(find.text('Odrzuć wszystkie'), findsOneWidget);
     });
 
-    testWidgets('a mixed list shows only the codes it can name', (tester) async {
+    testWidgets('a mixed list counts and shows only the codes it can name',
+        (tester) async {
       await tester.pumpWidget(_cardWithProviders(itemWith(const [
         HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1),
-        HmsError(code: '0x1000a', attr: 50331904, module: 3, severity: 1),
+        _runout,
       ])));
 
-      expect(find.text('Aktywne błędy'), findsOneWidget);
-      expect(find.text('0300-0100-0001-000A'), findsOneWidget);
+      expect(find.text('1 błąd'), findsOneWidget);
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0300-8004'), findsOneWidget);
       expect(find.textContaining('0500-0600'), findsNothing);
+    });
+
+    testWidgets('only the actions the server can send get a button',
+        (tester) async {
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [
+        HmsError(
+          code: '0x8004',
+          attr: 0x03008004,
+          module: 3,
+          severity: 3,
+          fullCode: '03008004',
+          // CHECK_ASSISTANT reaches the server's no-op branch: the printer's
+          // own screen owns it, so a button here would publish nothing.
+          actions: ['RESUME_PRINTING', 'CHECK_ASSISTANT', 'STOP_PRINTING'],
+        ),
+      ])));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wznów drukowanie'), findsOneWidget);
+      expect(find.text('Zatrzymaj wydruk'), findsOneWidget);
+      expect(find.textContaining('Asystent'), findsNothing);
+    });
+
+    testWidgets('an action sends the full code verbatim, with its job id',
+        (tester) async {
+      final commands = _RecordingCommands();
+      await tester.pumpWidget(_cardWithProviders(
+        itemWith(const [_runoutWithActions]),
+        extra: [
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wznów drukowanie'));
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['action:9:03008004:RESUME_PRINTING:746795586']);
+    });
+
+    testWidgets('stopping the print is confirmed before anything is sent',
+        (tester) async {
+      final commands = _RecordingCommands();
+      await tester.pumpWidget(_cardWithProviders(
+        itemWith(const [_runoutWithActions]),
+        extra: [
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zatrzymaj wydruk'));
+      await tester.pumpAndSettle();
+
+      // The dialog names the printer, and nothing has been sent yet.
+      expect(find.textContaining('X2D Warsztat'), findsWidgets);
+      expect(commands.calls, isEmpty);
+
+      await tester.tap(find.text('Anuluj'));
+      await tester.pumpAndSettle();
+      expect(commands.calls, isEmpty);
+    });
+
+    testWidgets('dismiss-all clears the printer, not one error',
+        (tester) async {
+      final commands = _RecordingCommands();
+      await tester.pumpWidget(_cardWithProviders(
+        itemWith(const [_runoutWithActions]),
+        extra: [
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Odrzuć wszystkie'));
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['clear:9']);
+    });
+
+    testWidgets('a server too old to send full_code offers no buttons',
+        (tester) async {
+      // Pre-0.2.4.8: the fault is named (short-code lookup) but there is no
+      // identifier the firmware would match a command against, and a guessed
+      // one is dropped without a word.
+      await tester.pumpWidget(_cardWithProviders(itemWith(const [
+        HmsError(
+          code: '0x8004',
+          attr: 0x03008004,
+          module: 3,
+          severity: 3,
+          actions: ['RESUME_PRINTING'],
+        ),
+      ])));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Skończył się filament'), findsOneWidget);
+      expect(find.text('Wznów drukowanie'), findsNothing);
     });
   });
 }
