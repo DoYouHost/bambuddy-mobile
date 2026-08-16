@@ -42,6 +42,26 @@ const Set<String> hmsEffectiveActions = {
 /// first, and the notification opens the app to ask there.
 const String hmsStopAction = 'STOP_PRINTING';
 
+/// Actions that get the print going again, one way or another.
+///
+/// They are not the same command as the plain `/print/resume` behind the
+/// lifecycle button: these carry the fault's code and job id, and the
+/// `IGNORE_RESUME` among them tells the firmware to stop re-checking the fault
+/// it just resumed past. A plain resume means "I fixed it, check again", which
+/// is why a wrong-plate pause used to come straight back (server #1869). Where
+/// both would be on screen at once, the fault's own button is the one that
+/// works.
+const Set<String> hmsResumeActions = {
+  'RESUME_PRINTING',
+  'RESUME_PRINTING_DEFECTS',
+  'RESUME_PRINTING_PROBELM_SOLVED',
+  'PROBLEM_SOLVED_RESUME',
+  'FILAMENT_LOAD_RESUME',
+  'IGNORE_RESUME',
+  'DBL_CHECK_RESUME',
+  'PROCEED',
+};
+
 /// The actions worth drawing for [error] — offered by the firmware, understood
 /// by the server, deduplicated, in the order the server sent them.
 List<String> hmsRenderableActions(Iterable<String> actions) {
