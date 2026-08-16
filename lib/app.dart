@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
 import 'core/theme/dash_theme.dart';
@@ -41,10 +43,10 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     _widgetClickSub = HomeWidget.widgetClicked.listen(_onWidgetUri);
     unawaited(HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri));
     // "Stop printing" tapped on an HMS notification. Same two entrances as the
-    // widget above: the stream while the app runs, the parked request when the
+    // widget above: the stream while the app runs, the launch intent when the
     // tap is what started it.
     _hmsStopSub = hmsStopRequests.listen(_onHmsStopRequest);
-    _onHmsStopRequest(takeHmsStop());
+    unawaited(_onNotificationLaunch());
     // Hand the current profile to a paired Wear OS watch on launch so it can
     // configure itself without the user typing anything. No-ops without a watch.
     final profile = ref.read(serverProfileProvider);
@@ -60,6 +62,24 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     _widgetClickSub?.cancel();
     _hmsStopSub?.cancel();
     super.dispose();
+  }
+
+  /// A notification button that started the app. Its tap never reaches
+  /// `onDidReceiveNotificationResponse` — there was no engine to receive it —
+  /// so the plugin keeps it on the launch intent and hands it over here. Only
+  /// an action with `opensApp` can be in there: every other one is delivered to
+  /// the background isolate and never launches anything.
+  Future<void> _onNotificationLaunch() async {
+    try {
+      final launch = await FlutterLocalNotificationsPlugin()
+          .getNotificationAppLaunchDetails();
+      final response = launch?.notificationResponse;
+      if (response != null) await handleNotificationAction(response);
+    } on Object {
+      // A platform without the plugin (tests, desktop) has no launch details
+      // and nothing to recover — the live paths above are unaffected.
+    }
+    _onHmsStopRequest(takeHmsStop());
   }
 
   /// Ask before abandoning the print, then send the action the notification

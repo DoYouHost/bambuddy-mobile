@@ -728,6 +728,7 @@ class HmsError {
 
   /// `subtask_id` snapshotted onto the fault when it was parsed. Echoed back
   /// with the action so the firmware matches it to the right job.
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
   final String? jobId;
 
   /// The identifier the firmware matches HMS commands against, 8 hex chars for
@@ -735,8 +736,14 @@ class HmsError {
   /// `HmsActionBody.print_error`. Never rebuild it from [attr]/[code]: for the
   /// `print_error` path `attr` holds the whole 32-bit value, so the 16-char
   /// [ecode] this class composes would be a code the printer does not know, and
-  /// the firmware drops such a command without a word. Null on older servers —
-  /// which is exactly the signal that actions cannot be offered.
+  /// the firmware drops such a command without a word.
+  ///
+  /// Null when the fault carries no identifier — the signal that no action can
+  /// be offered for it. Two different servers arrive at that: one too old to
+  /// send the field at all, and a current one whose `HMSError.full_code`
+  /// defaults to `""`, which the parser folds into null so a blank never
+  /// reaches the route (its regex demands 8 or 16 hex digits and answers 422).
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
   final String? fullCode;
 
   @override
@@ -823,6 +830,12 @@ String? _toCodeStringOrNull(dynamic value) => switch (value) {
       num n => n.toString(),
       _ => null,
     };
+
+/// Server strings that mean "absent" by being blank rather than by being
+/// omitted — the identifiers whose empty form would otherwise be sent onward as
+/// if it named something.
+String? _toNonBlankStringOrNull(dynamic value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
 
 /// Action keys — non-string elements dropped rather than crashing the frame.
 List<String> _toStringListOrEmpty(dynamic value) {

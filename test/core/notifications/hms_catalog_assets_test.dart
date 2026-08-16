@@ -82,6 +82,25 @@ void main() {
       expect(hmsIsDisplayable(unknown, description: en.describe(unknown)), isFalse);
     });
 
+    test('a blank full code is no identifier at all', () {
+      // `HMSError.full_code` is a plain `str` defaulting to `""` server-side, so
+      // "no identifier" reaches the app as an empty string as readily as as a
+      // missing key. Both must land on null: the route's regex wants 8 or 16 hex
+      // digits and answers 422 to a blank, and the notification payload built
+      // around one parses back to nothing.
+      final blank = HmsError.fromJson(const {
+        'code': '0x8004',
+        'attr': 0x03008004,
+        'full_code': '',
+        'job_id': '',
+        'actions': ['RESUME_PRINTING'],
+      });
+      expect(blank.fullCode, isNull);
+      expect(blank.jobId, isNull);
+      // Still nameable — the short form does not depend on the full code.
+      expect(en.describe(blank), contains('Filament ran out'));
+    });
+
     test('a server too old to send full_code still names the fault', () {
       // Pre-0.2.4.8 payload: no `full_code`, so the lookup falls back to the
       // short form the server itself composes. Actions are what such a server

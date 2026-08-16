@@ -1092,6 +1092,52 @@ void main() {
       expect(commands.calls, ['clear:9']);
     });
 
+    testWidgets('a blank full code offers no buttons either', (tester) async {
+      // The server's own default for the field is `""`, which would otherwise
+      // pass the null check and post an empty code the route rejects with 422.
+      final blank = HmsError.fromJson(const {
+        'code': '0x8004',
+        'attr': 0x03008004,
+        'full_code': '',
+        'actions': ['RESUME_PRINTING'],
+      });
+      await tester.pumpWidget(_cardWithProviders(itemWith([blank])));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Skończył się filament'), findsOneWidget);
+      expect(find.text('Wznów drukowanie'), findsNothing);
+    });
+
+    testWidgets('feedback survives the fault clearing under the card',
+        (tester) async {
+      // The command succeeds, the next status frame drops the fault, and the
+      // card that would have shown the snackbar is gone by then — the user
+      // still has to be told it went through.
+      final commands = _RecordingCommands();
+      final item = ValueNotifier<PrinterWithStatus>(
+          itemWith(const [_runoutWithActions]));
+      addTearDown(item.dispose);
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: ValueListenableBuilder<PrinterWithStatus>(
+            valueListenable: item,
+            builder: (_, it, _) =>
+                SingleChildScrollView(child: PrinterCard(item: it)),
+          ),
+        ),
+        extra: [printerCommandsRepositoryProvider.overrideWithValue(commands)],
+      ));
+      await tester.tap(find.text('1 błąd'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wznów drukowanie'));
+      item.value = itemWith(const []); // the fault clears mid-command
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, hasLength(1));
+      expect(find.text('Wysłano do drukarki'), findsOneWidget);
+    });
+
     testWidgets('a server too old to send full_code offers no buttons',
         (tester) async {
       // Pre-0.2.4.8: the fault is named (short-code lookup) but there is no

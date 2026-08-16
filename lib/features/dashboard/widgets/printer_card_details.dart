@@ -169,7 +169,13 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
           ).tagged('printer.hms_expand'),
           if (_expanded) ...[
             for (final e in widget.errors)
+              // Keyed by the fault, not by position: a frame arriving while a
+              // command is in the air (the server holds the request 2.5s
+              // waiting for the printer) can drop an error from the middle of
+              // the list, and an unkeyed card would keep its neighbour's
+              // in-flight spinner.
               _HmsErrorCard(
+                key: ValueKey(e.fullCode ?? e.displayCode),
                 printerId: widget.printerId,
                 printerName: widget.printerName,
                 error: e,
@@ -199,6 +205,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
 /// offers for it.
 class _HmsErrorCard extends ConsumerStatefulWidget {
   const _HmsErrorCard({
+    super.key,
     required this.printerId,
     required this.printerName,
     required this.error,
@@ -243,8 +250,10 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
           action: action,
           jobId: widget.error.jobId,
         );
-    if (!mounted) return;
-    setState(() => _pending = null);
+    if (mounted) setState(() => _pending = null);
+    // Told through the messenger captured before the await, not through this
+    // widget: the card is gone precisely when the command worked and the fault
+    // cleared, and that is the outcome most worth reporting.
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(_resultText(result, l10n))));
