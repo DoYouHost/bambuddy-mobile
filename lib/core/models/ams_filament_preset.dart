@@ -9,9 +9,11 @@ library;
 
 import 'dart:convert';
 
+import 'json_utils.dart';
+
 /// Where a preset came from. The order is the picker's own — a preset the user
 /// imported outranks one Bambu happens to ship.
-enum FilamentPresetSource {
+enum AmsPresetSource {
   /// Imported from a slicer bundle (`GET /local-presets/`). Carries real
   /// material and temperature fields, and no Bambu id of any kind.
   local,
@@ -26,8 +28,8 @@ enum FilamentPresetSource {
 }
 
 /// One selectable filament preset.
-class FilamentPreset {
-  const FilamentPreset({
+class AmsFilamentPreset {
+  const AmsFilamentPreset({
     required this.source,
     required this.id,
     required this.name,
@@ -39,10 +41,10 @@ class FilamentPreset {
   });
 
   /// From `SlicerSetting` in `/cloud/settings` → `filament`.
-  factory FilamentPreset.fromCloudJson(Map<String, dynamic> json) {
+  factory AmsFilamentPreset.fromCloudJson(Map<String, dynamic> json) {
     final id = json['setting_id']?.toString() ?? '';
-    return FilamentPreset(
-      source: FilamentPresetSource.cloud,
+    return AmsFilamentPreset(
+      source: AmsPresetSource.cloud,
       id: id,
       name: json['name'] as String? ?? '',
       // `is_custom` is what the server says; the id shape is what the web
@@ -53,27 +55,27 @@ class FilamentPreset {
   }
 
   /// From `LocalPresetResponse` in `/local-presets/` → `filament`.
-  factory FilamentPreset.fromLocalJson(Map<String, dynamic> json) =>
-      FilamentPreset(
-        source: FilamentPresetSource.local,
+  factory AmsFilamentPreset.fromLocalJson(Map<String, dynamic> json) =>
+      AmsFilamentPreset(
+        source: AmsPresetSource.local,
         id: json['id']?.toString() ?? '',
         name: json['name'] as String? ?? '',
         filamentType: json['filament_type'] as String?,
-        nozzleTempMin: _asInt(json['nozzle_temp_min']),
-        nozzleTempMax: _asInt(json['nozzle_temp_max']),
+        nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
+        nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
         compatiblePrinters:
             _decodePrinterList(json['compatible_printers'] as String?),
       );
 
   /// From `/cloud/builtin-filaments` — `{filament_id, name}`.
-  factory FilamentPreset.fromBuiltinJson(Map<String, dynamic> json) =>
-      FilamentPreset(
-        source: FilamentPresetSource.builtin,
+  factory AmsFilamentPreset.fromBuiltinJson(Map<String, dynamic> json) =>
+      AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
         id: json['filament_id']?.toString() ?? '',
         name: json['name'] as String? ?? '',
       );
 
-  final FilamentPresetSource source;
+  final AmsPresetSource source;
 
   /// Source-specific: the cloud `setting_id`, the local row id as a string, or
   /// the built-in `filament_id`. Use [pickerId] to tell them apart across
@@ -82,7 +84,7 @@ class FilamentPreset {
   final String name;
 
   /// A preset the user authored rather than one Bambu ships. Sorted first
-  /// within its tier; only meaningful for [FilamentPresetSource.cloud].
+  /// within its tier; only meaningful for [AmsPresetSource.cloud].
   final bool isUser;
 
   /// Material as the slicer bundle recorded it. Local presets only — the other
@@ -103,9 +105,9 @@ class FilamentPreset {
   /// built-in `GFA05` would otherwise be equally "5" — so local and built-in
   /// ids are prefixed, matching what the web writes.
   String get pickerId => switch (source) {
-        FilamentPresetSource.local => 'local_$id',
-        FilamentPresetSource.builtin => 'builtin_$id',
-        FilamentPresetSource.cloud => id,
+        AmsPresetSource.local => 'local_$id',
+        AmsPresetSource.builtin => 'builtin_$id',
+        AmsPresetSource.cloud => id,
       };
 
   /// The value `/slot-presets` takes as `preset_source`.
@@ -114,13 +116,13 @@ class FilamentPreset {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is FilamentPreset && other.source == source && other.id == id;
+      other is AmsFilamentPreset && other.source == source && other.id == id;
 
   @override
   int get hashCode => Object.hash(source, id);
 
   @override
-  String toString() => 'FilamentPreset($pickerId, $name)';
+  String toString() => 'AmsFilamentPreset($pickerId, $name)';
 }
 
 /// The preset a slot was last configured with, as the server remembers it
@@ -139,8 +141,8 @@ class SlotPreset {
   });
 
   factory SlotPreset.fromJson(Map<String, dynamic> json) => SlotPreset(
-        amsId: _asInt(json['ams_id']) ?? 0,
-        trayId: _asInt(json['tray_id']) ?? 0,
+        amsId: toIntOrNull(json['ams_id']) ?? 0,
+        trayId: toIntOrNull(json['tray_id']) ?? 0,
         presetId: json['preset_id']?.toString() ?? '',
         presetName: json['preset_name'] as String? ?? '',
         presetSource: json['preset_source'] as String?,
@@ -149,20 +151,13 @@ class SlotPreset {
   final int amsId;
   final int trayId;
 
-  /// Matches [FilamentPreset.pickerId] of whatever was chosen.
+  /// Matches [AmsFilamentPreset.pickerId] of whatever was chosen.
   final String presetId;
   final String presetName;
 
   /// `local` / `cloud` / `builtin`, absent on the read routes.
   final String? presetSource;
 }
-
-int? _asInt(Object? value) => switch (value) {
-      int v => v,
-      num v => v.toInt(),
-      String v => int.tryParse(v),
-      _ => null,
-    };
 
 /// `compatible_printers` arrives as a JSON-encoded array inside a string field.
 /// Anything that does not decode to a list of strings is treated as absent —

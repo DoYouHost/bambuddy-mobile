@@ -6,7 +6,7 @@
 /// then prints with it.
 library;
 
-import '../models/filament_preset.dart';
+import '../models/ams_filament_preset.dart';
 import 'filament_naming.dart';
 
 /// One slot's filament configuration, ready to send.
@@ -34,7 +34,7 @@ class SlotConfiguration {
   /// cloud preset's detail — pass it when known, because a custom preset's list
   /// id is not the id the printer resolves.
   factory SlotConfiguration.forPreset({
-    required FilamentPreset preset,
+    required AmsFilamentPreset preset,
     required String colourHex,
     required String nozzleDiameter,
     String? cloudFilamentId,
@@ -46,11 +46,11 @@ class SlotConfiguration {
     return SlotConfiguration(
       trayInfoIdx: switch (preset.source) {
         // A built-in entry *is* the filament id.
-        FilamentPresetSource.builtin => preset.id,
+        AmsPresetSource.builtin => preset.id,
         // Imported presets have no Bambu id at all, so the closest generic is
         // what lets the printer classify the material.
-        FilamentPresetSource.local => genericFilamentId(material),
-        FilamentPresetSource.cloud =>
+        AmsPresetSource.local => genericFilamentId(material),
+        AmsPresetSource.cloud =>
           cloudFilamentId ?? filamentIdFromSettingId(preset.id),
       },
       trayType: material,
@@ -65,7 +65,7 @@ class SlotConfiguration {
       // local row id or a bare filament id here would name a preset that does
       // not exist on the printer's side.
       settingId:
-          preset.source == FilamentPresetSource.cloud ? preset.id : '',
+          preset.source == AmsPresetSource.cloud ? preset.id : '',
     );
   }
 
@@ -126,7 +126,7 @@ int? _temperature(int? value) => (value == null || value <= 0) ? null : value;
 /// The material to send. The name is the better source even for an imported
 /// preset that records one: "PLA Support for PETG" is stored as PLA by older
 /// importers, and the parse handles that shape correctly.
-String _materialOf(FilamentPreset preset, ParsedPresetName parsed) {
+String _materialOf(AmsFilamentPreset preset, ParsedPresetName parsed) {
   final fromName = parsed.material.toUpperCase();
   if (filamentMaterials.contains(fromName)) return fromName;
   final declared = preset.filamentType?.trim();

@@ -19,6 +19,17 @@ const _modelAliases = <String, List<String>>{
   'A1 MINI': ['A1M'],
 };
 
+/// The nozzle segment a preset name ends with. The word itself is optional:
+/// "@BBL X1C 0.4" turns up without it, and folding the size into the model
+/// token there would leave the preset matching no printer at all — the one
+/// outcome this file is written to avoid.
+const _nozzleSuffix = r'(?:\s+[\d.]+\s*(?:mm)?\s*(?:nozzle)?)?$';
+
+final _bblSuffix =
+    RegExp('^BBL\\s+(.+?)$_nozzleSuffix', caseSensitive: false);
+final _longSuffix =
+    RegExp('^Bambu Lab\\s+(.+?)$_nozzleSuffix', caseSensitive: false);
+
 /// Whether a model token taken from a preset name names the same printer as
 /// [printerModel] (the short code on our `Printer`).
 bool matchesPrinterModel(String presetModel, String printerModel) {
@@ -44,17 +55,13 @@ String? presetPrinterModel(
     final suffix = name.substring(atIndex + 1).trim();
 
     // "@BBL X1C 0.4 nozzle" — Bambu's own cloud presets, already short.
-    final bbl = RegExp(r'^BBL\s+(.+?)(?:\s+[\d.]+\s*nozzle)?$',
-            caseSensitive: false)
-        .firstMatch(suffix);
+    final bbl = _bblSuffix.firstMatch(suffix);
     if (bbl != null) return bbl.group(1)!.trim();
 
     // "@Bambu Lab X1 Carbon 0.4 nozzle" — what the slicer writes when a user
     // saves their own preset. Resolved through the registry; an unknown model
     // is returned as written, which still matches a printer named the same way.
-    final long = RegExp(r'^Bambu Lab\s+(.+?)(?:\s+[\d.]+\s*nozzle)?$',
-            caseSensitive: false)
-        .firstMatch(suffix);
+    final long = _longSuffix.firstMatch(suffix);
     if (long != null) {
       final fragment = long.group(1)!.trim();
       final key = 'Bambu Lab $fragment';
@@ -71,6 +78,24 @@ String? presetPrinterModel(
   // No suffix at all: many user-authored presets put the model at the front
   // ("X1C eSUN PETG-Basic Filament", bambuddy #1623). Scan for any known token,
   // longest first so "A1 Mini" is not eaten by "A1".
+  for (final candidate in _scanTokens(modelsLongToShort)) {
+    if (candidate.pattern.hasMatch(name)) return candidate.short;
+  }
+  return null;
+}
+
+typedef _ModelToken = ({RegExp pattern, String short});
+
+/// The registry is static reference data and the picker classifies a whole
+/// preset list per keystroke, so the tokens and their patterns are built once
+/// per registry rather than once per preset. Identity comparison is enough: the
+/// map comes from a provider and is replaced, never edited.
+Map<String, String>? _scannedRegistry;
+List<_ModelToken> _scannedTokens = const [];
+
+List<_ModelToken> _scanTokens(Map<String, String> modelsLongToShort) {
+  if (identical(_scannedRegistry, modelsLongToShort)) return _scannedTokens;
+
   final tokens = <({String token, String short})>[];
   final seen = <String>{};
   for (final entry in modelsLongToShort.entries) {
@@ -83,10 +108,12 @@ String? presetPrinterModel(
     }
   }
   tokens.sort((a, b) => b.token.length.compareTo(a.token.length));
-  for (final candidate in tokens) {
-    if (_tokenPattern(candidate.token).hasMatch(name)) return candidate.short;
-  }
-  return null;
+
+  _scannedRegistry = modelsLongToShort;
+  _scannedTokens = [
+    for (final t in tokens) (pattern: _tokenPattern(t.token), short: t.short),
+  ];
+  return _scannedTokens;
 }
 
 /// The full printer-preset name for a printer, e.g. `X1C` + `0.4` → "Bambu Lab

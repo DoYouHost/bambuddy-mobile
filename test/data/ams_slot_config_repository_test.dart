@@ -1,6 +1,6 @@
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/models/filament_preset.dart';
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,7 +35,7 @@ void main() {
       expect(
         repo.cloudFilaments(),
         completion(
-          isA<List<FilamentPreset>>()
+          isA<List<AmsFilamentPreset>>()
               .having((l) => l.map((p) => p.id), 'ids',
                   ['GFSL05_09', 'PFUS123'])
               .having((l) => l.last.isUser, 'a user preset is marked', isTrue),
@@ -76,7 +76,7 @@ void main() {
       expect(
         repo.localFilaments(),
         completion(
-          isA<List<FilamentPreset>>()
+          isA<List<AmsFilamentPreset>>()
               .having((l) => l.single.pickerId, 'picker id', 'local_7')
               .having((l) => l.single.compatiblePrinters, 'compatible printers',
                   ['Bambu Lab X1 Carbon 0.4 nozzle'])
@@ -98,7 +98,7 @@ void main() {
 
       expect(
         repo.localFilaments(),
-        completion(isA<List<FilamentPreset>>()
+        completion(isA<List<AmsFilamentPreset>>()
             .having((l) => l.single.compatiblePrinters, 'compatible printers',
                 isNull)),
       );
@@ -114,7 +114,7 @@ void main() {
 
       expect(
         repo.builtinFilaments(),
-        completion(isA<List<FilamentPreset>>()
+        completion(isA<List<AmsFilamentPreset>>()
             .having((l) => l.single.pickerId, 'picker id', 'builtin_GFL99')),
       );
     });
@@ -204,8 +204,8 @@ void main() {
         1,
         amsId: 0,
         trayId: 2,
-        preset: const FilamentPreset(
-          source: FilamentPresetSource.local,
+        preset: const AmsFilamentPreset(
+          source: AmsPresetSource.local,
           id: '7',
           name: 'eSUN PETG',
         ),
@@ -242,8 +242,8 @@ void main() {
         amsId: 255,
         trayId: 1,
         configuration: SlotConfiguration.forPreset(
-          preset: const FilamentPreset(
-            source: FilamentPresetSource.builtin,
+          preset: const AmsFilamentPreset(
+            source: AmsPresetSource.builtin,
             id: 'GFL99',
             name: 'Generic PLA',
           ),

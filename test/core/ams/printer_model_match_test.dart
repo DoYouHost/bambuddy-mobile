@@ -22,6 +22,16 @@ void main() {
       );
     });
 
+    test('tolerates a nozzle size written without the word', () {
+      // "@BBL X1C 0.4" has to resolve to X1C; folding the size into the token
+      // would leave the preset matching no printer and hide it.
+      expect(presetPrinterModel('Bambu PLA Basic @BBL X1C 0.4', _models), 'X1C');
+      expect(
+        presetPrinterModel('Bambu PLA Basic @BBL X1C 0.4mm', _models),
+        'X1C',
+      );
+    });
+
     test('resolves the long form through the registry', () {
       expect(
         presetPrinterModel('SUNLU TPU 95A @Bambu Lab X1 Carbon 0.4 nozzle',

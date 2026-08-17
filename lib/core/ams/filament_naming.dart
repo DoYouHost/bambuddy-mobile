@@ -59,12 +59,16 @@ ParsedPresetName parsePresetName(String name) {
 
   for (final material in filamentMaterials) {
     final pattern = RegExp('\\b$material\\b', caseSensitive: false);
-    if (!pattern.hasMatch(upper)) continue;
-    final parts = withoutSuffix.split(pattern);
+    final match = pattern.firstMatch(upper);
+    if (match == null) continue;
+    // Split around the *first* occurrence only. Splitting on every one drops
+    // the text between later repeats — "PETG eSUN PETG Basic" would lose
+    // "Basic" — and the indices carry over from the upper-cased copy because
+    // upper-casing does not change the length.
     return (
       material: material,
-      brand: parts.isNotEmpty ? parts.first.trim() : '',
-      variant: parts.length > 1 ? parts[1].trim() : '',
+      brand: withoutSuffix.substring(0, match.start).trim(),
+      variant: withoutSuffix.substring(match.end).trim(),
     );
   }
 

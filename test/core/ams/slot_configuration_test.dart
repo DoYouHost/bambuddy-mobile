@@ -1,12 +1,12 @@
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
-import 'package:bambuddy_mobile/core/models/filament_preset.dart';
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('a Bambu cloud preset sends its own setting id and filament id', () {
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.cloud,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.cloud,
         id: 'GFSL05_09',
         name: 'Bambu PLA Basic @BBL X1C',
       ),
@@ -26,8 +26,8 @@ void main() {
     // Deriving the id from the setting id would resolve the slot to the
     // generic the preset inherits from (bambuddy #1053).
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.cloud,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.cloud,
         id: 'PFUS9ac902733670a9',
         name: 'Devil Design PETG @Bambu Lab X1 Carbon 0.4 nozzle',
         isUser: true,
@@ -47,8 +47,8 @@ void main() {
     // Sending a setting id the printer cannot look up leaves the slot half
     // configured.
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.builtin,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
         id: 'GFG99',
         name: 'Generic PETG',
       ),
@@ -65,8 +65,8 @@ void main() {
 
   test('an imported preset falls back to the closest Bambu generic', () {
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.local,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.local,
         id: '7',
         name: 'eSUN ABS+ @Bambu Lab X1 Carbon 0.4 nozzle',
         filamentType: 'ABS',
@@ -82,8 +82,8 @@ void main() {
 
   test('an imported preset keeps the temperatures its bundle recorded', () {
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.local,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.local,
         id: '7',
         name: 'eSUN PLA Pro',
         filamentType: 'PLA',
@@ -101,8 +101,8 @@ void main() {
   test('a half-recorded range fills its gap from the material, not from PLA',
       () {
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.local,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.local,
         id: '7',
         name: 'eSUN PETG',
         filamentType: 'PETG',
@@ -120,8 +120,8 @@ void main() {
     // Older importers record "PLA Support for PETG" as PLA; the printer would
     // then get a range 40 °C too cold.
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.local,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.local,
         id: '7',
         name: 'PLA Support for PETG',
         filamentType: 'PLA',
@@ -138,8 +138,8 @@ void main() {
     // The server answers 422 for a `#`, and a transparent alpha is how an
     // empty slot is reported.
     final config = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.builtin,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
         id: 'GFL99',
         name: 'Generic PLA',
       ),
@@ -153,8 +153,8 @@ void main() {
   test('sends every parameter the route declares', () {
     // All 12 are required or defaulted server-side; a missing one is a 422.
     final query = SlotConfiguration.forPreset(
-      preset: FilamentPreset(
-        source: FilamentPresetSource.builtin,
+      preset: AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
         id: 'GFL99',
         name: 'Generic PLA',
       ),

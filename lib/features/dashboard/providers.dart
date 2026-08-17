@@ -116,16 +116,14 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     return _poll(_generation);
   }
 
-  /// Ask the printers to republish their state. Also called after an action the
-  /// firmware is known not to echo — see the assign-spool path.
+  /// Ask the printers to republish their state — one when [printerId] is given,
+  /// otherwise every printer on the roster.
   void nudgeRepublish([int? printerId]) {
-    final repo = ref.read(printerCommandsRepositoryProvider);
-    final ids = printerId != null
-        ? [printerId]
-        : [for (final p in state.printers ?? const []) p.printer.id];
-    for (final id in ids) {
-      unawaited(repo.refreshStatus(id).catchError((_) {}));
-    }
+    ref.read(printerCommandsRepositoryProvider).nudgeRepublish(
+          printerId != null
+              ? [printerId]
+              : [for (final p in state.printers ?? const []) p.printer.id],
+        );
   }
 
   /// Pause REST polling when app goes background with active monitoring —

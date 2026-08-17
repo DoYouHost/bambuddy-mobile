@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/ams/filament_preset_catalog.dart';
-import 'package:bambuddy_mobile/core/models/filament_preset.dart';
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _models = <String, String>{
@@ -9,24 +9,24 @@ const _models = <String, String>{
   'Bambu Lab H2D': 'H2D',
 };
 
-FilamentPreset _cloud(String id, String name, {bool isUser = false}) =>
-    FilamentPreset(
-      source: FilamentPresetSource.cloud,
+AmsFilamentPreset _cloud(String id, String name, {bool isUser = false}) =>
+    AmsFilamentPreset(
+      source: AmsPresetSource.cloud,
       id: id,
       name: name,
       isUser: isUser,
     );
 
-FilamentPreset _local(String id, String name, {List<String>? compatible}) =>
-    FilamentPreset(
-      source: FilamentPresetSource.local,
+AmsFilamentPreset _local(String id, String name, {List<String>? compatible}) =>
+    AmsFilamentPreset(
+      source: AmsPresetSource.local,
       id: id,
       name: name,
       compatiblePrinters: compatible,
     );
 
-FilamentPreset _builtin(String id, String name) =>
-    FilamentPreset(source: FilamentPresetSource.builtin, id: id, name: name);
+AmsFilamentPreset _builtin(String id, String name) =>
+    AmsFilamentPreset(source: AmsPresetSource.builtin, id: id, name: name);
 
 void main() {
   test('orders imported presets first, then cloud, then the built-in table',
@@ -59,6 +59,29 @@ void main() {
     );
 
     expect(list.map((p) => p.pickerId), ['GFSA00', 'builtin_GFB99']);
+  });
+
+  test('a hidden cloud preset does not take its built-in twin with it', () {
+    // Otherwise filtering the H2D's PETG out for an X1C removes generic PETG
+    // as well, and the material cannot be picked at all.
+    final list = filamentPresetCatalog(
+      cloud: [_cloud('GFSG99', 'Bambu PETG @BBL H2D')],
+      builtin: [_builtin('GFG99', 'Generic PETG')],
+      printerModel: 'X1C',
+      printerModels: _models,
+    );
+
+    expect(list.map((p) => p.pickerId), ['builtin_GFG99']);
+  });
+
+  test('a cloud preset the search hid does not cover its built-in twin', () {
+    final list = filamentPresetCatalog(
+      cloud: [_cloud('GFSG99', 'Bambu Polyterpene')],
+      builtin: [_builtin('GFG99', 'Generic PETG')],
+      query: 'petg',
+    );
+
+    expect(list.map((p) => p.pickerId), ['builtin_GFG99']);
   });
 
   test('hides a cloud preset that names a different printer', () {

@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
@@ -52,12 +53,26 @@ const _runoutWithActions = HmsError(
 class _RecordingCommands implements PrinterCommandsRepository {
   final List<String> calls = [];
 
+  /// Thrown by [refreshAmsSlot] instead of succeeding — the tag re-read is the
+  /// one route with a permission of its own, so its refusal is worth staging.
+  Object? rfidError;
+
   @override
   Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
 
   @override
   Future<void> amsLoad(int printerId, int trayId) async =>
       calls.add('amsLoad:$printerId:$trayId');
+
+  @override
+  Future<void> refreshAmsSlot(
+    int printerId, {
+    required int amsId,
+    required int slotId,
+  }) async {
+    calls.add('rfid:$printerId:$amsId:$slotId');
+    if (rfidError != null) throw rfidError!;
+  }
 
   @override
   Future<void> executeHmsAction(
@@ -534,11 +549,32 @@ void main() {
       expect(find.textContaining('%'), findsWidgets); // odczyty zostają
     });
 
+    /// Taps the first filament row of AMS 1 and waits out the sheet's own
+    /// transition. Separate from [openSlotSheet] so a test can reopen the sheet
+    /// on the same tree, which is the only way to see state a first tap left
+    /// behind.
+    Future<void> tapSlotRow(WidgetTester tester) async {
+      // The row's identifier carries the material it shows (`…@PETG`), so match
+      // on the control's own name and take the first slot of AMS 1.
+      final slotRow = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'))
+          .first;
+      await tester.ensureVisible(slotRow);
+      await tester.tap(slotRow);
+      // Not pumpAndSettle: a printing card animates an indeterminate progress
+      // bar forever, so only the sheet's own transition is waited out.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
     /// Opens the sheet behind the second slot of AMS 1 and hands back the
     /// commands it sent. [state] decides whether the printer is mid-job.
     Future<_RecordingCommands> openSlotSheet(
       WidgetTester tester, {
       required String state,
+      _RecordingCommands? withCommands,
     }) async {
       final item = realItem();
       final status = PrinterStatus(
@@ -546,7 +582,7 @@ void main() {
         connected: true,
         state: state,
       ).mergedWith(item.status!);
-      final commands = _RecordingCommands();
+      final commands = withCommands ?? _RecordingCommands();
 
       await tester.pumpWidget(_scope(
         Scaffold(
@@ -567,21 +603,29 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      // The row's identifier carries the material it shows (`…@PETG`), so match
-      // on the control's own name and take the first slot of AMS 1.
-      final slotRow = find
-          .byWidgetPredicate((w) =>
-              w is Semantics &&
-              (w.properties.identifier ?? '').startsWith('printer.ams_slot'))
-          .first;
-      await tester.ensureVisible(slotRow);
-      await tester.tap(slotRow);
-      // Not pumpAndSettle: a printing card animates an indeterminate progress
-      // bar forever, so only the sheet's own transition is waited out.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
+      await tapSlotRow(tester);
       return commands;
     }
+
+    testWidgets('a refused tag re-read takes only its own button away',
+        (tester) async {
+      // `printers:ams_rfid` is a permission of its own: being refused it says
+      // nothing about whether this key may load filament, so load and unload
+      // have to survive.
+      final commands = _RecordingCommands()
+        ..rfidError = const AuthException(AppErrorCode.forbidden);
+      await openSlotSheet(tester, state: 'IDLE', withCommands: commands);
+
+      await tester.tap(find.text('Odczytaj tag'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(commands.calls, ['rfid:1:0:0']);
+
+      await tapSlotRow(tester);
+      expect(find.text('Odczytaj tag'), findsNothing);
+      expect(find.text('Załaduj'), findsOneWidget);
+      expect(find.text('Wyładuj'), findsOneWidget);
+    });
 
     testWidgets('slot sheet loads the slot by its global tray number',
         (tester) async {

@@ -36,6 +36,12 @@ void main() {
       expect(parsePresetName('Bambu PLA-CF').material, 'PLA');
     });
 
+    test('keeps the text after a material that appears twice', () {
+      final parsed = parsePresetName('PETG eSUN PETG Basic');
+      expect(parsed.material, 'PETG');
+      expect(parsed.variant, 'eSUN PETG Basic');
+    });
+
     test('falls back to the slicer naming convention for an unknown material',
         () {
       final parsed = parsePresetName('Acme XYZ99 Matte');

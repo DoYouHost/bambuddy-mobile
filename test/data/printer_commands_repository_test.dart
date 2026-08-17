@@ -86,6 +86,40 @@ void main() {
     await repo.refreshStatus(4);
   });
 
+  group('nudgeRepublish', () {
+    test('nudges every printer it is given', () async {
+      var nudged = <int>[];
+      for (final id in [4, 7]) {
+        adapter.onPost('/api/v1/printers/$id/refresh-status', (s) {
+          nudged.add(id);
+          return s.reply(200, null);
+        });
+      }
+
+      repo.nudgeRepublish([4, 7]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(nudged, [4, 7]);
+    });
+
+    test('swallows a refusal instead of raising it into the caller', () async {
+      // An offline printer answers 400 and a narrow key can be refused — the
+      // republish is a hint, and neither is a reason to fail the action the
+      // user actually asked for.
+      adapter
+        ..onPost('/api/v1/printers/4/refresh-status',
+            (s) => s.reply(400, {'detail': 'Printer not connected'}))
+        ..onPost('/api/v1/printers/7/refresh-status',
+            (s) => s.reply(403, {'detail': 'forbidden'}));
+
+      repo.nudgeRepublish([4, 7]);
+
+      // Nothing thrown here, and nothing left unhandled to fail the test at
+      // the end of the microtask queue either.
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
   test('ams/load sends the global tray number in the query', () async {
     adapter.onPost(
       '/api/v1/printers/1/ams/load',

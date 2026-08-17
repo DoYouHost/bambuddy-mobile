@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/ams/slot_configuration.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
-import '../core/models/filament_preset.dart';
+import '../core/models/ams_filament_preset.dart';
 
 /// Everything the "configure AMS slot" flow reads and writes: the three preset
 /// sources, the printer-model registry, the slot→preset mapping, and the two
@@ -23,9 +23,9 @@ class AmsSlotConfigRepository {
   /// Throws `AuthException(unauthorized)` when no cloud login exists. That is a
   /// normal state, not a fault: the picker drops to the built-in and imported
   /// tiers and offers the login screen.
-  Future<List<FilamentPreset>> cloudFilaments() async {
+  Future<List<AmsFilamentPreset>> cloudFilaments() async {
     final json = await _get<Map<String, dynamic>>(Endpoints.cloudSettings);
-    return _presets(json?['filament'], FilamentPreset.fromCloudJson);
+    return _presets(json?['filament'], AmsFilamentPreset.fromCloudJson);
   }
 
   /// The real `filament_id` behind a cloud preset, or null when it cannot be
@@ -51,15 +51,15 @@ class AmsSlotConfigRepository {
   }
 
   /// Bambu's built-in filament table. Needs no cloud login.
-  Future<List<FilamentPreset>> builtinFilaments() async {
+  Future<List<AmsFilamentPreset>> builtinFilaments() async {
     final json = await _get<List<dynamic>>(Endpoints.cloudBuiltinFilaments);
-    return _presets(json, FilamentPreset.fromBuiltinJson);
+    return _presets(json, AmsFilamentPreset.fromBuiltinJson);
   }
 
   /// Filament presets imported from a slicer bundle.
-  Future<List<FilamentPreset>> localFilaments() async {
+  Future<List<AmsFilamentPreset>> localFilaments() async {
     final json = await _get<Map<String, dynamic>>(Endpoints.localPresets);
-    return _presets(json?['filament'], FilamentPreset.fromLocalJson);
+    return _presets(json?['filament'], AmsFilamentPreset.fromLocalJson);
   }
 
   /// `{"Bambu Lab X1 Carbon": "X1C", …}` — static reference data.
@@ -90,7 +90,7 @@ class AmsSlotConfigRepository {
     int printerId, {
     required int amsId,
     required int trayId,
-    required FilamentPreset preset,
+    required AmsFilamentPreset preset,
     required String presetName,
   }) async {
     try {
@@ -147,9 +147,9 @@ class AmsSlotConfigRepository {
 
 /// Read a list of presets, skipping entries that are not objects and those a
 /// tier left without an id — an unnameable preset cannot be selected anyway.
-List<FilamentPreset> _presets(
+List<AmsFilamentPreset> _presets(
   Object? raw,
-  FilamentPreset Function(Map<String, dynamic>) parse,
+  AmsFilamentPreset Function(Map<String, dynamic>) parse,
 ) {
   if (raw is! List) return const [];
   return [

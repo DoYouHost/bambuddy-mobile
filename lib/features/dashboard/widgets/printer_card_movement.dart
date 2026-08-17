@@ -10,7 +10,7 @@ class _MovementTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlsProvider.select((s) => s.isRefused(ControlPermission.control)));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);

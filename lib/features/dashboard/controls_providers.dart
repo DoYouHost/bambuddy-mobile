@@ -25,6 +25,23 @@ enum ControlAction {
   ams,
 }
 
+/// The server permission a control route is gated on.
+///
+/// A 403 says "this key may not do *that*", not "this key may not do anything",
+/// and the two are different in the UI: one refusal on the shared permission
+/// takes every driving control off the card, while a refusal on a narrower one
+/// may only take its own button. Naming the scope is what keeps a route with its
+/// own gate from silently disabling the rest.
+enum ControlPermission {
+  /// `printers:control` — everything that drives the printer: the job, the
+  /// lights, temperatures, fans, jogs, drying, HMS, AMS load/unload.
+  control,
+
+  /// `printers:ams_rfid` — re-reading a slot's RFID tag, and nothing else. A key
+  /// allowed to control the printer can still be refused here.
+  amsRfid,
+}
+
 /// Commands answer with the shared [ActionOutcome] — see its doc for why the
 /// failure travels intact instead of as a code the widget re-words.
 
@@ -144,21 +161,29 @@ class PendingControls {
 }
 
 class ControlsState {
-  const ControlsState({this.pending = const {}, this.forbidden = false});
+  const ControlsState({this.pending = const {}, this.refused = const {}});
 
   final Map<int, PendingControls> pending;
 
-  /// Sticky: any command returned 403 (key lacks `can_control_printer`) →
-  /// we block control until profile change.
-  final bool forbidden;
+  /// Permissions this key has already been refused (403). Sticky for the
+  /// session — the answer will not change until the server profile does, and
+  /// re-offering a button that just failed only teaches the user to distrust
+  /// the card. Cleared on a profile change, since another key may differ.
+  final Set<ControlPermission> refused;
+
+  /// Whether a command needing [permission] is known to be refused.
+  bool isRefused(ControlPermission permission) => refused.contains(permission);
 
   PendingControls pendingFor(int id) =>
       pending[id] ?? const PendingControls();
 
-  ControlsState copyWith({Map<int, PendingControls>? pending, bool? forbidden}) =>
+  ControlsState copyWith({
+    Map<int, PendingControls>? pending,
+    Set<ControlPermission>? refused,
+  }) =>
       ControlsState(
         pending: pending ?? this.pending,
-        forbidden: forbidden ?? this.forbidden,
+        refused: refused ?? this.refused,
       );
 }
 
@@ -331,9 +356,9 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   /// Re-read one slot's RFID tag. Ids are local to the unit.
   ///
-  /// A refusal here stays local: the route has a permission of its own
-  /// (`printers:ams_rfid`), so a key that may drive the printer but not re-read
-  /// tags must keep every other control on the card.
+  /// The only route on the card behind [ControlPermission.amsRfid]: a key that
+  /// may drive the printer can still be refused this one, and that refusal must
+  /// cost nothing but this button.
   Future<ActionOutcome> refreshAmsSlot(
     int id, {
     required int amsId,
@@ -343,7 +368,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
         id,
         ControlAction.ams,
         () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
-        stickyForbidden: false,
+        permission: ControlPermission.amsRfid,
       );
 
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
@@ -381,9 +406,8 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// [before] (surgically, preserving any concurrent different action);
   /// [clearKey] schedules discarding the override once real status catches up.
   ///
-  /// [stickyForbidden] is what a 403 means for the rest of the card: true for
-  /// the routes gated on `printers:control` (one refusal answers for all of
-  /// them), false for a route with its own permission.
+  /// [permission] is the server gate this route sits behind, and decides what a
+  /// 403 costs: only the buttons that need the same permission go away.
   Future<ActionOutcome> _run(
     int id,
     ControlAction action,
@@ -392,7 +416,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
     PendingControls Function(PendingControls before, PendingControls rolled)?
         rollback,
     String? clearKey,
-    bool stickyForbidden = true,
+    ControlPermission permission = ControlPermission.control,
   }) async {
     final before = state.pendingFor(id);
 
@@ -414,9 +438,10 @@ class ControlsNotifier extends Notifier<ControlsState> {
       _setPending(id, rolled);
 
       final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
-      // Sticky: one refusal is enough to stop offering controls this session.
-      if (outcome.isForbidden && stickyForbidden) {
-        state = state.copyWith(forbidden: true);
+      // One refusal answers for every route behind the same gate, and for none
+      // of the routes behind another.
+      if (outcome.isForbidden) {
+        state = state.copyWith(refused: {...state.refused, permission});
       }
       return outcome;
     }

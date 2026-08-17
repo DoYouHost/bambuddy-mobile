@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -174,6 +176,21 @@ class PrinterCommandsRepository {
   /// hint and ignore both the answer and a 400 from a disconnected printer.
   Future<void> refreshStatus(int printerId) =>
       _post(Endpoints.printerRefreshStatus(printerId));
+
+  /// [refreshStatus] as the hint it is: sent for each printer and then
+  /// forgotten.
+  ///
+  /// Nothing useful comes back — the republish arrives over the WebSocket, not
+  /// in this response — and every way it can fail is one the caller already
+  /// accepts: an offline printer answers 400, a narrow key may be refused, and
+  /// neither is a reason to fail whatever the user actually asked for. Returning
+  /// void rather than a future says that out loud, so no call site has to
+  /// re-derive the same `unawaited(...).catchError(...)` and get it right.
+  void nudgeRepublish(Iterable<int> printerIds) {
+    for (final id in printerIds) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
 
   /// Load filament from one slot. [trayId] is the global tray number from
   /// [amsLoadTrayId] — not the slot's local id.

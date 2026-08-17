@@ -84,6 +84,12 @@ class _FakeCommands implements PrinterCommandsRepository {
   @override
   Future<void> refreshStatus(int id) => _do('refreshStatus:$id');
   @override
+  void nudgeRepublish(Iterable<int> ids) {
+    for (final id in ids) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+  @override
   Future<void> amsLoad(int id, int trayId) => _do('amsLoad:$id:$trayId');
   @override
   Future<void> amsUnload(int id) => _do('amsUnload:$id');
@@ -146,7 +152,7 @@ void main() {
     final st = c.read(controlsProvider);
     expect(st.pendingFor(1).speedLevel, isNull, reason: 'rollback nadpisania');
     expect(st.pendingFor(1).isBusy(ControlAction.speed), false);
-    expect(st.forbidden, false);
+    expect(st.isRefused(ControlPermission.control), false);
   });
 
   test('403 → odmowa i lepka blokada sterowania', () async {
@@ -156,7 +162,7 @@ void main() {
     final result = await c.read(controlsProvider.notifier).pause(1);
 
     expect(result.isForbidden, isTrue);
-    expect(c.read(controlsProvider).forbidden, true);
+    expect(c.read(controlsProvider).isRefused(ControlPermission.control), true);
     // Lifecycle nie ma nadpisania, ale „w locie" musi być zdjęte.
     expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),
         false);
@@ -189,9 +195,12 @@ void main() {
         .refreshAmsSlot(1, amsId: 0, slotId: 2);
 
     expect(result.isForbidden, isTrue);
-    expect(c.read(controlsProvider).forbidden, false);
-    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
-        false);
+    final st = c.read(controlsProvider);
+    expect(st.isRefused(ControlPermission.amsRfid), true,
+        reason: 'the tag re-read itself stops being offered');
+    expect(st.isRefused(ControlPermission.control), false,
+        reason: 'every other control is behind a different gate');
+    expect(st.pendingFor(1).isBusy(ControlAction.ams), false);
   });
 
   test('load and unload share one in-flight marker for the printer', () async {

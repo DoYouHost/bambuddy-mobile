@@ -149,15 +149,10 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
   /// printer, but the firmware does not reliably echo the new tray back —
   /// notably for non-RFID slots and A1 mini externals. Without a nudge the card
   /// keeps showing the old filament until something else makes the printer
-  /// speak. Failures are swallowed: the assignment itself already succeeded.
-  void _nudgeRepublish(int printerId) {
-    unawaited(
-      ref
-          .read(printerCommandsRepositoryProvider)
-          .refreshStatus(printerId)
-          .catchError((_) {}),
-    );
-  }
+  /// speak.
+  void _nudgeRepublish(int printerId) => ref
+      .read(printerCommandsRepositoryProvider)
+      .nudgeRepublish([printerId]);
 
   /// Applies [action] to every id in [spoolIds] for multi-select bulk
   /// operations. Unlike [_mutate] this reloads ONCE at the end rather than per

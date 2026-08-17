@@ -5,8 +5,9 @@
 /// - **Tier order.** Local first (the user went to the trouble of importing
 ///   them), then cloud, then the built-in table as a floor.
 /// - **Deduplication runs the other way.** A built-in entry is dropped when the
-///   cloud already offers the same filament, because the cloud copy is the one
-///   with a real preset behind it.
+///   cloud already *shows* the same filament, because the cloud copy is the one
+///   with a real preset behind it. A cloud preset the filters hid covers
+///   nothing — otherwise hiding it would hide the material.
 /// - **Filter by printer, but only on evidence.** A preset whose name names a
 ///   different printer is hidden; one that names no printer at all stays.
 /// - **Never hide what the slot is already set to.** The current pick has to
@@ -15,7 +16,7 @@
 ///   at.
 library;
 
-import '../models/filament_preset.dart';
+import '../models/ams_filament_preset.dart';
 import 'filament_naming.dart';
 import 'printer_model_match.dart';
 
@@ -27,12 +28,12 @@ import 'printer_model_match.dart';
 /// [printerModels] the registry from `GET /slicer/printer-models`.
 /// [fullPrinterName] is [fullPrinterPresetName] for this printer, used for the
 /// imported presets' own compatibility list. [savedPresetId] is
-/// [FilamentPreset.pickerId] of the slot's saved mapping and [currentFilamentId]
+/// [AmsFilamentPreset.pickerId] of the slot's saved mapping and [currentFilamentId]
 /// the `tray_info_idx` the printer reports — either identifies the current pick.
-List<FilamentPreset> filamentPresetCatalog({
-  List<FilamentPreset> cloud = const [],
-  List<FilamentPreset> local = const [],
-  List<FilamentPreset> builtin = const [],
+List<AmsFilamentPreset> filamentPresetCatalog({
+  List<AmsFilamentPreset> cloud = const [],
+  List<AmsFilamentPreset> local = const [],
+  List<AmsFilamentPreset> builtin = const [],
   String query = '',
   String? printerModel,
   Map<String, String> printerModels = const {},
@@ -44,16 +45,20 @@ List<FilamentPreset> filamentPresetCatalog({
   bool matchesQuery(String name) =>
       needle.isEmpty || name.toLowerCase().contains(needle);
 
-  final items = <FilamentPreset>[];
+  final items = <AmsFilamentPreset>[];
   final covered = <String>{};
 
   for (final preset in cloud) {
-    covered.add(preset.id);
     if (!matchesQuery(preset.name)) continue;
     if (!_isCurrent(preset, savedPresetId, currentFilamentId) &&
         !_fitsPrinter(preset.name, printerModel, printerModels)) {
       continue;
     }
+    // Only a preset that survived both filters covers its built-in twin.
+    // Marking it earlier would let a cloud PETG hidden as "belongs to another
+    // printer" take generic PETG down with it, and the material would vanish
+    // from the picker entirely.
+    covered.add(preset.id);
     items.add(preset);
   }
 
@@ -87,20 +92,20 @@ List<FilamentPreset> filamentPresetCatalog({
   return items;
 }
 
-int _tierOrder(FilamentPresetSource source) => switch (source) {
-      FilamentPresetSource.local => 0,
-      FilamentPresetSource.cloud => 1,
-      FilamentPresetSource.builtin => 2,
+int _tierOrder(AmsPresetSource source) => switch (source) {
+      AmsPresetSource.local => 0,
+      AmsPresetSource.cloud => 1,
+      AmsPresetSource.builtin => 2,
     };
 
 bool _isCurrent(
-  FilamentPreset preset,
+  AmsFilamentPreset preset,
   String? savedPresetId,
   String? currentFilamentId,
 ) {
   if (savedPresetId != null && savedPresetId == preset.pickerId) return true;
   if (currentFilamentId == null || currentFilamentId.isEmpty) return false;
-  if (preset.source != FilamentPresetSource.cloud) return false;
+  if (preset.source != AmsPresetSource.cloud) return false;
   return preset.id == currentFilamentId ||
       filamentIdFromSettingId(preset.id) == currentFilamentId;
 }
@@ -122,7 +127,7 @@ bool _fitsPrinter(
 /// better evidence than the name — but only when both sides are known. A preset
 /// without a list stays visible: hand-edited and lossily-imported bundles have
 /// none, and those were usable before the filter existed.
-bool _fitsCompatibilityList(FilamentPreset preset, String? fullPrinterName) {
+bool _fitsCompatibilityList(AmsFilamentPreset preset, String? fullPrinterName) {
   final compatible = preset.compatiblePrinters;
   if (compatible == null || compatible.isEmpty) return true;
   if (fullPrinterName == null || fullPrinterName.isEmpty) return true;

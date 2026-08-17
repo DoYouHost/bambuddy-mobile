@@ -950,7 +950,7 @@ class _AmsDryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlsProvider.select((s) => s.isRefused(ControlPermission.control)));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -1459,9 +1459,11 @@ class _SlotRef {
 /// Printer-side filament actions for one slot: load it, unload whatever is in
 /// the extruder, re-read the slot's RFID tag.
 ///
-/// Hidden entirely once a control was refused — same rule the drying control
-/// follows. While the printer prints, the actions stay visible but disabled:
-/// they interrupt the filament path, and a job is exactly what they would ruin.
+/// A refused control hides the buttons that needed it — the same rule the drying
+/// control follows — and the tag re-read sits behind its own permission, so the
+/// two disappear independently. While the printer prints, whatever is left stays
+/// visible but disabled: these actions interrupt the filament path, and a job is
+/// exactly what they would ruin.
 class _SlotActions extends ConsumerWidget {
   const _SlotActions({required this.slot});
 
@@ -1471,11 +1473,17 @@ class _SlotActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final canDrive = ref.watch(controlsProvider
+        .select((s) => !s.isRefused(ControlPermission.control)));
+    final canReread = slot.canRereadRfid &&
+        ref.watch(controlsProvider
+            .select((s) => !s.isRefused(ControlPermission.amsRfid)));
+    // Load and unload share one gate and one row: unload takes no slot, so
+    // offering it for a slot that cannot be loaded would put a printer-wide
+    // button under a heading that names one slot.
     final loadTrayId = slot.loadTrayId;
-    if (forbidden || (loadTrayId == null && !slot.canRereadRfid)) {
-      return const SizedBox.shrink();
-    }
+    final canLoad = canDrive && loadTrayId != null;
+    if (!canLoad && !canReread) return const SizedBox.shrink();
 
     final busy = ref.watch(controlsProvider
         .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
@@ -1486,7 +1494,7 @@ class _SlotActions extends ConsumerWidget {
     // are three different lengths, and letting them flow left them ragged with
     // a stray one on its own line.
     final load = OutlinedButton.icon(
-      onPressed: enabled && loadTrayId != null
+      onPressed: enabled && canLoad
           ? () => _run(
                 context,
                 l10n,
@@ -1533,7 +1541,7 @@ class _SlotActions extends ConsumerWidget {
       children: [
         Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
-        if (loadTrayId != null)
+        if (canLoad)
           Row(
             children: [
               Expanded(child: load),
@@ -1541,8 +1549,8 @@ class _SlotActions extends ConsumerWidget {
               Expanded(child: unload),
             ],
           ),
-        if (loadTrayId != null && slot.canRereadRfid) const SizedBox(height: 8),
-        if (slot.canRereadRfid) reread,
+        if (canLoad && canReread) const SizedBox(height: 8),
+        if (canReread) reread,
         if (slot.printing) ...[
           const SizedBox(height: 8),
           Text(
