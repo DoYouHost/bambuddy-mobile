@@ -1646,7 +1646,7 @@ class _SlotActions extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
+      showDragHandle: true,
       builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }

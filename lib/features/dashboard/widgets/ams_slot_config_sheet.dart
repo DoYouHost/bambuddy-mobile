@@ -10,7 +10,9 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../../core/theme/dash_theme.dart';
 import '../../common/confirm_dialog.dart';
+import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
 import '../../inventory/inventory_screen.dart' show SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
@@ -105,6 +107,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final t = DashTokens.of(context);
     final target = widget.target;
     final sources = ref.watch(slotPresetSourcesProvider);
     final saved = ref.watch(slotPresetProvider(target.key));
@@ -131,34 +134,38 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            _colourField(l10n, theme),
+            _colourField(l10n, t),
             const SizedBox(height: 16),
             Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                labelText: l10n.amsSlotConfigSearch,
-                border: const OutlineInputBorder(),
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                color: t.textPrimary,
+              ),
+              decoration: dashDecoration(
+                t,
+                hintText: l10n.amsSlotConfigSearch,
+                prefixIcon: Icon(Icons.search, size: 18, color: t.textTertiary),
               ),
             ).tagged('ams_slot_config.search'),
             const SizedBox(height: 8),
             ...switch (sources) {
-              AsyncError() => [_message(theme, l10n.amsSlotConfigEmpty)],
+              AsyncError() => [_message(t, l10n.amsSlotConfigEmpty)],
               AsyncLoading() => [
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 ],
-              AsyncValue(:final value?) => _presetList(l10n, theme, value),
+              AsyncValue(:final value?) => _presetList(l10n, t, value),
               _ => const <Widget>[],
             },
             const SizedBox(height: 20),
-            _actions(l10n),
+            _actions(l10n, t),
           ],
         ),
       ),
@@ -180,22 +187,29 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     }
   }
 
-  Widget _colourField(AppLocalizations l10n, ThemeData theme) => InkWell(
-        borderRadius: BorderRadius.circular(8),
+  /// Same shape as the spool form's colour field — swatch, mono hex, eyedropper
+  /// — so the two read as one control in two places.
+  Widget _colourField(AppLocalizations l10n, DashTokens t) => InkWell(
+        borderRadius: BorderRadius.circular(14),
         onTap: () => _pickColour(l10n),
         child: InputDecorator(
-          decoration: InputDecoration(
+          decoration: dashDecoration(
+            t,
             labelText: l10n.amsSlotConfigColour,
-            border: const OutlineInputBorder(),
-            suffixIcon: const Icon(Icons.colorize),
+            suffixIcon: Icon(Icons.colorize, color: t.textTertiary),
           ),
           child: Row(
             children: [
               SpoolSwatch(rgba: _colour, size: 24, radius: 6),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
                 (_colour ?? 'FFFFFF').toUpperCase(),
-                style: theme.textTheme.bodyMedium,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontMono,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: t.textPrimary,
+                ),
               ),
             ],
           ),
@@ -204,7 +218,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
 
   List<Widget> _presetList(
     AppLocalizations l10n,
-    ThemeData theme,
+    DashTokens t,
     SlotPresetSources sources,
   ) {
     final target = widget.target;
@@ -227,77 +241,156 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     );
 
     return [
-      if (sources.cloudNeedsLogin) _cloudLoginHint(l10n, theme),
+      if (sources.cloudNeedsLogin) _cloudLoginHint(l10n, t),
       if (presets.isEmpty)
         _message(
-          theme,
+          t,
           sources.isEmpty ? l10n.amsSlotConfigEmpty : l10n.amsSlotConfigNoMatch,
         )
       else
-        for (final preset in presets)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            selected: _picked?.pickerId == preset.pickerId,
-            onTap: () => setState(() => _picked = preset),
-            leading: Icon(
-              _picked?.pickerId == preset.pickerId
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              size: 20,
-            ),
-            title: Text(preset.name, maxLines: 2,
-                overflow: TextOverflow.ellipsis),
-            subtitle: Text(_tierLabel(l10n, preset.source)),
-          ).taggedMaterial('ams_slot_config.preset', preset.sourceKey),
+        for (final preset in presets) _presetTile(l10n, t, preset),
     ];
   }
 
-  Widget _cloudLoginHint(AppLocalizations l10n, ThemeData theme) => Card(
+  /// One preset row, in the card-list shape the rest of the dashboard uses:
+  /// a filled [DashTokens.subCard] block that turns accent-bordered when picked,
+  /// rather than a bare Material tile with a radio glued to it.
+  Widget _presetTile(
+    AppLocalizations l10n,
+    DashTokens t,
+    AmsFilamentPreset preset,
+  ) {
+    final selected = _picked?.pickerId == preset.pickerId;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => setState(() => _picked = preset),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: t.subCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? t.accentGreen : t.subCardBorder,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected ? Icons.check_circle : Icons.circle_outlined,
+                size: 18,
+                color: selected ? t.accentGreenInk : t.textTertiary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      preset.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _tierLabel(l10n, preset.source),
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontUi,
+                        fontSize: 11,
+                        color: t.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).taggedMaterial('ams_slot_config.preset', preset.sourceKey);
+  }
+
+  Widget _cloudLoginHint(AppLocalizations l10n, DashTokens t) => Container(
         margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(
-          leading: const Icon(Icons.cloud_off),
-          title: Text(l10n.amsSlotConfigCloudHint,
-              style: theme.textTheme.bodySmall),
-          trailing: TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/settings/cloud');
-            },
-            child: Text(l10n.amsSlotConfigCloudAction),
-          ).tagged('ams_slot_config.cloud_login'),
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: t.accentBlue.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: t.accentBlue.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off, size: 18, color: t.accentBlue),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.amsSlotConfigCloudHint,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 12,
+                  color: t.textPrimary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/settings/cloud');
+              },
+              child: Text(l10n.amsSlotConfigCloudAction),
+            ).tagged('ams_slot_config.cloud_login'),
+          ],
         ),
       );
 
-  Widget _message(ThemeData theme, String text) => Padding(
+  Widget _message(DashTokens t, String text) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
           text,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 13,
+            color: t.textTertiary,
+          ),
         ),
       );
 
-  Widget _actions(AppLocalizations l10n) {
+  /// Full-width primary action with the destructive one below it, rather than
+  /// two halves of a row: "Zapisz w drukarce" does not fit half a phone width
+  /// and wraps onto two lines there. The button takes the theme's own
+  /// [dashPrimaryButtonStyle] by way of `filledButtonTheme`, so it matches every
+  /// other confirming button without restating the style.
+  Widget _actions(AppLocalizations l10n, DashTokens t) {
     final busy = ref.watch(controlsProvider.select(
         (s) => s.pendingFor(widget.target.printerId).isBusy(ControlAction.ams)));
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: busy ? null : () => _reset(l10n),
-            icon: const Icon(Icons.layers_clear, size: 18),
-            label: Text(l10n.amsSlotReset),
-          ).tagged('ams_slot_config.reset'),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: busy || _picked == null ? null : () => _apply(l10n),
-            icon: const Icon(Icons.check, size: 18),
-            label: Text(l10n.amsSlotConfigApply),
-          ).tagged('ams_slot_config.apply'),
-        ),
+        FilledButton(
+          onPressed: busy || _picked == null ? null : () => _apply(l10n),
+          child: busy
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.amsSlotConfigApply),
+        ).tagged('ams_slot_config.apply'),
+        const SizedBox(height: 4),
+        TextButton.icon(
+          onPressed: busy ? null : () => _reset(l10n),
+          icon: const Icon(Icons.layers_clear, size: 18),
+          label: Text(l10n.amsSlotReset),
+          style: TextButton.styleFrom(foregroundColor: t.danger),
+        ).tagged('ams_slot_config.reset'),
       ],
     );
   }
