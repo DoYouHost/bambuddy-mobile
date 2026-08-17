@@ -509,6 +509,8 @@ class _DetailsPanel extends ConsumerWidget {
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          printerModel: status.model,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -526,6 +528,11 @@ class _DetailsPanel extends ConsumerWidget {
           printerId: printerId,
           printerName: printerName,
           printing: status.isPrinting && !status.isPaused,
+          // External spools feed a nozzle too, and the unit they are keyed
+          // under (255) is not in `ams_extruder_map` — the primary nozzle is
+          // the only answer available here.
+          nozzleDiameter: status.nozzleDiameterFor(255),
+          printerModel: status.model,
         ),
     ];
 
@@ -579,6 +586,8 @@ class _AmsSection extends ConsumerWidget {
     required this.printerName,
     required this.supportsDrying,
     required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final AmsUnit unit;
@@ -591,6 +600,12 @@ class _AmsSection extends ConsumerWidget {
   final String? printerName;
   final bool supportsDrying;
   final bool printing;
+
+  /// Nozzle this unit feeds, and the printer's model code — both travel to the
+  /// slot configuration sheet, which needs them to filter presets and to name
+  /// the calibration context.
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -692,6 +707,10 @@ class _AmsSection extends ConsumerWidget {
                   trayId: trays[i].id ?? 0,
                 ),
                 canRereadRfid: true,
+                trayInfoIdx: trays[i].trayInfoIdx,
+                trayColour: trays[i].trayColor,
+                nozzleDiameter: nozzleDiameter,
+                printerModel: printerModel,
               ),
             ),
       ],
@@ -711,6 +730,8 @@ class _SpoolSection extends StatelessWidget {
     required this.printerId,
     required this.printerName,
     required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final List<AmsTray> trays;
@@ -721,6 +742,8 @@ class _SpoolSection extends StatelessWidget {
   final int printerId;
   final String? printerName;
   final bool printing;
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
   Widget build(BuildContext context) {
@@ -770,6 +793,10 @@ class _SpoolSection extends StatelessWidget {
                 amsId: 255,
                 trayId: trays[i].id ?? 254,
               ),
+              trayInfoIdx: trays[i].trayInfoIdx,
+              trayColour: trays[i].trayColor,
+              nozzleDiameter: nozzleDiameter,
+              printerModel: printerModel,
             ),
           ),
       ],
@@ -1431,6 +1458,10 @@ class _SlotRef {
     required this.printing,
     this.loadTrayId,
     this.canRereadRfid = false,
+    this.trayInfoIdx,
+    this.trayColour,
+    this.nozzleDiameter,
+    this.printerModel,
   });
 
   final int printerId;
@@ -1455,6 +1486,32 @@ class _SlotRef {
   /// Whether the slot has a tag to re-read. False for external spools: they
   /// have no RFID reader, and the web hides the action there too.
   final bool canRereadRfid;
+
+  /// What the printer currently holds in this slot, for the configuration
+  /// sheet: the filament id identifies the preset in force, the colour is what
+  /// the picker opens on.
+  final String? trayInfoIdx;
+  final String? trayColour;
+
+  /// Diameter of the nozzle this slot feeds, or null when the printer has not
+  /// reported its nozzles.
+  final String? nozzleDiameter;
+
+  /// Short model code, so the picker can hide presets meant for another
+  /// printer.
+  final String? printerModel;
+
+  AmsSlotTarget get configTarget => AmsSlotTarget(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+        label: label,
+        printerName: printerName,
+        printerModel: printerModel,
+        nozzleDiameter: nozzleDiameter,
+        currentFilamentId: trayInfoIdx,
+        currentColour: trayColour,
+      );
 }
 
 /// Printer-side filament actions for one slot: load it, unload whatever is in
@@ -1483,7 +1540,10 @@ class _SlotActions extends ConsumerWidget {
     // button under a heading that names one slot.
     final loadTrayId = slot.loadTrayId;
     final canLoad = canDrive && loadTrayId != null;
-    if (!canLoad && !canReread) return const SizedBox.shrink();
+    // Configuring needs nothing but `printers:control`, so it survives where
+    // loading does not: an AMS-HT slot has no global tray number to load by,
+    // and the configure route addresses it by unit and slot like any other.
+    if (!canDrive && !canReread) return const SizedBox.shrink();
 
     final busy = ref.watch(controlsProvider
         .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
@@ -1536,6 +1596,15 @@ class _SlotActions extends ConsumerWidget {
       label: Text(l10n.amsRfidReread),
     ).tagged('assign_spool.rfid_reread');
 
+    // Opening the configuration is not itself a command, so it stays available
+    // mid-print: reading what a slot is set to is harmless, and the sheet's own
+    // buttons are what the job blocks.
+    final configure = OutlinedButton.icon(
+      onPressed: busy ? null : () => _openConfig(context),
+      icon: const Icon(Icons.tune, size: 18),
+      label: Text(l10n.amsSlotConfigure),
+    ).tagged('assign_spool.configure');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1551,6 +1620,10 @@ class _SlotActions extends ConsumerWidget {
           ),
         if (canLoad && canReread) const SizedBox(height: 8),
         if (canReread) reread,
+        if (canDrive) ...[
+          if (canLoad || canReread) const SizedBox(height: 8),
+          configure,
+        ],
         if (slot.printing) ...[
           const SizedBox(height: 8),
           Text(
@@ -1562,6 +1635,19 @@ class _SlotActions extends ConsumerWidget {
         ],
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  /// Swaps this sheet for the slot configuration one. The assignment sheet
+  /// closes first so the back gesture returns to the card, not to a list the
+  /// user is done with.
+  void _openConfig(BuildContext context) {
+    Navigator.of(context).pop();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }
 

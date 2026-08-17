@@ -39,6 +39,7 @@ import 'data/makerworld_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
+import 'data/ams_slot_config_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/printer_files_repository.dart';
 import 'data/maintenance_repository.dart';
@@ -502,6 +503,12 @@ final skipObjectsRepositoryProvider = Provider<SkipObjectsRepository>(
 
 final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Filament presets and the two slot-configuration commands. Shares the
+/// authenticated Dio.
+final amsSlotConfigRepositoryProvider = Provider<AmsSlotConfigRepository>(
+  (ref) => AmsSlotConfigRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// AMS sensor history (temperature + humidity charts). Shares authenticated

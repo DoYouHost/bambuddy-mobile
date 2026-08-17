@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/slot_configuration.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/ams_filament_preset.dart';
+import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
 
@@ -224,6 +227,9 @@ class ControlsNotifier extends Notifier<ControlsState> {
   PrinterCommandsRepository get _repo =>
       ref.read(printerCommandsRepositoryProvider);
 
+  AmsSlotConfigRepository get _slotConfig =>
+      ref.read(amsSlotConfigRepositoryProvider);
+
   Future<ActionOutcome> pause(int id) =>
       _run(id, ControlAction.pause, () => _repo.pause(id));
 
@@ -381,6 +387,48 @@ class ControlsNotifier extends Notifier<ControlsState> {
         () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
         permission: ControlPermission.amsRfid,
       );
+
+  /// Write a filament configuration into one slot, and remember which preset it
+  /// was — the printer keeps only a filament id, so without the mapping the slot
+  /// can be shown but not named.
+  ///
+  /// Ids are **local** to the unit here, unlike [amsLoad]: the external spool is
+  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), which is the same pair the
+  /// inventory assignment already uses.
+  ///
+  /// The mapping is saved on a best-effort basis: it needs `printers:update`,
+  /// which is a permission of its own, and the slot is already configured by the
+  /// time it is written. Failing the whole action over the label would report a
+  /// change that did happen as one that did not.
+  Future<ActionOutcome> configureSlot(
+    int id, {
+    required int amsId,
+    required int trayId,
+    required SlotConfiguration configuration,
+    required AmsFilamentPreset preset,
+  }) =>
+      _run(id, ControlAction.ams, () async {
+        await _slotConfig.configureSlot(id,
+            amsId: amsId, trayId: trayId, configuration: configuration);
+        try {
+          await _slotConfig.saveSlotPreset(id,
+              amsId: amsId,
+              trayId: trayId,
+              preset: preset,
+              presetName: configuration.traySubBrands);
+        } on AppApiException {
+          // Nothing to roll back and nothing to say: the filament is set.
+        }
+      });
+
+  /// Clear a slot's filament configuration, and the saved mapping with it.
+  Future<ActionOutcome> resetSlot(
+    int id, {
+    required int amsId,
+    required int trayId,
+  }) =>
+      _run(id, ControlAction.ams,
+          () => _slotConfig.resetSlot(id, amsId: amsId, trayId: trayId));
 
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
   /// No optimistic override — the caller keeps the switch locked until the live

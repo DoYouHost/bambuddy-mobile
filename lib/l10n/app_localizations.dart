@@ -1922,6 +1922,114 @@ abstract class AppLocalizations {
   /// **'Unavailable while the printer is printing'**
   String get amsActionsWhilePrinting;
 
+  /// No description provided for @amsSlotConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure slot'**
+  String get amsSlotConfigure;
+
+  /// No description provided for @amsSlotConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configuration'**
+  String get amsSlotConfigTitle;
+
+  /// No description provided for @amsSlotConfigSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search presets'**
+  String get amsSlotConfigSearch;
+
+  /// No description provided for @amsSlotConfigColour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get amsSlotConfigColour;
+
+  /// No description provided for @amsSlotConfigApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to printer'**
+  String get amsSlotConfigApply;
+
+  /// No description provided for @amsSlotConfigStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuring the slot…'**
+  String get amsSlotConfigStarted;
+
+  /// No description provided for @amsSlotConfigEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No filament presets available'**
+  String get amsSlotConfigEmpty;
+
+  /// No description provided for @amsSlotConfigNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset matches the search'**
+  String get amsSlotConfigNoMatch;
+
+  /// No description provided for @amsSlotConfigCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to Bambu Cloud to pick from your own presets.'**
+  String get amsSlotConfigCloudHint;
+
+  /// No description provided for @amsSlotConfigCloudAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get amsSlotConfigCloudAction;
+
+  /// No description provided for @amsSlotConfigTierLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get amsSlotConfigTierLocal;
+
+  /// No description provided for @amsSlotConfigTierCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get amsSlotConfigTierCloud;
+
+  /// No description provided for @amsSlotConfigTierBuiltin.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get amsSlotConfigTierBuiltin;
+
+  /// No description provided for @amsSlotConfigCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently set'**
+  String get amsSlotConfigCurrent;
+
+  /// No description provided for @amsSlotReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear slot'**
+  String get amsSlotReset;
+
+  /// No description provided for @amsSlotResetConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear this slot?'**
+  String get amsSlotResetConfirmTitle;
+
+  /// No description provided for @amsSlotResetConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer forgets the filament configured here, and bambuddy forgets which preset it was.'**
+  String get amsSlotResetConfirmMessage;
+
+  /// No description provided for @amsSlotResetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing the slot…'**
+  String get amsSlotResetStarted;
+
   /// No description provided for @extruderLeft.
   ///
   /// In en, this message translates to:

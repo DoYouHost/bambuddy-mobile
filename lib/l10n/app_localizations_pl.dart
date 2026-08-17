@@ -1082,6 +1082,62 @@ class AppLocalizationsPl extends AppLocalizations {
   String get amsActionsWhilePrinting => 'Niedostępne, gdy drukarka drukuje';
 
   @override
+  String get amsSlotConfigure => 'Skonfiguruj slot';
+
+  @override
+  String get amsSlotConfigTitle => 'Konfiguracja slotu';
+
+  @override
+  String get amsSlotConfigSearch => 'Szukaj presetu';
+
+  @override
+  String get amsSlotConfigColour => 'Kolor';
+
+  @override
+  String get amsSlotConfigApply => 'Zapisz w drukarce';
+
+  @override
+  String get amsSlotConfigStarted => 'Konfigurowanie slotu…';
+
+  @override
+  String get amsSlotConfigEmpty => 'Brak dostępnych presetów filamentu';
+
+  @override
+  String get amsSlotConfigNoMatch => 'Żaden preset nie pasuje do wyszukiwania';
+
+  @override
+  String get amsSlotConfigCloudHint =>
+      'Zaloguj się do Bambu Cloud, żeby wybierać spośród własnych presetów.';
+
+  @override
+  String get amsSlotConfigCloudAction => 'Zaloguj';
+
+  @override
+  String get amsSlotConfigTierLocal => 'Zaimportowane';
+
+  @override
+  String get amsSlotConfigTierCloud => 'Bambu Cloud';
+
+  @override
+  String get amsSlotConfigTierBuiltin => 'Wbudowane';
+
+  @override
+  String get amsSlotConfigCurrent => 'Ustawiony teraz';
+
+  @override
+  String get amsSlotReset => 'Wyczyść slot';
+
+  @override
+  String get amsSlotResetConfirmTitle => 'Wyczyścić slot?';
+
+  @override
+  String get amsSlotResetConfirmMessage =>
+      'Drukarka zapomni skonfigurowany tu filament, a bambuddy zapomni, jaki to był preset.';
+
+  @override
+  String get amsSlotResetStarted => 'Czyszczenie slotu…';
+
+  @override
   String get extruderLeft => 'Lewy ekstruder';
 
   @override
