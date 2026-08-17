@@ -6,6 +6,7 @@ part 'printer_status.g.dart';
 const _listAmsUnitEquality = ListEquality<AmsUnit>();
 const _listAmsTrayEquality = ListEquality<AmsTray>();
 const _listHmsErrorEquality = ListEquality<HmsError>();
+const _listNozzleEquality = ListEquality<NozzleInfo>();
 const _stringListEquality = ListEquality<String>();
 const _mapStringDoubleEquality = MapEquality<String, double>();
 const _mapIntIntEquality = MapEquality<int, int>();
@@ -50,6 +51,7 @@ class PrinterStatus {
     this.awaitingPlateClear,
     this.hmsErrors,
     this.supportsDrying,
+    this.nozzles,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -190,6 +192,28 @@ class PrinterStatus {
   /// (`supports_drying`, printer-level). Gates the AMS Dry action.
   final bool? supportsDrying;
 
+  /// Fitted nozzles, index 0 first (left/primary). Read for the diameter, which
+  /// the AMS slot configuration has to send and which nothing else reports.
+  @JsonKey(fromJson: _toNozzleListOrNull)
+  final List<NozzleInfo>? nozzles;
+
+  /// Diameter of the nozzle an AMS unit feeds, as the string the server and the
+  /// printer both use (`0.4`). Null when the printer has not reported its
+  /// nozzles — a caller that must send something falls back to `0.4`, but that
+  /// guess belongs at the call site, not here.
+  String? nozzleDiameterFor(int amsId) {
+    final fitted = nozzles;
+    if (fitted == null || fitted.isEmpty) return null;
+    final extruder = amsExtruderMap?[amsId] ?? 0;
+    final diameter = extruder >= 0 && extruder < fitted.length
+        ? fitted[extruder].nozzleDiameter
+        : null;
+    final value = (diameter?.isNotEmpty ?? false)
+        ? diameter
+        : fitted.first.nozzleDiameter;
+    return (value?.isEmpty ?? true) ? null : value;
+  }
+
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
   /// status that's identical in content to the one already in state (REST
   /// polling otherwise builds a fresh `PrinterStatus` every 5s via
@@ -231,6 +255,7 @@ class PrinterStatus {
           other.doorOpen == doorOpen &&
           other.awaitingPlateClear == awaitingPlateClear &&
           other.supportsDrying == supportsDrying &&
+          _listNozzleEquality.equals(other.nozzles, nozzles) &&
           _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
 
   @override
@@ -268,6 +293,7 @@ class PrinterStatus {
         awaitingPlateClear,
         hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
         supportsDrying,
+        nozzles == null ? null : _listNozzleEquality.hash(nozzles),
       ]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
@@ -334,6 +360,7 @@ class PrinterStatus {
       awaitingPlateClear: awaitingPlateClear ?? previous.awaitingPlateClear,
       hmsErrors: hmsErrors ?? previous.hmsErrors,
       supportsDrying: supportsDrying ?? previous.supportsDrying,
+      nozzles: nozzles ?? previous.nozzles,
     )._clearedIfOffline();
   }
 
@@ -351,7 +378,7 @@ class PrinterStatus {
   /// means a base P2S doesn't flash a chamber tile on reconnect while waiting
   /// for its first airduct frame (`null` there falls back to "show it").
   ///
-  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`), the physical AMS
+  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`), the physical AMS
   /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
   /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
@@ -364,6 +391,7 @@ class PrinterStatus {
       connected: false,
       model: model,
       supportsDrying: supportsDrying,
+      nozzles: nozzles,
       exhaustFanPresent: exhaustFanPresent,
       ams: ams,
       vtTray: vtTray,
@@ -629,6 +657,8 @@ class AmsTray {
     this.trayType,
     this.traySubBrands,
     this.remain,
+    this.trayInfoIdx,
+    this.caliIdx,
   });
 
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
@@ -649,6 +679,17 @@ class AmsTray {
   /// Remaining amount in percent (0–100); -1 = unknown (no RFID tag).
   @JsonKey(fromJson: _toIntOrNull)
   final int? remain;
+
+  /// Bambu filament id the printer has bound to this slot (`GFL05`, or a user
+  /// preset's own id). Identifies which preset the slot is configured with —
+  /// [traySubBrands] is only its name, and two presets can share one.
+  final String? trayInfoIdx;
+
+  /// Calibration profile the slot is using; -1 or null = the printer's default
+  /// K. Read when re-opening the slot configuration so the K profile already in
+  /// force is the one preselected.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? caliIdx;
 
   /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
@@ -674,11 +715,42 @@ class AmsTray {
           other.trayColor == trayColor &&
           other.trayType == trayType &&
           other.traySubBrands == traySubBrands &&
-          other.remain == remain;
+          other.remain == remain &&
+          other.trayInfoIdx == trayInfoIdx &&
+          other.caliIdx == caliIdx;
 
   @override
-  int get hashCode =>
-      Object.hash(id, trayColor, trayType, traySubBrands, remain);
+  int get hashCode => Object.hash(
+      id, trayColor, trayType, traySubBrands, remain, trayInfoIdx, caliIdx);
+}
+
+/// One fitted nozzle, from the status response's `nozzles` (index 0 =
+/// left/primary). Only the diameter is read: the AMS slot configuration has to
+/// send it, and it is also the key the printer's calibration table is indexed
+/// by.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class NozzleInfo {
+  const NozzleInfo({this.nozzleType, this.nozzleDiameter});
+
+  factory NozzleInfo.fromJson(Map<String, dynamic> json) =>
+      _$NozzleInfoFromJson(json);
+
+  /// `stainless_steel` / `hardened_steel`.
+  final String? nozzleType;
+
+  /// As a string, e.g. `0.4` — the form both the server and the printer's own
+  /// calibration table use, so it is never parsed into a number here.
+  final String? nozzleDiameter;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NozzleInfo &&
+          other.nozzleType == nozzleType &&
+          other.nozzleDiameter == nozzleDiameter;
+
+  @override
+  int get hashCode => Object.hash(nozzleType, nozzleDiameter);
 }
 
 /// Single printer HMS error from `hms_errors`. Server reports in two shapes per
@@ -910,5 +982,13 @@ List<AmsTray>? _toTrayListOrNull(dynamic value) {
   return [
     for (final e in value)
       if (e is Map) AmsTray.fromJson(Map<String, dynamic>.from(e)),
+  ];
+}
+
+List<NozzleInfo>? _toNozzleListOrNull(dynamic value) {
+  if (value is! List) return null;
+  return [
+    for (final e in value)
+      if (e is Map) NozzleInfo.fromJson(Map<String, dynamic>.from(e)),
   ];
 }

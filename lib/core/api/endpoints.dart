@@ -280,6 +280,40 @@ abstract final class Endpoints {
   static String amsSlotRfidRefresh(int printerId, int amsId, int slotId) =>
       '$apiPrefix/printers/$printerId/ams/$amsId/slot/$slotId/refresh';
 
+  // --- AMS slot configuration ---
+  //
+  // Ids here are **local** throughout (unit id + slot within the unit), unlike
+  // [amsLoad]. The external spool is unit 255 with slot 0 (Ext-L) or 1 (Ext-R):
+  // the server adds 254 itself when it looks the slot up in `vt_tray`.
+
+  /// Write a filament configuration into one slot (`POST`). The server computes
+  /// nothing — all 12 query parameters (`tray_info_idx`, `tray_type`,
+  /// `tray_sub_brands`, `tray_color`, `nozzle_temp_min`, `nozzle_temp_max`,
+  /// `cali_idx`, `nozzle_diameter`, `setting_id`, `kprofile_filament_id`,
+  /// `kprofile_setting_id`, `k_value`) are the caller's to derive, which is what
+  /// `AmsSlotConfiguration` exists for. Needs `printers:control`, and answers
+  /// 400 for a printer that is not connected.
+  static String amsSlotConfigure(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/slots/$amsId/$trayId/configure';
+
+  /// Clear a slot's filament configuration (`POST`). Also deletes the saved
+  /// [amsSlotPreset] mapping, so the two undo each other.
+  static String amsSlotReset(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/ams/$amsId/tray/$trayId/reset';
+
+  /// Which preset a slot was configured with (`GET` → the mapping or `null`,
+  /// `PUT` with query `preset_id`/`preset_name`/`preset_source` to save it).
+  /// The printer itself only keeps a filament id, and a user cloud preset's id
+  /// resolves to no name anywhere — this mapping is the only way to show back
+  /// what was picked.
+  static String amsSlotPreset(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/slot-presets/$amsId/$trayId';
+
+  /// Every saved slot→preset mapping for a printer (`GET`), keyed by the
+  /// *global* tray number (AMS-HT by unit id). One request for a whole card.
+  static String amsSlotPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/slot-presets';
+
   /// Printable objects for the current print (`GET`). Query `reload=true`
   /// re-reads them from the 3MF (useful after a restart). Returns
   /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,
@@ -804,6 +838,37 @@ abstract final class Endpoints {
 
   /// Bambu Cloud logout (`POST`, no body).
   static const cloudLogout = '$apiPrefix/cloud/logout';
+
+  /// Slicer presets stored in the user's Bambu Cloud account (`GET`) —
+  /// `{filament: [...], printer: [...], process: [...]}`, each entry a
+  /// `SlicerSetting` with `setting_id`/`name`/`is_custom`. **401 when no cloud
+  /// login exists**, which is a normal answer here: the filament picker falls
+  /// back to [cloudBuiltinFilaments] plus the local presets.
+  static const cloudSettings = '$apiPrefix/cloud/settings';
+
+  /// One cloud preset in full (`GET`). Read for a custom preset's own
+  /// `filament_id`, which is what the printer needs and what the id in the list
+  /// is not. Never substitute the response's `base_id`: that is the generic the
+  /// preset inherits from, and using it makes the slicer resolve the slot back
+  /// to "Generic …" (bambuddy #1053).
+  static String cloudSettingDetail(String settingId) =>
+      '$apiPrefix/cloud/settings/$settingId';
+
+  /// Bambu's built-in filament table (`GET`) — `[{filament_id, name}]`. Static
+  /// and needs no cloud login (only `filaments:read`), which makes it the floor
+  /// the filament picker always has.
+  static const cloudBuiltinFilaments = '$apiPrefix/cloud/builtin-filaments';
+
+  /// Presets imported from a slicer bundle (`GET`) — same grouping as
+  /// [cloudSettings], entries carry `filament_type`, `nozzle_temp_min/max` and
+  /// a JSON-encoded `compatible_printers` string. Gated on `settings:read`, so
+  /// a narrow key can be refused this tier while still having the other two.
+  static const localPresets = '$apiPrefix/local-presets/';
+
+  /// Bambu's model registry (`GET`) — `{"Bambu Lab X1 Carbon": "X1C", …}`.
+  /// Static reference data, no auth. Maps the long names that appear inside
+  /// preset names to the short codes `Printer.model` uses.
+  static const slicerPrinterModels = '$apiPrefix/slicer/printer-models';
 
   // --- Projects ---
   //

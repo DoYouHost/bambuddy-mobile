@@ -41,6 +41,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       awaitingPlateClear: json['awaiting_plate_clear'] as bool?,
       hmsErrors: _toHmsListOrNull(json['hms_errors']),
       supportsDrying: json['supports_drying'] as bool?,
+      nozzles: _toNozzleListOrNull(json['nozzles']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
@@ -60,6 +61,13 @@ AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
   trayType: json['tray_type'] as String?,
   traySubBrands: json['tray_sub_brands'] as String?,
   remain: _toIntOrNull(json['remain']),
+  trayInfoIdx: json['tray_info_idx'] as String?,
+  caliIdx: _toIntOrNull(json['cali_idx']),
+);
+
+NozzleInfo _$NozzleInfoFromJson(Map<String, dynamic> json) => NozzleInfo(
+  nozzleType: json['nozzle_type'] as String?,
+  nozzleDiameter: json['nozzle_diameter'] as String?,
 );
 
 HmsError _$HmsErrorFromJson(Map<String, dynamic> json) => HmsError(
