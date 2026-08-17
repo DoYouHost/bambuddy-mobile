@@ -187,6 +187,91 @@ void main() {
     expect(res.error, 'empty-queue');
   });
 
+  test('hmsAction relays the fault verbatim to the server', () async {
+    Map<String, dynamic>? body;
+    adapter.onPost(
+      '/api/v1/printers/3/hms/execute-action',
+      (s) => s.reply(200, {'success': true}),
+      data: Matchers.any,
+    );
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.path.endsWith('hms/execute-action')) {
+        body = options.data as Map<String, dynamic>;
+      }
+      handler.next(options);
+    }));
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(
+        WearRpcAction.hmsAction,
+        printerId: 3,
+        printError: '03008004',
+        hmsAction: 'RESUME_PRINTING',
+        jobId: '746795586',
+      ),
+    );
+
+    expect(res.ok, isTrue);
+    // The firmware matches on this code; a phone that rewrote it would have the
+    // printer drop the command without a word.
+    expect(body, {
+      'print_error': '03008004',
+      'action': 'RESUME_PRINTING',
+      'job_id': '746795586',
+    });
+  });
+
+  test('hmsClear needs nothing but the printer', () async {
+    adapter.onPost(
+        '/api/v1/printers/3/hms/clear', (s) => s.reply(200, {'success': true}));
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+        handler, WearRpcRequest.create(WearRpcAction.hmsClear, printerId: 3));
+
+    expect(res.ok, isTrue);
+  });
+
+  test('hmsAction without a code or action → bad-request, no call', () async {
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(WearRpcAction.hmsAction, printerId: 3),
+    );
+
+    expect(res.ok, isFalse);
+    expect(res.error, 'bad-request');
+  });
+
+  test('the printer not answering an action surfaces as its own code',
+      () async {
+    // The route waits 2.5s for the printer and 502s when it stays silent —
+    // "the command went out and nothing came back", which the watch words
+    // differently from a refusal.
+    adapter.onPost(
+      '/api/v1/printers/3/hms/execute-action',
+      (s) => s.reply(502, {'detail': 'Printer did not acknowledge HMS action'}),
+      data: Matchers.any,
+    );
+    final handler = WearRelayHandler(watch: watch, dio: () => dio);
+
+    final res = await roundTrip(
+      handler,
+      WearRpcRequest.create(
+        WearRpcAction.hmsAction,
+        printerId: 3,
+        printError: '03008004',
+        hmsAction: 'RESUME_PRINTING',
+      ),
+    );
+
+    expect(res.ok, isFalse);
+    expect(res.error, 'badResponse');
+  });
+
   test('ignores non-request messages (no reply loop on own responses)',
       () async {
     WearRelayHandler(watch: watch, dio: () => dio).start();

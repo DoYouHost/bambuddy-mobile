@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/maintenance_repository.dart';
+import '../../data/printer_commands_repository.dart';
 import '../api/api_client.dart';
 import '../diagnostics/diagnostic_recorder.dart';
 import '../diagnostics/log_event.dart';
@@ -11,10 +12,42 @@ import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import 'hms_actions.dart';
+import 'hms_stop_request.dart';
 
 /// Action ID for "Mark Done" in maintenance notifications.
 /// The notification payload carries a comma-separated list of item IDs to reset.
 const String maintenancePerformActionId = 'maint_perform';
+
+/// Action IDs on an HMS alert are `hms:<HMSAction>`; the fault they apply to
+/// travels in the payload, since Android hands back only these two strings.
+const String hmsActionIdPrefix = 'hms:';
+
+/// Payload of an HMS alert: `hms:<printerId>:<full_code>:<job_id>`. The job id
+/// is a bare `subtask_id` and the full code is hex, so neither can contain the
+/// separator.
+String hmsPayload({
+  required int printerId,
+  required String fullCode,
+  String? jobId,
+}) =>
+    'hms:$printerId:$fullCode:${jobId ?? ''}';
+
+/// The fault an HMS notification action refers to, or null when the payload is
+/// not one (or was written by a version that formatted it differently).
+({int printerId, String fullCode, String? jobId})? parseHmsPayload(
+    String? payload) {
+  if (payload == null || !payload.startsWith('hms:')) return null;
+  final parts = payload.split(':');
+  if (parts.length != 4) return null;
+  final printerId = int.tryParse(parts[1]);
+  if (printerId == null || parts[2].isEmpty) return null;
+  return (
+    printerId: printerId,
+    fullCode: parts[2],
+    jobId: parts[3].isEmpty ? null : parts[3],
+  );
+}
 
 String maintenancePayload(Iterable<int> itemIds) => itemIds.join(',');
 
@@ -59,7 +92,79 @@ Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
 /// the plugin launches it in a separate Dart engine.
 @pragma('vm:entry-point')
 void maintenanceNotificationBackgroundHandler(NotificationResponse response) {
-  handleMaintenanceAction(response);
+  handleNotificationAction(response);
+}
+
+/// Every notification-button tap arrives here, from whichever isolate the
+/// plugin happens to deliver it in. Each handler recognises its own action ids
+/// and ignores the rest.
+Future<void> handleNotificationAction(NotificationResponse response) async {
+  await handleMaintenanceAction(response);
+  await handleHmsAction(response);
+}
+
+/// Runs the remediation action the user tapped on an HMS alert.
+///
+/// Stopping a print is the exception: it never runs from here, because a tap
+/// that abandons hours of printing has to be confirmed and a notification has
+/// nowhere to ask. That button brings the app up instead, and the request is
+/// parked in [postHmsStopRequest] for the shell to pick up.
+Future<void> handleHmsAction(NotificationResponse response) async {
+  final actionId = response.actionId;
+  if (actionId == null || !actionId.startsWith(hmsActionIdPrefix)) return;
+  final action = actionId.substring(hmsActionIdPrefix.length);
+  final fault = parseHmsPayload(response.payload);
+  if (fault == null) return;
+  if (action == hmsStopAction) {
+    postHmsStopRequest(HmsStopRequest(
+      printerId: fault.printerId,
+      fullCode: fault.fullCode,
+      jobId: fault.jobId,
+    ));
+    return;
+  }
+
+  BackgroundRecording? recording;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    // Same three-isolate story as the maintenance handler above: only the
+    // dedicated callback engine opens a stream of its own.
+    if (!DiagnosticRecorder.isRecording) {
+      recording = await DiagnosticRecorder.startBackground(
+        settings: SettingsRepository(prefs),
+        stream: LogStream.action,
+        loadSecrets: () => sessionSecrets(
+          profile: SettingsRepository(prefs).loadProfile(),
+          credentials: SecureCredentialsStore(),
+        ),
+        attachErrors: false,
+      );
+    }
+    NotifProbe.action(id: actionId, items: 1);
+
+    final api = await buildBackgroundApiClient(prefs);
+    if (api == null) {
+      NotifProbe.noClient();
+      return;
+    }
+    await PrinterCommandsRepository(api.dio).executeHmsAction(
+      fault.printerId,
+      printError: fault.fullCode,
+      action: action,
+      jobId: fault.jobId,
+    );
+    final id = response.id;
+    if (id != null) {
+      await FlutterLocalNotificationsPlugin().cancel(id);
+    }
+  } on Object catch (error) {
+    // The callback isolate cannot crash — but from the user's side this is "I
+    // pressed Resume and the printer stayed paused", so it goes on the record.
+    // A 502 lands here too: the command went out, the printer never answered.
+    NotifProbe.actionFailed(error, items: 1);
+  } finally {
+    await recording?.stop();
+  }
 }
 
 /// Handles tapping the "Mark Done" action on a maintenance notification.

@@ -6,6 +6,7 @@ part 'printer_status.g.dart';
 const _listAmsUnitEquality = ListEquality<AmsUnit>();
 const _listAmsTrayEquality = ListEquality<AmsTray>();
 const _listHmsErrorEquality = ListEquality<HmsError>();
+const _stringListEquality = ListEquality<String>();
 const _mapStringDoubleEquality = MapEquality<String, double>();
 const _mapIntIntEquality = MapEquality<int, int>();
 
@@ -691,6 +692,9 @@ class HmsError {
     this.severity,
     this.attr,
     this.module,
+    this.actions = const [],
+    this.jobId,
+    this.fullCode,
   });
 
   factory HmsError.fromJson(Map<String, dynamic> json) =>
@@ -714,6 +718,34 @@ class HmsError {
   @JsonKey(fromJson: _toIntOrNull)
   final int? module;
 
+  /// Remediation actions the firmware offers for this fault, as `HMSAction`
+  /// keys (`RESUME_PRINTING`, `IGNORE_RESUME`, …). The server resolves them from
+  /// Bambu's catalog against the printer model, so the app renders what arrives
+  /// instead of guessing. Empty on servers older than 0.2.4.8 and for faults
+  /// Bambu lists no action for.
+  @JsonKey(fromJson: _toStringListOrEmpty)
+  final List<String> actions;
+
+  /// `subtask_id` snapshotted onto the fault when it was parsed. Echoed back
+  /// with the action so the firmware matches it to the right job.
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  final String? jobId;
+
+  /// The identifier the firmware matches HMS commands against, 8 hex chars for
+  /// a `print_error` fault and 16 for an `hms[]` one, sent verbatim as
+  /// `HmsActionBody.print_error`. Never rebuild it from [attr]/[code]: for the
+  /// `print_error` path `attr` holds the whole 32-bit value, so the 16-char
+  /// [ecode] this class composes would be a code the printer does not know, and
+  /// the firmware drops such a command without a word.
+  ///
+  /// Null when the fault carries no identifier — the signal that no action can
+  /// be offered for it. Two different servers arrive at that: one too old to
+  /// send the field at all, and a current one whose `HMSError.full_code`
+  /// defaults to `""`, which the parser folds into null so a blank never
+  /// reaches the route (its regex demands 8 or 16 hex digits and answers 422).
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  final String? fullCode;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -722,10 +754,14 @@ class HmsError {
           other.message == message &&
           other.severity == severity &&
           other.attr == attr &&
-          other.module == module;
+          other.module == module &&
+          _stringListEquality.equals(other.actions, actions) &&
+          other.jobId == jobId &&
+          other.fullCode == fullCode;
 
   @override
-  int get hashCode => Object.hash(code, message, severity, attr, module);
+  int get hashCode => Object.hash(code, message, severity, attr, module,
+      _stringListEquality.hash(actions), jobId, fullCode);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.
@@ -748,9 +784,34 @@ class HmsError {
         .toUpperCase();
   }
 
-  /// Readable canonical code with dashes: `0500-0600-0002-0070`. Falls back to
-  /// raw `code` (after separator normalization) if full can't be composed.
+  /// Bambu's short form `MMMM_EEEE` — module from `attr`'s high half, error
+  /// from `code`'s low half. The key the print-error catalog is written in, and
+  /// the fallback the server itself uses to look a fault up
+  /// (`bambu_mqtt.py::_update_state`). null when `code` is not numeric.
+  String? get shortCode {
+    final a = attr;
+    final c = _codeInt;
+    if (a == null || c == null) return null;
+    // An `hms[]` fault keeps the module in attr's high half; a `print_error`
+    // one stores the whole 32-bit value there, and its low half is the module
+    // — hence the fallback, which mirrors the server's own getShortCode.
+    final module = (a >> 16) & 0xFFFF != 0
+        ? (a >> 16) & 0xFFFF
+        : ((a >> 8) & 0xFF) << 8 | (a & 0xFF);
+    return '${module.toRadixString(16).padLeft(4, '0')}_'
+            '${(c & 0xFFFF).toRadixString(16).padLeft(4, '0')}'
+        .toUpperCase();
+  }
+
+  /// Readable canonical code with dashes: `0500-0600-0002-0070` for an `hms[]`
+  /// fault, `0300-8004` for a `print_error` one — the form its own screen shows
+  /// it in. Falls back to raw `code` (after separator normalization) when
+  /// neither can be composed.
   String get displayCode {
+    final full = fullCode;
+    if (full != null && full.length == 8) {
+      return '${full.substring(0, 4)}-${full.substring(4)}'.toUpperCase();
+    }
     final e = ecode;
     if (e != null && e.length == 16) {
       return '${e.substring(0, 4)}-${e.substring(4, 8)}'
@@ -769,6 +830,21 @@ String? _toCodeStringOrNull(dynamic value) => switch (value) {
       num n => n.toString(),
       _ => null,
     };
+
+/// Server strings that mean "absent" by being blank rather than by being
+/// omitted — the identifiers whose empty form would otherwise be sent onward as
+/// if it named something.
+String? _toNonBlankStringOrNull(dynamic value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
+
+/// Action keys — non-string elements dropped rather than crashing the frame.
+List<String> _toStringListOrEmpty(dynamic value) {
+  if (value is! List) return const [];
+  return [
+    for (final e in value)
+      if (e is String && e.trim().isNotEmpty) e.trim(),
+  ];
+}
 
 /// HMS error list — skip non-map elements (defensive parsing).
 List<HmsError>? _toHmsListOrNull(dynamic value) {

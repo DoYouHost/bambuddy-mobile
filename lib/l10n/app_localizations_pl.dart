@@ -1672,6 +1672,124 @@ class AppLocalizationsPl extends AppLocalizations {
   String get hmsViewInWiki => 'Otwórz w wiki Bambu';
 
   @override
+  String hmsErrorsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count błędu',
+      many: '$count błędów',
+      few: '$count błędy',
+      one: '1 błąd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get hmsDismissAll => 'Odrzuć wszystkie';
+
+  @override
+  String get hmsDismissed => 'Błędy wyczyszczone na drukarce';
+
+  @override
+  String get hmsDismissFailed => 'Nie udało się wyczyścić błędów';
+
+  @override
+  String get hmsActionSent => 'Wysłano do drukarki';
+
+  @override
+  String get hmsActionFailed => 'Drukarka odrzuciła akcję';
+
+  @override
+  String get hmsActionNotAcknowledged =>
+      'Drukarka nie potwierdziła akcji — sprawdź jej ekran';
+
+  @override
+  String get hmsStopConfirmTitle => 'Zatrzymać wydruk?';
+
+  @override
+  String hmsStopConfirmBody(String printer) {
+    return '$printer porzuci bieżące zadanie. Tego nie da się cofnąć.';
+  }
+
+  @override
+  String get hmsStopConfirmAction => 'Zatrzymaj wydruk';
+
+  @override
+  String get hmsActionResume => 'Wznów';
+
+  @override
+  String get hmsActionResumeDefects => 'Wznów mimo wad';
+
+  @override
+  String get hmsActionResumeSolved => 'Naprawione, wznów';
+
+  @override
+  String get hmsActionProblemSolvedResume => 'Naprawione, wznów';
+
+  @override
+  String get hmsActionFilamentLoadedResume => 'Załadowany, wznów';
+
+  @override
+  String get hmsActionProceed => 'Kontynuuj';
+
+  @override
+  String get hmsActionStopPrinting => 'Zatrzymaj';
+
+  @override
+  String get hmsActionIgnoreResume => 'Zignoruj i wznów';
+
+  @override
+  String get hmsActionIgnoreNoReminder => 'Zignoruj na stałe';
+
+  @override
+  String get hmsActionDontRemind => 'Nie przypominaj';
+
+  @override
+  String get hmsActionNoReminder => 'Ukryj ostrzeżenie';
+
+  @override
+  String get hmsActionFilamentExtruded => 'Wytłoczony';
+
+  @override
+  String get hmsActionRetryFilamentExtruded => 'Jeszcze nie, ponów';
+
+  @override
+  String get hmsActionContinue => 'Gotowe, kontynuuj';
+
+  @override
+  String get hmsActionRetrySolved => 'Naprawione, ponów';
+
+  @override
+  String get hmsActionDone => 'Gotowe';
+
+  @override
+  String get hmsActionRetry => 'Ponów';
+
+  @override
+  String get hmsActionResumePlain => 'Wznów';
+
+  @override
+  String get hmsActionConfirm => 'Potwierdź';
+
+  @override
+  String get hmsActionAbort => 'Przerwij';
+
+  @override
+  String get hmsActionOk => 'OK';
+
+  @override
+  String get hmsActionRecheck => 'Sprawdź';
+
+  @override
+  String get hmsActionTurnOffFireAlarm => 'Wyłącz alarm';
+
+  @override
+  String get hmsActionStopDrying => 'Zatrzymaj suszenie';
+
+  @override
+  String get hmsActionDisablePurification => 'Wyłącz oczyszczanie';
+
+  @override
   String get batteryOptTitle => 'Niezawodne powiadomienia w tle';
 
   @override

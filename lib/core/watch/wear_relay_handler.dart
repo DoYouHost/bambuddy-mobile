@@ -109,6 +109,19 @@ class WearRelayHandler {
         await commands.clearPlate(printerId);
       case WearRpcAction.startNext:
         await QueueRepository(dio).startNextPending(printerId);
+      case WearRpcAction.hmsClear:
+        await commands.clearHmsErrors(printerId);
+      case WearRpcAction.hmsAction:
+        final printError = req.printError;
+        final hmsAction = req.hmsAction;
+        // Neither is recoverable here: the firmware matches on the code and the
+        // route rejects anything that is not 8 or 16 hex digits, so a request
+        // missing either was malformed before it left the watch.
+        if (printError == null || hmsAction == null) {
+          return WearRpcResponse.failure(req.id, 'bad-request');
+        }
+        await commands.executeHmsAction(printerId,
+            printError: printError, action: hmsAction, jobId: req.jobId);
       case WearRpcAction.getFleet:
         throw StateError('unreachable'); // handled above
     }

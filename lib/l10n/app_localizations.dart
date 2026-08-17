@@ -2930,6 +2930,216 @@ abstract class AppLocalizations {
   /// **'Open in Bambu wiki'**
   String get hmsViewInWiki;
 
+  /// No description provided for @hmsErrorsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 error} other{{count} errors}}'**
+  String hmsErrorsCount(int count);
+
+  /// No description provided for @hmsDismissAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss all'**
+  String get hmsDismissAll;
+
+  /// No description provided for @hmsDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors cleared on the printer'**
+  String get hmsDismissed;
+
+  /// No description provided for @hmsDismissFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the errors'**
+  String get hmsDismissFailed;
+
+  /// No description provided for @hmsActionSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the printer'**
+  String get hmsActionSent;
+
+  /// No description provided for @hmsActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer refused the action'**
+  String get hmsActionFailed;
+
+  /// No description provided for @hmsActionNotAcknowledged.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not confirm the action — check its screen'**
+  String get hmsActionNotAcknowledged;
+
+  /// No description provided for @hmsStopConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the print?'**
+  String get hmsStopConfirmTitle;
+
+  /// No description provided for @hmsStopConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} will abandon the print job. This cannot be undone.'**
+  String hmsStopConfirmBody(String printer);
+
+  /// No description provided for @hmsStopConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop printing'**
+  String get hmsStopConfirmAction;
+
+  /// No description provided for @hmsActionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get hmsActionResume;
+
+  /// No description provided for @hmsActionResumeDefects.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume anyway'**
+  String get hmsActionResumeDefects;
+
+  /// No description provided for @hmsActionResumeSolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, resume'**
+  String get hmsActionResumeSolved;
+
+  /// No description provided for @hmsActionProblemSolvedResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, resume'**
+  String get hmsActionProblemSolvedResume;
+
+  /// No description provided for @hmsActionFilamentLoadedResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded, resume'**
+  String get hmsActionFilamentLoadedResume;
+
+  /// No description provided for @hmsActionProceed.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed'**
+  String get hmsActionProceed;
+
+  /// No description provided for @hmsActionStopPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get hmsActionStopPrinting;
+
+  /// No description provided for @hmsActionIgnoreResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore, resume'**
+  String get hmsActionIgnoreResume;
+
+  /// No description provided for @hmsActionIgnoreNoReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore always'**
+  String get hmsActionIgnoreNoReminder;
+
+  /// No description provided for @hmsActionDontRemind.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t remind'**
+  String get hmsActionDontRemind;
+
+  /// No description provided for @hmsActionNoReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get hmsActionNoReminder;
+
+  /// No description provided for @hmsActionFilamentExtruded.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruded'**
+  String get hmsActionFilamentExtruded;
+
+  /// No description provided for @hmsActionRetryFilamentExtruded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet, retry'**
+  String get hmsActionRetryFilamentExtruded;
+
+  /// No description provided for @hmsActionContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Done, continue'**
+  String get hmsActionContinue;
+
+  /// No description provided for @hmsActionRetrySolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, retry'**
+  String get hmsActionRetrySolved;
+
+  /// No description provided for @hmsActionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get hmsActionDone;
+
+  /// No description provided for @hmsActionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get hmsActionRetry;
+
+  /// No description provided for @hmsActionResumePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get hmsActionResumePlain;
+
+  /// No description provided for @hmsActionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get hmsActionConfirm;
+
+  /// No description provided for @hmsActionAbort.
+  ///
+  /// In en, this message translates to:
+  /// **'Abort'**
+  String get hmsActionAbort;
+
+  /// No description provided for @hmsActionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get hmsActionOk;
+
+  /// No description provided for @hmsActionRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Recheck'**
+  String get hmsActionRecheck;
+
+  /// No description provided for @hmsActionTurnOffFireAlarm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off alarm'**
+  String get hmsActionTurnOffFireAlarm;
+
+  /// No description provided for @hmsActionStopDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop drying'**
+  String get hmsActionStopDrying;
+
+  /// No description provided for @hmsActionDisablePurification.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable purification'**
+  String get hmsActionDisablePurification;
+
   /// No description provided for @batteryOptTitle.
   ///
   /// In en, this message translates to:

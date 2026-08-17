@@ -24,6 +24,14 @@ enum WearRpcAction {
   stop,
   clearPlate,
   startNext,
+
+  /// Clear the printer's active error dialog. No parameters beyond the printer.
+  hmsClear,
+
+  /// Run one remediation action for one fault: needs [WearRpcRequest.printError]
+  /// and [WearRpcRequest.hmsAction], plus [WearRpcRequest.jobId] when the fault
+  /// carried one.
+  hmsAction,
 }
 
 const _kVersion = 'v';
@@ -31,6 +39,9 @@ const _kKind = 'kind';
 const _kId = 'id';
 const _kAction = 'action';
 const _kPrinterId = 'printerId';
+const _kPrintError = 'printError';
+const _kHmsAction = 'hmsAction';
+const _kJobId = 'jobId';
 const _kOk = 'ok';
 const _kData = 'data';
 const _kError = 'error';
@@ -65,16 +76,30 @@ dynamic deepSanitize(dynamic value) => switch (value) {
       _ => value,
     };
 
+/// Blank is how a value the sender did not have arrives over the bridge, and it
+/// is never a valid code, action key or job id.
+String? _stringOrNull(Object? value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
+
 /// Watch→phone request.
 class WearRpcRequest {
   const WearRpcRequest({
     required this.id,
     required this.action,
     this.printerId,
+    this.printError,
+    this.hmsAction,
+    this.jobId,
   });
 
   /// New request with a fresh correlation id.
-  WearRpcRequest.create(this.action, {this.printerId}) : id = _newRpcId();
+  WearRpcRequest.create(
+    this.action, {
+    this.printerId,
+    this.printError,
+    this.hmsAction,
+    this.jobId,
+  }) : id = _newRpcId();
 
   final String id;
   final WearRpcAction action;
@@ -82,12 +107,27 @@ class WearRpcRequest {
   /// Required for every action except [WearRpcAction.getFleet].
   final int? printerId;
 
+  /// The fault's `full_code`, carried through untouched: the firmware matches
+  /// HMS commands on it, and a code rebuilt anywhere along this path would be
+  /// dropped by the printer without a word.
+  final String? printError;
+
+  /// The `HMSAction` key to run. Named apart from [action], which is the RPC's
+  /// own verb — this one is the printer's.
+  final String? hmsAction;
+
+  /// The fault's `job_id` snapshot, absent for an idle-state fault.
+  final String? jobId;
+
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
         _kKind: _kindRequest,
         _kId: id,
         _kAction: action.name,
         if (printerId != null) _kPrinterId: printerId,
+        if (printError != null) _kPrintError: printError,
+        if (hmsAction != null) _kHmsAction: hmsAction,
+        if (jobId != null) _kJobId: jobId,
       };
 
   /// Returns null for foreign/malformed maps and for responses — the shared
@@ -106,6 +146,9 @@ class WearRpcRequest {
       id: id,
       action: action,
       printerId: printerId is int ? printerId : null,
+      printError: _stringOrNull(map[_kPrintError]),
+      hmsAction: _stringOrNull(map[_kHmsAction]),
+      jobId: _stringOrNull(map[_kJobId]),
     );
   }
 }

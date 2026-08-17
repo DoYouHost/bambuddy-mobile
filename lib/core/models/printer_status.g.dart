@@ -68,4 +68,9 @@ HmsError _$HmsErrorFromJson(Map<String, dynamic> json) => HmsError(
   severity: _toIntOrNull(json['severity']),
   attr: _toIntOrNull(json['attr']),
   module: _toIntOrNull(json['module']),
+  actions: json['actions'] == null
+      ? const []
+      : _toStringListOrEmpty(json['actions']),
+  jobId: _toNonBlankStringOrNull(json['job_id']),
+  fullCode: _toNonBlankStringOrNull(json['full_code']),
 );

@@ -6,10 +6,19 @@ import 'notification_prefs.dart';
 /// Notification action button (e.g., "Mark Done" for maintenance).
 /// Independent of the plugin so tests can inject a fake and assert.
 class NotificationAction {
-  const NotificationAction({required this.id, required this.title});
+  const NotificationAction({
+    required this.id,
+    required this.title,
+    this.opensApp = false,
+  });
 
   final String id;
   final String title;
+
+  /// Bring the app up instead of running the action where it was tapped. For
+  /// the one action that cannot be taken back — stopping a print — the app is
+  /// the only place a confirmation can be shown.
+  final bool opensApp;
 }
 
 /// Photo attached to an alert that was already posted — the finish shot the
@@ -109,9 +118,10 @@ class LocalNotificationService implements NotificationService {
     );
     await _plugin.initialize(
       settings,
-      // Tapping "Mark Done" on maintenance notification: both foreground and background
-      // (app closed) route to the same handler.
-      onDidReceiveNotificationResponse: handleMaintenanceAction,
+      // Tapping an action button — "Mark Done" on maintenance, a remediation on
+      // an HMS alert: foreground and background (app closed) route to the same
+      // dispatcher.
+      onDidReceiveNotificationResponse: handleNotificationAction,
       onDidReceiveBackgroundNotificationResponse:
           maintenanceNotificationBackgroundHandler,
     );
@@ -209,9 +219,10 @@ class LocalNotificationService implements NotificationService {
               AndroidNotificationAction(
                 a.id,
                 a.title,
-                // Action handled in background (counter reset) without opening UI;
-                // notification dismisses after tap.
-                showsUserInterface: false,
+                // Most actions are handled in the background (counter reset,
+                // HMS remediation) without opening UI; the notification
+                // dismisses after the tap either way.
+                showsUserInterface: a.opensApp,
                 cancelNotification: true,
               ),
         ],

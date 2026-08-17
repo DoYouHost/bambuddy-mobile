@@ -1,7 +1,10 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/notifications/hms_catalog.dart';
 import '../providers.dart';
 import 'wear_app.dart';
 
@@ -19,6 +22,13 @@ import 'wear_app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
+  // Without the catalog a fault has no description, and an unnamed fault is
+  // hidden — so on the watch this line is the difference between the error
+  // panel existing and never appearing at all. The raw platform locale is
+  // enough: `load` narrows it to the two tables that exist, which is why this
+  // does not reach for the phone's `systemLocale` and drag the print monitor
+  // into the watch build with it.
+  await HmsCatalog.instance.load(PlatformDispatcher.instance.locale);
   runApp(
     ProviderScope(
       overrides: [
