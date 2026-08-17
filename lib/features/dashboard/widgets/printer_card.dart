@@ -13,6 +13,7 @@ import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
+import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';
 import '../../../data/smart_plugs_repository.dart';
 import '../../../l10n/app_localizations.dart';

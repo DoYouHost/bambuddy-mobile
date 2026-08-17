@@ -508,6 +508,7 @@ class _DetailsPanel extends ConsumerWidget {
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
+          printing: status.isPrinting && !status.isPaused,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -524,6 +525,7 @@ class _DetailsPanel extends ConsumerWidget {
           },
           printerId: printerId,
           printerName: printerName,
+          printing: status.isPrinting && !status.isPaused,
         ),
     ];
 
@@ -576,6 +578,7 @@ class _AmsSection extends ConsumerWidget {
     required this.printerId,
     required this.printerName,
     required this.supportsDrying,
+    required this.printing,
   });
 
   final AmsUnit unit;
@@ -587,6 +590,7 @@ class _AmsSection extends ConsumerWidget {
   final int printerId;
   final String? printerName;
   final bool supportsDrying;
+  final bool printing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -682,6 +686,12 @@ class _AmsSection extends ConsumerWidget {
                 amsId: unit.id ?? unitIndex,
                 trayId: trays[i].id ?? 0,
                 label: '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                printing: printing,
+                loadTrayId: amsLoadTrayId(
+                  amsId: unit.id ?? unitIndex,
+                  trayId: trays[i].id ?? 0,
+                ),
+                canRereadRfid: true,
               ),
             ),
       ],
@@ -700,6 +710,7 @@ class _SpoolSection extends StatelessWidget {
     required this.trayIdOf,
     required this.printerId,
     required this.printerName,
+    required this.printing,
   });
 
   final List<AmsTray> trays;
@@ -709,6 +720,7 @@ class _SpoolSection extends StatelessWidget {
   final int Function(int index) trayIdOf;
   final int printerId;
   final String? printerName;
+  final bool printing;
 
   @override
   Widget build(BuildContext context) {
@@ -750,6 +762,14 @@ class _SpoolSection extends StatelessWidget {
                 0 => l10n.extruderRight,
                 _ => l10n.externalSpool,
               },
+              printing: printing,
+              // The spool's own id (254/255) is already the global tray number;
+              // `trayIdOf` above is the extruder-ordered index the inventory
+              // assignment is keyed by, and means nothing to the load command.
+              loadTrayId: amsLoadTrayId(
+                amsId: 255,
+                trayId: trays[i].id ?? 254,
+              ),
             ),
           ),
       ],
@@ -1407,6 +1427,9 @@ class _SlotRef {
     required this.amsId,
     required this.trayId,
     required this.label,
+    required this.printing,
+    this.loadTrayId,
+    this.canRereadRfid = false,
   });
 
   final int printerId;
@@ -1416,6 +1439,141 @@ class _SlotRef {
 
   /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
   final String label;
+
+  /// Whether a job is actively running on this printer. A paused one does not
+  /// count: swapping a run-out spool is the reason people pause. Read from the
+  /// status the card already renders rather than from the shared statuses map,
+  /// so the slot the user tapped and the state that disables it come from one
+  /// frame.
+  final bool printing;
+
+  /// Global tray number for the load command, or null where the slot cannot be
+  /// addressed by it (AMS-HT) — see [amsLoadTrayId].
+  final int? loadTrayId;
+
+  /// Whether the slot has a tag to re-read. False for external spools: they
+  /// have no RFID reader, and the web hides the action there too.
+  final bool canRereadRfid;
+}
+
+/// Printer-side filament actions for one slot: load it, unload whatever is in
+/// the extruder, re-read the slot's RFID tag.
+///
+/// Hidden entirely once a control was refused — same rule the drying control
+/// follows. While the printer prints, the actions stay visible but disabled:
+/// they interrupt the filament path, and a job is exactly what they would ruin.
+class _SlotActions extends ConsumerWidget {
+  const _SlotActions({required this.slot});
+
+  final _SlotRef slot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final loadTrayId = slot.loadTrayId;
+    if (forbidden || (loadTrayId == null && !slot.canRereadRfid)) {
+      return const SizedBox.shrink();
+    }
+
+    final busy = ref.watch(controlsProvider
+        .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
+    final enabled = !busy && !slot.printing;
+    final controls = ref.read(controlsProvider.notifier);
+
+    // Two equal halves and a full-width third, rather than a Wrap: the buttons
+    // are three different lengths, and letting them flow left them ragged with
+    // a stray one on its own line.
+    final load = OutlinedButton.icon(
+      onPressed: enabled && loadTrayId != null
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsLoad(slot.printerId, loadTrayId),
+                l10n.amsLoadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.login, size: 18),
+      label: Text(l10n.amsLoad),
+    ).tagged('assign_spool.ams_load');
+
+    final unload = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsUnload(slot.printerId),
+                l10n.amsUnloadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.logout, size: 18),
+      label: Text(l10n.amsUnload),
+    ).tagged('assign_spool.ams_unload');
+
+    final reread = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.refreshAmsSlot(
+                  slot.printerId,
+                  amsId: slot.amsId,
+                  slotId: slot.trayId,
+                ),
+                l10n.amsRfidRereadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.nfc, size: 18),
+      label: Text(l10n.amsRfidReread),
+    ).tagged('assign_spool.rfid_reread');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        if (loadTrayId != null)
+          Row(
+            children: [
+              Expanded(child: load),
+              const SizedBox(width: 8),
+              Expanded(child: unload),
+            ],
+          ),
+        if (loadTrayId != null && slot.canRereadRfid) const SizedBox(height: 8),
+        if (slot.canRereadRfid) reread,
+        if (slot.printing) ...[
+          const SizedBox(height: 8),
+          Text(
+            l10n.amsActionsWhilePrinting,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Closes the sheet before the command lands: these actions take tens of
+  /// seconds at the printer and there is nothing to watch here meanwhile.
+  Future<void> _run(
+    BuildContext context,
+    AppLocalizations l10n,
+    Future<ActionOutcome> Function() action,
+    String startedMessage,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    final outcome = await action();
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(outcome.messageFor(l10n) ?? startedMessage),
+      ));
+  }
 }
 
 /// "Assign spool to this slot" sheet opened from a filament row. Slot is known
@@ -1476,6 +1634,7 @@ class _AssignSlotSheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            _SlotActions(slot: slot),
             if (current != null) ...[
               Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),

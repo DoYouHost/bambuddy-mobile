@@ -1034,6 +1034,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get traySlotEmpty => 'Empty';
 
   @override
+  String get amsSlotFilament => 'Filament';
+
+  @override
+  String get amsLoad => 'Load';
+
+  @override
+  String get amsUnload => 'Unload';
+
+  @override
+  String get amsRfidReread => 'Re-read tag';
+
+  @override
+  String get amsLoadStarted => 'Loading filament…';
+
+  @override
+  String get amsUnloadStarted => 'Unloading filament…';
+
+  @override
+  String get amsRfidRereadStarted => 'Re-reading the tag…';
+
+  @override
+  String get amsActionsWhilePrinting =>
+      'Unavailable while the printer is printing';
+
+  @override
   String get extruderLeft => 'Left extruder';
 
   @override

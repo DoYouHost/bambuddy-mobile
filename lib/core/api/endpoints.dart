@@ -251,6 +251,35 @@ abstract final class Endpoints {
   static String homeAxes(int printerId) =>
       '$apiPrefix/printers/$printerId/home-axes';
 
+  // --- AMS filament handling ---
+
+  /// Ask the printer to republish its whole state (`pushall`). Unlike every
+  /// other route in this block it needs read permission only, so a key that
+  /// cannot control the printer may still call it. Answers 400 when the printer
+  /// is not connected.
+  static String printerRefreshStatus(int printerId) =>
+      '$apiPrefix/printers/$printerId/refresh-status';
+
+  /// Load filament into the extruder. Query: `tray_id`, the **global** tray
+  /// number — `ams_id * 4 + slot` for a regular AMS (0..15, and 24..27 once the
+  /// A2L AMS-Lite is normalised to unit 6), 254 external / Ext-L, 255 Ext-R.
+  /// The server rejects everything else with 400, AMS-HT (unit 128+) included —
+  /// build the number with `amsLoadTrayId`, which answers null for those.
+  static String amsLoad(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/load';
+
+  /// Unload whatever is in the extruder. Printer-wide: the source slot comes
+  /// from the printer's own `tray_now`, so there is nothing to address.
+  static String amsUnload(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/unload';
+
+  /// Re-read one AMS slot's RFID tag. Path ids are **local** (unit id, slot
+  /// within the unit) — not the global number [amsLoad] takes. Gated on
+  /// `printers:ams_rfid`, a permission of its own: a key allowed to control the
+  /// printer can still be refused here.
+  static String amsSlotRfidRefresh(int printerId, int amsId, int slotId) =>
+      '$apiPrefix/printers/$printerId/ams/$amsId/slot/$slotId/refresh';
+
   /// Printable objects for the current print (`GET`). Query `reload=true`
   /// re-reads them from the 3MF (useful after a restart). Returns
   /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,

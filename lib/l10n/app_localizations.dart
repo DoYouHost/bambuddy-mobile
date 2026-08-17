@@ -1874,6 +1874,54 @@ abstract class AppLocalizations {
   /// **'Empty'**
   String get traySlotEmpty;
 
+  /// No description provided for @amsSlotFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get amsSlotFilament;
+
+  /// No description provided for @amsLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load'**
+  String get amsLoad;
+
+  /// No description provided for @amsUnload.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload'**
+  String get amsUnload;
+
+  /// No description provided for @amsRfidReread.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read tag'**
+  String get amsRfidReread;
+
+  /// No description provided for @amsLoadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading filament…'**
+  String get amsLoadStarted;
+
+  /// No description provided for @amsUnloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading filament…'**
+  String get amsUnloadStarted;
+
+  /// No description provided for @amsRfidRereadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-reading the tag…'**
+  String get amsRfidRereadStarted;
+
+  /// No description provided for @amsActionsWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable while the printer is printing'**
+  String get amsActionsWhilePrinting;
+
   /// No description provided for @extruderLeft.
   ///
   /// In en, this message translates to:

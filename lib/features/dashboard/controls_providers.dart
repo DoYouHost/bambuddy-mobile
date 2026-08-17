@@ -22,6 +22,7 @@ enum ControlAction {
   extruder,
   move,
   hms,
+  ams,
 }
 
 /// Commands answer with the shared [ActionOutcome] — see its doc for why the
@@ -315,6 +316,36 @@ class ControlsNotifier extends Notifier<ControlsState> {
         () => _repo.stopDrying(id, amsId: amsId),
       );
 
+  /// Load filament from one slot. [trayId] is the global tray number — build it
+  /// with [amsLoadTrayId] rather than by hand.
+  ///
+  /// The three AMS actions share [ControlAction.ams] so that a slot sheet locks
+  /// as a whole: load, unload and an RFID re-read all move the same filament
+  /// path, and two of them in the air at once is a jam, not a race the firmware
+  /// sorts out.
+  Future<ActionOutcome> amsLoad(int id, int trayId) =>
+      _run(id, ControlAction.ams, () => _repo.amsLoad(id, trayId));
+
+  Future<ActionOutcome> amsUnload(int id) =>
+      _run(id, ControlAction.ams, () => _repo.amsUnload(id));
+
+  /// Re-read one slot's RFID tag. Ids are local to the unit.
+  ///
+  /// A refusal here stays local: the route has a permission of its own
+  /// (`printers:ams_rfid`), so a key that may drive the printer but not re-read
+  /// tags must keep every other control on the card.
+  Future<ActionOutcome> refreshAmsSlot(
+    int id, {
+    required int amsId,
+    required int slotId,
+  }) =>
+      _run(
+        id,
+        ControlAction.ams,
+        () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
+        stickyForbidden: false,
+      );
+
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
   /// No optimistic override — the caller keeps the switch locked until the live
   /// status reports the new active extruder (the physical switch takes time).
@@ -349,6 +380,10 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// the optimistic override; [rollback] restores the touched field from
   /// [before] (surgically, preserving any concurrent different action);
   /// [clearKey] schedules discarding the override once real status catches up.
+  ///
+  /// [stickyForbidden] is what a 403 means for the rest of the card: true for
+  /// the routes gated on `printers:control` (one refusal answers for all of
+  /// them), false for a route with its own permission.
   Future<ActionOutcome> _run(
     int id,
     ControlAction action,
@@ -357,6 +392,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
     PendingControls Function(PendingControls before, PendingControls rolled)?
         rollback,
     String? clearKey,
+    bool stickyForbidden = true,
   }) async {
     final before = state.pendingFor(id);
 
@@ -379,7 +415,9 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
       final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
       // Sticky: one refusal is enough to stop offering controls this session.
-      if (outcome.isForbidden) state = state.copyWith(forbidden: true);
+      if (outcome.isForbidden && stickyForbidden) {
+        state = state.copyWith(forbidden: true);
+      }
       return outcome;
     }
   }

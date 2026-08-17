@@ -169,6 +169,32 @@ class PrinterCommandsRepository {
         if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
       });
 
+  /// Nudge the printer into republishing its full state. Read-level route, so
+  /// it works with a key that may not control anything; callers treat it as a
+  /// hint and ignore both the answer and a 400 from a disconnected printer.
+  Future<void> refreshStatus(int printerId) =>
+      _post(Endpoints.printerRefreshStatus(printerId));
+
+  /// Load filament from one slot. [trayId] is the global tray number from
+  /// [amsLoadTrayId] — not the slot's local id.
+  Future<void> amsLoad(int printerId, int trayId) {
+    assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
+    return _post(Endpoints.amsLoad(printerId), query: {'tray_id': trayId});
+  }
+
+  /// Unload the filament currently in the extruder — printer-wide, see
+  /// [Endpoints.amsUnload].
+  Future<void> amsUnload(int printerId) =>
+      _post(Endpoints.amsUnload(printerId));
+
+  /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
+  Future<void> refreshAmsSlot(
+    int printerId, {
+    required int amsId,
+    required int slotId,
+  }) =>
+      _post(Endpoints.amsSlotRfidRefresh(printerId, amsId, slotId));
+
   Future<void> _post(
     String path, {
     Map<String, dynamic>? query,
@@ -181,3 +207,26 @@ class PrinterCommandsRepository {
     }
   }
 }
+
+/// The global tray number `POST /ams/load` takes for a slot, or null where the
+/// server has no encoding for it.
+///
+/// An external spool is already global (254 = Ext-L, 255 = Ext-R), a regular
+/// AMS slot is `unit * 4 + slot`. The one hole is AMS-HT: its units are numbered
+/// from 128, so the same arithmetic lands far outside the accepted range and the
+/// server answers 400 — the caller hides the action instead of offering a button
+/// that cannot work.
+int? amsLoadTrayId({required int amsId, required int trayId}) {
+  if (amsId == 255) return _isLoadableTrayId(trayId) ? trayId : null;
+  if (amsId >= 128) return null;
+  final global = amsId * 4 + trayId;
+  return _isLoadableTrayId(global) ? global : null;
+}
+
+/// Mirrors the server's own validation (`printers.py` `ams_load`): AMS slots
+/// 0..15, the A2L AMS-Lite's normalised 24..27, and the two external ids.
+bool _isLoadableTrayId(int trayId) =>
+    (trayId >= 0 && trayId <= 15) ||
+    (trayId >= 24 && trayId <= 27) ||
+    trayId == 254 ||
+    trayId == 255;

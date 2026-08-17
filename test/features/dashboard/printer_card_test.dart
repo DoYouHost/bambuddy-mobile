@@ -14,6 +14,7 @@ import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
@@ -55,6 +56,10 @@ class _RecordingCommands implements PrinterCommandsRepository {
   Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
 
   @override
+  Future<void> amsLoad(int printerId, int trayId) async =>
+      calls.add('amsLoad:$printerId:$trayId');
+
+  @override
   Future<void> executeHmsAction(
     int printerId, {
     required String printError,
@@ -66,6 +71,13 @@ class _RecordingCommands implements PrinterCommandsRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not part of this test');
+}
+
+/// The slot sheet reads the inventory to offer spools; these tests care about
+/// the printer-side actions above that list, so it stays empty and offline.
+class _EmptyInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState();
 }
 
 class _FakeProfileNotifier extends ServerProfileNotifier {
@@ -520,6 +532,95 @@ void main() {
       expect(taps, isNotEmpty);
       expect(taps.every((w) => w.onTap == null), isTrue);
       expect(find.textContaining('%'), findsWidgets); // odczyty zostają
+    });
+
+    /// Opens the sheet behind the second slot of AMS 1 and hands back the
+    /// commands it sent. [state] decides whether the printer is mid-job.
+    Future<_RecordingCommands> openSlotSheet(
+      WidgetTester tester, {
+      required String state,
+    }) async {
+      final item = realItem();
+      final status = PrinterStatus(
+        id: item.printer.id,
+        connected: true,
+        state: state,
+      ).mergedWith(item.status!);
+      final commands = _RecordingCommands();
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(printer: item.printer, status: status),
+            ),
+          ),
+        ),
+        extra: [
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+          inventoryProvider.overrideWith(_EmptyInventory.new),
+        ],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The row's identifier carries the material it shows (`…@PETG`), so match
+      // on the control's own name and take the first slot of AMS 1.
+      final slotRow = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'))
+          .first;
+      await tester.ensureVisible(slotRow);
+      await tester.tap(slotRow);
+      // Not pumpAndSettle: a printing card animates an indeterminate progress
+      // bar forever, so only the sheet's own transition is waited out.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      return commands;
+    }
+
+    testWidgets('slot sheet loads the slot by its global tray number',
+        (tester) async {
+      final commands = await openSlotSheet(tester, state: 'IDLE');
+
+      expect(find.text('Załaduj'), findsOneWidget);
+      expect(find.text('Odczytaj tag'), findsOneWidget);
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // AMS unit 0, first slot → global tray 0, not the local slot id.
+      expect(commands.calls, ['amsLoad:1:0']);
+    });
+
+    testWidgets('a printing printer keeps the filament actions unreachable',
+        (tester) async {
+      final commands = await openSlotSheet(tester, state: 'RUNNING');
+
+      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsOneWidget);
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, isEmpty);
+    });
+
+    testWidgets('a paused job still lets the filament be changed',
+        (tester) async {
+      // Swapping a spool that ran out is what a pause is for.
+      final commands = await openSlotSheet(tester, state: 'PAUSE');
+
+      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsNothing);
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, ['amsLoad:1:0']);
     });
   });
 
