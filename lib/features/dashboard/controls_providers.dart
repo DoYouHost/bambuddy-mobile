@@ -190,6 +190,17 @@ class ControlsState {
 final controlsProvider =
     NotifierProvider<ControlsNotifier, ControlsState>(ControlsNotifier.new);
 
+/// Whether commands needing [ControlPermission] are known to be refused.
+///
+/// Every control on the card asks this before offering itself, so the question
+/// lives here rather than as a `select` each widget spells out: which gate a
+/// button sits behind is a fact about the route, and re-deciding it in eight
+/// widgets is how one of them ends up watching the wrong one.
+final controlRefusedProvider = Provider.family<bool, ControlPermission>(
+  (ref, permission) =>
+      ref.watch(controlsProvider.select((s) => s.isRefused(permission))),
+);
+
 /// Sends control commands and maintains optimistic UI state. No navigation or
 /// SnackBars — returns [ActionOutcome], and widget decides what to show.
 class ControlsNotifier extends Notifier<ControlsState> {
@@ -202,8 +213,8 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   @override
   ControlsState build() {
-    // Server profile change → fresh state and discarded timers (different API key
-    // may have different permissions, so sticky `forbidden` lock clears).
+    // Server profile change → fresh state and discarded timers (another API key
+    // may hold other permissions, so the [ControlsState.refused] set clears).
     ref.watch(serverProfileProvider);
     _cancelTimers();
     ref.onDispose(_cancelTimers);

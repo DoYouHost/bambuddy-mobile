@@ -58,7 +58,7 @@ class _GaugeTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlsProvider.select((s) => s.isRefused(ControlPermission.control)));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     // Only the chamber gauge scales against the ceiling, so watching it on every
     // tile rebuilds nozzle and bed for nothing when the probe answers. 60 until
     // the server's version is known — see [chamberMaxTargetProvider].

@@ -950,7 +950,8 @@ class _AmsDryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.isRefused(ControlPermission.control)));
+    final forbidden =
+        ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -1473,11 +1474,10 @@ class _SlotActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final canDrive = ref.watch(controlsProvider
-        .select((s) => !s.isRefused(ControlPermission.control)));
+    final canDrive =
+        !ref.watch(controlRefusedProvider(ControlPermission.control));
     final canReread = slot.canRereadRfid &&
-        ref.watch(controlsProvider
-            .select((s) => !s.isRefused(ControlPermission.amsRfid)));
+        !ref.watch(controlRefusedProvider(ControlPermission.amsRfid));
     // Load and unload share one gate and one row: unload takes no slot, so
     // offering it for a slot that cannot be loaded would put a printer-wide
     // button under a heading that names one slot.
