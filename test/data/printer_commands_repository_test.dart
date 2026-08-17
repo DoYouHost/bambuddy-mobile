@@ -129,6 +129,12 @@ void main() {
       expect(amsLoadTrayId(amsId: 255, trayId: 255), 255);
     });
 
+    test('refuses an external id that is not one of the two', () {
+      // Passing it on would silently address AMS 1 slot 2 instead.
+      expect(amsLoadTrayId(amsId: 255, trayId: 5), isNull);
+      expect(amsLoadTrayId(amsId: 255, trayId: 0), isNull);
+    });
+
     test('answers null for AMS-HT, which has no number in this encoding', () {
       expect(amsLoadTrayId(amsId: 128, trayId: 0), isNull);
       expect(amsLoadTrayId(amsId: 135, trayId: 0), isNull);

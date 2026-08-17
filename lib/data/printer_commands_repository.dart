@@ -217,7 +217,11 @@ class PrinterCommandsRepository {
 /// server answers 400 — the caller hides the action instead of offering a button
 /// that cannot work.
 int? amsLoadTrayId({required int amsId, required int trayId}) {
-  if (amsId == 255) return _isLoadableTrayId(trayId) ? trayId : null;
+  // Only the two external ids pass through unchanged. Accepting the whole
+  // loadable range here would turn an unexpected external id into a valid AMS
+  // slot number — the printer would load a different spool, and nothing on the
+  // way would flag it.
+  if (amsId == 255) return trayId == 254 || trayId == 255 ? trayId : null;
   if (amsId >= 128) return null;
   final global = amsId * 4 + trayId;
   return _isLoadableTrayId(global) ? global : null;
