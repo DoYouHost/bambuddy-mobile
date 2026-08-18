@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
+import 'package:bambuddy_mobile/core/models/k_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -179,5 +180,49 @@ void main() {
     // No K profile picked yet — the printer keeps its default K = 0.020.
     expect(query['cali_idx'], -1);
     expect(query['k_value'], 0);
+  });
+
+  group('the K profile', () {
+    final preset = const AmsFilamentPreset(
+      source: AmsPresetSource.builtin,
+      id: 'GFL99',
+      name: 'Generic PLA',
+    );
+
+    test('travels with its own filament context, not the preset\'s', () {
+      // The printer drops a cali_idx that belongs to a different filament id,
+      // so the server realigns the slot to the profile's own before selecting
+      // it — which it can only do if both ids travel.
+      final query = SlotConfiguration.forPreset(
+        preset: preset,
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+        kProfile: const KProfile(
+          slotId: 4,
+          name: 'PLA basic',
+          kValue: '0.035000',
+          filamentId: 'GFL05',
+          settingId: 'PFUS123',
+        ),
+      ).toQuery();
+
+      expect(query['cali_idx'], 4);
+      expect(query['kprofile_filament_id'], 'GFL05');
+      expect(query['kprofile_setting_id'], 'PFUS123');
+      expect(query['k_value'], 0.035);
+    });
+
+    test('none picked leaves the printer on its default', () {
+      final query = SlotConfiguration.forPreset(
+        preset: preset,
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+      ).toQuery();
+
+      expect(query['cali_idx'], -1);
+      expect(query['kprofile_filament_id'], '');
+      expect(query['kprofile_setting_id'], '');
+      expect(query['k_value'], 0);
+    });
   });
 }

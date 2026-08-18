@@ -709,8 +709,10 @@ class _AmsSection extends ConsumerWidget {
                 canRereadRfid: true,
                 trayInfoIdx: trays[i].trayInfoIdx,
                 trayColour: trays[i].trayColor,
+                caliIdx: trays[i].caliIdx,
                 nozzleDiameter: nozzleDiameter,
                 printerModel: printerModel,
+                extruderId: extruder,
               ),
             ),
       ],
@@ -795,8 +797,10 @@ class _SpoolSection extends StatelessWidget {
               ),
               trayInfoIdx: trays[i].trayInfoIdx,
               trayColour: trays[i].trayColor,
+              caliIdx: trays[i].caliIdx,
               nozzleDiameter: nozzleDiameter,
               printerModel: printerModel,
+              extruderId: extruderOf(i),
             ),
           ),
       ],
@@ -1460,8 +1464,10 @@ class _SlotRef {
     this.canRereadRfid = false,
     this.trayInfoIdx,
     this.trayColour,
+    this.caliIdx,
     this.nozzleDiameter,
     this.printerModel,
+    this.extruderId,
   });
 
   final int printerId;
@@ -1493,6 +1499,10 @@ class _SlotRef {
   final String? trayInfoIdx;
   final String? trayColour;
 
+  /// Calibration profile the slot is printing with, so the sheet reopens on it
+  /// rather than offering to drop the printer back to its default K.
+  final int? caliIdx;
+
   /// Diameter of the nozzle this slot feeds, or null when the printer has not
   /// reported its nozzles.
   final String? nozzleDiameter;
@@ -1500,6 +1510,9 @@ class _SlotRef {
   /// Short model code, so the picker can hide presets meant for another
   /// printer.
   final String? printerModel;
+
+  /// Nozzle this slot feeds on a dual-extruder printer, null on a single one.
+  final int? extruderId;
 
   AmsSlotTarget get configTarget => AmsSlotTarget(
         printerId: printerId,
@@ -1511,6 +1524,8 @@ class _SlotRef {
         nozzleDiameter: nozzleDiameter,
         currentFilamentId: trayInfoIdx,
         currentColour: trayColour,
+        currentCaliIdx: caliIdx,
+        extruderId: extruderId,
       );
 }
 
@@ -1673,13 +1688,22 @@ class _SlotActions extends ConsumerWidget {
 /// "Assign spool to this slot" sheet opened from a filament row. Slot is known
 /// from context, so the user picks ONLY the spool. Shows the current assignment
 /// (with unassign) and the list of active spools from inventory.
-class _AssignSlotSheet extends ConsumerWidget {
+class _AssignSlotSheet extends ConsumerStatefulWidget {
   const _AssignSlotSheet({required this.slot});
 
   final _SlotRef slot;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AssignSlotSheet> createState() => _AssignSlotSheetState();
+}
+
+class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
+  String _query = '';
+
+  _SlotRef get slot => widget.slot;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final inv = ref.watch(inventoryProvider).valueOrNull;
@@ -1698,9 +1722,13 @@ class _AssignSlotSheet extends ConsumerWidget {
     }
 
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
-    final options = [
+    final offered = [
       for (final s in spools)
         if (!s.isArchived && s.id != current?.id) s,
+    ];
+    final options = [
+      for (final s in offered)
+        if (s.matchesSearch(_query)) s,
     ]..sort((a, b) {
         final ga = assignedElsewhere(a) ? 1 : 0;
         final gb = assignedElsewhere(b) ? 1 : 0;
@@ -1752,11 +1780,19 @@ class _AssignSlotSheet extends ConsumerWidget {
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            _spoolSearchRow(l10n),
+            const SizedBox(height: 8),
             if (options.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(l10n.inventoryEmpty, style: theme.textTheme.bodyMedium),
+                child: Text(
+                  // Told apart on purpose: an empty inventory and a search that
+                  // matched nothing look identical otherwise, and only one of
+                  // them is fixed by clearing the field.
+                  offered.isEmpty ? l10n.inventoryEmpty : l10n.noSearchResults(_query),
+                  style: theme.textTheme.bodyMedium,
+                ),
               )
             else
               for (final s in options)
@@ -1792,6 +1828,103 @@ class _AssignSlotSheet extends ConsumerWidget {
         ),
       )
     );
+  }
+
+  /// Narrow the list, or skip it entirely by scanning the spool's label.
+  ///
+  /// Same pair as the Filaments tab, and the same 48pt square beside the field
+  /// — this is the other place a spool has to be found, and finding it by
+  /// scrolling a hundred rows at the printer is the case both exist to avoid.
+  Widget _spoolSearchRow(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Expanded(
+            child: DashSearchField(
+              id: 'assign_spool.search',
+              hintText: l10n.inventorySearchHint,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: l10n.inventoryScanSpool,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Material(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _scanAndAssign(l10n),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.subCardBorder),
+                    ),
+                    child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                  ),
+                ),
+              ),
+            ),
+          ).tagged('assign_spool.scan'),
+        ],
+      ),
+    );
+  }
+
+  /// Scan a spool's QR label and put it in this slot.
+  ///
+  /// Straight to the assignment rather than into the search field: the slot is
+  /// already known, so a scan says everything the sheet was asking for. It goes
+  /// through [_assign], so taking a spool off another slot still asks first.
+  Future<void> _scanAndAssign(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final id = await Navigator.of(context, rootNavigator: true)
+        .push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
+    if (id == null || !mounted) return;
+
+    Spool? scanned() {
+      for (final s in ref.read(inventoryProvider).valueOrNull?.spools ?? const <Spool>[]) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    var spool = scanned();
+    if (spool == null) {
+      // Added on the server since this list was loaded — worth one refresh
+      // before telling the user their label is unknown.
+      await ref.read(inventoryProvider.notifier).refresh();
+      if (!mounted) return;
+      spool = scanned();
+    }
+    if (spool == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
+      );
+      return;
+    }
+
+    // An archived spool is not offered in the list but is accepted here: the
+    // user is holding it against the printer, which outranks a bookkeeping flag.
+    final from = ref.read(inventoryProvider).valueOrNull?.assignmentFor(spool.id);
+    if (from != null &&
+        from.printerId == slot.printerId &&
+        from.amsId == slot.amsId &&
+        from.trayId == slot.trayId) {
+      // Already where it is being put. Nothing to send, and asking to move it
+      // off itself would be nonsense.
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
+      );
+      return;
+    }
+    await _assign(context, ref, l10n, spool, from: from);
   }
 
   Future<void> _assign(

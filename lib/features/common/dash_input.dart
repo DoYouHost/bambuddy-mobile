@@ -62,3 +62,25 @@ InputDecoration dashDecoration(
     focusedErrorBorder: border(t.danger, 1.5),
   );
 }
+
+/// The same chrome as an [InputDecorationTheme], for [DropdownMenu] — it builds
+/// its own text field internally and takes no [InputDecoration].
+InputDecorationTheme dashInputTheme(DashTokens t) {
+  final radius = BorderRadius.circular(14);
+  OutlineInputBorder border(Color color, [double width = 1]) =>
+      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+  return InputDecorationTheme(
+    isDense: true,
+    filled: true,
+    fillColor: t.subCard,
+    labelStyle: TextStyle(
+      fontFamily: DashTokens.fontUi,
+      fontSize: 13,
+      color: t.textSecondary,
+    ),
+    border: border(t.subCardBorder),
+    enabledBorder: border(t.subCardBorder),
+    focusedBorder: border(t.accentGreen, 1.5),
+    errorBorder: border(t.danger),
+  );
+}

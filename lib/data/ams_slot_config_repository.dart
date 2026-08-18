@@ -4,6 +4,7 @@ import '../core/ams/slot_configuration.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/ams_filament_preset.dart';
+import '../core/models/k_profile.dart';
 
 /// Everything the "configure AMS slot" flow reads and writes: the three preset
 /// sources, the printer-model registry, the slot→preset mapping, and the two
@@ -71,6 +72,26 @@ class AmsSlotConfigRepository {
     };
   }
 
+  /// Calibration profiles the printer holds for one nozzle size.
+  ///
+  /// The diameter is a filter, not a hint: profiles calibrated on a 0.4 nozzle
+  /// mean nothing to a 0.6 one, and the printer indexes its table by it.
+  Future<List<KProfile>> kProfiles(
+    int printerId, {
+    required String nozzleDiameter,
+  }) async {
+    final json = await _get<Map<String, dynamic>>(
+      Endpoints.printerKProfiles(printerId),
+      query: {'nozzle_diameter': nozzleDiameter},
+    );
+    final raw = json?['profiles'];
+    if (raw is! List) return const [];
+    return [
+      for (final entry in raw)
+        if (entry is Map<String, dynamic>) KProfile.fromJson(entry),
+    ];
+  }
+
   /// The preset a slot was configured with, or null when it has none.
   Future<SlotPreset?> slotPreset(
     int printerId, {
@@ -127,9 +148,9 @@ class AmsSlotConfigRepository {
   }) =>
       _post(Endpoints.amsSlotReset(printerId, amsId, trayId));
 
-  Future<T?> _get<T>(String path) async {
+  Future<T?> _get<T>(String path, {Map<String, dynamic>? query}) async {
     try {
-      final res = await _dio.get<T>(path);
+      final res = await _dio.get<T>(path, queryParameters: query);
       return res.data;
     } on DioException catch (e) {
       throw mapDioException(e);

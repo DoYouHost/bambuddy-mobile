@@ -456,6 +456,17 @@
     }
   },
   "amsSlotConfigCurrent": "Currently set",
+  "amsSlotConfigKProfile": "K profile",
+  "amsSlotConfigKProfileDefault": "Default (K 0.020)",
+  "amsSlotConfigKProfileOther": "Other profiles",
+  "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
+  "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
+  "amsSlotConfigKProfileValue": "K {value}",
+  "@amsSlotConfigKProfileValue": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "amsSlotConfigColourCatalogue": "Catalogue colours",
+  "amsSlotConfigColourCustom": "Custom colour",
   "amsSlotReset": "Clear slot",
   "amsSlotResetConfirmTitle": "Clear this slot?",
   "amsSlotResetConfirmMessage": "The printer forgets the filament configured here, and bambuddy forgets which preset it was.",

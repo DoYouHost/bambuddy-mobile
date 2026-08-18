@@ -395,7 +395,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             fontWeight: FontWeight.w600,
             color: t.textPrimary,
           ),
-          inputDecorationTheme: _dashInputTheme(t),
+          inputDecorationTheme: dashInputTheme(t),
           onSelected: (v) {
             if (required && v != null && v.isNotEmpty) {
               setState(() => _materialMissing = false);
@@ -803,29 +803,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 /// callback lowercases each capital and puts an underscore in front of it.
 String _fieldTag(String key) =>
     'spool_form.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
-
-/// Shared field chrome for the spool form's `InputDecorationTheme` (used by
-/// [DropdownMenu], which builds its own internal text field and doesn't take a
-/// plain [InputDecoration]).
-InputDecorationTheme _dashInputTheme(DashTokens t) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
-  return InputDecorationTheme(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      color: t.textSecondary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-  );
-}
 
 
 /// Color picker: large preview + popular swatches from database + search.

@@ -309,6 +309,14 @@ abstract final class Endpoints {
   static String amsSlotPreset(int printerId, int amsId, int trayId) =>
       '$apiPrefix/printers/$printerId/slot-presets/$amsId/$trayId';
 
+  /// Pressure-advance profiles stored on the printer (`GET`, query
+  /// `nozzle_diameter`). The trailing slash is the route's own, and the printer
+  /// has to be connected — the server asks it over MQTT and answers 400
+  /// otherwise. Gated on `kprofiles:read`, which an API key that can read
+  /// status already has.
+  static String printerKProfiles(int printerId) =>
+      '$apiPrefix/printers/$printerId/kprofiles/';
+
   /// Every saved slot→preset mapping for a printer (`GET`), keyed by the
   /// *global* tray number (AMS-HT by unit id). One request for a whole card.
   static String amsSlotPresets(int printerId) =>

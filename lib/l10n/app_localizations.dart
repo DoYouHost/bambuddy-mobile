@@ -2030,6 +2030,54 @@ abstract class AppLocalizations {
   /// **'Currently set'**
   String get amsSlotConfigCurrent;
 
+  /// No description provided for @amsSlotConfigKProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'K profile'**
+  String get amsSlotConfigKProfile;
+
+  /// No description provided for @amsSlotConfigKProfileDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (K 0.020)'**
+  String get amsSlotConfigKProfileDefault;
+
+  /// No description provided for @amsSlotConfigKProfileOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other profiles'**
+  String get amsSlotConfigKProfileOther;
+
+  /// No description provided for @amsSlotConfigKProfileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer has no stored K profiles for this nozzle'**
+  String get amsSlotConfigKProfileNone;
+
+  /// No description provided for @amsSlotConfigKProfileUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the printer\'s K profiles'**
+  String get amsSlotConfigKProfileUnavailable;
+
+  /// No description provided for @amsSlotConfigKProfileValue.
+  ///
+  /// In en, this message translates to:
+  /// **'K {value}'**
+  String amsSlotConfigKProfileValue(String value);
+
+  /// No description provided for @amsSlotConfigColourCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue colours'**
+  String get amsSlotConfigColourCatalogue;
+
+  /// No description provided for @amsSlotConfigColourCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get amsSlotConfigColourCustom;
+
   /// No description provided for @amsSlotReset.
   ///
   /// In en, this message translates to:

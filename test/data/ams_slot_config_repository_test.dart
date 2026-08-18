@@ -281,4 +281,49 @@ void main() {
       );
     });
   });
+
+  group('K profiles', () {
+    test('reads the printer table for one nozzle size', () async {
+      // The diameter is a filter, not a hint: a 0.4 calibration means nothing
+      // on a 0.6 nozzle.
+      adapter.onGet(
+        '/api/v1/printers/1/kprofiles/',
+        (s) => s.reply(200, {
+          'nozzle_diameter': '0.6',
+          'profiles': [
+            {
+              'slot_id': 3,
+              'name': 'PLA basic',
+              'k_value': '0.020000',
+              'filament_id': 'GFL05',
+              'extruder_id': 1,
+              'setting_id': 'PFUS123',
+            },
+            'not an object',
+          ],
+        }),
+        queryParameters: {'nozzle_diameter': '0.6'},
+      );
+
+      final profiles = await repo.kProfiles(1, nozzleDiameter: '0.6');
+
+      expect(profiles, hasLength(1), reason: 'a junk row drops, the rest stay');
+      expect(profiles.single.slotId, 3);
+      expect(profiles.single.k, 0.02);
+      expect(profiles.single.displayK, '0.020');
+      expect(profiles.single.optionId, 'PLA basic|0.020000');
+    });
+
+    test('a printer that is not connected surfaces its 400', () {
+      // Left to the caller: the sheet drops the picker rather than failing.
+      adapter.onGet(
+        '/api/v1/printers/1/kprofiles/',
+        (s) => s.reply(400, {'detail': 'Printer not connected'}),
+        queryParameters: {'nozzle_diameter': '0.4'},
+      );
+
+      expect(repo.kProfiles(1, nozzleDiameter: '0.4'),
+          throwsA(isA<ApiException>()));
+    });
+  });
 }

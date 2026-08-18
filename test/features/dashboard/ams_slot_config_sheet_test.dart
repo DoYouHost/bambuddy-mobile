@@ -1,6 +1,9 @@
 import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
+import 'package:bambuddy_mobile/core/models/inventory_reference.dart';
+import 'package:bambuddy_mobile/core/models/k_profile.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
@@ -74,6 +77,20 @@ class _FakeRepo implements AmsSlotConfigRepository {
   Future<Map<String, String>> printerModels() async =>
       const {'Bambu Lab X1 Carbon': 'X1C'};
 
+  /// The printer's calibration table, and the nozzle it was asked about.
+  List<KProfile> profiles = const [];
+  String? profilesNozzle;
+
+  Object? profilesError;
+
+  @override
+  Future<List<KProfile>> kProfiles(int printerId,
+      {required String nozzleDiameter}) async {
+    profilesNozzle = nozzleDiameter;
+    if (profilesError != null) throw profilesError!;
+    return profiles;
+  }
+
   /// What the server remembers for the slot — stale on purpose in one test.
   SlotPreset? saved;
 
@@ -146,12 +163,18 @@ void main() {
   /// Opens the sheet the way the card does — as a modal route over a host
   /// screen. Nothing else gives the sheet a route to pop or a Scaffold to show
   /// its result on, which is half of what these tests are checking.
-  Future<_FakeRepo> openSheet(WidgetTester tester, {_FakeRepo? repo}) async {
+  Future<_FakeRepo> openSheet(
+    WidgetTester tester, {
+    _FakeRepo? repo,
+    AmsSlotTarget? slot,
+    List<ColorEntry>? colours,
+  }) async {
     final fake = repo ?? _FakeRepo();
     await tester.pumpWidget(ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         amsSlotConfigRepositoryProvider.overrideWithValue(fake),
+        colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
       ],
       child: plApp(
         Scaffold(
@@ -160,7 +183,7 @@ void main() {
               onPressed: () => showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
-                builder: (_) => const AmsSlotConfigSheet(target: target),
+                builder: (_) => AmsSlotConfigSheet(target: slot ?? target),
               ),
               child: const Text('open'),
             ),
@@ -561,5 +584,212 @@ void main() {
     await scrollTo(tester, find.text('Generic PLA'));
     expect(find.text('Generic PLA'), findsOneWidget,
         reason: 'the other tiers still fill the picker');
+  });
+
+  group('the K profile', () {
+    const calibrated = KProfile(
+      slotId: 4,
+      name: 'PLA basic',
+      kValue: '0.035000',
+      filamentId: 'GFL99',
+      settingId: 'PFUS7',
+    );
+    const forPetg = KProfile(
+      slotId: 9,
+      name: 'eSUN PETG dry',
+      kValue: '0.048000',
+      filamentId: 'GFG99',
+    );
+
+    testWidgets('says so when the printer holds no calibrations',
+        (tester) async {
+      // Hiding the field instead reads as the app not having the feature —
+      // there is no way to tell that from a printer nobody has calibrated.
+      await openSheet(tester);
+
+      expect(find.text('Profil K'), findsOneWidget);
+      expect(find.textContaining('nie ma zapisanych profili K'),
+          findsOneWidget);
+    });
+
+    testWidgets('a table that could not be read is not passed off as empty',
+        (tester) async {
+      // A disconnected printer answers 400 and a key without kprofiles:read
+      // answers 403; neither is "you have no calibrations".
+      final repo = _FakeRepo()..profilesError = Exception('nope');
+      await openSheet(tester, repo: repo);
+
+      expect(find.textContaining('Nie udało się odczytać profili K'),
+          findsOneWidget);
+    });
+
+    testWidgets('asks about the nozzle the slot feeds', (tester) async {
+      final repo = await openSheet(tester);
+
+      expect(repo.profilesNozzle, '0.6');
+    });
+
+    testWidgets('follows the preset that is picked', (tester) async {
+      final repo = _FakeRepo()..profiles = const [calibrated, forPetg];
+      await openSheet(tester, repo: repo);
+
+      await tapVisible(tester, find.text('Generic PLA'));
+
+      expect(find.text('PLA basic · K 0.035'), findsOneWidget,
+          reason: 'the only calibration for this filament arms itself');
+    });
+
+    testWidgets('the write carries the selected calibration', (tester) async {
+      final repo = _FakeRepo()..profiles = const [calibrated];
+      await openSheet(tester, repo: repo);
+
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      final written = repo.written!;
+      expect(written.caliIdx, 4);
+      expect(written.kProfileFilamentId, 'GFL99');
+      expect(written.kProfileSettingId, 'PFUS7');
+      expect(written.kValue, 0.035);
+    });
+
+    testWidgets('the slot keeps the calibration it is printing with',
+        (tester) async {
+      // A profile bound to the slot need not agree with the preset's name;
+      // dropping it would write the printer back to its default K in silence.
+      final repo = _FakeRepo()..profiles = const [calibrated, forPetg];
+      await openSheet(
+        tester,
+        repo: repo,
+        slot: const AmsSlotTarget(
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          label: 'AMS 1 · 3',
+          printerModel: 'X1C',
+          nozzleDiameter: '0.6',
+          currentCaliIdx: 9,
+        ),
+      );
+
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      expect(repo.written!.caliIdx, 9);
+    });
+
+    testWidgets('the default clears it back to the printer default',
+        (tester) async {
+      final repo = _FakeRepo()..profiles = const [calibrated];
+      await openSheet(tester, repo: repo);
+      await tapVisible(tester, find.text('Generic PLA'));
+
+      await tapVisible(tester, find.text('PLA basic · K 0.035'));
+      await tapVisible(tester, find.text('Domyślny (K 0,020)').last);
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      expect(repo.written!.caliIdx, -1);
+      expect(repo.written!.kValue, 0);
+    });
+
+
+    testWidgets('changing the filament re-derives it', (tester) async {
+      // A calibration belongs to one filament; carrying it across a change of
+      // preset would print the wrong pressure advance under the right name.
+      final repo = _FakeRepo()..profiles = const [calibrated, forPetg];
+      await openSheet(tester, repo: repo);
+
+      await tapVisible(tester, find.text('Generic PLA'));
+      expect(find.text('PLA basic · K 0.035'), findsOneWidget);
+
+      await tapVisible(tester, find.text('eSUN PETG'));
+
+      expect(find.text('eSUN PETG dry · K 0.048'), findsOneWidget);
+      expect(find.text('PLA basic · K 0.035'), findsNothing);
+    });
+
+    testWidgets('every calibration the printer holds stays reachable',
+        (tester) async {
+      // The match runs on names the user typed, so it will sometimes be
+      // wrong — the printer's own table is what can actually be selected.
+      final repo = _FakeRepo()..profiles = const [calibrated, forPetg];
+      await openSheet(tester, repo: repo);
+      await tapVisible(tester, find.text('Generic PLA'));
+
+      await tapVisible(tester, find.text('PLA basic · K 0.035'));
+
+      expect(find.text('Pozostałe profile'), findsOneWidget);
+      expect(find.text('eSUN PETG dry · K 0.048'), findsOneWidget);
+    });
+  });
+
+  group('the colour picker', () {
+    const catalogue = [
+      ColorEntry(
+        id: 1,
+        manufacturer: 'Bambu Lab',
+        colorName: 'Bambu Green',
+        hexColor: '#00AE42',
+        material: 'PLA',
+      ),
+      ColorEntry(
+        id: 2,
+        manufacturer: 'Bambu Lab',
+        colorName: 'Grey',
+        hexColor: '#808080',
+        material: 'PETG',
+      ),
+    ];
+
+    testWidgets('offers the colours this filament is sold in', (tester) async {
+      await openSheet(tester, colours: catalogue);
+      await tapVisible(tester, find.text('Generic PLA'));
+
+      // The field's own label floats above the tappable area, so the tap
+      // goes to the row it decorates.
+      await tapVisible(
+        tester,
+        find.ancestor(of: find.text('Kolor'), matching: find.byType(InkWell)).first,
+      );
+
+      expect(find.text('Kolory z katalogu'), findsOneWidget);
+      expect(find.byTooltip('Bambu Green'), findsOneWidget);
+      expect(find.byTooltip('Grey'), findsNothing,
+          reason: 'PETG is a different filament');
+    });
+
+    testWidgets('a catalogue colour is what gets written', (tester) async {
+      final repo = await openSheet(tester, colours: catalogue);
+      await tapVisible(tester, find.text('Generic PLA'));
+
+      // The field's own label floats above the tappable area, so the tap
+      // goes to the row it decorates.
+      await tapVisible(
+        tester,
+        find.ancestor(of: find.text('Kolor'), matching: find.byType(InkWell)).first,
+      );
+      await tapVisible(tester, find.byTooltip('Bambu Green'));
+      await tapVisible(tester, find.text('Wybierz'));
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      expect(repo.written!.trayColour, '00AE42FF',
+          reason: 'opaque, and no leading hash');
+    });
+
+    testWidgets('the wheel alone still picks a colour', (tester) async {
+      // No preset chosen, so no catalogue — the dialog must still work.
+      final repo = await openSheet(tester, colours: catalogue);
+
+      // The field's own label floats above the tappable area, so the tap
+      // goes to the row it decorates.
+      await tapVisible(
+        tester,
+        find.ancestor(of: find.text('Kolor'), matching: find.byType(InkWell)).first,
+      );
+
+      expect(find.text('Kolory z katalogu'), findsNothing);
+      await tapVisible(tester, find.text('Anuluj'));
+      expect(repo.written, isNull);
+    });
   });
 }

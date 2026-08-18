@@ -1120,6 +1120,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsSlotConfigCurrent => 'Currently set';
 
   @override
+  String get amsSlotConfigKProfile => 'K profile';
+
+  @override
+  String get amsSlotConfigKProfileDefault => 'Default (K 0.020)';
+
+  @override
+  String get amsSlotConfigKProfileOther => 'Other profiles';
+
+  @override
+  String get amsSlotConfigKProfileNone =>
+      'This printer has no stored K profiles for this nozzle';
+
+  @override
+  String get amsSlotConfigKProfileUnavailable =>
+      'Could not read the printer\'s K profiles';
+
+  @override
+  String amsSlotConfigKProfileValue(String value) {
+    return 'K $value';
+  }
+
+  @override
+  String get amsSlotConfigColourCatalogue => 'Catalogue colours';
+
+  @override
+  String get amsSlotConfigColourCustom => 'Custom colour';
+
+  @override
   String get amsSlotReset => 'Clear slot';
 
   @override

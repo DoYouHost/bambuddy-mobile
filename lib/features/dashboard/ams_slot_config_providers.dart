@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
+import '../../core/models/k_profile.dart';
 import '../../providers.dart';
 
 /// Identifies one slot for the per-slot providers below. A record rather than a
@@ -91,6 +92,42 @@ final slotPresetSourcesProvider = FutureProvider<SlotPresetSources>((ref) async 
     cloudNeedsLogin: needsLogin,
   );
 });
+
+/// Which printer's calibration table to read, and for which nozzle.
+typedef KProfileKey = ({int printerId, String nozzleDiameter});
+
+/// The printer's calibration table, and whether reading it worked.
+///
+/// [failed] tells "this printer has no stored profiles" apart from "we could
+/// not ask it" — both leave the picker with nothing to offer, and only one of
+/// them is worth explaining.
+typedef KProfileTable = ({List<KProfile> profiles, bool failed});
+
+/// The pressure-advance profiles a printer holds for one nozzle size.
+///
+/// Never an error state: the table is read off the printer over MQTT, so a
+/// disconnected machine answers 400 and a key without `kprofiles:read` answers
+/// 403, and neither should take down a sheet whose other half still works. The
+/// write then falls back to the printer's default K.
+final kProfilesProvider =
+    FutureProvider.autoDispose.family<KProfileTable, KProfileKey>(
+  (ref, key) async {
+    try {
+      final profiles =
+          await ref.watch(amsSlotConfigRepositoryProvider).kProfiles(
+                key.printerId,
+                nozzleDiameter: key.nozzleDiameter,
+              );
+      return (profiles: profiles, failed: false);
+    } on Object {
+      // Deliberately every failure, not just `AppApiException`: whatever went
+      // wrong, the honest report is "the printer's calibrations are not
+      // available", and a picker that vanishes instead reads as a missing
+      // feature.
+      return (profiles: const <KProfile>[], failed: true);
+    }
+  },
+);
 
 /// The preset a slot was configured with, or null when it has none.
 ///

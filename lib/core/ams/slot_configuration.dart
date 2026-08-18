@@ -7,6 +7,7 @@
 library;
 
 import '../models/ams_filament_preset.dart';
+import '../models/k_profile.dart';
 import 'filament_naming.dart';
 
 /// One slot's filament configuration, ready to send.
@@ -32,12 +33,14 @@ class SlotConfiguration {
   /// appended here, since a value that already carries one would be rejected
   /// with 422 further down. [cloudFilamentId] is the `filament_id` read from a
   /// cloud preset's detail — pass it when known, because a custom preset's list
-  /// id is not the id the printer resolves.
+  /// id is not the id the printer resolves. [kProfile] is the calibration to
+  /// select; null leaves the printer on its default K = 0.020.
   factory SlotConfiguration.forPreset({
     required AmsFilamentPreset preset,
     required String colourHex,
     required String nozzleDiameter,
     String? cloudFilamentId,
+    KProfile? kProfile,
   }) {
     final parsed = parsePresetName(preset.name);
     final material = _materialOf(preset, parsed);
@@ -66,6 +69,13 @@ class SlotConfiguration {
       // not exist on the printer's side.
       settingId:
           preset.source == AmsPresetSource.cloud ? preset.id : '',
+      caliIdx: kProfile?.slotId ?? -1,
+      // The profile's own filament context, not the preset's: the server
+      // realigns the slot to it before selecting the calibration, because the
+      // printer drops a `cali_idx` that belongs to a different filament id.
+      kProfileFilamentId: kProfile?.filamentId ?? '',
+      kProfileSettingId: kProfile?.settingId ?? '',
+      kValue: kProfile?.k ?? 0,
     );
   }
 
@@ -93,11 +103,15 @@ class SlotConfiguration {
   final String settingId;
 
   /// Calibration profile to select, `-1` for the printer's default K = 0.020.
-  /// Always `-1` until the K-profile picker lands.
   final int caliIdx;
 
+  /// The selected profile's own filament id and setting id — what the server
+  /// realigns the slot to so the printer accepts [caliIdx].
   final String kProfileFilamentId;
   final String kProfileSettingId;
+
+  /// Pressure advance. Only read when no stored profile was selected
+  /// ([caliIdx] `-1`), where the printer is given the value directly.
   final double kValue;
 
   Map<String, dynamic> toQuery() => <String, dynamic>{

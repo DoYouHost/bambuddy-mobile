@@ -1143,6 +1143,34 @@ class AppLocalizationsPl extends AppLocalizations {
   String get amsSlotConfigCurrent => 'Ustawiony teraz';
 
   @override
+  String get amsSlotConfigKProfile => 'Profil K';
+
+  @override
+  String get amsSlotConfigKProfileDefault => 'Domyślny (K 0,020)';
+
+  @override
+  String get amsSlotConfigKProfileOther => 'Pozostałe profile';
+
+  @override
+  String get amsSlotConfigKProfileNone =>
+      'Drukarka nie ma zapisanych profili K dla tej dyszy';
+
+  @override
+  String get amsSlotConfigKProfileUnavailable =>
+      'Nie udało się odczytać profili K z drukarki';
+
+  @override
+  String amsSlotConfigKProfileValue(String value) {
+    return 'K $value';
+  }
+
+  @override
+  String get amsSlotConfigColourCatalogue => 'Kolory z katalogu';
+
+  @override
+  String get amsSlotConfigColourCustom => 'Własny kolor';
+
+  @override
   String get amsSlotReset => 'Wyczyść slot';
 
   @override

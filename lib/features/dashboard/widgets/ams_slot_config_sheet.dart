@@ -4,17 +4,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ams/filament_naming.dart';
 import '../../../core/ams/filament_preset_catalog.dart';
+import '../../../core/ams/k_profile_match.dart';
+import '../../../core/ams/preset_colours.dart';
 import '../../../core/ams/printer_model_match.dart';
 import '../../../core/ams/slot_configuration.dart';
 import '../../../core/api/action_outcome.dart';
 import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_filament_preset.dart';
+import '../../../core/models/inventory_reference.dart';
+import '../../../core/models/k_profile.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
+import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart' show SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
 import '../controls_providers.dart';
@@ -35,6 +40,8 @@ class AmsSlotTarget {
     this.nozzleDiameter,
     this.currentFilamentId,
     this.currentColour,
+    this.currentCaliIdx,
+    this.extruderId,
   });
 
   final int printerId;
@@ -58,6 +65,15 @@ class AmsSlotTarget {
 
   /// `RRGGBBAA` the slot currently shows, the colour the picker starts from.
   final String? currentColour;
+
+  /// `cali_idx` the slot is printing with — the calibration profile to
+  /// preselect, so reopening the sheet does not offer to drop it.
+  final int? currentCaliIdx;
+
+  /// Which nozzle this slot feeds on a dual-extruder printer, null on a single
+  /// one. Only tells apart the duplicate calibration rows such a printer
+  /// reports.
+  final int? extruderId;
 
   SlotKey get key =>
       (printerId: printerId, amsId: amsId, trayId: trayId);
@@ -105,6 +121,16 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// unfiltered list is mostly noise.
   bool _onlyThisPrinter = true;
 
+  /// Calibration profile to select, null for the printer's default K.
+  KProfile? _kProfile;
+
+  /// Which preset [_kProfile] was chosen under — `''` for "none picked yet".
+  ///
+  /// Null while the printer's calibration table is still loading, which is what
+  /// keeps the default from being decided against an empty list and then never
+  /// revisited.
+  String? _kProfileFor;
+
   @override
   void initState() {
     super.initState();
@@ -131,6 +157,17 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final view = sources.valueOrNull == null
         ? null
         : _view(sources.requireValue);
+
+    // After `_view`, which is where the preset gets preselected: the profiles
+    // on offer are the ones that fit whatever is picked.
+    final table = ref
+        .watch(kProfilesProvider((
+          printerId: target.printerId,
+          nozzleDiameter: target.effectiveNozzleDiameter,
+        )))
+        .valueOrNull;
+    final choices =
+        table == null ? null : _kProfileChoices(table.profiles);
     // Three bands, and only the middle one scrolls: what the slot is and what
     // is being searched stay put, the catalogue moves under them, and the
     // actions stay reachable. One scroll region for a form, a filter and a
@@ -160,6 +197,8 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                   ),
                   const SizedBox(height: 16),
                   _colourField(l10n, t),
+                  const SizedBox(height: 12),
+                  _kProfileField(l10n, t, choices, failed: table?.failed),
                   const SizedBox(height: 16),
                   Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
                   const SizedBox(height: 8),
@@ -316,6 +355,122 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           ),
         ),
       ).tagged('ams_slot_config.colour');
+
+  /// The calibration profiles on offer for whatever preset is picked, and the
+  /// selection kept in step with it.
+  KProfileChoices _kProfileChoices(List<KProfile> profiles) {
+    final preset = _picked;
+    final choices = matchKProfiles(
+      profiles: profiles,
+      presetName: preset?.name,
+      presetFilamentId: preset == null ? null : _filamentIdOf(preset),
+      extruderId: widget.target.extruderId,
+      activeCaliIdx: widget.target.currentCaliIdx,
+    );
+
+    // A profile calibrated for one filament means nothing for another, so
+    // changing the preset re-derives the pick rather than carrying it over.
+    final forPreset = _picked?.pickerId ?? '';
+    if (_kProfileFor != forPreset) {
+      _kProfileFor = forPreset;
+      _kProfile = _defaultKProfile(choices);
+    }
+    return choices;
+  }
+
+  /// Which profile a freshly picked preset arms.
+  ///
+  /// The slot's own profile first: leaving it unselected would write the
+  /// printer back to its default K and quietly undo a calibration the user did.
+  /// Failing that the best match, which is what the picker was filtered down to
+  /// — the web does the same, and a slot left on the default when a profile
+  /// exists for that exact filament prints worse for no reason.
+  KProfile? _defaultKProfile(KProfileChoices choices) {
+    final active = widget.target.currentCaliIdx;
+    if (active != null) {
+      for (final profile in choices.matching) {
+        if (profile.slotId == active) return profile;
+      }
+    }
+    return choices.matching.isEmpty ? null : choices.matching.first;
+  }
+
+  /// Pressure advance, as a select: the matching profiles, then everything else
+  /// the printer holds under a heading of its own.
+  ///
+  /// The residual group is not padding. The match runs on names the user typed
+  /// in the slicer and on filament ids, so a profile named after its colour can
+  /// fall outside it — and the printer's table, not our guess, is what can
+  /// actually be selected.
+  ///
+  /// Shown even when there is nothing to choose from — an empty table and a
+  /// refused read both used to hide the control, which reads as the feature
+  /// being missing rather than as the printer having no calibrations. Disabled
+  /// and labelled instead, so the answer is on screen either way.
+  /// [choices] is null while the table is still being read, [failed] null with
+  /// it.
+  Widget _kProfileField(
+    AppLocalizations l10n,
+    DashTokens t,
+    KProfileChoices? choices, {
+    required bool? failed,
+  }) {
+    DropdownMenuEntry<String> entry(String value, String label,
+            {bool enabled = true}) =>
+        DropdownMenuEntry(
+          value: value,
+          label: label,
+          enabled: enabled,
+          // The menu opens in a route of its own, so the field's own tag does
+          // not reach it. The label is a user-chosen profile name and stays out
+          // of the identifier.
+          labelWidget: logTag('ams_slot_config.k_profile.option', Text(label)),
+        );
+
+    String labelFor(KProfile p) =>
+        '${p.name} · ${l10n.amsSlotConfigKProfileValue(p.displayK)}';
+
+    final matching = choices?.matching ?? const <KProfile>[];
+    final other = choices?.other ?? const <KProfile>[];
+
+    return DropdownMenu<String>(
+      initialSelection: _kProfile?.optionId ?? '',
+      label: Text(l10n.amsSlotConfigKProfile),
+      // Says why there is nothing to pick, which the field alone cannot: an
+      // unread table and an uncalibrated printer both leave it on "default".
+      helperText: switch ((failed, matching.isEmpty && other.isEmpty)) {
+        (null, _) => null,
+        (true, _) => l10n.amsSlotConfigKProfileUnavailable,
+        (false, true) => l10n.amsSlotConfigKProfileNone,
+        (false, false) => null,
+      },
+      enabled: matching.isNotEmpty || other.isNotEmpty,
+      expandedInsets: EdgeInsets.zero,
+      menuHeight: 320,
+      // A select, not a combo: focusing it would raise the keyboard over the
+      // list the user is about to scroll.
+      requestFocusOnTap: false,
+      textStyle: TextStyle(
+        fontFamily: DashTokens.fontUi,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: t.textPrimary,
+      ),
+      inputDecorationTheme: dashInputTheme(t),
+      onSelected: (value) =>
+          setState(() => _kProfile = choices?.byOptionId(value)),
+      dropdownMenuEntries: [
+        entry('', l10n.amsSlotConfigKProfileDefault),
+        for (final p in matching) entry(p.optionId, labelFor(p)),
+        if (other.isNotEmpty) ...[
+          // A disabled row is the menu's only grouping device.
+          entry(_otherProfilesHeading, l10n.amsSlotConfigKProfileOther,
+              enabled: false),
+          for (final p in other) entry(p.optionId, labelFor(p)),
+        ],
+      ],
+    ).tagged('ams_slot_config.k_profile');
+  }
 
   /// What the picker shows for the current search and filter state, plus what
   /// the filter is costing. Computed once in `build` because the header needs
@@ -602,46 +757,17 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   }
 
   Future<void> _pickColour(AppLocalizations l10n) async {
-    var picked = parseSpoolColor(_colour) ?? const Color(0xFFFFFFFF);
-    final confirmed = await showDialog<bool>(
+    final chosen = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.amsSlotConfigColour),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: picked,
-            onColorChanged: (c) => picked = c,
-            // The printer has no use for a transparent filament: a zero alpha
-            // is how it reports an *empty* slot, so the picker never offers it.
-            enableAlpha: false,
-            hexInputBar: true,
-            labelTypes: const [],
-            portraitOnly: true,
-            pickerAreaHeightPercent: 0.7,
-          ),
-        ),
-        actions: [
-          logTag(
-            'ams_slot_colour.cancel',
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel),
-            ),
-          ),
-          logTag(
-            'ams_slot_colour.confirm',
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.inventoryColorSelect),
-            ),
-          ),
-        ],
+      builder: (_) => _ColourDialog(
+        initial: _colour,
+        // The colours a filament is sold in only mean something once the
+        // filament is known.
+        presetName: _picked?.name,
       ),
     );
-    if (confirmed != true || !mounted) return;
-    setState(() => _colour =
-        (picked.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase());
+    if (chosen == null || !mounted) return;
+    setState(() => _colour = chosen);
   }
 
   Future<void> _apply(AppLocalizations l10n) async {
@@ -663,6 +789,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       colourHex: _colour ?? 'FFFFFF',
       nozzleDiameter: target.effectiveNozzleDiameter,
       cloudFilamentId: cloudFilamentId,
+      kProfile: _kProfile,
     );
 
     SlotConfigOutcome? result;
@@ -742,6 +869,185 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         AmsPresetSource.builtin => l10n.amsSlotConfigTierBuiltin,
       };
 }
+
+/// Colour picker for a slot: the colours this filament is sold in, then the
+/// wheel for everything else.
+///
+/// Pops the chosen colour as six hex digits, or null when cancelled.
+///
+/// The catalogue is bambuddy's own colour table — the one the spool form picks
+/// from — narrowed to the selected preset. It saves hunting a shade on a wheel
+/// when the answer is a named colour off a spool, and it makes the slot's colour
+/// agree with what the inventory calls the same filament.
+class _ColourDialog extends ConsumerStatefulWidget {
+  const _ColourDialog({required this.initial, this.presetName});
+
+  /// Six hex digits to open on, or null for white.
+  final String? initial;
+  final String? presetName;
+
+  @override
+  ConsumerState<_ColourDialog> createState() => _ColourDialogState();
+}
+
+class _ColourDialogState extends ConsumerState<_ColourDialog> {
+  late Color _picked =
+      parseSpoolColor(widget.initial) ?? const Color(0xFFFFFFFF);
+
+  /// Catalogue colour currently showing as chosen, or null once the wheel has
+  /// been moved off it.
+  String? _fromCatalogue;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final preset = widget.presetName;
+    final catalogue = preset == null
+        ? const <ColorEntry>[]
+        : presetColours(
+            ref.watch(colorCatalogProvider).valueOrNull ?? const [],
+            preset,
+          );
+
+    return AlertDialog(
+      title: Text(l10n.amsSlotConfigColour),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (catalogue.isNotEmpty) ...[
+              _label(t, l10n.amsSlotConfigColourCatalogue),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final entry in catalogue)
+                      _CatalogueSwatch(
+                        entry: entry,
+                        selected: _fromCatalogue != null &&
+                            _sixDigits(entry.hexColor) == _fromCatalogue,
+                        onTap: () => setState(() {
+                          _fromCatalogue = _sixDigits(entry.hexColor);
+                          _picked = parseSpoolColor(entry.hexColor) ?? _picked;
+                        }),
+                      ),
+                  ],
+                ),
+              ),
+              _label(t, l10n.amsSlotConfigColourCustom),
+            ],
+            ColorPicker(
+              pickerColor: _picked,
+              onColorChanged: _onWheel,
+              // The printer has no use for a transparent filament: a zero alpha
+              // is how it reports an *empty* slot, so the picker never offers
+              // it.
+              enableAlpha: false,
+              hexInputBar: true,
+              labelTypes: const [],
+              portraitOnly: true,
+              pickerAreaHeightPercent: 0.7,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        logTag(
+          'ams_slot_colour.cancel',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+        ),
+        logTag(
+          'ams_slot_colour.confirm',
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_hexOf(_picked)),
+            child: Text(l10n.inventoryColorSelect),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Wheel movement, deliberately without `setState`: rebuilding on every drag
+  /// frame would round-trip the colour through the picker's own HSV state and
+  /// lose the hue at zero saturation. The one rebuild worth doing is when the
+  /// drag leaves the catalogue colour that is showing as chosen, so the tick
+  /// does not sit on a swatch the user has moved away from.
+  void _onWheel(Color colour) {
+    _picked = colour;
+    if (_fromCatalogue != null && _hexOf(colour) != _fromCatalogue) {
+      setState(() => _fromCatalogue = null);
+    }
+  }
+
+  Widget _label(DashTokens t, String text) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontFamily: DashTokens.fontUi,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: t.textTertiary,
+          ),
+        ),
+      );
+}
+
+/// One catalogue colour, in the same 36pt square the spool form's picker uses.
+class _CatalogueSwatch extends StatelessWidget {
+  const _CatalogueSwatch({
+    required this.entry,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ColorEntry entry;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final colour = parseSpoolColor(entry.hexColor);
+    return Tooltip(
+      message: entry.colorName,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: colour,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? t.accentGreen : t.subCardBorder,
+              width: selected ? 2 : 1,
+            ),
+          ),
+        ),
+      ),
+    ).tagged('ams_slot_colour.swatch');
+  }
+}
+
+/// Six upper-case hex digits for a colour, alpha dropped.
+String _hexOf(Color colour) => (colour.toARGB32() & 0xFFFFFF)
+    .toRadixString(16)
+    .padLeft(6, '0')
+    .toUpperCase();
+
+/// Value of the K-profile menu's group heading. Never selectable, and no
+/// profile can collide with it: a real entry's value is `name|k_value`.
+const _otherProfilesHeading = 'heading:other';
 
 /// Six hex digits from a stored `RRGGBBAA`, or null when there is nothing to
 /// start from. The alpha is dropped: it is re-added on the way out, and an empty

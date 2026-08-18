@@ -15,6 +15,7 @@ import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
@@ -93,6 +94,23 @@ class _RecordingCommands implements PrinterCommandsRepository {
 class _EmptyInventory extends InventoryNotifier {
   @override
   Future<InventoryState> build() async => const InventoryState();
+}
+
+/// A stocked shelf, for the half of the sheet that offers spools.
+class _StockedInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+        spools: [
+          Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
+          Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
+          Spool(
+            id: 31,
+            material: 'PETG',
+            subtype: 'Translucent',
+            brand: 'Smart Print',
+          ),
+        ],
+      );
 }
 
 class _FakeProfileNotifier extends ServerProfileNotifier {
@@ -575,6 +593,7 @@ void main() {
       WidgetTester tester, {
       required String state,
       _RecordingCommands? withCommands,
+      bool stocked = false,
     }) async {
       final item = realItem();
       final status = PrinterStatus(
@@ -594,7 +613,9 @@ void main() {
         ),
         extra: [
           printerCommandsRepositoryProvider.overrideWithValue(commands),
-          inventoryProvider.overrideWith(_EmptyInventory.new),
+          inventoryProvider.overrideWith(stocked
+              ? _StockedInventory.new
+              : _EmptyInventory.new),
         ],
       ));
 
@@ -665,6 +686,77 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(commands.calls, ['amsLoad:1:0']);
+    });
+
+    /// Brings a widget into view inside the assign sheet's own scroll view.
+    /// The sheet builds its rows lazily, so anything past the first screenful
+    /// is not in the tree at all until it is scrolled to.
+    Future<void> reveal(WidgetTester tester, Finder finder) async {
+      if (finder.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          finder,
+          120,
+          scrollable: find
+              .descendant(
+                of: find.byType(DraggableScrollableSheet),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+      }
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the spool list can be searched', (tester) async {
+      // A shelf of a hundred spools is not something to scroll through while
+      // standing at the printer.
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      await tester.enterText(find.byType(TextField), 'petg');
+      await tester.pumpAndSettle();
+
+      // The count is the assertion the other two are gone: a list that builds
+      // its rows lazily has no element for an off-screen one either, so
+      // `findsNothing` alone would pass whether they were filtered or scrolled
+      // past.
+      expect(find.byType(ListTile), findsOneWidget);
+      expect(find.text('Smart Print PETG Translucent'), findsOneWidget);
+    });
+
+    testWidgets('a search matching nothing does not read as an empty shelf',
+        (tester) async {
+      // Both states show no rows, and only one of them is fixed by clearing
+      // the field.
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      await tester.enterText(find.byType(TextField), 'nylon');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Brak wyników'), findsOneWidget);
+      expect(find.text('Brak szpul w magazynie'), findsNothing);
+    });
+
+    testWidgets('an empty shelf still says so', (tester) async {
+      await openSlotSheet(tester, state: 'IDLE');
+      await reveal(tester, find.text('Brak szpul w magazynie'));
+
+      expect(find.text('Brak szpul w magazynie'), findsOneWidget);
+      expect(find.textContaining('Brak wyników'), findsNothing);
+    });
+
+    testWidgets('the scanner sits beside the search', (tester) async {
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      expect(
+        find.byWidgetPredicate((w) =>
+            w is Semantics &&
+            w.properties.identifier == 'assign_spool.scan'),
+        findsOneWidget,
+      );
     });
   });
 

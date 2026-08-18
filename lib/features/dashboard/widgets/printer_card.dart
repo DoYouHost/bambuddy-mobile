@@ -23,10 +23,12 @@ import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
 import '../../common/camera_token_image_recovery.dart';
 import '../../common/confirm_dialog.dart';
+import '../../common/dash_search_field.dart';
 import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel;
+import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
 import '../firmware_providers.dart';
