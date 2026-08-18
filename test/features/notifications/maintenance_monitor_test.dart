@@ -214,6 +214,34 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
+  test(
+      'remindOnPrintEnd: pozycja wyłączona (enabled=false) pomijana mimo due',
+      () async {
+    repo.overview = [
+      _printer([
+        _item(id: 10, isDue: true, enabled: false),
+        _item(id: 12, isDue: true),
+      ]),
+    ];
+
+    await monitor().remindOnPrintEnd(1);
+
+    final alert = notifications.alerts.single;
+    expect(alert['payload'], '12');
+  });
+
+  test(
+      'remindOnPrintEnd: wszystkie zaległe wyłączone → brak powiadomienia',
+      () async {
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true, enabled: false)]),
+    ];
+
+    await monitor().remindOnPrintEnd(1);
+
+    expect(notifications.alerts, isEmpty);
+  });
+
   group('diagnostyka', () {
     late DiagnosticRecorder recorder;
 
