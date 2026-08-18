@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ams/filament_naming.dart';
 import '../../../core/ams/filament_preset_catalog.dart';
 import '../../../core/ams/printer_model_match.dart';
 import '../../../core/ams/slot_configuration.dart';
@@ -91,6 +92,19 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// keep overwriting a pick the user just made.
   bool _preselected = false;
 
+  /// [SlotPreset.presetId] the server remembers for this slot, once it answers.
+  String? _savedPresetId;
+
+  /// What the slot was already set to when the sheet opened, if the picker
+  /// could name it. Deliberately not `_picked`: it is fixed for the life of the
+  /// sheet, so the row stays where it is while the user browses.
+  String? _currentPresetId;
+
+  /// Hide presets whose name names a different printer. On by default: a cloud
+  /// account carries every preset for every printer its owner has, and an
+  /// unfiltered list is mostly noise.
+  bool _onlyThisPrinter = true;
+
   @override
   void initState() {
     super.initState();
@@ -112,59 +126,73 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final sources = ref.watch(slotPresetSourcesProvider);
     final saved = ref.watch(slotPresetProvider(target.key));
 
-    _preselectFromSaved(sources.valueOrNull, saved.valueOrNull);
+    _savedPresetId = saved.valueOrNull?.presetId;
 
+    final view = sources.valueOrNull == null
+        ? null
+        : _view(sources.requireValue);
+    // Three bands, and only the middle one scrolls: what the slot is and what
+    // is being searched stay put, the catalogue moves under them, and the
+    // actions stay reachable. One scroll region for a form, a filter and a
+    // thousand-row list put all three on the same journey.
     return logTag(
       'sheet.ams_slot_config',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        minChildSize: 0.4,
-        builder: (context, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      FractionallySizedBox(
+        // Fill what the modal allows (90% of the screen). The bands below need
+        // a bounded height to divide, and a sheet that sizes itself to its
+        // content would jump between a two-row list and a thousand-row one.
+        heightFactor: 1,
+        child: Column(
           children: [
-            Text(l10n.amsSlotConfigTitle, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text(
-              [?target.printerName, target.label].join(' · '),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l10n.amsSlotConfigTitle,
+                      style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    [?target.printerName, target.label].join(' · '),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _colourField(l10n, t),
+                  const SizedBox(height: 16),
+                  Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _search,
+                    onChanged: (_) => setState(() {}),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 13,
+                      color: t.textPrimary,
+                    ),
+                    decoration: dashDecoration(
+                      t,
+                      hintText: l10n.amsSlotConfigSearch,
+                      prefixIcon:
+                          Icon(Icons.search, size: 18, color: t.textTertiary),
+                    ),
+                  ).tagged('ams_slot_config.search'),
+                  if (view != null) ...[
+                    const SizedBox(height: 8),
+                    ..._filterRow(l10n, t, view),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            _colourField(l10n, t),
-            const SizedBox(height: 16),
-            Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _search,
-              onChanged: (_) => setState(() {}),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textPrimary,
-              ),
-              decoration: dashDecoration(
-                t,
-                hintText: l10n.amsSlotConfigSearch,
-                prefixIcon: Icon(Icons.search, size: 18, color: t.textTertiary),
-              ),
-            ).tagged('ams_slot_config.search'),
-            const SizedBox(height: 8),
-            ...switch (sources) {
-              AsyncError() => [_message(t, l10n.amsSlotConfigEmpty)],
-              AsyncLoading() => [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-              AsyncValue(:final value?) => _presetList(l10n, t, value),
-              _ => const <Widget>[],
-            },
-            const SizedBox(height: 20),
+            Expanded(
+              child: switch (sources) {
+                AsyncLoading() =>
+                  const Center(child: CircularProgressIndicator()),
+                AsyncError() => _scrollableMessage(t, l10n.amsSlotConfigEmpty),
+                _ => _presetList(l10n, t, view!),
+              },
+            ),
             _actions(l10n, t),
           ],
         ),
@@ -174,18 +202,91 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
 
   /// Preselect what the slot already holds, so the sheet opens showing the
   /// truth rather than an empty form the user has to re-fill to change a colour.
-  void _preselectFromSaved(SlotPresetSources? sources, SlotPreset? saved) {
-    if (_preselected || sources == null) return;
+  ///
+  /// Two sources, in this order:
+  ///
+  /// 1. the server's slot→preset mapping, which is the only thing that can name
+  ///    a *user's own* cloud preset;
+  /// 2. failing that, the filament id the printer itself reports.
+  ///
+  /// The mapping goes first because it is more specific, but it is not trusted
+  /// blindly: saving it needs `printers:update` and a refusal leaves the
+  /// *previous* preset on file, so a mapping that names nothing in the visible
+  /// list is dropped rather than forced into it. Candidates come from the list
+  /// as rendered — arming the write with a row the user cannot see is how a slot
+  /// gets configured with a preset nobody chose.
+  void _preselectFrom(List<AmsFilamentPreset> visible) {
+    if (_preselected || visible.isEmpty) return;
     _preselected = true;
-    final wanted = saved?.presetId ?? widget.target.currentFilamentId;
-    if (wanted == null || wanted.isEmpty) return;
-    for (final preset in [...sources.local, ...sources.cloud, ...sources.builtin]) {
-      if (preset.pickerId == wanted) {
+
+    final loaded = widget.target.currentFilamentId;
+    final mapped = _savedPresetId;
+    if (mapped != null && mapped.isNotEmpty) {
+      for (final preset in visible) {
+        if (preset.pickerId != mapped) continue;
+        // Unless the printer says otherwise. A mapping only goes stale in one
+        // direction — nothing rewrites it when the slot changes by another
+        // route, and on an API key nothing rewrites it at all — so a filament
+        // id that disagrees is the mapping being out of date, not the printer.
+        if (!_contradicts(preset, loaded)) {
+          _picked = preset;
+          _currentPresetId = preset.pickerId;
+          return;
+        }
+        break;
+      }
+    }
+
+    if (loaded == null || loaded.isEmpty) return;
+    for (final preset in visible) {
+      if (_filamentIdOf(preset) == loaded) {
         _picked = preset;
+        _currentPresetId = preset.pickerId;
         return;
       }
     }
   }
+
+  /// Lift what the slot is already set to to the top of the list.
+  ///
+  /// It is the row the user came to look at, and in a catalogue this size it
+  /// otherwise lands wherever the alphabet puts it — three screens down, among
+  /// six near-identical names. Pinned by the preset the sheet *opened* on, not
+  /// by the current selection, so the list does not rearrange itself under a
+  /// finger that is still choosing.
+  List<AmsFilamentPreset> _currentFirst(List<AmsFilamentPreset> presets) {
+    final pinned = _currentPresetId;
+    if (pinned == null) return presets;
+    final at = presets.indexWhere((p) => p.pickerId == pinned);
+    if (at <= 0) return presets;
+    return [
+      presets[at],
+      ...presets.sublist(0, at),
+      ...presets.sublist(at + 1),
+    ];
+  }
+
+  /// Whether [preset] names a different filament than the one the slot reports.
+  ///
+  /// Only comparable when the preset resolves to a Bambu filament id: a user's
+  /// own cloud preset resolves to its own id, which the list cannot derive, so
+  /// silence there means "no evidence", not "disagreement".
+  bool _contradicts(AmsFilamentPreset preset, String? loaded) {
+    if (loaded == null || loaded.isEmpty) return false;
+    final id = _filamentIdOf(preset);
+    if (id == null || !id.startsWith('GF') || !loaded.startsWith('GF')) {
+      return false;
+    }
+    return id != loaded;
+  }
+
+  /// The Bambu filament id behind a preset, or null when it has none — an
+  /// imported preset carries no Bambu id at all.
+  String? _filamentIdOf(AmsFilamentPreset preset) => switch (preset.source) {
+        AmsPresetSource.cloud => filamentIdFromSettingId(preset.id),
+        AmsPresetSource.builtin => preset.id,
+        AmsPresetSource.local => null,
+      };
 
   /// Same shape as the spool form's colour field — swatch, mono hex, eyedropper
   /// — so the two read as one control in two places.
@@ -216,41 +317,125 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         ),
       ).tagged('ams_slot_config.colour');
 
-  List<Widget> _presetList(
-    AppLocalizations l10n,
-    DashTokens t,
-    SlotPresetSources sources,
-  ) {
+  /// What the picker shows for the current search and filter state, plus what
+  /// the filter is costing. Computed once in `build` because the header needs
+  /// the count and the body needs the rows.
+  _CatalogueView _view(SlotPresetSources sources) {
     final target = widget.target;
-    final presets = filamentPresetCatalog(
-      cloud: sources.cloud,
-      local: sources.local,
-      builtin: sources.builtin,
-      query: _search.text,
-      printerModel: target.printerModel,
-      printerModels: sources.printerModels,
-      fullPrinterName: target.printerModel == null
-          ? null
-          : fullPrinterPresetName(
-              target.printerModel!,
-              sources.printerModels,
-              target.effectiveNozzleDiameter,
-            ),
-      savedPresetId: _picked?.pickerId,
-      currentFilamentId: target.currentFilamentId,
-    );
+    final model = target.printerModel;
 
+    List<AmsFilamentPreset> catalogue({required bool forThisPrinter}) =>
+        filamentPresetCatalog(
+          cloud: sources.cloud,
+          local: sources.local,
+          builtin: sources.builtin,
+          query: _search.text,
+          printerModel: forThisPrinter ? model : null,
+          printerModels: sources.printerModels,
+          fullPrinterName: !forThisPrinter || model == null
+              ? null
+              : fullPrinterPresetName(
+                  model,
+                  sources.printerModels,
+                  target.effectiveNozzleDiameter,
+                ),
+        );
+
+    // Both lists, always: the count of what the filter takes away is the only
+    // honest label for the switch that turns it off.
+    final everything = catalogue(forThisPrinter: false);
+    final canFilter = model != null && model.isNotEmpty;
+    final presets = canFilter && _onlyThisPrinter
+        ? catalogue(forThisPrinter: true)
+        : everything;
+
+    // Preselect here rather than after: pinning the current preset needs to
+    // know which one it is, and both answers come off the same list.
+    _preselectFrom(presets);
+
+    return (
+      presets: _currentFirst(presets),
+      hidden: everything.length - presets.length,
+      model: canFilter ? model : null,
+      anyPresetAtAll: !sources.isEmpty,
+      cloudNeedsLogin: sources.cloudNeedsLogin,
+    );
+  }
+
+  /// The part of the header that depends on the catalogue: the cloud-login
+  /// offer and the printer filter.
+  List<Widget> _filterRow(
+      AppLocalizations l10n, DashTokens t, _CatalogueView view) {
+    final model = view.model;
     return [
-      if (sources.cloudNeedsLogin) _cloudLoginHint(l10n, t),
-      if (presets.isEmpty)
-        _message(
-          t,
-          sources.isEmpty ? l10n.amsSlotConfigEmpty : l10n.amsSlotConfigNoMatch,
-        )
-      else
-        for (final preset in presets) _presetTile(l10n, t, preset),
+      if (view.cloudNeedsLogin) _cloudLoginHint(l10n, t),
+      if (model != null)
+        _printerFilterChip(l10n, t, model: model, hidden: view.hidden)
+      else if (view.anyPresetAtAll)
+        // Without a model there is nothing to match preset names against, so
+        // the list is unfiltered — said out loud rather than left to look like
+        // a filter that does nothing.
+        _message(t, l10n.amsSlotConfigModelUnknown),
     ];
   }
+
+  /// The scrolling band: only the presets, so the form above and the actions
+  /// below stay where the user left them.
+  Widget _presetList(AppLocalizations l10n, DashTokens t, _CatalogueView view) {
+    if (view.presets.isEmpty) {
+      return _scrollableMessage(
+        t,
+        view.anyPresetAtAll
+            ? l10n.amsSlotConfigNoMatch
+            : l10n.amsSlotConfigEmpty,
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      itemCount: view.presets.length,
+      itemBuilder: (_, i) => _presetTile(l10n, t, view.presets[i]),
+    );
+  }
+
+  /// A message where the list would be. Scrollable so the sheet still gives on
+  /// a drag, and so a long line has somewhere to go on a short screen.
+  Widget _scrollableMessage(DashTokens t, String text) => ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [_message(t, text)],
+      );
+
+  /// Toggle between "presets for this printer" and everything the account has.
+  ///
+  /// Filtering is on by default — a cloud account holds every preset for every
+  /// printer its owner has ever used — but the classification is name-based and
+  /// therefore fallible, so there has to be a way past it.
+  Widget _printerFilterChip(
+    AppLocalizations l10n,
+    DashTokens t, {
+    required String model,
+    required int hidden,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FilterChip(
+            selected: _onlyThisPrinter,
+            onSelected: (v) => setState(() => _onlyThisPrinter = v),
+            avatar: Icon(
+              _onlyThisPrinter ? Icons.filter_alt : Icons.filter_alt_off,
+              size: 18,
+              color: _onlyThisPrinter ? t.accentGreenInk : t.textTertiary,
+            ),
+            showCheckmark: false,
+            label: Text(
+              _onlyThisPrinter && hidden > 0
+                  ? l10n.amsSlotConfigOnlyPrinterHiding(model, hidden)
+                  : l10n.amsSlotConfigOnlyPrinter(model),
+            ),
+          ).tagged('ams_slot_config.only_this_printer'),
+        ),
+      );
 
   /// One preset row, in the card-list shape the rest of the dashboard uses:
   /// a filled [DashTokens.subCard] block that turns accent-bordered when picked,
@@ -301,11 +486,18 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _tierLabel(l10n, preset.source),
+                      // Says why this one is at the top, so the pinning does
+                      // not read as the sort being broken.
+                      preset.pickerId == _currentPresetId
+                          ? '${l10n.amsSlotConfigCurrent} · '
+                              '${_tierLabel(l10n, preset.source)}'
+                          : _tierLabel(l10n, preset.source),
                       style: TextStyle(
                         fontFamily: DashTokens.fontUi,
                         fontSize: 11,
-                        color: t.textTertiary,
+                        color: preset.pickerId == _currentPresetId
+                            ? t.accentGreenInk
+                            : t.textTertiary,
                       ),
                     ),
                   ],
@@ -363,35 +555,49 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         ),
       );
 
-  /// Full-width primary action with the destructive one below it, rather than
-  /// two halves of a row: "Zapisz w drukarce" does not fit half a phone width
-  /// and wraps onto two lines there. The button takes the theme's own
-  /// [dashPrimaryButtonStyle] by way of `filledButtonTheme`, so it matches every
-  /// other confirming button without restating the style.
+  /// The pinned foot of the sheet: full-width primary action with the
+  /// destructive one below it, rather than two halves of a row — "Zapisz w
+  /// drukarce" does not fit half a phone width and wraps onto two lines there.
+  ///
+  /// Opaque and hairline-topped, because the list scrolls underneath it. The
+  /// button takes the theme's own [dashPrimaryButtonStyle] by way of
+  /// `filledButtonTheme`, so it matches every other confirming button without
+  /// restating the style.
   Widget _actions(AppLocalizations l10n, DashTokens t) {
     final busy = ref.watch(controlsProvider.select(
         (s) => s.pendingFor(widget.target.printerId).isBusy(ControlAction.ams)));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton(
-          onPressed: busy || _picked == null ? null : () => _apply(l10n),
-          child: busy
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l10n.amsSlotConfigApply),
-        ).tagged('ams_slot_config.apply'),
-        const SizedBox(height: 4),
-        TextButton.icon(
-          onPressed: busy ? null : () => _reset(l10n),
-          icon: const Icon(Icons.layers_clear, size: 18),
-          label: Text(l10n.amsSlotReset),
-          style: TextButton.styleFrom(foregroundColor: t.danger),
-        ).tagged('ams_slot_config.reset'),
-      ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: t.overlaySurface,
+        border: Border(top: BorderSide(color: t.overlayBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: busy || _picked == null ? null : () => _apply(l10n),
+              child: busy
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.amsSlotConfigApply),
+            ).tagged('ams_slot_config.apply'),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: busy ? null : () => _reset(l10n),
+              icon: const Icon(Icons.layers_clear, size: 18),
+              label: Text(l10n.amsSlotReset),
+              style: TextButton.styleFrom(foregroundColor: t.danger),
+            ).tagged('ams_slot_config.reset'),
+          ],
+        ),
+      ),
     );
   }
 
@@ -459,16 +665,26 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       cloudFilamentId: cloudFilamentId,
     );
 
+    SlotConfigOutcome? result;
     await _send(
       l10n,
-      () => ref.read(controlsProvider.notifier).configureSlot(
-            target.printerId,
-            amsId: target.amsId,
-            trayId: target.trayId,
-            preset: preset,
-            configuration: configuration,
-          ),
-      l10n.amsSlotConfigStarted,
+      () async {
+        result = await ref.read(controlsProvider.notifier).configureSlot(
+              target.printerId,
+              amsId: target.amsId,
+              trayId: target.trayId,
+              preset: preset,
+              configuration: configuration,
+            );
+        return result!.outcome;
+      },
+      // A refusal is worth a word — the slot keeps the previous name and the
+      // sheet will show it next time. "Unavailable" is not: on an API key the
+      // route can never succeed, and there is nothing the user could do with
+      // the warning except see it after every save.
+      () => result?.name == SlotNameOutcome.refused
+          ? l10n.amsSlotConfigNameNotSaved
+          : l10n.amsSlotConfigStarted,
     );
   }
 
@@ -490,7 +706,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             amsId: target.amsId,
             trayId: target.trayId,
           ),
-      l10n.amsSlotResetStarted,
+      () => l10n.amsSlotResetStarted,
     );
   }
 
@@ -500,10 +716,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// act and its answer arrives over the socket, so there is nothing here left
   /// to watch. The saved mapping is invalidated either way — a failed write may
   /// still have cleared it.
+  ///
+  /// [succeeded] is a callback, not a string, because what "it worked" should
+  /// say can depend on what the command found out along the way.
   Future<void> _send(
     AppLocalizations l10n,
     Future<ActionOutcome> Function() send,
-    String startedMessage,
+    String Function() succeeded,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -512,7 +731,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     if (!mounted) return;
     navigator.pop();
     messenger.showSnackBar(
-      SnackBar(content: Text(outcome.messageFor(l10n) ?? startedMessage)),
+      SnackBar(content: Text(outcome.messageFor(l10n) ?? succeeded())),
     );
   }
 
@@ -533,3 +752,15 @@ String? _sixDigits(String? rgba) {
   final rgb = raw.substring(0, 6).toUpperCase();
   return RegExp(r'^[0-9A-F]{6}$').hasMatch(rgb) ? rgb : null;
 }
+
+/// The catalogue as the sheet renders it, with what the printer filter costs.
+typedef _CatalogueView = ({
+  List<AmsFilamentPreset> presets,
+  int hidden,
+
+  /// Model the filter is keyed on, or null when the printer has not reported
+  /// one — in which case there is no filter to offer.
+  String? model,
+  bool anyPresetAtAll,
+  bool cloudNeedsLogin,
+});

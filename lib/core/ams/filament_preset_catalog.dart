@@ -10,14 +10,16 @@
 ///   nothing — otherwise hiding it would hide the material.
 /// - **Filter by printer, but only on evidence.** A preset whose name names a
 ///   different printer is hidden; one that names no printer at all stays.
-/// - **Never hide what the slot is already set to.** The current pick has to
-///   remain selectable even when the filters would drop it, or reopening the
-///   sheet would silently offer to change a slot the user only wanted to look
-///   at.
+/// - **Nothing bypasses the filters, not even what the slot is set to.** The
+///   saved mapping used to, so that reopening the sheet still showed the slot's
+///   own preset — but that mapping is server state that can be stale (the save
+///   needs `printers:update` and can be refused), and a stale one then appeared
+///   as the current pick *and* dragged another printer's preset into the list.
+///   A pick the filter hides is reachable through the "show all" toggle, which
+///   is honest about what it is doing.
 library;
 
 import '../models/ams_filament_preset.dart';
-import 'filament_naming.dart';
 import 'printer_model_match.dart';
 
 /// Build the picker's list.
@@ -27,9 +29,7 @@ import 'printer_model_match.dart';
 /// broken. [printerModel] is the short code from `Printer.model`;
 /// [printerModels] the registry from `GET /slicer/printer-models`.
 /// [fullPrinterName] is [fullPrinterPresetName] for this printer, used for the
-/// imported presets' own compatibility list. [savedPresetId] is
-/// [AmsFilamentPreset.pickerId] of the slot's saved mapping and [currentFilamentId]
-/// the `tray_info_idx` the printer reports — either identifies the current pick.
+/// imported presets' own compatibility list.
 List<AmsFilamentPreset> filamentPresetCatalog({
   List<AmsFilamentPreset> cloud = const [],
   List<AmsFilamentPreset> local = const [],
@@ -38,8 +38,6 @@ List<AmsFilamentPreset> filamentPresetCatalog({
   String? printerModel,
   Map<String, String> printerModels = const {},
   String? fullPrinterName,
-  String? savedPresetId,
-  String? currentFilamentId,
 }) {
   final needle = query.trim().toLowerCase();
   bool matchesQuery(String name) =>
@@ -50,10 +48,7 @@ List<AmsFilamentPreset> filamentPresetCatalog({
 
   for (final preset in cloud) {
     if (!matchesQuery(preset.name)) continue;
-    if (!_isCurrent(preset, savedPresetId, currentFilamentId) &&
-        !_fitsPrinter(preset.name, printerModel, printerModels)) {
-      continue;
-    }
+    if (!_fitsPrinter(preset.name, printerModel, printerModels)) continue;
     // Only a preset that survived both filters covers its built-in twin.
     // Marking it earlier would let a cloud PETG hidden as "belongs to another
     // printer" take generic PETG down with it, and the material would vanish
@@ -64,10 +59,7 @@ List<AmsFilamentPreset> filamentPresetCatalog({
 
   for (final preset in local) {
     if (!matchesQuery(preset.name)) continue;
-    if (!_isCurrent(preset, savedPresetId, currentFilamentId) &&
-        !_fitsCompatibilityList(preset, fullPrinterName)) {
-      continue;
-    }
+    if (!_fitsCompatibilityList(preset, fullPrinterName)) continue;
     items.add(preset);
   }
 
@@ -97,18 +89,6 @@ int _tierOrder(AmsPresetSource source) => switch (source) {
       AmsPresetSource.cloud => 1,
       AmsPresetSource.builtin => 2,
     };
-
-bool _isCurrent(
-  AmsFilamentPreset preset,
-  String? savedPresetId,
-  String? currentFilamentId,
-) {
-  if (savedPresetId != null && savedPresetId == preset.pickerId) return true;
-  if (currentFilamentId == null || currentFilamentId.isEmpty) return false;
-  if (preset.source != AmsPresetSource.cloud) return false;
-  return preset.id == currentFilamentId ||
-      filamentIdFromSettingId(preset.id) == currentFilamentId;
-}
 
 /// True unless the name names a *different* printer. A name that resolves to no
 /// model, or a card with no known model of its own, keeps the preset.

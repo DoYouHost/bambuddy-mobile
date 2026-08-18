@@ -143,38 +143,42 @@ void main() {
     expect(list, hasLength(1));
   });
 
-  test('keeps the slot\'s current preset even when the filter would drop it',
-      () {
-    // Reopening the sheet on a slot must not silently offer to change it.
+  test('the slot\'s filament id does not drag in other printers\' presets', () {
+    // Bambu gives every printer-specific variant of one filament the same
+    // filament id, so treating "the slot holds GFB00" as "this preset is the
+    // current pick" waved every ABS preset in the account past the filter —
+    // the whole point of which is to show one printer's.
     final list = filamentPresetCatalog(
-      cloud: [_cloud('GFSG99', 'Bambu PETG @BBL H2D')],
+      cloud: [
+        _cloud('GFSB00_04', 'Bambu ABS @BBL X1C'),
+        _cloud('GFSB00_05', 'Bambu ABS @BBL A1'),
+        _cloud('GFSB00_06', 'Bambu ABS @BBL H2C'),
+      ],
       printerModel: 'X1C',
       printerModels: _models,
-      savedPresetId: 'GFSG99',
     );
 
-    expect(list, hasLength(1));
+    expect(list.map((p) => p.name), ['Bambu ABS @BBL X1C']);
   });
 
-  test('recognises the current preset by the filament id the printer reports',
-      () {
-    // The printer knows "GFG99"; the cloud lists it as "GFSG99_04".
+  test('nothing is exempt from the printer filter, mapping included', () {
+    // The mapping is server state that can be stale — the save needs
+    // `printers:update` and a refusal leaves the previous preset on file. Left
+    // exempt, a stale one both preselected itself and dragged another
+    // printer's preset into a list that says it is filtered.
     final list = filamentPresetCatalog(
-      cloud: [_cloud('GFSG99_04', 'Bambu PETG @BBL H2D')],
+      cloud: [_cloud('GFSB00_05', 'Bambu ABS @BBL A1')],
       printerModel: 'X1C',
       printerModels: _models,
-      currentFilamentId: 'GFG99',
     );
 
-    expect(list, hasLength(1));
+    expect(list, isEmpty);
   });
 
-  test('applies the search to the current preset too', () {
-    // A search that kept showing one unmatched row looks broken.
+  test('the search applies to every tier without exception', () {
     final list = filamentPresetCatalog(
       cloud: [_cloud('GFSG99', 'Bambu PETG')],
       query: 'pla',
-      savedPresetId: 'GFSG99',
     );
 
     expect(list, isEmpty);

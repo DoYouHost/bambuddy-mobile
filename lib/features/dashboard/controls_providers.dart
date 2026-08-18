@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ams/slot_configuration.dart';
 import '../../core/api/action_outcome.dart';
+import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/ams_filament_preset.dart';
 import '../../data/ams_slot_config_repository.dart';
@@ -47,6 +48,32 @@ enum ControlPermission {
 
 /// Commands answer with the shared [ActionOutcome] — see its doc for why the
 /// failure travels intact instead of as a code the widget re-words.
+
+/// Result of configuring a slot: whether the printer took the filament, and
+/// separately what became of the preset name.
+///
+/// Two answers because they are two permissions and two consequences. A slot
+/// whose name was not remembered is configured correctly and *labelled wrongly*
+/// — the sheet keeps showing whatever preset the server still has on file.
+typedef SlotConfigOutcome = ({ActionOutcome outcome, SlotNameOutcome name});
+
+/// What happened to the slot→preset mapping.
+enum SlotNameOutcome {
+  /// The server recorded which preset the slot was given.
+  saved,
+
+  /// The server refused to record it. Worth telling the user: the sheet will
+  /// keep offering the *previous* preset next time it opens.
+  refused,
+
+  /// Not even attempted, because this connection cannot do it. Saving needs
+  /// `printers:update`, which bambuddy denies to every API key no matter which
+  /// scopes it was created with (`core/auth.py`, `_APIKEY_DENIED_PERMISSIONS`)
+  /// — so on a key-authenticated session the route is a guaranteed 403 and a
+  /// warning the user cannot act on. The sheet leans on the printer's own
+  /// filament id instead.
+  unavailable,
+}
 
 /// Optimistic overrides and "in-flight" state for one printer.
 /// Overrides ([light]/[speedLevel]/[tempTargets]/[airductHeating]) overlay on
@@ -396,30 +423,41 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), which is the same pair the
   /// inventory assignment already uses.
   ///
-  /// The mapping is saved on a best-effort basis: it needs `printers:update`,
-  /// which is a permission of its own, and the slot is already configured by the
-  /// time it is written. Failing the whole action over the label would report a
-  /// change that did happen as one that did not.
-  Future<ActionOutcome> configureSlot(
+  /// The mapping is saved separately and cannot fail the write: it needs
+  /// `printers:update`, a permission of its own, and by the time it runs the
+  /// filament is already set on the printer. Failing the whole action over the
+  /// label would report a change that did happen as one that did not.
+  ///
+  /// See [SlotNameOutcome] for the three ways that second call can end.
+  Future<SlotConfigOutcome> configureSlot(
     int id, {
     required int amsId,
     required int trayId,
     required SlotConfiguration configuration,
     required AmsFilamentPreset preset,
-  }) =>
-      _run(id, ControlAction.ams, () async {
-        await _slotConfig.configureSlot(id,
-            amsId: amsId, trayId: trayId, configuration: configuration);
-        try {
-          await _slotConfig.saveSlotPreset(id,
-              amsId: amsId,
-              trayId: trayId,
-              preset: preset,
-              presetName: configuration.traySubBrands);
-        } on AppApiException {
-          // Nothing to roll back and nothing to say: the filament is set.
-        }
-      });
+  }) async {
+    // An API key is refused `printers:update` by the server whatever scopes it
+    // holds, so the call is skipped rather than sent to be denied.
+    final canName =
+        ref.read(serverProfileProvider)?.authMode != AuthMode.apiKey;
+    var name = canName ? SlotNameOutcome.saved : SlotNameOutcome.unavailable;
+
+    final outcome = await _run(id, ControlAction.ams, () async {
+      await _slotConfig.configureSlot(id,
+          amsId: amsId, trayId: trayId, configuration: configuration);
+      if (!canName) return;
+      try {
+        await _slotConfig.saveSlotPreset(id,
+            amsId: amsId,
+            trayId: trayId,
+            preset: preset,
+            presetName: configuration.traySubBrands);
+      } on AppApiException {
+        name = SlotNameOutcome.refused;
+      }
+    });
+    return (outcome: outcome, name: name);
+  }
 
   /// Clear a slot's filament configuration, and the saved mapping with it.
   Future<ActionOutcome> resetSlot(

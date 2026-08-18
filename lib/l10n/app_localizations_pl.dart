@@ -1100,6 +1100,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get amsSlotConfigStarted => 'Konfigurowanie slotu…';
 
   @override
+  String get amsSlotConfigNameNotSaved =>
+      'Slot skonfigurowany, ale nazwy presetu nie udało się zapisać';
+
+  @override
   String get amsSlotConfigEmpty => 'Brak dostępnych presetów filamentu';
 
   @override
@@ -1120,6 +1124,20 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get amsSlotConfigTierBuiltin => 'Wbudowane';
+
+  @override
+  String amsSlotConfigOnlyPrinter(String model) {
+    return 'Tylko dla $model';
+  }
+
+  @override
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden) {
+    return 'Tylko dla $model (ukryto $hidden)';
+  }
+
+  @override
+  String get amsSlotConfigModelUnknown =>
+      'Nieznany model drukarki — pokazuję wszystkie presety';
 
   @override
   String get amsSlotConfigCurrent => 'Ustawiony teraz';

@@ -19,17 +19,29 @@ class _FakeProfileNotifier extends ServerProfileNotifier {
       );
 }
 
+class _ApiKeyProfileNotifier extends ServerProfileNotifier {
+  @override
+  ServerProfile? build() => const ServerProfile(
+        baseUrl: 'http://s.local:8000',
+        authMode: AuthMode.apiKey,
+      );
+}
+
 /// Records what the sheet writes and can be told to withhold each source.
 class _FakeRepo implements AmsSlotConfigRepository {
   final List<String> calls = [];
   Object? cloudError;
   Object? saveError;
+
+  /// Overrides the cloud tier, for the printer-filter tests.
+  List<AmsFilamentPreset>? cloudPresets;
   SlotConfiguration? written;
   String? cloudDetailId;
 
   @override
   Future<List<AmsFilamentPreset>> cloudFilaments() async {
     if (cloudError != null) throw cloudError!;
+    if (cloudPresets != null) return cloudPresets!;
     return const [
       AmsFilamentPreset(
         source: AmsPresetSource.cloud,
@@ -62,10 +74,13 @@ class _FakeRepo implements AmsSlotConfigRepository {
   Future<Map<String, String>> printerModels() async =>
       const {'Bambu Lab X1 Carbon': 'X1C'};
 
+  /// What the server remembers for the slot — stale on purpose in one test.
+  SlotPreset? saved;
+
   @override
   Future<SlotPreset?> slotPreset(int printerId,
           {required int amsId, required int trayId}) async =>
-      null;
+      saved;
 
   @override
   Future<String?> cloudFilamentId(String settingId) async {
@@ -104,6 +119,20 @@ class _FakeRepo implements AmsSlotConfigRepository {
 }
 
 void main() {
+  // A phone, not the 800x600 default: the sheet is 75% of the window with a
+  // pinned action bar, so on the default surface almost no list rows are built
+  // and the tests would be measuring the test window rather than the sheet.
+  setUp(() {
+    final view = TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
+        .implicitView!;
+    view.physicalSize = const Size(1080, 2400);
+    view.devicePixelRatio = 3.0;
+    addTearDown(() {
+      view.resetPhysicalSize();
+      view.resetDevicePixelRatio();
+    });
+  });
+
   const target = AmsSlotTarget(
     printerId: 1,
     amsId: 0,
@@ -144,11 +173,28 @@ void main() {
     return fake;
   }
 
-  /// The sheet is a scrollable list inside a 75%-height panel, so the actions
-  /// at its foot are below the fold on a phone-sized test window.
-  Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  /// The sheet is a lazily-built list inside a 75%-height panel, so anything
+  /// past the first screenful is not in the tree at all until scrolled to.
+  Future<Finder> scrollTo(WidgetTester tester, Finder finder) async {
+    if (finder.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        finder,
+        120,
+        scrollable: find
+            .descendant(
+              of: find.byType(AmsSlotConfigSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+    }
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
+    return finder;
+  }
+
+  Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+    await scrollTo(tester, finder);
     await tester.tap(finder);
     await tester.pumpAndSettle();
   }
@@ -162,8 +208,25 @@ void main() {
         .whereType<String>()
         .toList();
 
-    expect(names, containsAll(['eSUN PETG', 'Bambu PLA Basic', 'Generic PLA']));
-    expect(names.indexOf('eSUN PETG'), lessThan(names.indexOf('Bambu PLA Basic')));
+    expect(names, containsAll(['eSUN PETG', 'Bambu PLA Basic']));
+    expect(names.indexOf('eSUN PETG'), lessThan(names.indexOf('Bambu PLA Basic')),
+        reason: 'imported presets outrank the cloud');
+    await scrollTo(tester, find.text('Generic PLA'));
+    expect(find.text('Generic PLA'), findsOneWidget,
+        reason: 'the built-in table is the floor, below both');
+  });
+
+  testWidgets('scrolling the list leaves the form and the actions in place',
+      (tester) async {
+    // The list runs to hundreds of rows; scrolling it must not carry away the
+    // colour field, the search or the buttons.
+    await openSheet(tester);
+    await scrollTo(tester, find.text('Generic PLA'));
+
+    expect(find.text('Szukaj presetu'), findsOneWidget);
+    expect(find.text('Kolor'), findsOneWidget);
+    expect(find.text('Zapisz w drukarce'), findsOneWidget);
+    expect(find.text('Wyczyść slot'), findsOneWidget);
   });
 
   testWidgets('writes the picked preset and remembers it', (tester) async {
@@ -196,9 +259,11 @@ void main() {
     expect(repo.written!.settingId, 'GFSL05_09');
   });
 
-  testWidgets('a failed mapping save does not fail the write', (tester) async {
-    // The filament is already set on the printer by then; reporting failure
-    // would describe a change that did happen as one that did not.
+  testWidgets('a refused mapping save is reported, not swallowed',
+      (tester) async {
+    // The filament is set, so the write did not fail — but the server kept the
+    // *previous* preset name, which is what the sheet will show next time. A
+    // silent success there reads as "the app forgot what I picked".
     final repo = _FakeRepo()
       ..saveError = const AuthException(AppErrorCode.forbidden);
     await openSheet(tester, repo: repo);
@@ -207,11 +272,169 @@ void main() {
     await tapVisible(tester, find.text('Zapisz w drukarce'));
 
     expect(repo.calls, ['configure:1:0:2', 'save:builtin_GFL99:Generic PLA']);
+    expect(find.textContaining('nazwy presetu nie udało się zapisać'),
+        findsOneWidget);
+  });
+
+  testWidgets('a stale mapping does not win over the loaded filament',
+      (tester) async {
+    // Exactly the shape a refused save leaves behind: the server still names
+    // the preset the slot had before. The printer's own filament id is the
+    // authority, and it says ABS.
+    final repo = _FakeRepo()
+      ..saved = const SlotPreset(
+        amsId: 0,
+        trayId: 2,
+        presetId: 'GFSL99_01',
+        presetName: 'Bambu PLA (stary)',
+      )
+      ..cloudPresets = [
+        const AmsFilamentPreset(
+          source: AmsPresetSource.cloud,
+          id: 'GFSB00_04',
+          name: 'Bambu ABS @BBL X1C',
+        ),
+      ];
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+      ],
+      child: plApp(
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => const AmsSlotConfigSheet(
+                  target: AmsSlotTarget(
+                    printerId: 1,
+                    amsId: 0,
+                    trayId: 2,
+                    label: 'AMS 1 · 3',
+                    printerModel: 'X1C',
+                    currentFilamentId: 'GFB00',
+                  ),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // Nothing was tapped, so a preselection is the only thing that can arm the
+    // button — and it must be the ABS the printer reports.
+    await scrollTo(tester, find.text('Zapisz w drukarce'));
+    final button = tester.widget<FilledButton>(
+      find.ancestor(
+        of: find.text('Zapisz w drukarce'),
+        matching: find.byType(FilledButton),
+      ),
+    );
+    expect(button.onPressed, isNotNull);
+
+    await tapVisible(tester, find.text('Zapisz w drukarce'));
+    expect(repo.calls, contains('save:GFSB00_04:Bambu ABS'),
+        reason: 'the ABS the printer reports, not the PLA the server remembers');
+    expect(repo.written!.trayType, 'ABS');
+  });
+
+  testWidgets('an API key does not even try to save the preset name',
+      (tester) async {
+    // bambuddy denies `printers:update` to every API key whatever scopes it
+    // was created with (`core/auth.py`, `_APIKEY_DENIED_PERMISSIONS`), so the
+    // PUT is a guaranteed 403 — and a warning after every single save that the
+    // user cannot act on.
+    final repo = _FakeRepo();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        serverProfileProvider.overrideWith(_ApiKeyProfileNotifier.new),
+        amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+      ],
+      child: plApp(
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => const AmsSlotConfigSheet(target: target),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tapVisible(tester, find.text('Generic PLA'));
+    await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+    expect(repo.calls, ['configure:1:0:2'], reason: 'no doomed PUT');
+    expect(find.textContaining('nazwy presetu nie udało się zapisać'),
+        findsNothing);
     expect(find.text('Konfigurowanie slotu…'), findsOneWidget);
+  });
+
+  testWidgets('what the slot is set to sits at the top, labelled',
+      (tester) async {
+    // Alphabetically "Generic PLA" is last of the three; as the slot's current
+    // filament it has to be the first thing the sheet shows.
+    final repo = _FakeRepo()
+      ..saved = const SlotPreset(
+        amsId: 0,
+        trayId: 2,
+        presetId: 'builtin_GFL99',
+        presetName: 'Generic PLA',
+      );
+    await openSheet(tester, repo: repo);
+
+    expect(find.text('Generic PLA'), findsOneWidget,
+        reason: 'on screen without scrolling');
+    expect(find.textContaining('Ustawiony teraz'), findsOneWidget);
+
+    final rows = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data)
+        .whereType<String>()
+        .toList();
+    expect(rows.indexOf('Generic PLA'), lessThan(rows.indexOf('eSUN PETG')),
+        reason: 'above the tier order it would otherwise sit under');
+  });
+
+  testWidgets('the pinned row does not move when another preset is tapped',
+      (tester) async {
+    // Re-sorting on every tap would slide the list out from under the finger.
+    final repo = _FakeRepo()
+      ..saved = const SlotPreset(
+        amsId: 0,
+        trayId: 2,
+        presetId: 'builtin_GFL99',
+        presetName: 'Generic PLA',
+      );
+    await openSheet(tester, repo: repo);
+
+    await tapVisible(tester, find.text('eSUN PETG'));
+
+    final rows = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data)
+        .whereType<String>()
+        .toList();
+    expect(rows.indexOf('Generic PLA'), lessThan(rows.indexOf('eSUN PETG')));
   });
 
   testWidgets('the write waits for a preset to be picked', (tester) async {
     await openSheet(tester);
+    await scrollTo(tester, find.text('Zapisz w drukarce'));
 
     final button = tester.widget<FilledButton>(
       find.ancestor(
@@ -240,6 +463,94 @@ void main() {
     expect(repo.calls, ['reset:1:0:2']);
   });
 
+  group('printer filter', () {
+    AmsFilamentPreset cloud(String id, String name) => AmsFilamentPreset(
+          source: AmsPresetSource.cloud,
+          id: id,
+          name: name,
+        );
+
+    Future<_FakeRepo> openWith(
+      WidgetTester tester, {
+      required String? printerModel,
+    }) async {
+      final repo = _FakeRepo()
+        ..cloudPresets = [
+          cloud('GFSB99', 'Bambu ABS @BBL X1C'),
+          cloud('GFSB98', 'Bambu ASA @BBL A1'),
+          cloud('GFSB97', 'Bambu ABS @BBL H2C 0.2 nozzle'),
+        ];
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          amsSlotConfigRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: plApp(
+          Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => AmsSlotConfigSheet(
+                    target: AmsSlotTarget(
+                      printerId: 1,
+                      amsId: 0,
+                      trayId: 2,
+                      label: 'AMS 1 · 3',
+                      printerModel: printerModel,
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('hides presets that name another printer', (tester) async {
+      await openWith(tester, printerModel: 'X1C');
+
+      // The count is the assertion that the other two are gone: a lazily-built
+      // list has no element for an off-screen row either, so `findsNothing`
+      // would pass whether they were filtered or merely scrolled past.
+      expect(find.text('Tylko dla X1C (ukryto 2)'), findsOneWidget);
+      await scrollTo(tester, find.text('Bambu ABS @BBL X1C'));
+      expect(find.text('Bambu ABS @BBL X1C'), findsOneWidget);
+    });
+
+    testWidgets('says how many it is hiding, and shows them on demand',
+        (tester) async {
+      // The count is the only honest label for a switch that turns a filter
+      // off — "show all" alone says nothing about what is missing.
+      await openWith(tester, printerModel: 'X1C');
+      expect(find.text('Tylko dla X1C (ukryto 2)'), findsOneWidget);
+
+      await tapVisible(tester, find.text('Tylko dla X1C (ukryto 2)'));
+
+      expect(find.text('Tylko dla X1C'), findsOneWidget,
+          reason: 'nothing is hidden any more, so the count goes away');
+      await scrollTo(tester, find.text('Bambu ASA @BBL A1'));
+      expect(find.text('Bambu ASA @BBL A1'), findsOneWidget);
+    });
+
+    testWidgets('an unknown printer model is said out loud, not filtered on',
+        (tester) async {
+      // Otherwise an unfiltered list looks exactly like a filter that does
+      // nothing, and there is no way to tell which one it is.
+      await openWith(tester, printerModel: null);
+
+      expect(find.textContaining('Nieznany model drukarki'), findsOneWidget);
+      await scrollTo(tester, find.text('Bambu ASA @BBL A1'));
+      expect(find.text('Bambu ASA @BBL A1'), findsOneWidget);
+    });
+  });
+
   testWidgets('offers a cloud login when that is why the tier is missing',
       (tester) async {
     final repo = _FakeRepo()
@@ -247,6 +558,7 @@ void main() {
     await openSheet(tester, repo: repo);
 
     expect(find.textContaining('Zaloguj się do Bambu Cloud'), findsOneWidget);
+    await scrollTo(tester, find.text('Generic PLA'));
     expect(find.text('Generic PLA'), findsOneWidget,
         reason: 'the other tiers still fill the picker');
   });

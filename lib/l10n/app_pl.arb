@@ -347,6 +347,7 @@
   "amsSlotConfigColour": "Kolor",
   "amsSlotConfigApply": "Zapisz w drukarce",
   "amsSlotConfigStarted": "Konfigurowanie slotu…",
+  "amsSlotConfigNameNotSaved": "Slot skonfigurowany, ale nazwy presetu nie udało się zapisać",
   "amsSlotConfigEmpty": "Brak dostępnych presetów filamentu",
   "amsSlotConfigNoMatch": "Żaden preset nie pasuje do wyszukiwania",
   "amsSlotConfigCloudHint": "Zaloguj się do Bambu Cloud, żeby wybierać spośród własnych presetów.",
@@ -354,6 +355,18 @@
   "amsSlotConfigTierLocal": "Zaimportowane",
   "amsSlotConfigTierCloud": "Bambu Cloud",
   "amsSlotConfigTierBuiltin": "Wbudowane",
+  "amsSlotConfigOnlyPrinter": "Tylko dla {model}",
+  "amsSlotConfigOnlyPrinterHiding": "Tylko dla {model} (ukryto {hidden})",
+  "amsSlotConfigModelUnknown": "Nieznany model drukarki — pokazuję wszystkie presety",
+  "@amsSlotConfigOnlyPrinter": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "@amsSlotConfigOnlyPrinterHiding": {
+    "placeholders": {
+      "model": { "type": "String" },
+      "hidden": { "type": "int" }
+    }
+  },
   "amsSlotConfigCurrent": "Ustawiony teraz",
   "amsSlotReset": "Wyczyść slot",
   "amsSlotResetConfirmTitle": "Wyczyścić slot?",

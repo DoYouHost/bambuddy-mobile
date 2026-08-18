@@ -1958,6 +1958,12 @@ abstract class AppLocalizations {
   /// **'Configuring the slot…'**
   String get amsSlotConfigStarted;
 
+  /// No description provided for @amsSlotConfigNameNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configured, but the preset name could not be saved'**
+  String get amsSlotConfigNameNotSaved;
+
   /// No description provided for @amsSlotConfigEmpty.
   ///
   /// In en, this message translates to:
@@ -1999,6 +2005,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Built-in'**
   String get amsSlotConfigTierBuiltin;
+
+  /// No description provided for @amsSlotConfigOnlyPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model}'**
+  String amsSlotConfigOnlyPrinter(String model);
+
+  /// No description provided for @amsSlotConfigOnlyPrinterHiding.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model} ({hidden} hidden)'**
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden);
+
+  /// No description provided for @amsSlotConfigModelUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model unknown — showing every preset'**
+  String get amsSlotConfigModelUnknown;
 
   /// No description provided for @amsSlotConfigCurrent.
   ///
