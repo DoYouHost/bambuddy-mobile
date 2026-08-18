@@ -147,15 +147,23 @@
   "skipObjectsTitle": "Pomiń obiekty",
   "skipObjectsSkip": "Pomiń",
   "skipObjectsSkippedTag": "Pominięto",
-  "skipObjectsSkippedToast": "Pominięto „{name}”",
+  "skipObjectsSkippedToast": "{count, plural, =1{Pominięto „{names}”} few{Pominięto {count} obiekty} many{Pominięto {count} obiektów} other{Pominięto {count} obiektów}}",
   "@skipObjectsSkippedToast": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
   },
-  "skipObjectsConfirmTitle": "Pominąć ten obiekt?",
-  "skipObjectsConfirmBody": "„{name}” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.",
+  "skipObjectsConfirmTitle": "{count, plural, =1{Pominąć ten obiekt?} few{Pominąć {count} obiekty?} many{Pominąć {count} obiektów?} other{Pominąć {count} obiektów?}}",
+  "@skipObjectsConfirmTitle": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsConfirmBody": "{count, plural, =1{„{names}” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.} other{„{names}” zostaną pominięte do końca tego wydruku. Nie można tego cofnąć.}}",
   "@skipObjectsConfirmBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
   },
+  "skipObjectsSelectedCount": "Zaznaczono: {count}",
+  "@skipObjectsSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsSelectHint": "Dotknij obiektu powyżej lub poniżej, aby zaznaczyć go do pominięcia",
   "skipObjectsMatchInfo": "Dopasuj ID do ekranu drukarki",
   "skipObjectsMatchHint": "Ekran drukarki pokazuje ID obiektów na stole",
   "skipObjectsCounter": "{skipped}/{total} pominięto",

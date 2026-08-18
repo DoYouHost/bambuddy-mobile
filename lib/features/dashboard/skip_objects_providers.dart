@@ -49,10 +49,11 @@ class SkipObjectsNotifier
     );
   }
 
-  /// Skip one object, then refresh so its `skipped` flag reflects immediately.
-  Future<ActionOutcome> skip(int objectId) async {
+  /// Skip one or more objects in a single request, then refresh so their
+  /// `skipped` flags reflect immediately.
+  Future<ActionOutcome> skip(List<int> objectIds) async {
     try {
-      await ref.read(skipObjectsRepositoryProvider).skip(arg, [objectId]);
+      await ref.read(skipObjectsRepositoryProvider).skip(arg, objectIds);
       await _poll();
       return ActionOutcome.ok;
     } on AppApiException catch (e) {

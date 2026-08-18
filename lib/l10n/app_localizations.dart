@@ -926,23 +926,35 @@ abstract class AppLocalizations {
   /// **'Skipped'**
   String get skipObjectsSkippedTag;
 
-  /// Snackbar after an object is skipped
+  /// Snackbar after skipping one or more objects
   ///
   /// In en, this message translates to:
-  /// **'Skipped \"{name}\"'**
-  String skipObjectsSkippedToast(String name);
+  /// **'{count, plural, =1{Skipped \"{names}\"} other{Skipped {count} objects}}'**
+  String skipObjectsSkippedToast(int count, String names);
 
-  /// Confirm dialog title before skipping
+  /// Confirm dialog title before skipping the selected objects
   ///
   /// In en, this message translates to:
-  /// **'Skip this object?'**
-  String get skipObjectsConfirmTitle;
+  /// **'{count, plural, =1{Skip this object?} other{Skip {count} objects?}}'**
+  String skipObjectsConfirmTitle(int count);
 
-  /// Confirm dialog body before skipping an object
+  /// Confirm dialog body before skipping the selected objects
   ///
   /// In en, this message translates to:
-  /// **'\"{name}\" will be skipped for the rest of this print. This can\'t be undone.'**
-  String skipObjectsConfirmBody(String name);
+  /// **'{count, plural, =1{\"{names}\" will be skipped for the rest of this print. This can\'t be undone.} other{\"{names}\" will be skipped for the rest of this print. This can\'t be undone.}}'**
+  String skipObjectsConfirmBody(int count, String names);
+
+  /// Bottom bar: how many objects are selected to skip
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String skipObjectsSelectedCount(int count);
+
+  /// Hint shown while nothing is selected yet
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an object above or below to select it for skipping'**
+  String get skipObjectsSelectHint;
 
   /// Info banner title on the skip screen
   ///

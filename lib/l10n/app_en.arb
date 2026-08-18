@@ -161,18 +161,28 @@
   "@skipObjectsSkip": { "description": "Button: skip a single object" },
   "skipObjectsSkippedTag": "Skipped",
   "@skipObjectsSkippedTag": { "description": "Status label on an already-skipped object" },
-  "skipObjectsSkippedToast": "Skipped \"{name}\"",
+  "skipObjectsSkippedToast": "{count, plural, =1{Skipped \"{names}\"} other{Skipped {count} objects}}",
   "@skipObjectsSkippedToast": {
-    "description": "Snackbar after an object is skipped",
-    "placeholders": { "name": { "type": "String" } }
+    "description": "Snackbar after skipping one or more objects",
+    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
   },
-  "skipObjectsConfirmTitle": "Skip this object?",
-  "@skipObjectsConfirmTitle": { "description": "Confirm dialog title before skipping" },
-  "skipObjectsConfirmBody": "\"{name}\" will be skipped for the rest of this print. This can't be undone.",
+  "skipObjectsConfirmTitle": "{count, plural, =1{Skip this object?} other{Skip {count} objects?}}",
+  "@skipObjectsConfirmTitle": {
+    "description": "Confirm dialog title before skipping the selected objects",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsConfirmBody": "{count, plural, =1{\"{names}\" will be skipped for the rest of this print. This can't be undone.} other{\"{names}\" will be skipped for the rest of this print. This can't be undone.}}",
   "@skipObjectsConfirmBody": {
-    "description": "Confirm dialog body before skipping an object",
-    "placeholders": { "name": { "type": "String" } }
+    "description": "Confirm dialog body before skipping the selected objects",
+    "placeholders": { "count": { "type": "int" }, "names": { "type": "String" } }
   },
+  "skipObjectsSelectedCount": "{count} selected",
+  "@skipObjectsSelectedCount": {
+    "description": "Bottom bar: how many objects are selected to skip",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "skipObjectsSelectHint": "Tap an object above or below to select it for skipping",
+  "@skipObjectsSelectHint": { "description": "Hint shown while nothing is selected yet" },
   "skipObjectsMatchInfo": "Match IDs with your printer display",
   "@skipObjectsMatchInfo": { "description": "Info banner title on the skip screen" },
   "skipObjectsMatchHint": "The printer screen shows object IDs on the build plate",

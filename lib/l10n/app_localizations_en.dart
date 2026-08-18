@@ -452,17 +452,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skipObjectsSkippedTag => 'Skipped';
 
   @override
-  String skipObjectsSkippedToast(String name) {
-    return 'Skipped \"$name\"';
+  String skipObjectsSkippedToast(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Skipped $count objects',
+      one: 'Skipped \"$names\"',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get skipObjectsConfirmTitle => 'Skip this object?';
+  String skipObjectsConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Skip $count objects?',
+      one: 'Skip this object?',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String skipObjectsConfirmBody(String name) {
-    return '\"$name\" will be skipped for the rest of this print. This can\'t be undone.';
+  String skipObjectsConfirmBody(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '\"$names\" will be skipped for the rest of this print. This can\'t be undone.',
+      one:
+          '\"$names\" will be skipped for the rest of this print. This can\'t be undone.',
+    );
+    return '$_temp0';
   }
+
+  @override
+  String skipObjectsSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get skipObjectsSelectHint =>
+      'Tap an object above or below to select it for skipping';
 
   @override
   String get skipObjectsMatchInfo => 'Match IDs with your printer display';

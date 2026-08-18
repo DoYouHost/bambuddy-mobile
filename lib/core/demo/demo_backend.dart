@@ -133,12 +133,15 @@ class DemoBackend {
 
   /// Printable objects on the X1's current plate ("Drawer organizer x4"), laid
   /// out 2×2 with plate coordinates (mm) inside [_x1BboxAll] so their markers
-  /// land on the right spots in the skip-objects overlay.
+  /// land on the right spots in the skip-objects overlay. `width`/`height` are
+  /// demo-only illustrative footprints (the real server sends none, see
+  /// [PrintableObject]) — dividers tall and narrow, front/back wide and low —
+  /// so the preview reads as actual parts instead of identical badges.
   static const _x1Objects = [
-    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0},
-    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0},
-    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0},
-    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0},
+    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
+    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
+    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
+    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
   ];
   static const _x1BboxAll = [88.0, 88.0, 168.0, 168.0];
 
