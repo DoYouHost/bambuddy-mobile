@@ -10,10 +10,13 @@ import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
@@ -51,8 +54,26 @@ const _runoutWithActions = HmsError(
 class _RecordingCommands implements PrinterCommandsRepository {
   final List<String> calls = [];
 
+  /// Thrown by [refreshAmsSlot] instead of succeeding — the tag re-read is the
+  /// one route with a permission of its own, so its refusal is worth staging.
+  Object? rfidError;
+
   @override
   Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
+
+  @override
+  Future<void> amsLoad(int printerId, int trayId) async =>
+      calls.add('amsLoad:$printerId:$trayId');
+
+  @override
+  Future<void> refreshAmsSlot(
+    int printerId, {
+    required int amsId,
+    required int slotId,
+  }) async {
+    calls.add('rfid:$printerId:$amsId:$slotId');
+    if (rfidError != null) throw rfidError!;
+  }
 
   @override
   Future<void> executeHmsAction(
@@ -66,6 +87,30 @@ class _RecordingCommands implements PrinterCommandsRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not part of this test');
+}
+
+/// The slot sheet reads the inventory to offer spools; these tests care about
+/// the printer-side actions above that list, so it stays empty and offline.
+class _EmptyInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState();
+}
+
+/// A stocked shelf, for the half of the sheet that offers spools.
+class _StockedInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+        spools: [
+          Spool(id: 14, material: 'PLA', subtype: 'Basic', brand: 'Anycubic'),
+          Spool(id: 13, material: 'PLA', subtype: 'Matte', brand: 'Bambu'),
+          Spool(
+            id: 31,
+            material: 'PETG',
+            subtype: 'Translucent',
+            brand: 'Smart Print',
+          ),
+        ],
+      );
 }
 
 class _FakeProfileNotifier extends ServerProfileNotifier {
@@ -520,6 +565,198 @@ void main() {
       expect(taps, isNotEmpty);
       expect(taps.every((w) => w.onTap == null), isTrue);
       expect(find.textContaining('%'), findsWidgets); // odczyty zostają
+    });
+
+    /// Taps the first filament row of AMS 1 and waits out the sheet's own
+    /// transition. Separate from [openSlotSheet] so a test can reopen the sheet
+    /// on the same tree, which is the only way to see state a first tap left
+    /// behind.
+    Future<void> tapSlotRow(WidgetTester tester) async {
+      // The row's identifier carries the material it shows (`…@PETG`), so match
+      // on the control's own name and take the first slot of AMS 1.
+      final slotRow = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '').startsWith('printer.ams_slot'))
+          .first;
+      await tester.ensureVisible(slotRow);
+      await tester.tap(slotRow);
+      // Not pumpAndSettle: a printing card animates an indeterminate progress
+      // bar forever, so only the sheet's own transition is waited out.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    /// Opens the sheet behind the second slot of AMS 1 and hands back the
+    /// commands it sent. [state] decides whether the printer is mid-job.
+    Future<_RecordingCommands> openSlotSheet(
+      WidgetTester tester, {
+      required String state,
+      _RecordingCommands? withCommands,
+      bool stocked = false,
+    }) async {
+      final item = realItem();
+      final status = PrinterStatus(
+        id: item.printer.id,
+        connected: true,
+        state: state,
+      ).mergedWith(item.status!);
+      final commands = withCommands ?? _RecordingCommands();
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(printer: item.printer, status: status),
+            ),
+          ),
+        ),
+        extra: [
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+          inventoryProvider.overrideWith(stocked
+              ? _StockedInventory.new
+              : _EmptyInventory.new),
+        ],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      await tapSlotRow(tester);
+      return commands;
+    }
+
+    testWidgets('a refused tag re-read takes only its own button away',
+        (tester) async {
+      // `printers:ams_rfid` is a permission of its own: being refused it says
+      // nothing about whether this key may load filament, so load and unload
+      // have to survive.
+      final commands = _RecordingCommands()
+        ..rfidError = const AuthException(AppErrorCode.forbidden);
+      await openSlotSheet(tester, state: 'IDLE', withCommands: commands);
+
+      await tester.tap(find.text('Odczytaj tag'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(commands.calls, ['rfid:1:0:0']);
+
+      await tapSlotRow(tester);
+      expect(find.text('Odczytaj tag'), findsNothing);
+      expect(find.text('Załaduj'), findsOneWidget);
+      expect(find.text('Wyładuj'), findsOneWidget);
+    });
+
+    testWidgets('slot sheet loads the slot by its global tray number',
+        (tester) async {
+      final commands = await openSlotSheet(tester, state: 'IDLE');
+
+      expect(find.text('Załaduj'), findsOneWidget);
+      expect(find.text('Odczytaj tag'), findsOneWidget);
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // AMS unit 0, first slot → global tray 0, not the local slot id.
+      expect(commands.calls, ['amsLoad:1:0']);
+    });
+
+    testWidgets('a printing printer keeps the filament actions unreachable',
+        (tester) async {
+      final commands = await openSlotSheet(tester, state: 'RUNNING');
+
+      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsOneWidget);
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, isEmpty);
+    });
+
+    testWidgets('a paused job still lets the filament be changed',
+        (tester) async {
+      // Swapping a spool that ran out is what a pause is for.
+      final commands = await openSlotSheet(tester, state: 'PAUSE');
+
+      expect(find.text('Niedostępne, gdy drukarka drukuje'), findsNothing);
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, ['amsLoad:1:0']);
+    });
+
+    /// Brings a widget into view inside the assign sheet's own scroll view.
+    /// The sheet builds its rows lazily, so anything past the first screenful
+    /// is not in the tree at all until it is scrolled to.
+    Future<void> reveal(WidgetTester tester, Finder finder) async {
+      if (finder.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          finder,
+          120,
+          scrollable: find
+              .descendant(
+                of: find.byType(DraggableScrollableSheet),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+      }
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the spool list can be searched', (tester) async {
+      // A shelf of a hundred spools is not something to scroll through while
+      // standing at the printer.
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      await tester.enterText(find.byType(TextField), 'petg');
+      await tester.pumpAndSettle();
+
+      // The count is the assertion the other two are gone: a list that builds
+      // its rows lazily has no element for an off-screen one either, so
+      // `findsNothing` alone would pass whether they were filtered or scrolled
+      // past.
+      expect(find.byType(ListTile), findsOneWidget);
+      expect(find.text('Smart Print PETG Translucent'), findsOneWidget);
+    });
+
+    testWidgets('a search matching nothing does not read as an empty shelf',
+        (tester) async {
+      // Both states show no rows, and only one of them is fixed by clearing
+      // the field.
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      await tester.enterText(find.byType(TextField), 'nylon');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Brak wyników'), findsOneWidget);
+      expect(find.text('Brak szpul w magazynie'), findsNothing);
+    });
+
+    testWidgets('an empty shelf still says so', (tester) async {
+      await openSlotSheet(tester, state: 'IDLE');
+      await reveal(tester, find.text('Brak szpul w magazynie'));
+
+      expect(find.text('Brak szpul w magazynie'), findsOneWidget);
+      expect(find.textContaining('Brak wyników'), findsNothing);
+    });
+
+    testWidgets('the scanner sits beside the search', (tester) async {
+      await openSlotSheet(tester, state: 'IDLE', stocked: true);
+      await reveal(tester, find.byType(TextField));
+
+      expect(
+        find.byWidgetPredicate((w) =>
+            w is Semantics &&
+            w.properties.identifier == 'assign_spool.scan'),
+        findsOneWidget,
+      );
     });
   });
 

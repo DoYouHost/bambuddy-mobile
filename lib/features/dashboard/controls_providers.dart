@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/slot_configuration.dart';
 import '../../core/api/action_outcome.dart';
+import '../../core/settings/server_profile.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/ams_filament_preset.dart';
+import '../../data/ams_slot_config_repository.dart';
 import '../../data/printer_commands_repository.dart';
 import '../../providers.dart';
 
@@ -22,10 +26,54 @@ enum ControlAction {
   extruder,
   move,
   hms,
+  ams,
+}
+
+/// The server permission a control route is gated on.
+///
+/// A 403 says "this key may not do *that*", not "this key may not do anything",
+/// and the two are different in the UI: one refusal on the shared permission
+/// takes every driving control off the card, while a refusal on a narrower one
+/// may only take its own button. Naming the scope is what keeps a route with its
+/// own gate from silently disabling the rest.
+enum ControlPermission {
+  /// `printers:control` — everything that drives the printer: the job, the
+  /// lights, temperatures, fans, jogs, drying, HMS, AMS load/unload.
+  control,
+
+  /// `printers:ams_rfid` — re-reading a slot's RFID tag, and nothing else. A key
+  /// allowed to control the printer can still be refused here.
+  amsRfid,
 }
 
 /// Commands answer with the shared [ActionOutcome] — see its doc for why the
 /// failure travels intact instead of as a code the widget re-words.
+
+/// Result of configuring a slot: whether the printer took the filament, and
+/// separately what became of the preset name.
+///
+/// Two answers because they are two permissions and two consequences. A slot
+/// whose name was not remembered is configured correctly and *labelled wrongly*
+/// — the sheet keeps showing whatever preset the server still has on file.
+typedef SlotConfigOutcome = ({ActionOutcome outcome, SlotNameOutcome name});
+
+/// What happened to the slot→preset mapping.
+enum SlotNameOutcome {
+  /// The server recorded which preset the slot was given.
+  saved,
+
+  /// The server refused to record it. Worth telling the user: the sheet will
+  /// keep offering the *previous* preset next time it opens.
+  refused,
+
+  /// Not even attempted, because this connection cannot do it. Saving needs
+  /// `printers:update`, which bambuddy denies to every API key no matter which
+  /// scopes it was created with (`core/auth.py`, `_APIKEY_DENIED_PERMISSIONS`)
+  /// — so on a key-authenticated session the route is a guaranteed 403 and a
+  /// warning the user cannot act on. The sheet leans on the printer's own
+  /// filament id instead.
+  unavailable,
+}
 
 /// Optimistic overrides and "in-flight" state for one printer.
 /// Overrides ([light]/[speedLevel]/[tempTargets]/[airductHeating]) overlay on
@@ -143,26 +191,45 @@ class PendingControls {
 }
 
 class ControlsState {
-  const ControlsState({this.pending = const {}, this.forbidden = false});
+  const ControlsState({this.pending = const {}, this.refused = const {}});
 
   final Map<int, PendingControls> pending;
 
-  /// Sticky: any command returned 403 (key lacks `can_control_printer`) →
-  /// we block control until profile change.
-  final bool forbidden;
+  /// Permissions this key has already been refused (403). Sticky for the
+  /// session — the answer will not change until the server profile does, and
+  /// re-offering a button that just failed only teaches the user to distrust
+  /// the card. Cleared on a profile change, since another key may differ.
+  final Set<ControlPermission> refused;
+
+  /// Whether a command needing [permission] is known to be refused.
+  bool isRefused(ControlPermission permission) => refused.contains(permission);
 
   PendingControls pendingFor(int id) =>
       pending[id] ?? const PendingControls();
 
-  ControlsState copyWith({Map<int, PendingControls>? pending, bool? forbidden}) =>
+  ControlsState copyWith({
+    Map<int, PendingControls>? pending,
+    Set<ControlPermission>? refused,
+  }) =>
       ControlsState(
         pending: pending ?? this.pending,
-        forbidden: forbidden ?? this.forbidden,
+        refused: refused ?? this.refused,
       );
 }
 
 final controlsProvider =
     NotifierProvider<ControlsNotifier, ControlsState>(ControlsNotifier.new);
+
+/// Whether commands needing [ControlPermission] are known to be refused.
+///
+/// Every control on the card asks this before offering itself, so the question
+/// lives here rather than as a `select` each widget spells out: which gate a
+/// button sits behind is a fact about the route, and re-deciding it in eight
+/// widgets is how one of them ends up watching the wrong one.
+final controlRefusedProvider = Provider.family<bool, ControlPermission>(
+  (ref, permission) =>
+      ref.watch(controlsProvider.select((s) => s.isRefused(permission))),
+);
 
 /// Sends control commands and maintains optimistic UI state. No navigation or
 /// SnackBars — returns [ActionOutcome], and widget decides what to show.
@@ -176,8 +243,8 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   @override
   ControlsState build() {
-    // Server profile change → fresh state and discarded timers (different API key
-    // may have different permissions, so sticky `forbidden` lock clears).
+    // Server profile change → fresh state and discarded timers (another API key
+    // may hold other permissions, so the [ControlsState.refused] set clears).
     ref.watch(serverProfileProvider);
     _cancelTimers();
     ref.onDispose(_cancelTimers);
@@ -186,6 +253,9 @@ class ControlsNotifier extends Notifier<ControlsState> {
 
   PrinterCommandsRepository get _repo =>
       ref.read(printerCommandsRepositoryProvider);
+
+  AmsSlotConfigRepository get _slotConfig =>
+      ref.read(amsSlotConfigRepositoryProvider);
 
   Future<ActionOutcome> pause(int id) =>
       _run(id, ControlAction.pause, () => _repo.pause(id));
@@ -315,6 +385,89 @@ class ControlsNotifier extends Notifier<ControlsState> {
         () => _repo.stopDrying(id, amsId: amsId),
       );
 
+  /// Load filament from one slot. [trayId] is the global tray number — build it
+  /// with [amsLoadTrayId] rather than by hand.
+  ///
+  /// The three AMS actions share [ControlAction.ams] so that a slot sheet locks
+  /// as a whole: load, unload and an RFID re-read all move the same filament
+  /// path, and two of them in the air at once is a jam, not a race the firmware
+  /// sorts out.
+  Future<ActionOutcome> amsLoad(int id, int trayId) =>
+      _run(id, ControlAction.ams, () => _repo.amsLoad(id, trayId));
+
+  Future<ActionOutcome> amsUnload(int id) =>
+      _run(id, ControlAction.ams, () => _repo.amsUnload(id));
+
+  /// Re-read one slot's RFID tag. Ids are local to the unit.
+  ///
+  /// The only route on the card behind [ControlPermission.amsRfid]: a key that
+  /// may drive the printer can still be refused this one, and that refusal must
+  /// cost nothing but this button.
+  Future<ActionOutcome> refreshAmsSlot(
+    int id, {
+    required int amsId,
+    required int slotId,
+  }) =>
+      _run(
+        id,
+        ControlAction.ams,
+        () => _repo.refreshAmsSlot(id, amsId: amsId, slotId: slotId),
+        permission: ControlPermission.amsRfid,
+      );
+
+  /// Write a filament configuration into one slot, and remember which preset it
+  /// was — the printer keeps only a filament id, so without the mapping the slot
+  /// can be shown but not named.
+  ///
+  /// Ids are **local** to the unit here, unlike [amsLoad]: the external spool is
+  /// unit 255 with slot 0 (Ext-L) or 1 (Ext-R), which is the same pair the
+  /// inventory assignment already uses.
+  ///
+  /// The mapping is saved separately and cannot fail the write: it needs
+  /// `printers:update`, a permission of its own, and by the time it runs the
+  /// filament is already set on the printer. Failing the whole action over the
+  /// label would report a change that did happen as one that did not.
+  ///
+  /// See [SlotNameOutcome] for the three ways that second call can end.
+  Future<SlotConfigOutcome> configureSlot(
+    int id, {
+    required int amsId,
+    required int trayId,
+    required SlotConfiguration configuration,
+    required AmsFilamentPreset preset,
+  }) async {
+    // An API key is refused `printers:update` by the server whatever scopes it
+    // holds, so the call is skipped rather than sent to be denied.
+    final canName =
+        ref.read(serverProfileProvider)?.authMode != AuthMode.apiKey;
+    var name = canName ? SlotNameOutcome.saved : SlotNameOutcome.unavailable;
+
+    final outcome = await _run(id, ControlAction.ams, () async {
+      await _slotConfig.configureSlot(id,
+          amsId: amsId, trayId: trayId, configuration: configuration);
+      if (!canName) return;
+      try {
+        await _slotConfig.saveSlotPreset(id,
+            amsId: amsId,
+            trayId: trayId,
+            preset: preset,
+            presetName: configuration.traySubBrands);
+      } on AppApiException {
+        name = SlotNameOutcome.refused;
+      }
+    });
+    return (outcome: outcome, name: name);
+  }
+
+  /// Clear a slot's filament configuration, and the saved mapping with it.
+  Future<ActionOutcome> resetSlot(
+    int id, {
+    required int amsId,
+    required int trayId,
+  }) =>
+      _run(id, ControlAction.ams,
+          () => _slotConfig.resetSlot(id, amsId: amsId, trayId: trayId));
+
   /// Select the active extruder (0=right, 1=left) on dual-nozzle printers.
   /// No optimistic override — the caller keeps the switch locked until the live
   /// status reports the new active extruder (the physical switch takes time).
@@ -349,6 +502,9 @@ class ControlsNotifier extends Notifier<ControlsState> {
   /// the optimistic override; [rollback] restores the touched field from
   /// [before] (surgically, preserving any concurrent different action);
   /// [clearKey] schedules discarding the override once real status catches up.
+  ///
+  /// [permission] is the server gate this route sits behind, and decides what a
+  /// 403 costs: only the buttons that need the same permission go away.
   Future<ActionOutcome> _run(
     int id,
     ControlAction action,
@@ -357,6 +513,7 @@ class ControlsNotifier extends Notifier<ControlsState> {
     PendingControls Function(PendingControls before, PendingControls rolled)?
         rollback,
     String? clearKey,
+    ControlPermission permission = ControlPermission.control,
   }) async {
     final before = state.pendingFor(id);
 
@@ -378,8 +535,11 @@ class ControlsNotifier extends Notifier<ControlsState> {
       _setPending(id, rolled);
 
       final outcome = ActionOutcome.failed(e, action: 'printer.${action.name}');
-      // Sticky: one refusal is enough to stop offering controls this session.
-      if (outcome.isForbidden) state = state.copyWith(forbidden: true);
+      // One refusal answers for every route behind the same gate, and for none
+      // of the routes behind another.
+      if (outcome.isForbidden) {
+        state = state.copyWith(refused: {...state.refused, permission});
+      }
       return outcome;
     }
   }

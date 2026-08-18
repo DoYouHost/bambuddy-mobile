@@ -181,6 +181,21 @@ class Spool {
     final parts = <String>[?brand, material, ?subtype];
     return parts.join(' ');
   }
+
+  /// Whether a free-text search matches this spool. An empty query matches
+  /// everything.
+  ///
+  /// Lives on the model because more than one screen searches spools, and a
+  /// second spelling of "what counts as a match" is how the same word starts
+  /// finding different things in two places.
+  bool matchesSearch(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    for (final field in [material, subtype, brand, colorName, storageLocation, category]) {
+      if (field != null && field.toLowerCase().contains(q)) return true;
+    }
+    return false;
+  }
 }
 
 /// Editable spool field set for saving (create/update) — backend-agnostic.

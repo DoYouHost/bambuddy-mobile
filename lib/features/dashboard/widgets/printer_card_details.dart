@@ -508,6 +508,9 @@ class _DetailsPanel extends ConsumerWidget {
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
+          printing: status.isPrinting && !status.isPaused,
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          printerModel: status.model,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -524,6 +527,12 @@ class _DetailsPanel extends ConsumerWidget {
           },
           printerId: printerId,
           printerName: printerName,
+          printing: status.isPrinting && !status.isPaused,
+          // External spools feed a nozzle too, and the unit they are keyed
+          // under (255) is not in `ams_extruder_map` — the primary nozzle is
+          // the only answer available here.
+          nozzleDiameter: status.nozzleDiameterFor(255),
+          printerModel: status.model,
         ),
     ];
 
@@ -576,6 +585,9 @@ class _AmsSection extends ConsumerWidget {
     required this.printerId,
     required this.printerName,
     required this.supportsDrying,
+    required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final AmsUnit unit;
@@ -587,6 +599,13 @@ class _AmsSection extends ConsumerWidget {
   final int printerId;
   final String? printerName;
   final bool supportsDrying;
+  final bool printing;
+
+  /// Nozzle this unit feeds, and the printer's model code — both travel to the
+  /// slot configuration sheet, which needs them to filter presets and to name
+  /// the calibration context.
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -682,6 +701,18 @@ class _AmsSection extends ConsumerWidget {
                 amsId: unit.id ?? unitIndex,
                 trayId: trays[i].id ?? 0,
                 label: '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                printing: printing,
+                loadTrayId: amsLoadTrayId(
+                  amsId: unit.id ?? unitIndex,
+                  trayId: trays[i].id ?? 0,
+                ),
+                canRereadRfid: true,
+                trayInfoIdx: trays[i].trayInfoIdx,
+                trayColour: trays[i].trayColor,
+                caliIdx: trays[i].caliIdx,
+                nozzleDiameter: nozzleDiameter,
+                printerModel: printerModel,
+                extruderId: extruder,
               ),
             ),
       ],
@@ -700,6 +731,9 @@ class _SpoolSection extends StatelessWidget {
     required this.trayIdOf,
     required this.printerId,
     required this.printerName,
+    required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final List<AmsTray> trays;
@@ -709,6 +743,9 @@ class _SpoolSection extends StatelessWidget {
   final int Function(int index) trayIdOf;
   final int printerId;
   final String? printerName;
+  final bool printing;
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
   Widget build(BuildContext context) {
@@ -750,6 +787,20 @@ class _SpoolSection extends StatelessWidget {
                 0 => l10n.extruderRight,
                 _ => l10n.externalSpool,
               },
+              printing: printing,
+              // The spool's own id (254/255) is already the global tray number;
+              // `trayIdOf` above is the extruder-ordered index the inventory
+              // assignment is keyed by, and means nothing to the load command.
+              loadTrayId: amsLoadTrayId(
+                amsId: 255,
+                trayId: trays[i].id ?? 254,
+              ),
+              trayInfoIdx: trays[i].trayInfoIdx,
+              trayColour: trays[i].trayColor,
+              caliIdx: trays[i].caliIdx,
+              nozzleDiameter: nozzleDiameter,
+              printerModel: printerModel,
+              extruderId: extruderOf(i),
             ),
           ),
       ],
@@ -930,7 +981,8 @@ class _AmsDryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden =
+        ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -1407,6 +1459,15 @@ class _SlotRef {
     required this.amsId,
     required this.trayId,
     required this.label,
+    required this.printing,
+    this.loadTrayId,
+    this.canRereadRfid = false,
+    this.trayInfoIdx,
+    this.trayColour,
+    this.caliIdx,
+    this.nozzleDiameter,
+    this.printerModel,
+    this.extruderId,
   });
 
   final int printerId;
@@ -1416,18 +1477,233 @@ class _SlotRef {
 
   /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
   final String label;
+
+  /// Whether a job is actively running on this printer. A paused one does not
+  /// count: swapping a run-out spool is the reason people pause. Read from the
+  /// status the card already renders rather than from the shared statuses map,
+  /// so the slot the user tapped and the state that disables it come from one
+  /// frame.
+  final bool printing;
+
+  /// Global tray number for the load command, or null where the slot cannot be
+  /// addressed by it (AMS-HT) — see [amsLoadTrayId].
+  final int? loadTrayId;
+
+  /// Whether the slot has a tag to re-read. False for external spools: they
+  /// have no RFID reader, and the web hides the action there too.
+  final bool canRereadRfid;
+
+  /// What the printer currently holds in this slot, for the configuration
+  /// sheet: the filament id identifies the preset in force, the colour is what
+  /// the picker opens on.
+  final String? trayInfoIdx;
+  final String? trayColour;
+
+  /// Calibration profile the slot is printing with, so the sheet reopens on it
+  /// rather than offering to drop the printer back to its default K.
+  final int? caliIdx;
+
+  /// Diameter of the nozzle this slot feeds, or null when the printer has not
+  /// reported its nozzles.
+  final String? nozzleDiameter;
+
+  /// Short model code, so the picker can hide presets meant for another
+  /// printer.
+  final String? printerModel;
+
+  /// Nozzle this slot feeds on a dual-extruder printer, null on a single one.
+  final int? extruderId;
+
+  AmsSlotTarget get configTarget => AmsSlotTarget(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+        label: label,
+        printerName: printerName,
+        printerModel: printerModel,
+        nozzleDiameter: nozzleDiameter,
+        currentFilamentId: trayInfoIdx,
+        currentColour: trayColour,
+        currentCaliIdx: caliIdx,
+        extruderId: extruderId,
+      );
 }
 
-/// "Assign spool to this slot" sheet opened from a filament row. Slot is known
-/// from context, so the user picks ONLY the spool. Shows the current assignment
-/// (with unassign) and the list of active spools from inventory.
-class _AssignSlotSheet extends ConsumerWidget {
-  const _AssignSlotSheet({required this.slot});
+/// Printer-side filament actions for one slot: load it, unload whatever is in
+/// the extruder, re-read the slot's RFID tag.
+///
+/// A refused control hides the buttons that needed it — the same rule the drying
+/// control follows — and the tag re-read sits behind its own permission, so the
+/// two disappear independently. While the printer prints, whatever is left stays
+/// visible but disabled: these actions interrupt the filament path, and a job is
+/// exactly what they would ruin.
+class _SlotActions extends ConsumerWidget {
+  const _SlotActions({required this.slot});
 
   final _SlotRef slot;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final canDrive =
+        !ref.watch(controlRefusedProvider(ControlPermission.control));
+    final canReread = slot.canRereadRfid &&
+        !ref.watch(controlRefusedProvider(ControlPermission.amsRfid));
+    // Load and unload share one gate and one row: unload takes no slot, so
+    // offering it for a slot that cannot be loaded would put a printer-wide
+    // button under a heading that names one slot.
+    final loadTrayId = slot.loadTrayId;
+    final canLoad = canDrive && loadTrayId != null;
+    // Configuring needs nothing but `printers:control`, so it survives where
+    // loading does not: an AMS-HT slot has no global tray number to load by,
+    // and the configure route addresses it by unit and slot like any other.
+    if (!canDrive && !canReread) return const SizedBox.shrink();
+
+    final busy = ref.watch(controlsProvider
+        .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
+    final enabled = !busy && !slot.printing;
+    final controls = ref.read(controlsProvider.notifier);
+
+    // Two equal halves and a full-width third, rather than a Wrap: the buttons
+    // are three different lengths, and letting them flow left them ragged with
+    // a stray one on its own line.
+    final load = OutlinedButton.icon(
+      onPressed: enabled && canLoad
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsLoad(slot.printerId, loadTrayId),
+                l10n.amsLoadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.login, size: 18),
+      label: Text(l10n.amsLoad),
+    ).tagged('assign_spool.ams_load');
+
+    final unload = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsUnload(slot.printerId),
+                l10n.amsUnloadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.logout, size: 18),
+      label: Text(l10n.amsUnload),
+    ).tagged('assign_spool.ams_unload');
+
+    final reread = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.refreshAmsSlot(
+                  slot.printerId,
+                  amsId: slot.amsId,
+                  slotId: slot.trayId,
+                ),
+                l10n.amsRfidRereadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.nfc, size: 18),
+      label: Text(l10n.amsRfidReread),
+    ).tagged('assign_spool.rfid_reread');
+
+    // Opening the configuration is not itself a command, so it stays available
+    // mid-print: reading what a slot is set to is harmless, and the sheet's own
+    // buttons are what the job blocks.
+    final configure = OutlinedButton.icon(
+      onPressed: busy ? null : () => _openConfig(context),
+      icon: const Icon(Icons.tune, size: 18),
+      label: Text(l10n.amsSlotConfigure),
+    ).tagged('assign_spool.configure');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        if (canLoad)
+          Row(
+            children: [
+              Expanded(child: load),
+              const SizedBox(width: 8),
+              Expanded(child: unload),
+            ],
+          ),
+        if (canLoad && canReread) const SizedBox(height: 8),
+        if (canReread) reread,
+        if (canDrive) ...[
+          if (canLoad || canReread) const SizedBox(height: 8),
+          configure,
+        ],
+        if (slot.printing) ...[
+          const SizedBox(height: 8),
+          Text(
+            l10n.amsActionsWhilePrinting,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Swaps this sheet for the slot configuration one. The assignment sheet
+  /// closes first so the back gesture returns to the card, not to a list the
+  /// user is done with.
+  void _openConfig(BuildContext context) {
+    Navigator.of(context).pop();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
+    );
+  }
+
+  /// Closes the sheet before the command lands: these actions take tens of
+  /// seconds at the printer and there is nothing to watch here meanwhile.
+  Future<void> _run(
+    BuildContext context,
+    AppLocalizations l10n,
+    Future<ActionOutcome> Function() action,
+    String startedMessage,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    final outcome = await action();
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(outcome.messageFor(l10n) ?? startedMessage),
+      ));
+  }
+}
+
+/// "Assign spool to this slot" sheet opened from a filament row. Slot is known
+/// from context, so the user picks ONLY the spool. Shows the current assignment
+/// (with unassign) and the list of active spools from inventory.
+class _AssignSlotSheet extends ConsumerStatefulWidget {
+  const _AssignSlotSheet({required this.slot});
+
+  final _SlotRef slot;
+
+  @override
+  ConsumerState<_AssignSlotSheet> createState() => _AssignSlotSheetState();
+}
+
+class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
+  String _query = '';
+
+  _SlotRef get slot => widget.slot;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final inv = ref.watch(inventoryProvider).valueOrNull;
@@ -1446,9 +1722,13 @@ class _AssignSlotSheet extends ConsumerWidget {
     }
 
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
-    final options = [
+    final offered = [
       for (final s in spools)
         if (!s.isArchived && s.id != current?.id) s,
+    ];
+    final options = [
+      for (final s in offered)
+        if (s.matchesSearch(_query)) s,
     ]..sort((a, b) {
         final ga = assignedElsewhere(a) ? 1 : 0;
         final gb = assignedElsewhere(b) ? 1 : 0;
@@ -1476,6 +1756,7 @@ class _AssignSlotSheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            _SlotActions(slot: slot),
             if (current != null) ...[
               Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
@@ -1499,11 +1780,19 @@ class _AssignSlotSheet extends ConsumerWidget {
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            _spoolSearchRow(l10n),
+            const SizedBox(height: 8),
             if (options.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(l10n.inventoryEmpty, style: theme.textTheme.bodyMedium),
+                child: Text(
+                  // Told apart on purpose: an empty inventory and a search that
+                  // matched nothing look identical otherwise, and only one of
+                  // them is fixed by clearing the field.
+                  offered.isEmpty ? l10n.inventoryEmpty : l10n.noSearchResults(_query),
+                  style: theme.textTheme.bodyMedium,
+                ),
               )
             else
               for (final s in options)
@@ -1539,6 +1828,103 @@ class _AssignSlotSheet extends ConsumerWidget {
         ),
       )
     );
+  }
+
+  /// Narrow the list, or skip it entirely by scanning the spool's label.
+  ///
+  /// Same pair as the Filaments tab, and the same 48pt square beside the field
+  /// — this is the other place a spool has to be found, and finding it by
+  /// scrolling a hundred rows at the printer is the case both exist to avoid.
+  Widget _spoolSearchRow(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Expanded(
+            child: DashSearchField(
+              id: 'assign_spool.search',
+              hintText: l10n.inventorySearchHint,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: l10n.inventoryScanSpool,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Material(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _scanAndAssign(l10n),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.subCardBorder),
+                    ),
+                    child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                  ),
+                ),
+              ),
+            ),
+          ).tagged('assign_spool.scan'),
+        ],
+      ),
+    );
+  }
+
+  /// Scan a spool's QR label and put it in this slot.
+  ///
+  /// Straight to the assignment rather than into the search field: the slot is
+  /// already known, so a scan says everything the sheet was asking for. It goes
+  /// through [_assign], so taking a spool off another slot still asks first.
+  Future<void> _scanAndAssign(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final id = await Navigator.of(context, rootNavigator: true)
+        .push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
+    if (id == null || !mounted) return;
+
+    Spool? scanned() {
+      for (final s in ref.read(inventoryProvider).valueOrNull?.spools ?? const <Spool>[]) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    var spool = scanned();
+    if (spool == null) {
+      // Added on the server since this list was loaded — worth one refresh
+      // before telling the user their label is unknown.
+      await ref.read(inventoryProvider.notifier).refresh();
+      if (!mounted) return;
+      spool = scanned();
+    }
+    if (spool == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
+      );
+      return;
+    }
+
+    // An archived spool is not offered in the list but is accepted here: the
+    // user is holding it against the printer, which outranks a bookkeeping flag.
+    final from = ref.read(inventoryProvider).valueOrNull?.assignmentFor(spool.id);
+    if (from != null &&
+        from.printerId == slot.printerId &&
+        from.amsId == slot.amsId &&
+        from.trayId == slot.trayId) {
+      // Already where it is being put. Nothing to send, and asking to move it
+      // off itself would be nonsense.
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
+      );
+      return;
+    }
+    await _assign(context, ref, l10n, spool, from: from);
   }
 
   Future<void> _assign(

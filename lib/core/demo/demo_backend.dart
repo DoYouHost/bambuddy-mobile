@@ -119,6 +119,13 @@ class DemoBackend {
   // AMS drying: minutes remaining keyed by ams id (demo doesn't count down).
   final Map<int, int> _dryTime = {};
   final Map<int, bool> _plugOn = {1: true, 2: false};
+  // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
+  // over the generated status so a demo write shows on the card, the way the
+  // printer's own push would.
+  final Map<String, Map<String, dynamic>> _slotConfig = {};
+  // Which preset each slot was given, keyed the same way — the mapping the real
+  // server keeps so a configured slot can be named, not just shown.
+  final Map<String, Map<String, dynamic>> _slotPreset = {};
 
   /// identify_ids skipped during the current X1 demo print. Reset on stop so a
   /// fresh cycle shows every object again.
@@ -278,6 +285,21 @@ class DemoBackend {
         if (at(2, 'storage')) {
           return _ok({'used_bytes': 3 * 1024 * 1024 * 1024, 'free_bytes': 24 * 1024 * 1024 * 1024});
         }
+        if (at(2, 'kprofiles')) {
+          return _ok(_kProfilesResponse(q['nozzle_diameter'] ?? '0.4'));
+        }
+        if (at(2, 'slot-presets')) return _slotPresetRoute(m, pid, s, q);
+        // `slots/{ams}/{tray}/configure` — ids are local to the unit.
+        if (at(2, 'slots') && at(5, 'configure')) {
+          return _configureSlot(pid, id(3) ?? 0, id(4) ?? 0, q);
+        }
+        if (at(2, 'ams')) {
+          // `ams/{ams}/tray/{tray}/reset` — the tray id sits past the literal.
+          if (at(6, 'reset')) return _resetSlot(pid, id(3) ?? 0, id(5) ?? 0);
+          // Load, unload and the RFID re-read change nothing a demo can show:
+          // there is no filament path to move anything along.
+          return _ok(const {'ok': true});
+        }
         return _fallback(m);
 
       case 'ams-history':
@@ -337,7 +359,17 @@ class DemoBackend {
 
       case 'cloud':
         if (at(1, 'status')) return _ok(const {'is_authenticated': false});
+        // Nobody is logged in to Bambu Cloud in the demo, and the slot picker
+        // is built to say so and fall back — serving a cloud tier anyway would
+        // contradict the line above.
+        if (at(1, 'settings')) {
+          return (status: 401, body: {'detail': 'Not authenticated'});
+        }
+        if (at(1, 'builtin-filaments')) return _ok(_builtinFilaments);
         return _fallback(m);
+
+      case 'local-presets':
+        return _ok({'filament': _localPresets});
 
       case 'settings':
         return _ok(const {
@@ -354,6 +386,7 @@ class DemoBackend {
         });
 
       case 'slicer':
+        if (at(1, 'printer-models')) return _ok(_printerModels);
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -450,7 +483,8 @@ class DemoBackend {
       };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) => switch (printerId) {
+  Map<String, dynamic> statusData(int printerId) =>
+      _withSlotConfig(printerId, switch (printerId) {
         1 => _statusPrinting(),
         2 => _statusIdle(),
         4 => _statusAccessoryFans(),
@@ -460,7 +494,43 @@ class DemoBackend {
             'connected': false,
             'state': null,
           },
-      };
+      });
+
+  /// Lays whatever the slot sheet wrote over the generated trays.
+  ///
+  /// Applied here rather than in the tray builders so both the REST poll and
+  /// the WS frame carry it — a demo write that only one of them saw would flip
+  /// back and forth as the two arrive.
+  Map<String, dynamic> _withSlotConfig(
+    int printerId,
+    Map<String, dynamic> status,
+  ) {
+    if (_slotConfig.isEmpty) return status;
+    final units = status['ams'];
+    if (units is! List) return status;
+    return {
+      ...status,
+      'ams': [
+        for (final unit in units)
+          if (unit is! Map<String, dynamic>)
+            unit
+          else
+            {
+              ...unit,
+              'tray': [
+                for (final tray in (unit['tray'] as List? ?? const []))
+                  if (tray is! Map<String, dynamic>)
+                    tray
+                  else
+                    {
+                      ...tray,
+                      ...?_slotConfig['$printerId:${unit['id']}:${tray['id']}'],
+                    },
+              ],
+            },
+      ],
+    };
+  }
 
   /// Small deterministic wiggle so temperatures/power look alive.
   double _wiggle(double amplitude, {int periodSec = 90, int phase = 0}) {
@@ -638,6 +708,182 @@ class DemoBackend {
         'nozzle_temp_max': type == null ? null : '240',
         'state': type == null ? 9 : 11,
       };
+
+  // --- AMS slot configuration ---
+
+  /// Long printer-preset name → short model code, as `/slicer/printer-models`
+  /// serves it. The picker matches preset names against this.
+  static const _printerModels = {
+    'Bambu Lab X1 Carbon': 'X1C',
+    'Bambu Lab X1': 'X1',
+    'Bambu Lab P1S': 'P1S',
+    'Bambu Lab P2S': 'P2S',
+    'Bambu Lab A1 mini': 'A1M',
+  };
+
+  /// Bambu's built-in filament table. The ids match what the demo trays report,
+  /// so a configured slot reopens on the preset it is actually set to.
+  static const _builtinFilaments = [
+    {'filament_id': 'GFA00', 'name': 'Bambu PLA Basic'},
+    {'filament_id': 'GFA01', 'name': 'Bambu PLA Matte'},
+    {'filament_id': 'GFA05', 'name': 'Bambu PLA Silk'},
+    {'filament_id': 'GFG02', 'name': 'Bambu PETG HF'},
+    {'filament_id': 'GFB00', 'name': 'Bambu ABS'},
+    {'filament_id': 'GFU01', 'name': 'Bambu TPU 95A'},
+    {'filament_id': 'GFL99', 'name': 'Generic PLA'},
+    {'filament_id': 'GFG99', 'name': 'Generic PETG'},
+    {'filament_id': 'GFB99', 'name': 'Generic ABS'},
+  ];
+
+  /// Presets imported from a slicer bundle. The P1S one is here to show the
+  /// printer filter doing something on the X1C card, and the ASA one to show a
+  /// preset that declares no compatibility staying visible anyway.
+  static const _localPresets = [
+    {
+      'id': 1,
+      'name': 'eSUN PLA+ @BBL X1C',
+      'filament_type': 'PLA',
+      'nozzle_temp_min': 205,
+      'nozzle_temp_max': 225,
+      'compatible_printers': '["Bambu Lab X1 Carbon 0.4 nozzle"]',
+    },
+    {
+      'id': 2,
+      'name': 'Devil Design PETG @BBL P1S',
+      'filament_type': 'PETG',
+      'nozzle_temp_min': 230,
+      'nozzle_temp_max': 250,
+      'compatible_printers': '["Bambu Lab P1S 0.4 nozzle"]',
+    },
+    {
+      'id': 3,
+      'name': 'Fiberlogy ASA @BBL X1C',
+      'filament_type': 'ASA',
+      'nozzle_temp_min': 250,
+      'nozzle_temp_max': 270,
+    },
+  ];
+
+  /// Calibrations the demo printer has stored. The 0.6 one is filtered out by
+  /// every slot in this demo — it is here so the nozzle filter is visibly real
+  /// rather than a parameter nothing depends on.
+  static const _kProfiles = [
+    {
+      'slot_id': 1,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFA00',
+      'name': 'Bambu PLA Basic',
+      'k_value': '0.020000',
+      'setting_id': 'GFSA00_00',
+    },
+    {
+      'slot_id': 2,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFG02',
+      'name': 'Bambu PETG HF',
+      'k_value': '0.037000',
+      'setting_id': 'GFSG02_00',
+    },
+    {
+      'slot_id': 3,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFA05',
+      'name': 'Gold silk, slower',
+      'k_value': '0.028000',
+    },
+    {
+      'slot_id': 4,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.6',
+      'nozzle_diameter': '0.6',
+      'filament_id': 'GFA00',
+      'name': 'PLA on the 0.6',
+      'k_value': '0.022000',
+    },
+  ];
+
+  Map<String, dynamic> _kProfilesResponse(String nozzleDiameter) => {
+        'nozzle_diameter': nozzleDiameter,
+        'profiles': [
+          for (final p in _kProfiles)
+            if (p['nozzle_diameter'] == nozzleDiameter) p,
+        ],
+      };
+
+  String _slotKey(int printerId, int amsId, int trayId) =>
+      '$printerId:$amsId:$trayId';
+
+  /// `GET`/`PUT /printers/{id}/slot-presets/{ams}/{tray}`. An unmapped slot
+  /// answers a bare `null`, which is what the real route does and what the
+  /// picker reads as "nothing saved".
+  DemoResult _slotPresetRoute(
+    String m,
+    int printerId,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    if (s.length < 5) return _ok(const <Object>[]);
+    final amsId = int.tryParse(s[3]) ?? 0;
+    final trayId = int.tryParse(s[4]) ?? 0;
+    final key = _slotKey(printerId, amsId, trayId);
+    if (m == 'PUT') {
+      _slotPreset[key] = {
+        'ams_id': amsId,
+        'tray_id': trayId,
+        'preset_id': q['preset_id'] ?? '',
+        'preset_name': q['preset_name'] ?? '',
+        'preset_source': q['preset_source'],
+      };
+      return _ok(const {'ok': true});
+    }
+    return _ok(_slotPreset[key]);
+  }
+
+  /// `POST /printers/{id}/slots/{ams}/{tray}/configure`. The real route derives
+  /// nothing either — it hands the query straight to the printer — so the demo
+  /// keeps the values verbatim and lets them show on the card.
+  DemoResult _configureSlot(
+    int printerId,
+    int amsId,
+    int trayId,
+    Map<String, String> q,
+  ) {
+    _slotConfig[_slotKey(printerId, amsId, trayId)] = {
+      'tray_color': q['tray_color'],
+      'tray_type': q['tray_type'],
+      'tray_sub_brands': q['tray_sub_brands'] ?? '',
+      'tray_info_idx': q['tray_info_idx'] ?? '',
+      'nozzle_temp_min': q['nozzle_temp_min'],
+      'nozzle_temp_max': q['nozzle_temp_max'],
+      'cali_idx': int.tryParse(q['cali_idx'] ?? ''),
+      'state': 11,
+    };
+    return _ok(const {'success': true});
+  }
+
+  /// `POST /printers/{id}/ams/{ams}/tray/{tray}/reset` — empties the slot and
+  /// drops its saved preset, the pair the real route undoes together.
+  DemoResult _resetSlot(int printerId, int amsId, int trayId) {
+    final key = _slotKey(printerId, amsId, trayId);
+    _slotConfig[key] = const {
+      'tray_color': null,
+      'tray_type': null,
+      'tray_sub_brands': '',
+      'tray_info_idx': '',
+      'cali_idx': null,
+      'nozzle_temp_min': null,
+      'nozzle_temp_max': null,
+      'state': 9,
+    };
+    _slotPreset.remove(key);
+    return _ok(const {'success': true});
+  }
 
   Map<String, dynamic> _amsUnit1() => {
         'id': 0,

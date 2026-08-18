@@ -1034,6 +1034,140 @@ class AppLocalizationsEn extends AppLocalizations {
   String get traySlotEmpty => 'Empty';
 
   @override
+  String get amsSlotFilament => 'Filament';
+
+  @override
+  String get amsLoad => 'Load';
+
+  @override
+  String get amsUnload => 'Unload';
+
+  @override
+  String get amsRfidReread => 'Re-read tag';
+
+  @override
+  String get amsLoadStarted => 'Loading filament…';
+
+  @override
+  String get amsUnloadStarted => 'Unloading filament…';
+
+  @override
+  String get amsRfidRereadStarted => 'Re-reading the tag…';
+
+  @override
+  String get amsActionsWhilePrinting =>
+      'Unavailable while the printer is printing';
+
+  @override
+  String get amsSlotConfigure => 'Configure slot';
+
+  @override
+  String get amsSlotConfigTitle => 'Slot configuration';
+
+  @override
+  String get amsSlotConfigSearch => 'Search presets';
+
+  @override
+  String get amsSlotConfigColour => 'Colour';
+
+  @override
+  String get amsSlotConfigApply => 'Write to printer';
+
+  @override
+  String get amsSlotConfigStarted => 'Configuring the slot…';
+
+  @override
+  String get amsSlotConfigNameNotSaved =>
+      'Slot configured, but the preset name could not be saved';
+
+  @override
+  String get amsSlotConfigEmpty => 'No filament presets available';
+
+  @override
+  String get amsSlotConfigNoMatch => 'No preset matches the search';
+
+  @override
+  String get amsSlotConfigCloudHint =>
+      'Log in to Bambu Cloud to pick from your own presets.';
+
+  @override
+  String get amsSlotConfigCloudAction => 'Log in';
+
+  @override
+  String get amsSlotConfigTierLocal => 'Imported';
+
+  @override
+  String get amsSlotConfigTierCloud => 'Bambu Cloud';
+
+  @override
+  String get amsSlotConfigTierBuiltin => 'Built-in';
+
+  @override
+  String amsSlotConfigOnlyPrinter(String model) {
+    return 'Only for $model';
+  }
+
+  @override
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden) {
+    return 'Only for $model ($hidden hidden)';
+  }
+
+  @override
+  String get amsSlotConfigModelUnknown =>
+      'Printer model unknown — showing every preset';
+
+  @override
+  String get amsSlotConfigCurrent => 'Currently set';
+
+  @override
+  String get amsSlotConfigKProfile => 'K profile';
+
+  @override
+  String amsSlotConfigKProfileDefault(String value) {
+    return 'Default (K $value)';
+  }
+
+  @override
+  String get amsSlotConfigKProfileOther => 'Other profiles';
+
+  @override
+  String get amsSlotConfigKProfileNone =>
+      'This printer has no stored K profiles for this nozzle';
+
+  @override
+  String get amsSlotConfigKProfileUnavailable =>
+      'Could not read the printer\'s K profiles';
+
+  @override
+  String amsSlotConfigNozzleGuess(String diameter) {
+    return 'The printer did not report its nozzle size — assuming $diameter mm';
+  }
+
+  @override
+  String amsSlotConfigKProfileValue(String value) {
+    return 'K $value';
+  }
+
+  @override
+  String get amsSlotConfigColourCatalogue => 'Catalogue colours';
+
+  @override
+  String get amsSlotConfigColourCustom => 'Custom colour';
+
+  @override
+  String get amsSlotReset => 'Clear slot';
+
+  @override
+  String get amsSlotResetConfirmTitle => 'Clear this slot?';
+
+  @override
+  String get amsSlotResetConfirmMessage =>
+      'The printer forgets the filament configured here, and bambuddy forgets which preset it was.';
+
+  @override
+  String get amsSlotResetStarted => 'Clearing the slot…';
+
+  @override
   String get extruderLeft => 'Left extruder';
 
   @override

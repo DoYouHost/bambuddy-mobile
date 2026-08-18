@@ -558,7 +558,7 @@ class _FanCell extends ConsumerWidget {
     final tokens = DashTokens.of(context);
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.

@@ -82,6 +82,21 @@ class _FakeCommands implements PrinterCommandsRepository {
   @override
   Future<void> homeAxes(int id) => _do('homeAxes:$id');
   @override
+  Future<void> refreshStatus(int id) => _do('refreshStatus:$id');
+  @override
+  void nudgeRepublish(Iterable<int> ids) {
+    for (final id in ids) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+  @override
+  Future<void> amsLoad(int id, int trayId) => _do('amsLoad:$id:$trayId');
+  @override
+  Future<void> amsUnload(int id) => _do('amsUnload:$id');
+  @override
+  Future<void> refreshAmsSlot(int id, {required int amsId, required int slotId}) =>
+      _do('amsRfid:$id:$amsId:$slotId');
+  @override
   Future<void> clearHmsErrors(int id) => _do('hmsClear:$id');
   @override
   Future<void> executeHmsAction(int id,
@@ -137,7 +152,7 @@ void main() {
     final st = c.read(controlsProvider);
     expect(st.pendingFor(1).speedLevel, isNull, reason: 'rollback nadpisania');
     expect(st.pendingFor(1).isBusy(ControlAction.speed), false);
-    expect(st.forbidden, false);
+    expect(st.isRefused(ControlPermission.control), false);
   });
 
   test('403 → odmowa i lepka blokada sterowania', () async {
@@ -147,7 +162,7 @@ void main() {
     final result = await c.read(controlsProvider.notifier).pause(1);
 
     expect(result.isForbidden, isTrue);
-    expect(c.read(controlsProvider).forbidden, true);
+    expect(c.read(controlsProvider).isRefused(ControlPermission.control), true);
     // Lifecycle nie ma nadpisania, ale „w locie" musi być zdjęte.
     expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.pause),
         false);
@@ -167,6 +182,42 @@ void main() {
     final st = c.read(controlsProvider).pendingFor(1);
     expect(st.light, true, reason: 'sticky światło przeżywa błąd prędkości');
     expect(st.speedLevel, isNull, reason: 'prędkość wycofana');
+  });
+
+  test('an RFID refusal leaves the rest of the controls alone', () async {
+    // The re-read has a permission of its own, so its 403 says nothing about
+    // whether this key may drive the printer.
+    final fake = _FakeCommands()..error = const AuthException(AppErrorCode.forbidden);
+    final c = _container(fake);
+
+    final result = await c
+        .read(controlsProvider.notifier)
+        .refreshAmsSlot(1, amsId: 0, slotId: 2);
+
+    expect(result.isForbidden, isTrue);
+    final st = c.read(controlsProvider);
+    expect(st.isRefused(ControlPermission.amsRfid), true,
+        reason: 'the tag re-read itself stops being offered');
+    expect(st.isRefused(ControlPermission.control), false,
+        reason: 'every other control is behind a different gate');
+    expect(st.pendingFor(1).isBusy(ControlAction.ams), false);
+  });
+
+  test('load and unload share one in-flight marker for the printer', () async {
+    final fake = _FakeCommands()..gate = Completer<void>();
+    final c = _container(fake);
+    final notifier = c.read(controlsProvider.notifier);
+
+    final loading = notifier.amsLoad(1, 6);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams), true,
+        reason: 'the whole slot sheet locks, not one button');
+
+    fake.gate!.complete();
+    await loading;
+    expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
+        false);
+    expect(fake.calls, ['amsLoad:1:6']);
   });
 
   test('po sukcesie optymistyczne nadpisanie znika po optimisticHold', () {

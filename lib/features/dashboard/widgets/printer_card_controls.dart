@@ -17,7 +17,7 @@ class _ControlsActions extends ConsumerWidget {
     final connected = status.connected ?? false;
     if (!connected) return const SizedBox.shrink();
 
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) {
       // API key lacks `can_control_printer`—show clear reason instead of dead buttons.
       return Padding(
@@ -139,7 +139,7 @@ class _LightSwitchRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connected = status.connected ?? false;
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     if (!connected || forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -516,7 +516,7 @@ class _SpeedControlTile extends ConsumerWidget {
     if (!(status.connected ?? false) || !status.isPrinting) {
       return const SizedBox.shrink();
     }
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);

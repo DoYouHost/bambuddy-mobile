@@ -1874,6 +1874,240 @@ abstract class AppLocalizations {
   /// **'Empty'**
   String get traySlotEmpty;
 
+  /// No description provided for @amsSlotFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get amsSlotFilament;
+
+  /// No description provided for @amsLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load'**
+  String get amsLoad;
+
+  /// No description provided for @amsUnload.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload'**
+  String get amsUnload;
+
+  /// No description provided for @amsRfidReread.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read tag'**
+  String get amsRfidReread;
+
+  /// No description provided for @amsLoadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading filament…'**
+  String get amsLoadStarted;
+
+  /// No description provided for @amsUnloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading filament…'**
+  String get amsUnloadStarted;
+
+  /// No description provided for @amsRfidRereadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-reading the tag…'**
+  String get amsRfidRereadStarted;
+
+  /// No description provided for @amsActionsWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable while the printer is printing'**
+  String get amsActionsWhilePrinting;
+
+  /// No description provided for @amsSlotConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure slot'**
+  String get amsSlotConfigure;
+
+  /// No description provided for @amsSlotConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configuration'**
+  String get amsSlotConfigTitle;
+
+  /// No description provided for @amsSlotConfigSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search presets'**
+  String get amsSlotConfigSearch;
+
+  /// No description provided for @amsSlotConfigColour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get amsSlotConfigColour;
+
+  /// No description provided for @amsSlotConfigApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to printer'**
+  String get amsSlotConfigApply;
+
+  /// No description provided for @amsSlotConfigStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuring the slot…'**
+  String get amsSlotConfigStarted;
+
+  /// No description provided for @amsSlotConfigNameNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configured, but the preset name could not be saved'**
+  String get amsSlotConfigNameNotSaved;
+
+  /// No description provided for @amsSlotConfigEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No filament presets available'**
+  String get amsSlotConfigEmpty;
+
+  /// No description provided for @amsSlotConfigNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset matches the search'**
+  String get amsSlotConfigNoMatch;
+
+  /// No description provided for @amsSlotConfigCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to Bambu Cloud to pick from your own presets.'**
+  String get amsSlotConfigCloudHint;
+
+  /// No description provided for @amsSlotConfigCloudAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get amsSlotConfigCloudAction;
+
+  /// No description provided for @amsSlotConfigTierLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get amsSlotConfigTierLocal;
+
+  /// No description provided for @amsSlotConfigTierCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get amsSlotConfigTierCloud;
+
+  /// No description provided for @amsSlotConfigTierBuiltin.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get amsSlotConfigTierBuiltin;
+
+  /// No description provided for @amsSlotConfigOnlyPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model}'**
+  String amsSlotConfigOnlyPrinter(String model);
+
+  /// No description provided for @amsSlotConfigOnlyPrinterHiding.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model} ({hidden} hidden)'**
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden);
+
+  /// No description provided for @amsSlotConfigModelUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model unknown — showing every preset'**
+  String get amsSlotConfigModelUnknown;
+
+  /// No description provided for @amsSlotConfigCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently set'**
+  String get amsSlotConfigCurrent;
+
+  /// No description provided for @amsSlotConfigKProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'K profile'**
+  String get amsSlotConfigKProfile;
+
+  /// No description provided for @amsSlotConfigKProfileDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (K {value})'**
+  String amsSlotConfigKProfileDefault(String value);
+
+  /// No description provided for @amsSlotConfigKProfileOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other profiles'**
+  String get amsSlotConfigKProfileOther;
+
+  /// No description provided for @amsSlotConfigKProfileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer has no stored K profiles for this nozzle'**
+  String get amsSlotConfigKProfileNone;
+
+  /// No description provided for @amsSlotConfigKProfileUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the printer\'s K profiles'**
+  String get amsSlotConfigKProfileUnavailable;
+
+  /// No description provided for @amsSlotConfigNozzleGuess.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not report its nozzle size — assuming {diameter} mm'**
+  String amsSlotConfigNozzleGuess(String diameter);
+
+  /// No description provided for @amsSlotConfigKProfileValue.
+  ///
+  /// In en, this message translates to:
+  /// **'K {value}'**
+  String amsSlotConfigKProfileValue(String value);
+
+  /// No description provided for @amsSlotConfigColourCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue colours'**
+  String get amsSlotConfigColourCatalogue;
+
+  /// No description provided for @amsSlotConfigColourCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get amsSlotConfigColourCustom;
+
+  /// No description provided for @amsSlotReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear slot'**
+  String get amsSlotReset;
+
+  /// No description provided for @amsSlotResetConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear this slot?'**
+  String get amsSlotResetConfirmTitle;
+
+  /// No description provided for @amsSlotResetConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer forgets the filament configured here, and bambuddy forgets which preset it was.'**
+  String get amsSlotResetConfirmMessage;
+
+  /// No description provided for @amsSlotResetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing the slot…'**
+  String get amsSlotResetStarted;
+
   /// No description provided for @extruderLeft.
   ///
   /// In en, this message translates to:

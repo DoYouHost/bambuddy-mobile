@@ -569,6 +569,82 @@ void main() {
     });
   });
 
+  group('nozzles', () {
+    PrinterStatus withNozzles(List<Map<String, String>> nozzles,
+            {Map<String, int>? extruderMap}) =>
+        PrinterStatus.fromJson({
+          'id': 1,
+          'nozzles': nozzles,
+          'ams_extruder_map': ?extruderMap,
+        });
+
+    test('parses the fitted nozzles', () {
+      final status = withNozzles([
+        {'nozzle_type': 'hardened_steel', 'nozzle_diameter': '0.4'},
+      ]);
+
+      expect(status.nozzles, hasLength(1));
+      expect(status.nozzles!.single.nozzleType, 'hardened_steel');
+      expect(status.nozzleDiameterFor(0), '0.4');
+    });
+
+    test('answers the diameter of the nozzle the AMS unit feeds', () {
+      // Dual-head printers can carry two different sizes, and the slot
+      // configuration has to name the one that will actually melt this spool.
+      final status = withNozzles(
+        [
+          {'nozzle_diameter': '0.4'},
+          {'nozzle_diameter': '0.8'},
+        ],
+        extruderMap: {'0': 1},
+      );
+
+      expect(status.nozzleDiameterFor(0), '0.8');
+      expect(status.nozzleDiameterFor(1), '0.4',
+          reason: 'an unmapped unit falls back to the primary nozzle');
+    });
+
+    test('answers null when the printer reported no nozzles', () {
+      // Guessing 0.4 here would hide the gap; the caller decides what to send.
+      expect(const PrinterStatus(id: 1).nozzleDiameterFor(0), isNull);
+      expect(withNozzles(const []).nozzleDiameterFor(0), isNull);
+    });
+
+    test('survives the printer going offline', () {
+      // Which nozzle is fitted does not change while the printer is
+      // unreachable, unlike the telemetry around it.
+      final offline = const PrinterStatus(id: 1, connected: false)
+          .mergedWith(withNozzles([
+        {'nozzle_diameter': '0.6'},
+      ]));
+
+      expect(offline.nozzleDiameterFor(0), '0.6');
+    });
+  });
+
+  group('tray configuration fields', () {
+    test('parses the filament id and calibration index of a slot', () {
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      final status = PrinterStatus.fromJson(data);
+
+      // The name alone cannot identify which preset a slot holds — two presets
+      // share one, and a user preset resolves to no name at all.
+      expect(status.ams!.first.trays![3].trayInfoIdx, 'GFA00');
+      expect(status.ams!.first.trays![3].caliIdx, -1);
+      expect(status.vtTray!.first.trayInfoIdx, 'GFU01');
+    });
+
+    test('a slot whose filament id changed is not equal to the old one', () {
+      // Equality drives whether a fresh poll is published at all — a slot
+      // reconfigured to another preset has to get through.
+      expect(const AmsTray(id: 0, trayType: 'PLA', trayInfoIdx: 'GFL99'),
+          isNot(const AmsTray(id: 0, trayType: 'PLA', trayInfoIdx: 'GFL05')));
+    });
+  });
+
   group('Printer.fromJson', () {
     test('parsuje listę drukarek, ignorując nieznane pola', () {
       final raw = readFixture('printers_list.json') as List<dynamic>;

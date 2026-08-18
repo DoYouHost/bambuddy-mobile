@@ -421,6 +421,63 @@
   "@amsUnit": { "placeholders": { "number": { "type": "int" } } },
   "externalSpool": "External spool",
   "traySlotEmpty": "Empty",
+  "amsSlotFilament": "Filament",
+  "amsLoad": "Load",
+  "amsUnload": "Unload",
+  "amsRfidReread": "Re-read tag",
+  "amsLoadStarted": "Loading filament…",
+  "amsUnloadStarted": "Unloading filament…",
+  "amsRfidRereadStarted": "Re-reading the tag…",
+  "amsActionsWhilePrinting": "Unavailable while the printer is printing",
+  "amsSlotConfigure": "Configure slot",
+  "amsSlotConfigTitle": "Slot configuration",
+  "amsSlotConfigSearch": "Search presets",
+  "amsSlotConfigColour": "Colour",
+  "amsSlotConfigApply": "Write to printer",
+  "amsSlotConfigStarted": "Configuring the slot…",
+  "amsSlotConfigNameNotSaved": "Slot configured, but the preset name could not be saved",
+  "amsSlotConfigEmpty": "No filament presets available",
+  "amsSlotConfigNoMatch": "No preset matches the search",
+  "amsSlotConfigCloudHint": "Log in to Bambu Cloud to pick from your own presets.",
+  "amsSlotConfigCloudAction": "Log in",
+  "amsSlotConfigTierLocal": "Imported",
+  "amsSlotConfigTierCloud": "Bambu Cloud",
+  "amsSlotConfigTierBuiltin": "Built-in",
+  "amsSlotConfigOnlyPrinter": "Only for {model}",
+  "amsSlotConfigOnlyPrinterHiding": "Only for {model} ({hidden} hidden)",
+  "amsSlotConfigModelUnknown": "Printer model unknown — showing every preset",
+  "@amsSlotConfigOnlyPrinter": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "@amsSlotConfigOnlyPrinterHiding": {
+    "placeholders": {
+      "model": { "type": "String" },
+      "hidden": { "type": "int" }
+    }
+  },
+  "amsSlotConfigCurrent": "Currently set",
+  "amsSlotConfigKProfile": "K profile",
+  "amsSlotConfigKProfileDefault": "Default (K {value})",
+  "@amsSlotConfigKProfileDefault": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "amsSlotConfigKProfileOther": "Other profiles",
+  "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
+  "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
+  "amsSlotConfigNozzleGuess": "The printer did not report its nozzle size — assuming {diameter} mm",
+  "@amsSlotConfigNozzleGuess": {
+    "placeholders": { "diameter": { "type": "String" } }
+  },
+  "amsSlotConfigKProfileValue": "K {value}",
+  "@amsSlotConfigKProfileValue": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "amsSlotConfigColourCatalogue": "Catalogue colours",
+  "amsSlotConfigColourCustom": "Custom colour",
+  "amsSlotReset": "Clear slot",
+  "amsSlotResetConfirmTitle": "Clear this slot?",
+  "amsSlotResetConfirmMessage": "The printer forgets the filament configured here, and bambuddy forgets which preset it was.",
+  "amsSlotResetStarted": "Clearing the slot…",
   "extruderLeft": "Left extruder",
   "extruderRight": "Right extruder",
   "extruderLeftShort": "L",

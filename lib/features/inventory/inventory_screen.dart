@@ -18,6 +18,7 @@ import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
+import '../common/dash_input.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
@@ -517,7 +518,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     String query,
     InventoryFilters filters,
   ) {
-    final q = query.trim().toLowerCase();
     return [
       for (final s in spools)
         if (filters.showArchived ? s.isArchived : !s.isArchived)
@@ -529,7 +529,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 if (filters.locations.isEmpty ||
                     (s.storageLocation != null &&
                         filters.locations.contains(s.storageLocation)))
-                  if (q.isEmpty || _matches(s, q)) s,
+                  if (s.matchesSearch(query)) s,
     ];
   }
 
@@ -565,17 +565,4 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return list;
   }
 
-  bool _matches(Spool s, String q) {
-    for (final field in [
-      s.material,
-      s.subtype,
-      s.brand,
-      s.colorName,
-      s.storageLocation,
-      s.category,
-    ]) {
-      if (field != null && field.toLowerCase().contains(q)) return true;
-    }
-    return false;
-  }
 }
