@@ -15,10 +15,12 @@ import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
 
 /// Skip-objects screen: shows the current print's objects (with their printer
-/// display IDs) over a top-down build-plate render, and lets the user skip a
-/// failed one. Skipping is irreversible, so every skip is confirmed. Skips are
-/// blocked until layer 2 (the printer can't skip the first layer) and when the
-/// API key lacks `can_control_printer`.
+/// display IDs) over a top-down build-plate render, and lets the user select
+/// failed ones by tapping their shape on the plate or their row in the list
+/// below. Skipping is irreversible, so the whole selection is confirmed once,
+/// in a single batched request. Selection is blocked until layer 2 (the
+/// printer can't skip the first layer) and when the API key lacks
+/// `can_control_printer`.
 class SkipObjectsScreen extends ConsumerStatefulWidget {
   const SkipObjectsScreen({
     super.key,
@@ -35,8 +37,11 @@ class SkipObjectsScreen extends ConsumerStatefulWidget {
 
 class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     with CameraTokenImageRecovery {
-  /// Object ids with a skip request in flight (button spinner + lock).
-  final _inFlight = <int>{};
+  /// Object ids selected to skip, pending the batch confirmation.
+  final _selected = <int>{};
+
+  /// True while the confirmed batch is in flight (bottom bar spinner + lock).
+  bool _skipping = false;
 
   /// Sticky once the server rejects a skip for lack of permission.
   bool _forbidden = false;
@@ -54,6 +59,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
         ref.watch(printerStatusesProvider.select((m) => m[widget.printerId]));
     final layerNum = status?.layerNum ?? 0;
     final canSkipLayer = layerNum > 1;
+    final canSelect = canSkipLayer && !_forbidden && !_skipping;
 
     return Scaffold(
       appBar: loggedAppBar(
@@ -108,59 +114,137 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                       coverUrl: status?.coverUrl,
                       data: data,
                       recovery: this,
+                      selected: _selected,
+                      canSelect: canSelect,
+                      onToggle: _toggleSelected,
                       onInteractingChanged: (v) {
                         if (v != _plateInteracting) {
                           setState(() => _plateInteracting = v);
                         }
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    if (_selected.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          l10n.skipObjectsSelectHint,
+                          style: TextStyle(fontSize: 12, color: t.textTertiary),
+                        ),
+                      ),
                     for (final obj in data.objects)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _ObjectTile(
                           object: obj,
-                          busy: _inFlight.contains(obj.id),
-                          canSkip: canSkipLayer && !_forbidden,
+                          selected: _selected.contains(obj.id),
+                          canSelect: canSelect,
                           blockedReason: _forbidden
                               ? l10n.ctrlForbidden
                               : (!canSkipLayer
                                   ? l10n.skipObjectsWaitForLayer(layerNum)
                                   : null),
-                          onSkip: () => _confirmSkip(obj),
+                          onToggle: () => _toggleSelected(obj),
                         ),
                       ),
                   ],
                 ),
               ),
       ),
+      bottomNavigationBar:
+          _selected.isEmpty ? null : _confirmBar(t, l10n, canSelect),
     );
   }
 
-  Future<void> _confirmSkip(PrintableObject obj) async {
+  /// Toggles one object in/out of the pending selection. The marker and tile
+  /// widgets already withhold this callback (`onTap: null`) for a skipped
+  /// object or while selection is blocked, so no gating is repeated here.
+  void _toggleSelected(PrintableObject obj) {
+    setState(() {
+      if (!_selected.remove(obj.id)) _selected.add(obj.id);
+    });
+  }
+
+  Widget _confirmBar(DashTokens t, AppLocalizations l10n, bool canConfirm) =>
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: t.navBar,
+          border: Border(top: BorderSide(color: t.hairline)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.skipObjectsSelectedCount(_selected.length),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.textSecondary,
+                    ),
+                  ),
+                ),
+                if (_skipping)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else
+                  FilledButton(
+                    onPressed: canConfirm ? _confirmSkipSelected : null,
+                    style: FilledButton.styleFrom(backgroundColor: t.danger),
+                    child: Text(l10n.skipObjectsSkip),
+                  ).tagged('skip_objects.skip'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _confirmSkipSelected() async {
     final l10n = AppLocalizations.of(context);
+    final data = ref.read(skipObjectsProvider(widget.printerId)).valueOrNull;
+    if (data == null) return;
+    final objs =
+        data.objects.where((o) => _selected.contains(o.id)).toList();
+    if (objs.isEmpty) return;
+
+    final names = objs.map((o) => o.name).join(', ');
     final confirmed = await confirmDialog(
       context,
-      title: l10n.skipObjectsConfirmTitle,
-      message: l10n.skipObjectsConfirmBody(obj.name),
+      title: l10n.skipObjectsConfirmTitle(objs.length),
+      message: l10n.skipObjectsConfirmBody(objs.length, names),
       confirmLabel: l10n.skipObjectsSkip,
       destructive: true,
-      id: 'skip_object',
+      id: 'skip_objects',
     );
     if (!confirmed || !mounted) return;
 
-    setState(() => _inFlight.add(obj.id));
+    setState(() => _skipping = true);
+    // From `objs`, not `_selected`: the background poll can drop an object
+    // between selecting it and confirming (e.g. a 3MF reload), and `objs` is
+    // exactly what the dialog just showed — the request must match that, or
+    // an id the user never saw confirmed would go out anyway.
+    final ids = objs.map((o) => o.id).toList();
     final result = await ref
         .read(skipObjectsProvider(widget.printerId).notifier)
-        .skip(obj.id);
+        .skip(ids);
     if (!mounted) return;
     setState(() {
-      _inFlight.remove(obj.id);
+      _skipping = false;
       if (result.isForbidden) _forbidden = true;
+      if (result.isOk) _selected.clear();
     });
 
-    final msg =
-        result.messageFor(l10n) ?? l10n.skipObjectsSkippedToast(obj.name);
+    final msg = result.messageFor(l10n) ??
+        l10n.skipObjectsSkippedToast(objs.length, names);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg)));
@@ -259,6 +343,9 @@ class _PlatePreview extends ConsumerStatefulWidget {
     required this.coverUrl,
     required this.data,
     required this.recovery,
+    required this.selected,
+    required this.canSelect,
+    required this.onToggle,
     required this.onInteractingChanged,
   });
 
@@ -266,6 +353,12 @@ class _PlatePreview extends ConsumerStatefulWidget {
   final String? coverUrl;
   final PrintableObjects data;
   final CameraTokenImageRecovery recovery;
+
+  /// Object ids currently selected to skip — drawn as the marker's "selected"
+  /// state on the plate.
+  final Set<int> selected;
+  final bool canSelect;
+  final ValueChanged<PrintableObject> onToggle;
 
   /// Fires true once a second finger lands on the plate (zoom/pan) and false
   /// when it drops back below two — the screen freezes page scroll while true.
@@ -327,6 +420,20 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
           );
     }
 
+    Widget marker(int i) {
+      final obj = data.objects[i];
+      final rect = _markerRect(data, i);
+      return _ObjectMarker(
+        object: obj,
+        fraction: rect.center,
+        sizeFraction: rect.size,
+        tokens: t,
+        selected: widget.selected.contains(obj.id),
+        canSelect: widget.canSelect,
+        onTap: () => widget.onToggle(obj),
+      );
+    }
+
     // Plate content (background + ID markers). Wrapped in an InteractiveViewer
     // so it pinch-zooms in place — no separate fullscreen view. The count badge
     // sits outside the viewer so it stays fixed while the plate zooms/pans.
@@ -336,12 +443,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
         fit: StackFit.expand,
         children: [
           background,
-          for (var i = 0; i < data.objects.length; i++)
-            _ObjectMarker(
-              object: data.objects[i],
-              fraction: _markerFraction(data, i),
-              tokens: t,
-            ),
+          for (var i = 0; i < data.objects.length; i++) marker(i),
         ],
       ),
     );
@@ -388,33 +490,56 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
   }
 }
 
-/// Maps an object's plate coordinates to a 0..1 fraction of the square render.
-/// Uses [PrintableObjects.bboxAll] (the render's visible area) when available,
-/// then a full-plate fallback, then a grid when positions are missing —
-/// mirrors the web client so IDs land on the right parts.
-Offset _markerFraction(PrintableObjects data, int index) {
+/// Maps an object's plate position and footprint (both mm) to a 0..1-fraction
+/// center + size within the square render. Position and size shared their
+/// bbox scale/padding through two separate functions before this, which had
+/// already let a missing-bbox fallback disagree between them (position tried
+/// an assumed 256 mm plate, size just gave every object the flat badge size)
+/// — computing both from the same tier here means they can't drift again.
+/// Falls back through the same tiers the web client uses: full bbox scale, an
+/// assumed 256 mm plate, then a grid when positions are missing entirely.
+({Offset center, Size size}) _markerRect(PrintableObjects data, int index) {
   final obj = data.objects[index];
   final bbox = data.bboxAll;
-  double x, y;
+  const pad = 0.08, content = 1 - pad * 2;
+  const fallbackSize = 0.12;
+
+  Offset center(double x, double y) =>
+      Offset(x.clamp(0.05, 0.95), y.clamp(0.05, 0.95));
+  Size sizeIn(double spanW, double spanH) => obj.width == null || obj.height == null
+      ? const Size(fallbackSize, fallbackSize)
+      : Size(
+          (spanW == 0 ? fallbackSize : (obj.width! / spanW) * content)
+              .clamp(0.08, 0.9),
+          (spanH == 0 ? fallbackSize : (obj.height! / spanH) * content)
+              .clamp(0.08, 0.9),
+        );
+
   if (obj.x != null && obj.y != null && bbox != null) {
     final xMin = bbox[0], yMin = bbox[1], xMax = bbox[2], yMax = bbox[3];
     final w = xMax - xMin, h = yMax - yMin;
-    const pad = 0.08, content = 1 - pad * 2;
-    x = w == 0 ? 0.5 : pad + ((obj.x! - xMin) / w) * content;
+    final x = w == 0 ? 0.5 : pad + ((obj.x! - xMin) / w) * content;
     // Image Y grows downward; plate Y grows toward the back → invert.
-    y = h == 0 ? 0.5 : pad + ((yMax - obj.y!) / h) * content;
-  } else if (obj.x != null && obj.y != null) {
-    const plate = 256.0;
-    x = obj.x! / plate;
-    y = 1 - obj.y! / plate;
-  } else {
-    final cols = math.max(1, math.sqrt(data.objects.length).ceil());
-    final rows = math.max(1, (data.objects.length / cols).ceil());
-    final col = index % cols, row = index ~/ cols;
-    x = 0.15 + col * (0.7 / cols) + 0.35 / cols;
-    y = 0.15 + row * (0.7 / rows) + 0.35 / rows;
+    final y = h == 0 ? 0.5 : pad + ((yMax - obj.y!) / h) * content;
+    return (center: center(x, y), size: sizeIn(w, h));
   }
-  return Offset(x.clamp(0.05, 0.95), y.clamp(0.05, 0.95));
+  if (obj.x != null && obj.y != null) {
+    const plate = 256.0;
+    return (
+      center: center(obj.x! / plate, 1 - obj.y! / plate),
+      size: sizeIn(plate, plate),
+    );
+  }
+  final cols = math.max(1, math.sqrt(data.objects.length).ceil());
+  final rows = math.max(1, (data.objects.length / cols).ceil());
+  final col = index % cols, row = index ~/ cols;
+  return (
+    center: center(
+      0.15 + col * (0.7 / cols) + 0.35 / cols,
+      0.15 + row * (0.7 / rows) + 0.35 / rows,
+    ),
+    size: const Size(fallbackSize, fallbackSize),
+  );
 }
 
 /// Draws a faint 8×8 build-plate grid inside a rounded border — a stand-in for
@@ -448,46 +573,75 @@ class _PlateGridPainter extends CustomPainter {
   bool shouldRepaint(_PlateGridPainter oldDelegate) => oldDelegate.line != line;
 }
 
-/// Circular ID chip placed on the plate render (green = active, red = skipped).
+/// Part-shaped tile placed on the plate render at the object's footprint
+/// (green = active, blue = selected to skip, red = skipped). Tappable: taps
+/// toggle the object in/out of the pending selection, the same action as
+/// tapping its row in the list below.
 class _ObjectMarker extends StatelessWidget {
   const _ObjectMarker({
     required this.object,
     required this.fraction,
+    required this.sizeFraction,
     required this.tokens,
+    required this.selected,
+    required this.canSelect,
+    required this.onTap,
   });
 
   final PrintableObject object;
   final Offset fraction;
+  final Size sizeFraction;
   final DashTokens tokens;
+  final bool selected;
+  final bool canSelect;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final skipped = object.skipped;
-    final bg = skipped ? const Color(0xFFEF4444) : tokens.accentGreen;
-    final fg = skipped ? Colors.white : Colors.black;
+    final bg = skipped
+        ? tokens.danger
+        : (selected ? tokens.accentBlue : tokens.accentGreen);
+    const fg = Colors.black;
     return Align(
       alignment: FractionalOffset(fraction.dx, fraction.dy),
-      child: Container(
-        width: 24,
-        height: 24,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: bg,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1)),
-          ],
-        ),
-        child: Text(
-          '${object.id}',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: fg,
-            decoration: skipped ? TextDecoration.lineThrough : null,
+      child: FractionallySizedBox(
+        widthFactor: sizeFraction.width,
+        heightFactor: sizeFraction.height,
+        child: GestureDetector(
+          onTap: (skipped || !canSelect) ? null : onTap,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: bg.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected ? Colors.white : Colors.black38,
+                width: selected ? 2 : 1,
+              ),
+              boxShadow: const [
+                BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1)),
+              ],
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Text(
+                  '${object.id}',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: skipped ? Colors.white : fg,
+                    decoration: skipped ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+      ).tagged('skip_objects.marker'),
     );
   }
 }
@@ -519,126 +673,125 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// One object row: prominent ID badge, name, and a Skip button (or "Skipped").
+/// One object row: prominent ID badge, name, and a selection indicator (or
+/// "Skipped"). Tapping the row toggles the same selection as tapping the
+/// object's shape on the plate preview above.
 class _ObjectTile extends StatelessWidget {
   const _ObjectTile({
     required this.object,
-    required this.busy,
-    required this.canSkip,
+    required this.selected,
+    required this.canSelect,
     required this.blockedReason,
-    required this.onSkip,
+    required this.onToggle,
   });
 
   final PrintableObject object;
-  final bool busy;
-  final bool canSkip;
+  final bool selected;
+  final bool canSelect;
   final String? blockedReason;
-  final VoidCallback onSkip;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final skipped = object.skipped;
-    const red = Color(0xFFEF4444);
-    final badgeColor = skipped ? red : t.accentGreenInk;
-    final badgeBg = (skipped ? red : t.accentGreen).withValues(alpha: 0.15);
+    final accent = skipped
+        ? t.danger
+        : (selected ? t.accentBlue : t.accentGreenInk);
+    final accentBg = (skipped ? t.danger : (selected ? t.accentBlue : t.accentGreen))
+        .withValues(alpha: 0.15);
 
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: skipped ? red.withValues(alpha: 0.06) : t.subCard,
+    return Tooltip(
+      message: blockedReason ?? '',
+      triggerMode: blockedReason == null
+          ? TooltipTriggerMode.manual
+          : TooltipTriggerMode.tap,
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: skipped ? red.withValues(alpha: 0.3) : t.subCardBorder,
+        onTap: (canSelect && !skipped) ? onToggle : null,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: skipped
+                ? t.danger.withValues(alpha: 0.06)
+                : (selected ? t.accentBlue.withValues(alpha: 0.08) : t.subCard),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: skipped
+                  ? t.danger.withValues(alpha: 0.3)
+                  : (selected
+                      ? t.accentBlue.withValues(alpha: 0.5)
+                      : t.subCardBorder),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accentBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: accent.withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${object.id}',
+                      style: TextStyle(
+                        fontFamily: DashTokens.fontMono,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                        color: accent,
+                      ),
+                    ),
+                    Text(
+                      'ID',
+                      style: TextStyle(
+                        fontSize: 8,
+                        letterSpacing: 1,
+                        color: accent.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  object.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: skipped ? t.danger : t.textPrimary,
+                    decoration: skipped ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (skipped)
+                Text(
+                  l10n.skipObjectsSkippedTag,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: t.danger,
+                  ),
+                )
+              else
+                Icon(
+                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: selected ? t.accentBlue : t.textTertiary,
+                ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: badgeBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: badgeColor.withValues(alpha: 0.4)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${object.id}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    color: badgeColor,
-                  ),
-                ),
-                Text(
-                  'ID',
-                  style: TextStyle(
-                    fontSize: 8,
-                    letterSpacing: 1,
-                    color: badgeColor.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              object.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-                color: skipped ? red : t.textPrimary,
-                decoration: skipped ? TextDecoration.lineThrough : null,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          if (skipped)
-            Text(
-              l10n.skipObjectsSkippedTag,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: red,
-              ),
-            )
-          else
-            Tooltip(
-              message: blockedReason ?? '',
-              triggerMode: blockedReason == null
-                  ? TooltipTriggerMode.manual
-                  : TooltipTriggerMode.tap,
-              child: FilledButton(
-                onPressed: (canSkip && !busy) ? onSkip : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: red.withValues(alpha: 0.15),
-                  foregroundColor: red,
-                  disabledBackgroundColor: t.subCard,
-                  disabledForegroundColor: t.textTertiary,
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
-                child: busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.skipObjectsSkip),
-              ).tagged('skip_objects.skip'),
-            ),
-        ],
-      ),
+      ).tagged('skip_objects.object_tile'),
     );
   }
 }

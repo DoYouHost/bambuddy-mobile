@@ -460,17 +460,52 @@ class AppLocalizationsPl extends AppLocalizations {
   String get skipObjectsSkippedTag => 'Pominięto';
 
   @override
-  String skipObjectsSkippedToast(String name) {
-    return 'Pominięto „$name”';
+  String skipObjectsSkippedToast(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pominięto $count obiektów',
+      many: 'Pominięto $count obiektów',
+      few: 'Pominięto $count obiekty',
+      one: 'Pominięto „$names”',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get skipObjectsConfirmTitle => 'Pominąć ten obiekt?';
+  String skipObjectsConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pominąć $count obiektów?',
+      many: 'Pominąć $count obiektów?',
+      few: 'Pominąć $count obiekty?',
+      one: 'Pominąć ten obiekt?',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String skipObjectsConfirmBody(String name) {
-    return '„$name” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.';
+  String skipObjectsConfirmBody(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '„$names” zostaną pominięte do końca tego wydruku. Nie można tego cofnąć.',
+      one:
+          '„$names” zostanie pominięty do końca tego wydruku. Nie można tego cofnąć.',
+    );
+    return '$_temp0';
   }
+
+  @override
+  String skipObjectsSelectedCount(int count) {
+    return 'Zaznaczono: $count';
+  }
+
+  @override
+  String get skipObjectsSelectHint =>
+      'Dotknij obiektu powyżej lub poniżej, aby zaznaczyć go do pominięcia';
 
   @override
   String get skipObjectsMatchInfo => 'Dopasuj ID do ekranu drukarki';

@@ -24,12 +24,17 @@ class SkipObjectsRepository {
             : PrintableObjects.fromJson(body);
       });
 
-  /// Body is a bare JSON array of `identify_id` values (`[683]`). Success =
+  /// Body is a bare JSON array of `identify_id` values (`[683]`). Content-type
+  /// is set explicitly because Dio's implicit-type inference only covers
+  /// `FormData`/`Map`/`String`, not a bare `List<int>` — left unset, some
+  /// networks mislabel the body and the server's Pydantic model then sees a
+  /// raw string instead of a list (422 `list_type`, issue #22). Success =
   /// returns without exception; 403 → [AuthException(forbidden)].
   Future<void> skip(int printerId, List<int> objectIds) => guard(
         () => _dio.post<dynamic>(
           Endpoints.printSkipObjects(printerId),
           data: objectIds,
+          options: Options(contentType: Headers.jsonContentType),
         ),
       );
 }
