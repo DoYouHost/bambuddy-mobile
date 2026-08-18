@@ -33,14 +33,23 @@ class SlotConfiguration {
   /// appended here, since a value that already carries one would be rejected
   /// with 422 further down. [cloudFilamentId] is the `filament_id` read from a
   /// cloud preset's detail — pass it when known, because a custom preset's list
-  /// id is not the id the printer resolves. [kProfile] is the calibration to
-  /// select; null leaves the printer on its default K = 0.020.
+  /// id is not the id the printer resolves.
+  ///
+  /// [kProfile] is the calibration to select. [keepCaliIdx] is the `cali_idx`
+  /// the slot is printing with, and is used **only when no profile was
+  /// selected** — pass it whenever the user was never actually offered the
+  /// choice, and pass null when they were and declined it. The route always
+  /// sends `extrusion_cali_sel`, so there is no "leave the calibration alone"
+  /// value: `-1` actively resets the printer to its default K = 0.020. Writing
+  /// that because the calibration table happened to be unreadable would throw
+  /// away work the user cannot get back without recalibrating.
   factory SlotConfiguration.forPreset({
     required AmsFilamentPreset preset,
     required String colourHex,
     required String nozzleDiameter,
     String? cloudFilamentId,
     KProfile? kProfile,
+    int? keepCaliIdx,
   }) {
     final parsed = parsePresetName(preset.name);
     final material = _materialOf(preset, parsed);
@@ -69,7 +78,14 @@ class SlotConfiguration {
       // not exist on the printer's side.
       settingId:
           preset.source == AmsPresetSource.cloud ? preset.id : '',
-      caliIdx: kProfile?.slotId ?? -1,
+      // Slot 0 is the printer's default rather than a stored profile, so a row
+      // reporting it selects nothing — its `k_value` still travels, and the
+      // server applies that directly when no profile is selected.
+      caliIdx: switch (kProfile?.slotId) {
+        final int slot when slot > 0 => slot,
+        null => (keepCaliIdx != null && keepCaliIdx > 0) ? keepCaliIdx : -1,
+        _ => -1,
+      },
       // The profile's own filament context, not the preset's: the server
       // realigns the slot to it before selecting the calibration, because the
       // printer drops a `cali_idx` that belongs to a different filament id.

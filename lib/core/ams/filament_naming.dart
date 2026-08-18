@@ -86,6 +86,19 @@ ParsedPresetName parsePresetName(String name) {
   return (material: withoutSuffix, brand: '', variant: '');
 }
 
+/// The manufacturer a preset name claims, upper-cased, or empty when it names
+/// none.
+///
+/// "Generic" leads every built-in Bambu preset name and is *not* a maker. Read
+/// as one it gates every downstream match on a manufacturer nobody has, and the
+/// built-in presets — the ones most people pick — match nothing at all
+/// (bambuddy #2710). Both the K-profile matcher and the colour catalogue depend
+/// on this, so the rule lives in one place.
+String presetBrand(ParsedPresetName parsed) {
+  final brand = parsed.brand.toUpperCase().trim();
+  return brand == 'GENERIC' ? '' : brand;
+}
+
 /// The filament id behind a cloud preset's `setting_id`.
 ///
 /// Bambu's own presets differ by one letter — `GFSL05` is the setting, `GFL05`

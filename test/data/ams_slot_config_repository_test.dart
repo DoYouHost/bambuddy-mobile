@@ -310,8 +310,9 @@ void main() {
       expect(profiles, hasLength(1), reason: 'a junk row drops, the rest stay');
       expect(profiles.single.slotId, 3);
       expect(profiles.single.k, 0.02);
-      expect(profiles.single.displayK, '0.020');
-      expect(profiles.single.optionId, 'PLA basic|0.020000');
+      expect(profiles.single.kValue, '0.020000',
+          reason: 'kept verbatim — it is half the identity key');
+      expect(profiles.single.optionId, 'PLA basic|0.020000|GFL05');
     });
 
     test('a printer that is not connected surfaces its 400', () {

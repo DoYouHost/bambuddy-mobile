@@ -87,6 +87,18 @@ void main() {
       expect(choices.matching, isEmpty);
       expect(choices.other, hasLength(2));
     });
+
+    test('an agreeing filament id does not care how short the material is', () {
+      // The material guard exists to stop a one-letter substring matching half
+      // the table by name; it says nothing about an id both sides agree on.
+      final choices = matchKProfiles(
+        profiles: [profile('whatever', slotId: 8, filamentId: 'GFL99')],
+        presetName: 'X',
+        presetFilamentId: 'GFL99',
+      );
+
+      expect(choices.matching.map((p) => p.slotId), [8]);
+    });
   });
 
   group('the profile the slot is printing with', () {
@@ -164,6 +176,24 @@ void main() {
       expect(choices.matching, hasLength(2));
     });
 
+    test('same name and value but a different filament is not one profile', () {
+      // Folding them makes the second unselectable — the duplicate rows this
+      // dedup is for agree on the filament id, these two do not.
+      final choices = matchKProfiles(
+        profiles: [
+          profile('Black', slotId: 1, filamentId: 'GFL99'),
+          profile('Black', slotId: 2, filamentId: 'GFG99'),
+        ],
+        presetName: 'Generic PLA',
+        presetFilamentId: 'GFL99',
+      );
+
+      expect(
+        [...choices.matching, ...choices.other].map((p) => p.slotId),
+        containsAll([1, 2]),
+      );
+    });
+
     test('a matched profile does not turn up in the other group as well', () {
       final choices = matchKProfiles(
         profiles: [
@@ -197,7 +227,7 @@ void main() {
         presetName: 'Generic PLA',
       );
 
-      expect(choices.byOptionId('PLA basic|0.020000')?.slotId, 3);
+      expect(choices.byOptionId('PLA basic|0.020000|')?.slotId, 3);
       expect(choices.byOptionId(''), isNull, reason: 'the default');
       expect(choices.byOptionId('heading:other'), isNull);
     });

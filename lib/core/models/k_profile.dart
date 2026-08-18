@@ -51,13 +51,13 @@ class KProfile {
 
   double get k => double.tryParse(kValue) ?? 0;
 
-  /// Three decimals, the precision the slicer shows and calibrates to.
-  String get displayK => k.toStringAsFixed(3);
-
   /// Identity for the picker and for folding duplicates.
   ///
   /// A multi-nozzle printer reports the same calibration once per nozzle, and
   /// the two rows differ only in [slotId] and [extruderId] — so neither of
-  /// those can be the key. Name plus value is what the web dedupes on too.
-  String get optionId => '$name|$kValue';
+  /// those can be the key. The filament id is in it where the web's key is not:
+  /// two calibrations for *different* filaments that happen to share a name and
+  /// a value are two profiles, and folding them makes the second unselectable.
+  /// The duplicate rows this is meant to fold agree on the id, so they still do.
+  String get optionId => '$name|$kValue|$filamentId';
 }

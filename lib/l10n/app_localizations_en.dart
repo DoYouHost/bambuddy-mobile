@@ -1123,7 +1123,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsSlotConfigKProfile => 'K profile';
 
   @override
-  String get amsSlotConfigKProfileDefault => 'Default (K 0.020)';
+  String amsSlotConfigKProfileDefault(String value) {
+    return 'Default (K $value)';
+  }
 
   @override
   String get amsSlotConfigKProfileOther => 'Other profiles';
@@ -1135,6 +1137,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get amsSlotConfigKProfileUnavailable =>
       'Could not read the printer\'s K profiles';
+
+  @override
+  String amsSlotConfigNozzleGuess(String diameter) {
+    return 'The printer did not report its nozzle size — assuming $diameter mm';
+  }
 
   @override
   String amsSlotConfigKProfileValue(String value) {

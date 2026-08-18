@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/ams/filament_naming.dart';
 import '../../../core/ams/filament_preset_catalog.dart';
@@ -104,9 +105,13 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   AmsFilamentPreset? _picked;
   String? _colour;
 
-  /// Set once the saved mapping has been read, so reopening the sheet does not
-  /// keep overwriting a pick the user just made.
+  /// Set once preselection has actually found the slot's preset. Deliberately
+  /// not set when it finds nothing: the preset may simply be hidden by the
+  /// printer filter, and turning that off has to give it another chance.
   bool _preselected = false;
+
+  /// The user has chosen a preset themselves, which nothing may overwrite.
+  bool _userPicked = false;
 
   /// [SlotPreset.presetId] the server remembers for this slot, once it answers.
   String? _savedPresetId;
@@ -131,10 +136,16 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// revisited.
   String? _kProfileFor;
 
+  /// Whether the user answered the calibration question for the filament now
+  /// picked. False means they were never really asked — the table failed to
+  /// load, or held nothing for this nozzle — and the slot keeps whatever
+  /// calibration it already has instead of being reset to the printer default.
+  bool _kProfileAnswered = false;
+
   @override
   void initState() {
     super.initState();
-    _colour = _sixDigits(widget.target.currentColour);
+    _colour = sixHexDigits(widget.target.currentColour);
   }
 
   @override
@@ -255,8 +266,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
   /// as rendered — arming the write with a row the user cannot see is how a slot
   /// gets configured with a preset nobody chose.
   void _preselectFrom(List<AmsFilamentPreset> visible) {
-    if (_preselected || visible.isEmpty) return;
-    _preselected = true;
+    if (_preselected || _userPicked || visible.isEmpty) return;
 
     final loaded = widget.target.currentFilamentId;
     final mapped = _savedPresetId;
@@ -270,6 +280,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         if (!_contradicts(preset, loaded)) {
           _picked = preset;
           _currentPresetId = preset.pickerId;
+          _preselected = true;
           return;
         }
         break;
@@ -281,6 +292,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       if (_filamentIdOf(preset) == loaded) {
         _picked = preset;
         _currentPresetId = preset.pickerId;
+        _preselected = true;
         return;
       }
     }
@@ -374,6 +386,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     if (_kProfileFor != forPreset) {
       _kProfileFor = forPreset;
       _kProfile = _defaultKProfile(choices);
+      // A decision made about the previous filament says nothing about this
+      // one, so the question reopens with it.
+      _kProfileAnswered = _kProfile != null;
     }
     return choices;
   }
@@ -427,8 +442,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           labelWidget: logTag('ams_slot_config.k_profile.option', Text(label)),
         );
 
+    // Three decimals, the precision the slicer calibrates to, through the
+    // locale's own separator — the default entry sits in the same list and
+    // reads "K 0,020" in Polish, so a hard-coded dot beside it looks broken.
+    final k = NumberFormat('0.000', l10n.localeName);
     String labelFor(KProfile p) =>
-        '${p.name} · ${l10n.amsSlotConfigKProfileValue(p.displayK)}';
+        '${p.name} · ${l10n.amsSlotConfigKProfileValue(k.format(p.k))}';
 
     final matching = choices?.matching ?? const <KProfile>[];
     final other = choices?.other ?? const <KProfile>[];
@@ -437,10 +456,16 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       initialSelection: _kProfile?.optionId ?? '',
       label: Text(l10n.amsSlotConfigKProfile),
       // Says why there is nothing to pick, which the field alone cannot: an
-      // unread table and an uncalibrated printer both leave it on "default".
+      // unread table, a guessed nozzle and an uncalibrated printer all leave it
+      // on "default" and are three different problems.
       helperText: switch ((failed, matching.isEmpty && other.isEmpty)) {
         (null, _) => null,
         (true, _) => l10n.amsSlotConfigKProfileUnavailable,
+        // The guess drives a real query now — the calibration table is indexed
+        // by nozzle size — so a printer that never said which nozzle it wears
+        // may be answering about the wrong one. Also what the write sends.
+        _ when widget.target.nozzleDiameter == null => l10n
+            .amsSlotConfigNozzleGuess(widget.target.effectiveNozzleDiameter),
         (false, true) => l10n.amsSlotConfigKProfileNone,
         (false, false) => null,
       },
@@ -457,10 +482,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         color: t.textPrimary,
       ),
       inputDecorationTheme: dashInputTheme(t),
-      onSelected: (value) =>
-          setState(() => _kProfile = choices?.byOptionId(value)),
+      onSelected: (value) => setState(() {
+        _kProfile = choices?.byOptionId(value);
+        _kProfileAnswered = true;
+      }),
       dropdownMenuEntries: [
-        entry('', l10n.amsSlotConfigKProfileDefault),
+        entry('', l10n.amsSlotConfigKProfileDefault(k.format(_defaultK))),
         for (final p in matching) entry(p.optionId, labelFor(p)),
         if (other.isNotEmpty) ...[
           // A disabled row is the menu's only grouping device.
@@ -605,7 +632,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       padding: const EdgeInsets.only(bottom: 6),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => setState(() => _picked = preset),
+        onTap: () => setState(() {
+          _picked = preset;
+          _userPicked = true;
+        }),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
@@ -790,6 +820,10 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
       nozzleDiameter: target.effectiveNozzleDiameter,
       cloudFilamentId: cloudFilamentId,
       kProfile: _kProfile,
+      // Only when the picker never got to put the question: writing the
+      // default over a calibration nobody was shown throws away work that
+      // costs a recalibration to get back.
+      keepCaliIdx: _kProfileAnswered ? null : target.currentCaliIdx,
     );
 
     SlotConfigOutcome? result;
@@ -930,9 +964,9 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
                       _CatalogueSwatch(
                         entry: entry,
                         selected: _fromCatalogue != null &&
-                            _sixDigits(entry.hexColor) == _fromCatalogue,
+                            sixHexDigits(entry.hexColor) == _fromCatalogue,
                         onTap: () => setState(() {
-                          _fromCatalogue = _sixDigits(entry.hexColor);
+                          _fromCatalogue = sixHexDigits(entry.hexColor);
                           _picked = parseSpoolColor(entry.hexColor) ?? _picked;
                         }),
                       ),
@@ -1045,19 +1079,13 @@ String _hexOf(Color colour) => (colour.toARGB32() & 0xFFFFFF)
     .padLeft(6, '0')
     .toUpperCase();
 
+/// Pressure advance the printer falls back to when no profile is selected.
+/// Bambu's own default, and what `cali_idx: -1` resolves to.
+const _defaultK = 0.02;
+
 /// Value of the K-profile menu's group heading. Never selectable, and no
 /// profile can collide with it: a real entry's value is `name|k_value`.
 const _otherProfilesHeading = 'heading:other';
-
-/// Six hex digits from a stored `RRGGBBAA`, or null when there is nothing to
-/// start from. The alpha is dropped: it is re-added on the way out, and an empty
-/// slot's `00` must not become the colour the picker opens on.
-String? _sixDigits(String? rgba) {
-  final raw = rgba?.trim().replaceFirst('#', '');
-  if (raw == null || raw.length < 6) return null;
-  final rgb = raw.substring(0, 6).toUpperCase();
-  return RegExp(r'^[0-9A-F]{6}$').hasMatch(rgb) ? rgb : null;
-}
 
 /// The catalogue as the sheet renders it, with what the printer filter costs.
 typedef _CatalogueView = ({

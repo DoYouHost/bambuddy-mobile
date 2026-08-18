@@ -26,11 +26,7 @@ List<ColorEntry> presetColours(
   final wanted = '${parsed.material} ${parsed.variant}'.trim().toUpperCase();
   if (wanted.isEmpty) return const [];
 
-  // "Generic PLA" is Bambu's name for the built-in preset, not a manufacturer.
-  // Read as one it would demand a maker called Generic and match nothing —
-  // which is exactly the case where the user most needs the standard colours.
-  final brand =
-      parsed.brand.toUpperCase() == 'GENERIC' ? '' : parsed.brand.toUpperCase();
+  final brand = presetBrand(parsed);
 
   final byColour = <String, ColorEntry>{};
   for (final entry in catalogue) {
@@ -49,18 +45,22 @@ List<ColorEntry> presetColours(
     // manufacturer that sells it, and a grid of visually identical squares
     // reads as a rendering fault. The catalogue arrives sorted, so the first
     // spelling wins.
-    final hex = _rgb(entry.hexColor);
+    final hex = sixHexDigits(entry.hexColor);
     if (hex == null) continue;
     byColour.putIfAbsent(hex, () => entry);
   }
   return byColour.values.toList();
 }
 
-/// Six upper-case hex digits from a catalogue entry's colour, or null when it
-/// is not a colour at all.
-String? _rgb(String raw) {
-  final hex = raw.trim().replaceFirst('#', '');
-  if (hex.length < 6) return null;
+/// Six upper-case hex digits from any of the spellings a colour arrives in
+/// (`#RRGGBB`, `RRGGBB`, `RRGGBBAA`), or null when it is not a colour at all.
+///
+/// The alpha is dropped rather than kept: the catalogue writes `#RRGGBB` and
+/// the printer writes `RRGGBBAA`, and the two have to compare equal — while a
+/// slot's `00` alpha means *empty*, which must never become a picked colour.
+String? sixHexDigits(String? raw) {
+  final hex = raw?.trim().replaceFirst('#', '');
+  if (hex == null || hex.length < 6) return null;
   final rgb = hex.substring(0, 6).toUpperCase();
   return RegExp(r'^[0-9A-F]{6}$').hasMatch(rgb) ? rgb : null;
 }

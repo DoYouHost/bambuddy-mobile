@@ -212,6 +212,47 @@ void main() {
       expect(query['k_value'], 0.035);
     });
 
+    test('a calibration nobody was offered is kept, not wiped', () {
+      // The route always sends extrusion_cali_sel, so -1 is not "leave it
+      // alone" — it resets the printer to K = 0.020. Writing that because the
+      // table failed to load costs the user a recalibration.
+      final query = SlotConfiguration.forPreset(
+        preset: preset,
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+        keepCaliIdx: 7,
+      ).toQuery();
+
+      expect(query['cali_idx'], 7);
+    });
+
+    test('a profile that was picked outranks what the slot had', () {
+      final query = SlotConfiguration.forPreset(
+        preset: preset,
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+        kProfile: const KProfile(slotId: 4, name: 'x', kValue: '0.030000'),
+        keepCaliIdx: 7,
+      ).toQuery();
+
+      expect(query['cali_idx'], 4);
+    });
+
+    test('slot 0 is the printer default, not a profile to select', () {
+      // The schema uses slot_id 0 for a profile that was never stored, so
+      // selecting it would name the default and mean nothing. Its value still
+      // travels — the server applies it directly when nothing is selected.
+      final query = SlotConfiguration.forPreset(
+        preset: preset,
+        colourHex: 'FFFFFF',
+        nozzleDiameter: '0.4',
+        kProfile: const KProfile(slotId: 0, name: 'fresh', kValue: '0.041000'),
+      ).toQuery();
+
+      expect(query['cali_idx'], -1);
+      expect(query['k_value'], 0.041);
+    });
+
     test('none picked leaves the printer on its default', () {
       final query = SlotConfiguration.forPreset(
         preset: preset,

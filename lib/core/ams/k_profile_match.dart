@@ -91,21 +91,18 @@ List<KProfile> _matching({
 
   final parsed = parsePresetName(name);
   final material = parsed.material.toUpperCase();
-  // "Generic" leads every built-in Bambu preset name and is not a manufacturer.
-  // Read as one it puts the filter into brand-gated mode and then demands
-  // "GENERIC" in the profile's name, which no real profile has — so picking a
-  // built-in generic preset would match nothing at all.
-  final brand =
-      parsed.brand.toUpperCase() == 'GENERIC' ? '' : parsed.brand.toUpperCase();
+  final brand = presetBrand(parsed);
   final fullName = presetNameWithoutPrinter(name).toUpperCase();
 
-  // A one-letter material would match half the table on substring alone.
-  final usable = material.length >= 2;
-  final matched = !usable
-      ? const <KProfile>[]
-      : profiles.where((p) =>
-          _matchesFilamentId(p, presetFilamentId) ||
-          _matchesName(p, brand: brand, material: material, fullName: fullName));
+  // A one-letter material would match half the table on substring alone — but
+  // that only disqualifies the *name* heuristic. An agreeing filament id is
+  // hard evidence and does not care what the preset is called.
+  final byName = material.length >= 2;
+  final matched = profiles.where((p) =>
+      _matchesFilamentId(p, presetFilamentId) ||
+      (byName &&
+          _matchesName(p,
+              brand: brand, material: material, fullName: fullName)));
 
   final result = _dedupe(matched, extruderId);
 

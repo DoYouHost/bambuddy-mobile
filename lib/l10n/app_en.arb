@@ -457,10 +457,17 @@
   },
   "amsSlotConfigCurrent": "Currently set",
   "amsSlotConfigKProfile": "K profile",
-  "amsSlotConfigKProfileDefault": "Default (K 0.020)",
+  "amsSlotConfigKProfileDefault": "Default (K {value})",
+  "@amsSlotConfigKProfileDefault": {
+    "placeholders": { "value": { "type": "String" } }
+  },
   "amsSlotConfigKProfileOther": "Other profiles",
   "amsSlotConfigKProfileNone": "This printer has no stored K profiles for this nozzle",
   "amsSlotConfigKProfileUnavailable": "Could not read the printer's K profiles",
+  "amsSlotConfigNozzleGuess": "The printer did not report its nozzle size — assuming {diameter} mm",
+  "@amsSlotConfigNozzleGuess": {
+    "placeholders": { "diameter": { "type": "String" } }
+  },
   "amsSlotConfigKProfileValue": "K {value}",
   "@amsSlotConfigKProfileValue": {
     "placeholders": { "value": { "type": "String" } }

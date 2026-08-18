@@ -2039,8 +2039,8 @@ abstract class AppLocalizations {
   /// No description provided for @amsSlotConfigKProfileDefault.
   ///
   /// In en, this message translates to:
-  /// **'Default (K 0.020)'**
-  String get amsSlotConfigKProfileDefault;
+  /// **'Default (K {value})'**
+  String amsSlotConfigKProfileDefault(String value);
 
   /// No description provided for @amsSlotConfigKProfileOther.
   ///
@@ -2059,6 +2059,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not read the printer\'s K profiles'**
   String get amsSlotConfigKProfileUnavailable;
+
+  /// No description provided for @amsSlotConfigNozzleGuess.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not report its nozzle size — assuming {diameter} mm'**
+  String amsSlotConfigNozzleGuess(String diameter);
 
   /// No description provided for @amsSlotConfigKProfileValue.
   ///

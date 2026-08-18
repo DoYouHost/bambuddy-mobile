@@ -586,6 +586,41 @@ void main() {
         reason: 'the other tiers still fill the picker');
   });
 
+  testWidgets('turning the filter off gives preselection another chance',
+      (tester) async {
+    // The slot is set to a preset the printer filter hides. Latching
+    // preselection on the first list would leave it unmarked for good, so
+    // "show everything" would list it as just another row.
+    final repo = _FakeRepo()
+      ..cloudPresets = const [
+        AmsFilamentPreset(
+          source: AmsPresetSource.cloud,
+          id: 'GFSB99_09',
+          name: 'Bambu ABS @BBL A1',
+        ),
+      ];
+    await openSheet(
+      tester,
+      repo: repo,
+      slot: const AmsSlotTarget(
+        printerId: 1,
+        amsId: 0,
+        trayId: 2,
+        label: 'AMS 1 · 3',
+        printerModel: 'X1C',
+        currentFilamentId: 'GFB99',
+      ),
+    );
+
+    expect(find.text('Ustawiony teraz · Bambu Cloud'), findsNothing,
+        reason: 'the filter hides it, so there is nothing to mark yet');
+
+    await tapVisible(tester, find.textContaining('Tylko dla X1C'));
+
+    expect(find.text('Bambu ABS @BBL A1'), findsOneWidget);
+    expect(find.text('Ustawiony teraz · Bambu Cloud'), findsOneWidget);
+  });
+
   group('the K profile', () {
     const calibrated = KProfile(
       slotId: 4,
@@ -635,7 +670,7 @@ void main() {
 
       await tapVisible(tester, find.text('Generic PLA'));
 
-      expect(find.text('PLA basic · K 0.035'), findsOneWidget,
+      expect(find.text('PLA basic · K 0,035'), findsOneWidget,
           reason: 'the only calibration for this filament arms itself');
     });
 
@@ -651,6 +686,58 @@ void main() {
       expect(written.kProfileFilamentId, 'GFL99');
       expect(written.kProfileSettingId, 'PFUS7');
       expect(written.kValue, 0.035);
+    });
+
+    testWidgets('an unreadable table does not wipe the slot calibration',
+        (tester) async {
+      // The write always carries a cali_idx, so -1 resets the printer to its
+      // default K. Sending that because the table could not be read throws
+      // away a calibration nobody was ever shown.
+      final repo = _FakeRepo()..profilesError = Exception('nope');
+      await openSheet(
+        tester,
+        repo: repo,
+        slot: const AmsSlotTarget(
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          label: 'AMS 1 · 3',
+          printerModel: 'X1C',
+          nozzleDiameter: '0.6',
+          currentCaliIdx: 6,
+        ),
+      );
+
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      expect(repo.written!.caliIdx, 6);
+    });
+
+    testWidgets('choosing the default is honoured over what the slot had',
+        (tester) async {
+      // The rule above must not turn into "the user can never clear it".
+      final repo = _FakeRepo()..profiles = const [calibrated];
+      await openSheet(
+        tester,
+        repo: repo,
+        slot: const AmsSlotTarget(
+          printerId: 1,
+          amsId: 0,
+          trayId: 2,
+          label: 'AMS 1 · 3',
+          printerModel: 'X1C',
+          nozzleDiameter: '0.6',
+          currentCaliIdx: 6,
+        ),
+      );
+
+      await tapVisible(tester, find.text('Generic PLA'));
+      await tapVisible(tester, find.text('PLA basic · K 0,035'));
+      await tapVisible(tester, find.text('Domyślny (K 0,020)').last);
+      await tapVisible(tester, find.text('Zapisz w drukarce'));
+
+      expect(repo.written!.caliIdx, -1);
     });
 
     testWidgets('the slot keeps the calibration it is printing with',
@@ -684,7 +771,7 @@ void main() {
       await openSheet(tester, repo: repo);
       await tapVisible(tester, find.text('Generic PLA'));
 
-      await tapVisible(tester, find.text('PLA basic · K 0.035'));
+      await tapVisible(tester, find.text('PLA basic · K 0,035'));
       await tapVisible(tester, find.text('Domyślny (K 0,020)').last);
       await tapVisible(tester, find.text('Zapisz w drukarce'));
 
@@ -700,12 +787,12 @@ void main() {
       await openSheet(tester, repo: repo);
 
       await tapVisible(tester, find.text('Generic PLA'));
-      expect(find.text('PLA basic · K 0.035'), findsOneWidget);
+      expect(find.text('PLA basic · K 0,035'), findsOneWidget);
 
       await tapVisible(tester, find.text('eSUN PETG'));
 
-      expect(find.text('eSUN PETG dry · K 0.048'), findsOneWidget);
-      expect(find.text('PLA basic · K 0.035'), findsNothing);
+      expect(find.text('eSUN PETG dry · K 0,048'), findsOneWidget);
+      expect(find.text('PLA basic · K 0,035'), findsNothing);
     });
 
     testWidgets('every calibration the printer holds stays reachable',
@@ -716,10 +803,10 @@ void main() {
       await openSheet(tester, repo: repo);
       await tapVisible(tester, find.text('Generic PLA'));
 
-      await tapVisible(tester, find.text('PLA basic · K 0.035'));
+      await tapVisible(tester, find.text('PLA basic · K 0,035'));
 
       expect(find.text('Pozostałe profile'), findsOneWidget);
-      expect(find.text('eSUN PETG dry · K 0.048'), findsOneWidget);
+      expect(find.text('eSUN PETG dry · K 0,048'), findsOneWidget);
     });
   });
 
