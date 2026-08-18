@@ -202,4 +202,52 @@ void main() {
         tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Pomiń'));
     expect(button.onPressed, isNull);
   });
+
+  testWidgets(
+      'obiekt zniknięty z odświeżenia w tle po zaznaczeniu nie leci w żądaniu mimo braku w dialogu',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    final repo = await pumpScreen(tester);
+
+    await tapRow(tester, 'Divider_left.stl');
+    await tapRow(tester, 'Divider_right.stl');
+    expect(find.text('Zaznaczono: 2'), findsOneWidget);
+
+    // The background poll (or a pull-to-refresh) reloads the objects from the
+    // 3MF and 512 is no longer in it — while it's still in `_selected`. Drive
+    // it through the screen's own pull-to-refresh rather than a raw
+    // `ProviderContainer`, so the provider's periodic poll timer is torn down
+    // the same well-trodden way every other test in this file already is.
+    repo._objects = const PrintableObjects(
+      objects: [PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104)],
+      total: 1,
+      isPrinting: true,
+      bboxAll: [88, 88, 168, 168],
+    );
+    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pomiń'));
+    await tester.pumpAndSettle();
+
+    // The dialog only shows the survivor — singular phrasing, no trace of 512.
+    expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+    expect(find.textContaining('512'), findsNothing);
+
+    await tester.tap(find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.text('Pomiń'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The request must match exactly what the dialog showed — no phantom 512
+    // riding along from the raw (now-stale) selection set.
+    expect(repo.skipCalls, [
+      [421],
+    ]);
+  });
 }

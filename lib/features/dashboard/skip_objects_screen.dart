@@ -228,7 +228,11 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     if (!confirmed || !mounted) return;
 
     setState(() => _skipping = true);
-    final ids = _selected.toList();
+    // From `objs`, not `_selected`: the background poll can drop an object
+    // between selecting it and confirming (e.g. a 3MF reload), and `objs` is
+    // exactly what the dialog just showed — the request must match that, or
+    // an id the user never saw confirmed would go out anyway.
+    final ids = objs.map((o) => o.id).toList();
     final result = await ref
         .read(skipObjectsProvider(widget.printerId).notifier)
         .skip(ids);
@@ -416,6 +420,20 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
           );
     }
 
+    Widget marker(int i) {
+      final obj = data.objects[i];
+      final rect = _markerRect(data, i);
+      return _ObjectMarker(
+        object: obj,
+        fraction: rect.center,
+        sizeFraction: rect.size,
+        tokens: t,
+        selected: widget.selected.contains(obj.id),
+        canSelect: widget.canSelect,
+        onTap: () => widget.onToggle(obj),
+      );
+    }
+
     // Plate content (background + ID markers). Wrapped in an InteractiveViewer
     // so it pinch-zooms in place — no separate fullscreen view. The count badge
     // sits outside the viewer so it stays fixed while the plate zooms/pans.
@@ -425,16 +443,7 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
         fit: StackFit.expand,
         children: [
           background,
-          for (var i = 0; i < data.objects.length; i++)
-            _ObjectMarker(
-              object: data.objects[i],
-              fraction: _markerFraction(data, i),
-              sizeFraction: _markerSizeFraction(data, i),
-              tokens: t,
-              selected: widget.selected.contains(data.objects[i].id),
-              canSelect: widget.canSelect,
-              onTap: () => widget.onToggle(data.objects[i]),
-            ),
+          for (var i = 0; i < data.objects.length; i++) marker(i),
         ],
       ),
     );
@@ -481,51 +490,56 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
   }
 }
 
-/// Maps an object's plate coordinates to a 0..1 fraction of the square render.
-/// Uses [PrintableObjects.bboxAll] (the render's visible area) when available,
-/// then a full-plate fallback, then a grid when positions are missing —
-/// mirrors the web client so IDs land on the right parts.
-Offset _markerFraction(PrintableObjects data, int index) {
+/// Maps an object's plate position and footprint (both mm) to a 0..1-fraction
+/// center + size within the square render. Position and size shared their
+/// bbox scale/padding through two separate functions before this, which had
+/// already let a missing-bbox fallback disagree between them (position tried
+/// an assumed 256 mm plate, size just gave every object the flat badge size)
+/// — computing both from the same tier here means they can't drift again.
+/// Falls back through the same tiers the web client uses: full bbox scale, an
+/// assumed 256 mm plate, then a grid when positions are missing entirely.
+({Offset center, Size size}) _markerRect(PrintableObjects data, int index) {
   final obj = data.objects[index];
   final bbox = data.bboxAll;
-  double x, y;
+  const pad = 0.08, content = 1 - pad * 2;
+  const fallbackSize = 0.12;
+
+  Offset center(double x, double y) =>
+      Offset(x.clamp(0.05, 0.95), y.clamp(0.05, 0.95));
+  Size sizeIn(double spanW, double spanH) => obj.width == null || obj.height == null
+      ? const Size(fallbackSize, fallbackSize)
+      : Size(
+          (spanW == 0 ? fallbackSize : (obj.width! / spanW) * content)
+              .clamp(0.08, 0.9),
+          (spanH == 0 ? fallbackSize : (obj.height! / spanH) * content)
+              .clamp(0.08, 0.9),
+        );
+
   if (obj.x != null && obj.y != null && bbox != null) {
     final xMin = bbox[0], yMin = bbox[1], xMax = bbox[2], yMax = bbox[3];
     final w = xMax - xMin, h = yMax - yMin;
-    const pad = 0.08, content = 1 - pad * 2;
-    x = w == 0 ? 0.5 : pad + ((obj.x! - xMin) / w) * content;
+    final x = w == 0 ? 0.5 : pad + ((obj.x! - xMin) / w) * content;
     // Image Y grows downward; plate Y grows toward the back → invert.
-    y = h == 0 ? 0.5 : pad + ((yMax - obj.y!) / h) * content;
-  } else if (obj.x != null && obj.y != null) {
+    final y = h == 0 ? 0.5 : pad + ((yMax - obj.y!) / h) * content;
+    return (center: center(x, y), size: sizeIn(w, h));
+  }
+  if (obj.x != null && obj.y != null) {
     const plate = 256.0;
-    x = obj.x! / plate;
-    y = 1 - obj.y! / plate;
-  } else {
-    final cols = math.max(1, math.sqrt(data.objects.length).ceil());
-    final rows = math.max(1, (data.objects.length / cols).ceil());
-    final col = index % cols, row = index ~/ cols;
-    x = 0.15 + col * (0.7 / cols) + 0.35 / cols;
-    y = 0.15 + row * (0.7 / rows) + 0.35 / rows;
+    return (
+      center: center(obj.x! / plate, 1 - obj.y! / plate),
+      size: sizeIn(plate, plate),
+    );
   }
-  return Offset(x.clamp(0.05, 0.95), y.clamp(0.05, 0.95));
-}
-
-/// Maps an object's footprint to a 0..1-fraction (width, height) of the square
-/// render, alongside [_markerFraction]'s position. Real objects have no known
-/// footprint today (see [PrintableObject]), so this only varies per object in
-/// demo — everywhere else every marker gets the same fixed badge size.
-Size _markerSizeFraction(PrintableObjects data, int index) {
-  const fallback = 0.12;
-  final obj = data.objects[index];
-  final bbox = data.bboxAll;
-  if (obj.width == null || obj.height == null || bbox == null) {
-    return const Size(fallback, fallback);
-  }
-  final bboxW = bbox[2] - bbox[0], bboxH = bbox[3] - bbox[1];
-  const pad = 0.08, content = 1 - pad * 2;
-  final w = bboxW == 0 ? fallback : (obj.width! / bboxW) * content;
-  final h = bboxH == 0 ? fallback : (obj.height! / bboxH) * content;
-  return Size(w.clamp(0.08, 0.9), h.clamp(0.08, 0.9));
+  final cols = math.max(1, math.sqrt(data.objects.length).ceil());
+  final rows = math.max(1, (data.objects.length / cols).ceil());
+  final col = index % cols, row = index ~/ cols;
+  return (
+    center: center(
+      0.15 + col * (0.7 / cols) + 0.35 / cols,
+      0.15 + row * (0.7 / rows) + 0.35 / rows,
+    ),
+    size: const Size(fallbackSize, fallbackSize),
+  );
 }
 
 /// Draws a faint 8×8 build-plate grid inside a rounded border — a stand-in for
