@@ -43,6 +43,10 @@ enum NotifSkip {
   /// described that phase and not the job. Acting on it fires several
   /// milestones at once before the first layer is even down.
   prepPhase,
+
+  /// The same reading already earned an alert recently. Not a decision about
+  /// the condition — it still holds — only about saying so again.
+  throttled,
 }
 
 /// Records what the notification layer decided, and what it decided *not* to

@@ -62,6 +62,20 @@ const Set<String> _hmsUserActionCodes = {
   '0500_400E', // "Printing was cancelled."
 };
 
+/// How far AMS humidity has to fall back below the user's threshold before its
+/// alert re-arms.
+///
+/// bambuddy compares against a bare threshold and needs no band, because it only
+/// looks every five minutes ([AMS_HISTORY_INTERVAL]) and holds the cooldown
+/// below. This monitor sees every frame — roughly one a second — so a reading
+/// resting on the threshold crosses it constantly, and without a band each dip
+/// would re-arm the alert.
+const int _humidityRearmMargin = 3;
+
+/// One humidity alert per AMS unit per hour, whatever the reading does in
+/// between. Parity with bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`.
+const Duration _humidityAlertCooldown = Duration(hours: 1);
+
 /// Timer factory — injectable so tests can control time instead of waiting 15s.
 typedef TimerFactory = Timer Function(Duration, void Function());
 
@@ -86,6 +100,11 @@ class _PrinterMemo {
   final Set<String> hmsDeferredOffline = {};
   final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
+
+  /// When each unit last had a humidity alert. The latch above already covers a
+  /// reading that stays up; this covers one that keeps crossing the band, where
+  /// every crossing is a fresh latch and would otherwise be a fresh alert.
+  final Map<int, DateTime> humidAlertedAt = {};
   bool awaitingBedCool = false;
 
   /// Whether the prep-phase progress was already recorded as ignored for this
@@ -621,12 +640,25 @@ class PrintMonitor {
       if (humidity == null) continue;
       final key = unit.id ?? i;
       if (humidity > threshold) {
-        if (memo.humidUnits.add(key)) {
-          triggered = true;
-          value = humidity;
-          isHt = unit.isAmsHt;
+        if (!memo.humidUnits.add(key)) continue; // already standing
+        final last = memo.humidAlertedAt[key];
+        final now = _now();
+        if (last != null && now.difference(last) < _humidityAlertCooldown) {
+          NotifProbe.suppressed(
+            NotifSkip.throttled,
+            printerId: id,
+            event: NotifEvent.amsHumidity,
+            fields: {'unit': key, 'humidity': humidity},
+          );
+          continue;
         }
-      } else {
+        memo.humidAlertedAt[key] = now;
+        triggered = true;
+        value = humidity;
+        isHt = unit.isAmsHt;
+      } else if (humidity <= threshold - _humidityRearmMargin) {
+        // Only a real retreat re-arms it. Sitting one point under the threshold
+        // is the same damp unit, not a resolved one.
         memo.humidUnits.remove(key);
       }
     }

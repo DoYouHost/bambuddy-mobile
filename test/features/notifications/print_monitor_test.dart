@@ -675,6 +675,52 @@ void main() {
     expect(alertById(fake, bandId(10)), isNotNull);
   });
 
+  test('wilgotność AMS: drganie wokół progu nie dzwoni przy każdym przejściu',
+      () {
+    // Serwer patrzy co pięć minut, my na każdą ramkę — czyli mniej więcej co
+    // sekundę. Odczyt siedzący na progu przekracza go bez końca.
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t);
+    AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
+
+    m.update({1: _status(state: 'IDLE', ams: [at(50)])}); // priming
+    m.update({1: _status(state: 'IDLE', ams: [at(61)])});
+    expect(fake.alerts, hasLength(1));
+
+    for (final h in [60, 61, 59, 61, 58, 61]) {
+      t = t.add(const Duration(seconds: 5));
+      m.update({1: _status(state: 'IDLE', ams: [at(h)])});
+    }
+
+    expect(fake.alerts, hasLength(1), reason: 'to wciąż ta sama wilgotna szpula');
+  });
+
+  test('wilgotność AMS: realny spadek uzbraja, ale nie częściej niż raz na '
+      'godzinę', () {
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t);
+    AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
+
+    m.update({1: _status(state: 'IDLE', ams: [at(50)])}); // priming
+    m.update({1: _status(state: 'IDLE', ams: [at(61)])});
+    expect(fake.alerts, hasLength(1));
+
+    // Zeszła pod pasmo (60 − 3), więc zatrzask puszcza — ale godzina jeszcze nie
+    // minęła, więc ponowny wzrost tylko się odnotowuje.
+    m.update({1: _status(state: 'IDLE', ams: [at(56)])});
+    t = t.add(const Duration(minutes: 20));
+    m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    expect(fake.alerts, hasLength(1), reason: 'cooldown');
+
+    // Po godzinie od pierwszego alertu ta sama sytuacja jest już warta słowa.
+    m.update({1: _status(state: 'IDLE', ams: [at(56)])});
+    t = t.add(const Duration(minutes: 45));
+    m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    expect(fake.alerts, hasLength(2));
+  });
+
   test('stół wystygł: tylko po zakończonym wydruku i poniżej progu', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
