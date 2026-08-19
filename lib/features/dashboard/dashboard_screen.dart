@@ -88,16 +88,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
         ref.read(cameraTokenRefresherProvider)?.stop();
+        // The service isolate carries its own from here. Both would poll the
+        // same archives and, worse, both write the shared alert memory — a
+        // read-modify-write, so the loser's entry is dropped and its photo never
+        // reaches the notification.
+        final finishPhoto = ref.read(finishPhotoNotifierProvider);
+        if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
         _logBgService('stop');
-        // Take the watch relay back only once the FGS isolate is stopped, so
-        // the two responders never overlap (see onPause).
+        // Take the watch relay and the finish-photo search back only once the
+        // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
-          ref
-              .read(backgroundMonitorProvider)
-              .stop()
-              .then((_) => ref.read(wearRelayHandlerProvider).start()),
+          ref.read(backgroundMonitorProvider).stop().then((_) {
+            ref.read(wearRelayHandlerProvider).start();
+            ref.read(finishPhotoNotifierProvider)?.start();
+          }),
         );
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();

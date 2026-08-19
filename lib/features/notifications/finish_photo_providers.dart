@@ -10,10 +10,14 @@ import '../dashboard/ws_providers.dart';
 ///
 /// The alert is always posted by the foreground service, but the photo arrives a
 /// minute or so later — often after the user has opened the app, which stops
-/// that service and leaves this isolate holding the only live socket. The two
-/// never run at once (started on pause, stopped on resume), so a notification
-/// cannot be updated twice; which one to update comes from [FinishAlertMemory],
-/// since the isolate that posted it is gone by then.
+/// that service and leaves this isolate holding the only live socket. Which
+/// notification to update comes from [FinishAlertMemory], since the isolate that
+/// posted it is gone by then.
+///
+/// Exactly one of the two may run: the dashboard's lifecycle hooks stop this one
+/// as the service takes over and start it again only once the service is down.
+/// Overlapping them would fetch every photo twice and let their read-modify-write
+/// on the shared memory drop an entry, stranding a notification without a photo.
 final finishPhotoNotifierProvider = Provider<FinishPhotoNotifier?>((ref) {
   final profile = ref.watch(serverProfileProvider);
   if (profile == null || profile.isDemo) return null;
