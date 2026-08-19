@@ -9,6 +9,8 @@ import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
+import 'package:bambuddy_mobile/features/notifications/print_monitor.dart'
+    show alertBandWidth;
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
@@ -216,6 +218,23 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
+  test('duże id zadania nie wchodzi w pasmo przypomnień', () async {
+    // `printer_maintenance.id` to autoinkrement bez sufitu — serwer dokłada
+    // wiersz na drukarkę na każdy typ zadania przy każdym przeglądzie, a numery
+    // po skasowanych drukarkach nie wracają. Przy paśmie szerokości 1000
+    // pozycja 1001 dostawała id przypomnienia drukarki 1 i je podmieniała,
+    // podstawiając pod przycisk „Oznacz wykonane" cudzą listę zadań.
+    repo.overview = [
+      _printer([_item(id: 1001, isDue: true)]),
+    ];
+
+    await monitor().check();
+
+    final id = notifications.alerts.single['id']! as int;
+    expect(id, greaterThanOrEqualTo(12 * alertBandWidth));
+    expect(id, lessThan(13 * alertBandWidth));
+  });
+
   test('remindOnPrintEnd: zbiorcze przypomnienie gdy są zaległe', () async {
     repo.overview = [
       _printer([_item(id: 10, isDue: true), _item(id: 12, isDue: true)]),
@@ -224,7 +243,7 @@ void main() {
     await monitor().remindOnPrintEnd(1);
 
     final alert = notifications.alerts.single;
-    expect(alert['id'], 13000 + 1);
+    expect(alert['id'], 13 * alertBandWidth + 1);
     expect(alert['payload'], '10,12');
     expect(alert['actionIds'], [maintenancePerformActionId]);
   });

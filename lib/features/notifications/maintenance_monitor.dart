@@ -5,12 +5,15 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../data/maintenance_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'print_monitor.dart' show systemAppLocalizations;
+import 'print_monitor.dart' show alertBandWidth, systemAppLocalizations;
 
-/// Base alert IDs for maintenance — separate from print alerts (which end at
-/// 11000 in [PrintMonitor]). Add item ID / printer ID to base.
-const int _maintenanceDueAlertBase = 12000;
-const int _maintenanceReminderAlertBase = 13000;
+/// Base alert IDs for maintenance — the two bands after the print alerts, which
+/// end at 11 × [alertBandWidth] in [PrintMonitor]. Add item ID / printer ID to
+/// base. The due band's offset is a `printer_maintenance` row id, the fastest
+/// growing of them all: the server adds a row per printer per task type on every
+/// overview it serves, so this is the band that most needs its width.
+const int _maintenanceDueAlertBase = 12 * alertBandWidth;
+const int _maintenanceReminderAlertBase = 13 * alertBandWidth;
 
 /// REST-based maintenance monitor running in the foreground service isolate:
 /// periodically checks if any maintenance task became overdue ([check]) and fires

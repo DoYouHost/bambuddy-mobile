@@ -247,6 +247,11 @@ void main() {
   // treat every code as documented unless a test says otherwise.
   String? describeAll(HmsError e) => 'desc';
 
+  // Alerty jednego typu dzielą id per drukarka; pasmo liczymy tak jak produkcja,
+  // żeby test nie przypinał się do jego szerokości.
+  int bandId(int band, [int printerId = 1]) =>
+      band * alertBandWidth + printerId;
+
   // Ostatni alert o danym id (alerty tego samego typu współdzielą id per drukarka
   // — na urządzeniu nowy zastępuje stary; tu fake zapisuje wszystkie).
   Map<String, Object?>? alertById(_FakeNotifications fake, int id) {
@@ -268,25 +273,25 @@ void main() {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'IDLE')});
-    expect(alertById(fake, 3001), isNull);
+    expect(alertById(fake, bandId(3)), isNull);
     m.update({1: _status(state: 'RUNNING', job: 'cube.3mf')});
-    expect(alertById(fake, 3001)?['title'], 'Print started');
+    expect(alertById(fake, bandId(3))?['title'], 'Print started');
   });
 
   test('pierwsza warstwa GOTOWA: alert raz, dopiero gdy layer_num osiąga 2', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 0)});
-    expect(alertById(fake, 4001), isNull);
+    expect(alertById(fake, bandId(4)), isNull);
     // Warstwa 1 dopiero ROZPOCZĘTA — jeszcze nie ukończona, brak alertu.
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 1)});
-    expect(alertById(fake, 4001), isNull);
+    expect(alertById(fake, bandId(4)), isNull);
     // Warstwa 2 → warstwa 1 ukończona (parytet z bambuddy layer_num ≥ 2).
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 2)});
-    expect(alertById(fake, 4001), isNotNull);
+    expect(alertById(fake, bandId(4)), isNotNull);
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', job: 'x', layerNum: 3)});
-    expect(alertById(fake, 4001), isNull); // bez powtórki
+    expect(alertById(fake, bandId(4)), isNull); // bez powtórki
   });
 
   test('kamienie milowe: 25/50/75 raz każdy', () {
@@ -295,9 +300,9 @@ void main() {
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 10)});
     expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
-    expect(alertById(fake, 5001)?['title'], '25% printed');
+    expect(alertById(fake, bandId(5))?['title'], '25% printed');
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 55)});
-    expect(alertById(fake, 5001)?['title'], '50% printed');
+    expect(alertById(fake, bandId(5))?['title'], '50% printed');
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60)});
     expect(fake.alerts, isEmpty); // nic nowego nie przekroczono
@@ -315,7 +320,7 @@ void main() {
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 5, layerNum: 1)});
     expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30, layerNum: 8)});
-    expect(alertById(fake, 5001)?['title'], '25% printed');
+    expect(alertById(fake, bandId(5))?['title'], '25% printed');
   });
 
   test('kamienie milowe: primowanie na ramce kalibracyjnej nie zjada progów', () {
@@ -325,9 +330,9 @@ void main() {
     // 25 i 50 jako wysłane i wyciszyła je na cały prawdziwy wydruk.
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 60, layerNum: 0)});
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30, layerNum: 8)});
-    expect(alertById(fake, 5001)?['title'], '25% printed');
+    expect(alertById(fake, bandId(5))?['title'], '25% printed');
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 55, layerNum: 15)});
-    expect(alertById(fake, 5001)?['title'], '50% printed');
+    expect(alertById(fake, bandId(5))?['title'], '50% printed');
   });
 
   test('kamienie milowe: primowanie w trakcie druku nadal zatrzaskuje progi', () {
@@ -337,7 +342,7 @@ void main() {
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 62, layerNum: 41)});
     expect(fake.alerts.where((a) => a['id'] == 5001), isEmpty);
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 80, layerNum: 55)});
-    expect(alertById(fake, 5001)?['title'], '75% printed');
+    expect(alertById(fake, bandId(5))?['title'], '75% printed');
   });
 
   test('płyta niepusta: alert z ramki WS plate_not_empty, nie ze statusu', () {
@@ -347,10 +352,10 @@ void main() {
     // odpalić alertu (to bramka kolejki, nie detekcja obiektów na stole).
     m.update({1: _status(state: 'RUNNING', job: 'x')});
     m.update({1: _status(state: 'FINISH', awaitingPlateClear: true)});
-    expect(alertById(fake, 6001), isNull);
+    expect(alertById(fake, bandId(6)), isNull);
     // Dopiero osobna ramka WS odpala alert (z nazwą drukarki z ramki).
     m.onPlateNotEmpty(1, 'X1C');
-    final alert = alertById(fake, 6001);
+    final alert = alertById(fake, bandId(6));
     expect(alert, isNotNull);
     expect(alert!['body'], contains('X1C'));
   });
@@ -365,10 +370,10 @@ void main() {
       clock: () => DateTime(2026, 6, 12, 20, 0),
     );
     off.onPlateNotEmpty(1, 'X1C');
-    expect(alertById(fake, 6001), isNull);
+    expect(alertById(fake, bandId(6)), isNull);
     // sanity: domyślny monitor (plate wł.) odpala
     m.onPlateNotEmpty(1, 'X1C');
-    expect(alertById(fake, 6001), isNotNull);
+    expect(alertById(fake, bandId(6)), isNotNull);
   });
 
   test('offline: alert dopiero po upływie łaski; powrót online ją kasuje', () {
@@ -382,10 +387,10 @@ void main() {
 
     m.update({1: _status(state: 'IDLE', connected: true)});
     m.update({1: _status(state: 'IDLE', connected: false)});
-    expect(alertById(fake, 7001), isNull); // jeszcze nie — czeka na grace
+    expect(alertById(fake, bandId(7)), isNull); // jeszcze nie — czeka na grace
     expect(timers, hasLength(1));
     timers.single.fire();
-    expect(alertById(fake, 7001)?['title'], 'Printer offline');
+    expect(alertById(fake, bandId(7))?['title'], 'Printer offline');
 
     // Drugi epizod: offline, ale powrót online przed upływem łaski → brak alertu.
     final fake2 = _FakeNotifications();
@@ -518,7 +523,7 @@ void main() {
       1: _status(state: 'RUNNING', hms: [err, other]),
     });
 
-    expect(errorAlerts(fake).map((a) => a['id']), [8639187, 8280425]);
+    expect(errorAlerts(fake).map((a) => a['id']), [8544723, 8921897]);
   });
 
   test('an HMS alert offers no buttons the app could not send', () {
@@ -625,24 +630,24 @@ void main() {
     final unitFull = [AmsUnit(id: 0, trays: [_tray(remain: 50)])];
     final unitLow = [AmsUnit(id: 0, trays: [_tray(remain: 5)])];
     m.update({1: _status(state: 'RUNNING', ams: unitFull)});
-    expect(alertById(fake, 9001), isNull);
+    expect(alertById(fake, bandId(9)), isNull);
     m.update({1: _status(state: 'RUNNING', ams: unitLow)});
-    expect(alertById(fake, 9001), isNotNull);
+    expect(alertById(fake, bandId(9)), isNotNull);
     fake.alerts.clear();
     m.update({1: _status(state: 'RUNNING', ams: unitLow)});
-    expect(alertById(fake, 9001), isNull); // nadal nisko — bez spamu
+    expect(alertById(fake, bandId(9)), isNull); // nadal nisko — bez spamu
     m.update({1: _status(state: 'RUNNING', ams: unitFull)}); // reset
     m.update({1: _status(state: 'RUNNING', ams: unitLow)});
-    expect(alertById(fake, 9001), isNotNull); // ponownie spadło
+    expect(alertById(fake, bandId(9)), isNotNull); // ponownie spadło
   });
 
   test('wysoka wilgotność AMS: zbocze powyżej progu', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);
     m.update({1: _status(state: 'IDLE', ams: [const AmsUnit(id: 0, humidity: 40)])});
-    expect(alertById(fake, 10001), isNull);
+    expect(alertById(fake, bandId(10)), isNull);
     m.update({1: _status(state: 'IDLE', ams: [const AmsUnit(id: 0, humidity: 70)])});
-    expect(alertById(fake, 10001), isNotNull);
+    expect(alertById(fake, bandId(10)), isNotNull);
   });
 
   test('stół wystygł: tylko po zakończonym wydruku i poniżej progu', () {
@@ -650,13 +655,13 @@ void main() {
     final m = monitorAll(fake);
     // Stół zimny bez wcześniejszego druku → bez alertu.
     m.update({1: _status(state: 'IDLE', temps: {'bed': 25})});
-    expect(alertById(fake, 11001), isNull);
+    expect(alertById(fake, bandId(11)), isNull);
     // Wydruk i jego koniec uzbrajają oczekiwanie na wystygnięcie.
     m.update({1: _status(state: 'RUNNING', job: 'x', temps: {'bed': 60})});
     m.update({1: _status(state: 'FINISH', job: 'x', temps: {'bed': 60})});
-    expect(alertById(fake, 11001), isNull); // jeszcze gorący
+    expect(alertById(fake, bandId(11)), isNull); // jeszcze gorący
     m.update({1: _status(state: 'FINISH', job: 'x', temps: {'bed': 30})});
-    expect(alertById(fake, 11001)?['title'], 'Bed cooled');
+    expect(alertById(fake, bandId(11))?['title'], 'Bed cooled');
   });
 
   test('priming: pierwsza ramka w toku NIE odpala zaszłych zdarzeń', () {
@@ -681,15 +686,15 @@ void main() {
 
     // Ale prawdziwe zbocze po primingu już działa: 50% przekroczone.
     m.update({1: _status(state: 'RUNNING', progress: 55, layerNum: 30)});
-    expect(alertById(fake, 5001)?['title'], '50% printed');
+    expect(alertById(fake, bandId(5))?['title'], '50% printed');
   });
 
   test('gating: domyślne prefs nie puszczają „rozpoczęto" ani milestones', () {
     final fake = _FakeNotifications();
     final m = monitor(fake); // domyślne prefs
     m.update({1: _status(state: 'RUNNING', job: 'x', progress: 30)});
-    expect(alertById(fake, 3001), isNull); // started OFF
-    expect(alertById(fake, 5001), isNull); // milestones OFF
+    expect(alertById(fake, bandId(3)), isNull); // started OFF
+    expect(alertById(fake, bandId(5)), isNull); // milestones OFF
   });
 
   // --- Tor diagnostyczny (src:notif) ---
@@ -883,7 +888,7 @@ void main() {
       final posted = only(all, 'posted').single;
       expect(posted['event'], 'printStarted');
       expect(posted['printer_id'], 1);
-      expect(posted['nid'], 3001);
+      expect(posted['nid'], bandId(3));
       expect(posted.containsKey('title'), isFalse);
       expect(posted.containsKey('body'), isFalse);
     });

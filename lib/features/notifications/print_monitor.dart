@@ -12,19 +12,28 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Alert ID base per event type; add `printer_id` so alerts from different printers
-/// (and types) don't overwrite each other. ID 1 is reserved for ongoing.
-const int _finishedAlertBase = 1000;
-const int _failedAlertBase = 2000;
-const int _startedAlertBase = 3000;
-const int _firstLayerAlertBase = 4000;
-const int _milestoneAlertBase = 5000;
-const int _plateAlertBase = 6000;
-const int _offlineAlertBase = 7000;
-const int _errorAlertBase = 8000;
-const int _lowFilamentAlertBase = 9000;
-const int _humidityAlertBase = 10000;
-const int _bedCooledAlertBase = 11000;
+/// Room reserved per event type. The offsets added to a base are server row ids
+/// (a printer, a maintenance task), which grow without bound and are never
+/// reused after a delete — so the band has to be wide enough that no realistic
+/// install reaches the next event type's numbers and starts replacing its
+/// notifications.
+const int alertBandWidth = 1000000;
+
+/// Alert ID base per event type; add `printer_id` so alerts from different
+/// printers (and types) don't overwrite each other. ID
+/// [foregroundServiceNotificationId] belongs to the service's own notification
+/// and is deliberately below every band here.
+const int _finishedAlertBase = alertBandWidth;
+const int _failedAlertBase = 2 * alertBandWidth;
+const int _startedAlertBase = 3 * alertBandWidth;
+const int _firstLayerAlertBase = 4 * alertBandWidth;
+const int _milestoneAlertBase = 5 * alertBandWidth;
+const int _plateAlertBase = 6 * alertBandWidth;
+const int _offlineAlertBase = 7 * alertBandWidth;
+const int _errorAlertBase = 8 * alertBandWidth;
+const int _lowFilamentAlertBase = 9 * alertBandWidth;
+const int _humidityAlertBase = 10 * alertBandWidth;
+const int _bedCooledAlertBase = 11 * alertBandWidth;
 
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
@@ -787,20 +796,20 @@ class PrintMonitor {
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
     final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
-    return _errorAlertBase * 1000 + _stableDigest('$id:$code');
+    return _errorAlertBase + _stableDigest('$id:$code');
   }
 
-  /// 20-bit FNV-1a digest, spelled out rather than taken from `Object.hash`,
-  /// whose seed is drawn afresh on every VM start. This isolate restarts each
-  /// time the app is backgrounded, so a seeded id handed the same standing fault
-  /// a new notification after every restart instead of replacing the one already
-  /// on screen.
+  /// FNV-1a digest folded into one band, spelled out rather than taken from
+  /// `Object.hash`, whose seed is drawn afresh on every VM start. This isolate
+  /// restarts each time the app is backgrounded, so a seeded id handed the same
+  /// standing fault a new notification after every restart instead of replacing
+  /// the one already on screen.
   static int _stableDigest(String s) {
     var h = 0x811c9dc5;
     for (var i = 0; i < s.length; i++) {
       h = ((h ^ s.codeUnitAt(i)) * 0x01000193) & 0xffffffff;
     }
-    return h & 0xfffff;
+    return h % alertBandWidth;
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {
