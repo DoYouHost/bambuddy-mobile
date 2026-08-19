@@ -64,13 +64,14 @@ const _runout = HmsError(
 const _diagnostics =
     HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 2);
 
-WearFleet _fleetWith(List<HmsError> errors) => WearFleet(
+WearFleet _fleetWith(List<HmsError> errors, {bool connected = true}) =>
+    WearFleet(
       printers: [
         PrinterWithStatus(
           printer: const Printer(id: 7, name: 'X1C'),
           status: PrinterStatus(
             id: 7,
-            connected: true,
+            connected: connected,
             state: 'PAUSE',
             progress: 40,
             hmsErrors: errors,
@@ -81,9 +82,11 @@ WearFleet _fleetWith(List<HmsError> errors) => WearFleet(
 
 Future<_FakeTransport> _pumpControl(
   WidgetTester tester,
-  List<HmsError> errors,
-) async {
-  final transport = _FakeTransport(_fleetWith(errors));
+  List<HmsError> errors, {
+  bool connected = true,
+}) async {
+  final transport =
+      _FakeTransport(_fleetWith(errors, connected: connected));
   await tester.pumpWidget(ProviderScope(
     overrides: [
       serverProfileProvider.overrideWith(_NoProfileNotifier.new),
@@ -113,6 +116,20 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Wznów'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Zatrzymaj'), findsWidgets);
     expect(find.text('Odrzuć wszystkie'), findsOneWidget);
+  });
+
+  testWidgets('an unreachable printer offers no faults to act on',
+      (tester) async {
+    // `hms_errors` is deliberately carried forward across a disconnect so the
+    // phone's alert memory can hold still. On screen those are last-known
+    // values: shown here they would read as live faults under an OFFLINE chip,
+    // each with a button the server answers "Printer not connected".
+    await _pumpControl(tester, const [_runout], connected: false);
+
+    expect(find.textContaining('Skończył się filament'), findsNothing);
+    expect(find.text('0300-8004'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
+    expect(find.text('Odrzuć wszystkie'), findsNothing);
   });
 
   testWidgets('an unnameable fault is not shown on the watch either',

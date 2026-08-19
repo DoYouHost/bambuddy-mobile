@@ -425,10 +425,35 @@ void main() {
     m.update({1: _status(state: 'RUNNING', hms: [err])});
     expect(errorAlerts(fake), isEmpty);
     // Dłuższa nieobecność (> łaska) → kod zapomniany, nowe wystąpienie alarmuje.
-    m.update({1: _status(state: 'RUNNING', hms: const [])});
-    t = t.add(const Duration(seconds: 31));
+    // Ramki lecą przez ten czas normalnie — cisza w całym kanale to inna
+    // sytuacja i ma własny test niżej.
+    for (var i = 0; i < 4; i++) {
+      t = t.add(const Duration(seconds: 10));
+      m.update({1: _status(state: 'RUNNING', hms: const [])});
+    }
     m.update({1: _status(state: 'RUNNING', hms: [err])});
     expect(errorAlerts(fake), hasLength(1));
+  });
+
+  test('błąd HMS: cisza w kanale nie kasuje pamięci — rekonekt nie alarmuje '
+      'ponownie', () {
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+    expect(errorAlerts(fake), hasLength(1));
+    fake.alerts.clear();
+
+    // Socket pada i przez dwie minuty nie przychodzi nic. Watchdog gniazda jest
+    // dłuższy niż łaska, więc każde wykryte zerwanie wygląda dokładnie tak — a
+    // usterka stoi nadal, bo pierwsza ramka po powrocie wciąż ją niesie.
+    t = t.add(const Duration(minutes: 2));
+    m.update({1: _status(state: 'RUNNING', hms: [err])});
+
+    expect(errorAlerts(fake), isEmpty);
   });
 
   test('błąd HMS: drukarka offline nie alarmuje; kod znany sprzed rozłączenia '

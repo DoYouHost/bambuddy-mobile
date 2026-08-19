@@ -160,6 +160,11 @@ class PrintMonitor {
   final Map<int, _PrinterMemo> _memo = {};
   _OngoingKey? _lastOngoing;
 
+  /// When the last frame arrived, so a gap in the feed itself can be told from
+  /// time passing with the feed healthy. Only the second kind may age an HMS code
+  /// out of memory.
+  DateTime? _lastFrameAt;
+
   bool _on(NotifEvent e) => _prefs.isOn(e);
 
   /// Which switch silenced an alert. `isOn` collapses the per-type checkbox and
@@ -174,6 +179,7 @@ class PrintMonitor {
 
   /// Called on each status map change (from `printerStatusesProvider`).
   void update(Map<int, PrinterStatus> statuses) {
+    _carryHmsMemoryOverFeedGap();
     for (final entry in statuses.entries) {
       // First frame of each printer is only primed, no alerts from it —
       // else fresh monitor (background isolate restarts on every background entry)
@@ -194,6 +200,24 @@ class PrintMonitor {
     }
 
     _updateOngoing(statuses);
+  }
+
+  /// Holds every remembered HMS code over a break in the feed.
+  ///
+  /// The clear-grace window is wall time, but the only evidence a fault cleared
+  /// is a frame that no longer carries it. When nothing arrives at all — the
+  /// socket dropped, the phone dozed — the window elapses against silence, and
+  /// the first frame back would forget every standing code and alert about all of
+  /// them again. The socket's own idle watchdog is longer than the window, so
+  /// every disconnect it catches lands here.
+  void _carryHmsMemoryOverFeedGap() {
+    final now = _now();
+    final last = _lastFrameAt;
+    _lastFrameAt = now;
+    if (last == null || now.difference(last) < _hmsClearGrace) return;
+    for (final memo in _memo.values) {
+      memo.hmsLastSeen.updateAll((_, _) => now);
+    }
   }
 
   /// Cancels all pending per-printer offline-grace timers. Call when this

@@ -133,13 +133,23 @@ class _WearPrinterControlBodyState
     );
   }
 
+  /// Faults worth putting on screen — none at all while the printer is out of
+  /// reach. `hms_errors` is carried forward across a disconnect, so without this
+  /// the last-known faults would sit under the OFFLINE chip looking current,
+  /// each offering buttons the server answers with "Printer not connected".
+  List<HmsError> _displayableFaults(PrinterWithStatus item) {
+    if (wearStateOf(item.status) == WearState.offline) return const [];
+    return [
+      for (final e in item.status?.hmsErrors ?? const <HmsError>[])
+        if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
+    ];
+  }
+
   /// Every action the faults on screen are offering, so the generic lifecycle
   /// buttons can stand down where they would duplicate one.
   Set<String> _faultActions(PrinterWithStatus item) => {
-        for (final e in item.status?.hmsErrors ?? const <HmsError>[])
-          if (e.fullCode != null &&
-              hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e)))
-            ...hmsRenderableActions(e.actions),
+        for (final e in _displayableFaults(item))
+          if (e.fullCode != null) ...hmsRenderableActions(e.actions),
       };
 
   /// Active faults, each with the buttons its firmware offers.
@@ -152,10 +162,7 @@ class _WearPrinterControlBodyState
   /// a tap away.
   List<Widget> _faults(PrinterWithStatus item) {
     final l10n = AppLocalizations.of(context);
-    final faults = [
-      for (final e in item.status?.hmsErrors ?? const <HmsError>[])
-        if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
-    ];
+    final faults = _displayableFaults(item);
     if (faults.isEmpty) return const [];
 
     final actions = ref.read(wearActionsProvider);
