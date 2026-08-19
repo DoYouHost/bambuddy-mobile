@@ -72,8 +72,12 @@ const Set<String> _hmsUserActionCodes = {
 /// would re-arm the alert.
 const int _humidityRearmMargin = 3;
 
-/// One humidity alert per AMS unit per hour, whatever the reading does in
-/// between. Parity with bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`.
+/// How soon a unit that has retreated below the band and risen again is worth
+/// another alert. The number is bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`;
+/// the meaning is not. There it is a reminder interval — a unit sitting above
+/// the threshold is announced again every hour. Here a stay is announced once,
+/// and this only rations how often a fresh stay counts as fresh, because every
+/// other event in this monitor alerts on the edge rather than on a timer.
 const Duration _humidityAlertCooldown = Duration(hours: 1);
 
 /// Timer factory — injectable so tests can control time instead of waiting 15s.
@@ -100,6 +104,12 @@ class _PrinterMemo {
   final Set<String> hmsDeferredOffline = {};
   final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
+
+  /// Units whose current stay above the band has already been announced. Kept
+  /// apart from [humidUnits] because a rise the cooldown swallowed leaves the
+  /// unit latched but unannounced, and that alert is owed once the hour is up —
+  /// otherwise a unit that never dips again is silently written off.
+  final Set<int> humidAnnounced = {};
 
   /// When each unit last had a humidity alert. The latch above already covers a
   /// reading that stays up; this covers one that keeps crossing the band, where
@@ -303,7 +313,11 @@ class PrintMonitor {
       for (var i = 0; i < units.length; i++) {
         final humidity = units[i].humidity;
         if (humidity != null && humidity > _prefs.amsHumidityThreshold) {
-          memo.humidUnits.add(units[i].id ?? i);
+          final key = units[i].id ?? i;
+          // Announced as well as latched: this stay predates the monitor, and an
+          // unannounced latch is one the next frame would decide is still owed.
+          memo.humidUnits.add(key);
+          memo.humidAnnounced.add(key);
         }
       }
     }
@@ -640,19 +654,27 @@ class PrintMonitor {
       if (humidity == null) continue;
       final key = unit.id ?? i;
       if (humidity > threshold) {
-        if (!memo.humidUnits.add(key)) continue; // already standing
+        final justRose = memo.humidUnits.add(key);
+        // Said once per stay, not once per frame — but the saying is what counts
+        // as done, so a rise the cooldown swallowed is still owed one.
+        if (memo.humidAnnounced.contains(key)) continue;
         final last = memo.humidAlertedAt[key];
         final now = _now();
         if (last != null && now.difference(last) < _humidityAlertCooldown) {
-          NotifProbe.suppressed(
-            NotifSkip.throttled,
-            printerId: id,
-            event: NotifEvent.amsHumidity,
-            fields: {'unit': key, 'humidity': humidity},
-          );
+          // Only on the rise itself: the frames after it would repeat this
+          // record every second until the hour is up.
+          if (justRose) {
+            NotifProbe.suppressed(
+              NotifSkip.throttled,
+              printerId: id,
+              event: NotifEvent.amsHumidity,
+              fields: {'unit': key, 'humidity': humidity},
+            );
+          }
           continue;
         }
         memo.humidAlertedAt[key] = now;
+        memo.humidAnnounced.add(key);
         triggered = true;
         value = humidity;
         isHt = unit.isAmsHt;
@@ -660,6 +682,7 @@ class PrintMonitor {
         // Only a real retreat re-arms it. Sitting one point under the threshold
         // is the same damp unit, not a resolved one.
         memo.humidUnits.remove(key);
+        memo.humidAnnounced.remove(key);
       }
     }
     if (!triggered) return;

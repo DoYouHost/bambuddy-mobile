@@ -721,6 +721,54 @@ void main() {
     expect(fake.alerts, hasLength(2));
   });
 
+  test('wilgotność AMS: wzrost stłumiony cooldownem jest odroczony, nie zgubiony',
+      () {
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t);
+    AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
+
+    m.update({1: _status(state: 'IDLE', ams: [at(50)])}); // priming
+    m.update({1: _status(state: 'IDLE', ams: [at(61)])});
+    expect(fake.alerts, hasLength(1));
+
+    // Spadek pod pasmo, potem wzrost jeszcze w cooldownie → cisza, ale zatrzask
+    // jest już założony.
+    m.update({1: _status(state: 'IDLE', ams: [at(56)])});
+    t = t.add(const Duration(minutes: 10));
+    m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    expect(fake.alerts, hasLength(1));
+
+    // I już nigdy nie schodzi. Zatrzask nie może zjeść alertu, którego nikt nie
+    // wypowiedział — po upływie godziny należy się.
+    for (var i = 0; i < 3; i++) {
+      t = t.add(const Duration(minutes: 20));
+      m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    }
+
+    expect(fake.alerts, hasLength(2));
+  });
+
+  test('wilgotność AMS: stała wysoka wartość mówi raz, nie co godzinę', () {
+    // Świadoma różnica wobec serwera, który przypomina co godzinę: tutaj każde
+    // inne zdarzenie alarmuje na zboczu, nie z zegara.
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t);
+    AmsUnit at(int h) => AmsUnit(id: 0, humidity: h);
+
+    m.update({1: _status(state: 'IDLE', ams: [at(50)])}); // priming
+    m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    expect(fake.alerts, hasLength(1));
+
+    for (var i = 0; i < 5; i++) {
+      t = t.add(const Duration(minutes: 30));
+      m.update({1: _status(state: 'IDLE', ams: [at(70)])});
+    }
+
+    expect(fake.alerts, hasLength(1));
+  });
+
   test('stół wystygł: tylko po zakończonym wydruku i poniżej progu', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake);

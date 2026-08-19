@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import '../diagnostics/auth_probe.dart';
+import 'auth_service.dart';
+import 'credentials_store.dart';
+import 'jwt.dart';
 
 /// Injectable so tests can drive the schedule without waiting clock hours.
 typedef RefreshTimerFactory = Timer Function(Duration, void Function());
@@ -153,3 +156,22 @@ class ProactiveTokenRefresher {
     _armTimer(fallbackDelay, generation);
   }
 }
+
+/// The JWT refresher both isolates run.
+///
+/// They renew the same session from the same saved login, so the wiring is the
+/// same by necessity rather than by coincidence — and a difference between the
+/// two would show up only as one of them quietly not renewing, which is the
+/// hardest kind of difference to notice.
+ProactiveTokenRefresher jwtTokenRefresher({
+  required CredentialsStore credentials,
+  required AuthService auth,
+  required String baseUrl,
+}) =>
+    ProactiveTokenRefresher(
+      readExpiry: () async => jwtExpiry(await credentials.readJwt()),
+      refresh: () async => jwtExpiry(await auth.silentReLogin(baseUrl)),
+      // `silentReLogin` clears the saved login only when the server rejected it,
+      // so an empty store separates that from the network being in the way.
+      canRetry: () async => await credentials.readRememberedLogin() != null,
+    );

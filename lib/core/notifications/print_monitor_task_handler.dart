@@ -24,7 +24,6 @@ import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
-import '../auth/jwt.dart';
 import '../auth/token_refresher.dart';
 import '../diagnostics/diagnostic_recorder.dart';
 import '../diagnostics/log_event.dart';
@@ -366,12 +365,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     AuthService auth,
   ) {
     if (profile.authMode != AuthMode.jwt) return;
-    final refresher = ProactiveTokenRefresher(
-      readExpiry: () async => jwtExpiry(await creds.readJwt()),
-      refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
-      // `silentReLogin` clears the saved login only when the server rejected it,
-      // so an empty store separates that from the network being in the way.
-      canRetry: () async => await creds.readRememberedLogin() != null,
+    final refresher = jwtTokenRefresher(
+      credentials: creds,
+      auth: auth,
+      baseUrl: profile.baseUrl,
     );
     _tokenRefresher = refresher;
     refresher.start();
