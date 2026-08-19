@@ -219,6 +219,28 @@ void main() {
     expect(notifications.alerts, hasLength(1), reason: 'pozycja uzbrojona na nowo');
   });
 
+  test('check: "Mark Done" po zapytaniu też nie ginie pod zapisem', () async {
+    // Ta sama sytuacja co wyżej, tylko tapnięcie ląduje za odczytem: między nim
+    // a końcowym zapisem. Zapis musi więc wychodzić od dysku, a nie od kopii, z
+    // którą ten poll wystartował — inaczej pozycja zdjęta z zestawu wraca do
+    // niego i licznik, którego nigdy nie zresetowano, milczy już na zawsze.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+    var reads = 0;
+
+    await monitor(reload: () async {
+      final snapshot = {...onDisk};
+      if (reads++ == 0) onDisk = {}; // tapnięcie tuż po odczycie
+      return snapshot;
+    }).check();
+
+    expect(reads, 2, reason: 'odczyt przy starcie i ponownie przed zapisem');
+    expect(persisted, isEmpty, reason: 're-arm z innego izolatu przetrwał zapis');
+  });
+
   test('check: wyłączone zdarzenie → cisza', () async {
     repo.overview = [
       _printer([_item(id: 10, isDue: true)]),

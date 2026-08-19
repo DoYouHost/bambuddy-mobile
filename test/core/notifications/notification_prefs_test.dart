@@ -47,13 +47,39 @@ void main() {
     });
 
     test('migracja: payload bez znacznika zostawia wybory nietknięte', () {
-      // Zapis sprzed znacznika pochodzi z buildu, który znał komplet dzisiejszych
-      // zdarzeń — więc pusta lista znaczy „user wyłączył wszystko", a nie „to
-      // były nowe zdarzenia". Inaczej aktualizacja włączyłaby je z powrotem.
+      // Zapis sprzed znacznika pochodzi z buildu, który znał dokładnie zdarzenia
+      // z listy poniżej — więc pusta lista znaczy „user wyłączył wszystko", a nie
+      // „to były nowe zdarzenia". Inaczej aktualizacja włączyłaby je z powrotem.
+      //
+      // Ta lista to kopia `_knownBeforeManifest` i jedyny strukturalny
+      // bezpiecznik tamtej: jest prywatna, a komentarz „nie dopisuj tu nic" nie
+      // jest niczym egzekwowany. Dopisanie do niej nowego zdarzenia przewróci
+      // ten test — bo nowe zdarzenie ma tu wyjść ze swoją domyślną wartością,
+      // nie jako wyłączone. NIE naprawiaj tego, dopisując je również tutaj.
+      const knownBeforeManifest = {
+        NotifEvent.printStarted,
+        NotifEvent.printFinished,
+        NotifEvent.printFailed,
+        NotifEvent.firstLayer,
+        NotifEvent.milestones,
+        NotifEvent.plateNotEmpty,
+        NotifEvent.printerOffline,
+        NotifEvent.printerError,
+        NotifEvent.lowFilament,
+        NotifEvent.amsHumidity,
+        NotifEvent.bedCooled,
+        NotifEvent.maintenanceDue,
+      };
       final decoded = NotificationPrefs.decode('{"enabled":[]}');
 
       for (final e in NotifEvent.values) {
-        expect(decoded.isOn(e), isFalse, reason: e.name);
+        expect(
+          decoded.isOn(e),
+          knownBeforeManifest.contains(e)
+              ? isFalse
+              : NotificationPrefs.defaults.enabled.contains(e),
+          reason: e.name,
+        );
       }
     });
 

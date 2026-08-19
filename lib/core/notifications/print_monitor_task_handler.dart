@@ -230,14 +230,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // Shared by the socket below and the proactive refresh: both recover a
     // lapsed session the same way, and building two would mean two independent
     // silent re-logins racing against the server's failed-attempt budget.
-    final auth = AuthService(
-      bareDio: createBareDio(),
-      credentials: creds,
-      // A refresh that runs while the app is closed is the likeliest place for a
-      // stale password to be caught; leave the mark for the UI to explain later.
-      onSignInRequired: (reason) =>
-          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
-    );
+    final auth = backgroundAuthService(prefs, creds);
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;

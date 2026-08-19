@@ -89,20 +89,33 @@ class MaintenanceMonitor {
     }
 
     final dueNow = <int>{};
-    var fresh = 0;
+    final alerted = <int>{};
     for (final printer in printers) {
       for (final item in printer.maintenanceItems) {
         if (!item.enabled || !item.isDue) continue;
         dueNow.add(item.id);
         if (_notified.add(item.id)) {
-          fresh++;
+          alerted.add(item.id);
           await _alertDue(printer, item);
         }
       }
     }
     // One record for the whole poll rather than one per de-duplicated item: N
     // lines saying "already told you" carry no more than these two numbers.
-    NotifProbe.maintenanceCheck(due: dueNow.length, fresh: fresh);
+    NotifProbe.maintenanceCheck(due: dueNow.length, fresh: alerted.length);
+
+    // Disk again, not the copy this poll started from: a "Mark Done" tapped
+    // while the alerts above were going out re-armed its item there, and saving
+    // our copy over it would undo that and leave a counter that never reset
+    // permanently silent. The ids just alerted are the one thing disk cannot
+    // know about yet, so they are added back on top.
+    final onDisk = await reload?.call();
+    if (onDisk != null) {
+      _notified
+        ..clear()
+        ..addAll(onDisk)
+        ..addAll(alerted);
+    }
     // Items no longer due (e.g., after completion) — re-arm.
     _notified.removeWhere((id) => !dueNow.contains(id));
     await persist?.call(_notified);

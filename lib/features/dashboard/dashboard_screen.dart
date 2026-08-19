@@ -45,6 +45,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Whether the "sign in again" warning already ran in this launch.
   bool _signInWarned = false;
 
+  /// Whether a check for it is in flight — a resume landing mid-check would
+  /// otherwise walk past the guard and open a second dialog.
+  bool _signInChecking = false;
+
   static const _onboardingFlag = 'notif_onboarded';
 
   @override
@@ -130,14 +134,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Stops a service that outlived the app it was started from.
   ///
-  /// `onResume` is the usual place for this, but it fires on a *transition* and
-  /// a cold start is already resumed, so this case never reached it: after the
-  /// user swipes the app away Android restarts the service, and it keeps running
-  /// straight through the next launch. Everything it froze at its own start-up —
-  /// the notification switches, the server profile — then outlives every change
-  /// made in that session, and its watch relay answers alongside this isolate's.
-  /// Stopping it here means the next trip to the background starts one that has
-  /// read all of it afresh.
+  /// Not `onResume`: that fires on a *transition*, and a cold start is already
+  /// resumed. A service Android restarted after a swipe-away runs on whatever
+  /// it froze at *its* own start-up, and its watch relay answers alongside this
+  /// isolate's.
   Future<void> _takeOverFromSurvivingService() async {
     final monitor = ref.read(backgroundMonitorProvider);
     if (!await monitor.isRunning()) return;
@@ -156,10 +156,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// failed-attempt budget. Cleared when a profile is saved again
   /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
   Future<void> _maybeWarnSignInRequired() async {
-    if (_signInWarned || !mounted) return;
-    // Both writers are other isolates, so this handle still serves the cache the
-    // app started with — the rejection it is asking about is only on disk.
-    await ref.read(sharedPreferencesProvider).reload();
+    // `_signInWarned` cannot stand in for `_signInChecking`: it is only set once
+    // the flag turns out to be on, and a check that found it off has to leave
+    // the door open for the next resume.
+    if (_signInWarned || _signInChecking || !mounted) return;
+    _signInChecking = true;
+    try {
+      // Both writers are other isolates, so this handle still serves the cache
+      // the app started with — the rejection it asks about is only on disk.
+      await ref.read(sharedPreferencesProvider).reload();
+    } finally {
+      _signInChecking = false;
+    }
     if (!mounted) return;
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.loadSignInRequired()) return;

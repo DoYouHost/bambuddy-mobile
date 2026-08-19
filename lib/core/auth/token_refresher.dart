@@ -93,17 +93,23 @@ class ProactiveTokenRefresher {
     try {
       expiry = await _readExpiry();
     } on Object catch (error) {
-      // Nothing awaits this, so an escaping error would leave the timer unarmed
-      // for good while `_running` still says otherwise — and `start` is
-      // idempotent, so nothing would ever arm it again. The keystore read throws
-      // on some OEMs; fall back to the blind interval instead of going dark.
-      AuthProbe.refreshStepFailed(error);
-      if (!_running || generation != _generation) return;
-      _armTimer(fallbackDelay, generation);
-      return;
+      return _recoverFromStepFailure(error, generation);
     }
     if (!_running || generation != _generation) return;
     _armTimer(_delayFor(expiry), generation);
+  }
+
+  /// Keeps the schedule alive after a step threw.
+  ///
+  /// Nothing awaits the async steps, so an escaping error would leave the timer
+  /// unarmed for good while `_running` still says otherwise — and `start` is
+  /// idempotent, so nothing would ever arm it again. A throw also says nothing
+  /// about the credentials, unlike a null answer, so it always earns another
+  /// try rather than ending the schedule.
+  void _recoverFromStepFailure(Object error, int generation) {
+    AuthProbe.refreshStepFailed(error);
+    if (!_running || generation != _generation) return;
+    _armTimer(fallbackDelay, generation);
   }
 
   void _armTimer(Duration delay, int generation) {
@@ -123,13 +129,7 @@ class ProactiveTokenRefresher {
     try {
       freshExpiry = await _refresh();
     } on Object catch (error) {
-      // Same reasoning as `_schedule`: a throw here would stop the schedule
-      // dead. A thrown step says nothing about the credentials — unlike the
-      // null below — so it always earns another try.
-      AuthProbe.refreshStepFailed(error);
-      if (!_running || generation != _generation) return;
-      _armTimer(fallbackDelay, generation);
-      return;
+      return _recoverFromStepFailure(error, generation);
     }
     if (!_running || generation != _generation) return;
     if (freshExpiry != null) {
@@ -141,12 +141,9 @@ class ProactiveTokenRefresher {
       try {
         retry = await _canRetry();
       } on Object catch (error) {
-        // Reads the same store that can throw above. Ending the schedule is the
-        // heavier mistake of the two, so an unanswered question keeps it alive.
-        AuthProbe.refreshStepFailed(error);
-        if (!_running || generation != _generation) return;
-        _armTimer(fallbackDelay, generation);
-        return;
+        // An unanswered question keeps the schedule alive: stopping it on a
+        // store that merely threw is the heavier of the two mistakes.
+        return _recoverFromStepFailure(error, generation);
       }
       if (!_running || generation != _generation) return;
       // Nothing left to retry with, so stop rather than repeat a login that
