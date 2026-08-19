@@ -21,7 +21,7 @@ import 'users_providers.dart';
 /// Membership is editable from both ends — here and in the account form —
 /// because "put Zosia in Operators" and "who is in Operators?" are different
 /// questions. The server keeps one state either way
-/// (`backend/app/api/routes/groups.py:259`).
+/// (`backend/app/api/routes/groups.py::delete_group`).
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
 
@@ -125,6 +125,7 @@ class GroupDetailScreen extends ConsumerWidget {
       context,
       ref,
       () => ref.read(groupsRepositoryProvider).addMember(group.id, picked.id),
+      'group_detail.add_member',
     );
   }
 
@@ -148,6 +149,7 @@ class GroupDetailScreen extends ConsumerWidget {
       ref,
       () =>
           ref.read(groupsRepositoryProvider).removeMember(group.id, member.id),
+      'group_detail.remove_member',
     );
   }
 
@@ -157,10 +159,11 @@ class GroupDetailScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Future<void> Function() action,
+    String logId,
   ) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final result = await runUserWrite(action);
+    final result = await runUserWrite(action, logId);
     await ref.read(groupDetailProvider(groupId).notifier).refresh();
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
@@ -177,7 +180,8 @@ class GroupDetailScreen extends ConsumerWidget {
 
 /// Edit and delete for the group itself. Deleting is offered only for a group
 /// the server would actually delete: a system group is refused
-/// (`groups.py:249`), so the entry is left out rather than shown and refused.
+/// (`groups.py::delete_group`), so the entry is left out rather than shown and
+/// refused.
 class _GroupMenu extends ConsumerWidget {
   const _GroupMenu({required this.group});
 
@@ -228,6 +232,7 @@ class _GroupMenu extends ConsumerWidget {
 
     final result = await runUserWrite(
       () => ref.read(groupsRepositoryProvider).delete(group.id),
+      'group_detail.delete',
     );
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
@@ -305,7 +310,8 @@ class _GroupHeader extends StatelessWidget {
           if (group.isSystem) ...[
             const SizedBox(height: 8),
             // The server refuses to rename a system group or to touch what it
-            // grants (`groups.py:187`, `:200`); only its membership moves.
+            // grants (`groups.py::update_group`, `:200`); only its membership
+            // moves.
             Text(
               l10n.groupsSystemNote,
               style: TextStyle(

@@ -10,7 +10,7 @@ class _MovementTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -89,7 +89,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
   /// Id of the button currently sending, so only it shows a spinner.
   String? _spin;
 
-  Future<void> _send(String btn, Future<ControlResult> Function() action) async {
+  Future<void> _send(String btn, Future<ActionOutcome> Function() action) async {
     if (_busy) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -103,11 +103,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = false;
       _spin = null;
     });
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()
@@ -134,11 +130,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _busy = false;
       _spin = null;
     });
-    final msg = switch (result) {
-      ControlResult.ok => l10n.ctrlMoveHomeStarted,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg)));

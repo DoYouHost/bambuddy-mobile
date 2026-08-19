@@ -30,6 +30,7 @@ class NotificationPrefs {
   const NotificationPrefs({
     required this.enabled,
     this.alertsEnabled = true,
+    this.finishPhoto = true,
     this.bedCooledTemp = defaultBedCooledTemp,
     this.amsHumidityThreshold = defaultAmsHumidity,
     this.lowFilamentThreshold = defaultLowFilament,
@@ -43,6 +44,13 @@ class NotificationPrefs {
 
   /// Set of events for which we send notifications.
   final Set<NotifEvent> enabled;
+
+  /// Whether the photo the server takes when a print ends is added to the
+  /// finished/failed alert once it arrives. Not an event of its own — it only
+  /// decorates an alert those two switches already allowed — so it lives here
+  /// rather than in [enabled], and the download it costs is opt-out for anyone
+  /// watching their data.
+  final bool finishPhoto;
 
   /// Threshold for "bed cooled": alert when bed temperature falls below (°C).
   final int bedCooledTemp;
@@ -70,10 +78,33 @@ class NotificationPrefs {
   static const NotificationPrefs defaults =
       NotificationPrefs(enabled: _defaultEnabled);
 
+  /// The events that existed before the saved payload started listing what the
+  /// writing build knew.
+  ///
+  /// A payload without that list was written by a build with exactly these, so
+  /// anything outside it never had a switch there to be turned off and takes
+  /// [_defaultEnabled] instead. **Do not add to this list when adding an event** —
+  /// it is a record of one past release, not of the enum.
+  static const Set<NotifEvent> _knownBeforeManifest = {
+    NotifEvent.printStarted,
+    NotifEvent.printFinished,
+    NotifEvent.printFailed,
+    NotifEvent.firstLayer,
+    NotifEvent.milestones,
+    NotifEvent.plateNotEmpty,
+    NotifEvent.printerOffline,
+    NotifEvent.printerError,
+    NotifEvent.lowFilament,
+    NotifEvent.amsHumidity,
+    NotifEvent.bedCooled,
+    NotifEvent.maintenanceDue,
+  };
+
   bool isOn(NotifEvent e) => alertsEnabled && enabled.contains(e);
 
   NotificationPrefs copyWith({
     bool? alertsEnabled,
+    bool? finishPhoto,
     Set<NotifEvent>? enabled,
     int? bedCooledTemp,
     int? amsHumidityThreshold,
@@ -81,6 +112,7 @@ class NotificationPrefs {
   }) =>
       NotificationPrefs(
         alertsEnabled: alertsEnabled ?? this.alertsEnabled,
+        finishPhoto: finishPhoto ?? this.finishPhoto,
         enabled: enabled ?? this.enabled,
         bedCooledTemp: bedCooledTemp ?? this.bedCooledTemp,
         amsHumidityThreshold: amsHumidityThreshold ?? this.amsHumidityThreshold,
@@ -100,7 +132,11 @@ class NotificationPrefs {
 
   Map<String, dynamic> toJson() => {
         'alertsEnabled': alertsEnabled,
+        'finishPhoto': finishPhoto,
         'enabled': [for (final e in enabled) e.name],
+        // Which switches this build actually offered. `enabled` alone cannot say
+        // whether a missing event was declined or simply did not exist yet.
+        'known': [for (final e in NotifEvent.values) e.name],
         'bedCooledTemp': bedCooledTemp,
         'amsHumidityThreshold': amsHumidityThreshold,
         'lowFilamentThreshold': lowFilamentThreshold,
@@ -113,13 +149,30 @@ class NotificationPrefs {
     final names = rawEnabled is List
         ? rawEnabled.map((e) => e.toString()).toSet()
         : const <String>{};
+    final rawKnown = json['known'];
+    // Absent marker → written before it existed, by a build with exactly the
+    // frozen list. Present → take it literally, which also covers a payload
+    // written by an older build after a downgrade.
+    final known = rawKnown is List
+        ? {
+            for (final e in NotifEvent.values)
+              if (rawKnown.map((k) => k.toString()).contains(e.name)) e,
+          }
+        : _knownBeforeManifest;
     final enabled = {
       for (final e in NotifEvent.values)
-        if (names.contains(e.name)) e,
+        // An event the writing build never offered keeps the choice this build
+        // ships it with — off stays off, on stays on — instead of reading as a
+        // switch the user deliberately cleared.
+        if (known.contains(e) ? names.contains(e.name) : _defaultEnabled.contains(e))
+          e,
     };
     return NotificationPrefs(
       // Missing key (prefs saved before this flag existed) → alerts stay on.
       alertsEnabled: json['alertsEnabled'] is bool ? json['alertsEnabled'] as bool : true,
+      // Same rule for the finish photo: an install that predates it gets the
+      // feature rather than a silently disabled one.
+      finishPhoto: json['finishPhoto'] is bool ? json['finishPhoto'] as bool : true,
       enabled: enabled,
       bedCooledTemp: _asInt(json['bedCooledTemp'], defaultBedCooledTemp),
       amsHumidityThreshold:

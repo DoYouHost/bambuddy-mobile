@@ -5,12 +5,15 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../data/maintenance_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'print_monitor.dart' show systemAppLocalizations;
+import 'print_monitor.dart' show alertBandWidth, systemAppLocalizations;
 
-/// Base alert IDs for maintenance — separate from print alerts (which end at
-/// 11000 in [PrintMonitor]). Add item ID / printer ID to base.
-const int _maintenanceDueAlertBase = 12000;
-const int _maintenanceReminderAlertBase = 13000;
+/// Base alert IDs for maintenance — the two bands after the print alerts, which
+/// end at 11 × [alertBandWidth] in [PrintMonitor]. Add item ID / printer ID to
+/// base. The due band's offset is a `printer_maintenance` row id, the fastest
+/// growing of them all: the server adds a row per printer per task type on every
+/// overview it serves, so this is the band that most needs its width.
+const int _maintenanceDueAlertBase = 12 * alertBandWidth;
+const int _maintenanceReminderAlertBase = 13 * alertBandWidth;
 
 /// REST-based maintenance monitor running in the foreground service isolate:
 /// periodically checks if any maintenance task became overdue ([check]) and fires
@@ -58,12 +61,6 @@ class MaintenanceMonitor {
   /// (dedup set not cleared, service not crashed).
   Future<void> check() async {
     if (!_enabled) return;
-    final synced = await reload?.call();
-    if (synced != null) {
-      _notified
-        ..clear()
-        ..addAll(synced);
-    }
     final List<PrinterMaintenanceOverview> printers;
     try {
       printers = await _repo.fetchOverview();
@@ -80,21 +77,45 @@ class MaintenanceMonitor {
       return;
     }
 
+    // After the fetch, not before it: the request takes seconds, and a "Mark
+    // Done" tapped inside that window rewrites this very set from the callback
+    // isolate. Reading first and writing at the end would hand back the state we
+    // started with and undo it.
+    final synced = await reload?.call();
+    if (synced != null) {
+      _notified
+        ..clear()
+        ..addAll(synced);
+    }
+
     final dueNow = <int>{};
-    var fresh = 0;
+    final alerted = <int>{};
     for (final printer in printers) {
       for (final item in printer.maintenanceItems) {
         if (!item.enabled || !item.isDue) continue;
         dueNow.add(item.id);
         if (_notified.add(item.id)) {
-          fresh++;
+          alerted.add(item.id);
           await _alertDue(printer, item);
         }
       }
     }
     // One record for the whole poll rather than one per de-duplicated item: N
     // lines saying "already told you" carry no more than these two numbers.
-    NotifProbe.maintenanceCheck(due: dueNow.length, fresh: fresh);
+    NotifProbe.maintenanceCheck(due: dueNow.length, fresh: alerted.length);
+
+    // Disk again, not the copy this poll started from: a "Mark Done" tapped
+    // while the alerts above were going out re-armed its item there, and saving
+    // our copy over it would undo that and leave a counter that never reset
+    // permanently silent. The ids just alerted are the one thing disk cannot
+    // know about yet, so they are added back on top.
+    final onDisk = await reload?.call();
+    if (onDisk != null) {
+      _notified
+        ..clear()
+        ..addAll(onDisk)
+        ..addAll(alerted);
+    }
     // Items no longer due (e.g., after completion) — re-arm.
     _notified.removeWhere((id) => !dueNow.contains(id));
     await persist?.call(_notified);

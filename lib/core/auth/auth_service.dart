@@ -32,8 +32,8 @@ class LoginCompleted extends LoginResult {
   final String token;
 
   /// From the `user` object the login answer embeds (`LoginResponse.user`,
-  /// `backend/app/schemas/auth.py:39`). Null when the server sent none — the
-  /// identity then has to come from `GET /auth/me`.
+  /// `backend/app/schemas/auth.py::LoginResponse`). Null when the server sent
+  /// none — the identity then has to come from `GET /auth/me`.
   final CurrentUser? user;
 }
 
@@ -236,7 +236,8 @@ class AuthService {
     AuthProbe.twoFactorVerified(method);
     await _credentials.writeJwt(token);
     // `TwoFAVerifyResponse` carries the same `user` as the one-step login
-    // (`backend/app/schemas/auth.py:271`), so this costs no `GET /auth/me`.
+    // (`backend/app/schemas/auth.py::TwoFAVerifyRequest`), so this costs no
+    // `GET /auth/me`.
     return LoginCompleted(token, user: _userOrNull(res.data?['user']));
   }
 
@@ -302,8 +303,12 @@ class AuthService {
         options: Options(headers: {'X-API-Key': apiKey}),
       );
     } on DioException catch (e) {
-      final code = e.response?.statusCode;
-      if (code == 401 || code == 403) {
+      // Only a 401 means the key itself is not accepted. A 403 is a key the
+      // server recognises and then refuses this route to — too few scopes,
+      // an owner without `printers:read` (1.2.6+), an owner whose account is
+      // gone — and "API key rejected" would send the user hunting for a typo
+      // that isn't there. The mapped error carries the server's reason.
+      if (e.response?.statusCode == 401) {
         throw const AuthException(AppErrorCode.apiKeyRejected);
       }
       throw mapDioException(e);

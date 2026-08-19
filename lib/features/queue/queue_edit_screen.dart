@@ -13,6 +13,7 @@ import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
@@ -825,6 +826,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                 t,
                 labelText: l10n.queueEditChamberTarget,
                 hintText: '—',
+                // States the ceiling rather than silently clamping to it: the
+                // value differs by server version (60 / 65), so a bare field
+                // gives no way to tell what this one will accept.
+                helperText: l10n.queueEditChamberTargetRange(_chamberMax),
               ),
             ).tagged('queue_edit.chamber_target'),
           ],
@@ -972,12 +977,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
     final result = await ref
         .read(queueProvider.notifier)
-        .runAction(widget._isCreate ? _create : _update);
+        .runAction(widget._isCreate ? _create : _update,
+            widget._isCreate ? 'queue_edit.create' : 'queue_edit.save');
 
     // Remember the toggles only once a job was really created with them.
     // Editing an existing item is about THAT item — treating it as "what I print
     // with" would let a one-off tweak follow the user into every later job.
-    if (widget._isCreate && result == QueueActionResult.ok) {
+    if (widget._isCreate && result.isOk) {
       await ref.read(settingsRepositoryProvider).savePrintOptions(_options);
     }
 
@@ -985,15 +991,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     setState(() => _saving = false);
     final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
     messenger.showSnackBar(SnackBar(
-      content: Text(switch (result) {
-        QueueActionResult.ok => ok,
-        QueueActionResult.forbidden => l10n.ctrlForbidden,
-        QueueActionResult.error => l10n.ctrlFailed,
-      }),
+      content: Text(result.messageFor(l10n) ?? ok),
     ));
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
-    if (result == QueueActionResult.ok) navigator.pop(widget._isCreate);
+    if (result.isOk) navigator.pop(widget._isCreate);
   }
 
   /// The print toggles as they stand in the form.
@@ -1054,9 +1056,20 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ? _scheduledTime!.toUtc().toIso8601String()
           : null;
 
+  /// The server's chamber ceiling — 65 from 1.2.6, 60 before it and until the
+  /// version is known.
+  static int _ceiling(AsyncValue<int> probe) =>
+      probe.maybeWhen(data: (v) => v, orElse: () => 60);
+
+  /// `watch`, so the helper text stops advertising 60 the moment the version
+  /// probe answers with the form already open.
+  int get _chamberMax => _ceiling(ref.watch(chamberMaxTargetProvider));
+
   int? get _chamberTargetValue {
     if (_preheatOverride == 'off') return null;
-    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, 60);
+    // `read`: this one runs from the save button, outside a build.
+    final max = _ceiling(ref.read(chamberMaxTargetProvider));
+    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, max);
   }
 
   /// A calibration option for the PATCH body, or `null` to leave the key out.

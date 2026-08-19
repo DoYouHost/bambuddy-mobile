@@ -37,6 +37,18 @@ class FakeTransport implements WearTransport {
 
   @override
   Future<void> startNext(int printerId) => _run('startNext', null);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) => _run('clearHmsErrors', null);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _run('executeHmsAction:$printError:$action', null);
 }
 
 void main() {

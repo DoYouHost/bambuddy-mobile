@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/makerworld.dart';
@@ -95,7 +96,8 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
         ),
       );
     } on AppApiException catch (e) {
-      if (mounted) _snack(e.localized(_l10n));
+      showApiFailure(mounted ? ScaffoldMessenger.of(context) : null, e, _l10n,
+          action: 'makerworld.import_plate');
     } finally {
       if (mounted) setState(() => _importing.remove(key));
     }

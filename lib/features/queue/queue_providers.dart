@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/printer.dart';
@@ -15,10 +16,6 @@ final printerStatusOnceProvider =
   (ref, printerId) =>
       ref.watch(printersRepositoryProvider).fetchStatus(printerId),
 );
-
-/// Queue action result returned to widget — it shows the SnackBar
-/// (notifier has no [BuildContext]). Similar to M4 controls.
-enum QueueActionResult { ok, forbidden, error }
 
 final queueProvider =
     AutoDisposeAsyncNotifierProvider<QueueNotifier, List<QueueItem>>(
@@ -76,10 +73,11 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
   /// 1..N in new order to server — "bulk update positions" endpoint expects target
   /// values, and all items default to `position == 1` (verified live, see reorder in
   /// contract). Error → rollback to pre-drag state.
-  Future<QueueActionResult> reorder(int oldIndex, int newIndex) async {
+  Future<ActionOutcome> reorder(int oldIndex, int newIndex) async {
     final current = state.valueOrNull;
-    if (current == null) return QueueActionResult.error;
-    if (oldIndex == newIndex) return QueueActionResult.ok;
+    // No rows are rendered while the queue is unloaded, so there was nothing
+    // to drag: nothing was sent and there is nothing to report.
+    if (current == null || oldIndex == newIndex) return ActionOutcome.ok;
 
     final list = [...current];
     final moved = list.removeAt(oldIndex);
@@ -91,50 +89,53 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
     ];
     try {
       await ref.read(queueRepositoryProvider).reorder(payload);
-      return QueueActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       state = AsyncValue.data(current); // rollback
-      return _mapError(e);
+      return ActionOutcome.failed(e, action: 'queue.reorder');
     }
   }
 
   /// Optimistic delete (swipe-to-delete). Error → restore item.
-  Future<QueueActionResult> delete(int itemId) async {
+  Future<ActionOutcome> delete(int itemId) async {
     final current = state.valueOrNull;
-    if (current == null) return QueueActionResult.error;
+    if (current == null) return ActionOutcome.ok; // nothing rendered to swipe
 
     state = AsyncValue.data(
       current.where((i) => i.id != itemId).toList(),
     );
     try {
       await ref.read(queueRepositoryProvider).delete(itemId);
-      return QueueActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
       state = AsyncValue.data(current); // rollback
-      return _mapError(e);
+      return ActionOutcome.failed(e, action: 'queue.swipe_delete');
     }
   }
 
   /// Manually start item — triggers physical print. On success, fetch fresh list
   /// (status changes server-side).
-  Future<QueueActionResult> start(int itemId) =>
-      _serverAction(() => ref.read(queueRepositoryProvider).start(itemId));
+  Future<ActionOutcome> start(int itemId) => _serverAction(
+      () => ref.read(queueRepositoryProvider).start(itemId),
+      'queue.start');
 
   /// Cancel queue item. On success, refresh list.
-  Future<QueueActionResult> cancel(int itemId) =>
-      _serverAction(() => ref.read(queueRepositoryProvider).cancel(itemId));
+  Future<ActionOutcome> cancel(int itemId) => _serverAction(
+      () => ref.read(queueRepositoryProvider).cancel(itemId),
+      'queue.cancel');
 
   /// Persist a filament→AMS-slot mapping without starting (e.g. for items the
   /// queue may auto-dispatch later). On success, refresh list.
-  Future<QueueActionResult> saveMapping(int itemId, List<int> mapping) =>
+  Future<ActionOutcome> saveMapping(int itemId, List<int> mapping) =>
       _serverAction(
-          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping));
+          () => ref.read(queueRepositoryProvider).setAmsMapping(itemId, mapping),
+          'queue.save_mapping');
 
   /// Assign indicated (free) printer and start item — triggers physical print.
   /// `start` doesn't take printer, so first PATCH `printer_id`, then POST `start`.
   /// [amsMapping] (optional) sets the filament→AMS-slot mapping before starting;
   /// `-1` entries mean "auto". On success, refresh list.
-  Future<QueueActionResult> startOnPrinter(
+  Future<ActionOutcome> startOnPrinter(
     int itemId,
     int printerId, {
     List<int>? amsMapping,
@@ -146,31 +147,30 @@ class QueueNotifier extends AutoDisposeAsyncNotifier<List<QueueItem>> {
           await repo.setAmsMapping(itemId, amsMapping);
         }
         await repo.start(itemId);
-      });
+      }, 'queue.start_on_printer');
 
   /// Run an arbitrary repository mutation, then refresh on success. Used by the
   /// Edit Queue Item screen, which builds its own `PATCH` body via
-  /// [QueueRepository.updateItem]. Error → mapped [QueueActionResult].
-  Future<QueueActionResult> runAction(
+  /// [QueueRepository.updateItem]. Error → mapped [ActionOutcome].
+  /// [logId] is the control the caller offered, so the seven mutations behind
+  /// this notifier do not all report as one tag.
+  Future<ActionOutcome> runAction(
     Future<void> Function(QueueRepository repo) action,
+    String logId,
   ) =>
-      _serverAction(() => action(ref.read(queueRepositoryProvider)));
+      _serverAction(() => action(ref.read(queueRepositoryProvider)), logId);
 
-  Future<QueueActionResult> _serverAction(Future<void> Function() send) async {
+  Future<ActionOutcome> _serverAction(
+    Future<void> Function() send,
+    String logId,
+  ) async {
     try {
       await send();
       await refresh();
-      return QueueActionResult.ok;
+      return ActionOutcome.ok;
     } on AppApiException catch (e) {
-      return _mapError(e);
+      return ActionOutcome.failed(e, action: logId);
     }
-  }
-
-  QueueActionResult _mapError(AppApiException e) {
-    if (e is AuthException && e.code == AppErrorCode.forbidden) {
-      return QueueActionResult.forbidden;
-    }
-    return QueueActionResult.error;
   }
 }
 

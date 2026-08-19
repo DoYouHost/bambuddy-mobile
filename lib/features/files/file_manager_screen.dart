@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
@@ -22,7 +23,7 @@ import '../common/format_bytes.dart' show formatBytes;
 import '../common/state_views.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
-import '../slicer/slice_sheet.dart';
+import '../slicer/slice_screen.dart';
 import 'file_manager_providers.dart';
 import 'library_thumbnail.dart';
 import 'tag_sheets.dart';
@@ -60,10 +61,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _snack(String msg) =>
       _messenger.showSnackBar(SnackBar(content: Text(msg)));
 
-  String _errText(AppApiException e) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-          ? _l10n.ctrlForbidden
-          : _l10n.ctrlFailed;
+  /// Both halves of a failed action: the sentence, and the record that somebody
+  /// was stopped. Unmounted — the screen was left while the request was in
+  /// flight — there is neither a messenger nor an `l10n` to resolve, so only
+  /// the record is written, marked as one that reached nobody.
+  void _failed(AppApiException e, String action) => mounted
+      ? showApiFailure(_messenger, e, _l10n, action: action)
+      : recordActionFailure(e, action: action, shown: false);
 
   @override
   Widget build(BuildContext context) {
@@ -249,6 +253,20 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
               onPressed: s.selected.isEmpty ? null : () => _tagSelected(s),
             ),
           ),
+        // Server 1.2.6+ only, and meaningless below two files — a group of one
+        // expresses no choice and the server refuses it.
+        if (ref
+            .watch(crossModelVariantsProvider)
+            .maybeWhen(data: (v) => v, orElse: () => false))
+          logTag(
+            'files.group_variants',
+            IconButton(
+              tooltip: l10n.fmGroupAsVariants,
+              icon: const Icon(Icons.alt_route),
+              onPressed:
+                  s.selected.length < 2 ? null : () => _groupAsVariants(s),
+            ),
+          ),
         logTag(
           'files.add_to_queue',
           IconButton(
@@ -307,8 +325,11 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        // Six options fit at the default text scale and stop fitting well before
+        // the largest one, so this scrolls for the same reason the file sheet
+        // above does.
+        child: ListView(
+          shrinkWrap: true,
           children: [
             for (final entry in <(FileSort, String)>[
               (FileSort.dateDesc, l10n.fmSortDateNewest),
@@ -345,9 +366,13 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Scrollable, not a Column: this sheet reaches nine tiles plus the
+        // thumbnail header (print + preview *or* slice, two for variants, tags,
+        // and three more for a local file), which is taller than the half-screen
+        // a bottom sheet gets. As a Column that is a RenderFlex overflow with the
+        // last actions simply unreachable.
+        child: ListView(
+          shrinkWrap: true,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -386,6 +411,27 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   _previewGcode(file);
                 },
               ).tagged('file_actions.preview_gcode'),
+            ],
+            // Only for a file that is actually grouped, so the action never
+            // appears on a server that has no variant groups at all.
+            if (file.hasVariants) ...[
+              ListTile(
+                leading: const Icon(Icons.alt_route),
+                title: Text(l10n.fmQueueAsVariants),
+                subtitle: Text(l10n.fmVariantsMemberCount(file.variantCount)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _queueAsVariants(file);
+                },
+              ).tagged('file_actions.queue_variants'),
+              ListTile(
+                leading: const Icon(Icons.call_split),
+                title: Text(l10n.fmUngroupVariants),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _ungroupVariants(file);
+                },
+              ).tagged('file_actions.ungroup_variants'),
             ],
             if (canSlice)
               ListTile(
@@ -465,8 +511,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmFolderCreated);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.new_folder');
     }
   }
 
@@ -486,8 +531,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.folder.rename');
     }
   }
 
@@ -508,8 +552,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.folder.delete');
     }
   }
 
@@ -529,8 +572,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmRenamed);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.rename');
     }
   }
 
@@ -548,8 +590,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmMoved);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.move');
     }
   }
 
@@ -569,8 +610,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.delete');
     }
   }
 
@@ -592,8 +632,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmDeleted);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.delete_selected');
     }
   }
 
@@ -613,6 +652,67 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     if (mounted) _snack(_l10n.fmTagsSaved);
   }
 
+  /// Group the selection as cross-model alternatives (server #671).
+  ///
+  /// Two files minimum, and the selection order is the priority order the
+  /// scheduler will use. The server refuses a file that already belongs to
+  /// another group (409) — surfaced as-is rather than pre-checked, because the
+  /// listing we hold can be stale and the server's answer cannot.
+  Future<void> _groupAsVariants(FileManagerState s) async {
+    final ids = s.selected.toList();
+    try {
+      final group =
+          await ref.read(libraryRepositoryProvider).createVariantGroup(ids);
+      if (!mounted) return;
+      ref.read(fileManagerProvider.notifier).clearSelection();
+      await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
+      _snack(_l10n.fmVariantsGrouped(group.members.length));
+    } on AppApiException catch (e) {
+      _failed(e, 'files.group_variants');
+    }
+  }
+
+  /// Queue [file]'s whole group as one cross-model job — the point of grouping.
+  ///
+  /// Fetches the group first rather than trusting the cached row: the listing
+  /// carries only a count, and the scheduler needs the members in their
+  /// priority order. A group that vanished between listing and tap comes back
+  /// as null, which is the same "nothing to queue" as an ungrouped file.
+  Future<void> _queueAsVariants(LibraryFile file) async {
+    try {
+      final group =
+          await ref.read(libraryRepositoryProvider).variantGroupForFile(file.id);
+      if (group == null || group.members.length < 2) {
+        if (!mounted) return;
+        _snack(_l10n.fmVariantsGone);
+        return;
+      }
+      await ref.read(queueRepositoryProvider).addCrossModel(
+            [for (final m in group.members) m.libraryFileId],
+          );
+      if (!mounted) return;
+      _snack(_l10n.fmAddedToQueue);
+    } on AppApiException catch (e) {
+      _failed(e, 'file_actions.queue_variants');
+    }
+  }
+
+  /// Dissolve the group [file] belongs to, so each file stands alone again.
+  Future<void> _ungroupVariants(LibraryFile file) async {
+    final groupId = file.variantGroupId;
+    if (groupId == null) return;
+    try {
+      await ref.read(libraryRepositoryProvider).deleteVariantGroup(groupId);
+      if (!mounted) return;
+      await ref.read(fileManagerProvider.notifier).refresh();
+      if (!mounted) return;
+      _snack(_l10n.fmVariantsUngrouped);
+    } on AppApiException catch (e) {
+      _failed(e, 'file_actions.ungroup_variants');
+    }
+  }
+
   Future<void> _addSelectedToQueue(FileManagerState s) async {
     final ids = s.selected.toList();
     try {
@@ -621,8 +721,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ref.read(fileManagerProvider.notifier).clearSelection();
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.add_to_queue');
     }
   }
 
@@ -632,8 +731,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       if (!mounted) return;
       _snack(_l10n.fmAddedToQueue);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'file_actions.add_to_queue');
     }
   }
 
@@ -659,7 +757,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   Future<void> _sliceFile(LibraryFile file) async {
-    final sliced = await showSliceSheet(
+    final sliced = await showSliceScreen(
       context,
       SliceTarget.libraryFile(file.id, file.displayName),
     );
@@ -698,8 +796,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       ref.invalidate(libraryStatsProvider);
       _snack(l10n.fmUploaded(name));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      _snack(_errText(e));
+      _failed(e, 'files.upload');
     }
   }
 
@@ -848,6 +945,10 @@ class _FilterRow extends ConsumerWidget {
   final TextEditingController controller;
   final ValueChanged<String> onSearch;
 
+  /// Menu value for "All types", which the filter itself stores as `null`.
+  /// See the item's own comment for why it cannot be `null`.
+  static const _allTypes = '*';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -882,7 +983,7 @@ class _FilterRow extends ConsumerWidget {
         ],
         if (types.isNotEmpty) ...[
           const SizedBox(width: 4),
-          PopupMenuButton<String?>(
+          PopupMenuButton<String>(
             tooltip: l10n.fmFilterType,
             icon: Icon(
               state.typeFilter == null
@@ -890,15 +991,21 @@ class _FilterRow extends ConsumerWidget {
                   : Icons.filter_list_alt,
               color: t.textSecondary,
             ),
-            onSelected: (v) => ref.read(fileManagerProvider.notifier).setType(v),
+            onSelected: (v) => ref
+                .read(fileManagerProvider.notifier)
+                .setType(v == _allTypes ? null : v),
             itemBuilder: (ctx) => [
-              CheckedPopupMenuItem<String?>(
-                value: null,
+              CheckedPopupMenuItem<String>(
+                // Not `null`, which the filter stores for "no type filter":
+                // `PopupMenuButton` cannot tell a null-valued item apart from a
+                // dismissed menu, so such a row calls `onCanceled` and can
+                // never be picked. A file extension is never `*`.
+                value: _allTypes,
                 checked: state.typeFilter == null,
                 child: logTag('files.type_all', Text(l10n.fmAllTypes)),
               ),
               for (final ft in types)
-                CheckedPopupMenuItem<String?>(
+                CheckedPopupMenuItem<String>(
                   value: ft,
                   checked: state.typeFilter == ft,
                   child: logTag('files.type_option', Text(ft.toUpperCase())),
@@ -1122,6 +1229,29 @@ class _FileTile extends StatelessWidget {
                             color: t.textTertiary,
                           ),
                         ),
+                        // Marks a file that is one of several alternatives, so
+                        // the grouping is visible without opening the sheet.
+                        if (file.hasVariants) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.alt_route,
+                                  size: 12, color: t.textTertiary),
+                              const SizedBox(width: 4),
+                              Text(
+                                AppLocalizations.of(context)
+                                    .fmVariantsMemberCount(file.variantCount),
+                                style: TextStyle(
+                                  fontFamily: DashTokens.fontUi,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         if (file.tags.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           // Capped so a file tagged a dozen times keeps the

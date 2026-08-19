@@ -194,6 +194,12 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get retry;
 
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
   /// No description provided for @searchPrinters.
   ///
   /// In en, this message translates to:
@@ -893,7 +899,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlForbidden.
   ///
   /// In en, this message translates to:
-  /// **'This API key can\'t control the printer'**
+  /// **'No permission to control this printer'**
   String get ctrlForbidden;
 
   /// No description provided for @ctrlFailed.
@@ -920,23 +926,35 @@ abstract class AppLocalizations {
   /// **'Skipped'**
   String get skipObjectsSkippedTag;
 
-  /// Snackbar after an object is skipped
+  /// Snackbar after skipping one or more objects
   ///
   /// In en, this message translates to:
-  /// **'Skipped \"{name}\"'**
-  String skipObjectsSkippedToast(String name);
+  /// **'{count, plural, =1{Skipped \"{names}\"} other{Skipped {count} objects}}'**
+  String skipObjectsSkippedToast(int count, String names);
 
-  /// Confirm dialog title before skipping
+  /// Confirm dialog title before skipping the selected objects
   ///
   /// In en, this message translates to:
-  /// **'Skip this object?'**
-  String get skipObjectsConfirmTitle;
+  /// **'{count, plural, =1{Skip this object?} other{Skip {count} objects?}}'**
+  String skipObjectsConfirmTitle(int count);
 
-  /// Confirm dialog body before skipping an object
+  /// Confirm dialog body before skipping the selected objects
   ///
   /// In en, this message translates to:
-  /// **'\"{name}\" will be skipped for the rest of this print. This can\'t be undone.'**
-  String skipObjectsConfirmBody(String name);
+  /// **'{count, plural, =1{\"{names}\" will be skipped for the rest of this print. This can\'t be undone.} other{\"{names}\" will be skipped for the rest of this print. This can\'t be undone.}}'**
+  String skipObjectsConfirmBody(int count, String names);
+
+  /// Bottom bar: how many objects are selected to skip
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String skipObjectsSelectedCount(int count);
+
+  /// Hint shown while nothing is selected yet
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an object above or below to select it for skipping'**
+  String get skipObjectsSelectHint;
 
   /// Info banner title on the skip screen
   ///
@@ -1099,6 +1117,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AMS from slicer'**
   String get queueAmsFromSlicer;
+
+  /// No description provided for @queueAnyOfModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Any of: {models}'**
+  String queueAnyOfModels(String models);
 
   /// No description provided for @queueDeleteTitle.
   ///
@@ -1358,6 +1382,180 @@ abstract class AppLocalizations {
   /// **'Add to queue'**
   String get archiveAddToQueue;
 
+  /// No description provided for @archiveTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch timelapse'**
+  String get archiveTimelapse;
+
+  /// No description provided for @archivePhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
+  String archivePhotos(int count);
+
+  /// No description provided for @archivePhotosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get archivePhotosTitle;
+
+  /// No description provided for @archivePhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos for this print'**
+  String get archivePhotosEmpty;
+
+  /// No description provided for @archivePhotoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this photo.'**
+  String get archivePhotoFailed;
+
+  /// No description provided for @archiveHasTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Has a timelapse'**
+  String get archiveHasTimelapse;
+
+  /// No description provided for @archiveHasPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Has a photo} other{Has {count} photos}}'**
+  String archiveHasPhotos(int count);
+
+  /// No description provided for @timelapseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get timelapseTitle;
+
+  /// No description provided for @timelapseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t play this timelapse.'**
+  String get timelapseError;
+
+  /// No description provided for @timelapseHttpError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server would not hand over this timelapse ({status}).'**
+  String timelapseHttpError(int status);
+
+  /// No description provided for @timelapseStalled.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is serving the video, but the player never started it.'**
+  String get timelapseStalled;
+
+  /// No description provided for @timelapsePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get timelapsePlay;
+
+  /// No description provided for @timelapsePause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get timelapsePause;
+
+  /// No description provided for @timelapseSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to gallery'**
+  String get timelapseSave;
+
+  /// No description provided for @timelapseShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get timelapseShare;
+
+  /// No description provided for @timelapseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to the gallery'**
+  String get timelapseSaved;
+
+  /// No description provided for @timelapseSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the video'**
+  String get timelapseSaveFailed;
+
+  /// No description provided for @timelapseSaveDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambuddy needs permission to write to the gallery on this Android version.'**
+  String get timelapseSaveDenied;
+
+  /// No description provided for @timelapseEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get timelapseEdit;
+
+  /// No description provided for @timelapseEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get timelapseEditSave;
+
+  /// No description provided for @timelapseEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit timelapse'**
+  String get timelapseEditTitle;
+
+  /// No description provided for @timelapseEditTrim.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim'**
+  String get timelapseEditTrim;
+
+  /// No description provided for @timelapseEditSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get timelapseEditSpeed;
+
+  /// No description provided for @timelapseEditOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Result: {length}'**
+  String timelapseEditOutput(String length);
+
+  /// No description provided for @timelapseEditSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Original: {length} at {width}×{height}'**
+  String timelapseEditSource(String length, int width, int height);
+
+  /// No description provided for @timelapseEditSaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite the recording?'**
+  String get timelapseEditSaveTitle;
+
+  /// No description provided for @timelapseEditSaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The server re-encodes the timelapse and replaces the original. There is no copy to go back to.'**
+  String get timelapseEditSaveMessage;
+
+  /// No description provided for @timelapseEditProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.'**
+  String get timelapseEditProcessing;
+
+  /// No description provided for @timelapseEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse updated'**
+  String get timelapseEdited;
+
   /// No description provided for @gcodeViewerTitle.
   ///
   /// In en, this message translates to:
@@ -1375,6 +1573,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the G-code preview.'**
   String get gcodeViewerError;
+
+  /// No description provided for @gcodeViewerLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading G-code…'**
+  String get gcodeViewerLoading;
+
+  /// No description provided for @gcodeViewerParsing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the toolpath…'**
+  String get gcodeViewerParsing;
+
+  /// No description provided for @gcodeViewerTravels.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel moves'**
+  String get gcodeViewerTravels;
+
+  /// No description provided for @gcodeViewerColorByFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get gcodeViewerColorByFilament;
+
+  /// No description provided for @gcodeViewerColorByFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature'**
+  String get gcodeViewerColorByFeature;
+
+  /// No description provided for @gcodeViewerColorByHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get gcodeViewerColorByHeight;
+
+  /// No description provided for @gcodeViewerColorByWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get gcodeViewerColorByWidth;
+
+  /// No description provided for @gcodeSingleLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'single layer'**
+  String get gcodeSingleLayer;
+
+  /// No description provided for @gcodeViewerFilamentSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament {n}'**
+  String gcodeViewerFilamentSlot(int n);
+
+  /// No description provided for @gcodeViewerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no toolpath in this file — it hasn\'t been sliced yet.'**
+  String get gcodeViewerEmpty;
+
+  /// No description provided for @gcodeViewerHttpError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server would not hand over the G-code for this file ({status}).'**
+  String gcodeViewerHttpError(int status);
+
+  /// No description provided for @gcodeFeatureWall.
+  ///
+  /// In en, this message translates to:
+  /// **'Walls'**
+  String get gcodeFeatureWall;
+
+  /// No description provided for @gcodeFeatureSparseInfill.
+  ///
+  /// In en, this message translates to:
+  /// **'Sparse infill'**
+  String get gcodeFeatureSparseInfill;
+
+  /// No description provided for @gcodeFeatureSolidInfill.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid infill'**
+  String get gcodeFeatureSolidInfill;
+
+  /// No description provided for @gcodeFeatureSkirt.
+  ///
+  /// In en, this message translates to:
+  /// **'Skirt / brim'**
+  String get gcodeFeatureSkirt;
+
+  /// No description provided for @gcodeFeatureSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get gcodeFeatureSupport;
+
+  /// No description provided for @gcodeFeatureGapFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Gap fill'**
+  String get gcodeFeatureGapFill;
+
+  /// No description provided for @gcodeFeatureBridge.
+  ///
+  /// In en, this message translates to:
+  /// **'Bridge / overhang'**
+  String get gcodeFeatureBridge;
+
+  /// No description provided for @gcodeFeatureIroning.
+  ///
+  /// In en, this message translates to:
+  /// **'Ironing'**
+  String get gcodeFeatureIroning;
+
+  /// No description provided for @gcodeFeaturePrimeTower.
+  ///
+  /// In en, this message translates to:
+  /// **'Prime tower'**
+  String get gcodeFeaturePrimeTower;
 
   /// No description provided for @archiveDelete.
   ///
@@ -1568,6 +1886,240 @@ abstract class AppLocalizations {
   /// **'Empty'**
   String get traySlotEmpty;
 
+  /// No description provided for @amsSlotFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get amsSlotFilament;
+
+  /// No description provided for @amsLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load'**
+  String get amsLoad;
+
+  /// No description provided for @amsUnload.
+  ///
+  /// In en, this message translates to:
+  /// **'Unload'**
+  String get amsUnload;
+
+  /// No description provided for @amsRfidReread.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read tag'**
+  String get amsRfidReread;
+
+  /// No description provided for @amsLoadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading filament…'**
+  String get amsLoadStarted;
+
+  /// No description provided for @amsUnloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unloading filament…'**
+  String get amsUnloadStarted;
+
+  /// No description provided for @amsRfidRereadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-reading the tag…'**
+  String get amsRfidRereadStarted;
+
+  /// No description provided for @amsActionsWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable while the printer is printing'**
+  String get amsActionsWhilePrinting;
+
+  /// No description provided for @amsSlotConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure slot'**
+  String get amsSlotConfigure;
+
+  /// No description provided for @amsSlotConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configuration'**
+  String get amsSlotConfigTitle;
+
+  /// No description provided for @amsSlotConfigSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search presets'**
+  String get amsSlotConfigSearch;
+
+  /// No description provided for @amsSlotConfigColour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get amsSlotConfigColour;
+
+  /// No description provided for @amsSlotConfigApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to printer'**
+  String get amsSlotConfigApply;
+
+  /// No description provided for @amsSlotConfigStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuring the slot…'**
+  String get amsSlotConfigStarted;
+
+  /// No description provided for @amsSlotConfigNameNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot configured, but the preset name could not be saved'**
+  String get amsSlotConfigNameNotSaved;
+
+  /// No description provided for @amsSlotConfigEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No filament presets available'**
+  String get amsSlotConfigEmpty;
+
+  /// No description provided for @amsSlotConfigNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No preset matches the search'**
+  String get amsSlotConfigNoMatch;
+
+  /// No description provided for @amsSlotConfigCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to Bambu Cloud to pick from your own presets.'**
+  String get amsSlotConfigCloudHint;
+
+  /// No description provided for @amsSlotConfigCloudAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get amsSlotConfigCloudAction;
+
+  /// No description provided for @amsSlotConfigTierLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get amsSlotConfigTierLocal;
+
+  /// No description provided for @amsSlotConfigTierCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Cloud'**
+  String get amsSlotConfigTierCloud;
+
+  /// No description provided for @amsSlotConfigTierBuiltin.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get amsSlotConfigTierBuiltin;
+
+  /// No description provided for @amsSlotConfigOnlyPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model}'**
+  String amsSlotConfigOnlyPrinter(String model);
+
+  /// No description provided for @amsSlotConfigOnlyPrinterHiding.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for {model} ({hidden} hidden)'**
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden);
+
+  /// No description provided for @amsSlotConfigModelUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer model unknown — showing every preset'**
+  String get amsSlotConfigModelUnknown;
+
+  /// No description provided for @amsSlotConfigCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently set'**
+  String get amsSlotConfigCurrent;
+
+  /// No description provided for @amsSlotConfigKProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'K profile'**
+  String get amsSlotConfigKProfile;
+
+  /// No description provided for @amsSlotConfigKProfileDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (K {value})'**
+  String amsSlotConfigKProfileDefault(String value);
+
+  /// No description provided for @amsSlotConfigKProfileOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other profiles'**
+  String get amsSlotConfigKProfileOther;
+
+  /// No description provided for @amsSlotConfigKProfileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This printer has no stored K profiles for this nozzle'**
+  String get amsSlotConfigKProfileNone;
+
+  /// No description provided for @amsSlotConfigKProfileUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the printer\'s K profiles'**
+  String get amsSlotConfigKProfileUnavailable;
+
+  /// No description provided for @amsSlotConfigNozzleGuess.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not report its nozzle size — assuming {diameter} mm'**
+  String amsSlotConfigNozzleGuess(String diameter);
+
+  /// No description provided for @amsSlotConfigKProfileValue.
+  ///
+  /// In en, this message translates to:
+  /// **'K {value}'**
+  String amsSlotConfigKProfileValue(String value);
+
+  /// No description provided for @amsSlotConfigColourCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue colours'**
+  String get amsSlotConfigColourCatalogue;
+
+  /// No description provided for @amsSlotConfigColourCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get amsSlotConfigColourCustom;
+
+  /// No description provided for @amsSlotReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear slot'**
+  String get amsSlotReset;
+
+  /// No description provided for @amsSlotResetConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear this slot?'**
+  String get amsSlotResetConfirmTitle;
+
+  /// No description provided for @amsSlotResetConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer forgets the filament configured here, and bambuddy forgets which preset it was.'**
+  String get amsSlotResetConfirmMessage;
+
+  /// No description provided for @amsSlotResetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing the slot…'**
+  String get amsSlotResetStarted;
+
   /// No description provided for @extruderLeft.
   ///
   /// In en, this message translates to:
@@ -1622,53 +2174,53 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get amsHistoryTemperature;
 
-  /// No description provided for @amsHistoryCurrent.
+  /// No description provided for @sensorHistoryCurrent.
   ///
   /// In en, this message translates to:
   /// **'Current'**
-  String get amsHistoryCurrent;
+  String get sensorHistoryCurrent;
 
-  /// No description provided for @amsHistoryAverage.
+  /// No description provided for @sensorHistoryAverage.
   ///
   /// In en, this message translates to:
   /// **'Average'**
-  String get amsHistoryAverage;
+  String get sensorHistoryAverage;
 
-  /// No description provided for @amsHistoryMin.
+  /// No description provided for @sensorHistoryMin.
   ///
   /// In en, this message translates to:
   /// **'Min'**
-  String get amsHistoryMin;
+  String get sensorHistoryMin;
 
-  /// No description provided for @amsHistoryMax.
+  /// No description provided for @sensorHistoryMax.
   ///
   /// In en, this message translates to:
   /// **'Max'**
-  String get amsHistoryMax;
+  String get sensorHistoryMax;
 
-  /// No description provided for @amsHistoryRange6h.
+  /// No description provided for @sensorHistoryRange6h.
   ///
   /// In en, this message translates to:
   /// **'6h'**
-  String get amsHistoryRange6h;
+  String get sensorHistoryRange6h;
 
-  /// No description provided for @amsHistoryRange24h.
+  /// No description provided for @sensorHistoryRange24h.
   ///
   /// In en, this message translates to:
   /// **'24h'**
-  String get amsHistoryRange24h;
+  String get sensorHistoryRange24h;
 
-  /// No description provided for @amsHistoryRange48h.
+  /// No description provided for @sensorHistoryRange48h.
   ///
   /// In en, this message translates to:
   /// **'48h'**
-  String get amsHistoryRange48h;
+  String get sensorHistoryRange48h;
 
-  /// No description provided for @amsHistoryRange7d.
+  /// No description provided for @sensorHistoryRange7d.
   ///
   /// In en, this message translates to:
   /// **'7d'**
-  String get amsHistoryRange7d;
+  String get sensorHistoryRange7d;
 
   /// No description provided for @amsHistoryGood.
   ///
@@ -1682,23 +2234,53 @@ abstract class AppLocalizations {
   /// **'Fair'**
   String get amsHistoryFair;
 
-  /// No description provided for @amsHistoryEmpty.
+  /// No description provided for @sensorHistoryEmpty.
   ///
   /// In en, this message translates to:
   /// **'No data for this range'**
-  String get amsHistoryEmpty;
+  String get sensorHistoryEmpty;
 
-  /// No description provided for @amsHistoryError.
+  /// No description provided for @sensorHistoryError.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load history'**
-  String get amsHistoryError;
+  String get sensorHistoryError;
 
   /// No description provided for @amsHistoryRecordingInfo.
   ///
   /// In en, this message translates to:
   /// **'Recorded every 5 minutes while the printer is connected'**
   String get amsHistoryRecordingInfo;
+
+  /// No description provided for @heaterHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature history'**
+  String get heaterHistoryTitle;
+
+  /// No description provided for @heaterHistoryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature history'**
+  String get heaterHistoryOpen;
+
+  /// No description provided for @heaterHistoryReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get heaterHistoryReading;
+
+  /// No description provided for @heaterHistoryTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get heaterHistoryTarget;
+
+  /// No description provided for @heaterHistoryRecordingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded every minute while the printer is connected'**
+  String get heaterHistoryRecordingInfo;
 
   /// No description provided for @wifiTooltip.
   ///
@@ -2129,8 +2711,20 @@ abstract class AppLocalizations {
   /// No description provided for @errForbidden.
   ///
   /// In en, this message translates to:
-  /// **'Not allowed — your API key lacks permission for this'**
+  /// **'Not allowed — the server refused this action'**
   String get errForbidden;
+
+  /// No description provided for @errForbiddenDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed: {reason}'**
+  String errForbiddenDetail(String reason);
+
+  /// No description provided for @errApiKeyOwnerDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.'**
+  String get errApiKeyOwnerDisabled;
 
   /// No description provided for @errBadResponse.
   ///
@@ -2390,6 +2984,24 @@ abstract class AppLocalizations {
   /// **'Events'**
   String get notifEventsHeader;
 
+  /// No description provided for @notifExtrasHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get notifExtrasHeader;
+
+  /// No description provided for @notifFinishPhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of the finished print'**
+  String get notifFinishPhotoTitle;
+
+  /// No description provided for @notifFinishPhotoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives'**
+  String get notifFinishPhotoDesc;
+
   /// No description provided for @notifThresholdsHeader.
   ///
   /// In en, this message translates to:
@@ -2563,6 +3175,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open in Bambu wiki'**
   String get hmsViewInWiki;
+
+  /// No description provided for @hmsErrorsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 error} other{{count} errors}}'**
+  String hmsErrorsCount(int count);
+
+  /// No description provided for @hmsDismissAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss all'**
+  String get hmsDismissAll;
+
+  /// No description provided for @hmsDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors cleared on the printer'**
+  String get hmsDismissed;
+
+  /// No description provided for @hmsDismissFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the errors'**
+  String get hmsDismissFailed;
+
+  /// No description provided for @hmsActionSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the printer'**
+  String get hmsActionSent;
+
+  /// No description provided for @hmsActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer refused the action'**
+  String get hmsActionFailed;
+
+  /// No description provided for @hmsActionNotAcknowledged.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not confirm the action — check its screen'**
+  String get hmsActionNotAcknowledged;
+
+  /// No description provided for @hmsStopConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the print?'**
+  String get hmsStopConfirmTitle;
+
+  /// No description provided for @hmsStopConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{printer} will abandon the print job. This cannot be undone.'**
+  String hmsStopConfirmBody(String printer);
+
+  /// No description provided for @hmsStopConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop printing'**
+  String get hmsStopConfirmAction;
+
+  /// No description provided for @hmsActionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get hmsActionResume;
+
+  /// No description provided for @hmsActionResumeDefects.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume anyway'**
+  String get hmsActionResumeDefects;
+
+  /// No description provided for @hmsActionResumeSolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, resume'**
+  String get hmsActionResumeSolved;
+
+  /// No description provided for @hmsActionProblemSolvedResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, resume'**
+  String get hmsActionProblemSolvedResume;
+
+  /// No description provided for @hmsActionFilamentLoadedResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded, resume'**
+  String get hmsActionFilamentLoadedResume;
+
+  /// No description provided for @hmsActionProceed.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed'**
+  String get hmsActionProceed;
+
+  /// No description provided for @hmsActionStopPrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get hmsActionStopPrinting;
+
+  /// No description provided for @hmsActionIgnoreResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore, resume'**
+  String get hmsActionIgnoreResume;
+
+  /// No description provided for @hmsActionIgnoreNoReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore always'**
+  String get hmsActionIgnoreNoReminder;
+
+  /// No description provided for @hmsActionDontRemind.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t remind'**
+  String get hmsActionDontRemind;
+
+  /// No description provided for @hmsActionNoReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get hmsActionNoReminder;
+
+  /// No description provided for @hmsActionFilamentExtruded.
+  ///
+  /// In en, this message translates to:
+  /// **'Extruded'**
+  String get hmsActionFilamentExtruded;
+
+  /// No description provided for @hmsActionRetryFilamentExtruded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet, retry'**
+  String get hmsActionRetryFilamentExtruded;
+
+  /// No description provided for @hmsActionContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Done, continue'**
+  String get hmsActionContinue;
+
+  /// No description provided for @hmsActionRetrySolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed, retry'**
+  String get hmsActionRetrySolved;
+
+  /// No description provided for @hmsActionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get hmsActionDone;
+
+  /// No description provided for @hmsActionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get hmsActionRetry;
+
+  /// No description provided for @hmsActionResumePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get hmsActionResumePlain;
+
+  /// No description provided for @hmsActionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get hmsActionConfirm;
+
+  /// No description provided for @hmsActionAbort.
+  ///
+  /// In en, this message translates to:
+  /// **'Abort'**
+  String get hmsActionAbort;
+
+  /// No description provided for @hmsActionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get hmsActionOk;
+
+  /// No description provided for @hmsActionRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Recheck'**
+  String get hmsActionRecheck;
+
+  /// No description provided for @hmsActionTurnOffFireAlarm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off alarm'**
+  String get hmsActionTurnOffFireAlarm;
+
+  /// No description provided for @hmsActionStopDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop drying'**
+  String get hmsActionStopDrying;
+
+  /// No description provided for @hmsActionDisablePurification.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable purification'**
+  String get hmsActionDisablePurification;
 
   /// No description provided for @batteryOptTitle.
   ///
@@ -4400,6 +5222,12 @@ abstract class AppLocalizations {
   /// **'Color distribution'**
   String get statsColorDistribution;
 
+  /// No description provided for @statsColorShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share of filament used, by weight'**
+  String get statsColorShareHint;
+
   /// No description provided for @statsColorsCount.
   ///
   /// In en, this message translates to:
@@ -4729,6 +5557,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added to queue'**
   String get fmAddedToQueue;
+
+  /// No description provided for @fmGroupAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Group as alternatives'**
+  String get fmGroupAsVariants;
+
+  /// No description provided for @fmQueueAsVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue as one job'**
+  String get fmQueueAsVariants;
+
+  /// No description provided for @fmUngroupVariants.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup alternatives'**
+  String get fmUngroupVariants;
+
+  /// No description provided for @fmVariantsGrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files grouped as alternatives'**
+  String fmVariantsGrouped(int count);
+
+  /// No description provided for @fmVariantsUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternatives ungrouped'**
+  String get fmVariantsUngrouped;
+
+  /// No description provided for @fmVariantsMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} alternatives'**
+  String fmVariantsMemberCount(int count);
+
+  /// No description provided for @fmVariantsGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This group no longer exists'**
+  String get fmVariantsGone;
 
   /// No description provided for @fmUpload.
   ///
@@ -5534,18 +6404,6 @@ abstract class AppLocalizations {
   /// **'Project saved'**
   String get projectSaved;
 
-  /// No description provided for @projectActionForbidden.
-  ///
-  /// In en, this message translates to:
-  /// **'Your API key lacks permission for this action'**
-  String get projectActionForbidden;
-
-  /// No description provided for @projectActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Action failed'**
-  String get projectActionFailed;
-
   /// No description provided for @projectName.
   ///
   /// In en, this message translates to:
@@ -6266,6 +7124,192 @@ abstract class AppLocalizations {
   /// **'Filament {n}'**
   String sliceFilamentNumbered(String n);
 
+  /// No description provided for @sliceAutoOrient.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto orient'**
+  String get sliceAutoOrient;
+
+  /// No description provided for @sliceAutoOrientHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turns each object onto its best printing side.'**
+  String get sliceAutoOrientHint;
+
+  /// No description provided for @sliceAutoArrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto arrange'**
+  String get sliceAutoArrange;
+
+  /// No description provided for @sliceAutoArrangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lays the objects out on the plate again.'**
+  String get sliceAutoArrangeHint;
+
+  /// No description provided for @sliceDesignedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is for {printer}'**
+  String sliceDesignedFor(String printer);
+
+  /// No description provided for @sliceUseDesignedPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get sliceUseDesignedPrinter;
+
+  /// No description provided for @sliceAsDesigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the file\'s own settings'**
+  String get sliceAsDesigned;
+
+  /// No description provided for @sliceAsDesignedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The designer\'s settings instead of the profiles above.'**
+  String get sliceAsDesignedHint;
+
+  /// No description provided for @sliceAsDesignedInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used — the file decides'**
+  String get sliceAsDesignedInactive;
+
+  /// No description provided for @sliceFilamentUnused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used by this plate'**
+  String get sliceFilamentUnused;
+
+  /// No description provided for @processSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Process settings'**
+  String get processSettingsTitle;
+
+  /// No description provided for @sliceProcessSettingsNeedsProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a process preset first'**
+  String get sliceProcessSettingsNeedsProcess;
+
+  /// No description provided for @sliceProcessSettingsUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the preset as it is'**
+  String get sliceProcessSettingsUnchanged;
+
+  /// No description provided for @sliceProcessSettingsChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} changed'**
+  String sliceProcessSettingsChanged(int count);
+
+  /// No description provided for @processSettingsModeSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get processSettingsModeSimple;
+
+  /// No description provided for @processSettingsModeAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get processSettingsModeAdvanced;
+
+  /// No description provided for @processSettingsModeExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get processSettingsModeExpert;
+
+  /// No description provided for @processSettingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get processSettingsSearchHint;
+
+  /// No description provided for @processSettingsNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No settings match this search.'**
+  String get processSettingsNoMatches;
+
+  /// No description provided for @processSettingsRevert.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to the preset\'s value'**
+  String get processSettingsRevert;
+
+  /// No description provided for @processSettingsRevertAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {count}'**
+  String processSettingsRevertAll(int count);
+
+  /// No description provided for @processSettingsOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer accepts {range}'**
+  String processSettingsOutOfRange(String range);
+
+  /// No description provided for @processSettingsDisabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer ignores this with your current settings.'**
+  String get processSettingsDisabledHint;
+
+  /// No description provided for @processSettingsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This server cannot report process settings for the selected preset.'**
+  String get processSettingsUnavailable;
+
+  /// No description provided for @processSettingsDefaultsOutdatedSidecar.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsOutdatedSidecar;
+
+  /// No description provided for @processSettingsDefaultsNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsNotConfigured;
+
+  /// No description provided for @processSettingsDefaultsSidecarUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsSidecarUnavailable;
+
+  /// No description provided for @processSettingsDefaultsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.'**
+  String get processSettingsDefaultsUnavailable;
+
+  /// No description provided for @processSettingsFilamentDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (the region\'s own filament)'**
+  String get processSettingsFilamentDefault;
+
+  /// No description provided for @processSettingsFilamentSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'{slot}: {name}'**
+  String processSettingsFilamentSlot(String slot, String name);
+
+  /// No description provided for @processSettingsFilamentSlotMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {slot} — this file has no such slot'**
+  String processSettingsFilamentSlotMissing(String slot);
+
   /// No description provided for @sliceSelect.
   ///
   /// In en, this message translates to:
@@ -6925,6 +7969,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chamber target override (°C, blank = filament default)'**
   String get queueEditChamberTarget;
+
+  /// No description provided for @queueEditChamberTargetRange.
+  ///
+  /// In en, this message translates to:
+  /// **'0–{max} °C'**
+  String queueEditChamberTargetRange(int max);
 
   /// No description provided for @queueEditWhenToPrint.
   ///

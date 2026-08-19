@@ -21,6 +21,21 @@ DioException _badResponse(int status) {
   );
 }
 
+/// [_badResponse] with the `detail` the route actually wrote, for the cases
+/// where that text is the whole point.
+DioException _badResponseWithDetail(int status, String detail) {
+  final options = RequestOptions(path: '/api/v1/printers/1/print/stop');
+  return DioException(
+    requestOptions: options,
+    type: DioExceptionType.badResponse,
+    response: Response<dynamic>(
+      requestOptions: options,
+      statusCode: status,
+      data: {'detail': detail},
+    ),
+  );
+}
+
 DioException _ofType(DioExceptionType type) => DioException(
       requestOptions: RequestOptions(path: '/api/v1/printers/'),
       type: type,
@@ -41,6 +56,61 @@ void main() {
       final mapped = mapDioException(_badResponse(403));
       expect(mapped, isA<AuthException>());
       expect(mapped.code, AppErrorCode.forbidden);
+    });
+
+    test('403 keeps what the server said was missing', () {
+      // The only party that knows which permission it was is the server, and
+      // it says so in both auth modes. Without this the user is told "not
+      // allowed" and left to guess which of a dozen permissions it was.
+      final mapped = mapDioException(_badResponseWithDetail(
+        403,
+        "API key does not have 'can_control_printer' permission",
+      ));
+
+      expect(mapped.code, AppErrorCode.forbidden);
+      expect(mapped.detail, contains('can_control_printer'));
+    });
+
+    test('a 403 the server did not explain still maps, with no detail', () {
+      // A reverse proxy refusing on its own answers HTML, not {"detail": ...}.
+      final options = RequestOptions(path: '/api/v1/printers/');
+      final mapped = mapDioException(DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 403,
+          data: '<html>Forbidden</html>',
+        ),
+      ));
+
+      expect(mapped.code, AppErrorCode.forbidden);
+      expect(mapped.detail, isNull);
+    });
+  });
+
+  group('isApiKeyOwnerDisabled', () {
+    test('the deactivated-owner refusal is told apart from a missing permission',
+        () {
+      // Different remedy: no scope or group change fixes it, the account has
+      // to come back. Server 1.2.6+, and it arrives on every route at once.
+      final gone = mapDioException(_badResponseWithDetail(
+        403,
+        'API key owner is deactivated or no longer exists',
+      ));
+      final missing = mapDioException(_badResponseWithDetail(
+        403,
+        "API key owner does not have 'printers:control' permission",
+      ));
+
+      expect(gone.isApiKeyOwnerDisabled, isTrue);
+      expect(missing.isApiKeyOwnerDisabled, isFalse,
+          reason: 'both start with "API key owner"');
+    });
+
+    test('a refusal with no detail is not claimed to be anything', () {
+      const bare = AuthException(AppErrorCode.forbidden);
+      expect(bare.isApiKeyOwnerDisabled, isFalse);
     });
 
     test('429 → tooManyAttempts, carrying the status', () {
@@ -163,6 +233,64 @@ void main() {
         await guardOrNull<int>(() async => throw StateError('parse blew up')),
         isNull,
       );
+    });
+  });
+
+  group('the call the failure came from', () {
+    // `action_failed` carries these so a reader is not left matching it against
+    // the `http` lane by eye, which is guesswork with two requests in flight.
+    test('every mapped failure names its method and path', () {
+      final cases = <String, AppApiException>{
+        '401': mapDioException(_badResponse(401)),
+        '403': mapDioException(_badResponse(403)),
+        '429': mapDioException(_badResponse(429)),
+        '500': mapDioException(_badResponse(500)),
+        'offline': mapDioException(_ofType(DioExceptionType.connectionError)),
+        'timeout': mapDioException(_ofType(DioExceptionType.receiveTimeout)),
+        'tls': mapDioException(_ofType(DioExceptionType.badCertificate)),
+      };
+      cases.forEach((name, mapped) {
+        expect(mapped.method, 'GET', reason: name);
+        expect(mapped.path, isNotEmpty, reason: name);
+      });
+    });
+
+    test('the path is the sanitised one, without host or query', () {
+      // Same reduction `HttpProbe` applies: the host is the user's private
+      // network and camera tokens live in the query string.
+      final options = RequestOptions(
+        path: '/api/v1/printers/1/camera',
+        baseUrl: 'http://192.168.1.50:8080',
+        queryParameters: const {'token': 'secret'},
+      );
+      final mapped = mapDioException(DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 500,
+        ),
+      ));
+
+      expect(mapped.path, '/api/v1/printers/1/camera');
+      expect(mapped.path, isNot(contains('192.168')));
+      expect(mapped.path, isNot(contains('secret')));
+    });
+
+    test('keeping a 422 detail keeps the call with it', () {
+      final options = RequestOptions(path: '/api/v1/inventory/spools');
+      final mapped = mapDioExceptionKeepingDetail(DioException(
+        requestOptions: options,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 422,
+          data: const {'detail': 'rgba must be RRGGBBAA'},
+        ),
+      ));
+
+      expect(mapped.detail, 'rgba must be RRGGBBAA');
+      expect(mapped.path, '/api/v1/inventory/spools');
     });
   });
 }

@@ -60,6 +60,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get back => 'Back';
+
+  @override
   String get searchPrinters => 'Search printers…';
 
   @override
@@ -434,7 +437,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This cancels the current print. It cannot be resumed.';
 
   @override
-  String get ctrlForbidden => 'This API key can\'t control the printer';
+  String get ctrlForbidden => 'No permission to control this printer';
 
   @override
   String get ctrlFailed => 'Couldn\'t send the command';
@@ -449,17 +452,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skipObjectsSkippedTag => 'Skipped';
 
   @override
-  String skipObjectsSkippedToast(String name) {
-    return 'Skipped \"$name\"';
+  String skipObjectsSkippedToast(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Skipped $count objects',
+      one: 'Skipped \"$names\"',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get skipObjectsConfirmTitle => 'Skip this object?';
+  String skipObjectsConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Skip $count objects?',
+      one: 'Skip this object?',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String skipObjectsConfirmBody(String name) {
-    return '\"$name\" will be skipped for the rest of this print. This can\'t be undone.';
+  String skipObjectsConfirmBody(int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '\"$names\" will be skipped for the rest of this print. This can\'t be undone.',
+      one:
+          '\"$names\" will be skipped for the rest of this print. This can\'t be undone.',
+    );
+    return '$_temp0';
   }
+
+  @override
+  String skipObjectsSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get skipObjectsSelectHint =>
+      'Tap an object above or below to select it for skipping';
 
   @override
   String get skipObjectsMatchInfo => 'Match IDs with your printer display';
@@ -552,6 +586,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueAmsFromSlicer => 'AMS from slicer';
+
+  @override
+  String queueAnyOfModels(String models) {
+    return 'Any of: $models';
+  }
 
   @override
   String get queueDeleteTitle => 'Remove from queue?';
@@ -685,6 +724,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveAddToQueue => 'Add to queue';
 
   @override
+  String get archiveTimelapse => 'Watch timelapse';
+
+  @override
+  String archivePhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'View photos ($count)',
+      one: 'View photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivePhotosTitle => 'Photos';
+
+  @override
+  String get archivePhotosEmpty => 'No photos for this print';
+
+  @override
+  String get archivePhotoFailed => 'Couldn\'t load this photo.';
+
+  @override
+  String get archiveHasTimelapse => 'Has a timelapse';
+
+  @override
+  String archiveHasPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Has $count photos',
+      one: 'Has a photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get timelapseTitle => 'Timelapse';
+
+  @override
+  String get timelapseError => 'Couldn\'t play this timelapse.';
+
+  @override
+  String timelapseHttpError(int status) {
+    return 'The server would not hand over this timelapse ($status).';
+  }
+
+  @override
+  String get timelapseStalled =>
+      'The server is serving the video, but the player never started it.';
+
+  @override
+  String get timelapsePlay => 'Play';
+
+  @override
+  String get timelapsePause => 'Pause';
+
+  @override
+  String get timelapseSave => 'Save to gallery';
+
+  @override
+  String get timelapseShare => 'Share';
+
+  @override
+  String get timelapseSaved => 'Saved to the gallery';
+
+  @override
+  String get timelapseSaveFailed => 'Couldn\'t save the video';
+
+  @override
+  String get timelapseSaveDenied =>
+      'Bambuddy needs permission to write to the gallery on this Android version.';
+
+  @override
+  String get timelapseEdit => 'Edit';
+
+  @override
+  String get timelapseEditSave => 'Save';
+
+  @override
+  String get timelapseEditTitle => 'Edit timelapse';
+
+  @override
+  String get timelapseEditTrim => 'Trim';
+
+  @override
+  String get timelapseEditSpeed => 'Speed';
+
+  @override
+  String timelapseEditOutput(String length) {
+    return 'Result: $length';
+  }
+
+  @override
+  String timelapseEditSource(String length, int width, int height) {
+    return 'Original: $length at $width×$height';
+  }
+
+  @override
+  String get timelapseEditSaveTitle => 'Overwrite the recording?';
+
+  @override
+  String get timelapseEditSaveMessage =>
+      'The server re-encodes the timelapse and replaces the original. There is no copy to go back to.';
+
+  @override
+  String get timelapseEditProcessing =>
+      'The server is re-encoding the video. On a small host this takes minutes — leaving this screen does not stop it.';
+
+  @override
+  String get timelapseEdited => 'Timelapse updated';
+
+  @override
   String get gcodeViewerTitle => 'G-code preview';
 
   @override
@@ -692,6 +844,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gcodeViewerError => 'Couldn\'t load the G-code preview.';
+
+  @override
+  String get gcodeViewerLoading => 'Downloading G-code…';
+
+  @override
+  String get gcodeViewerParsing => 'Reading the toolpath…';
+
+  @override
+  String get gcodeViewerTravels => 'Travel moves';
+
+  @override
+  String get gcodeViewerColorByFilament => 'Filament';
+
+  @override
+  String get gcodeViewerColorByFeature => 'Feature';
+
+  @override
+  String get gcodeViewerColorByHeight => 'Height';
+
+  @override
+  String get gcodeViewerColorByWidth => 'Width';
+
+  @override
+  String get gcodeSingleLayer => 'single layer';
+
+  @override
+  String gcodeViewerFilamentSlot(int n) {
+    return 'Filament $n';
+  }
+
+  @override
+  String get gcodeViewerEmpty =>
+      'There is no toolpath in this file — it hasn\'t been sliced yet.';
+
+  @override
+  String gcodeViewerHttpError(int status) {
+    return 'The server would not hand over the G-code for this file ($status).';
+  }
+
+  @override
+  String get gcodeFeatureWall => 'Walls';
+
+  @override
+  String get gcodeFeatureSparseInfill => 'Sparse infill';
+
+  @override
+  String get gcodeFeatureSolidInfill => 'Solid infill';
+
+  @override
+  String get gcodeFeatureSkirt => 'Skirt / brim';
+
+  @override
+  String get gcodeFeatureSupport => 'Support';
+
+  @override
+  String get gcodeFeatureGapFill => 'Gap fill';
+
+  @override
+  String get gcodeFeatureBridge => 'Bridge / overhang';
+
+  @override
+  String get gcodeFeatureIroning => 'Ironing';
+
+  @override
+  String get gcodeFeaturePrimeTower => 'Prime tower';
 
   @override
   String get archiveDelete => 'Delete';
@@ -848,6 +1065,140 @@ class AppLocalizationsEn extends AppLocalizations {
   String get traySlotEmpty => 'Empty';
 
   @override
+  String get amsSlotFilament => 'Filament';
+
+  @override
+  String get amsLoad => 'Load';
+
+  @override
+  String get amsUnload => 'Unload';
+
+  @override
+  String get amsRfidReread => 'Re-read tag';
+
+  @override
+  String get amsLoadStarted => 'Loading filament…';
+
+  @override
+  String get amsUnloadStarted => 'Unloading filament…';
+
+  @override
+  String get amsRfidRereadStarted => 'Re-reading the tag…';
+
+  @override
+  String get amsActionsWhilePrinting =>
+      'Unavailable while the printer is printing';
+
+  @override
+  String get amsSlotConfigure => 'Configure slot';
+
+  @override
+  String get amsSlotConfigTitle => 'Slot configuration';
+
+  @override
+  String get amsSlotConfigSearch => 'Search presets';
+
+  @override
+  String get amsSlotConfigColour => 'Colour';
+
+  @override
+  String get amsSlotConfigApply => 'Write to printer';
+
+  @override
+  String get amsSlotConfigStarted => 'Configuring the slot…';
+
+  @override
+  String get amsSlotConfigNameNotSaved =>
+      'Slot configured, but the preset name could not be saved';
+
+  @override
+  String get amsSlotConfigEmpty => 'No filament presets available';
+
+  @override
+  String get amsSlotConfigNoMatch => 'No preset matches the search';
+
+  @override
+  String get amsSlotConfigCloudHint =>
+      'Log in to Bambu Cloud to pick from your own presets.';
+
+  @override
+  String get amsSlotConfigCloudAction => 'Log in';
+
+  @override
+  String get amsSlotConfigTierLocal => 'Imported';
+
+  @override
+  String get amsSlotConfigTierCloud => 'Bambu Cloud';
+
+  @override
+  String get amsSlotConfigTierBuiltin => 'Built-in';
+
+  @override
+  String amsSlotConfigOnlyPrinter(String model) {
+    return 'Only for $model';
+  }
+
+  @override
+  String amsSlotConfigOnlyPrinterHiding(String model, int hidden) {
+    return 'Only for $model ($hidden hidden)';
+  }
+
+  @override
+  String get amsSlotConfigModelUnknown =>
+      'Printer model unknown — showing every preset';
+
+  @override
+  String get amsSlotConfigCurrent => 'Currently set';
+
+  @override
+  String get amsSlotConfigKProfile => 'K profile';
+
+  @override
+  String amsSlotConfigKProfileDefault(String value) {
+    return 'Default (K $value)';
+  }
+
+  @override
+  String get amsSlotConfigKProfileOther => 'Other profiles';
+
+  @override
+  String get amsSlotConfigKProfileNone =>
+      'This printer has no stored K profiles for this nozzle';
+
+  @override
+  String get amsSlotConfigKProfileUnavailable =>
+      'Could not read the printer\'s K profiles';
+
+  @override
+  String amsSlotConfigNozzleGuess(String diameter) {
+    return 'The printer did not report its nozzle size — assuming $diameter mm';
+  }
+
+  @override
+  String amsSlotConfigKProfileValue(String value) {
+    return 'K $value';
+  }
+
+  @override
+  String get amsSlotConfigColourCatalogue => 'Catalogue colours';
+
+  @override
+  String get amsSlotConfigColourCustom => 'Custom colour';
+
+  @override
+  String get amsSlotReset => 'Clear slot';
+
+  @override
+  String get amsSlotResetConfirmTitle => 'Clear this slot?';
+
+  @override
+  String get amsSlotResetConfirmMessage =>
+      'The printer forgets the filament configured here, and bambuddy forgets which preset it was.';
+
+  @override
+  String get amsSlotResetStarted => 'Clearing the slot…';
+
+  @override
   String get extruderLeft => 'Left extruder';
 
   @override
@@ -877,28 +1228,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsHistoryTemperature => 'Temperature';
 
   @override
-  String get amsHistoryCurrent => 'Current';
+  String get sensorHistoryCurrent => 'Current';
 
   @override
-  String get amsHistoryAverage => 'Average';
+  String get sensorHistoryAverage => 'Average';
 
   @override
-  String get amsHistoryMin => 'Min';
+  String get sensorHistoryMin => 'Min';
 
   @override
-  String get amsHistoryMax => 'Max';
+  String get sensorHistoryMax => 'Max';
 
   @override
-  String get amsHistoryRange6h => '6h';
+  String get sensorHistoryRange6h => '6h';
 
   @override
-  String get amsHistoryRange24h => '24h';
+  String get sensorHistoryRange24h => '24h';
 
   @override
-  String get amsHistoryRange48h => '48h';
+  String get sensorHistoryRange48h => '48h';
 
   @override
-  String get amsHistoryRange7d => '7d';
+  String get sensorHistoryRange7d => '7d';
 
   @override
   String get amsHistoryGood => 'Good';
@@ -907,14 +1258,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsHistoryFair => 'Fair';
 
   @override
-  String get amsHistoryEmpty => 'No data for this range';
+  String get sensorHistoryEmpty => 'No data for this range';
 
   @override
-  String get amsHistoryError => 'Couldn\'t load history';
+  String get sensorHistoryError => 'Couldn\'t load history';
 
   @override
   String get amsHistoryRecordingInfo =>
       'Recorded every 5 minutes while the printer is connected';
+
+  @override
+  String get heaterHistoryTitle => 'Temperature history';
+
+  @override
+  String get heaterHistoryOpen => 'Temperature history';
+
+  @override
+  String get heaterHistoryReading => 'Reading';
+
+  @override
+  String get heaterHistoryTarget => 'Target';
+
+  @override
+  String get heaterHistoryRecordingInfo =>
+      'Recorded every minute while the printer is connected';
 
   @override
   String get wifiTooltip => 'Wi-Fi signal';
@@ -1158,8 +1525,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errUnauthorized => 'Not authorized';
 
   @override
-  String get errForbidden =>
-      'Not allowed — your API key lacks permission for this';
+  String get errForbidden => 'Not allowed — the server refused this action';
+
+  @override
+  String errForbiddenDetail(String reason) {
+    return 'Not allowed: $reason';
+  }
+
+  @override
+  String get errApiKeyOwnerDisabled =>
+      'The account that owns this API key has been deactivated or deleted — the key stays refused until that account is restored.';
 
   @override
   String errBadResponse(int code) {
@@ -1330,6 +1705,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifEventsHeader => 'Events';
 
   @override
+  String get notifExtrasHeader => 'Details';
+
+  @override
+  String get notifFinishPhotoTitle => 'Photo of the finished print';
+
+  @override
+  String get notifFinishPhotoDesc =>
+      'Adds the shot the server takes when a print ends to the finished/failed notification, once it arrives';
+
+  @override
   String get notifThresholdsHeader => 'Thresholds';
 
   @override
@@ -1424,6 +1809,122 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hmsViewInWiki => 'Open in Bambu wiki';
+
+  @override
+  String hmsErrorsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count errors',
+      one: '1 error',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get hmsDismissAll => 'Dismiss all';
+
+  @override
+  String get hmsDismissed => 'Errors cleared on the printer';
+
+  @override
+  String get hmsDismissFailed => 'Could not clear the errors';
+
+  @override
+  String get hmsActionSent => 'Sent to the printer';
+
+  @override
+  String get hmsActionFailed => 'The printer refused the action';
+
+  @override
+  String get hmsActionNotAcknowledged =>
+      'The printer did not confirm the action — check its screen';
+
+  @override
+  String get hmsStopConfirmTitle => 'Stop the print?';
+
+  @override
+  String hmsStopConfirmBody(String printer) {
+    return '$printer will abandon the print job. This cannot be undone.';
+  }
+
+  @override
+  String get hmsStopConfirmAction => 'Stop printing';
+
+  @override
+  String get hmsActionResume => 'Resume';
+
+  @override
+  String get hmsActionResumeDefects => 'Resume anyway';
+
+  @override
+  String get hmsActionResumeSolved => 'Fixed, resume';
+
+  @override
+  String get hmsActionProblemSolvedResume => 'Fixed, resume';
+
+  @override
+  String get hmsActionFilamentLoadedResume => 'Loaded, resume';
+
+  @override
+  String get hmsActionProceed => 'Proceed';
+
+  @override
+  String get hmsActionStopPrinting => 'Stop';
+
+  @override
+  String get hmsActionIgnoreResume => 'Ignore, resume';
+
+  @override
+  String get hmsActionIgnoreNoReminder => 'Ignore always';
+
+  @override
+  String get hmsActionDontRemind => 'Don\'t remind';
+
+  @override
+  String get hmsActionNoReminder => 'Dismiss';
+
+  @override
+  String get hmsActionFilamentExtruded => 'Extruded';
+
+  @override
+  String get hmsActionRetryFilamentExtruded => 'Not yet, retry';
+
+  @override
+  String get hmsActionContinue => 'Done, continue';
+
+  @override
+  String get hmsActionRetrySolved => 'Fixed, retry';
+
+  @override
+  String get hmsActionDone => 'Done';
+
+  @override
+  String get hmsActionRetry => 'Retry';
+
+  @override
+  String get hmsActionResumePlain => 'Resume';
+
+  @override
+  String get hmsActionConfirm => 'Confirm';
+
+  @override
+  String get hmsActionAbort => 'Abort';
+
+  @override
+  String get hmsActionOk => 'OK';
+
+  @override
+  String get hmsActionRecheck => 'Recheck';
+
+  @override
+  String get hmsActionTurnOffFireAlarm => 'Turn off alarm';
+
+  @override
+  String get hmsActionStopDrying => 'Stop drying';
+
+  @override
+  String get hmsActionDisablePurification => 'Disable purification';
 
   @override
   String get batteryOptTitle => 'Reliable background notifications';
@@ -2513,6 +3014,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsColorDistribution => 'Color distribution';
 
   @override
+  String get statsColorShareHint => 'Share of filament used, by weight';
+
+  @override
   String statsColorsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2710,6 +3214,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fmAddedToQueue => 'Added to queue';
+
+  @override
+  String get fmGroupAsVariants => 'Group as alternatives';
+
+  @override
+  String get fmQueueAsVariants => 'Queue as one job';
+
+  @override
+  String get fmUngroupVariants => 'Ungroup alternatives';
+
+  @override
+  String fmVariantsGrouped(int count) {
+    return '$count files grouped as alternatives';
+  }
+
+  @override
+  String get fmVariantsUngrouped => 'Alternatives ungrouped';
+
+  @override
+  String fmVariantsMemberCount(int count) {
+    return '$count alternatives';
+  }
+
+  @override
+  String get fmVariantsGone => 'This group no longer exists';
 
   @override
   String get fmUpload => 'Upload file';
@@ -3208,13 +3737,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectSaved => 'Project saved';
 
   @override
-  String get projectActionForbidden =>
-      'Your API key lacks permission for this action';
-
-  @override
-  String get projectActionFailed => 'Action failed';
-
-  @override
   String get projectName => 'Name';
 
   @override
@@ -3596,6 +4118,120 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sliceAutoOrient => 'Auto orient';
+
+  @override
+  String get sliceAutoOrientHint =>
+      'Turns each object onto its best printing side.';
+
+  @override
+  String get sliceAutoArrange => 'Auto arrange';
+
+  @override
+  String get sliceAutoArrangeHint => 'Lays the objects out on the plate again.';
+
+  @override
+  String sliceDesignedFor(String printer) {
+    return 'This file is for $printer';
+  }
+
+  @override
+  String get sliceUseDesignedPrinter => 'Switch';
+
+  @override
+  String get sliceAsDesigned => 'Use the file\'s own settings';
+
+  @override
+  String get sliceAsDesignedHint =>
+      'The designer\'s settings instead of the profiles above.';
+
+  @override
+  String get sliceAsDesignedInactive => 'Not used — the file decides';
+
+  @override
+  String get sliceFilamentUnused => 'Not used by this plate';
+
+  @override
+  String get processSettingsTitle => 'Process settings';
+
+  @override
+  String get sliceProcessSettingsNeedsProcess => 'Pick a process preset first';
+
+  @override
+  String get sliceProcessSettingsUnchanged => 'Using the preset as it is';
+
+  @override
+  String sliceProcessSettingsChanged(int count) {
+    return '$count changed';
+  }
+
+  @override
+  String get processSettingsModeSimple => 'Simple';
+
+  @override
+  String get processSettingsModeAdvanced => 'Advanced';
+
+  @override
+  String get processSettingsModeExpert => 'Expert';
+
+  @override
+  String get processSettingsSearchHint => 'Search settings';
+
+  @override
+  String get processSettingsNoMatches => 'No settings match this search.';
+
+  @override
+  String get processSettingsRevert => 'Reset to the preset\'s value';
+
+  @override
+  String processSettingsRevertAll(int count) {
+    return 'Reset $count';
+  }
+
+  @override
+  String processSettingsOutOfRange(String range) {
+    return 'The slicer accepts $range';
+  }
+
+  @override
+  String get processSettingsDisabledHint =>
+      'The slicer ignores this with your current settings.';
+
+  @override
+  String get processSettingsUnavailable =>
+      'This server cannot report process settings for the selected preset.';
+
+  @override
+  String get processSettingsDefaultsOutdatedSidecar =>
+      'Showing slicer defaults: your slicer sidecar is older than this feature and cannot report a preset\'s values. Update the sidecar image to see them. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsNotConfigured =>
+      'Showing slicer defaults: no slicer sidecar is configured, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsSidecarUnavailable =>
+      'Showing slicer defaults: the slicer sidecar did not answer, so a preset\'s values cannot be read. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsDefaultsUnavailable =>
+      'Showing slicer defaults: the selected preset\'s own values could not be read. Anything you do not change still uses the preset.';
+
+  @override
+  String get processSettingsFilamentDefault =>
+      'Default (the region\'s own filament)';
+
+  @override
+  String processSettingsFilamentSlot(String slot, String name) {
+    return '$slot: $name';
+  }
+
+  @override
+  String processSettingsFilamentSlotMissing(String slot) {
+    return 'Slot $slot — this file has no such slot';
+  }
+
+  @override
   String get sliceSelect => 'Tap to select';
 
   @override
@@ -3969,6 +4605,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get queueEditChamberTarget =>
       'Chamber target override (°C, blank = filament default)';
+
+  @override
+  String queueEditChamberTargetRange(int max) {
+    return '0–$max °C';
+  }
 
   @override
   String get queueEditWhenToPrint => 'When to print';

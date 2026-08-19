@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
@@ -55,8 +57,14 @@ class PrinterCommandsRepository {
 
   /// Chamber target temperature (°C, 0 turns heating off). Only call for models
   /// with an active chamber heater — the server 400s otherwise.
+  ///
+  /// The ceiling is the server's, not a constant: 60 up to 1.2.5.x and 65 from
+  /// 1.2.6 (`MAX_CHAMBER_TEMP_C`). The assert takes the higher one because it
+  /// guards against a caller bug, not against an old server — the UI never
+  /// offers more than [chamberMaxTargetProvider] allows, and a server that
+  /// disagrees answers 422, which is a server answer and not an assertion.
   Future<void> setChamberTemperature(int printerId, int target) {
-    assert(target >= 0 && target <= 60, 'chamber target out of range: $target');
+    assert(target >= 0 && target <= 65, 'chamber target out of range: $target');
     return _post(Endpoints.chamberTemperature(printerId),
         query: {'target': target});
   }
@@ -135,11 +143,111 @@ class PrinterCommandsRepository {
   Future<void> homeAxes(int printerId) =>
       _post(Endpoints.homeAxes(printerId), query: {'axes': 'all'});
 
-  Future<void> _post(String path, {Map<String, dynamic>? query}) async {
+  /// Clear the printer's active error dialog. Printer-wide by nature: the
+  /// firmware command behind it (`clean_print_error`) takes no code and drops
+  /// whatever is on screen, so there is no per-error variant to offer.
+  Future<void> clearHmsErrors(int printerId) =>
+      _post(Endpoints.hmsClear(printerId));
+
+  /// Run one of the firmware's remediation actions for a fault.
+  ///
+  /// [printError] must be the fault's `full_code` **verbatim** — the server
+  /// validates it as 8 or 16 hex digits and the firmware matches on it; a code
+  /// rebuilt from `attr`/`code` is silently ignored by the printer. [jobId] is
+  /// the fault's own `job_id` snapshot, omitted for an idle-state error.
+  ///
+  /// Throws `ApiException(statusCode: 502)` when the publish succeeded but the
+  /// printer sent nothing back within the server's 2.5s window — a real outcome
+  /// worth its own message, not a transport failure.
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _post(Endpoints.hmsExecuteAction(printerId), data: {
+        'print_error': printError,
+        'action': action,
+        if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
+      });
+
+  /// Nudge the printer into republishing its full state. Read-level route, so
+  /// it works with a key that may not control anything; callers treat it as a
+  /// hint and ignore both the answer and a 400 from a disconnected printer.
+  Future<void> refreshStatus(int printerId) =>
+      _post(Endpoints.printerRefreshStatus(printerId));
+
+  /// [refreshStatus] as the hint it is: sent for each printer and then
+  /// forgotten.
+  ///
+  /// Nothing useful comes back — the republish arrives over the WebSocket, not
+  /// in this response — and every way it can fail is one the caller already
+  /// accepts: an offline printer answers 400, a narrow key may be refused, and
+  /// neither is a reason to fail whatever the user actually asked for. Returning
+  /// void rather than a future says that out loud, so no call site has to
+  /// re-derive the same `unawaited(...).catchError(...)` and get it right.
+  void nudgeRepublish(Iterable<int> printerIds) {
+    for (final id in printerIds) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+
+  /// Load filament from one slot. [trayId] is the global tray number from
+  /// [amsLoadTrayId] — not the slot's local id.
+  Future<void> amsLoad(int printerId, int trayId) {
+    assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
+    return _post(Endpoints.amsLoad(printerId), query: {'tray_id': trayId});
+  }
+
+  /// Unload the filament currently in the extruder — printer-wide, see
+  /// [Endpoints.amsUnload].
+  Future<void> amsUnload(int printerId) =>
+      _post(Endpoints.amsUnload(printerId));
+
+  /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
+  Future<void> refreshAmsSlot(
+    int printerId, {
+    required int amsId,
+    required int slotId,
+  }) =>
+      _post(Endpoints.amsSlotRfidRefresh(printerId, amsId, slotId));
+
+  Future<void> _post(
+    String path, {
+    Map<String, dynamic>? query,
+    Map<String, dynamic>? data,
+  }) async {
     try {
-      await _dio.post<dynamic>(path, queryParameters: query);
+      await _dio.post<dynamic>(path, queryParameters: query, data: data);
     } on DioException catch (e) {
       throw mapDioException(e);
     }
   }
 }
+
+/// The global tray number `POST /ams/load` takes for a slot, or null where the
+/// server has no encoding for it.
+///
+/// An external spool is already global (254 = Ext-L, 255 = Ext-R), a regular
+/// AMS slot is `unit * 4 + slot`. The one hole is AMS-HT: its units are numbered
+/// from 128, so the same arithmetic lands far outside the accepted range and the
+/// server answers 400 — the caller hides the action instead of offering a button
+/// that cannot work.
+int? amsLoadTrayId({required int amsId, required int trayId}) {
+  // Only the two external ids pass through unchanged. Accepting the whole
+  // loadable range here would turn an unexpected external id into a valid AMS
+  // slot number — the printer would load a different spool, and nothing on the
+  // way would flag it.
+  if (amsId == 255) return trayId == 254 || trayId == 255 ? trayId : null;
+  if (amsId >= 128) return null;
+  final global = amsId * 4 + trayId;
+  return _isLoadableTrayId(global) ? global : null;
+}
+
+/// Mirrors the server's own validation (`printers.py` `ams_load`): AMS slots
+/// 0..15, the A2L AMS-Lite's normalised 24..27, and the two external ids.
+bool _isLoadableTrayId(int trayId) =>
+    (trayId >= 0 && trayId <= 15) ||
+    (trayId >= 24 && trayId <= 27) ||
+    trayId == 254 ||
+    trayId == 255;

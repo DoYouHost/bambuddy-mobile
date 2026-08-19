@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
-/// Shows a SnackBar for a maintenance action result.
+/// Shows a SnackBar for a maintenance action: the shared reason when it
+/// failed, this screen's own confirmation when it did not.
 void showMaintenanceResult(
   BuildContext context,
   AppLocalizations l10n,
-  MaintenanceActionResult result,
+  ActionOutcome result,
 ) {
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(switch (result) {
-        MaintenanceActionResult.ok => l10n.maintenanceSaved,
-        MaintenanceActionResult.forbidden => l10n.errForbidden,
-        MaintenanceActionResult.error => l10n.maintenanceFailed,
-      }),
-    ),
+    SnackBar(content: Text(result.messageFor(l10n) ?? l10n.maintenanceSaved)),
   );
 }
 
@@ -371,12 +368,9 @@ class _OverrideTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .setEnabled(item.id, !item.enabled);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(switch (result) {
-      MaintenanceActionResult.ok =>
-        item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted,
-      MaintenanceActionResult.forbidden => l10n.errForbidden,
-      MaintenanceActionResult.error => l10n.maintenanceFailed,
-    })));
+    messenger.showSnackBar(SnackBar(
+        content: Text(result.messageFor(l10n) ??
+            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted))));
   }
 
   Future<void> _editInterval(
@@ -472,7 +466,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
         ? await notifier.editType(widget.existing!.id, draft)
         : await notifier.create(draft, _printers.toList());
     if (!mounted) return;
-    if (result == MaintenanceActionResult.ok) {
+    if (result.isOk) {
       Navigator.of(context).pop();
       showMaintenanceResult(context, l10n, result);
     } else {

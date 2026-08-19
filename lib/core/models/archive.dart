@@ -15,7 +15,10 @@ class Archive {
     required this.status,
     this.printerId,
     this.printName,
+    this.completedAt,
     this.thumbnailPath,
+    this.timelapsePath,
+    this.photos = const [],
     this.printTimeSeconds,
     this.filamentUsedGrams,
     this.filamentType,
@@ -54,6 +57,24 @@ class Archive {
   /// Thumbnail path for the print.
   final String? thumbnailPath;
 
+  /// Server-side path of the recorded timelapse, or null when the print has
+  /// none. Read as a presence flag only — the video is fetched through
+  /// `Endpoints.archiveTimelapse`, never from this path.
+  final String? timelapsePath;
+
+  /// Whether a timelapse video exists for this print.
+  bool get hasTimelapse => (timelapsePath ?? '').isNotEmpty;
+
+  /// Filenames of the photos attached to the print — the shot the server
+  /// captures from the camera when the print ends (named `finish_…`) plus
+  /// anything uploaded in the web UI. Fetched through `Endpoints.archivePhoto`;
+  /// the server only serves a name that appears in this list.
+  @JsonKey(fromJson: toStringList)
+  final List<String> photos;
+
+  /// Whether the print has at least one photo.
+  bool get hasPhotos => photos.isNotEmpty;
+
   /// Print time in seconds.
   final int? printTimeSeconds;
 
@@ -75,6 +96,14 @@ class Archive {
 
   @JsonKey(fromJson: dateTimeFromJson)
   final DateTime? createdAt;
+
+  /// When the print on this archive last ended. Unlike [createdAt] it is
+  /// rewritten on every run — a reprint reuses the archive row and refreshes
+  /// this and `started_at`, leaving `created_at` on the original print
+  /// (`main.py`, expected-archive branch; `ArchiveService.update_status`). So
+  /// this, not the row's age, says which print just finished.
+  @JsonKey(fromJson: dateTimeFromJson)
+  final DateTime? completedAt;
 
   /// Model designer/author (e.g. from MakerWorld).
   final String? designer;
@@ -120,7 +149,10 @@ class Archive {
     status: status,
     printerId: printerId,
     printName: printName,
+    completedAt: completedAt,
     thumbnailPath: thumbnailPath,
+    timelapsePath: timelapsePath,
+    photos: photos,
     printTimeSeconds: printTimeSeconds,
     filamentUsedGrams: filamentUsedGrams,
     filamentType: filamentType,

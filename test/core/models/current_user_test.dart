@@ -2,7 +2,7 @@ import 'package:bambuddy_mobile/core/models/current_user.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A full `UserResponse` as the server builds it in `_user_to_response`
-/// (`backend/app/api/routes/auth.py:75`).
+/// (`backend/app/api/routes/auth.py::_user_to_response`).
 Map<String, dynamic> _response({
   bool isAdmin = false,
   Object? permissions = const ['users:read', 'queue:read'],
@@ -115,8 +115,8 @@ void main() {
 
   group('can', () {
     test('an admin passes every check, whatever the list says', () {
-      // Mirrors `User.has_permission` — admins bypass server-side too, so a
-      // synthetic API-key admin with permissions we never read still passes.
+      // Mirrors `User.has_permission` — admins bypass server-side too, so an
+      // account whose groups grant nothing still passes on the flag alone.
       final user = CurrentUser.fromJson(
         _response(isAdmin: true, permissions: const []),
       );
@@ -146,8 +146,82 @@ void main() {
     });
   });
 
+  /// `/auth/me` describes an API-key session differently on either side of
+  /// server 1.2.6 (issue #1894), and the app talks to both. Neither shape may
+  /// stop parsing — see `docs/plans/13-users-slim-and-api-key-identity.md`.
+  group('an API-key session, both server generations', () {
+    test('≤ 1.2.5.x: the synthetic admin still parses', () {
+      final user = CurrentUser.fromJson(const {
+        'id': 0,
+        'username': 'api-key:bb_1a2b3c',
+        'email': null,
+        'role': 'admin',
+        'is_active': true,
+        'is_admin': true,
+        'auth_source': 'local',
+        'groups': <Object>[],
+        // The real thing sent every permission in the enum; three stand in.
+        'permissions': ['users:create', 'printers:read', 'queue:create'],
+        'created_at': '2026-02-01T08:00:00',
+      });
+
+      expect(user.id, 0);
+      expect(user.username, 'api-key:bb_1a2b3c');
+      expect(user.isAdmin, isTrue);
+      expect(user.can('anything:at:all'), isTrue,
+          reason: 'the admin flag short-circuits, as it does server-side');
+    });
+
+    test('1.2.6+: the key owner, and only the permissions the key admits', () {
+      final user = CurrentUser.fromJson(const {
+        'id': 7,
+        'username': 'household',
+        // Withheld on purpose even though the owner has both.
+        'email': null,
+        'role': 'user',
+        'is_active': true,
+        'is_admin': false,
+        'auth_source': 'local',
+        'groups': <Object>[],
+        // What `can_read_status` alone maps to; nothing administrative.
+        'permissions': ['printers:read', 'stats:read', 'users:read_slim'],
+        'created_at': '2026-02-01T08:00:00',
+      });
+
+      expect(user.id, 7, reason: 'this is what created_by_id filters on');
+      expect(user.username, 'household');
+      expect(user.isAdmin, isFalse);
+      expect(user.permissionsKnown, isTrue);
+      expect(user.can('printers:read'), isTrue);
+      expect(user.can('users:read'), isFalse);
+      expect(user.can('printers:control'), isFalse);
+    });
+
+    test('1.2.6+: a key predating owners keeps id 0 but drops the admin claim',
+        () {
+      final user = CurrentUser.fromJson(const {
+        'id': 0,
+        'username': 'api-key:bb_1a2b3c',
+        'email': null,
+        'role': 'user',
+        'is_active': true,
+        'is_admin': false,
+        'auth_source': 'local',
+        'groups': <Object>[],
+        'permissions': ['printers:read'],
+        'created_at': '2026-02-01T08:00:00',
+      });
+
+      // 0 is a placeholder for "no owner to name", not account number zero —
+      // it must never be sent back as a `created_by_id`.
+      expect(user.id, 0);
+      expect(user.isAdmin, isFalse);
+      expect(user.can('users:read'), isFalse);
+    });
+  });
+
   test('Permissions holds the strings the server declares', () {
-    // `backend/app/core/permissions.py:164,170,176`.
+    // `backend/app/core/permissions.py::Permission,170,176`.
     expect(Permissions.usersRead, 'users:read');
     expect(Permissions.groupsRead, 'groups:read');
     expect(Permissions.apiKeysRead, 'api_keys:read');

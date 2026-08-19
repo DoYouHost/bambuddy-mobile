@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/format_bytes.dart';
 import '../common/state_views.dart';
@@ -30,12 +31,15 @@ class TrashScreen extends ConsumerWidget {
           context,
           title: l10n.fmTrashTitle,
           actions: [
-            IconButton(
-              tooltip: l10n.fmEmptyTrash,
-              icon: const Icon(Icons.delete_sweep_outlined),
-              onPressed: items.isEmpty
-                  ? null
-                  : () => _emptyTrash(context, ref, l10n),
+            logTag(
+              'trash.purge',
+              IconButton(
+                tooltip: l10n.fmEmptyTrash,
+                icon: const Icon(Icons.delete_sweep_outlined),
+                onPressed: items.isEmpty
+                    ? null
+                    : () => _emptyTrash(context, ref, l10n),
+              ),
             ),
           ],
         ),
@@ -84,8 +88,13 @@ class TrashScreen extends ConsumerWidget {
       ref.invalidate(libraryTrashProvider);
       ref.invalidate(fileManagerProvider);
       if (context.mounted) _snack(context, l10n.fmRestored);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      showApiFailure(
+        context.mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'trash.restore',
+      );
     }
   }
 
@@ -108,8 +117,13 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
       if (context.mounted) _snack(context, l10n.fmDeletedForever);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      showApiFailure(
+        context.mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'trash.delete',
+      );
     }
   }
 
@@ -131,11 +145,15 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
       if (context.mounted) _snack(context, l10n.fmDeletedForever);
-    } on AppApiException {
-      if (context.mounted) _snack(context, l10n.ctrlFailed);
+    } on AppApiException catch (e) {
+      showApiFailure(
+        context.mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'trash.purge',
+      );
     }
   }
-
 }
 
 class _TrashTile extends StatelessWidget {

@@ -1,8 +1,8 @@
 import 'json_utils.dart';
 
-/// A group as `GET /groups/` sends it (`GroupResponse`,
-/// `backend/app/schemas/group.py:33`) — the list and the membership picker in
-/// the account form.
+/// A group as `GET /groups/` sends it
+/// (`backend/app/schemas/group.py::GroupResponse`) — the list and the
+/// membership picker in the account form.
 class GroupSummary {
   const GroupSummary({
     required this.id,
@@ -32,10 +32,10 @@ class GroupSummary {
   final int userCount;
 }
 
-/// One member of a group (`UserBrief`, `backend/app/schemas/group.py:52`) —
-/// id, name and whether the account is switched on. Not a whole
-/// `UserResponse`: the group detail says who is in it, not what each of them
-/// may do elsewhere.
+/// One member of a group (`UserBrief`,
+/// `backend/app/schemas/group.py::GroupDetailResponse`) — id, name and whether
+/// the account is switched on. Not a whole `UserResponse`: the group detail
+/// says who is in it, not what each of them may do elsewhere.
 class GroupMember {
   const GroupMember({
     required this.id,
@@ -55,7 +55,7 @@ class GroupMember {
 }
 
 /// `GET /groups/{id}` — the group plus its member list
-/// (`GroupDetailResponse`, `backend/app/schemas/group.py:48`).
+/// (`backend/app/schemas/group.py::GroupDetailResponse`).
 class GroupDetail extends GroupSummary {
   const GroupDetail({
     required super.id,

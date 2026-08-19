@@ -12,15 +12,11 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'project_files.dart';
 import 'projects_providers.dart';
-
-String sectionErr(AppApiException e, AppLocalizations l10n) =>
-    e is AuthException && e.code == AppErrorCode.forbidden
-        ? l10n.projectActionForbidden
-        : l10n.projectActionFailed;
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
 /// over its body. Matches the web's stacked-card layout.
@@ -182,7 +178,7 @@ class ProjectFilesSection extends ConsumerWidget {
           if (!linked.contains(f.id) && f.projectName == null) f,
       ];
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.link_folder');
       return;
     }
     if (!context.mounted) return;
@@ -231,7 +227,7 @@ class ProjectFilesSection extends ConsumerWidget {
       ref.invalidate(projectDetailProvider(projectId));
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderLinked)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.link_folder');
     }
   }
 
@@ -245,7 +241,7 @@ class ProjectFilesSection extends ConsumerWidget {
       ref.invalidate(projectDetailProvider(projectId));
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderUnlinked)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.unlink_folder');
     }
   }
 
@@ -433,7 +429,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentUploaded)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.attachment_upload');
     }
   }
 
@@ -449,8 +445,10 @@ class ProjectAttachmentsSection extends ConsumerWidget {
         return;
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectFileSaved(path))));
-    } on AppApiException {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectDownloadFailed)));
+    } on AppApiException catch (e) {
+      showApiFailure(messenger, e, l10n,
+          action: 'project.attachment_download',
+          message: l10n.projectDownloadFailed);
     }
   }
 
@@ -462,7 +460,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentDeleted)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(sectionErr(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.attachment_delete');
     }
   }
 }
@@ -590,11 +588,7 @@ class ProjectBomSection extends ConsumerWidget {
         item == null ? await notifier.add(input) : await notifier.edit(item.id, input);
     if (!context.mounted) return;
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectSaved
-          : result == ProjectActionResult.forbidden
-              ? l10n.projectActionForbidden
-              : l10n.projectActionFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
     ));
   }
 }

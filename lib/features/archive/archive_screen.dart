@@ -14,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
@@ -22,7 +23,7 @@ import '../common/state_views.dart';
 import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
-import '../slicer/slice_sheet.dart';
+import '../slicer/slice_screen.dart';
 import 'archive_providers.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
@@ -265,6 +266,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         onReprint: () => _reprint(archive),
         onAddToQueue: () => _addToQueue(archive),
         onPreviewGcode: () => _previewGcode(archive),
+        onTimelapse: () => _openTimelapse(archive),
+        onPhotos: () => _openPhotos(archive),
         onSlice: () => _slice(archive),
         onDelete: () => _deleteFromSheet(archive),
       ),
@@ -319,7 +322,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// Slice from the bottom sheet: close it, open the slice modal.
   Future<void> _slice(Archive archive) async {
     Navigator.pop(context);
-    await showSliceSheet(
+    await showSliceScreen(
       context,
       SliceTarget.archive(archive.id, archive.displayName),
     );
@@ -400,7 +403,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     try {
       projects = await ref.read(projectsRepositoryProvider).list();
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
       return;
     }
     if (!mounted) return;
@@ -452,7 +455,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.projectArchivesAdded)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
     }
   }
 
@@ -476,7 +479,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_errText(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'archive.menu.purge');
     }
   }
 
@@ -485,6 +488,20 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     Navigator.pop(context);
     final name = Uri.encodeQueryComponent(archive.displayName);
     context.push('/gcode-viewer?archive=${archive.id}&name=$name');
+  }
+
+  /// Timelapse: closes the sheet and opens the full-screen player.
+  void _openTimelapse(Archive archive) {
+    Navigator.pop(context);
+    final name = Uri.encodeQueryComponent(archive.displayName);
+    context.push('/timelapse?archive=${archive.id}&name=$name');
+  }
+
+  /// Photos: closes the sheet and opens the full-screen viewer.
+  void _openPhotos(Archive archive) {
+    Navigator.pop(context);
+    final name = Uri.encodeQueryComponent(archive.displayName);
+    context.push('/archive/photos?archive=${archive.id}&name=$name');
   }
 
   /// Reprint: printer selection → confirmation → enqueue at top of the
@@ -527,11 +544,6 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         slicedForModel: archive.slicedForModel,
         manualStart: manualStart,
       );
-
-  String _errText(AppApiException e, AppLocalizations l10n) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-      ? l10n.ctrlForbidden
-      : l10n.ctrlFailed;
 }
 
 class _ArchiveCard extends StatelessWidget {
@@ -597,7 +609,17 @@ class _ArchiveCard extends StatelessWidget {
                           ),
                           child: Icon(Icons.check, color: t.accentGreenInk),
                         )
-                      : PrintThumbnail(archiveId: archive.id, size: 52),
+                      : Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            PrintThumbnail(archiveId: archive.id, size: 52),
+                            Positioned(
+                              right: -4,
+                              bottom: -4,
+                              child: _MediaBadges(archive: archive),
+                            ),
+                          ],
+                        ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -667,12 +689,55 @@ class _ArchiveCard extends StatelessWidget {
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
+/// Corner markers on a card's thumbnail for the media a print carries beyond
+/// the model itself — a recorded timelapse, photos of the result. The point is
+/// that the list answers "is there a video / a photo of this one?" without
+/// opening every print, the way bambuddy's web cards do.
+class _MediaBadges extends StatelessWidget {
+  const _MediaBadges({required this.archive});
+
+  final Archive archive;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final badges = <Widget>[
+      if (archive.hasPhotos)
+        _badge(
+          Icons.photo_camera,
+          t.accentBlue,
+          l10n.archiveHasPhotos(archive.photos.length),
+        ),
+      if (archive.hasTimelapse)
+        _badge(Icons.movie, t.accentGreen, l10n.archiveHasTimelapse),
+    ];
+    if (badges.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+      decoration: BoxDecoration(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: t.subCardBorder),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: badges),
+    );
+  }
+
+  Widget _badge(IconData icon, Color color, String label) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 1),
+    child: Semantics(label: label, child: Icon(icon, size: 12, color: color)),
+  );
+}
+
 class _ArchiveSheet extends StatelessWidget {
   const _ArchiveSheet({
     required this.archive,
     required this.onReprint,
     required this.onAddToQueue,
     required this.onPreviewGcode,
+    required this.onTimelapse,
+    required this.onPhotos,
     required this.onSlice,
     required this.onDelete,
   });
@@ -681,6 +746,8 @@ class _ArchiveSheet extends StatelessWidget {
   final VoidCallback onReprint;
   final VoidCallback onAddToQueue;
   final VoidCallback onPreviewGcode;
+  final VoidCallback onTimelapse;
+  final VoidCallback onPhotos;
   final VoidCallback onSlice;
   final VoidCallback onDelete;
 
@@ -743,6 +810,39 @@ class _ArchiveSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Only for a print the server actually recorded — the button
+                // would otherwise open a player onto a 404.
+                if (archive.hasTimelapse) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: logTag(
+                      'archive.timelapse',
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.movie_outlined),
+                        label: Text(l10n.archiveTimelapse),
+                        onPressed: onTimelapse,
+                      ),
+                    ),
+                  ),
+                ],
+                // Same rule as the timelapse: shown for the prints that have
+                // one, which is the finish shot off the camera plus whatever
+                // was uploaded in the web UI.
+                if (archive.hasPhotos) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: logTag(
+                      'archive.photos',
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.photo_camera_outlined),
+                        label: Text(l10n.archivePhotos(archive.photos.length)),
+                        onPressed: onPhotos,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _SliceArchiveButton(archive: archive, onSlice: onSlice),
                 SizedBox(

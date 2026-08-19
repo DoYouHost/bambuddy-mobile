@@ -18,7 +18,7 @@ dependencies:
   app_report_client:
     git:
       url: https://github.com/DoYouHost/app-shared.git
-      ref: v0.1.0
+      ref: v0.1.1
       path: packages/app_report_client
   collection: ^1.19.0
   cupertino_icons: ^1.0.8
@@ -45,6 +45,9 @@ dependencies:
   file_picker: ^8.1.6
   watch_connectivity: ^0.2.9
   printing: ^5.14.3
+  video_player: ^2.14.0
+  gal: ^2.3.3
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:
@@ -62,8 +65,23 @@ flutter:
   generate: true
   assets:
     - assets/hms/
+    # Listed file by file rather than as a directory: these three are vendored
+    # from the server (assets/slicer/PROVENANCE), and that note has no business
+    # in the APK.
+    - assets/slicer/process-schema.json
+    - assets/slicer/process-ui-tree.json
+    - assets/slicer/process-toggle-rules.json
     - assets/icons/
     - assets/icon/icon.png
+    # The in-app G-code preview: the page shell, the bundle, and the app's
+    # own faces subset into a stylesheet — all built by tool/gcode_viewer (see
+    # its PROVENANCE). The three are inlined into one document at runtime, so
+    # they must ship as assets rather than be fetched over http. The faces are
+    # a second copy of assets/fonts by necessity: Flutter reads the .ttf, and
+    # the WebView cannot reach it.
+    - assets/gcode/viewer.html
+    - assets/gcode/viewer.js
+    - assets/gcode/fonts.css
   fonts:
     - family: Manrope
       fonts:

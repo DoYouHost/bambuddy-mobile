@@ -4,24 +4,36 @@
 /// diffed across that range and none of them moved
 /// (`docs/plans/08-server-v1.2.5-migration.md`). When updating the server,
 /// compare with `/openapi.json` before changing anything here.
+///
+/// [usersSlim] is the one exception: it arrives in 1.2.6 and every server
+/// before it refuses the path
+/// (`docs/plans/13-users-slim-and-api-key-identity.md`). Callers probe rather
+/// than check a version number — see [StatsRepository].
 abstract final class Endpoints {
   static const apiPrefix = '/api/v1';
-
-  /// G-code browser page (PrettyGCode) served outside `/api/v1`.
-  /// Trailing slash required — `/gcode-viewer` (without slash) intentionally
-  /// falls back to SPA. Control via query: `?archive=<id>` or `?library_file=<id>`
-  /// (+ optionally `&plate=<N>`); auth read from `localStorage.auth_token`.
-  static const gcodeViewer = '/gcode-viewer/';
 
   static const authStatus = '$apiPrefix/auth/status';
   static const authLogin = '$apiPrefix/auth/login';
 
   /// The signed-in identity — `UserResponse` (role, `is_admin`, permissions,
   /// groups), the same object `POST /auth/login` embeds as `user`
-  /// (`backend/app/api/routes/auth.py:627`). Also answers an `X-API-Key`
-  /// session, with a synthetic admin holding every permission
-  /// (`auth.py:91`), which is what a key actually grants. Without credentials
-  /// it is a 401 — a server with auth switched off has no identity to give.
+  /// (`backend/app/api/routes/auth.py::login`). Without credentials it is a 401
+  /// — a server with auth switched off has no identity to give.
+  ///
+  /// An `X-API-Key` session is answered differently by the two server
+  /// generations, and both are still supported here:
+  ///  - **≤ 1.2.5.x** — a synthetic admin: `id: 0`, `role: "admin"`,
+  /// `is_admin: true`, every permission in the enum. None of it was true; a key
+  /// is refused every administrative route whatever it claims.
+  ///  - **1.2.6+** — the key owner's real `id` and `username`, `is_admin`
+  /// always `false`, and a `permissions` list pinned to exactly what the route
+  /// gate admits (`backend/app/api/routes/auth.py::_api_key_to_user_response`).
+  /// `email` and `groups` are withheld on purpose. A key predating per-user
+  /// ownership keeps `id: 0` and the `api-key:` username, but no longer claims
+  /// admin.
+  ///
+  /// So `permissions` is the field to branch on, never `is_admin` or `role`
+  /// (`docs/plans/13-users-slim-and-api-key-identity.md`).
   static const authMe = '$apiPrefix/auth/me';
 
   /// Second step of a login that answered `requires_2fa`: exchanges the
@@ -29,7 +41,8 @@ abstract final class Endpoints {
   static const authTwoFactorVerify = '$apiPrefix/auth/2fa/verify';
 
   /// Mails a 6-digit code to the user and answers with a **fresh** pre-auth
-  /// token — the one sent in is consumed. See `docs/plans/10-two-factor-login.md`.
+  /// token — the one sent in is consumed. See
+  /// `docs/plans/10-two-factor-login.md`.
   static const authTwoFactorEmailSend = '$apiPrefix/auth/2fa/email/send';
 
   /// Server version (`{version, repo}`). **Unauthenticated** server-side, so it
@@ -68,8 +81,9 @@ abstract final class Endpoints {
   /// subnets:[cidr]}` — drives the subnet picker in the Add-Printer flow.
   static const discoveryInfo = '$apiPrefix/discovery/info';
 
-  /// Start a subnet scan (`POST`, body `{subnet, timeout}`) → `SubnetScanStatus`
-  /// `{running, scanned, total}`. Runs in the background; poll [discoveryScanStatus].
+  /// Start a subnet scan (`POST`, body `{subnet, timeout}`) →
+  /// `SubnetScanStatus` `{running, scanned, total}`. Runs in the background;
+  /// poll [discoveryScanStatus].
   static const discoveryScan = '$apiPrefix/discovery/scan';
 
   /// Current subnet-scan progress (`GET`) → `{running, scanned, total}`.
@@ -90,6 +104,13 @@ abstract final class Endpoints {
   /// Query `?hours=1..168`. Reference: bambuddy `ams_history.py`.
   static String amsHistory(int printerId, int amsId) =>
       '$apiPrefix/ams-history/$printerId/$amsId';
+
+  /// Heater history (nozzle / bed / chamber) for one printer. Query
+  /// `?hours=1..168` and `?kinds=` (comma-separated `nozzle,nozzle_2,bed,
+  /// chamber`; all of them when omitted). Reference: bambuddy
+  /// `printer_sensor_history.py`.
+  static String printerSensorHistory(int printerId) =>
+      '$apiPrefix/printer-sensor-history/$printerId';
 
   /// Mint camera stream token (valid ~60 min). Required as `?token=`
   /// for print cover (`cover_url`) and — from M2 — for camera preview.
@@ -142,6 +163,18 @@ abstract final class Endpoints {
   static String printerClearPlate(int printerId) =>
       '$apiPrefix/printers/$printerId/clear-plate';
 
+  /// Clear the printer's active error dialog (`clean_print_error`) — one call
+  /// per printer, not per error. Empty body. 400 when it is not connected.
+  static String hmsClear(int printerId) =>
+      '$apiPrefix/printers/$printerId/hms/clear';
+
+  /// Run one of the firmware's remediation actions for a fault. JSON body
+  /// `{print_error, action, job_id}` — see [PrinterCommandsRepository].
+  /// The server waits ~2.5s for the printer to acknowledge and answers 502 if
+  /// it stays silent, so this call is slower than every other control route.
+  static String hmsExecuteAction(int printerId) =>
+      '$apiPrefix/printers/$printerId/hms/execute-action';
+
   /// Chamber light. Query: `on=true|false`.
   static String chamberLight(int printerId) =>
       '$apiPrefix/printers/$printerId/chamber-light';
@@ -160,9 +193,13 @@ abstract final class Endpoints {
   static String bedTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/bed';
 
-  /// Chamber target temperature. Query: `target` 0–60 (0 = off). Server returns
-  /// 400 unless the model has an active chamber heater (H2C/H2D/H2D Pro/H2S/X2D)
-  /// — gate client-side via `supportsChamberHeater` before calling.
+  /// Chamber target temperature. Query: `target` 0 = off, up to the server's
+  /// own `MAX_CHAMBER_TEMP_C` — **60 up to 1.2.5.x, 65 from 1.2.6** (commit
+  /// `b04664c6`). The bound is a `Query(le=…)`, so an older server answers 422
+  /// rather than clamping; gate on [ServerVersion.chamberMaxTargetC]. Returns
+  /// 400 unless the model has an active chamber heater (H2C/H2D/H2D
+  /// Pro/H2S/X2D) — gate client-side via `supportsChamberHeater` before
+  /// calling.
   static String chamberTemperature(int printerId) =>
       '$apiPrefix/printers/$printerId/temperature/chamber';
 
@@ -190,9 +227,9 @@ abstract final class Endpoints {
   static String dryingStop(int printerId) =>
       '$apiPrefix/printers/$printerId/drying/stop';
 
-  // --- Movement / jog (manual control; idle only) ---
-  // All POST, empty body, params in query. Relative moves; the server maps the
-  // Z sign per model (A1 bed-slingers are inverted). Require `can_control_printer`.
+  // --- Movement / jog (manual control; idle only) --- All POST, empty body,
+  // params in query. Relative moves; the server maps the Z sign per model (A1
+  // bed-slingers are inverted). Require `can_control_printer`.
 
   /// Relative nozzle-bed gap jog. Query: `distance` (signed mm, |d|≤200;
   /// negative = decrease gap / "up"), `force` (bypass soft endstops when Z is
@@ -214,6 +251,77 @@ abstract final class Endpoints {
   static String homeAxes(int printerId) =>
       '$apiPrefix/printers/$printerId/home-axes';
 
+  // --- AMS filament handling ---
+
+  /// Ask the printer to republish its whole state (`pushall`). Unlike every
+  /// other route in this block it needs read permission only, so a key that
+  /// cannot control the printer may still call it. Answers 400 when the printer
+  /// is not connected.
+  static String printerRefreshStatus(int printerId) =>
+      '$apiPrefix/printers/$printerId/refresh-status';
+
+  /// Load filament into the extruder. Query: `tray_id`, the **global** tray
+  /// number — `ams_id * 4 + slot` for a regular AMS (0..15, and 24..27 once the
+  /// A2L AMS-Lite is normalised to unit 6), 254 external / Ext-L, 255 Ext-R.
+  /// The server rejects everything else with 400, AMS-HT (unit 128+) included —
+  /// build the number with `amsLoadTrayId`, which answers null for those.
+  static String amsLoad(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/load';
+
+  /// Unload whatever is in the extruder. Printer-wide: the source slot comes
+  /// from the printer's own `tray_now`, so there is nothing to address.
+  static String amsUnload(int printerId) =>
+      '$apiPrefix/printers/$printerId/ams/unload';
+
+  /// Re-read one AMS slot's RFID tag. Path ids are **local** (unit id, slot
+  /// within the unit) — not the global number [amsLoad] takes. Gated on
+  /// `printers:ams_rfid`, a permission of its own: a key allowed to control the
+  /// printer can still be refused here.
+  static String amsSlotRfidRefresh(int printerId, int amsId, int slotId) =>
+      '$apiPrefix/printers/$printerId/ams/$amsId/slot/$slotId/refresh';
+
+  // --- AMS slot configuration ---
+  //
+  // Ids here are **local** throughout (unit id + slot within the unit), unlike
+  // [amsLoad]. The external spool is unit 255 with slot 0 (Ext-L) or 1 (Ext-R):
+  // the server adds 254 itself when it looks the slot up in `vt_tray`.
+
+  /// Write a filament configuration into one slot (`POST`). The server computes
+  /// nothing — all 12 query parameters (`tray_info_idx`, `tray_type`,
+  /// `tray_sub_brands`, `tray_color`, `nozzle_temp_min`, `nozzle_temp_max`,
+  /// `cali_idx`, `nozzle_diameter`, `setting_id`, `kprofile_filament_id`,
+  /// `kprofile_setting_id`, `k_value`) are the caller's to derive, which is what
+  /// `AmsSlotConfiguration` exists for. Needs `printers:control`, and answers
+  /// 400 for a printer that is not connected.
+  static String amsSlotConfigure(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/slots/$amsId/$trayId/configure';
+
+  /// Clear a slot's filament configuration (`POST`). Also deletes the saved
+  /// [amsSlotPreset] mapping, so the two undo each other.
+  static String amsSlotReset(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/ams/$amsId/tray/$trayId/reset';
+
+  /// Which preset a slot was configured with (`GET` → the mapping or `null`,
+  /// `PUT` with query `preset_id`/`preset_name`/`preset_source` to save it).
+  /// The printer itself only keeps a filament id, and a user cloud preset's id
+  /// resolves to no name anywhere — this mapping is the only way to show back
+  /// what was picked.
+  static String amsSlotPreset(int printerId, int amsId, int trayId) =>
+      '$apiPrefix/printers/$printerId/slot-presets/$amsId/$trayId';
+
+  /// Pressure-advance profiles stored on the printer (`GET`, query
+  /// `nozzle_diameter`). The trailing slash is the route's own, and the printer
+  /// has to be connected — the server asks it over MQTT and answers 400
+  /// otherwise. Gated on `kprofiles:read`, which an API key that can read
+  /// status already has.
+  static String printerKProfiles(int printerId) =>
+      '$apiPrefix/printers/$printerId/kprofiles/';
+
+  /// Every saved slot→preset mapping for a printer (`GET`), keyed by the
+  /// *global* tray number (AMS-HT by unit id). One request for a whole card.
+  static String amsSlotPresets(int printerId) =>
+      '$apiPrefix/printers/$printerId/slot-presets';
+
   /// Printable objects for the current print (`GET`). Query `reload=true`
   /// re-reads them from the 3MF (useful after a restart). Returns
   /// `{objects:[{id,name,x,y,skipped}], total, skipped_count, is_printing,
@@ -227,8 +335,8 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/print/skip-objects';
 
   /// Current print cover image. Query `view=top` gives the top-down build-plate
-  /// render used for the skip-objects overlay. Auth via `?token=` (camera stream
-  /// token), NOT via header — same as [PrinterStatus.coverUrl].
+  /// render used for the skip-objects overlay. Auth via `?token=` (camera
+  /// stream token), NOT via header — same as [PrinterStatus.coverUrl].
   static String printerCover(int printerId) =>
       '$apiPrefix/printers/$printerId/cover';
 
@@ -282,6 +390,56 @@ abstract final class Endpoints {
   static String archiveThumbnail(int archiveId) =>
       '$apiPrefix/archives/$archiveId/thumbnail';
 
+  /// The archive's timelapse video, authenticated via `?token=` (camera token)
+  /// like [archiveThumbnail] — `archives.py::get_timelapse` takes the camera
+  /// stream token, not the auth header. 404 while the print has no video yet.
+  ///
+  /// Container is whatever the printer produced: MP4 from most models, AVI from
+  /// a P1S until the server's background conversion catches up.
+  static String archiveTimelapse(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse';
+
+  /// One photo attached to the archive, authenticated via `?token=` (camera
+  /// token) like [archiveThumbnail]. [filename] comes from `Archive.photos` —
+  /// `archives.py::get_photo` serves nothing that is not on that list.
+  static String archivePhoto(int archiveId, String filename) {
+    final name = Uri.encodeComponent(filename);
+    return '$apiPrefix/archives/$archiveId/photos/$name';
+  }
+
+  /// Timelapse metadata read with ffprobe server-side — `{duration, width,
+  /// height, fps, codec, file_size, has_audio}`. Unlike the video itself this
+  /// one takes the ordinary auth header.
+  static String archiveTimelapseInfo(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/info';
+
+  /// Evenly spaced frames for the editor's filmstrip — `{thumbnails: [base64
+  /// JPEG], timestamps: [seconds]}`. Query `count` (1..30) and `width`
+  /// (80..320); the server renders them with ffmpeg per request.
+  static String archiveTimelapseThumbnails(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/thumbnails';
+
+  /// Trim/speed/audio re-encode of the timelapse (`POST`, multipart:
+  /// `trim_start`, `trim_end`, `speed` 0.25–4.0, `save_mode`,
+  /// `output_filename`, `audio`) → `{status, output_path, message}`.
+  ///
+  /// Runs ffmpeg inline and answers only when it is done, so this one needs a
+  /// timeout measured in minutes rather than the client default. `save_mode`
+  /// `replace` overwrites the recording; `new` writes a file alongside it that
+  /// nothing then points at — which is why the web UI only ever sends
+  /// `replace`.
+  static String archiveTimelapseProcess(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/timelapse/process';
+
+  /// The archive's G-code as `text/plain`, unzipped from its 3MF
+  /// (`archives.py::get_gcode`). Query `plate=N` picks
+  /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
+  ///
+  /// Older than either embedded viewer the server has had, and untouched by the
+  /// one it deleted — which is what makes it safe to draw the preview from.
+  static String archiveGcode(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/gcode';
+
   /// Viewing/slicing capabilities of an archive's 3MF — `{has_model, has_gcode,
   /// has_source, build_volume, filament_colors}`. Slice is only meaningful when
   /// `has_source` or `has_model` is true (gcode-only archives can't be parsed).
@@ -298,6 +456,10 @@ abstract final class Endpoints {
   static String archiveFilamentRequirements(int archiveId) =>
       '$apiPrefix/archives/$archiveId/filament-requirements';
 
+  /// See [libraryFilePlates].
+  static String archivePlates(int archiveId) =>
+      '$apiPrefix/archives/$archiveId/plates';
+
   // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
 
   /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).
@@ -310,12 +472,34 @@ abstract final class Endpoints {
   static String libraryFileFilamentRequirements(int fileId) =>
       '$apiPrefix/library/files/$fileId/filament-requirements';
 
+  /// Plates in a library file's 3MF, plus `embedded_printer` /
+  /// `embedded_process` / `design_overrides`. Read for the "slice as designed"
+  /// gate rather than for the plates — see `EmbeddedSettings`.
+  static String libraryFilePlates(int fileId) =>
+      '$apiPrefix/library/files/$fileId/plates';
+
   /// Poll a slice job (`GET`) → status/progress/result. See [archiveSlice].
   static String sliceJob(int jobId) => '$apiPrefix/slice-jobs/$jobId';
 
   /// Unified preset list across local/cloud/standard tiers for the slice modal
   /// (`GET`, query `refresh`). Returns `UnifiedPresetsResponse`.
   static const slicerPresets = '$apiPrefix/slicer/presets';
+
+  /// Effective values of one process preset with its `inherits:` chain
+  /// flattened (`GET`, query `source` = tier, `id`, `slot` — only `process` is
+  /// supported and 400s otherwise). Lets the process-override fields start from
+  /// what the preset actually contains: a preset setting a 0.42 mm line width
+  /// would otherwise show the compiled-in default of 0.
+  ///
+  /// Answers `{resolved, values, reason}` and **never errors on a resolution
+  /// failure** — `resolved: false` with a `reason` (`sidecar_unavailable`,
+  /// `not_configured`, `preset_unresolved`, …) is the normal negative answer,
+  /// and the panel stays usable with blank fields. A sidecar older than the
+  /// endpoint is the common cause, which is why the reason is worth showing.
+  ///
+  /// **1.2.6+ only** — an older server 404s, and that (not `resolved: false`)
+  /// is what [SlicerRepository] reads as "not supported here".
+  static const slicerPresetValues = '$apiPrefix/slicer/preset-values';
 
   /// Server-wide app settings (`AppSettings`). We only read `use_slicer_api`
   /// here to gate the slice UI; full settings management lives on the web.
@@ -328,7 +512,8 @@ abstract final class Endpoints {
   /// Trailing slash required (FastAPI), similar to `/printers/`.
   static const smartPlugs = '$apiPrefix/smart-plugs/';
 
-  /// Live smart plug status (SmartPlugStatus): on/off state + power/energy measurement.
+  /// Live smart plug status (SmartPlugStatus): on/off state + power/energy
+  /// measurement.
   static String smartPlugStatus(int plugId) =>
       '$apiPrefix/smart-plugs/$plugId/status';
 
@@ -363,7 +548,8 @@ abstract final class Endpoints {
 
   /// Single printer maintenance item: `PATCH` (body `PrinterMaintenanceUpdate`:
   /// `custom_interval_hours`, `custom_interval_type`, `enabled`), `DELETE`
-  /// (unassign a custom type from the printer). Requires update/delete permission.
+  /// (unassign a custom type from the printer). Requires update/delete
+  /// permission.
   static String maintenanceItem(int itemId) =>
       '$apiPrefix/maintenance/items/$itemId';
 
@@ -522,6 +708,14 @@ abstract final class Endpoints {
   static String libraryFileThumbnail(int fileId) =>
       '$apiPrefix/library/files/$fileId/thumbnail';
 
+  /// The file's G-code as `text/plain`: a `.gcode` served as it is, a
+  /// `.gcode.3mf` unzipped first (`library.py::get_gcode`).
+  ///
+  /// Takes no plate: the server returns the **first** `.gcode` in the archive
+  /// whatever is asked, so a multi-plate sliced file always previews plate 1.
+  static String libraryFileGcode(int fileId) =>
+      '$apiPrefix/library/files/$fileId/gcode';
+
   /// Move files to folder (`POST`, body `FileMoveRequest`:
   /// `{file_ids, folder_id}`; `folder_id=null` = root).
   static const libraryFilesMove = '$apiPrefix/library/files/move';
@@ -561,6 +755,44 @@ abstract final class Endpoints {
   /// `{file_ids, tag_ids, action}` → `TagBulkAssignResponse`).
   static const libraryTagsBulkAssign =
       '$apiPrefix/library/tags/bulk-assign';
+
+  // --- Library variant groups (server #671) ---
+  //
+  // The same job sliced for different printer models, grouped so a queue item
+  // can offer them as alternatives and take whichever printer frees up first.
+  // **1.2.6+ only** — every path here 404s on an older server.
+
+  /// Create a group (`POST`, body `{members:[{library_file_id, target_model?}],
+  /// name?}` → `VariantGroupResponse`). Minimum two members: a group of one
+  /// expresses no choice and is refused. Member order is the priority order.
+  ///
+  /// `target_model` is normally omitted and read from the file's own
+  /// `sliced_for_model`; send it only for a legacy 3MF that declares none.
+  static const libraryVariantGroups = '$apiPrefix/library/variant-groups';
+
+  /// One group: `GET` (with members), `PATCH` (body `{name?,
+  /// member_file_ids?}` — a partial `member_file_ids` is rejected rather than
+  /// guessing, so send the full current membership), `DELETE` (ungroups; the
+  /// files themselves are untouched).
+  static String libraryVariantGroup(int groupId) =>
+      '$apiPrefix/library/variant-groups/$groupId';
+
+  /// The group a file belongs to (`GET`) → `VariantGroupResponse`. 404 when the
+  /// file is in none, which is the ordinary case and not an error.
+  static String libraryVariantGroupByFile(int fileId) =>
+      '$apiPrefix/library/variant-groups/by-file/$fileId';
+
+  /// Add a member (`POST`, body `{library_file_id, target_model?}`).
+  static String libraryVariantGroupMembers(int groupId) =>
+      '$apiPrefix/library/variant-groups/$groupId/members';
+
+  /// Remove one member (`DELETE`, 204). Removing the second-to-last member
+  /// **dissolves the whole group** server-side
+  /// (`library_variants.py::_dissolve_if_too_small`) — a one-member group is
+  /// not a choice. So the caller must refresh the other file's state too, not
+  /// just this one's.
+  static String libraryVariantGroupMember(int groupId, int fileId) =>
+      '$apiPrefix/library/variant-groups/$groupId/members/$fileId';
 
   // --- Library trash ---
 
@@ -614,6 +846,37 @@ abstract final class Endpoints {
 
   /// Bambu Cloud logout (`POST`, no body).
   static const cloudLogout = '$apiPrefix/cloud/logout';
+
+  /// Slicer presets stored in the user's Bambu Cloud account (`GET`) —
+  /// `{filament: [...], printer: [...], process: [...]}`, each entry a
+  /// `SlicerSetting` with `setting_id`/`name`/`is_custom`. **401 when no cloud
+  /// login exists**, which is a normal answer here: the filament picker falls
+  /// back to [cloudBuiltinFilaments] plus the local presets.
+  static const cloudSettings = '$apiPrefix/cloud/settings';
+
+  /// One cloud preset in full (`GET`). Read for a custom preset's own
+  /// `filament_id`, which is what the printer needs and what the id in the list
+  /// is not. Never substitute the response's `base_id`: that is the generic the
+  /// preset inherits from, and using it makes the slicer resolve the slot back
+  /// to "Generic …" (bambuddy #1053).
+  static String cloudSettingDetail(String settingId) =>
+      '$apiPrefix/cloud/settings/$settingId';
+
+  /// Bambu's built-in filament table (`GET`) — `[{filament_id, name}]`. Static
+  /// and needs no cloud login (only `filaments:read`), which makes it the floor
+  /// the filament picker always has.
+  static const cloudBuiltinFilaments = '$apiPrefix/cloud/builtin-filaments';
+
+  /// Presets imported from a slicer bundle (`GET`) — same grouping as
+  /// [cloudSettings], entries carry `filament_type`, `nozzle_temp_min/max` and
+  /// a JSON-encoded `compatible_printers` string. Gated on `settings:read`, so
+  /// a narrow key can be refused this tier while still having the other two.
+  static const localPresets = '$apiPrefix/local-presets/';
+
+  /// Bambu's model registry (`GET`) — `{"Bambu Lab X1 Carbon": "X1C", …}`.
+  /// Static reference data, no auth. Maps the long names that appear inside
+  /// preset names to the short codes `Printer.model` uses.
+  static const slicerPrinterModels = '$apiPrefix/slicer/printer-models';
 
   // --- Projects ---
   //
@@ -674,7 +937,8 @@ abstract final class Endpoints {
   static String projectAddQueue(int projectId) =>
       '$apiPrefix/projects/$projectId/add-queue';
 
-  /// BOM items (`GET` → `BOMItemResponse[]`; `POST` create body `BOMItemCreate`).
+  /// BOM items (`GET` → `BOMItemResponse[]`; `POST` create body
+  /// `BOMItemCreate`).
   static String projectBom(int projectId) =>
       '$apiPrefix/projects/$projectId/bom';
 
@@ -705,36 +969,62 @@ abstract final class Endpoints {
 
   // --- Users ---
 
-  /// User list (`UserResponse[]`) — the Stats "filter by user" picker and the
-  /// administration user list. Gated server-side on `USERS_READ` only
-  /// (`backend/app/api/routes/users.py:67`), so a custom group without the
-  /// admin role reaches it; the Stats picker treats a 403 as "can't filter by
-  /// user", not an error. Trailing slash required (FastAPI), like `/printers/`.
+  /// User list (`UserResponse[]`) — the administration user list, and the
+  /// fallback behind [usersSlim] for the Stats "filter by user" picker. Gated
+  /// server-side on `USERS_READ` only
+  /// (`backend/app/api/routes/users.py::_user_to_response`), so a custom group
+  /// without the admin role reaches it, but an API key never does: `users:read`
+  /// is unmapped in the key scope allowlist, which makes it administrative.
+  /// Ordered by `created_at`. Trailing slash required (FastAPI), like
+  /// `/printers/`.
   static const users = '$apiPrefix/users/';
 
+  /// Id → name only (`[{id, username}]` —
+  /// `backend/app/schemas/auth.py::UserSlim`), so the `created_by_id` values
+  /// that come back from archives, the queue and statistics can be shown as
+  /// names. Ordered by `username`. **1.2.6+ only.**
+  ///
+  /// Reachable where [users] is not: gated on `users:read_slim` *or*
+  /// `users:read` (any-of), and the slim permission is mapped to the API-key
+  /// `can_read_status` scope
+  /// (`backend/app/core/auth.py::_resolve_apikey_scope`) — so a key reads this
+  /// and not the full listing, which is the whole point of server issue #1894.
+  ///
+  /// **An older server cannot answer this successfully**, so support is probed
+  /// rather than derived from a version number (that numbering is a trap —
+  /// `docs/plans/08-server-v1.2.5-migration.md`). `/{user_id}` is declared
+  /// `int` there, so the path yields **422** for a caller that would otherwise
+  /// pass, and **403** for one refused before the path is even parsed. Never a
+  /// 404 — treat any non-200 as "not supported here" and fall back to [users].
+  ///
+  /// No trailing slash: `slim` is a literal segment, not a collection.
+  static const usersSlim = '$apiPrefix/users/slim';
+
   /// What this account owns (`{archives, queue_items, library_files}` —
-  /// `backend/app/api/routes/users.py:317`). Read-only, `USERS_READ`; answers
-  /// what a later edit or deletion would be touching.
+  /// `backend/app/api/routes/users.py::update_user`). Read-only, `USERS_READ`;
+  /// answers what a later edit or deletion would be touching.
   static String userItemsCount(int userId) =>
       '$apiPrefix/users/$userId/items-count';
 
-  /// One account: `PATCH` (edit, `users.py:208`) and `DELETE` (`users.py:359`,
-  /// query `delete_items=true|false` — see [UsersRepository.delete]). Both are
-  /// admin-only *and* permission-gated; API keys are refused outright.
+  /// One account: `PATCH` (edit, `users.py::list_users_slim`) and `DELETE`
+  /// (`users.py::get_user_items_count`, query `delete_items=true|false` — see
+  /// [UsersRepository.delete]). Both are admin-only *and* permission-gated; API
+  /// keys are refused outright.
   static String userById(int userId) => '$apiPrefix/users/$userId';
 
   /// Whether the server generates and mails the password instead of the admin
   /// setting one (`{advanced_auth_enabled, smtp_configured, ...}` —
-  /// `backend/app/api/routes/auth.py:908`). Unauthenticated server-side, and
-  /// what decides the shape of the account form.
+  /// `backend/app/api/routes/auth.py::disable_advanced_auth`). Unauthenticated
+  /// server-side, and what decides the shape of the account form.
   static const advancedAuthStatus = '$apiPrefix/auth/advanced-auth/status';
 
   // --- API keys ---
 
   /// Key list (`GET`, `APIKeyResponse[]` — never the keys themselves) and
   /// creation (`POST`, whose answer carries the full key **once**;
-  /// `backend/app/api/routes/api_keys.py:34`). Gated on `api_keys:read` /
-  /// `api_keys:create` — no admin role on top, unlike users and groups.
+  /// `backend/app/api/routes/api_keys.py::create_api_key`). Gated on
+  /// `api_keys:read` / `api_keys:create` — no admin role on top, unlike users
+  /// and groups.
   static const apiKeys = '$apiPrefix/api-keys/';
 
   /// One key: `PATCH` (rename, scopes, enable/disable, expiry) and `DELETE`
@@ -743,23 +1033,24 @@ abstract final class Endpoints {
 
   // --- Groups ---
 
-  /// Group list (`GroupResponse[]` — `backend/app/api/routes/groups.py:62`),
-  /// gated on `groups:read`. Trailing slash required, like `/users/`.
+  /// Group list (`GroupResponse[]` —
+  /// `backend/app/api/routes/groups.py::list_permissions`), gated on
+  /// `groups:read`. Trailing slash required, like `/users/`.
   static const groups = '$apiPrefix/groups/';
 
-  /// Every permission the server knows, by category
-  /// (`PermissionsListResponse`, `groups.py:43`). Gated on `groups:read` —
-  /// the same key that opens the group screens.
+  /// Every permission the server knows, by category (`PermissionsListResponse`,
+  /// `groups.py::_permission_label`). Gated on `groups:read` — the same key
+  /// that opens the group screens.
   static const groupPermissions = '$apiPrefix/groups/permissions';
 
-  /// One group with its member list (`GroupDetailResponse`, `groups.py:133`).
-  /// `PATCH` and `DELETE` on the same path are admin-only and refuse system
-  /// groups.
+  /// One group with its member list (`GroupDetailResponse`,
+  /// `groups.py::create_group`). `PATCH` and `DELETE` on the same path are
+  /// admin-only and refuse system groups.
   static String groupById(int groupId) => '$apiPrefix/groups/$groupId';
 
   /// Membership from the group's side: `POST` adds, `DELETE` removes
-  /// (`groups.py:259`, `:297`). Admin-only on top of `groups:update`, and
-  /// both answer 204 with no body.
+  /// (`groups.py::delete_group`, `:297`). Admin-only on top of `groups:update`,
+  /// and both answer 204 with no body.
   static String groupMember(int groupId, int userId) =>
       '$apiPrefix/groups/$groupId/users/$userId';
 }

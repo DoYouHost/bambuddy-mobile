@@ -11,6 +11,13 @@ import 'print_monitor_task_handler.dart';
 /// register the device for server-side notifications (ntfy/FCM) instead of
 /// holding a foreground service. Then swapping the implementation in
 /// `backgroundMonitorProvider` would work without changes to the rest of the app.
+/// The foreground service's own notification. Passed explicitly because the
+/// plugin otherwise picks 1000 for itself — which is where the print alert bands
+/// start, so an alert for the printer with that row id would have taken the
+/// service's notification over and the next service update would have wiped the
+/// alert. Kept below every band in [PrintMonitor].
+const int foregroundServiceNotificationId = 1;
+
 abstract class BackgroundMonitor {
   /// Starts monitoring in the background (idempotent).
   ///
@@ -46,6 +53,7 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
     if (await FlutterForegroundTask.isRunningService) return false;
     final l10n = systemAppLocalizations();
     await FlutterForegroundTask.startService(
+      serviceId: foregroundServiceNotificationId,
       serviceTypes: const [ForegroundServiceTypes.dataSync],
       notificationTitle: l10n.bgServiceTitle,
       notificationText: l10n.bgServiceText,

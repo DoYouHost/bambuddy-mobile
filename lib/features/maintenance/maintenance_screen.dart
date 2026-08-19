@@ -376,11 +376,8 @@ class _MaintenanceTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .perform(item.id, notes: notes.isEmpty ? null : notes);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(switch (result) {
-      MaintenanceActionResult.ok => l10n.maintenanceDone,
-      MaintenanceActionResult.forbidden => l10n.errForbidden,
-      MaintenanceActionResult.error => l10n.maintenanceFailed,
-    })));
+    messenger.showSnackBar(SnackBar(
+        content: Text(result.messageFor(l10n) ?? l10n.maintenanceDone)));
   }
 
   Future<void> _showHistory(

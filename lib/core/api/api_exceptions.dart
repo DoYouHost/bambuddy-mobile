@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 
+import '../diagnostics/log_path.dart';
+
 /// Error codes for the API/auth layer. The core layer is UI-independent:
-/// translation to text happens at display time (see `lib/l10n/error_messages.dart`).
+/// translation to text happens at display time (see
+/// `lib/l10n/error_messages.dart`).
 enum AppErrorCode {
   serverUnreachable,
   unauthorized,
@@ -46,15 +49,53 @@ enum AppErrorCode {
 
 /// Carries the code the UI localizes, plus detail for the log.
 sealed class AppApiException implements Exception {
-  const AppApiException(this.code, {this.statusCode, this.detail});
+  const AppApiException(
+    this.code, {
+    this.statusCode,
+    this.detail,
+    this.method,
+    this.path,
+  });
 
   final AppErrorCode code;
 
   /// Set for [AppErrorCode.badResponse], null for the rest.
   final int? statusCode;
 
-  /// Raw and user-invisible, e.g. `DioException.message`.
+  /// The call that failed, for the `action_failed` record: without it a reader
+  /// has to guess which of the requests in flight the failure belongs to.
+  ///
+  /// [path] has been through [loggablePath], the same reduction `HttpProbe`
+  /// records with: no host, no query string, and no segment the user named.
+  /// Null for an exception the app raised itself rather than mapped from a
+  /// response.
+  final String? method;
+  final String? path;
+
+  /// What the server wrote, when it wrote anything: the `detail` of a FastAPI
+  /// error, or `DioException.message` for a failure that never reached one.
+  ///
+  /// Shown to the user only where a code alone cannot say why — a 403 names
+  /// the missing permission and nothing else can. It is the server's own
+  /// English either way, so display it framed rather than bare.
   final String? detail;
+
+  /// Whether this is the 403 that means the API key's owner account is gone,
+  /// rather than a permission the key or the account is missing.
+  ///
+  /// Worth telling apart because the remedy is the opposite: no scope or group
+  /// change fixes it, the account has to come back. It also arrives on *every*
+  /// route at once, including `/auth/me`, so the app looks broken rather than
+  /// restricted (`backend/app/core/auth.py::resolve_apikey_owner`,
+  /// server 1.2.6+).
+  ///
+  /// Matched on the server's wording, so a reworded message degrades to the
+  /// framed detail — still the truth, just less specific.
+  bool get isApiKeyOwnerDisabled {
+    final text = detail?.toLowerCase();
+    if (text == null || !text.contains('api key owner')) return false;
+    return text.contains('deactivated') || text.contains('no longer exists');
+  }
 
   @override
   String toString() =>
@@ -64,17 +105,33 @@ sealed class AppApiException implements Exception {
 
 /// 4xx/5xx other than 401/403, or a response of unexpected shape.
 class ApiException extends AppApiException {
-  const ApiException(super.code, {super.statusCode, super.detail});
+  const ApiException(
+    super.code, {
+    super.statusCode,
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// Bad credentials, an expired token or key, or missing permissions.
 class AuthException extends AppApiException {
-  const AuthException(super.code, {super.detail});
+  const AuthException(
+    super.code, {
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// Timeout, connection refused, or no network.
 class NetworkException extends AppApiException {
-  const NetworkException(super.code, {super.detail});
+  const NetworkException(
+    super.code, {
+    super.detail,
+    super.method,
+    super.path,
+  });
 }
 
 /// The `on DioException catch (e) { throw mapDioException(e); }` every
@@ -105,7 +162,10 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
 /// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
 /// enforcing rules the app deliberately does not re-implement — "Cannot delete
 /// the last admin user", "Cannot rename system groups" — the reason exists only
-/// in `detail`, which the plain mapper drops.
+/// in `detail`, which the plain mapper drops for those two statuses.
+///
+/// A 403 needs no help here: the base mapper keeps its detail for every caller,
+/// because a refusal is worth explaining wherever it happens.
 AppApiException mapDioExceptionKeepingDetail(DioException e) {
   final mapped = mapDioException(e);
   final status = e.response?.statusCode;
@@ -114,7 +174,13 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   }
   final detail = _detailOf(e.response?.data);
   if (detail == null) return mapped;
-  return ApiException(mapped.code, statusCode: status, detail: detail);
+  return ApiException(
+    mapped.code,
+    statusCode: status,
+    detail: detail,
+    method: mapped.method,
+    path: mapped.path,
+  );
 }
 
 /// FastAPI answers a rule violation with `{"detail": "..."}` and a schema
@@ -141,30 +207,48 @@ AppApiException mapDioException(DioException e) {
   if (e.error is AppApiException) {
     return e.error! as AppApiException;
   }
+  final method = e.requestOptions.method;
+  // The same reduction `HttpProbe` records with: no host, no query, and no
+  // segment the user named.
+  final path = loggablePath(e.requestOptions.uri.path);
   switch (e.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
       return NetworkException(AppErrorCode.serverUnreachable,
-          detail: e.message);
+          detail: e.message, method: method, path: path);
     case DioExceptionType.badResponse:
       final code = e.response?.statusCode;
       if (code == 401) {
-        return const AuthException(AppErrorCode.unauthorized);
+        return AuthException(AppErrorCode.unauthorized,
+            method: method, path: path);
       }
       if (code == 403) {
-        return const AuthException(AppErrorCode.forbidden);
+        // The only party that knows *which* permission is missing is the
+        // server, and it always says: "Missing required permissions: x" for a
+        // login, "API key does not have 'y' permission" for a key. Dropping
+        // that left every refusal looking identical, which from 1.2.6 also
+        // covers the owner-narrowing refusals that are new to existing keys.
+        return AuthException(
+          AppErrorCode.forbidden,
+          detail: _detailOf(e.response?.data),
+          method: method,
+          path: path,
+        );
       }
       if (code == 429) {
-        return const ApiException(AppErrorCode.tooManyAttempts,
-            statusCode: 429);
+        return ApiException(AppErrorCode.tooManyAttempts,
+            statusCode: 429, method: method, path: path);
       }
-      return ApiException(AppErrorCode.badResponse, statusCode: code);
+      return ApiException(AppErrorCode.badResponse,
+          statusCode: code, method: method, path: path);
     case DioExceptionType.badCertificate:
-      return const NetworkException(AppErrorCode.badCertificate);
+      return NetworkException(AppErrorCode.badCertificate,
+          method: method, path: path);
     case DioExceptionType.cancel:
     case DioExceptionType.unknown:
-      return NetworkException(AppErrorCode.connectionError, detail: e.message);
+      return NetworkException(AppErrorCode.connectionError,
+          detail: e.message, method: method, path: path);
   }
 }

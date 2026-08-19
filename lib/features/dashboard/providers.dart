@@ -103,7 +103,28 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
     if (!connected && !_paused) _poll(generation);
   }
 
-  Future<void> refresh() => _poll(_generation);
+  /// Pull-to-refresh: ask every printer to republish before re-reading the
+  /// roster. The REST poll alone only re-reads what the server already holds,
+  /// so a field the firmware never echoed (a slot assignment it swallowed, a
+  /// state it stopped pushing) stays wrong however often the user pulls.
+  ///
+  /// Fire-and-forget on purpose: the republish arrives over the socket, not in
+  /// this response, and a printer that is offline answers 400 — neither is a
+  /// reason to fail the refresh the user asked for.
+  Future<void> refresh() {
+    nudgeRepublish();
+    return _poll(_generation);
+  }
+
+  /// Ask the printers to republish their state — one when [printerId] is given,
+  /// otherwise every printer on the roster.
+  void nudgeRepublish([int? printerId]) {
+    ref.read(printerCommandsRepositoryProvider).nudgeRepublish(
+          printerId != null
+              ? [printerId]
+              : [for (final p in state.printers ?? const []) p.printer.id],
+        );
+  }
 
   /// Pause REST polling when app goes background with active monitoring —
   /// foreground service (separate isolate) takes freshness, UI isolate must

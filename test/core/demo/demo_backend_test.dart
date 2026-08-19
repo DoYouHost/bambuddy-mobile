@@ -3,7 +3,11 @@ import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
+import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
+import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
@@ -268,6 +272,87 @@ void main() {
       final status =
           messages.whereType<WsPrinterStatus>().first.status;
       expect(status.id, isPositive);
+    });
+  });
+
+  group('AMS slot configuration', () {
+    final repo = AmsSlotConfigRepository(dio);
+
+    test('the picker has a built-in tier and imported presets', () async {
+      // No cloud login in the demo, which the sheet is built to survive: the
+      // other two tiers are what it falls back to.
+      expect(repo.cloudFilaments(),
+          throwsA(isA<AuthException>()
+              .having((e) => e.code, 'code', AppErrorCode.unauthorized)));
+
+      final builtin = await repo.builtinFilaments();
+      expect(builtin, isNotEmpty);
+      expect(builtin.map((p) => p.id), contains('GFA00'),
+          reason: 'the id the demo trays report, so a slot can be named');
+
+      final local = await repo.localFilaments();
+      expect(local, isNotEmpty);
+      expect(local.first.filamentType, isNotNull);
+      expect(local.first.compatiblePrinters, isNotNull,
+          reason: 'the printer filter needs something to filter on');
+    });
+
+    test('the printer-model registry resolves the demo printers', () async {
+      final models = await repo.printerModels();
+      expect(models['Bambu Lab X1 Carbon'], 'X1C');
+    });
+
+    test('K profiles come back filtered by nozzle', () async {
+      final fine = await repo.kProfiles(1, nozzleDiameter: '0.4');
+      expect(fine, isNotEmpty);
+      expect(fine.every((p) => p.nozzleDiameter == '0.4'), isTrue);
+
+      final coarse = await repo.kProfiles(1, nozzleDiameter: '0.6');
+      expect(coarse.map((p) => p.slotId),
+          isNot(anyElement(isIn(fine.map((p) => p.slotId)))));
+    });
+
+    test('configuring a slot shows on the card, and clearing it undoes that',
+        () async {
+      const preset = AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
+        id: 'GFB99',
+        name: 'Generic ABS',
+      );
+      await repo.configureSlot(
+        1,
+        amsId: 0,
+        trayId: 3,
+        configuration: SlotConfiguration.forPreset(
+          preset: preset,
+          colourHex: '1A1A1A',
+          nozzleDiameter: '0.4',
+        ),
+      );
+      await repo.saveSlotPreset(1, amsId: 0, trayId: 3,
+          preset: preset, presetName: preset.name);
+
+      var tray = (await PrintersRepository(dio).fetchStatus(1))!
+          .ams!
+          .first
+          .trays!
+          .firstWhere((t) => t.id == 3);
+      expect(tray.trayType, 'ABS', reason: 'the empty slot now holds something');
+      expect(tray.trayColor, '1A1A1AFF');
+      expect(tray.trayInfoIdx, 'GFB99');
+      expect((await repo.slotPreset(1, amsId: 0, trayId: 3))?.presetName,
+          'Generic ABS');
+
+      await repo.resetSlot(1, amsId: 0, trayId: 3);
+
+      tray = (await PrintersRepository(dio).fetchStatus(1))!
+          .ams!
+          .first
+          .trays!
+          .firstWhere((t) => t.id == 3);
+      expect(tray.trayType, isNull);
+      expect(await repo.slotPreset(1, amsId: 0, trayId: 3), isNull,
+          reason: 'the reset drops the mapping too');
     });
   });
 

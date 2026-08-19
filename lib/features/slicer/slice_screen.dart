@@ -3,16 +3,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slice_job.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../../core/models/process_option.dart';
+import '../../core/slicer/filament_slot_options.dart';
+import '../../core/slicer/process_settings_codec.dart';
+import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
 import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
+import 'process_settings_screen.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -26,25 +33,27 @@ class SliceTarget {
   final bool isArchive;
 }
 
-/// Opens the slice modal for [target]. Returns true if a slice completed
+/// Opens the slice form for [target]. Returns true if a slice completed
 /// successfully (so callers can refresh their lists). Caller is responsible for
 /// gating on [slicerEnabledProvider] / capabilities before showing.
-Future<bool> showSliceSheet(BuildContext context, SliceTarget target) async {
-  final done = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => _SliceSheet(target: target),
+///
+/// A pushed route rather than a bottom sheet. The form is nine rows before a
+/// multicolour file adds more, and in a sheet the submit button was the last
+/// item of the scrolling list — reachable only by scrolling past everything and
+/// clipped at the bottom edge. A screen gets an app bar and a pinned action bar.
+Future<bool> showSliceScreen(BuildContext context, SliceTarget target) async {
+  final done = await Navigator.of(context).push<bool>(
+    MaterialPageRoute(builder: (_) => _SliceScreen(target: target)),
   );
   return done ?? false;
 }
 
-class _SliceSheet extends ConsumerStatefulWidget {
-  const _SliceSheet({required this.target});
+class _SliceScreen extends ConsumerStatefulWidget {
+  const _SliceScreen({required this.target});
   final SliceTarget target;
 
   @override
-  ConsumerState<_SliceSheet> createState() => _SliceSheetState();
+  ConsumerState<_SliceScreen> createState() => _SliceScreenState();
 }
 
 /// Canonical BambuStudio / OrcaSlicer bed types accepted by `SliceRequest`'s
@@ -59,7 +68,7 @@ const _bedTypes = <String>[
   'Supertack Plate',
 ];
 
-class _SliceSheetState extends ConsumerState<_SliceSheet> {
+class _SliceScreenState extends ConsumerState<_SliceScreen> {
   SlicerPreset? _printer;
   SlicerPreset? _process;
   String? _bedType; // null = inherit from the process preset
@@ -68,6 +77,29 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
   List<SlicerPreset?> _filaments = [];
   bool _submitting = false;
 
+  /// Let the slicer choose each object's orientation (`--orient 1`). Off by
+  /// default, exactly as the server has it: it rotates geometry, so a model the
+  /// designer laid flat on purpose would silently change.
+  bool _autoOrient = false;
+
+  /// Let the slicer lay the objects out on the plate (`--arrange 1`). Off by
+  /// default for the same reason — it discards a deliberate layout.
+  bool _autoArrange = false;
+
+  /// What the user asked for; whether it applies needs the gate too, so read it
+  /// through [_asDesigned].
+  bool _useEmbedded = false;
+
+  bool _printerPicked = false;
+  bool _designedPrinterAdopted = false;
+
+  /// Process-option edits from the settings screen, as the user typed them.
+  ///
+  /// What actually goes on the wire is derived from these rather than stored, so
+  /// switching the process preset re-decides which of them are deviations at
+  /// all: an edit matching the new preset's own value stops being an override.
+  Map<String, Object> _processValues = {};
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -75,25 +107,23 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     final l10n = _l10n;
     final theme = Theme.of(context);
     final presetsAsync = ref.watch(slicerPresetsProvider);
-    final ownedCodes =
-        ref.watch(ownedPrinterCodesProvider).valueOrNull ?? const <String>{};
+    final ownedCodesAsync = ref.watch(ownedPrinterCodesProvider);
+    final ownedCodes = ownedCodesAsync.valueOrNull ?? const <String>{};
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
     final reqs = ref
-            .watch(filamentRequirementsProvider(
-                (widget.target.isArchive, widget.target.id)))
+            .watch(filamentRequirementsProvider(_sourceKey))
             .valueOrNull ??
         const <FilamentRequirement>[];
+    final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
+    final embedded = embeddedAsync.valueOrNull ?? EmbeddedSettings.none;
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-            16, 0, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+    return Scaffold(
+      appBar: dashAppBar(context, title: l10n.sliceTitle),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: presetsAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(24),
             child: Text(err is AppApiException
@@ -101,12 +131,17 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                 : l10n.sliceNoPresets),
           ),
           data: (presets) {
-            // One filament slot per requirement (at least one).
+            // One picker per *project* slot, because `filament_presets` is
+            // positional — see [SlicerRepository.filamentRequirements].
             final slotCount = reqs.isEmpty ? 1 : reqs.length;
             _resizeFilaments(slotCount);
+            final discriminated = anyUnused(reqs);
 
             final printers = _filterPrinters(presets.printers, ownedCodes);
             _printer ??= _firstLocalOr(printers);
+            if (!embeddedAsync.isLoading && !ownedCodesAsync.isLoading) {
+              _adoptDesignedPrinter(printers, embedded);
+            }
             final code = _printer == null
                 ? null
                 : _codeOfPrinter(_printer!, ownedCodes);
@@ -128,39 +163,67 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                 _filaments.every((f) => f != null) &&
                 !_submitting;
 
-            return ListView(
-              shrinkWrap: true,
+            final canUseEmbedded = embedded.matchesPrinter(_printer?.name);
+            final asDesigned = _useEmbedded && canUseEmbedded;
+
+            // Watched rather than read so the count settles once the sidecar
+            // answers; the same family key the settings screen uses, so opening
+            // it costs no second request.
+            final processRef = _processRef;
+            final schema = ref.watch(processSchemaProvider).valueOrNull?.schema;
+            final presetValues = processRef == null
+                ? null
+                : ref.watch(presetValuesProvider(processRef)).valueOrNull;
+            final overrides = _overridesFrom(schema, presetValues);
+
+            return Column(
               children: [
-                Text(l10n.sliceTitle, style: theme.textTheme.titleLarge),
-                const SizedBox(height: 2),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    children: [
                 Text(widget.target.name,
                     style: theme.textTheme.bodySmall,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _slotTile(
                   label: l10n.slicePrinter,
                   icon: Icons.print_outlined,
                   selected: _printer,
+                  // The design's own printer is often one the user does not
+                  // own, so it is not in `printers` — without this the switch
+                  // would live behind the picker's "all presets" toggle.
+                  footnote: _designedPrinterNote(presets.printers, embedded),
+                  // Locked, not just inert: moving off the design's target would
+                  // drop the gate and take the switch with it.
+                  enabled: !asDesigned,
                   onTap: () async {
                     final p = await _openPicker(
                         title: l10n.slicePrinter,
                         filtered: printers,
                         all: presets.printers);
-                    if (p != null && mounted) {
-                      // Printer change can invalidate process/filament compatibility.
-                      setState(() {
-                        _printer = p;
-                        _process = null;
-                        _filaments = List.filled(_filaments.length, null);
-                      });
-                    }
+                    if (p != null && mounted) setState(() => _pickPrinter(p));
                   },
                 ),
+                if (canUseEmbedded)
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: SwitchListTile(
+                      value: _useEmbedded,
+                      onChanged: (v) => setState(() => _useEmbedded = v),
+                      secondary: const Icon(Icons.auto_awesome_outlined),
+                      title: Text(l10n.sliceAsDesigned,
+                          style: theme.textTheme.labelMedium),
+                      subtitle: Text(l10n.sliceAsDesignedHint,
+                          style: theme.textTheme.bodySmall),
+                    ).tagged('slice.as_designed'),
+                  ),
                 _slotTile(
                   label: l10n.sliceProcess,
                   icon: Icons.tune,
                   selected: _process,
+                  enabled: !asDesigned,
                   onTap: () async {
                     final p = await _openPicker(
                         title: l10n.sliceProcess,
@@ -169,18 +232,101 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                     if (p != null && mounted) setState(() => _process = p);
                   },
                 ),
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.grid_on_outlined),
-                    title: Text(l10n.sliceBedType,
-                        style: theme.textTheme.labelMedium),
-                    subtitle: Text(_bedType ?? l10n.sliceBedDefault,
-                        style: theme.textTheme.bodyMedium),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _pickBedType,
-                  ).tagged('slice.bed_type'),
+                _dimWhenLocked(
+                  !asDesigned,
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.grid_on_outlined),
+                      // Patches a process JSON the embedded path never builds.
+                      enabled: !asDesigned,
+                      title: Text(l10n.sliceBedType,
+                          style: theme.textTheme.labelMedium),
+                      subtitle: Text(
+                          asDesigned
+                              ? l10n.sliceAsDesignedInactive
+                              : _bedType ?? l10n.sliceBedDefault,
+                          style: theme.textTheme.bodyMedium),
+                      trailing: asDesigned ? null : const Icon(Icons.chevron_right),
+                      onTap: _pickBedType,
+                    ).tagged('slice.bed_type'),
+                  ),
                 ),
+                // Absent, not disabled, unless the server accepts
+                // `process_overrides` *and* our own vendored metadata loaded —
+                // `SliceRequest` forbids no extra fields, so an older server
+                // would drop the whole map without a word.
+                if (ref
+                    .watch(processSettingsAvailableProvider)
+                    .maybeWhen(data: (v) => v, orElse: () => false))
+                  _dimWhenLocked(
+                    !asDesigned,
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: const Icon(Icons.tune_outlined),
+                        enabled: processRef != null && !asDesigned,
+                        title: Text(l10n.processSettingsTitle,
+                            style: theme.textTheme.labelMedium),
+                        subtitle: Text(
+                          asDesigned
+                              ? l10n.sliceAsDesignedInactive
+                              : processRef == null
+                                  ? l10n.sliceProcessSettingsNeedsProcess
+                                  : overrides.isEmpty
+                                      ? l10n.sliceProcessSettingsUnchanged
+                                      : l10n.sliceProcessSettingsChanged(
+                                          overrides.length),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        trailing:
+                            asDesigned ? null : const Icon(Icons.chevron_right),
+                        onTap: processRef == null || asDesigned
+                            ? null
+                            : () => showProcessSettings(
+                                  context,
+                                  preset: processRef,
+                                  values: _processValues,
+                                  onChanged: (next) =>
+                                      setState(() => _processValues = next),
+                                  filamentSlots: _filamentSlots(
+                                      slotCount, reqs, discriminated),
+                                ),
+                      ).tagged('slice.process_settings'),
+                    ),
+                  ),
+                // Hidden entirely before server 1.2.6: the fields are dropped
+                // without a word there, and a switch that does nothing is worse
+                // than no switch. See [sliceLayoutOptionsProvider].
+                if (ref
+                    .watch(sliceLayoutOptionsProvider)
+                    .maybeWhen(data: (v) => v, orElse: () => false))
+                  Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          value: _autoOrient,
+                          onChanged: (v) => setState(() => _autoOrient = v),
+                          secondary:
+                              const Icon(Icons.screen_rotation_alt_outlined),
+                          title: Text(l10n.sliceAutoOrient,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoOrientHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_orient'),
+                        SwitchListTile(
+                          value: _autoArrange,
+                          onChanged: (v) => setState(() => _autoArrange = v),
+                          secondary: const Icon(Icons.grid_view_outlined),
+                          title: Text(l10n.sliceAutoArrange,
+                              style: theme.textTheme.labelMedium),
+                          subtitle: Text(l10n.sliceAutoArrangeHint,
+                              style: theme.textTheme.bodySmall),
+                        ).tagged('slice.auto_arrange'),
+                      ],
+                    ),
+                  ),
                 for (var i = 0; i < slotCount; i++)
                   _slotTile(
                     label: slotCount == 1
@@ -189,7 +335,16 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                     icon: Icons.cable,
                     swatch: i < reqs.length ? colorFromHex(reqs[i].color) : null,
                     typeHint: i < reqs.length ? reqs[i].type : null,
+                    // Only when the server actually told used from unused —
+                    // its own fallback flags everything used, and marking every
+                    // row then would claim knowledge nobody has.
+                    unused: discriminated &&
+                        i < reqs.length &&
+                        !reqs[i].usedInPlate,
                     selected: _filaments[i],
+                    // An empty slot stays pickable: the validator wants a ref per
+                    // slot on this path too, so locking it dead-ends the form.
+                    enabled: !asDesigned || _filaments[i] == null,
                     onTap: () async {
                       final p = await _openPicker(
                           title: slotCount == 1
@@ -200,23 +355,181 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
                       if (p != null && mounted) setState(() => _filaments[i] = p);
                     },
                   ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.layers_outlined),
-                  label: Text(l10n.sliceStart),
-                  onPressed: ready ? _submit : null,
-                ).tagged('slice.submit'),
+                    ],
+                  ),
+                ),
+                _submitBar(l10n, ready),
               ],
             );
           },
         ),
       ),
     );
+  }
+
+  /// The submit button, pinned outside the scroll area so it is never something
+  /// the user has to scroll a nine-row form to find.
+  Widget _submitBar(AppLocalizations l10n, bool ready) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            icon: _submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.layers_outlined),
+            label: Text(l10n.sliceStart),
+            onPressed: ready ? _submit : null,
+          ).tagged('slice.submit'),
+        ),
+      ),
+    );
+  }
+
+  /// The line under the printer naming the one the design targets, with the
+  /// action that switches to it. Null once they are the same printer, or when
+  /// the file names none.
+  ///
+  /// [all] is the unfiltered catalog on purpose: the design's printer is
+  /// usually one the user does not own.
+  Widget? _designedPrinterNote(
+    List<SlicerPreset> all,
+    EmbeddedSettings embedded,
+  ) {
+    if (!embedded.isAvailable || embedded.matchesPrinter(_printer?.name)) {
+      return null;
+    }
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final designed =
+        all.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_l10n.sliceDesignedFor(_shortPresetName(embedded.printer!)),
+            style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+        // Naming the printer is worth something even with nothing to switch to.
+        if (designed != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: FilledButton.tonal(
+              onPressed: () => setState(() => _pickPrinter(designed)),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                // Material's dense floor. `shrinkWrap` only drops the invisible
+                // 48px tap padding a button reserves in a form, which inside a
+                // list subtitle would push the rows apart.
+                minimumSize: const Size(48, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: theme.textTheme.labelLarge,
+              ),
+              child: Text(_l10n.sliceUseDesignedPrinter),
+            ).tagged('slice.use_designed_printer'),
+          ),
+      ],
+    );
+  }
+
+  /// Everything a printer change invalidates, in one place: the process and
+  /// filaments were chosen for the old one, and the edits measured against a
+  /// preset that is gone.
+  void _pickPrinter(SlicerPreset printer) {
+    _printerPicked = true;
+    _printer = printer;
+    _process = null;
+    _filaments = List.filled(_filaments.length, null);
+    _processValues = {};
+  }
+
+  /// `ListTile.enabled` alone barely reads on the dark theme — the row looked
+  /// tappable and its text still legible. Dimming the whole card is what shows
+  /// the lock.
+  Widget _dimWhenLocked(bool enabled, Widget card) =>
+      enabled ? card : Opacity(opacity: 0.4, child: card);
+
+  (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
+
+  /// Re-checked against the gate, so a switch left on by a stale read cannot
+  /// reach the request.
+  bool get _asDesigned {
+    if (!_useEmbedded) return false;
+    final embedded =
+        ref.read(embeddedSettingsProvider(_sourceKey)).valueOrNull;
+    return embedded?.matchesPrinter(_printer?.name) ?? false;
+  }
+
+  /// Default the printer to the design's target once the plates read lands —
+  /// without it nobody would guess which printer makes the switch appear.
+  ///
+  /// Once, over a default the user has not replaced, and only from [printers],
+  /// which is already narrowed to the ones they own.
+  void _adoptDesignedPrinter(
+    List<SlicerPreset> printers,
+    EmbeddedSettings embedded,
+  ) {
+    if (_designedPrinterAdopted) return;
+    _designedPrinterAdopted = true;
+    if (_printerPicked || !embedded.isAvailable) return;
+    if (embedded.matchesPrinter(_printer?.name)) return;
+
+    final designed =
+        printers.where((p) => embedded.matchesPrinter(p.name)).firstOrNull;
+    if (designed == null) return;
+    _pickPrinter(designed);
+    // Adopted, not chosen: the note below must still offer the other printers.
+    _printerPicked = false;
+  }
+
+  /// The picked process preset as `/slicer/preset-values` takes it.
+  ProcessPresetRef? get _processRef =>
+      _process == null ? null : (_process!.source, _process!.id);
+
+  /// The `process_overrides` body: only the edits that really differ from what
+  /// the picked preset already says. Empty until both the vendored schema and
+  /// the preset's values are in hand — sending edits measured against an unknown
+  /// baseline would mean sending values the user never chose to change.
+  Map<String, Object> _overridesFrom(
+    Map<String, ProcessOption>? schema,
+    PresetValues? presetValues,
+  ) {
+    if (schema == null || presetValues == null) return const {};
+    return buildProcessOverrides(
+      values: _processValues,
+      schema: schema,
+      presetValues: presetValues.values,
+    );
+  }
+
+  /// The slots as the process-settings screen needs them: what to call each one
+  /// in the eight pickers whose value is a slot index.
+  ///
+  /// [discriminated] gates the unused mark for the same reason it gates it on the
+  /// rows above — all-used is also what the server's own fallback produces.
+  List<FilamentSlotChoice> _filamentSlots(
+    int slotCount,
+    List<FilamentRequirement> reqs,
+    bool discriminated,
+  ) {
+    final l10n = _l10n;
+    return [
+      for (var i = 0; i < slotCount; i++)
+        FilamentSlotChoice(
+          slot: i + 1,
+          // The picker prefixes the number itself, so the type — or failing that
+          // the bare word — is a more useful fallback than repeating it.
+          label: _filaments[i]?.name ??
+              (i < reqs.length ? reqs[i].type : null) ??
+              l10n.sliceFilament,
+          unused:
+              discriminated && i < reqs.length && !reqs[i].usedInPlate,
+        ),
+    ];
   }
 
   /// Grow/shrink the per-slot list, preserving existing picks.
@@ -236,13 +549,17 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     required VoidCallback onTap,
     Color? swatch,
     String? typeHint,
+    bool unused = false,
+    bool enabled = true,
+    Widget? footnote,
   }) {
     final theme = Theme.of(context);
     final subtitle = selected?.name ??
         (typeHint != null ? '${_l10n.sliceSelect} · $typeHint' : _l10n.sliceSelect);
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
+        enabled: enabled,
         leading: swatch != null
             ? Container(
                 width: 28,
@@ -255,17 +572,32 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
               )
             : Icon(icon),
         title: Text(label, style: theme.textTheme.labelMedium),
-        subtitle: Text(subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color:
-                  selected == null ? theme.colorScheme.onSurfaceVariant : null,
-            )),
-        trailing: const Icon(Icons.chevron_right),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selected == null
+                      ? theme.colorScheme.onSurfaceVariant
+                      : null,
+                )),
+            // The slot still has to be picked — the slicer wants one preset per
+            // project slot — but saying which ones the plate ignores stops the
+            // user hunting for the right spool for a slot that prints nothing.
+            if (unused)
+              Text(_l10n.sliceFilamentUnused,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ?footnote,
+          ],
+        ),
+        trailing: enabled ? const Icon(Icons.chevron_right) : null,
         onTap: onTap,
       ).tagged('slice.slot'),
     );
+    return _dimWhenLocked(enabled, card);
   }
 
   Future<void> _pickBedType() async {
@@ -313,6 +645,15 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     final messenger = ScaffoldMessenger.of(context);
     final target = widget.target;
     final refs = [for (final f in _filaments) f!.toRef()];
+    final asDesigned = _asDesigned;
+    final overrides = asDesigned
+        ? const <String, Object>{}
+        : _overridesFrom(
+            ref.read(processSchemaProvider).valueOrNull?.schema,
+            _processRef == null
+                ? null
+                : ref.read(presetValuesProvider(_processRef!)).valueOrNull,
+          );
     final body = <String, dynamic>{
       'printer_preset': _printer!.toRef(),
       'process_preset': _process!.toRef(),
@@ -322,8 +663,18 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
         'filament_preset': refs.first
       else
         'filament_presets': refs,
+      // The preset refs above stay: the validator wants them here too, unused.
+      if (asDesigned) 'use_embedded_settings': true,
       // Override the plate only when the user picked one; null inherits.
-      if (_bedType != null) 'bed_type': _bedType,
+      if (_bedType != null && !asDesigned) 'bed_type': _bedType,
+      // Only when on: both default to false server-side, and an older server
+      // ignores unknown keys silently, so sending the default would be noise
+      // that also hides which servers actually honoured it.
+      if (_autoOrient) 'auto_orient': true,
+      if (_autoArrange) 'auto_arrange': true,
+      // Only genuine deviations, so an untouched screen leaves this slice
+      // byte-identical to one from before the feature existed.
+      if (overrides.isNotEmpty) 'process_overrides': overrides,
     };
     setState(() => _submitting = true);
     final int jobId;
@@ -333,9 +684,9 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
           ? await repo.sliceArchive(target.id, body)
           : await repo.sliceLibraryFile(target.id, body);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _submitting = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'slice.submit');
       return;
     }
     if (!mounted) return;
@@ -417,6 +768,13 @@ class _SliceSheetState extends ConsumerState<_SliceSheet> {
     return _firstLocalOr(filtered);
   }
 }
+
+/// `Bambu Lab X1 Carbon 0.4 nozzle` → `X1 Carbon 0.4`. On one line inside a list
+/// row only the middle tells the printers apart; anything not in that shape is
+/// left alone.
+String _shortPresetName(String name) => name
+    .replaceFirst(RegExp(r'^Bambu Lab\s+'), '')
+    .replaceFirst(RegExp(r'\s+nozzle$'), '');
 
 bool _typeMatches(String material, String type) {
   final m = material.toUpperCase();

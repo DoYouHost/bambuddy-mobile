@@ -9,6 +9,7 @@ import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import 'project_common.dart';
@@ -603,11 +604,7 @@ class _NotesSection extends ConsumerWidget {
         .read(projectDetailProvider(project.id).notifier)
         .save(ProjectUpdate(notes: saved));
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectSaved
-          : result == ProjectActionResult.forbidden
-              ? l10n.projectActionForbidden
-              : l10n.projectActionFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
     ));
   }
 }
@@ -735,7 +732,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.cover_upload');
     }
   }
 
@@ -749,7 +746,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.read(projectsListProvider.notifier).refresh();
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.cover_delete');
     }
   }
 
@@ -770,7 +767,7 @@ class _OverflowMenu extends ConsumerWidget {
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectExported(path))));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.export');
     }
   }
 
@@ -782,7 +779,7 @@ class _OverflowMenu extends ConsumerWidget {
       ref.invalidate(projectTemplatesProvider);
       messenger.showSnackBar(SnackBar(content: Text(l10n.projectTemplateCreated)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_err(e, l10n))));
+      showApiFailure(messenger, e, l10n, action: 'project.create_template');
     }
   }
 
@@ -801,15 +798,8 @@ class _OverflowMenu extends ConsumerWidget {
     if (!confirmed) return;
     final result = await ref.read(projectsListProvider.notifier).delete(project.id);
     messenger.showSnackBar(SnackBar(
-      content: Text(result == ProjectActionResult.ok
-          ? l10n.projectDeleted
-          : l10n.projectDeleteFailed),
+      content: Text(result.messageFor(l10n) ?? l10n.projectDeleted),
     ));
-    if (result == ProjectActionResult.ok) navigator.pop();
+    if (result.isOk) navigator.pop();
   }
-
-  String _err(AppApiException e, AppLocalizations l10n) =>
-      e is AuthException && e.code == AppErrorCode.forbidden
-          ? l10n.projectActionForbidden
-          : l10n.projectActionFailed;
 }

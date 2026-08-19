@@ -60,6 +60,16 @@ class ArchiveRepository {
     return parseJsonList(body, Archive.fromJson);
   }
 
+  /// GET /archives/{id} — one archive, re-read rather than reused from the
+  /// list: the finish photo is attached in the background after the print
+  /// ends, so a list loaded before that still shows the print without it.
+  Future<Archive> byId(int archiveId) => guard(() async {
+        final res = await _dio.get<Map<String, dynamic>>(
+          Endpoints.archive(archiveId),
+        );
+        return Archive.fromJson(res.data ?? const {});
+      });
+
   /// POST /archives/{id}/favorite — toggle the favorite flag server-side and
   /// return the updated archive (defensively parsed).
   Future<Archive> toggleFavorite(int archiveId) => guard(() async {

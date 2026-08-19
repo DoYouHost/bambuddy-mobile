@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printable_object.dart';
 import '../../providers.dart';
-import 'controls_providers.dart' show ControlResult;
+import 'object_pick_mask.dart';
+import 'ws_providers.dart';
 
 /// Refresh cadence while the skip screen is open. Objects flip to `skipped`
 /// server-side (and the printer may finish/skip on its own), so poll to keep the
@@ -49,18 +52,56 @@ class SkipObjectsNotifier
     );
   }
 
-  /// Skip one object, then refresh so its `skipped` flag reflects immediately.
-  Future<ControlResult> skip(int objectId) async {
+  /// Skip one or more objects in a single request, then refresh so their
+  /// `skipped` flags reflect immediately.
+  Future<ActionOutcome> skip(List<int> objectIds) async {
     try {
-      await ref.read(skipObjectsRepositoryProvider).skip(arg, [objectId]);
+      await ref.read(skipObjectsRepositoryProvider).skip(arg, objectIds);
       await _poll();
-      return ControlResult.ok;
-    } on AuthException catch (e) {
-      return e.code == AppErrorCode.forbidden
-          ? ControlResult.forbidden
-          : ControlResult.error;
-    } on AppApiException {
-      return ControlResult.error;
+      return ActionOutcome.ok;
+    } on AppApiException catch (e) {
+      return ActionOutcome.failed(e, action: 'skip_objects.skip');
     }
   }
 }
+
+/// The current print's object-ID mask, decoded once per job. Null whenever the
+/// plate has to fall back to positional badges: nothing printing, a server or
+/// 3MF without the `pick` view, or a fetch that failed — none of which is worth
+/// an error on a screen that still works without it.
+///
+/// Re-runs when the job changes, since the mask describes one plate only.
+final objectPickMaskProvider =
+    FutureProvider.autoDispose.family<ObjectPickMask?, int>(
+        (ref, printerId) async {
+  final coverUrl =
+      ref.watch(printerStatusesProvider.select((m) => m[printerId]?.coverUrl));
+  // Watched narrowly on purpose: a status frame lands every second or two, and
+  // the mask only ever changes with the job behind it.
+  ref.watch(printerStatusesProvider.select((m) {
+    final status = m[printerId];
+    return status?.gcodeFile ?? status?.currentPrint;
+  }));
+  if (coverUrl == null) return null;
+
+  final repo = ref.read(skipObjectsRepositoryProvider);
+  final tokens = ref.read(cameraTokenServiceProvider);
+  Future<Uint8List?> load({bool freshToken = false}) async =>
+      repo.fetchPickMask(printerId, await tokens.token(forceRefresh: freshToken));
+
+  try {
+    Uint8List? png;
+    try {
+      png = await load();
+    } on AuthException catch (e) {
+      // Same recovery as CameraTokenImageRecovery does for <img>-style loads:
+      // an expired token is indistinguishable from a broken one until a fresh
+      // one is tried.
+      if (e.code != AppErrorCode.unauthorized) rethrow;
+      png = await load(freshToken: true);
+    }
+    return png == null ? null : await ObjectPickMask.decode(png);
+  } on Object {
+    return null;
+  }
+});

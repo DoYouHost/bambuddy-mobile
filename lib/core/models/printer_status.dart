@@ -6,6 +6,8 @@ part 'printer_status.g.dart';
 const _listAmsUnitEquality = ListEquality<AmsUnit>();
 const _listAmsTrayEquality = ListEquality<AmsTray>();
 const _listHmsErrorEquality = ListEquality<HmsError>();
+const _listNozzleEquality = ListEquality<NozzleInfo>();
+const _stringListEquality = ListEquality<String>();
 const _mapStringDoubleEquality = MapEquality<String, double>();
 const _mapIntIntEquality = MapEquality<int, int>();
 
@@ -49,6 +51,7 @@ class PrinterStatus {
     this.awaitingPlateClear,
     this.hmsErrors,
     this.supportsDrying,
+    this.nozzles,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -189,6 +192,28 @@ class PrinterStatus {
   /// (`supports_drying`, printer-level). Gates the AMS Dry action.
   final bool? supportsDrying;
 
+  /// Fitted nozzles, index 0 first (left/primary). Read for the diameter, which
+  /// the AMS slot configuration has to send and which nothing else reports.
+  @JsonKey(fromJson: _toNozzleListOrNull)
+  final List<NozzleInfo>? nozzles;
+
+  /// Diameter of the nozzle an AMS unit feeds, as the string the server and the
+  /// printer both use (`0.4`). Null when the printer has not reported its
+  /// nozzles — a caller that must send something falls back to `0.4`, but that
+  /// guess belongs at the call site, not here.
+  String? nozzleDiameterFor(int amsId) {
+    final fitted = nozzles;
+    if (fitted == null || fitted.isEmpty) return null;
+    final extruder = amsExtruderMap?[amsId] ?? 0;
+    final diameter = extruder >= 0 && extruder < fitted.length
+        ? fitted[extruder].nozzleDiameter
+        : null;
+    final value = (diameter?.isNotEmpty ?? false)
+        ? diameter
+        : fitted.first.nozzleDiameter;
+    return (value?.isEmpty ?? true) ? null : value;
+  }
+
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
   /// status that's identical in content to the one already in state (REST
   /// polling otherwise builds a fresh `PrinterStatus` every 5s via
@@ -230,6 +255,7 @@ class PrinterStatus {
           other.doorOpen == doorOpen &&
           other.awaitingPlateClear == awaitingPlateClear &&
           other.supportsDrying == supportsDrying &&
+          _listNozzleEquality.equals(other.nozzles, nozzles) &&
           _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
 
   @override
@@ -267,6 +293,7 @@ class PrinterStatus {
         awaitingPlateClear,
         hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
         supportsDrying,
+        nozzles == null ? null : _listNozzleEquality.hash(nozzles),
       ]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
@@ -333,6 +360,7 @@ class PrinterStatus {
       awaitingPlateClear: awaitingPlateClear ?? previous.awaitingPlateClear,
       hmsErrors: hmsErrors ?? previous.hmsErrors,
       supportsDrying: supportsDrying ?? previous.supportsDrying,
+      nozzles: nozzles ?? previous.nozzles,
     )._clearedIfOffline();
   }
 
@@ -350,7 +378,7 @@ class PrinterStatus {
   /// means a base P2S doesn't flash a chamber tile on reconnect while waiting
   /// for its first airduct frame (`null` there falls back to "show it").
   ///
-  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`), the physical AMS
+  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`), the physical AMS
   /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
   /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
@@ -363,6 +391,7 @@ class PrinterStatus {
       connected: false,
       model: model,
       supportsDrying: supportsDrying,
+      nozzles: nozzles,
       exhaustFanPresent: exhaustFanPresent,
       ams: ams,
       vtTray: vtTray,
@@ -628,6 +657,8 @@ class AmsTray {
     this.trayType,
     this.traySubBrands,
     this.remain,
+    this.trayInfoIdx,
+    this.caliIdx,
   });
 
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
@@ -648,6 +679,17 @@ class AmsTray {
   /// Remaining amount in percent (0–100); -1 = unknown (no RFID tag).
   @JsonKey(fromJson: _toIntOrNull)
   final int? remain;
+
+  /// Bambu filament id the printer has bound to this slot (`GFL05`, or a user
+  /// preset's own id). Identifies which preset the slot is configured with —
+  /// [traySubBrands] is only its name, and two presets can share one.
+  final String? trayInfoIdx;
+
+  /// Calibration profile the slot is using; -1 or null = the printer's default
+  /// K. Read when re-opening the slot configuration so the K profile already in
+  /// force is the one preselected.
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? caliIdx;
 
   /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
@@ -673,11 +715,42 @@ class AmsTray {
           other.trayColor == trayColor &&
           other.trayType == trayType &&
           other.traySubBrands == traySubBrands &&
-          other.remain == remain;
+          other.remain == remain &&
+          other.trayInfoIdx == trayInfoIdx &&
+          other.caliIdx == caliIdx;
 
   @override
-  int get hashCode =>
-      Object.hash(id, trayColor, trayType, traySubBrands, remain);
+  int get hashCode => Object.hash(
+      id, trayColor, trayType, traySubBrands, remain, trayInfoIdx, caliIdx);
+}
+
+/// One fitted nozzle, from the status response's `nozzles` (index 0 =
+/// left/primary). Only the diameter is read: the AMS slot configuration has to
+/// send it, and it is also the key the printer's calibration table is indexed
+/// by.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class NozzleInfo {
+  const NozzleInfo({this.nozzleType, this.nozzleDiameter});
+
+  factory NozzleInfo.fromJson(Map<String, dynamic> json) =>
+      _$NozzleInfoFromJson(json);
+
+  /// `stainless_steel` / `hardened_steel`.
+  final String? nozzleType;
+
+  /// As a string, e.g. `0.4` — the form both the server and the printer's own
+  /// calibration table use, so it is never parsed into a number here.
+  final String? nozzleDiameter;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NozzleInfo &&
+          other.nozzleType == nozzleType &&
+          other.nozzleDiameter == nozzleDiameter;
+
+  @override
+  int get hashCode => Object.hash(nozzleType, nozzleDiameter);
 }
 
 /// Single printer HMS error from `hms_errors`. Server reports in two shapes per
@@ -691,6 +764,9 @@ class HmsError {
     this.severity,
     this.attr,
     this.module,
+    this.actions = const [],
+    this.jobId,
+    this.fullCode,
   });
 
   factory HmsError.fromJson(Map<String, dynamic> json) =>
@@ -714,6 +790,34 @@ class HmsError {
   @JsonKey(fromJson: _toIntOrNull)
   final int? module;
 
+  /// Remediation actions the firmware offers for this fault, as `HMSAction`
+  /// keys (`RESUME_PRINTING`, `IGNORE_RESUME`, …). The server resolves them from
+  /// Bambu's catalog against the printer model, so the app renders what arrives
+  /// instead of guessing. Empty on servers older than 0.2.4.8 and for faults
+  /// Bambu lists no action for.
+  @JsonKey(fromJson: _toStringListOrEmpty)
+  final List<String> actions;
+
+  /// `subtask_id` snapshotted onto the fault when it was parsed. Echoed back
+  /// with the action so the firmware matches it to the right job.
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  final String? jobId;
+
+  /// The identifier the firmware matches HMS commands against, 8 hex chars for
+  /// a `print_error` fault and 16 for an `hms[]` one, sent verbatim as
+  /// `HmsActionBody.print_error`. Never rebuild it from [attr]/[code]: for the
+  /// `print_error` path `attr` holds the whole 32-bit value, so the 16-char
+  /// [ecode] this class composes would be a code the printer does not know, and
+  /// the firmware drops such a command without a word.
+  ///
+  /// Null when the fault carries no identifier — the signal that no action can
+  /// be offered for it. Two different servers arrive at that: one too old to
+  /// send the field at all, and a current one whose `HMSError.full_code`
+  /// defaults to `""`, which the parser folds into null so a blank never
+  /// reaches the route (its regex demands 8 or 16 hex digits and answers 422).
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  final String? fullCode;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -722,10 +826,14 @@ class HmsError {
           other.message == message &&
           other.severity == severity &&
           other.attr == attr &&
-          other.module == module;
+          other.module == module &&
+          _stringListEquality.equals(other.actions, actions) &&
+          other.jobId == jobId &&
+          other.fullCode == fullCode;
 
   @override
-  int get hashCode => Object.hash(code, message, severity, attr, module);
+  int get hashCode => Object.hash(code, message, severity, attr, module,
+      _stringListEquality.hash(actions), jobId, fullCode);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.
@@ -748,9 +856,34 @@ class HmsError {
         .toUpperCase();
   }
 
-  /// Readable canonical code with dashes: `0500-0600-0002-0070`. Falls back to
-  /// raw `code` (after separator normalization) if full can't be composed.
+  /// Bambu's short form `MMMM_EEEE` — module from `attr`'s high half, error
+  /// from `code`'s low half. The key the print-error catalog is written in, and
+  /// the fallback the server itself uses to look a fault up
+  /// (`bambu_mqtt.py::_update_state`). null when `code` is not numeric.
+  String? get shortCode {
+    final a = attr;
+    final c = _codeInt;
+    if (a == null || c == null) return null;
+    // An `hms[]` fault keeps the module in attr's high half; a `print_error`
+    // one stores the whole 32-bit value there, and its low half is the module
+    // — hence the fallback, which mirrors the server's own getShortCode.
+    final module = (a >> 16) & 0xFFFF != 0
+        ? (a >> 16) & 0xFFFF
+        : ((a >> 8) & 0xFF) << 8 | (a & 0xFF);
+    return '${module.toRadixString(16).padLeft(4, '0')}_'
+            '${(c & 0xFFFF).toRadixString(16).padLeft(4, '0')}'
+        .toUpperCase();
+  }
+
+  /// Readable canonical code with dashes: `0500-0600-0002-0070` for an `hms[]`
+  /// fault, `0300-8004` for a `print_error` one — the form its own screen shows
+  /// it in. Falls back to raw `code` (after separator normalization) when
+  /// neither can be composed.
   String get displayCode {
+    final full = fullCode;
+    if (full != null && full.length == 8) {
+      return '${full.substring(0, 4)}-${full.substring(4)}'.toUpperCase();
+    }
     final e = ecode;
     if (e != null && e.length == 16) {
       return '${e.substring(0, 4)}-${e.substring(4, 8)}'
@@ -769,6 +902,21 @@ String? _toCodeStringOrNull(dynamic value) => switch (value) {
       num n => n.toString(),
       _ => null,
     };
+
+/// Server strings that mean "absent" by being blank rather than by being
+/// omitted — the identifiers whose empty form would otherwise be sent onward as
+/// if it named something.
+String? _toNonBlankStringOrNull(dynamic value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
+
+/// Action keys — non-string elements dropped rather than crashing the frame.
+List<String> _toStringListOrEmpty(dynamic value) {
+  if (value is! List) return const [];
+  return [
+    for (final e in value)
+      if (e is String && e.trim().isNotEmpty) e.trim(),
+  ];
+}
 
 /// HMS error list — skip non-map elements (defensive parsing).
 List<HmsError>? _toHmsListOrNull(dynamic value) {
@@ -834,5 +982,13 @@ List<AmsTray>? _toTrayListOrNull(dynamic value) {
   return [
     for (final e in value)
       if (e is Map) AmsTray.fromJson(Map<String, dynamic>.from(e)),
+  ];
+}
+
+List<NozzleInfo>? _toNozzleListOrNull(dynamic value) {
+  if (value is! List) return null;
+  return [
+    for (final e in value)
+      if (e is Map) NozzleInfo.fromJson(Map<String, dynamic>.from(e)),
   ];
 }

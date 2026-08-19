@@ -26,15 +26,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           .clearPlate(widget.printerId);
       messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
     } on AppApiException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            e is AuthException && e.code == AppErrorCode.forbidden
-                ? l10n.ctrlForbidden
-                : l10n.ctrlFailed,
-          ),
-        ),
-      );
+      showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -93,17 +85,52 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   }
 }
 
-/// Active HMS errors panel: red-bordered card with readable description, code,
-/// and a wiki link when the full code can be composed.
-class _HmsErrorsPanel extends StatelessWidget {
-  const _HmsErrorsPanel({required this.errors});
+/// Active HMS errors panel: red-bordered, collapsed to a count until tapped.
+///
+/// Collapsed is the default even mid-fault — an error card that expands itself
+/// pushes the print progress and the controls below the fold on a phone, and
+/// the count in the header already says how bad it is.
+class _HmsErrorsPanel extends ConsumerStatefulWidget {
+  const _HmsErrorsPanel({
+    required this.printerId,
+    required this.printerName,
+    required this.errors,
+  });
 
+  final int printerId;
+  final String printerName;
   final List<HmsError> errors;
+
+  @override
+  ConsumerState<_HmsErrorsPanel> createState() => _HmsErrorsPanelState();
+}
+
+class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
+  bool _expanded = false;
+
+  Future<void> _dismissAll() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref
+        .read(controlsProvider.notifier)
+        .clearHmsErrors(widget.printerId);
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(result.messageFor(l10n) ?? l10n.hmsDismissed),
+      ));
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final busy = ref
+        .watch(controlsProvider)
+        .pendingFor(widget.printerId)
+        .inFlight
+        .contains(ControlAction.hms);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -115,58 +142,184 @@ class _HmsErrorsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
-              const SizedBox(width: 6),
-              Text(
-                l10n.hmsErrorsHeader,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.hmsErrorsCount(widget.errors.length),
+                    style: TextStyle(
+                      fontFamily: DashTokens.fontUi,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.error,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
                   color: scheme.error,
                 ),
+              ],
+            ),
+          ).tagged('printer.hms_expand'),
+          if (_expanded) ...[
+            for (final e in widget.errors)
+              // Keyed by the fault, not by position: a frame arriving while a
+              // command is in the air (the server holds the request 2.5s
+              // waiting for the printer) can drop an error from the middle of
+              // the list, and an unkeyed card would keep its neighbour's
+              // in-flight spinner.
+              _HmsErrorCard(
+                key: ValueKey(e.fullCode ?? e.displayCode),
+                printerId: widget.printerId,
+                printerName: widget.printerName,
+                error: e,
+                busy: busy,
               ),
-            ],
-          ),
-          for (final e in errors) _HmsErrorRow(error: e),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: logTag(
+                'printer.hms_dismiss_all',
+                TextButton.icon(
+                  onPressed: busy ? null : _dismissAll,
+                  icon: const Icon(Icons.done_all, size: 18),
+                  label: Text(l10n.hmsDismissAll),
+                  style: TextButton.styleFrom(foregroundColor: scheme.error),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _HmsErrorRow extends StatelessWidget {
-  const _HmsErrorRow({required this.error});
+/// One fault: what it is, its code, a wiki link, and the buttons its firmware
+/// offers for it.
+class _HmsErrorCard extends ConsumerStatefulWidget {
+  const _HmsErrorCard({
+    super.key,
+    required this.printerId,
+    required this.printerName,
+    required this.error,
+    required this.busy,
+  });
 
+  final int printerId;
+  final String printerName;
   final HmsError error;
+
+  /// Another HMS command is in the air for this printer — every button waits,
+  /// not just the one that was tapped.
+  final bool busy;
+
+  @override
+  ConsumerState<_HmsErrorCard> createState() => _HmsErrorCardState();
+}
+
+class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
+  /// The action this card is waiting on, so the spinner sits on the button the
+  /// user actually pressed rather than on all of them.
+  String? _pending;
+
+  /// Bambu writes for the printer's own screen, where a fault gets a dialog to
+  /// itself — half its descriptions run past 100 characters and one reaches
+  /// 330. Two lines is what the card can spend on each fault when several are
+  /// reported at once; the rest is a tap away.
+  bool _fullText = false;
+
+  Future<void> _run(String action) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (action == hmsStopAction) {
+      final confirmed = await confirmDialog(
+        context,
+        title: l10n.hmsStopConfirmTitle,
+        message: l10n.hmsStopConfirmBody(widget.printerName),
+        confirmLabel: l10n.hmsStopConfirmAction,
+        destructive: true,
+        id: 'printer.hms_stop_confirm',
+      );
+      if (!confirmed || !mounted) return;
+    }
+    setState(() => _pending = action);
+    final result = await ref.read(controlsProvider.notifier).executeHmsAction(
+          widget.printerId,
+          printError: widget.error.fullCode!,
+          action: action,
+          jobId: widget.error.jobId,
+        );
+    if (mounted) setState(() => _pending = null);
+    // Told through the messenger captured before the await, not through this
+    // widget: the card is gone precisely when the command worked and the fault
+    // cleared, and that is the outcome most worth reporting.
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(_resultText(result, l10n))));
+  }
+
+  /// A 502 here is not a broken server: the command went out and the printer
+  /// never answered, which the user can only resolve at the machine.
+  String _resultText(ActionOutcome result, AppLocalizations l10n) =>
+      switch (result) {
+        ActionFailed(:final error) when error.statusCode == 502 =>
+          l10n.hmsActionNotAcknowledged,
+        _ => result.messageFor(l10n) ?? l10n.hmsActionSent,
+      };
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final error = widget.error;
     final label = hmsLabel(
       error,
       description: HmsCatalog.instance.describe(error),
     );
     final url = hmsWikiUrl(error);
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
+    // No `full_code`, no action: the server (pre-0.2.4.8) cannot tell the
+    // firmware which fault a command is about, and a guessed code is dropped.
+    final actions = error.fullCode == null
+        ? const <String>[]
+        : hmsRenderableActions(error.actions);
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        // Its own tile inside the red panel: with several faults reported at
+        // once, one unbroken column of text and buttons reads as a single long
+        // error rather than as three separate things to decide about.
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: t.subCardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label != null) ...[
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textPrimary,
+            InkWell(
+              onTap: () => setState(() => _fullText = !_fullText),
+              child: Text(
+                label,
+                maxLines: _fullText ? null : 2,
+                overflow: _fullText ? null : TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: DashTokens.fontUi,
+                  fontSize: 13,
+                  height: 1.25,
+                  color: t.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
+            ).tagged('printer.hms_description'),
+            const SizedBox(height: 4),
           ],
           Row(
             children: [
@@ -206,6 +359,54 @@ class _HmsErrorRow extends StatelessWidget {
                 ).tagged('printer.open_url'),
             ],
           ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            // A row per fault, not a button per line: the labels are short
+            // enough that three fit across a phone, and Wrap still breaks
+            // rather than overflowing when a translation or a font scale makes
+            // them wider.
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final action in actions)
+                  // One id per action, not one for the whole row: the log has
+                  // to tell "resumed" from "stopped the print". Safe to
+                  // interpolate — the key comes from `hmsEffectiveActions`, a
+                  // fixed vocabulary, never from anything the user typed.
+                  logTag(
+                    'printer.hms_${action.toLowerCase()}',
+                    FilledButton.tonal(
+                      onPressed: widget.busy ? null : () => _run(action),
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        minimumSize: const Size(0, 34),
+                        textStyle: const TextStyle(
+                          fontFamily: DashTokens.fontUi,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        backgroundColor: action == hmsStopAction
+                            ? scheme.errorContainer
+                            : null,
+                        foregroundColor: action == hmsStopAction
+                            ? scheme.onErrorContainer
+                            : null,
+                      ),
+                      child: _pending == action
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(hmsActionLabel(l10n, action)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -307,6 +508,9 @@ class _DetailsPanel extends ConsumerWidget {
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
+          printing: status.isPrinting && !status.isPaused,
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          printerModel: status.model,
         ),
       if (spools.isNotEmpty)
         _SpoolSection(
@@ -323,6 +527,12 @@ class _DetailsPanel extends ConsumerWidget {
           },
           printerId: printerId,
           printerName: printerName,
+          printing: status.isPrinting && !status.isPaused,
+          // External spools feed a nozzle too, and the unit they are keyed
+          // under (255) is not in `ams_extruder_map` — the primary nozzle is
+          // the only answer available here.
+          nozzleDiameter: status.nozzleDiameterFor(255),
+          printerModel: status.model,
         ),
     ];
 
@@ -360,7 +570,11 @@ class _DetailsPanel extends ConsumerWidget {
 
 /// One AMS unit as a titled list: header (unit + extruder + humidity/temp),
 /// then a filament row per slot.
-class _AmsSection extends StatelessWidget {
+///
+/// The humidity/temperature readings open their history chart, but only where
+/// the server keeps one and this session may read it — otherwise they stay as
+/// plain readings.
+class _AmsSection extends ConsumerWidget {
   const _AmsSection({
     required this.unit,
     required this.unitIndex,
@@ -371,6 +585,9 @@ class _AmsSection extends StatelessWidget {
     required this.printerId,
     required this.printerName,
     required this.supportsDrying,
+    required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final AmsUnit unit;
@@ -382,38 +599,46 @@ class _AmsSection extends StatelessWidget {
   final int printerId;
   final String? printerName;
   final bool supportsDrying;
+  final bool printing;
+
+  /// Nozzle this unit feeds, and the printer's model code — both travel to the
+  /// slot configuration sheet, which needs them to filter presets and to name
+  /// the calibration context.
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final trays = unit.trays ?? const <AmsTray>[];
+    final history = ref
+        .watch(amsHistorySupportedProvider)
+        .maybeWhen(data: (v) => v, orElse: () => false);
+
+    VoidCallback? openHistory(AmsHistoryMetric metric) => history
+        ? () => showAmsHistorySheet(
+              context,
+              printerId: printerId,
+              amsId: unit.id ?? unitIndex,
+              amsLabel: l10n.amsUnit(unitIndex + 1),
+              initialMetric: metric,
+            )
+        : null;
 
     final metaParts = <Widget>[];
     if (unit.humidity != null) {
       metaParts.add(_AmsMeta(
         icon: Icons.water_drop_outlined,
         text: '${unit.humidity}%',
-        onTap: () => showAmsHistorySheet(
-          context,
-          printerId: printerId,
-          amsId: unit.id ?? unitIndex,
-          amsLabel: l10n.amsUnit(unitIndex + 1),
-          initialMetric: AmsHistoryMetric.humidity,
-        ),
+        onTap: openHistory(AmsHistoryMetric.humidity),
       ));
     }
     if (unit.temp != null) {
       metaParts.add(_AmsMeta(
         icon: Icons.thermostat,
         text: '${unit.temp!.toStringAsFixed(0)}°',
-        onTap: () => showAmsHistorySheet(
-          context,
-          printerId: printerId,
-          amsId: unit.id ?? unitIndex,
-          amsLabel: l10n.amsUnit(unitIndex + 1),
-          initialMetric: AmsHistoryMetric.temperature,
-        ),
+        onTap: openHistory(AmsHistoryMetric.temperature),
       ));
     }
 
@@ -476,6 +701,18 @@ class _AmsSection extends StatelessWidget {
                 amsId: unit.id ?? unitIndex,
                 trayId: trays[i].id ?? 0,
                 label: '${l10n.amsUnit(unitIndex + 1)} · ${(trays[i].id ?? 0) + 1}',
+                printing: printing,
+                loadTrayId: amsLoadTrayId(
+                  amsId: unit.id ?? unitIndex,
+                  trayId: trays[i].id ?? 0,
+                ),
+                canRereadRfid: true,
+                trayInfoIdx: trays[i].trayInfoIdx,
+                trayColour: trays[i].trayColor,
+                caliIdx: trays[i].caliIdx,
+                nozzleDiameter: nozzleDiameter,
+                printerModel: printerModel,
+                extruderId: extruder,
               ),
             ),
       ],
@@ -494,6 +731,9 @@ class _SpoolSection extends StatelessWidget {
     required this.trayIdOf,
     required this.printerId,
     required this.printerName,
+    required this.printing,
+    required this.nozzleDiameter,
+    required this.printerModel,
   });
 
   final List<AmsTray> trays;
@@ -503,6 +743,9 @@ class _SpoolSection extends StatelessWidget {
   final int Function(int index) trayIdOf;
   final int printerId;
   final String? printerName;
+  final bool printing;
+  final String? nozzleDiameter;
+  final String? printerModel;
 
   @override
   Widget build(BuildContext context) {
@@ -544,6 +787,20 @@ class _SpoolSection extends StatelessWidget {
                 0 => l10n.extruderRight,
                 _ => l10n.externalSpool,
               },
+              printing: printing,
+              // The spool's own id (254/255) is already the global tray number;
+              // `trayIdOf` above is the extruder-ordered index the inventory
+              // assignment is keyed by, and means nothing to the load command.
+              loadTrayId: amsLoadTrayId(
+                amsId: 255,
+                trayId: trays[i].id ?? 254,
+              ),
+              trayInfoIdx: trays[i].trayInfoIdx,
+              trayColour: trays[i].trayColor,
+              caliIdx: trays[i].caliIdx,
+              nozzleDiameter: nozzleDiameter,
+              printerModel: printerModel,
+              extruderId: extruderOf(i),
             ),
           ),
       ],
@@ -673,7 +930,9 @@ class _AmsMeta extends StatelessWidget {
 
   final IconData icon;
   final String text;
-  final VoidCallback onTap;
+
+  /// Null where there is no history to open — the chip stays as a reading.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -722,7 +981,8 @@ class _AmsDryControl extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden =
+        ref.watch(controlRefusedProvider(ControlPermission.control));
     if (forbidden) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
@@ -841,7 +1101,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     });
   }
 
-  Future<void> _run(Future<ControlResult> Function() action) async {
+  Future<void> _run(Future<ActionOutcome> Function() action) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
@@ -849,11 +1109,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     final result = await action();
     if (!mounted) return;
     navigator.pop();
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()
@@ -1203,6 +1459,15 @@ class _SlotRef {
     required this.amsId,
     required this.trayId,
     required this.label,
+    required this.printing,
+    this.loadTrayId,
+    this.canRereadRfid = false,
+    this.trayInfoIdx,
+    this.trayColour,
+    this.caliIdx,
+    this.nozzleDiameter,
+    this.printerModel,
+    this.extruderId,
   });
 
   final int printerId;
@@ -1212,18 +1477,233 @@ class _SlotRef {
 
   /// Readable slot label (e.g., "AMS 1 · 2" or "Left extruder").
   final String label;
+
+  /// Whether a job is actively running on this printer. A paused one does not
+  /// count: swapping a run-out spool is the reason people pause. Read from the
+  /// status the card already renders rather than from the shared statuses map,
+  /// so the slot the user tapped and the state that disables it come from one
+  /// frame.
+  final bool printing;
+
+  /// Global tray number for the load command, or null where the slot cannot be
+  /// addressed by it (AMS-HT) — see [amsLoadTrayId].
+  final int? loadTrayId;
+
+  /// Whether the slot has a tag to re-read. False for external spools: they
+  /// have no RFID reader, and the web hides the action there too.
+  final bool canRereadRfid;
+
+  /// What the printer currently holds in this slot, for the configuration
+  /// sheet: the filament id identifies the preset in force, the colour is what
+  /// the picker opens on.
+  final String? trayInfoIdx;
+  final String? trayColour;
+
+  /// Calibration profile the slot is printing with, so the sheet reopens on it
+  /// rather than offering to drop the printer back to its default K.
+  final int? caliIdx;
+
+  /// Diameter of the nozzle this slot feeds, or null when the printer has not
+  /// reported its nozzles.
+  final String? nozzleDiameter;
+
+  /// Short model code, so the picker can hide presets meant for another
+  /// printer.
+  final String? printerModel;
+
+  /// Nozzle this slot feeds on a dual-extruder printer, null on a single one.
+  final int? extruderId;
+
+  AmsSlotTarget get configTarget => AmsSlotTarget(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+        label: label,
+        printerName: printerName,
+        printerModel: printerModel,
+        nozzleDiameter: nozzleDiameter,
+        currentFilamentId: trayInfoIdx,
+        currentColour: trayColour,
+        currentCaliIdx: caliIdx,
+        extruderId: extruderId,
+      );
 }
 
-/// "Assign spool to this slot" sheet opened from a filament row. Slot is known
-/// from context, so the user picks ONLY the spool. Shows the current assignment
-/// (with unassign) and the list of active spools from inventory.
-class _AssignSlotSheet extends ConsumerWidget {
-  const _AssignSlotSheet({required this.slot});
+/// Printer-side filament actions for one slot: load it, unload whatever is in
+/// the extruder, re-read the slot's RFID tag.
+///
+/// A refused control hides the buttons that needed it — the same rule the drying
+/// control follows — and the tag re-read sits behind its own permission, so the
+/// two disappear independently. While the printer prints, whatever is left stays
+/// visible but disabled: these actions interrupt the filament path, and a job is
+/// exactly what they would ruin.
+class _SlotActions extends ConsumerWidget {
+  const _SlotActions({required this.slot});
 
   final _SlotRef slot;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final canDrive =
+        !ref.watch(controlRefusedProvider(ControlPermission.control));
+    final canReread = slot.canRereadRfid &&
+        !ref.watch(controlRefusedProvider(ControlPermission.amsRfid));
+    // Load and unload share one gate and one row: unload takes no slot, so
+    // offering it for a slot that cannot be loaded would put a printer-wide
+    // button under a heading that names one slot.
+    final loadTrayId = slot.loadTrayId;
+    final canLoad = canDrive && loadTrayId != null;
+    // Configuring needs nothing but `printers:control`, so it survives where
+    // loading does not: an AMS-HT slot has no global tray number to load by,
+    // and the configure route addresses it by unit and slot like any other.
+    if (!canDrive && !canReread) return const SizedBox.shrink();
+
+    final busy = ref.watch(controlsProvider
+        .select((s) => s.pendingFor(slot.printerId).isBusy(ControlAction.ams)));
+    final enabled = !busy && !slot.printing;
+    final controls = ref.read(controlsProvider.notifier);
+
+    // Two equal halves and a full-width third, rather than a Wrap: the buttons
+    // are three different lengths, and letting them flow left them ragged with
+    // a stray one on its own line.
+    final load = OutlinedButton.icon(
+      onPressed: enabled && canLoad
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsLoad(slot.printerId, loadTrayId),
+                l10n.amsLoadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.login, size: 18),
+      label: Text(l10n.amsLoad),
+    ).tagged('assign_spool.ams_load');
+
+    final unload = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.amsUnload(slot.printerId),
+                l10n.amsUnloadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.logout, size: 18),
+      label: Text(l10n.amsUnload),
+    ).tagged('assign_spool.ams_unload');
+
+    final reread = OutlinedButton.icon(
+      onPressed: enabled
+          ? () => _run(
+                context,
+                l10n,
+                () => controls.refreshAmsSlot(
+                  slot.printerId,
+                  amsId: slot.amsId,
+                  slotId: slot.trayId,
+                ),
+                l10n.amsRfidRereadStarted,
+              )
+          : null,
+      icon: const Icon(Icons.nfc, size: 18),
+      label: Text(l10n.amsRfidReread),
+    ).tagged('assign_spool.rfid_reread');
+
+    // Opening the configuration is not itself a command, so it stays available
+    // mid-print: reading what a slot is set to is harmless, and the sheet's own
+    // buttons are what the job blocks.
+    final configure = OutlinedButton.icon(
+      onPressed: busy ? null : () => _openConfig(context),
+      icon: const Icon(Icons.tune, size: 18),
+      label: Text(l10n.amsSlotConfigure),
+    ).tagged('assign_spool.configure');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.amsSlotFilament, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        if (canLoad)
+          Row(
+            children: [
+              Expanded(child: load),
+              const SizedBox(width: 8),
+              Expanded(child: unload),
+            ],
+          ),
+        if (canLoad && canReread) const SizedBox(height: 8),
+        if (canReread) reread,
+        if (canDrive) ...[
+          if (canLoad || canReread) const SizedBox(height: 8),
+          configure,
+        ],
+        if (slot.printing) ...[
+          const SizedBox(height: 8),
+          Text(
+            l10n.amsActionsWhilePrinting,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Swaps this sheet for the slot configuration one. The assignment sheet
+  /// closes first so the back gesture returns to the card, not to a list the
+  /// user is done with.
+  void _openConfig(BuildContext context) {
+    Navigator.of(context).pop();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
+    );
+  }
+
+  /// Closes the sheet before the command lands: these actions take tens of
+  /// seconds at the printer and there is nothing to watch here meanwhile.
+  Future<void> _run(
+    BuildContext context,
+    AppLocalizations l10n,
+    Future<ActionOutcome> Function() action,
+    String startedMessage,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    final outcome = await action();
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(outcome.messageFor(l10n) ?? startedMessage),
+      ));
+  }
+}
+
+/// "Assign spool to this slot" sheet opened from a filament row. Slot is known
+/// from context, so the user picks ONLY the spool. Shows the current assignment
+/// (with unassign) and the list of active spools from inventory.
+class _AssignSlotSheet extends ConsumerStatefulWidget {
+  const _AssignSlotSheet({required this.slot});
+
+  final _SlotRef slot;
+
+  @override
+  ConsumerState<_AssignSlotSheet> createState() => _AssignSlotSheetState();
+}
+
+class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
+  String _query = '';
+
+  _SlotRef get slot => widget.slot;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final inv = ref.watch(inventoryProvider).valueOrNull;
@@ -1242,9 +1722,13 @@ class _AssignSlotSheet extends ConsumerWidget {
     }
 
     bool assignedElsewhere(Spool s) => inv?.assignmentFor(s.id) != null;
-    final options = [
+    final offered = [
       for (final s in spools)
         if (!s.isArchived && s.id != current?.id) s,
+    ];
+    final options = [
+      for (final s in offered)
+        if (s.matchesSearch(_query)) s,
     ]..sort((a, b) {
         final ga = assignedElsewhere(a) ? 1 : 0;
         final gb = assignedElsewhere(b) ? 1 : 0;
@@ -1272,6 +1756,7 @@ class _AssignSlotSheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            _SlotActions(slot: slot),
             if (current != null) ...[
               Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
@@ -1295,11 +1780,19 @@ class _AssignSlotSheet extends ConsumerWidget {
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            _spoolSearchRow(l10n),
+            const SizedBox(height: 8),
             if (options.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(l10n.inventoryEmpty, style: theme.textTheme.bodyMedium),
+                child: Text(
+                  // Told apart on purpose: an empty inventory and a search that
+                  // matched nothing look identical otherwise, and only one of
+                  // them is fixed by clearing the field.
+                  offered.isEmpty ? l10n.inventoryEmpty : l10n.noSearchResults(_query),
+                  style: theme.textTheme.bodyMedium,
+                ),
               )
             else
               for (final s in options)
@@ -1335,6 +1828,103 @@ class _AssignSlotSheet extends ConsumerWidget {
         ),
       )
     );
+  }
+
+  /// Narrow the list, or skip it entirely by scanning the spool's label.
+  ///
+  /// Same pair as the Filaments tab, and the same 48pt square beside the field
+  /// — this is the other place a spool has to be found, and finding it by
+  /// scrolling a hundred rows at the printer is the case both exist to avoid.
+  Widget _spoolSearchRow(AppLocalizations l10n) {
+    final t = DashTokens.of(context);
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Expanded(
+            child: DashSearchField(
+              id: 'assign_spool.search',
+              hintText: l10n.inventorySearchHint,
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: l10n.inventoryScanSpool,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Material(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _scanAndAssign(l10n),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.subCardBorder),
+                    ),
+                    child: Icon(Icons.qr_code_scanner, color: t.textSecondary),
+                  ),
+                ),
+              ),
+            ),
+          ).tagged('assign_spool.scan'),
+        ],
+      ),
+    );
+  }
+
+  /// Scan a spool's QR label and put it in this slot.
+  ///
+  /// Straight to the assignment rather than into the search field: the slot is
+  /// already known, so a scan says everything the sheet was asking for. It goes
+  /// through [_assign], so taking a spool off another slot still asks first.
+  Future<void> _scanAndAssign(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final id = await Navigator.of(context, rootNavigator: true)
+        .push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
+    if (id == null || !mounted) return;
+
+    Spool? scanned() {
+      for (final s in ref.read(inventoryProvider).valueOrNull?.spools ?? const <Spool>[]) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    var spool = scanned();
+    if (spool == null) {
+      // Added on the server since this list was loaded — worth one refresh
+      // before telling the user their label is unknown.
+      await ref.read(inventoryProvider.notifier).refresh();
+      if (!mounted) return;
+      spool = scanned();
+    }
+    if (spool == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
+      );
+      return;
+    }
+
+    // An archived spool is not offered in the list but is accepted here: the
+    // user is holding it against the printer, which outranks a bookkeeping flag.
+    final from = ref.read(inventoryProvider).valueOrNull?.assignmentFor(spool.id);
+    if (from != null &&
+        from.printerId == slot.printerId &&
+        from.amsId == slot.amsId &&
+        from.trayId == slot.trayId) {
+      // Already where it is being put. Nothing to send, and asking to move it
+      // off itself would be nonsense.
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
+      );
+      return;
+    }
+    await _assign(context, ref, l10n, spool, from: from);
   }
 
   Future<void> _assign(
@@ -1375,7 +1965,7 @@ class _AssignSlotSheet extends ConsumerWidget {
         SnackBar(content: Text(l10n.inventorySpoolAssigned)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
     } on Object {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.inventoryActionFailed)),
@@ -1398,7 +1988,7 @@ class _AssignSlotSheet extends ConsumerWidget {
         SnackBar(content: Text(l10n.inventorySpoolUnassigned)),
       );
     } on AppApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
     } on Object {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.inventoryActionFailed)),

@@ -429,6 +429,10 @@ class _TempGrid extends StatelessWidget {
     // plain `nozzle` is the default → index 0.
     final hasSecondNozzle =
         readings.any((r) => r.kind == _TempKind.nozzle && r.index != null);
+    // Built once for the whole grid: every tile's chart glyph opens the same
+    // sheet, which switches between all of this printer's recorded sensors.
+    final historyKinds =
+        _heaterKindOptions(readings, AppLocalizations.of(context));
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -451,6 +455,7 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
+                  historyKinds: historyKinds,
                 ),
               ),
           ],
@@ -553,7 +558,7 @@ class _FanCell extends ConsumerWidget {
     final tokens = DashTokens.of(context);
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
@@ -663,11 +668,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
         .setFanSpeed(widget.printerId, widget.fan, speed);
     if (!mounted) return;
     navigator.pop();
-    final msg = switch (result) {
-      ControlResult.ok => null,
-      ControlResult.forbidden => l10n.ctrlForbidden,
-      ControlResult.error => l10n.ctrlFailed,
-    };
+    final msg = result.messageFor(l10n);
     if (msg != null) {
       messenger
         ..clearSnackBars()

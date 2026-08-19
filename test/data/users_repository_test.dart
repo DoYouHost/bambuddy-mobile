@@ -102,7 +102,8 @@ void main() {
   });
 
   test('a 403 comes back as an AppApiException, not a DioException', () async {
-    // What an identity without `users:read` gets (`routes/users.py:67`).
+    // What an identity without `users:read` gets
+    // (`routes/users.py::_user_to_response`).
     adapter.onGet(
       '/api/v1/users/',
       (s) => s.reply(403, {'detail': 'Not enough permissions'}),

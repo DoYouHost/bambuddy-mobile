@@ -167,14 +167,22 @@ final archiveSlimProvider =
 
 /// Users for the Stats "filter by user" picker. Empty (including on 403 —
 /// no permission) hides the picker entirely; this mirrors server-side
-/// gating (`stats:filter_by_user`/admin) without the app needing its own
-/// permission model.
+/// gating without the app needing its own permission model.
+///
+/// Which identities get a non-empty answer is up to the server: the repository
+/// asks `/users/slim` first and falls back to the full listing, so on 1.2.6+
+/// the picker also appears for API-key sessions holding the Read Status scope,
+/// where before it never could.
 final statsUsersProvider =
     FutureProvider.autoDispose<List<UserSummary>>((ref) async {
   ref.watch(serverProfileProvider);
   try {
     return await ref.read(statsRepositoryProvider).fetchUsers();
-  } on AppApiException {
+  } on AppApiException catch (e) {
+    // Only a refusal means "this identity may not list users". Absorbing
+    // everything else told the same story about a dropped connection, so a
+    // server that was merely unreachable read as one that said no.
+    if (e.code != AppErrorCode.forbidden) rethrow;
     return const [];
   }
 });

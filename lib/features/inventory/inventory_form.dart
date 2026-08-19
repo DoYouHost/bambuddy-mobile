@@ -182,9 +182,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       Navigator.of(context).pop();
       messenger.showSnackBar(SnackBar(content: Text(message)));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text(e.localized(l10n))));
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'spool_form.save');
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -395,7 +395,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             fontWeight: FontWeight.w600,
             color: t.textPrimary,
           ),
-          inputDecorationTheme: _dashInputTheme(t),
+          inputDecorationTheme: dashInputTheme(t),
           onSelected: (v) {
             if (required && v != null && v.isNotEmpty) {
               setState(() => _materialMissing = false);
@@ -435,7 +435,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           color: t.textPrimary,
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: _dashDecoration(t, labelText: 'g'),
+        decoration: dashDecoration(t, labelText: 'g'),
         onChanged: (_) => setState(() => _coreWeightCatalogId = null),
       ).tagged('spool_form.core_weight_value'),
     );
@@ -471,7 +471,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               borderRadius: BorderRadius.circular(14),
               onTap: () => _openCoreWeightPicker(l10n),
               child: InputDecorator(
-                decoration: _dashDecoration(
+                decoration: dashDecoration(
                   t,
                   labelText: l10n.inventoryFieldEmptySpoolWeight,
                   suffixIcon: Icon(Icons.arrow_drop_down, color: t.textTertiary),
@@ -528,7 +528,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           color: t.textPrimary,
         ),
         dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
-        decoration: _dashDecoration(t, labelText: l10n.inventoryFieldEffect),
+        decoration: dashDecoration(t, labelText: l10n.inventoryFieldEffect),
         items: [
           DropdownMenuItem(
             value: null,
@@ -607,7 +607,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         borderRadius: BorderRadius.circular(14),
         onTap: () => _openSlicerPresetPicker(l10n),
         child: InputDecorator(
-          decoration: _dashDecoration(
+          decoration: dashDecoration(
             t,
             labelText: l10n.inventoryFieldSlicerPreset,
             helperText: l10n.inventorySlicerPresetHint,
@@ -671,7 +671,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       borderRadius: BorderRadius.circular(14),
       onTap: () => _openColorPicker(l10n),
       child: InputDecorator(
-        decoration: _dashDecoration(
+        decoration: dashDecoration(
           t,
           labelText: l10n.inventoryFieldColorHex,
           suffixIcon: Icon(Icons.colorize, color: t.textTertiary),
@@ -779,7 +779,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               ? TextCapitalization.none
               : TextCapitalization.sentences,
           onChanged: onChanged,
-          decoration: _dashDecoration(
+          decoration: dashDecoration(
             t,
             labelText: label,
             hintText: hint,
@@ -804,88 +804,6 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 String _fieldTag(String key) =>
     'spool_form.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
 
-/// Shared field chrome for the spool form's `InputDecorationTheme` (used by
-/// [DropdownMenu], which builds its own internal text field and doesn't take a
-/// plain [InputDecoration]).
-InputDecorationTheme _dashInputTheme(DashTokens t) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
-  return InputDecorationTheme(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      color: t.textSecondary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-  );
-}
-
-/// Shared field chrome for the spool form — rounded [DashTokens.subCard] fill
-/// with a hairline border, turning [DashTokens.accentGreen] on focus. Applied
-/// to every `TextFormField`/`InputDecorator`/`DropdownButtonFormField` in the
-/// form; only the decoration changes — controllers, validators and onChanged
-/// callbacks are untouched.
-InputDecoration _dashDecoration(
-  DashTokens t, {
-  String? labelText,
-  String? hintText,
-  String? suffixText,
-  String? errorText,
-  String? helperText,
-  Widget? suffixIcon,
-  Widget? prefixIcon,
-}) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
-  return InputDecoration(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelText: labelText,
-    hintText: hintText,
-    suffixText: suffixText,
-    errorText: errorText,
-    helperText: helperText,
-    suffixIcon: suffixIcon,
-    prefixIcon: prefixIcon,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.textSecondary,
-    ),
-    floatingLabelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.accentGreenInk,
-    ),
-    hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
-    helperStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 11,
-      color: t.textTertiary,
-    ),
-    suffixStyle: TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 11.5,
-      color: t.textTertiary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-    focusedErrorBorder: border(t.danger, 1.5),
-  );
-}
 
 /// Color picker: large preview + popular swatches from database + search.
 /// Tap color fills hex/name/gradient/effect in form (via [onPick]).

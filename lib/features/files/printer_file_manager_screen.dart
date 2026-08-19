@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -194,7 +195,12 @@ class _PrinterFileManagerScreenState
         }
       }
     } on AppApiException catch (e) {
-      if (mounted) _snack(e.localized(l10n));
+      showApiFailure(
+        mounted ? ScaffoldMessenger.of(context) : null,
+        e,
+        l10n,
+        action: 'printer_files.download',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -217,18 +223,32 @@ class _PrinterFileManagerScreenState
     setState(() => _busy = true);
     final repo = ref.read(printerFilesRepositoryProvider);
     var deleted = 0;
-    String? failure;
+    final failures = <AppApiException>[];
     for (final path in paths) {
       try {
         await repo.deleteFile(widget.printerId, path);
         deleted++;
       } on AppApiException catch (e) {
-        failure = e.localized(l10n);
+        failures.add(e);
       }
+    }
+    // Each refusal is its own call and worth its own record, but only the last
+    // one's wording becomes the snack — and none of it is delivered if the
+    // screen went away while the batch ran. Recording them all as told would
+    // say a dozen people were stopped where one message appeared, or none.
+    final delivered = mounted;
+    for (var i = 0; i < failures.length; i++) {
+      recordActionFailure(
+        failures[i],
+        action: 'printer_files.delete',
+        shown: delivered && i == failures.length - 1,
+      );
     }
     if (!mounted) return;
     setState(() => _busy = false);
-    _snack(failure ?? l10n.pfmDeleted(deleted));
+    _snack(failures.isEmpty
+        ? l10n.pfmDeleted(deleted)
+        : failures.last.localized(l10n));
     await _load();
     await _loadStorage();
   }

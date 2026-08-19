@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/action_outcome.dart';
+import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
@@ -384,7 +387,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
             '${_dueDate!.month.toString().padLeft(2, '0')}-'
             '${_dueDate!.day.toString().padLeft(2, '0')}';
 
-    ProjectActionResult result;
+    ActionOutcome result;
     try {
       if (widget.isEdit) {
         result = await ref
@@ -421,10 +424,13 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
               parentId: _parentId,
               url: _emptyToNull(_url.text),
             ));
-        result = ProjectActionResult.ok;
+        result = ActionOutcome.ok;
       }
     } on Object {
-      result = ProjectActionResult.error;
+      result = ActionOutcome.failed(
+        const ApiException(AppErrorCode.malformedResponse),
+        action: 'project_form.save',
+      );
     }
 
     await ref.read(projectsListProvider.notifier).refresh();
@@ -432,13 +438,9 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     setState(() => _saving = false);
 
     messenger.showSnackBar(SnackBar(
-      content: Text(switch (result) {
-        ProjectActionResult.ok => l10n.projectSaved,
-        ProjectActionResult.forbidden => l10n.projectActionForbidden,
-        ProjectActionResult.error => l10n.projectActionFailed,
-      }),
+      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
     ));
-    if (result == ProjectActionResult.ok) navigator.pop();
+    if (result.isOk) navigator.pop();
   }
 
   String _fmtDate(DateTime d) =>

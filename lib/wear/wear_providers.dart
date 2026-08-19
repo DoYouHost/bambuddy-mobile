@@ -115,4 +115,20 @@ class WearActions {
   /// see [QueueRepository.startNextPending], relayed or direct). Surfaces
   /// [StateError] `empty-queue` when the queue has nothing pending.
   Future<void> startNext(int printerId) => _transport.startNext(printerId);
+
+  /// Clear the printer's active error dialog — one command for the printer, not
+  /// per fault, exactly as on the phone.
+  Future<void> clearHmsErrors(int printerId) =>
+      _transport.clearHmsErrors(printerId);
+
+  /// Run one of the firmware's remediation actions. [printError] is the fault's
+  /// `full_code`, passed through untouched all the way to the printer.
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _transport.executeHmsAction(printerId,
+          printError: printError, action: action, jobId: jobId);
 }

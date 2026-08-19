@@ -31,12 +31,17 @@ class WearRelayTimeout implements Exception {
 /// The phone executed the request and the server (or the phone itself)
 /// returned an error. Retrying over REST would just repeat it.
 class WearRelayRemoteError implements Exception {
-  WearRelayRemoteError(this.code);
+  WearRelayRemoteError(this.code, {this.reason});
 
   final String code;
 
+  /// What the server said, when the phone relayed it. Null against a phone
+  /// older than the field, which is why the watch still needs wording of its
+  /// own for every [code].
+  final String? reason;
+
   @override
-  String toString() => code;
+  String toString() => reason == null ? code : '$code: $reason';
 }
 
 /// One watch poll: the printers plus the queue signal behind the
@@ -62,6 +67,13 @@ abstract interface class WearTransport {
   Future<void> stop(int printerId);
   Future<void> clearPlate(int printerId);
   Future<void> startNext(int printerId);
+  Future<void> clearHmsErrors(int printerId);
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  });
 }
 
 /// Relay over the Wear Data Layer: every call is one `sendMessage` to the
@@ -92,8 +104,13 @@ class RelayTransport implements WearTransport {
     _sub = null;
   }
 
-  Future<Map<String, dynamic>?> _call(WearRpcAction action,
-      {int? printerId}) async {
+  Future<Map<String, dynamic>?> _call(
+    WearRpcAction action, {
+    int? printerId,
+    String? printError,
+    String? hmsAction,
+    String? jobId,
+  }) async {
     _ensureListening();
     // Cheap local check (connected nodes) before paying the send + timeout.
     var reachable = false;
@@ -102,7 +119,13 @@ class RelayTransport implements WearTransport {
     } catch (_) {}
     if (!reachable) throw WearRelayUnreachable();
 
-    final req = WearRpcRequest.create(action, printerId: printerId);
+    final req = WearRpcRequest.create(
+      action,
+      printerId: printerId,
+      printError: printError,
+      hmsAction: hmsAction,
+      jobId: jobId,
+    );
     final completer = Completer<WearRpcResponse>();
     _pending[req.id] = completer;
     try {
@@ -125,7 +148,7 @@ class RelayTransport implements WearTransport {
       if (code == 'phone-unconfigured') throw WearRelayUnreachable();
       // Same shape the REST path throws, so the UI label stays "Queue empty".
       if (code == 'empty-queue') throw StateError('empty-queue');
-      throw WearRelayRemoteError(code);
+      throw WearRelayRemoteError(code, reason: res.reason);
     }
     return res.data;
   }
@@ -186,6 +209,25 @@ class RelayTransport implements WearTransport {
   @override
   Future<void> startNext(int printerId) =>
       _call(WearRpcAction.startNext, printerId: printerId);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _call(WearRpcAction.hmsClear, printerId: printerId);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _call(
+        WearRpcAction.hmsAction,
+        printerId: printerId,
+        printError: printError,
+        hmsAction: action,
+        jobId: jobId,
+      );
 }
 
 /// Direct REST to the server — the pre-relay behavior, kept as the fallback
@@ -236,6 +278,20 @@ class RestTransport implements WearTransport {
 
   @override
   Future<void> startNext(int printerId) => _queue.startNextPending(printerId);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _commands.clearHmsErrors(printerId);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _commands.executeHmsAction(printerId,
+          printError: printError, action: action, jobId: jobId);
 }
 
 /// Which side actually served the last successful call.
@@ -303,4 +359,26 @@ class HybridWearTransport implements WearTransport {
   @override
   Future<void> startNext(int printerId) =>
       _run((t) => t.startNext(printerId), fallbackOnTimeout: false);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _run((t) => t.clearHmsErrors(printerId), fallbackOnTimeout: false);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      // No fallback on timeout, for the reason the class doc gives and which
+      // bites hardest here: a resume that ran on the phone and lost its reply
+      // must not be sent again over REST. A phone too old to know these actions
+      // stays silent, which is that same timeout — the buttons fail rather than
+      // risk running twice.
+      _run(
+        (t) => t.executeHmsAction(printerId,
+            printError: printError, action: action, jobId: jobId),
+        fallbackOnTimeout: false,
+      );
 }

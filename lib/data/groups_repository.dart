@@ -11,13 +11,14 @@ import '../core/models/permission_catalog.dart';
 /// membership in it is what a household account's rights are made of.
 ///
 /// Reading is gated on `groups:read`; changing who is in a group is admin-only
-/// on top of `groups:update` (`backend/app/api/routes/groups.py:263`).
+/// on top of `groups:update`
+/// (`backend/app/api/routes/groups.py::delete_group`).
 class GroupsRepository {
   GroupsRepository(this._dio);
 
   final Dio _dio;
 
-  /// GET /groups/ — every group, by name (`groups.py:69`).
+  /// GET /groups/ — every group, by name (`groups.py::list_permissions`).
   Future<List<GroupSummary>> list() async {
     try {
       final res = await _dio.get<List<dynamic>>(Endpoints.groups);
@@ -64,7 +65,8 @@ class GroupsRepository {
   }
 
   /// PATCH /groups/{id}. Refused for a system group's name or permission set
-  /// (`groups.py:187`, `:200`) — the form disables both rather than try.
+  /// (`groups.py::update_group`, `:200`) — the form disables both rather than
+  /// try.
   Future<GroupSummary> update(int groupId, GroupUpdateInput body) async {
     try {
       final res = await _dio.patch<Map<String, dynamic>>(
@@ -77,8 +79,9 @@ class GroupsRepository {
     }
   }
 
-  /// DELETE /groups/{id} — system groups are refused (`groups.py:249`).
-  /// Members are not deleted with it; they only lose what it granted.
+  /// DELETE /groups/{id} — system groups are refused
+  /// (`groups.py::delete_group`). Members are not deleted with it; they only
+  /// lose what it granted.
   Future<void> delete(int groupId) async {
     try {
       await _dio.delete<void>(Endpoints.groupById(groupId));

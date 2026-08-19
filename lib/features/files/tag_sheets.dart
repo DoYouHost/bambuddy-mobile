@@ -8,6 +8,7 @@ import '../../core/models/library_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
@@ -99,16 +100,6 @@ Future<void> showTagManageSheet(BuildContext context) =>
       builder: (_) => const _TagManageSheet(),
     );
 
-/// 409 is the catalog's duplicate-name answer and the only failure with a
-/// message worth writing; everything else falls back to the shared wording.
-String _tagErr(AppApiException e, AppLocalizations l10n) {
-  if (e.statusCode == 409) return l10n.fmTagExists;
-  if (e is AuthException && e.code == AppErrorCode.forbidden) {
-    return l10n.ctrlForbidden;
-  }
-  return l10n.ctrlFailed;
-}
-
 /// Shared behaviour of the four sheets: snacks, and creating a tag from a prompt.
 mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   AppLocalizations get l10n => AppLocalizations.of(context);
@@ -116,9 +107,29 @@ mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   void snack(String message) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(message)));
 
+  /// Both halves of a failed action: the sentence and the record that somebody
+  /// was stopped. Unmounted there is neither a messenger nor an `l10n` to
+  /// resolve, so only the record goes, marked as one that reached nobody.
+  ///
+  /// 409 is the catalog's duplicate-name answer, and the one status these
+  /// sheets word better than the shared translator — everything else falls
+  /// through to it, so a refusal still names the permission it was refused for.
+  void failed(AppApiException e, String action) => mounted
+      ? showApiFailure(
+          ScaffoldMessenger.of(context),
+          e,
+          l10n,
+          action: action,
+          message: e.statusCode == 409 ? l10n.fmTagExists : null,
+        )
+      : recordActionFailure(e, action: action, shown: false);
+
   /// Prompts for a name and creates the tag. Returns the new tag, or `null` when
   /// cancelled or refused.
-  Future<LibraryTag?> createTag() async {
+  ///
+  /// [logId] is the sheet the row belongs to: four of them offer this, and a
+  /// report that cannot say which one is a report about "a tag sheet".
+  Future<LibraryTag?> createTag(String logId) async {
     final name = await promptName(
       context,
       title: l10n.fmTagNew,
@@ -132,7 +143,7 @@ mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       if (mounted) snack(l10n.fmTagCreated);
       return tag;
     } on AppApiException catch (e) {
-      if (mounted) snack(_tagErr(e, l10n));
+      failed(e, '$logId.new');
       return null;
     }
   }
@@ -294,7 +305,7 @@ class _TagFilterSheetState extends ConsumerState<_TagFilterSheet>
               _selected.contains(id) ? _selected.remove(id) : _selected.add(id);
             }),
             onCreate: () async {
-              final tag = await createTag();
+              final tag = await createTag('tag_filter');
               if (tag != null && mounted) setState(() => _selected.add(tag.id));
             },
           ),
@@ -357,9 +368,8 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
       if (!mounted) return;
       Navigator.pop(context, true);
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      snack(_tagErr(e, l10n));
+      if (mounted) setState(() => _saving = false);
+      failed(e, 'file_tags.save');
     }
   }
 
@@ -380,7 +390,7 @@ class _FileTagsSheetState extends ConsumerState<_FileTagsSheet>
                   : _selected.add(id);
             }),
             onCreate: () async {
-              final tag = await createTag();
+              final tag = await createTag('file_tags');
               if (tag != null && mounted) {
                 setState(() => _selected.add(tag.id));
               }
@@ -462,9 +472,8 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
       Navigator.pop(context, true);
       messenger.showSnackBar(SnackBar(content: Text(message)));
     } on AppApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      snack(_tagErr(e, l10n));
+      if (mounted) setState(() => _saving = false);
+      failed(e, 'bulk_tags.${action.name}');
     }
   }
 
@@ -484,7 +493,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
                   : _selected.add(id);
             }),
             onCreate: () async {
-              final tag = await createTag();
+              final tag = await createTag('bulk_tags');
               if (tag != null && mounted) {
                 setState(() => _selected.add(tag.id));
               }
@@ -557,7 +566,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
       await ref.read(fileManagerProvider.notifier).refresh();
       if (mounted) snack(l10n.fmRenamed);
     } on AppApiException catch (e) {
-      if (mounted) snack(_tagErr(e, l10n));
+      failed(e, 'tag_manage.rename');
     }
   }
 
@@ -585,7 +594,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
       }
       if (mounted) snack(l10n.fmTagDeleted);
     } on AppApiException catch (e) {
-      if (mounted) snack(_tagErr(e, l10n));
+      failed(e, 'tag_manage.delete');
     }
   }
 
@@ -647,7 +656,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
                   ListTile(
                     leading: const Icon(Icons.new_label_outlined),
                     title: Text(l10n.fmTagNew),
-                    onTap: createTag,
+                    onTap: () => createTag('tag_manage'),
                   ).tagged('tag_manage.new'),
                 ],
               ),

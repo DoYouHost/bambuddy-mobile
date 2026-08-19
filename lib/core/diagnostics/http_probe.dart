@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import 'diagnostic_recorder.dart';
 import 'log_event.dart';
+import 'log_path.dart';
 import 'log_store.dart';
 
 /// Records every call the app makes to bambuddy: method, path, status, how long
@@ -223,9 +224,11 @@ class HttpProbe extends Interceptor {
     return upper == 'GET' || upper == 'HEAD';
   }
 
-  /// `uri` resolves the relative path against the base URL, and `.path` off it
-  /// drops both the host and the query string.
-  static String _pathOf(RequestOptions options) => options.uri.path;
+  /// `uri` resolves the relative path against the base URL; [loggablePath]
+  /// drops the host and the query string with it, and masks a segment that is
+  /// the user's rather than a route.
+  static String _pathOf(RequestOptions options) =>
+      loggablePath(options.uri.path);
 
   static int? _elapsedMs(RequestOptions options) {
     final startedAt = options.extra[_startedAtKey];

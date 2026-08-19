@@ -45,10 +45,10 @@ final canReadApiKeysProvider = Provider<bool>(
   (ref) => ref.watch(identifiedPermissionProvider(Permissions.apiKeysRead)),
 );
 
-/// Whether it may issue a new one. Unlike users and groups these routes have
-/// no admin gate — the permission is the whole check
-/// (`backend/app/api/routes/api_keys.py:38`), so a custom group granting
-/// `api_keys:create` really can.
+/// Whether it may issue a new one. Unlike users and groups these routes have no
+/// admin gate — the permission is the whole check
+/// (`backend/app/api/routes/api_keys.py::create_api_key`), so a custom group
+/// granting `api_keys:create` really can.
 final canCreateApiKeysProvider = Provider<bool>(
   (ref) => ref.watch(identifiedPermissionProvider(Permissions.apiKeysCreate)),
 );

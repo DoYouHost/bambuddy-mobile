@@ -109,4 +109,70 @@ void main() {
       expect(parse('0.2.5b2') < parse('1.2.5'), isTrue);
     });
   });
+
+  group('version → capability map', () {
+    test('every capability has a row — a missing one silently disables it', () {
+      // supports() answers false for an unmapped feature, so a forgotten row
+      // does not fail to compile — it quietly takes the feature away from
+      // everybody. This test is the only thing that catches it.
+      for (final f in ServerFeature.values) {
+        expect(ServerVersion.introducedIn[f], isNotNull,
+            reason: 'no version threshold for $f');
+      }
+    });
+
+    test('supports() reads the threshold from the map, not a separate compare', () {
+      final v125 = parse('1.2.5.2');
+      final v126 = parse('1.2.6');
+
+      // Tri-state arrived in 1.2.5 and everything else in 1.2.6 — the only
+      // difference between these two versions in the whole table.
+      expect(v125.supports(ServerFeature.triStateCalibration), isTrue);
+      expect(v126.supports(ServerFeature.triStateCalibration), isTrue);
+
+      for (final f in const [
+        ServerFeature.chamberTemp65,
+        ServerFeature.crossModelVariants,
+        ServerFeature.sliceLayoutOptions,
+        ServerFeature.processOverrides,
+        ServerFeature.usersSlimListing,
+      ]) {
+        expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
+        expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');
+      }
+    });
+  });
+
+  group('1.2.6 gates', () {
+    test('chamber ceiling: 60 up to 1.2.5.x, 65 from 1.2.6', () {
+      // The server raised MAX_CHAMBER_TEMP_C from 60 to 65 (commit b04664c6),
+      // and the bound is a Query(le=…) — an older server answers 422 rather
+      // than clamping.
+      expect(parse('1.2.5.2').chamberMaxTargetC, 60);
+      expect(parse('1.2.6').chamberMaxTargetC, 65);
+    });
+
+    test('a 1.2.6 beta counts as supporting — the features landed in that cycle',
+        () {
+      // 1.2.6b1 is the release these changes actually shipped in (#671 and the
+      // raised ceiling both live there), so reading a beta as the older
+      // contract would take features away from a server that has them.
+      final beta = parse('1.2.6b1');
+      expect(beta.chamberMaxTargetC, 65);
+      expect(beta.supportsCrossModelVariants, isTrue);
+      expect(beta.supportsSliceLayoutOptions, isTrue);
+      expect(beta.supportsProcessOverrides, isTrue);
+    });
+
+    test('a daily build of the beta counts too', () {
+      expect(parse('1.2.6b1-daily.20260809').chamberMaxTargetC, 65);
+    });
+
+    test('an older server gets none of the gates', () {
+      final old = parse('1.2.5.2');
+      expect(old.supportsCrossModelVariants, isFalse);
+      expect(old.supportsSliceLayoutOptions, isFalse);
+      expect(old.supportsProcessOverrides, isFalse);
+    });
+  });
 }

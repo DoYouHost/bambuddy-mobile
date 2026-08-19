@@ -17,6 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
@@ -43,6 +44,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Whether the "sign in again" warning already ran in this launch.
   bool _signInWarned = false;
+
+  /// Whether a check for it is in flight — a resume landing mid-check would
+  /// otherwise walk past the guard and open a second dialog.
+  bool _signInChecking = false;
 
   static const _onboardingFlag = 'notif_onboarded';
 
@@ -87,16 +92,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
         ref.read(cameraTokenRefresherProvider)?.stop();
+        // The service isolate carries its own from here. Both would poll the
+        // same archives and, worse, both write the shared alert memory — a
+        // read-modify-write, so the loser's entry is dropped and its photo never
+        // reaches the notification.
+        final finishPhoto = ref.read(finishPhotoNotifierProvider);
+        if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
         _logBgService('stop');
-        // Take the watch relay back only once the FGS isolate is stopped, so
-        // the two responders never overlap (see onPause).
+        // Take the watch relay and the finish-photo search back only once the
+        // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
-          ref
-              .read(backgroundMonitorProvider)
-              .stop()
-              .then((_) => ref.read(wearRelayHandlerProvider).start()),
+          ref.read(backgroundMonitorProvider).stop().then((_) {
+            ref.read(wearRelayHandlerProvider).start();
+            ref.read(finishPhotoNotifierProvider)?.start();
+          }),
         );
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
@@ -116,8 +127,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
+    await _takeOverFromSurvivingService();
     await _maybeOnboardNotifications();
     await _maybeWarnSignInRequired();
+  }
+
+  /// Stops a service that outlived the app it was started from.
+  ///
+  /// Not `onResume`: that fires on a *transition*, and a cold start is already
+  /// resumed. A service Android restarted after a swipe-away runs on whatever
+  /// it froze at *its* own start-up, and its watch relay answers alongside this
+  /// isolate's.
+  Future<void> _takeOverFromSurvivingService() async {
+    final monitor = ref.read(backgroundMonitorProvider);
+    if (!await monitor.isRunning()) return;
+    _logBgService('stop_survivor');
+    await monitor.stop();
   }
 
   /// Warns once per app open that the server rejected the remembered login.
@@ -131,7 +156,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// failed-attempt budget. Cleared when a profile is saved again
   /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
   Future<void> _maybeWarnSignInRequired() async {
-    if (_signInWarned || !mounted) return;
+    // `_signInWarned` cannot stand in for `_signInChecking`: it is only set once
+    // the flag turns out to be on, and a check that found it off has to leave
+    // the door open for the next resume.
+    if (_signInWarned || _signInChecking || !mounted) return;
+    _signInChecking = true;
+    try {
+      // Both writers are other isolates, so this handle still serves the cache
+      // the app started with — the rejection it asks about is only on disk.
+      await ref.read(sharedPreferencesProvider).reload();
+    } finally {
+      _signInChecking = false;
+    }
+    if (!mounted) return;
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
@@ -166,8 +203,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(_onboardingFlag) ?? false) return;
-    await prefs.setBool(_onboardingFlag, true);
-    await _runNotificationOnboarding();
+    final granted = await _runNotificationOnboarding();
+    // Marked done only once it actually landed. Writing the flag before asking
+    // spent the one automatic prompt on a run the user may have dismissed by
+    // accident — and Android keeps showing its dialog until it is refused twice,
+    // so a first "no" is worth another launch rather than permanent silence.
+    if (granted) await prefs.setBool(_onboardingFlag, true);
   }
 
   /// Requests notification permission, and if app is not exempt from battery
@@ -176,20 +217,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// `manual` = triggered by button (not auto-onboarding): then on "quiet"
   /// paths (permission denied / already set up) show SnackBar
   /// so button doesn't look dead.
-  Future<void> _runNotificationOnboarding({bool manual = false}) async {
+  ///
+  /// Answers whether the permission is in hand, which is what decides if the
+  /// automatic run counts as done.
+  Future<bool> _runNotificationOnboarding({bool manual = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final granted = await ref
         .read(notificationServiceProvider)
         .requestPermission();
-    if (!mounted) return;
+    if (!mounted) return granted;
     if (!granted) {
       if (manual) {
         messenger.showSnackBar(
           SnackBar(content: Text(l10n.notificationsBlocked)),
         );
       }
-      return;
+      return false;
     }
     final battery = BatteryOptimization();
     if (await battery.isIgnoring()) {
@@ -198,9 +242,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SnackBar(content: Text(l10n.notificationsReady)),
         );
       }
-      return;
+      return true;
     }
-    if (!mounted) return;
+    if (!mounted) return true;
     final open = await confirmDialog(
       context,
       title: l10n.batteryOptTitle,
@@ -210,6 +254,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       id: 'battery_opt',
     );
     if (open) await battery.request();
+    return true;
   }
 
   /// Notification menu: background monitoring toggle + re-onboard
@@ -314,6 +359,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
+
+    // Not read — watched so it exists while this screen (and with it the UI's
+    // socket) does. It waits for the finish photo the server attaches after a
+    // print, which lands once the print-ended notification is already out.
+    ref.watch(finishPhotoNotifierProvider);
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.
@@ -471,7 +521,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // reclaiming space; scrolling back to the top restores both. Being driven
     // by the sliver's own shrinkOffset (not a scroll listener) keeps it smooth.
     return RefreshIndicator(
-      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+      onRefresh: () {
+        // Also forget what the two history routes last answered. A 403 or 404
+        // takes their chart shortcuts off the cards, and with the shortcut gone
+        // nothing calls the route again — so a permission granted on the server
+        // would otherwise need an app restart to show up. Recreating the
+        // repositories drops the latch; the "supported" providers watch them.
+        ref.invalidate(heaterHistoryRepositoryProvider);
+        ref.invalidate(amsHistoryRepositoryProvider);
+        return ref.read(dashboardProvider.notifier).refresh();
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [

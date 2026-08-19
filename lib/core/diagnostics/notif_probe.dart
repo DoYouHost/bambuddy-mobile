@@ -43,6 +43,10 @@ enum NotifSkip {
   /// described that phase and not the job. Acting on it fires several
   /// milestones at once before the first layer is even down.
   prepPhase,
+
+  /// The same reading already earned an alert recently. Not a decision about
+  /// the condition — it still holds — only about saying so again.
+  throttled,
 }
 
 /// Records what the notification layer decided, and what it decided *not* to
@@ -98,6 +102,29 @@ class NotifProbe {
           'cause': error.runtimeType.toString(),
         },
       );
+
+  /// What became of the finish photo the server attached to an archive.
+  ///
+  /// Its own record rather than a [NotifSkip]: this path decides nothing about
+  /// *whether* to alert — the alert is already on screen — only whether a photo
+  /// reached it, and every way it can fail (no alert to update, the user swiped
+  /// it away, the download failed) looks identical from the outside. Ids only;
+  /// the print's name stays out of the log as everywhere else here.
+  static void finishPhoto({
+    required int archiveId,
+    required String state,
+    int? printerId,
+    int? nid,
+  }) => DiagnosticRecorder.active?.add(
+    LogSource.notif,
+    'finish_photo',
+    fields: {
+      'archive_id': archiveId,
+      'printer_id': printerId,
+      'nid': nid,
+      'state': state,
+    },
+  );
 
   /// An alert was not posted, and why.
   ///
@@ -314,6 +341,7 @@ class LoggingNotifications implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) {
     NotifProbe.posted(event: event, printerId: printerId, nid: id);
     return _inner
@@ -325,6 +353,7 @@ class LoggingNotifications implements NotificationService {
       body: body,
       payload: payload,
       actions: actions,
+      picture: picture,
     )
         // Rethrown with its original stack: absorbing it would remove an error
         // that today reaches the isolate's uncaught handler and gets its own
@@ -339,4 +368,7 @@ class LoggingNotifications implements NotificationService {
       Error.throwWithStackTrace(error, stack);
     });
   }
+
+  @override
+  Future<bool> isAlertActive(int id) => _inner.isAlertActive(id);
 }

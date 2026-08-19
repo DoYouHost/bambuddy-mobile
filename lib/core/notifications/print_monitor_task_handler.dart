@@ -10,8 +10,12 @@ import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
+import 'finish_alert_memory.dart';
+import 'finish_photo_image.dart';
+import 'finish_photo_notifier.dart';
 import 'hms_catalog.dart';
 import 'notification_prefs.dart';
+import '../../data/archive_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../api/api_client.dart';
 import '../api/camera_token.dart';
@@ -20,7 +24,6 @@ import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
-import '../auth/jwt.dart';
 import '../auth/token_refresher.dart';
 import '../diagnostics/diagnostic_recorder.dart';
 import '../diagnostics/log_event.dart';
@@ -57,6 +60,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
   StreamSubscription<WsPrinterStatus>? _sub;
   StreamSubscription<WsPlateNotEmpty>? _plateSub;
   PrintMonitor? _monitor;
+  FinishPhotoNotifier? _finishPhoto;
   _FgsNotificationService? _fgs;
   MaintenanceMonitor? _maintenance;
   Timer? _maintenanceTimer;
@@ -174,7 +178,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
     // platform. Outside `_FgsNotificationService`, not inside it — the ongoing
     // notification there does not delegate to [alerts], so a decorator underneath
     // would never see it. `_fgs` itself stays raw for [repost].
-    final notify = LoggingNotifications(fgs);
+    // Wrapped so a print-ended alert leaves a record the finish photo can find
+    // its way back to — including from the UI isolate, after this one is gone.
+    final notify = RememberingNotifications(
+      LoggingNotifications(fgs),
+      FinishAlertMemory(prefs),
+      DateTime.now,
+    );
     // Load HMS catalog once (assets work in background isolate too).
     final catalog = HmsCatalog();
     await catalog.load(systemLocale());
@@ -217,6 +227,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
 
     final creds = SecureCredentialsStore();
+    // Shared by the socket below and the proactive refresh: both recover a
+    // lapsed session the same way, and building two would mean two independent
+    // silent re-logins racing against the server's failed-attempt budget.
+    final auth = backgroundAuthService(prefs, creds);
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;
@@ -233,6 +247,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
             authHeaders: () => wsAuthHeaders(profile.authMode, creds),
             queryToken: wsToken?.token,
             invalidateQueryToken: wsToken?.invalidate,
+            // Without this a handshake rejected for a lapsed JWT has nothing to
+            // recover with, and the socket retries the expired token for as long
+            // as the service lives. Only JWT can re-mint: an API key is static
+            // and a server without auth never rejects.
+            refreshAuth: profile.authMode == AuthMode.jwt
+                ? () async => await auth.silentReLogin(profile.baseUrl) != null
+                : null,
           );
     _ws = ws;
     _sub = ws.statusFrames.listen((frame) {
@@ -275,6 +296,26 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _plateSub = ws.plateAlerts.listen((e) {
       _monitor?.onPlateNotEmpty(e.printerId, e.printerName);
     });
+    // The finish photo turns up long after the print-ended alert went out, and
+    // the server only announces some of them — hence both the socket and the
+    // notifier's own poll. Needs the authenticated client either way: without it
+    // there is no archive to read the photo from.
+    if (api != null) {
+      final archives = ArchiveRepository(api.dio);
+      _finishPhoto = FinishPhotoNotifier(
+        updates: ws.archiveUpdates,
+        fetchArchive: archives.byId,
+        recentArchives: (printerId) => archives.list(
+          limit: FinishPhotoNotifier.archiveLookback,
+          printerId: printerId,
+        ),
+        fetchPicture: (archiveId, filename) =>
+            _fetchFinishPhoto(profile.baseUrl, archiveId, filename),
+        notifications: notify,
+        memory: FinishAlertMemory(prefs),
+        isEnabled: () => notifPrefs.finishPhoto,
+      )..start();
+    }
     ws.start();
 
     // After `ws.start()` on purpose: two platform reads must never sit between
@@ -307,27 +348,20 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
-    _setUpTokenRefresh(profile, creds, prefs);
+    _setUpTokenRefresh(profile, creds, auth);
   }
 
   /// Starts proactive JWT refresh in the background isolate (JWT mode only).
   void _setUpTokenRefresh(
     ServerProfile profile,
     CredentialsStore creds,
-    SharedPreferences prefs,
+    AuthService auth,
   ) {
     if (profile.authMode != AuthMode.jwt) return;
-    final auth = AuthService(
-      bareDio: createBareDio(),
+    final refresher = jwtTokenRefresher(
       credentials: creds,
-      // A refresh that runs while the app is closed is the likeliest place for a
-      // stale password to be caught; leave the mark for the UI to explain later.
-      onSignInRequired: (reason) =>
-          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
-    );
-    final refresher = ProactiveTokenRefresher(
-      readExpiry: () async => jwtExpiry(await creds.readJwt()),
-      refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+      auth: auth,
+      baseUrl: profile.baseUrl,
     );
     _tokenRefresher = refresher;
     refresher.start();
@@ -354,7 +388,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
-      reload: () async => settings.loadNotifiedMaintenanceDueIds(),
+      reload: () async {
+        // The point of this callback: "Mark Done" runs in another isolate, so
+        // its removal only exists on disk. Without the reload this prefs handle
+        // keeps serving the cache this isolate started with and the re-arm is
+        // invisible here — the callback would return our own stale set.
+        await prefs.reload();
+        return settings.loadNotifiedMaintenanceDueIds();
+      },
     );
     _maintenance = maintenance;
     // `check()` guards its own fetch, but the dedup-set persistence and the alert
@@ -387,6 +428,26 @@ class PrintMonitorTaskHandler extends TaskHandler {
     return WidgetCoverCache.fetch(
       baseUrl: baseUrl,
       coverPath: cover,
+      dio: dio,
+      token: ({bool forceRefresh = false}) =>
+          tokenSvc.token(forceRefresh: forceRefresh),
+    );
+  }
+
+  /// Downloads a finished print's photo to files the notification can carry.
+  /// Same auth shape as the cover above: camera token in `?token=`, bare Dio.
+  Future<AlertPicture?> _fetchFinishPhoto(
+    String baseUrl,
+    int archiveId,
+    String filename,
+  ) {
+    final tokenSvc = _cameraToken;
+    final dio = _coverDio;
+    if (tokenSvc == null || dio == null) return Future.value(null);
+    return FinishPhotoImage.store(
+      baseUrl: baseUrl,
+      archiveId: archiveId,
+      filename: filename,
       dio: dio,
       token: ({bool forceRefresh = false}) =>
           tokenSvc.token(forceRefresh: forceRefresh),
@@ -466,6 +527,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
     await _connSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();
+    // Before the socket goes: a photo update already in flight still gets to
+    // finish, and what it was doing is on the record below rather than cut off.
+    await _finishPhoto?.stop();
     await _ws?.dispose();
     // Last, and after `_ws.dispose()` on purpose: that call writes the socket's
     // final records (why it disconnected, and any frames still being counted)
@@ -549,6 +613,7 @@ class _FgsNotificationService implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) =>
       _alerts.showAlert(
         event: event,
@@ -558,5 +623,9 @@ class _FgsNotificationService implements NotificationService {
         body: body,
         payload: payload,
         actions: actions,
+        picture: picture,
       );
+
+  @override
+  Future<bool> isAlertActive(int id) => _alerts.isAlertActive(id);
 }

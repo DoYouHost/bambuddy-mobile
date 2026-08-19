@@ -173,8 +173,8 @@ void main() {
 
   testWidgets('leaves out delete on the account you are signed in with',
       (tester) async {
-    // The server refuses it (`users.py:403`) — offering the button would only
-    // buy an error message.
+    // The server refuses it (`users.py::delete_user`) — offering the button
+    // would only buy an error message.
     await tester.pumpWidget(_app(const [_admin, _member], signedInAs: _admin));
     await tester.pumpAndSettle();
 
@@ -234,7 +234,7 @@ void main() {
       await container.read(currentUserProvider.future);
 
       // Even `users:create` is not enough: the route demands the admin role
-      // as well (`users.py:86`).
+      // as well (`users.py::list_users`).
       expect(container.read(canReadUsersProvider), isTrue);
       expect(container.read(canManageUsersProvider), isFalse);
     });
@@ -242,9 +242,9 @@ void main() {
     test('an API-key session is refused, whatever /auth/me claims it is',
         () async {
       // The server hands a key the synthetic admin with every permission
-      // (`routes/auth.py:91`) and then refuses it every administrative route
-      // (`core/auth.py:291`). Believing the first is how the account list
-      // ended up 403-ing on a key session.
+      // (`routes/auth.py::_api_key_to_user_response`) and then refuses it every
+      // administrative route (`core/auth.py::_resolve_apikey_scope`). Believing
+      // the first is how the account list ended up 403-ing on a key session.
       final container = containerFor(
         const CurrentUser(
           id: 0,

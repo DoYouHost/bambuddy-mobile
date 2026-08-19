@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/hms_actions.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -86,6 +88,7 @@ class _WearPrinterControlBodyState
               if (state == WearState.printing || state == WearState.paused)
                 _progress(status),
               const SizedBox(height: 10),
+              ..._faults(item),
               ..._actions(item, state, requirePlateClear, fleet?.queuePending),
             ],
           ),
@@ -130,6 +133,85 @@ class _WearPrinterControlBodyState
     );
   }
 
+  /// Faults worth putting on screen — none at all while the printer is out of
+  /// reach. `hms_errors` is carried forward across a disconnect, so without this
+  /// the last-known faults would sit under the OFFLINE chip looking current,
+  /// each offering buttons the server answers with "Printer not connected".
+  List<HmsError> _displayableFaults(PrinterWithStatus item) {
+    if (wearStateOf(item.status) == WearState.offline) return const [];
+    return [
+      for (final e in item.status?.hmsErrors ?? const <HmsError>[])
+        if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
+    ];
+  }
+
+  /// Every action the faults on screen are offering, so the generic lifecycle
+  /// buttons can stand down where they would duplicate one.
+  Set<String> _faultActions(PrinterWithStatus item) => {
+        for (final e in _displayableFaults(item))
+          if (e.fullCode != null) ...hmsRenderableActions(e.actions),
+      };
+
+  /// Active faults, each with the buttons its firmware offers.
+  ///
+  /// The same rule as the phone decides what appears: a fault the catalog
+  /// cannot name is not shown, and a fault without a `full_code` gets no
+  /// buttons because nothing would identify it to the printer. What differs is
+  /// the shape — a watch has no room for a row of buttons, so each action is a
+  /// full-width row, and the description is capped at three lines with the rest
+  /// a tap away.
+  List<Widget> _faults(PrinterWithStatus item) {
+    final l10n = AppLocalizations.of(context);
+    final faults = _displayableFaults(item);
+    if (faults.isEmpty) return const [];
+
+    final actions = ref.read(wearActionsProvider);
+    final id = widget.printerId;
+    return [
+      for (final fault in faults)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _WearFault(
+            fault: fault,
+            busy: _busy,
+            onAction: (action) => action == hmsStopAction
+                ? _confirmHmsStop(actions, id, fault, item.printer.name)
+                : _run(() => actions.executeHmsAction(id,
+                    printError: fault.fullCode!,
+                    action: action,
+                    jobId: fault.jobId)),
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _btn(
+          l10n.hmsDismissAll,
+          Icons.done_all,
+          () => actions.clearHmsErrors(id),
+          okMsg: l10n.hmsDismissed,
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _confirmHmsStop(
+      WearActions actions, int id, HmsError fault, String name) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => WearConfirmDialog(
+        icon: Icons.stop_rounded,
+        title: AppLocalizations.of(ctx).hmsStopConfirmTitle,
+        subtitle: name,
+        confirmColor: const Color(0xFFB3261E),
+      ),
+    );
+    if (ok != true) return;
+    await _run(() => actions.executeHmsAction(id,
+        printError: fault.fullCode!,
+        action: hmsStopAction,
+        jobId: fault.jobId));
+  }
+
   List<Widget> _actions(PrinterWithStatus item, WearState state,
       bool requirePlateClear, int? queuePending) {
     final l10n = AppLocalizations.of(context);
@@ -137,10 +219,15 @@ class _WearPrinterControlBodyState
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
     final buttons = <Widget>[];
+    // What the faults above already offer. Two identical buttons stacked on a
+    // 1.4" screen is a coin flip, and the fault's own is the one that carries
+    // the code the firmware needs — so the generic one steps aside.
+    final offeredByFaults = _faultActions(item);
 
     if (state == WearState.printing) {
       buttons.add(_btn(l10n.ctrlPause, Icons.pause, () => actions.pause(id)));
-    } else if (state == WearState.paused) {
+    } else if (state == WearState.paused &&
+        offeredByFaults.intersection(hmsResumeActions).isEmpty) {
       buttons.add(
           _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)));
     }
@@ -165,8 +252,10 @@ class _WearPrinterControlBodyState
       }
     }
 
-    // Stop: destructive → behind a confirm dialog.
-    if (state == WearState.printing || state == WearState.paused) {
+    // Stop: destructive → behind a confirm dialog. Skipped when a fault already
+    // offers its own stop, for the same reason as resume above.
+    if ((state == WearState.printing || state == WearState.paused) &&
+        !offeredByFaults.contains(hmsStopAction)) {
       buttons.add(_btn(l10n.ctrlStop, Icons.stop,
           () => _confirmStop(actions, id, item.printer.name),
           color: const Color(0xFFB3261E)));
@@ -262,15 +351,117 @@ class _WearPrinterControlBodyState
   }
 }
 
+/// One fault on the watch: what it is, then a full-width button per action.
+///
+/// Buttons never share a row here — a 1.4" screen turns two side by side into
+/// two things nobody can hit, and hitting the wrong one means stopping a print.
+class _WearFault extends StatefulWidget {
+  const _WearFault({
+    required this.fault,
+    required this.busy,
+    required this.onAction,
+  });
+
+  final HmsError fault;
+  final bool busy;
+  final void Function(String action) onAction;
+
+  @override
+  State<_WearFault> createState() => _WearFaultState();
+}
+
+class _WearFaultState extends State<_WearFault> {
+  bool _fullText = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final description = hmsLabel(
+      widget.fault,
+      description: HmsCatalog.instance.describe(widget.fault),
+    );
+    // Bambu's descriptions run to 330 characters; three lines is what a watch
+    // can spend before the buttons fall off the screen.
+    final actions = widget.fault.fullCode == null
+        ? const <String>[]
+        : hmsRenderableActions(widget.fault.actions);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0x33B3261E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x80B3261E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  size: 14, color: Color(0xFFE57373)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  widget.fault.displayCode,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFFE57373),
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          if (description != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => setState(() => _fullText = !_fullText),
+              child: Text(
+                description,
+                maxLines: _fullText ? null : 3,
+                overflow: _fullText ? null : TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, height: 1.25),
+              ),
+            ),
+          ],
+          for (final action in actions) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed:
+                    widget.busy ? null : () => widget.onAction(action),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                  backgroundColor:
+                      action == hmsStopAction ? const Color(0xFFB3261E) : null,
+                ),
+                child: Text(
+                  hmsActionLabel(l10n, action),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 String _shortError(AppLocalizations l10n, Object e) {
   if (e is StateError && e.message == 'empty-queue') return l10n.queueEmpty;
   if (e is WearRelayUnreachable) return l10n.wearPhoneUnreachable;
   if (e is WearRelayTimeout) return l10n.wearPhoneNoResponse;
   // Relayed server error: the phone forwards the AppErrorCode name.
   if (e is WearRelayRemoteError) {
-    return e.code == AppErrorCode.forbidden.name
-        ? l10n.errForbidden
-        : l10n.ctrlFailed;
+    final reason = e.reason;
+    if (e.code != AppErrorCode.forbidden.name) return l10n.ctrlFailed;
+    // Same policy as the phone: quote the server when it explained itself.
+    return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
   final s = e.toString();

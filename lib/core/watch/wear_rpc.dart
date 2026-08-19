@@ -24,6 +24,14 @@ enum WearRpcAction {
   stop,
   clearPlate,
   startNext,
+
+  /// Clear the printer's active error dialog. No parameters beyond the printer.
+  hmsClear,
+
+  /// Run one remediation action for one fault: needs [WearRpcRequest.printError]
+  /// and [WearRpcRequest.hmsAction], plus [WearRpcRequest.jobId] when the fault
+  /// carried one.
+  hmsAction,
 }
 
 const _kVersion = 'v';
@@ -31,9 +39,13 @@ const _kKind = 'kind';
 const _kId = 'id';
 const _kAction = 'action';
 const _kPrinterId = 'printerId';
+const _kPrintError = 'printError';
+const _kHmsAction = 'hmsAction';
+const _kJobId = 'jobId';
 const _kOk = 'ok';
 const _kData = 'data';
 const _kError = 'error';
+const _kReason = 'reason';
 
 const _kindRequest = 'req';
 const _kindResponse = 'res';
@@ -64,16 +76,30 @@ dynamic deepSanitize(dynamic value) => switch (value) {
       _ => value,
     };
 
+/// Blank is how a value the sender did not have arrives over the bridge, and it
+/// is never a valid code, action key or job id.
+String? _stringOrNull(Object? value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
+
 /// Watch→phone request.
 class WearRpcRequest {
   const WearRpcRequest({
     required this.id,
     required this.action,
     this.printerId,
+    this.printError,
+    this.hmsAction,
+    this.jobId,
   });
 
   /// New request with a fresh correlation id.
-  WearRpcRequest.create(this.action, {this.printerId}) : id = _newRpcId();
+  WearRpcRequest.create(
+    this.action, {
+    this.printerId,
+    this.printError,
+    this.hmsAction,
+    this.jobId,
+  }) : id = _newRpcId();
 
   final String id;
   final WearRpcAction action;
@@ -81,12 +107,27 @@ class WearRpcRequest {
   /// Required for every action except [WearRpcAction.getFleet].
   final int? printerId;
 
+  /// The fault's `full_code`, carried through untouched: the firmware matches
+  /// HMS commands on it, and a code rebuilt anywhere along this path would be
+  /// dropped by the printer without a word.
+  final String? printError;
+
+  /// The `HMSAction` key to run. Named apart from [action], which is the RPC's
+  /// own verb — this one is the printer's.
+  final String? hmsAction;
+
+  /// The fault's `job_id` snapshot, absent for an idle-state fault.
+  final String? jobId;
+
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
         _kKind: _kindRequest,
         _kId: id,
         _kAction: action.name,
         if (printerId != null) _kPrinterId: printerId,
+        if (printError != null) _kPrintError: printError,
+        if (hmsAction != null) _kHmsAction: hmsAction,
+        if (jobId != null) _kJobId: jobId,
       };
 
   /// Returns null for foreign/malformed maps and for responses — the shared
@@ -105,6 +146,9 @@ class WearRpcRequest {
       id: id,
       action: action,
       printerId: printerId is int ? printerId : null,
+      printError: _stringOrNull(map[_kPrintError]),
+      hmsAction: _stringOrNull(map[_kHmsAction]),
+      jobId: _stringOrNull(map[_kJobId]),
     );
   }
 }
@@ -113,9 +157,10 @@ class WearRpcRequest {
 class WearRpcResponse {
   const WearRpcResponse.ok(this.id, [this.data])
       : ok = true,
-        error = null;
+        error = null,
+        reason = null;
 
-  const WearRpcResponse.failure(this.id, this.error)
+  const WearRpcResponse.failure(this.id, this.error, {this.reason})
       : ok = false,
         data = null;
 
@@ -129,6 +174,12 @@ class WearRpcResponse {
   /// Short machine-readable reason (e.g. `phone-unconfigured`, `empty-queue`).
   final String? error;
 
+  /// What the *server* said, when the failure came from it — the sentence that
+  /// names the missing permission on a 403. Optional by design: an older phone
+  /// relays without it and the watch falls back to wording derived from
+  /// [error], exactly as it did before this field existed.
+  final String? reason;
+
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
         _kKind: _kindResponse,
@@ -136,6 +187,7 @@ class WearRpcResponse {
         _kOk: ok,
         if (data != null) _kData: deepSanitize(data),
         if (error != null) _kError: error,
+        if (reason != null) _kReason: reason,
       };
 
   /// Returns null for foreign/malformed maps and for requests.
@@ -151,6 +203,11 @@ class WearRpcResponse {
       );
     }
     final error = map[_kError];
-    return WearRpcResponse.failure(id, error is String ? error : 'unknown');
+    final reason = map[_kReason];
+    return WearRpcResponse.failure(
+      id,
+      error is String ? error : 'unknown',
+      reason: reason is String && reason.isNotEmpty ? reason : null,
+    );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/archive_capabilities.dart';
+import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/slicer_preset.dart';
+import '../../core/slicer/process_schema_catalog.dart';
 import '../../providers.dart';
 
 /// A filament the user owns, reduced to what the slice modal needs: the slicer
@@ -70,4 +72,64 @@ final filamentRequirementsProvider = FutureProvider.autoDispose
         id: key.$2,
         isArchive: key.$1,
       ),
+);
+
+/// What the source 3MF was prepared with, keyed by `(isArchive, id)` like
+/// [filamentRequirementsProvider]. Drives the "slice as designed" switch.
+final embeddedSettingsProvider =
+    FutureProvider.autoDispose.family<EmbeddedSettings, (bool, int)>(
+  (ref, key) => ref.watch(slicerRepositoryProvider).embeddedSettings(
+        id: key.$2,
+        isArchive: key.$1,
+      ),
+);
+
+/// A process preset reduced to what `/slicer/preset-values` takes. A record
+/// rather than a [SlicerPreset] because it is a provider family key and has to
+/// compare by value — `SlicerPreset` compares by identity, so the same preset
+/// would refetch on every rebuild.
+typedef ProcessPresetRef = (String source, String id);
+
+/// The vendored OrcaSlicer option metadata, loaded on first use.
+///
+/// Null when the assets failed to load, which is a build error rather than a
+/// server problem — callers keep the settings screen out of reach rather than
+/// open an empty one. Not `autoDispose`: the catalog is cached per isolate
+/// regardless, so disposing the provider would only drop the handle to it.
+final processSchemaProvider = FutureProvider<ProcessSchemaCatalog?>(
+  (ref) async {
+    final catalog = ProcessSchemaCatalog.instance;
+    await catalog.load();
+    return catalog.isLoaded ? catalog : null;
+  },
+);
+
+/// The picked process preset's effective values, with its `inherits:` chain
+/// flattened by the server's slicer sidecar.
+///
+/// Null means the screen must not be offered at all — see
+/// [SlicerRepository.presetValues]. A `resolved: false` value is not that: the
+/// screen opens on schema defaults and says why.
+///
+/// `autoDispose` and keyed by preset, so changing the process preset in the
+/// sheet re-reads the baseline the fields are edited against.
+final presetValuesProvider =
+    FutureProvider.autoDispose.family<PresetValues?, ProcessPresetRef>(
+  (ref, preset) => ref.watch(slicerRepositoryProvider).presetValues(
+        // Only source and id reach the wire.
+        SlicerPreset(source: preset.$1, id: preset.$2, name: ''),
+      ),
+);
+
+/// Whether the process-settings screen can be offered: the server accepts
+/// `process_overrides` **and** the vendored metadata actually loaded.
+///
+/// Both halves have to hold, and they fail for unrelated reasons — an older
+/// server, or a broken asset in our own build. One gate keeps the slice sheet
+/// from having to know that.
+final processSettingsAvailableProvider = FutureProvider.autoDispose<bool>(
+  (ref) async {
+    if (!await ref.watch(processOverridesProvider.future)) return false;
+    return await ref.watch(processSchemaProvider.future) != null;
+  },
 );
