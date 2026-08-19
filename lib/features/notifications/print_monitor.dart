@@ -759,7 +759,20 @@ class PrintMonitor {
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
     final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
-    return _errorAlertBase * 1000 + (Object.hash(id, code) & 0xfffff);
+    return _errorAlertBase * 1000 + _stableDigest('$id:$code');
+  }
+
+  /// 20-bit FNV-1a digest, spelled out rather than taken from `Object.hash`,
+  /// whose seed is drawn afresh on every VM start. This isolate restarts each
+  /// time the app is backgrounded, so a seeded id handed the same standing fault
+  /// a new notification after every restart instead of replacing the one already
+  /// on screen.
+  static int _stableDigest(String s) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) {
+      h = ((h ^ s.codeUnitAt(i)) * 0x01000193) & 0xffffffff;
+    }
+    return h & 0xfffff;
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {

@@ -476,6 +476,24 @@ void main() {
     expect(actions.map((a) => a.opensApp), [false, true]);
   });
 
+  test('an HMS alert lands on the same id in every isolate', () {
+    // Pinned to literals on purpose: this isolate restarts on every trip to the
+    // background, and an id derived from a per-run seed handed the same standing
+    // fault a second notification each time instead of replacing the first. A
+    // seeded id would not survive the constants below twice.
+    final fake = _FakeNotifications();
+    final m = monitorAll(fake, hmsDescribe: describeAll);
+    const err = HmsError(code: '0x8004', severity: 3, fullCode: '03008004');
+    const other = HmsError(code: 'A', severity: 2);
+
+    m.update({1: _status(state: 'RUNNING')}); // priming
+    m.update({
+      1: _status(state: 'RUNNING', hms: [err, other]),
+    });
+
+    expect(errorAlerts(fake).map((a) => a['id']), [8639187, 8280425]);
+  });
+
   test('an HMS alert offers no buttons the app could not send', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
