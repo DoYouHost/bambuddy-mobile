@@ -2,6 +2,8 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printable_object.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/data/skip_objects_repository.dart';
+import 'package:bambuddy_mobile/features/dashboard/object_pick_mask.dart';
+import 'package:bambuddy_mobile/features/dashboard/skip_objects_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/skip_objects_screen.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -10,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'dart:typed_data';
 
 import '../../helpers.dart';
 
@@ -67,6 +71,22 @@ const _twoObjects = PrintableObjects(
   bboxAll: [88, 88, 168, 168],
 );
 
+/// Mask splitting the plate down the middle between the two fixture objects.
+ObjectPickMask _halvesMask() {
+  const size = 16;
+  final rgba = Uint8List(size * size * 4);
+  for (var y = 0; y < size; y++) {
+    for (var x = 0; x < size; x++) {
+      final id = x < size ~/ 2 ? 421 : 512;
+      final p = (y * size + x) * 4;
+      rgba[p] = id & 0xFF;
+      rgba[p + 1] = (id >> 8) & 0xFF;
+      rgba[p + 3] = 255;
+    }
+  }
+  return ObjectPickMask.fromRgba(rgba, size, size)!;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -80,6 +100,7 @@ void main() {
     WidgetTester tester, {
     PrintableObjects objects = _twoObjects,
     int layerNum = 2,
+    ObjectPickMask? mask,
   }) async {
     // The test window defaults to 800×600 (wider than tall) — the square plate
     // preview (AspectRatio 1) would then claim the whole viewport height, and
@@ -95,6 +116,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         skipObjectsRepositoryProvider.overrideWithValue(repo),
         printerStatusesProvider.overrideWith(() => _FixedLayerStatuses(layerNum)),
+        objectPickMaskProvider(1).overrideWith((ref) async => mask),
       ],
       child: plApp(const SkipObjectsScreen(printerId: 1, printerName: 'X1 Carbon')),
     ));
@@ -161,15 +183,49 @@ void main() {
     expect(repo.skipCalls, isEmpty);
   });
 
-  testWidgets('płyta rysuje jeden dotykalny kształt na obiekt', (tester) async {
+  testWidgets('bez maski płyta rysuje jeden dotykalny znacznik na obiekt',
+      (tester) async {
     await pumpScreen(tester);
     final handle = tester.ensureSemantics();
 
     // `_ObjectMarker` and `_ObjectTile` both call the same `_toggleSelected`
     // with no branching on the caller, so the list-row tests above already
-    // cover the toggle logic itself; this just guards that the plate actually
-    // renders (and tags) one shape per object.
+    // cover the toggle logic itself; this just guards that the fallback plate
+    // renders (and tags) one badge per object.
     expect(find.bySemanticsIdentifier('skip_objects.marker'), findsNWidgets(2));
+    handle.dispose();
+  });
+
+  testWidgets('dotknięcie kształtu na płycie zaznacza obiekt spod palca',
+      (tester) async {
+    // Object 421 owns the plate's left half, 512 the right — so a tap resolved
+    // through the mask has to name the half it landed in, which is the whole
+    // point of drawing the real footprints instead of badges.
+    await pumpScreen(tester, mask: _halvesMask());
+    final handle = tester.ensureSemantics();
+
+    // One overlay for the whole plate now, not one widget per object.
+    expect(find.bySemanticsIdentifier('skip_objects.marker'), findsOneWidget);
+
+    final plate = tester.getRect(find.byType(InteractiveViewer));
+    await tester.tapAt(Offset(plate.center.dx + plate.width * 0.25, plate.center.dy));
+    // The plate's double-tap-to-reset recogniser holds the tap until its own
+    // timeout passes without a second one.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    expect(find.text('Zaznaczono: 1'), findsOneWidget);
+    await tester.tap(find.text('Pomiń'));
+    await tester.pumpAndSettle();
+    final dialog = find.byType(AlertDialog);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('Divider_right.stl')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('Divider_left.stl')),
+      findsNothing,
+    );
     handle.dispose();
   });
 
@@ -201,6 +257,60 @@ void main() {
     final button =
         tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Pomiń'));
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets(
+      'obiekt pominięty w tle po zaznaczeniu wypada z licznika, dialogu i żądania',
+      (tester) async {
+    final repo = await pumpScreen(tester);
+
+    await tapRow(tester, 'Divider_left.stl');
+    await tapRow(tester, 'Divider_right.stl');
+    expect(find.text('Zaznaczono: 2'), findsOneWidget);
+
+    // Someone else (another client, or the printer itself) skips 512 while it
+    // sits in the selection. Delivered through the screen's own
+    // pull-to-refresh, like the sibling test below.
+    repo._objects = const PrintableObjects(
+      objects: [
+        PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104),
+        PrintableObject(
+          id: 512,
+          name: 'Divider_right.stl',
+          x: 152,
+          y: 104,
+          skipped: true,
+        ),
+      ],
+      total: 2,
+      skippedCount: 1,
+      isPrinting: true,
+      bboxAll: [88, 88, 168, 168],
+    );
+    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // The bar counts what is still skippable, not the raw selection.
+    expect(find.text('Zaznaczono: 1'), findsOneWidget);
+
+    await tester.tap(find.text('Pomiń'));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(AlertDialog);
+    expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('Divider_right.stl')),
+      findsNothing,
+    );
+
+    await tester.tap(find.descendant(of: dialog, matching: find.text('Pomiń')));
+    await tester.pumpAndSettle();
+
+    // No redundant re-skip of 512 riding along.
+    expect(repo.skipCalls, [
+      [421],
+    ]);
   });
 
   testWidgets(

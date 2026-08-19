@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
 import '../common/confirm_dialog.dart';
+import 'object_pick_mask.dart';
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
 
@@ -55,6 +58,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(skipObjectsProvider(widget.printerId));
+    final pending = _pendingIn(async.valueOrNull);
     final status =
         ref.watch(printerStatusesProvider.select((m) => m[widget.printerId]));
     final layerNum = status?.layerNum ?? 0;
@@ -124,7 +128,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                       },
                     ),
                     const SizedBox(height: 8),
-                    if (_selected.isEmpty)
+                    if (pending.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
@@ -151,10 +155,21 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                 ),
               ),
       ),
-      bottomNavigationBar:
-          _selected.isEmpty ? null : _confirmBar(t, l10n, canSelect),
+      bottomNavigationBar: pending.isEmpty
+          ? null
+          : _confirmBar(t, l10n, canSelect, pending.length),
     );
   }
+
+  /// Selected objects still worth skipping, measured against the freshest
+  /// list. The background poll can report one as already skipped — another
+  /// client did it, or the printer did it itself — while it sits in
+  /// [_selected]: keeping it would count it in the bar, name it in the
+  /// confirmation, and re-send an id the printer has already dropped.
+  List<PrintableObject> _pendingIn(PrintableObjects? data) => [
+        for (final obj in data?.objects ?? const <PrintableObject>[])
+          if (!obj.skipped && _selected.contains(obj.id)) obj,
+      ];
 
   /// Toggles one object in/out of the pending selection. The marker and tile
   /// widgets already withhold this callback (`onTap: null`) for a skipped
@@ -165,7 +180,12 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     });
   }
 
-  Widget _confirmBar(DashTokens t, AppLocalizations l10n, bool canConfirm) =>
+  Widget _confirmBar(
+    DashTokens t,
+    AppLocalizations l10n,
+    bool canConfirm,
+    int count,
+  ) =>
       DecoratedBox(
         decoration: BoxDecoration(
           color: t.navBar,
@@ -178,7 +198,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
               children: [
                 Expanded(
                   child: Text(
-                    l10n.skipObjectsSelectedCount(_selected.length),
+                    l10n.skipObjectsSelectedCount(count),
                     style: TextStyle(
                       fontFamily: DashTokens.fontUi,
                       fontSize: 13,
@@ -212,8 +232,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final l10n = AppLocalizations.of(context);
     final data = ref.read(skipObjectsProvider(widget.printerId)).valueOrNull;
     if (data == null) return;
-    final objs =
-        data.objects.where((o) => _selected.contains(o.id)).toList();
+    final objs = _pendingIn(data);
     if (objs.isEmpty) return;
 
     final names = objs.map((o) => o.name).join(', ');
@@ -229,9 +248,9 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
 
     setState(() => _skipping = true);
     // From `objs`, not `_selected`: the background poll can drop an object
-    // between selecting it and confirming (e.g. a 3MF reload), and `objs` is
-    // exactly what the dialog just showed — the request must match that, or
-    // an id the user never saw confirmed would go out anyway.
+    // between selecting it and confirming (a 3MF reload) or mark it skipped,
+    // and `objs` is exactly what the dialog just showed — the request must
+    // match that, or an id the user never saw confirmed would go out anyway.
     final ids = objs.map((o) => o.id).toList();
     final result = await ref
         .read(skipObjectsProvider(widget.printerId).notifier)
@@ -335,8 +354,9 @@ class _LayerWarning extends StatelessWidget {
   }
 }
 
-/// Top-down plate render with object-ID markers overlaid at their plate
-/// positions. Auth for the image is the camera stream token in `?token=`.
+/// Top-down plate render with each object drawn over it: its real outline from
+/// the slicer's object-ID mask, or a badge at its plate position when there is
+/// no mask. Auth for both images is the camera stream token in `?token=`.
 class _PlatePreview extends ConsumerStatefulWidget {
   const _PlatePreview({
     required this.printerId,
@@ -390,35 +410,42 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
     final data = widget.data;
     final baseUrl = ref.watch(serverProfileProvider)?.baseUrl;
 
-    // Synthetic build-plate look for printers without a rendered cover (e.g.
-    // demo mode) — nicer than a lone icon and gives the ID markers a surface.
-    final placeholderBg = CustomPaint(
+    // Build-plate grid under everything. The render draws its objects on a
+    // transparent background, so without it there is nothing to tell where the
+    // plate edges are — and it keeps that job when the render is missing
+    // entirely (demo mode, a printer with no cover).
+    final grid = CustomPaint(
       painter: _PlateGridPainter(line: t.textTertiary.withValues(alpha: 0.18)),
       child: const SizedBox.expand(),
     );
+    const noRender = SizedBox.expand();
 
-    // Background layer: the top-down render when available, else a plain grid
-    // (e.g. demo mode, which has no rendered covers). Markers overlay either way.
+    // The top-down render, laid over the grid.
     Widget background;
     if (baseUrl == null || coverUrl == null) {
-      background = placeholderBg;
+      background = noRender;
     } else {
       background = ref.watch(cameraTokenProvider).when(
-            loading: () => placeholderBg,
-            error: (_, _) => placeholderBg,
+            loading: () => noRender,
+            error: (_, _) => noRender,
             data: (token) => Image.network(
               '$baseUrl$coverUrl?view=top&token=$token',
               fit: BoxFit.contain,
               gaplessPlayback: true,
               errorBuilder: (_, error, _) {
                 widget.recovery.recoverCameraTokenOnError(error, token);
-                return placeholderBg;
+                return noRender;
               },
               loadingBuilder: (_, child, progress) =>
-                  progress == null ? child : placeholderBg,
+                  progress == null ? child : noRender,
             ),
           );
     }
+
+    // Real footprints when the slicer's object-ID mask is available; badges
+    // placed from each object's centre point when it isn't, which is all
+    // `/print/objects` carries.
+    final mask = ref.watch(objectPickMaskProvider(widget.printerId)).valueOrNull;
 
     Widget marker(int i) {
       final obj = data.objects[i];
@@ -442,8 +469,19 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          grid,
           background,
-          for (var i = 0; i < data.objects.length; i++) marker(i),
+          if (mask != null)
+            _ObjectShapes(
+              mask: mask,
+              data: data,
+              tokens: t,
+              selected: widget.selected,
+              canSelect: widget.canSelect,
+              onToggle: widget.onToggle,
+            )
+          else
+            for (var i = 0; i < data.objects.length; i++) marker(i),
         ],
       ),
     );
@@ -542,8 +580,8 @@ class _PlatePreviewState extends ConsumerState<_PlatePreview> {
   );
 }
 
-/// Draws a faint 8×8 build-plate grid inside a rounded border — a stand-in for
-/// the real top-down render when a printer has no cover image.
+/// Draws a faint 8×8 build-plate grid inside a border: the bed under the
+/// render, so an object's position on the plate reads at a glance.
 class _PlateGridPainter extends CustomPainter {
   const _PlateGridPainter({required this.line});
 
@@ -573,10 +611,189 @@ class _PlateGridPainter extends CustomPainter {
   bool shouldRepaint(_PlateGridPainter oldDelegate) => oldDelegate.line != line;
 }
 
-/// Part-shaped tile placed on the plate render at the object's footprint
-/// (green = active, blue = selected to skip, red = skipped). Tappable: taps
-/// toggle the object in/out of the pending selection, the same action as
-/// tapping its row in the list below.
+/// The plate's objects as their real footprints, read from the slicer's
+/// object-ID mask: each shape tinted and outlined in its state colour (green =
+/// active, blue = selected to skip, red = skipped) with the printer's object ID
+/// drawn inside it. The shape and its outline are what a tap selects — the same
+/// toggle as tapping the object's row in the list below.
+class _ObjectShapes extends StatelessWidget {
+  const _ObjectShapes({
+    required this.mask,
+    required this.data,
+    required this.tokens,
+    required this.selected,
+    required this.canSelect,
+    required this.onToggle,
+  });
+
+  final ObjectPickMask mask;
+  final PrintableObjects data;
+  final DashTokens tokens;
+  final Set<int> selected;
+  final bool canSelect;
+  final ValueChanged<PrintableObject> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final byId = {for (final object in data.objects) object.id: object};
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final box = constraints.biggest;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (details) {
+            // The finger-slop radius only rescues a tap that landed on no
+            // object at all — a tap inside a shape is never re-pointed at a
+            // neighbour, because skipping cannot be undone.
+            final id = mask.idAt(details.localPosition, box, tolerance: 8);
+            final object = id == null ? null : byId[id];
+            if (object == null || object.skipped || !canSelect) return;
+            onToggle(object);
+          },
+          child: CustomPaint(
+            painter: _ObjectShapesPainter(
+              mask: mask,
+              objects: byId,
+              selected: selected,
+              tokens: tokens,
+            ),
+          ),
+        ).tagged('skip_objects.marker');
+      },
+    );
+  }
+}
+
+class _ObjectShapesPainter extends CustomPainter {
+  const _ObjectShapesPainter({
+    required this.mask,
+    required this.objects,
+    required this.selected,
+    required this.tokens,
+  });
+
+  final ObjectPickMask mask;
+  final Map<int, PrintableObject> objects;
+  final Set<int> selected;
+  final DashTokens tokens;
+
+  Color _colorOf(PrintableObject object) => object.skipped
+      ? tokens.danger
+      : (selected.contains(object.id) ? tokens.accentBlue : tokens.accentGreen);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final place = mask.placementIn(size);
+    if (!(place.scale > 0)) return;
+
+    canvas.save();
+    canvas.translate(place.origin.dx, place.origin.dy);
+    canvas.scale(place.scale);
+    for (final shape in mask.shapes.values) {
+      final object = objects[shape.id];
+      if (object == null) continue;
+      final marked = object.skipped || selected.contains(object.id);
+      final color = _colorOf(object);
+      canvas.drawPath(
+        shape.fill,
+        Paint()..color = color.withValues(alpha: marked ? 0.45 : 0.16),
+      );
+      // Round caps because the outline is loose unit segments: butt caps would
+      // notch every staircase corner once the stroke is wider than a mask pixel.
+      canvas.drawRawPoints(
+        ui.PointMode.lines,
+        shape.outline,
+        Paint()
+          ..color = color
+          ..strokeWidth = (marked ? 2.5 : 1.5) / place.scale
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+    canvas.restore();
+
+    // Labels last, in unscaled space: a neighbouring shape's fill must not
+    // cover an ID, and the digits are sized in screen units, not mask pixels.
+    for (final shape in mask.shapes.values) {
+      final object = objects[shape.id];
+      if (object != null) _paintLabel(canvas, place, shape, object);
+    }
+  }
+
+  void _paintLabel(
+    Canvas canvas,
+    ({Offset origin, double scale}) place,
+    PickedObjectShape shape,
+    PrintableObject object,
+  ) {
+    final text = '${object.id}';
+    final across = shape.labelSpan * place.scale;
+    final down = shape.bounds.height * place.scale;
+    // Fit the digits across the widest scanline, then clamp: under 9 the ID
+    // stops being readable, over 18 it swamps a small part.
+    final fontSize = math.min(
+      18.0,
+      math.max(9.0, math.min(across / (0.62 * text.length), down * 0.55)),
+    );
+    final style = TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w800,
+      height: 1,
+      decoration: object.skipped ? TextDecoration.lineThrough : null,
+      decorationColor: Colors.white,
+      decorationThickness: 2,
+    );
+    // Dark stroke under white digits — the render underneath can be any
+    // colour, and a plain fill disappears on a light part.
+    final outline = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(
+          foreground: Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = fontSize * 0.3
+            ..strokeJoin = StrokeJoin.round
+            ..color = Colors.black.withValues(alpha: 0.85),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final digits = TextPainter(
+      text: TextSpan(text: text, style: style.copyWith(color: Colors.white)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final anchor = place.origin + shape.labelAnchor * place.scale;
+    for (final painter in [outline, digits]) {
+      painter.paint(
+        canvas,
+        anchor - Offset(painter.width / 2, painter.height / 2),
+      );
+      painter.dispose();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ObjectShapesPainter oldDelegate) =>
+      oldDelegate.mask != mask ||
+      oldDelegate.tokens != tokens ||
+      !setEquals(oldDelegate.selected, selected) ||
+      !_sameSkipped(oldDelegate.objects);
+
+  bool _sameSkipped(Map<int, PrintableObject> other) {
+    if (other.length != objects.length) return false;
+    for (final entry in objects.entries) {
+      final was = other[entry.key];
+      if (was == null || was.skipped != entry.value.skipped) return false;
+    }
+    return true;
+  }
+}
+
+/// Fallback for a print whose mask the server cannot give (no `pick_N.png` in
+/// the 3MF, or a server that predates the view): a part-shaped tile placed at
+/// the object's plate position, sized from its footprint when the server sends
+/// one. Same colours and the same tap-to-toggle as the shapes above.
 class _ObjectMarker extends StatelessWidget {
   const _ObjectMarker({
     required this.object,

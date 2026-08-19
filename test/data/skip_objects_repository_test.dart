@@ -52,6 +52,29 @@ void main() {
     expect(req.data, [683]);
   });
 
+  test('fetchPickMask: prosi o widok pick z tokenem kamery w query', () async {
+    setUpWithReply((_) => ResponseBody.fromBytes([1, 2, 3], 200));
+
+    final bytes = await repo.fetchPickMask(1, 'cam-token');
+
+    final req = adapter.requests.single;
+    expect(req.path, '/api/v1/printers/1/cover');
+    expect(req.queryParameters, {'view': 'pick', 'token': 'cam-token'});
+    expect(bytes, [1, 2, 3]);
+  });
+
+  test('fetchPickMask: 404 to brak maski, nie błąd', () async {
+    setUpWithReply((_) => _empty(404));
+
+    expect(await repo.fetchPickMask(1, 'cam-token'), isNull);
+  });
+
+  test('fetchPickMask: 500 wypływa jako błąd API', () async {
+    setUpWithReply((_) => _empty(500));
+
+    await expectLater(repo.fetchPickMask(1, 'cam-token'), throwsA(isA<ApiException>()));
+  });
+
   test('skip: 403 wypływa jako AuthException(forbidden)', () async {
     setUpWithReply((_) => _empty(403));
 
