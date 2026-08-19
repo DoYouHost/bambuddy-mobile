@@ -246,6 +246,9 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   final refresher = ProactiveTokenRefresher(
     readExpiry: () async => jwtExpiry(await creds.readJwt()),
     refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+    // `silentReLogin` clears the saved login only when the server rejected it,
+    // so an empty store separates that from the network being in the way.
+    canRetry: () async => await creds.readRememberedLogin() != null,
   );
   ref.onDispose(refresher.stop);
   return refresher;

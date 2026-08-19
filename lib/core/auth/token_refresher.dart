@@ -20,7 +20,8 @@ class ProactiveTokenRefresher {
     required Future<DateTime?> Function() refresh,
     this.leadTime = const Duration(minutes: 5),
     this.minDelay = const Duration(seconds: 30),
-    this.fallbackDelay = const Duration(hours: 6),
+    this.fallbackDelay = const Duration(hours: 2),
+    Future<bool> Function()? canRetry,
     DateTime Function()? clock,
     RefreshTimerFactory? timerFactory,
   })  :
@@ -30,6 +31,8 @@ class ProactiveTokenRefresher {
         _readExpiry = readExpiry,
         // ignore: prefer_initializing_formals
         _refresh = refresh,
+        // ignore: prefer_initializing_formals
+        _canRetry = canRetry,
         _now = clock ?? DateTime.now,
         _timerFactory = timerFactory ?? Timer.new;
 
@@ -48,6 +51,12 @@ class ProactiveTokenRefresher {
   /// Used whenever the next expiry is unknown; a reactive 401 remains the
   /// safety net underneath all of this.
   final Duration fallbackDelay;
+
+  /// Whether a failed [_refresh] is worth repeating. A refusal ends the
+  /// schedule: the two ways a refresh fails are "the network was in the way"
+  /// and "the credentials this retries with are gone", and only the first one
+  /// can be fixed by waking up later. `null` retries either way.
+  final Future<bool> Function()? _canRetry;
 
   final DateTime Function() _now;
   final RefreshTimerFactory _timerFactory;
@@ -95,8 +104,17 @@ class ProactiveTokenRefresher {
     if (!_running || generation != _generation) return;
     final freshExpiry = await _refresh();
     if (!_running || generation != _generation) return;
-    _armTimer(
-        freshExpiry != null ? _delayFor(freshExpiry) : fallbackDelay,
-        generation);
+    if (freshExpiry != null) {
+      _armTimer(_delayFor(freshExpiry), generation);
+      return;
+    }
+    if (_canRetry != null) {
+      final retry = await _canRetry();
+      if (!_running || generation != _generation) return;
+      // Nothing left to retry with, so stop rather than repeat a login that
+      // cannot succeed until the user signs in again — which restarts this.
+      if (!retry) return stop();
+    }
+    _armTimer(fallbackDelay, generation);
   }
 }

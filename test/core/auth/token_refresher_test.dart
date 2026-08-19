@@ -107,6 +107,49 @@ void main() {
     expect(timers.last.duration, const Duration(hours: 6));
   });
 
+  test('porażka odnowy przy zachowanym haśle → próbuje dalej', () async {
+    // Sieć była na przeszkodzie: hasło zostało w schowku, więc kolejne obudzenie
+    // ma czym spróbować.
+    ProactiveTokenRefresher(
+      readExpiry: () async => t0.add(const Duration(hours: 1)),
+      refresh: () async => null,
+      canRetry: () async => true,
+      clock: () => t0,
+      fallbackDelay: const Duration(hours: 2),
+      timerFactory: factory(),
+    ).start();
+    await settle();
+    timers.single.fire();
+    await settle();
+
+    expect(timers, hasLength(2));
+    expect(timers.last.duration, const Duration(hours: 2));
+  });
+
+  test('porażka odnowy po odrzuceniu hasła → koniec planowania', () async {
+    // `silentReLogin` czyści zapamiętane hasło tylko wtedy, gdy serwer je
+    // odrzucił — budzenie się co dwie godziny powtarzałoby logowanie, które nie
+    // ma czym się udać, przeciwko limitowi nieudanych prób na serwerze.
+    var refreshCount = 0;
+    ProactiveTokenRefresher(
+      readExpiry: () async => t0.add(const Duration(hours: 1)),
+      refresh: () async {
+        refreshCount++;
+        return null;
+      },
+      canRetry: () async => false,
+      clock: () => t0,
+      timerFactory: factory(),
+    ).start();
+    await settle();
+    timers.single.fire();
+    await settle();
+
+    expect(refreshCount, 1);
+    expect(timers, hasLength(1), reason: 'nie planuje kolejnej próby');
+    expect(timers.single.cancelled, isTrue);
+  });
+
   test('stop() anuluje timer i blokuje przeplanowanie po odpaleniu', () async {
     var refreshCount = 0;
     final r = ProactiveTokenRefresher(
