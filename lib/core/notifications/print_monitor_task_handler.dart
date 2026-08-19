@@ -385,7 +385,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
-      reload: () async => settings.loadNotifiedMaintenanceDueIds(),
+      reload: () async {
+        // The point of this callback: "Mark Done" runs in another isolate, so
+        // its removal only exists on disk. Without the reload this prefs handle
+        // keeps serving the cache this isolate started with and the re-arm is
+        // invisible here — the callback would return our own stale set.
+        await prefs.reload();
+        return settings.loadNotifiedMaintenanceDueIds();
+      },
     );
     _maintenance = maintenance;
     // `check()` guards its own fetch, but the dedup-set persistence and the alert

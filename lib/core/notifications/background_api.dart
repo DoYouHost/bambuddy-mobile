@@ -218,6 +218,16 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
       }
     }
     final settings = SettingsRepository(prefs);
+    // Read-modify-write on a set the service isolate also writes: without the
+    // reload an open app would save back its startup cache and re-arm items the
+    // service has since alerted on, spamming them a second time.
+    await prefs.reload();
+    // Every tapped id is re-armed, including the ones that just failed — being
+    // *in* this set is what suppresses the alert, so dropping only the successes
+    // would leave a counter that was never reset permanently silent. The action
+    // button carries `cancelNotification: true`, so Android has already taken the
+    // notification away; a re-alert on the next poll is the only way the user
+    // ever learns the reset did not happen.
     final notified = settings.loadNotifiedMaintenanceDueIds()
       ..removeAll(itemIds);
     await settings.saveNotifiedMaintenanceDueIds(notified);

@@ -113,13 +113,18 @@ void main() {
   late _FakeRepo repo;
   late Set<int> persisted;
 
-  MaintenanceMonitor monitor({NotificationPrefs? prefs}) => MaintenanceMonitor(
+  MaintenanceMonitor monitor({
+    NotificationPrefs? prefs,
+    Future<Set<int>> Function()? reload,
+  }) =>
+      MaintenanceMonitor(
         notifications,
         repo: repo,
         prefs: prefs ??
             const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
         initialNotified: persisted,
         persist: (s) async => persisted = {...s},
+        reload: reload,
         l10n: () => lookupAppLocalizations(const Locale('en')),
       );
 
@@ -169,6 +174,26 @@ void main() {
     ];
     await m1.check();
     expect(persisted, isEmpty);
+  });
+
+  test('check: reload z dysku odblokowuje alert po "Mark Done" w innym izolacie',
+      () async {
+    // Pozycja nadal due na serwerze (perform padł), ale callback z powiadomienia
+    // zdjął ją z zestawu na dysku — poll musi to zobaczyć i zaalarmować ponownie.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+
+    final m = monitor(reload: () async => {...onDisk});
+    await m.check();
+    expect(notifications.alerts, isEmpty, reason: 'dedup: już zgłoszone');
+
+    onDisk = {};
+    await m.check();
+
+    expect(notifications.alerts, hasLength(1));
   });
 
   test('check: wyłączone zdarzenie → cisza', () async {
