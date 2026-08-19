@@ -9,6 +9,8 @@ import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/features/notifications/maintenance_monitor.dart';
+import 'package:bambuddy_mobile/features/notifications/print_monitor.dart'
+    show alertBandWidth;
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
@@ -66,11 +68,16 @@ class _FakeRepo extends MaintenanceRepository {
   /// Wymusza błąd sieci na przeglądzie — repo puszcza go dalej, jak w produkcji.
   bool failOverview = false;
 
+  /// Odpala się w trakcie zapytania, żeby test mógł wstawić tam zdarzenie z
+  /// innego izolatu — tak jak tapnięcie „Mark Done" na powiadomieniu.
+  void Function()? onFetch;
+
   @override
   Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
     if (failOverview) {
       throw DioException(requestOptions: RequestOptions(path: '/maintenance'));
     }
+    onFetch?.call();
     return overview;
   }
 
@@ -113,13 +120,18 @@ void main() {
   late _FakeRepo repo;
   late Set<int> persisted;
 
-  MaintenanceMonitor monitor({NotificationPrefs? prefs}) => MaintenanceMonitor(
+  MaintenanceMonitor monitor({
+    NotificationPrefs? prefs,
+    Future<Set<int>> Function()? reload,
+  }) =>
+      MaintenanceMonitor(
         notifications,
         repo: repo,
         prefs: prefs ??
             const NotificationPrefs(enabled: {NotifEvent.maintenanceDue}),
         initialNotified: persisted,
         persist: (s) async => persisted = {...s},
+        reload: reload,
         l10n: () => lookupAppLocalizations(const Locale('en')),
       );
 
@@ -171,6 +183,64 @@ void main() {
     expect(persisted, isEmpty);
   });
 
+  test('check: reload z dysku odblokowuje alert po "Mark Done" w innym izolacie',
+      () async {
+    // Pozycja nadal due na serwerze (perform padł), ale callback z powiadomienia
+    // zdjął ją z zestawu na dysku — poll musi to zobaczyć i zaalarmować ponownie.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+
+    final m = monitor(reload: () async => {...onDisk});
+    await m.check();
+    expect(notifications.alerts, isEmpty, reason: 'dedup: już zgłoszone');
+
+    onDisk = {};
+    await m.check();
+
+    expect(notifications.alerts, hasLength(1));
+  });
+
+  test('check: "Mark Done" w trakcie zapytania nie ginie pod zapisem', () async {
+    // Zapytanie trwa sekundy; tapnięcie w tym oknie przepisuje ten sam zbiór z
+    // izolatu callbacku. Odczyt przed zapytaniem oddawałby na końcu stan sprzed
+    // niego i cofał tamten zapis.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+    repo.onFetch = () => onDisk = {}; // użytkownik tapie w trakcie fetcha
+
+    await monitor(reload: () async => {...onDisk}).check();
+
+    expect(notifications.alerts, hasLength(1), reason: 'pozycja uzbrojona na nowo');
+  });
+
+  test('check: "Mark Done" po zapytaniu też nie ginie pod zapisem', () async {
+    // Ta sama sytuacja co wyżej, tylko tapnięcie ląduje za odczytem: między nim
+    // a końcowym zapisem. Zapis musi więc wychodzić od dysku, a nie od kopii, z
+    // którą ten poll wystartował — inaczej pozycja zdjęta z zestawu wraca do
+    // niego i licznik, którego nigdy nie zresetowano, milczy już na zawsze.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+    var reads = 0;
+
+    await monitor(reload: () async {
+      final snapshot = {...onDisk};
+      if (reads++ == 0) onDisk = {}; // tapnięcie tuż po odczycie
+      return snapshot;
+    }).check();
+
+    expect(reads, 2, reason: 'odczyt przy starcie i ponownie przed zapisem');
+    expect(persisted, isEmpty, reason: 're-arm z innego izolatu przetrwał zapis');
+  });
+
   test('check: wyłączone zdarzenie → cisza', () async {
     repo.overview = [
       _printer([_item(id: 10, isDue: true)]),
@@ -191,6 +261,23 @@ void main() {
     expect(notifications.alerts, isEmpty);
   });
 
+  test('duże id zadania nie wchodzi w pasmo przypomnień', () async {
+    // `printer_maintenance.id` to autoinkrement bez sufitu — serwer dokłada
+    // wiersz na drukarkę na każdy typ zadania przy każdym przeglądzie, a numery
+    // po skasowanych drukarkach nie wracają. Przy paśmie szerokości 1000
+    // pozycja 1001 dostawała id przypomnienia drukarki 1 i je podmieniała,
+    // podstawiając pod przycisk „Oznacz wykonane" cudzą listę zadań.
+    repo.overview = [
+      _printer([_item(id: 1001, isDue: true)]),
+    ];
+
+    await monitor().check();
+
+    final id = notifications.alerts.single['id']! as int;
+    expect(id, greaterThanOrEqualTo(12 * alertBandWidth));
+    expect(id, lessThan(13 * alertBandWidth));
+  });
+
   test('remindOnPrintEnd: zbiorcze przypomnienie gdy są zaległe', () async {
     repo.overview = [
       _printer([_item(id: 10, isDue: true), _item(id: 12, isDue: true)]),
@@ -199,7 +286,7 @@ void main() {
     await monitor().remindOnPrintEnd(1);
 
     final alert = notifications.alerts.single;
-    expect(alert['id'], 13000 + 1);
+    expect(alert['id'], 13 * alertBandWidth + 1);
     expect(alert['payload'], '10,12');
     expect(alert['actionIds'], [maintenancePerformActionId]);
   });
@@ -207,6 +294,34 @@ void main() {
   test('remindOnPrintEnd: brak zaległych → brak powiadomienia', () async {
     repo.overview = [
       _printer([_item(id: 10)]),
+    ];
+
+    await monitor().remindOnPrintEnd(1);
+
+    expect(notifications.alerts, isEmpty);
+  });
+
+  test(
+      'remindOnPrintEnd: pozycja wyłączona (enabled=false) pomijana mimo due',
+      () async {
+    repo.overview = [
+      _printer([
+        _item(id: 10, isDue: true, enabled: false),
+        _item(id: 12, isDue: true),
+      ]),
+    ];
+
+    await monitor().remindOnPrintEnd(1);
+
+    final alert = notifications.alerts.single;
+    expect(alert['payload'], '12');
+  });
+
+  test(
+      'remindOnPrintEnd: wszystkie zaległe wyłączone → brak powiadomienia',
+      () async {
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true, enabled: false)]),
     ];
 
     await monitor().remindOnPrintEnd(1);

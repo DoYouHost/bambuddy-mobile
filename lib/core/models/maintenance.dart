@@ -42,9 +42,11 @@ class PrinterMaintenanceOverview {
   @JsonKey(fromJson: _toInt)
   final int warningCount;
 
-  /// Overdue items (disappear after counter reset).
+  /// Overdue items (disappear after counter reset). Excludes tasks the user
+  /// muted server-side — [MaintenanceStatus.enabled] — so a disabled task
+  /// never resurfaces here even while its counter stays overdue.
   List<MaintenanceStatus> get dueItems =>
-      [for (final i in maintenanceItems) if (i.isDue) i];
+      [for (final i in maintenanceItems) if (i.enabled && i.isDue) i];
 }
 
 /// State of a single maintenance task (`MaintenanceStatus`).

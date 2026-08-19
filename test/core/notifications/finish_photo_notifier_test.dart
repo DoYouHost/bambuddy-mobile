@@ -103,6 +103,10 @@ void main() {
   AlertPicture? picture;
   bool enabled = true;
 
+  /// Odpala się w trakcie pobierania zdjęcia — miejsce, w którym test wstawia
+  /// to, co użytkownik może zrobić przez te kilkanaście sekund.
+  void Function()? duringPictureFetch;
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
@@ -119,6 +123,7 @@ void main() {
       thumbnailPath: '/tmp/finish_photo_thumb.png',
     );
     enabled = true;
+    duringPictureFetch = null;
   });
 
   tearDown(() => frames.close());
@@ -137,6 +142,7 @@ void main() {
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
+        duringPictureFetch?.call();
         return picture;
       },
       notifications: notifications,
@@ -168,6 +174,7 @@ void main() {
       },
       fetchPicture: (id, filename) async {
         pictureFetches++;
+        duringPictureFetch?.call();
         return picture;
       },
       notifications: notifications,
@@ -379,6 +386,21 @@ void main() {
     await send(photoFrame);
 
     expect(notifications.posted, isEmpty);
+  });
+
+  test('powiadomienie zsunięte W TRAKCIE pobierania → też nie wskrzesza',
+      () async {
+    // Pobranie potrafi trwać kilkanaście sekund (timeouty Dio plus ponowienie po
+    // 401), a `onlyAlertOnce` wycisza jedynie aktualizację istniejącego wpisu —
+    // po anulowaniu Android liczy post jako nowy, więc zadzwoniłby drugi raz.
+    await memory.remember(_alert());
+    duringPictureFetch = () => notifications.active = false;
+
+    await send(photoFrame);
+
+    expect(pictureFetches, 1, reason: 'w chwili startu jeszcze wisiało');
+    expect(notifications.posted, isEmpty);
+    expect(await memory.recall(3, _now), isNull);
   });
 
   test('powiadomienie zsunięte przez usera → nie wskrzesza go', () async {

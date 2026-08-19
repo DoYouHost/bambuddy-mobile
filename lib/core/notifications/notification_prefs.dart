@@ -78,6 +78,28 @@ class NotificationPrefs {
   static const NotificationPrefs defaults =
       NotificationPrefs(enabled: _defaultEnabled);
 
+  /// The events that existed before the saved payload started listing what the
+  /// writing build knew.
+  ///
+  /// A payload without that list was written by a build with exactly these, so
+  /// anything outside it never had a switch there to be turned off and takes
+  /// [_defaultEnabled] instead. **Do not add to this list when adding an event** —
+  /// it is a record of one past release, not of the enum.
+  static const Set<NotifEvent> _knownBeforeManifest = {
+    NotifEvent.printStarted,
+    NotifEvent.printFinished,
+    NotifEvent.printFailed,
+    NotifEvent.firstLayer,
+    NotifEvent.milestones,
+    NotifEvent.plateNotEmpty,
+    NotifEvent.printerOffline,
+    NotifEvent.printerError,
+    NotifEvent.lowFilament,
+    NotifEvent.amsHumidity,
+    NotifEvent.bedCooled,
+    NotifEvent.maintenanceDue,
+  };
+
   bool isOn(NotifEvent e) => alertsEnabled && enabled.contains(e);
 
   NotificationPrefs copyWith({
@@ -112,6 +134,9 @@ class NotificationPrefs {
         'alertsEnabled': alertsEnabled,
         'finishPhoto': finishPhoto,
         'enabled': [for (final e in enabled) e.name],
+        // Which switches this build actually offered. `enabled` alone cannot say
+        // whether a missing event was declined or simply did not exist yet.
+        'known': [for (final e in NotifEvent.values) e.name],
         'bedCooledTemp': bedCooledTemp,
         'amsHumidityThreshold': amsHumidityThreshold,
         'lowFilamentThreshold': lowFilamentThreshold,
@@ -124,9 +149,23 @@ class NotificationPrefs {
     final names = rawEnabled is List
         ? rawEnabled.map((e) => e.toString()).toSet()
         : const <String>{};
+    final rawKnown = json['known'];
+    // Absent marker → written before it existed, by a build with exactly the
+    // frozen list. Present → take it literally, which also covers a payload
+    // written by an older build after a downgrade.
+    final known = rawKnown is List
+        ? {
+            for (final e in NotifEvent.values)
+              if (rawKnown.map((k) => k.toString()).contains(e.name)) e,
+          }
+        : _knownBeforeManifest;
     final enabled = {
       for (final e in NotifEvent.values)
-        if (names.contains(e.name)) e,
+        // An event the writing build never offered keeps the choice this build
+        // ships it with — off stays off, on stays on — instead of reading as a
+        // switch the user deliberately cleared.
+        if (known.contains(e) ? names.contains(e.name) : _defaultEnabled.contains(e))
+          e,
     };
     return NotificationPrefs(
       // Missing key (prefs saved before this flag existed) → alerts stay on.

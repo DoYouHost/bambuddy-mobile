@@ -195,18 +195,23 @@ class FinishPhotoNotifier {
     }
   }
 
+  /// Whether the notification is gone, dropping the memory entry and recording
+  /// it when so — asked on both sides of the download, hence its own method.
+  Future<bool> _gone(int archiveId, PostedAlert alert) async {
+    if (await _notifications.isAlertActive(alert.id)) return false;
+    await _memory.forget(alert.printerId);
+    NotifProbe.finishPhoto(
+      archiveId: archiveId,
+      printerId: alert.printerId,
+      nid: alert.id,
+      state: 'dismissed',
+    );
+    return true;
+  }
+
   /// Re-posts [alert] with the photo, unless the notification is already gone.
   Future<void> _attach(int archiveId, String filename, PostedAlert alert) async {
-    if (!await _notifications.isAlertActive(alert.id)) {
-      await _memory.forget(alert.printerId);
-      NotifProbe.finishPhoto(
-        archiveId: archiveId,
-        printerId: alert.printerId,
-        nid: alert.id,
-        state: 'dismissed',
-      );
-      return;
-    }
+    if (await _gone(archiveId, alert)) return;
     final picture = await _fetchPicture(archiveId, filename);
     if (picture == null) {
       // Kept in memory on purpose: the next poll (or the upgraded shot's own
@@ -219,6 +224,12 @@ class FinishPhotoNotifier {
       );
       return;
     }
+    // Asked again, because the download between the two can run the better part
+    // of a minute — connect and receive timeouts, plus a retry after a 401. A
+    // notification swiped away inside that window would be brought back by the
+    // post below, and Android counts a post after a cancel as a new one, so it
+    // would ring a second time for a print already dealt with.
+    if (await _gone(archiveId, alert)) return;
     await _notifications.showAlert(
       event: alert.event,
       printerId: alert.printerId,

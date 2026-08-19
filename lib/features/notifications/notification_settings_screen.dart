@@ -3,9 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/notifications/notification_prefs.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+
+/// Whether the system is currently swallowing every alert, which the switches
+/// below cannot show on their own: they keep reading "on" while nothing is
+/// delivered, and the app has no other place that says why it went quiet.
+///
+/// Two separate ways to end up there — the app-level permission refused, and the
+/// alerts channel muted by itself, which looks like a granted permission. Kept
+/// `autoDispose` so re-entering the screen asks again after a trip to the system
+/// settings. False whenever the platform does not answer: a banner that might be
+/// wrong is worse than none.
+final _notificationsBlockedProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final service = ref.watch(notificationServiceProvider);
+  if (service is! LocalNotificationService) return false;
+  if (await service.notificationsEnabled() == false) return true;
+  return await service.alertsChannelImportance() == 0;
+});
 
 /// Settings screen to choose which local events trigger notifications, with
 /// thresholds for threshold-based events. Reads/writes [notificationPrefsProvider];
@@ -27,6 +44,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
+            if (ref.watch(_notificationsBlockedProvider).valueOrNull ?? false)
+              _BlockedBanner(l10n.notificationsBlocked),
             Text(
               l10n.notifSettingsHint,
               style: TextStyle(
@@ -141,6 +160,45 @@ class _EventRow {
   final NotifEvent event;
   final String label;
   final String description;
+}
+
+/// Says the switches below are being overruled by the system. Sits above them
+/// because every one of them reads "on" while nothing gets through.
+class _BlockedBanner extends StatelessWidget {
+  const _BlockedBanner(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.notifications_off_outlined,
+              size: 18, color: scheme.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontFamily: DashTokens.fontUi,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: scheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Header extends StatelessWidget {

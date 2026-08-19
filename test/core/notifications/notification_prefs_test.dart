@@ -24,6 +24,82 @@ void main() {
     expect(decoded.bedCooledTemp, NotificationPrefs.defaultBedCooledTemp);
   });
 
+  group('zdarzenie, którego zapisujący build nie znał', () {
+    test('bierze domyślną wartość tego buildu, nie „wyłączone"', () {
+      // Payload starszego buildu: znał tylko dwa zdarzenia, jedno z nich user
+      // wyłączył. Reszta nie miała tam przełącznika, więc nie ma czego
+      // dziedziczyć — wchodzi z ustawieniem, z jakim ją wydajemy.
+      final decoded = NotificationPrefs.decode(
+        '{"known":["printStarted","printFinished"],'
+        '"enabled":["printStarted"]}',
+      );
+
+      expect(decoded.isOn(NotifEvent.printStarted), isTrue, reason: 'wybór usera');
+      expect(decoded.isOn(NotifEvent.printFinished), isFalse,
+          reason: 'user go wyłączył — mimo że domyślnie jest włączone');
+      for (final e in NotifEvent.values) {
+        if (e == NotifEvent.printStarted || e == NotifEvent.printFinished) {
+          continue;
+        }
+        expect(decoded.isOn(e), NotificationPrefs.defaults.enabled.contains(e),
+            reason: e.name);
+      }
+    });
+
+    test('migracja: payload bez znacznika zostawia wybory nietknięte', () {
+      // Zapis sprzed znacznika pochodzi z buildu, który znał dokładnie zdarzenia
+      // z listy poniżej — więc pusta lista znaczy „user wyłączył wszystko", a nie
+      // „to były nowe zdarzenia". Inaczej aktualizacja włączyłaby je z powrotem.
+      //
+      // Ta lista to kopia `_knownBeforeManifest` i jedyny strukturalny
+      // bezpiecznik tamtej: jest prywatna, a komentarz „nie dopisuj tu nic" nie
+      // jest niczym egzekwowany. Dopisanie do niej nowego zdarzenia przewróci
+      // ten test — bo nowe zdarzenie ma tu wyjść ze swoją domyślną wartością,
+      // nie jako wyłączone. NIE naprawiaj tego, dopisując je również tutaj.
+      const knownBeforeManifest = {
+        NotifEvent.printStarted,
+        NotifEvent.printFinished,
+        NotifEvent.printFailed,
+        NotifEvent.firstLayer,
+        NotifEvent.milestones,
+        NotifEvent.plateNotEmpty,
+        NotifEvent.printerOffline,
+        NotifEvent.printerError,
+        NotifEvent.lowFilament,
+        NotifEvent.amsHumidity,
+        NotifEvent.bedCooled,
+        NotifEvent.maintenanceDue,
+      };
+      final decoded = NotificationPrefs.decode('{"enabled":[]}');
+
+      for (final e in NotifEvent.values) {
+        expect(
+          decoded.isOn(e),
+          knownBeforeManifest.contains(e)
+              ? isFalse
+              : NotificationPrefs.defaults.enabled.contains(e),
+          reason: e.name,
+        );
+      }
+    });
+
+    test('migracja: pojedynczy wybór sprzed znacznika przeżywa aktualizację', () {
+      final decoded =
+          NotificationPrefs.decode('{"enabled":["milestones"]}');
+
+      expect(decoded.enabled, {NotifEvent.milestones});
+    });
+
+    test('znacznik przechodzi round-trip i wymienia komplet zdarzeń', () {
+      const prefs = NotificationPrefs(enabled: {NotifEvent.bedCooled});
+      final json = prefs.toJson();
+
+      expect(json['known'], [for (final e in NotifEvent.values) e.name]);
+      expect(NotificationPrefs.decode(prefs.encode()).enabled,
+          {NotifEvent.bedCooled});
+    });
+  });
+
   test('uszkodzony/pusty string → domyślne prefs', () {
     expect(NotificationPrefs.decode(null).enabled,
         NotificationPrefs.defaults.enabled);

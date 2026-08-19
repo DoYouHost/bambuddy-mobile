@@ -12,19 +12,28 @@ import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Alert ID base per event type; add `printer_id` so alerts from different printers
-/// (and types) don't overwrite each other. ID 1 is reserved for ongoing.
-const int _finishedAlertBase = 1000;
-const int _failedAlertBase = 2000;
-const int _startedAlertBase = 3000;
-const int _firstLayerAlertBase = 4000;
-const int _milestoneAlertBase = 5000;
-const int _plateAlertBase = 6000;
-const int _offlineAlertBase = 7000;
-const int _errorAlertBase = 8000;
-const int _lowFilamentAlertBase = 9000;
-const int _humidityAlertBase = 10000;
-const int _bedCooledAlertBase = 11000;
+/// Room reserved per event type. The offsets added to a base are server row ids
+/// (a printer, a maintenance task), which grow without bound and are never
+/// reused after a delete — so the band has to be wide enough that no realistic
+/// install reaches the next event type's numbers and starts replacing its
+/// notifications.
+const int alertBandWidth = 1000000;
+
+/// Alert ID base per event type; add `printer_id` so alerts from different
+/// printers (and types) don't overwrite each other. ID
+/// [foregroundServiceNotificationId] belongs to the service's own notification
+/// and is deliberately below every band here.
+const int _finishedAlertBase = alertBandWidth;
+const int _failedAlertBase = 2 * alertBandWidth;
+const int _startedAlertBase = 3 * alertBandWidth;
+const int _firstLayerAlertBase = 4 * alertBandWidth;
+const int _milestoneAlertBase = 5 * alertBandWidth;
+const int _plateAlertBase = 6 * alertBandWidth;
+const int _offlineAlertBase = 7 * alertBandWidth;
+const int _errorAlertBase = 8 * alertBandWidth;
+const int _lowFilamentAlertBase = 9 * alertBandWidth;
+const int _humidityAlertBase = 10 * alertBandWidth;
+const int _bedCooledAlertBase = 11 * alertBandWidth;
 
 /// Progress milestone thresholds (%).
 const List<int> _milestones = [25, 50, 75];
@@ -53,6 +62,24 @@ const Set<String> _hmsUserActionCodes = {
   '0500_400E', // "Printing was cancelled."
 };
 
+/// How far AMS humidity has to fall back below the user's threshold before its
+/// alert re-arms.
+///
+/// bambuddy compares against a bare threshold and needs no band, because it only
+/// looks every five minutes ([AMS_HISTORY_INTERVAL]) and holds the cooldown
+/// below. This monitor sees every frame — roughly one a second — so a reading
+/// resting on the threshold crosses it constantly, and without a band each dip
+/// would re-arm the alert.
+const int _humidityRearmMargin = 3;
+
+/// How soon a unit that has retreated below the band and risen again is worth
+/// another alert. The number is bambuddy's `AMS_ALARM_COOLDOWN_MINUTES = 60`;
+/// the meaning is not. There it is a reminder interval — a unit sitting above
+/// the threshold is announced again every hour. Here a stay is announced once,
+/// and this only rations how often a fresh stay counts as fresh, because every
+/// other event in this monitor alerts on the edge rather than on a timer.
+const Duration _humidityAlertCooldown = Duration(hours: 1);
+
 /// Timer factory — injectable so tests can control time instead of waiting 15s.
 typedef TimerFactory = Timer Function(Duration, void Function());
 
@@ -69,8 +96,25 @@ class _PrinterMemo {
   /// has been absent for [_hmsClearGrace], so a genuinely new occurrence can
   /// re-alert while brief flaps/gaps stay silent.
   final Map<String, DateTime> hmsLastSeen = {};
+
+  /// Codes that first showed up while the printer was disconnected, so no alert
+  /// was ever posted for them. Kept out of [hmsLastSeen] until the printer
+  /// answers again — held here only so the deferral is recorded once instead of
+  /// on every frame of the outage. Cleared the moment it is back.
+  final Set<String> hmsDeferredOffline = {};
   final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
+
+  /// Units whose current stay above the band has already been announced. Kept
+  /// apart from [humidUnits] because a rise the cooldown swallowed leaves the
+  /// unit latched but unannounced, and that alert is owed once the hour is up —
+  /// otherwise a unit that never dips again is silently written off.
+  final Set<int> humidAnnounced = {};
+
+  /// When each unit last had a humidity alert. The latch above already covers a
+  /// reading that stays up; this covers one that keeps crossing the band, where
+  /// every crossing is a fresh latch and would otherwise be a fresh alert.
+  final Map<int, DateTime> humidAlertedAt = {};
   bool awaitingBedCool = false;
 
   /// Whether the prep-phase progress was already recorded as ignored for this
@@ -145,6 +189,11 @@ class PrintMonitor {
   final Map<int, _PrinterMemo> _memo = {};
   _OngoingKey? _lastOngoing;
 
+  /// When the last frame arrived, so a gap in the feed itself can be told from
+  /// time passing with the feed healthy. Only the second kind may age an HMS code
+  /// out of memory.
+  DateTime? _lastFrameAt;
+
   bool _on(NotifEvent e) => _prefs.isOn(e);
 
   /// Which switch silenced an alert. `isOn` collapses the per-type checkbox and
@@ -159,6 +208,7 @@ class PrintMonitor {
 
   /// Called on each status map change (from `printerStatusesProvider`).
   void update(Map<int, PrinterStatus> statuses) {
+    _carryHmsMemoryOverFeedGap();
     for (final entry in statuses.entries) {
       // First frame of each printer is only primed, no alerts from it —
       // else fresh monitor (background isolate restarts on every background entry)
@@ -179,6 +229,24 @@ class PrintMonitor {
     }
 
     _updateOngoing(statuses);
+  }
+
+  /// Holds every remembered HMS code over a break in the feed.
+  ///
+  /// The clear-grace window is wall time, but the only evidence a fault cleared
+  /// is a frame that no longer carries it. When nothing arrives at all — the
+  /// socket dropped, the phone dozed — the window elapses against silence, and
+  /// the first frame back would forget every standing code and alert about all of
+  /// them again. The socket's own idle watchdog is longer than the window, so
+  /// every disconnect it catches lands here.
+  void _carryHmsMemoryOverFeedGap() {
+    final now = _now();
+    final last = _lastFrameAt;
+    _lastFrameAt = now;
+    if (last == null || now.difference(last) < _hmsClearGrace) return;
+    for (final memo in _memo.values) {
+      memo.hmsLastSeen.updateAll((_, _) => now);
+    }
   }
 
   /// Cancels all pending per-printer offline-grace timers. Call when this
@@ -245,7 +313,11 @@ class PrintMonitor {
       for (var i = 0; i < units.length; i++) {
         final humidity = units[i].humidity;
         if (humidity != null && humidity > _prefs.amsHumidityThreshold) {
-          memo.humidUnits.add(units[i].id ?? i);
+          final key = units[i].id ?? i;
+          // Announced as well as latched: this stay predates the monitor, and an
+          // unannounced latch is one the next frame would decide is still owed.
+          memo.humidUnits.add(key);
+          memo.humidAnnounced.add(key);
         }
       }
     }
@@ -449,21 +521,42 @@ class PrintMonitor {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
     final now = _now();
-    // Forget codes absent past the grace window — only those can re-alert. Run
-    // before refreshing so codes present this frame (still within grace) survive.
-    memo.hmsLastSeen
-        .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
-
     // An offline printer can't be actively faulting — its `hms_errors` are just
     // the last-known values carried forward by mergedWith. Never alert while
     // disconnected, but still REFRESH last-seen for present codes below: that
     // pauses the clear-grace clock across the outage, so a fault known before
     // the disconnect doesn't spuriously re-alert on reconnect.
     final online = status.connected != false;
+    // Forget codes absent past the grace window — only those can re-alert. Run
+    // before refreshing so codes present this frame (still within grace) survive,
+    // and only while connected: a frame from a disconnected printer carries no
+    // evidence that anything cleared, so the whole memory holds still for the
+    // outage rather than ageing out against a clock nothing is answering.
+    if (online) {
+      memo.hmsLastSeen
+          .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
+      memo.hmsDeferredOffline.clear();
+    }
+
     for (final e in errors) {
       final key = _hmsKey(e);
       if (key == null) continue;
       final isNew = !memo.hmsLastSeen.containsKey(key);
+      if (isNew && !online) {
+        // Never announced, so latching it would silence it for good: the printer
+        // can come back with this fault still standing, and until then nothing
+        // ages it out — with a second printer streaming frames the grace window
+        // is refreshed faster than it can elapse. Defer the decision instead.
+        if (memo.hmsDeferredOffline.add(key)) {
+          NotifProbe.suppressed(
+            NotifSkip.offline,
+            printerId: id,
+            event: NotifEvent.printerError,
+            fields: {'code': _hmsCode(e), 'sev': e.severity},
+          );
+        }
+        continue;
+      }
       memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
       // Only ever the first sighting of a code gets this far, so each of the
       // records below is one per code per clear-grace window, not one per frame.
@@ -472,7 +565,7 @@ class PrintMonitor {
       // notification record next to it *is* the dedup, visible on the same
       // timeline.
       if (!isNew) continue;
-      final skip = _hmsSkipReason(e, online: online);
+      final skip = _hmsSkipReason(e);
       if (skip != null) {
         NotifProbe.suppressed(
           skip,
@@ -488,13 +581,14 @@ class PrintMonitor {
 
   /// Why this HMS code produces no alert, or null when it produces one.
   ///
-  /// Four separate answers where the code used to fold them into one boolean.
-  /// "Printer disconnected" is not "you turned this off", and neither is "the
-  /// firmware sent a code nobody documented" — which is the single largest silent
-  /// drop on this path, since one physical fault emits several codes and only one
-  /// of them is a real fault.
-  NotifSkip? _hmsSkipReason(HmsError e, {required bool online}) {
-    if (!online) return NotifSkip.offline;
+  /// Three separate answers where the code used to fold them into one boolean.
+  /// "You turned this off" is not "the firmware sent a code nobody documented" —
+  /// the latter being the single largest silent drop on this path, since one
+  /// physical fault emits several codes and only one of them is a real fault.
+  /// Every answer here settles the code for the life of this isolate; a
+  /// disconnected printer is the one case that does not, so it is deferred by
+  /// the caller rather than answered here.
+  NotifSkip? _hmsSkipReason(HmsError e) {
     if (!_on(NotifEvent.printerError)) return _offReason;
     if (_hmsSuppressed(e)) return NotifSkip.userAction;
     // Notify only on a real, documented fault (parity with bambuddy) — drops
@@ -560,13 +654,35 @@ class PrintMonitor {
       if (humidity == null) continue;
       final key = unit.id ?? i;
       if (humidity > threshold) {
-        if (memo.humidUnits.add(key)) {
-          triggered = true;
-          value = humidity;
-          isHt = unit.isAmsHt;
+        final justRose = memo.humidUnits.add(key);
+        // Said once per stay, not once per frame — but the saying is what counts
+        // as done, so a rise the cooldown swallowed is still owed one.
+        if (memo.humidAnnounced.contains(key)) continue;
+        final last = memo.humidAlertedAt[key];
+        final now = _now();
+        if (last != null && now.difference(last) < _humidityAlertCooldown) {
+          // Only on the rise itself: the frames after it would repeat this
+          // record every second until the hour is up.
+          if (justRose) {
+            NotifProbe.suppressed(
+              NotifSkip.throttled,
+              printerId: id,
+              event: NotifEvent.amsHumidity,
+              fields: {'unit': key, 'humidity': humidity},
+            );
+          }
+          continue;
         }
-      } else {
+        memo.humidAlertedAt[key] = now;
+        memo.humidAnnounced.add(key);
+        triggered = true;
+        value = humidity;
+        isHt = unit.isAmsHt;
+      } else if (humidity <= threshold - _humidityRearmMargin) {
+        // Only a real retreat re-arms it. Sitting one point under the threshold
+        // is the same damp unit, not a resolved one.
         memo.humidUnits.remove(key);
+        memo.humidAnnounced.remove(key);
       }
     }
     if (!triggered) return;
@@ -759,7 +875,20 @@ class PrintMonitor {
   /// band — doesn't collide with bases 1k–13k.
   int _errorAlertId(int id, HmsError err) {
     final code = err.fullCode ?? err.ecode ?? err.code ?? err.displayCode;
-    return _errorAlertBase * 1000 + (Object.hash(id, code) & 0xfffff);
+    return _errorAlertBase + _stableDigest('$id:$code');
+  }
+
+  /// FNV-1a digest folded into one band, spelled out rather than taken from
+  /// `Object.hash`, whose seed is drawn afresh on every VM start. This isolate
+  /// restarts each time the app is backgrounded, so a seeded id handed the same
+  /// standing fault a new notification after every restart instead of replacing
+  /// the one already on screen.
+  static int _stableDigest(String s) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) {
+      h = ((h ^ s.codeUnitAt(i)) * 0x01000193) & 0xffffffff;
+    }
+    return h % alertBandWidth;
   }
 
   void _alertLowFilament(int id, PrinterStatus status, int remain) {

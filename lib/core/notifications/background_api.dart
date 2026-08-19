@@ -61,6 +61,22 @@ List<int> parseMaintenancePayload(String? payload) {
   return ids;
 }
 
+/// The [AuthService] the isolates without Riverpod build.
+///
+/// A rejection noticed out here happens hours before the user next opens the
+/// app, and the flag left in prefs is the only thing that lets the UI explain
+/// the silence when they do — so both isolates have to leave the same mark.
+AuthService backgroundAuthService(
+  SharedPreferences prefs,
+  CredentialsStore credentials,
+) =>
+    AuthService(
+      bareDio: createBareDio(),
+      credentials: credentials,
+      onSignInRequired: (reason) =>
+          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
+    );
+
 /// Builds an authenticated [ApiClient] without Riverpod — usable in the
 /// background isolate (foreground service) and notification callback isolate
 /// where providers are unavailable. Mirrors `apiClientProvider` logic.
@@ -70,14 +86,7 @@ Future<ApiClient?> buildBackgroundApiClient(SharedPreferences prefs) async {
   final profile = settings.loadProfile();
   if (profile == null) return null;
   final creds = SecureCredentialsStore();
-  final auth = AuthService(
-    bareDio: createBareDio(),
-    credentials: creds,
-    // The rejection can just as easily happen here, hours before the user opens
-    // the app; the flag is in prefs so the UI still finds it when they do.
-    onSignInRequired: (reason) =>
-        settings.saveSignInRequired(true, reason: reason),
-  );
+  final auth = backgroundAuthService(prefs, creds);
   return ApiClient(
     profile: profile,
     credentials: creds,
@@ -218,6 +227,12 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
       }
     }
     final settings = SettingsRepository(prefs);
+    // Read-modify-write on a set the service isolate also writes.
+    await prefs.reload();
+    // Failed resets are re-armed too: being *in* this set suppresses the alert,
+    // and the button already took the notification away
+    // (`cancelNotification: true`), so a re-alert is the only way the user
+    // learns the counter never reset.
     final notified = settings.loadNotifiedMaintenanceDueIds()
       ..removeAll(itemIds);
     await settings.saveNotifiedMaintenanceDueIds(notified);

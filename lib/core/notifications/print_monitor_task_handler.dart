@@ -24,7 +24,6 @@ import '../api/ws_messages.dart';
 import '../api/ws_token.dart';
 import '../auth/auth_service.dart';
 import '../auth/credentials_store.dart';
-import '../auth/jwt.dart';
 import '../auth/token_refresher.dart';
 import '../diagnostics/diagnostic_recorder.dart';
 import '../diagnostics/log_event.dart';
@@ -228,6 +227,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     );
 
     final creds = SecureCredentialsStore();
+    // Shared by the socket below and the proactive refresh: both recover a
+    // lapsed session the same way, and building two would mean two independent
+    // silent re-logins racing against the server's failed-attempt budget.
+    final auth = backgroundAuthService(prefs, creds);
     // WS handshake token (new server, GHSA-r2qv) minted with authenticated Dio;
     // null when the server lacks the endpoint → header-only fallback.
     final wsToken = api != null ? WsTokenService(api.dio) : null;
@@ -244,6 +247,13 @@ class PrintMonitorTaskHandler extends TaskHandler {
             authHeaders: () => wsAuthHeaders(profile.authMode, creds),
             queryToken: wsToken?.token,
             invalidateQueryToken: wsToken?.invalidate,
+            // Without this a handshake rejected for a lapsed JWT has nothing to
+            // recover with, and the socket retries the expired token for as long
+            // as the service lives. Only JWT can re-mint: an API key is static
+            // and a server without auth never rejects.
+            refreshAuth: profile.authMode == AuthMode.jwt
+                ? () async => await auth.silentReLogin(profile.baseUrl) != null
+                : null,
           );
     _ws = ws;
     _sub = ws.statusFrames.listen((frame) {
@@ -338,27 +348,20 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.
-    _setUpTokenRefresh(profile, creds, prefs);
+    _setUpTokenRefresh(profile, creds, auth);
   }
 
   /// Starts proactive JWT refresh in the background isolate (JWT mode only).
   void _setUpTokenRefresh(
     ServerProfile profile,
     CredentialsStore creds,
-    SharedPreferences prefs,
+    AuthService auth,
   ) {
     if (profile.authMode != AuthMode.jwt) return;
-    final auth = AuthService(
-      bareDio: createBareDio(),
+    final refresher = jwtTokenRefresher(
       credentials: creds,
-      // A refresh that runs while the app is closed is the likeliest place for a
-      // stale password to be caught; leave the mark for the UI to explain later.
-      onSignInRequired: (reason) =>
-          SettingsRepository(prefs).saveSignInRequired(true, reason: reason),
-    );
-    final refresher = ProactiveTokenRefresher(
-      readExpiry: () async => jwtExpiry(await creds.readJwt()),
-      refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+      auth: auth,
+      baseUrl: profile.baseUrl,
     );
     _tokenRefresher = refresher;
     refresher.start();
@@ -385,7 +388,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
-      reload: () async => settings.loadNotifiedMaintenanceDueIds(),
+      reload: () async {
+        // The point of this callback: "Mark Done" runs in another isolate, so
+        // its removal only exists on disk. Without the reload this prefs handle
+        // keeps serving the cache this isolate started with and the re-arm is
+        // invisible here — the callback would return our own stale set.
+        await prefs.reload();
+        return settings.loadNotifiedMaintenanceDueIds();
+      },
     );
     _maintenance = maintenance;
     // `check()` guards its own fetch, but the dedup-set persistence and the alert

@@ -10,7 +10,6 @@ import 'core/api/camera_token.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
-import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/diagnostics/diagnostic_recorder.dart';
 import 'core/diagnostics/report_config.dart';
@@ -243,9 +242,10 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);
-  final refresher = ProactiveTokenRefresher(
-    readExpiry: () async => jwtExpiry(await creds.readJwt()),
-    refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+  final refresher = jwtTokenRefresher(
+    credentials: creds,
+    auth: auth,
+    baseUrl: profile.baseUrl,
   );
   ref.onDispose(refresher.stop);
   return refresher;
