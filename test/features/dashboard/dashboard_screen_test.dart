@@ -28,12 +28,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-/// Onboarding powiadomień w initState czyta te providery; w teście są nieaktywne.
+/// Notification onboarding in initState reads these providers; inert in tests.
 class _NoopNotifications implements NotificationService {
   _NoopNotifications({this.permissionGranted = false});
 
-  /// Co system odpowiada na prośbę o zgodę — odmowa jest domyślna, bo tak
-  /// wygląda host testowy.
+  /// What the system answers to the permission request — denial is the default,
+  /// because that is what the test host looks like.
   final bool permissionGranted;
 
   @override
@@ -85,25 +85,25 @@ class _FakeProfileNotifier extends ServerProfileNotifier {
       );
 }
 
-/// Inert WS: testy dashboardu sprawdzają render z pollingu, nie żywy socket.
+/// Inert WS: dashboard tests check the render from polling, not a live socket.
 class _InertStatusesNotifier extends PrinterStatusesNotifier {
   @override
   Map<int, PrinterStatus> build() => const {};
 }
 
-/// Inert gniazdka: bez pollingu serwera (nagłówek liczy sumę mocy z tego
-/// providera, ale testy nie sprawdzają gniazdek).
+/// Inert smart plugs: no server polling (the header sums power from this
+/// provider, but these tests do not check plugs).
 class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
   @override
   SmartPlugsState build() => const SmartPlugsState();
 }
 
-/// Usługa w tle bez Androida pod spodem — testy cyklu życia sprawdzają, komu
-/// dashboard oddaje i odbiera pracę, nie samą usługę.
+/// Background service with no Android underneath — the lifecycle tests check who
+/// the dashboard hands work to and takes it back from, not the service itself.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
   _FakeBackgroundMonitor({this.running = false});
 
-  /// Czy Android trzyma usługę żywą z poprzedniego uruchomienia aplikacji.
+  /// Whether Android is keeping the service alive from a previous app launch.
   final bool running;
   int stops = 0;
 
@@ -117,7 +117,7 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   void syncDiagnostics() {}
 }
 
-/// Relay zegarka tknięty tylko po to, żeby nie sięgał po kanał platformy.
+/// Watch relay stubbed only so it does not reach for the platform channel.
 class _InertWearRelay extends WearRelayHandler {
   _InertWearRelay() : super(watch: WatchConnectivity(), dio: () => null);
   @override
@@ -126,8 +126,8 @@ class _InertWearRelay extends WearRelayHandler {
   void stop() {}
 }
 
-/// Liczy samo przekazanie pałeczki; co notifier robi w środku, sprawdza jego
-/// własny test.
+/// Counts the hand-off alone; what the notifier does inside is covered by its
+/// own test.
 class _SpyFinishPhoto extends FinishPhotoNotifier {
   _SpyFinishPhoto()
       : super(
@@ -158,8 +158,8 @@ List<Override> _overrides(DashboardState state) => [
       inertFirmwareOverride,
       inertTotalPrintHoursOverride,
       sharedPreferencesProvider.overrideWithValue(_prefs),
-      // Dotykany już przy pierwszej klatce (przejęcie po ocalałej usłudze), więc
-      // bez atrapy każdy test tu sięgałby po kanał platformy.
+      // Touched on the very first frame (taking over from a surviving service), so
+      // without a stub every test here would reach for the platform channel.
       backgroundMonitorProvider.overrideWithValue(_FakeBackgroundMonitor()),
       notificationServiceProvider.overrideWithValue(_NoopNotifications()),
       wsConnectionStateProvider.overrideWith(
@@ -186,7 +186,7 @@ Widget _routedApp(DashboardState state) {
       GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
       GoRoute(
         path: '/setup',
-        builder: (_, _) => const Scaffold(body: Text('EKRAN SETUP')),
+        builder: (_, _) => const Scaffold(body: Text('SETUP SCREEN')),
       ),
     ],
   );
@@ -228,7 +228,7 @@ void main() {
     expect(find.text('X1C Warsztat'), findsOneWidget);
   });
 
-  testWidgets('pad pierwszego ładowania pokazuje błąd i przycisk ponowienia',
+  testWidgets('a first-load failure shows the error and a retry button',
       (tester) async {
     await tester
         .pumpWidget(_app(const DashboardState(
@@ -239,7 +239,7 @@ void main() {
     expect(find.byType(ConnectionBanner), findsNothing);
   });
 
-  testWidgets('wyszukiwarka filtruje listę po nazwie', (tester) async {
+  testWidgets('the search box filters the list by name', (tester) async {
     await tester.pumpWidget(_app(const DashboardState(printers: [
       PrinterWithStatus(printer: Printer(id: 1, name: 'X1C Warsztat')),
       PrinterWithStatus(printer: Printer(id: 2, name: 'A1 mini')),
@@ -255,7 +255,7 @@ void main() {
     expect(find.text('X1C Warsztat'), findsNothing);
   });
 
-  testWidgets('nagłówek pokazuje liczbę drukujących i następną wolną',
+  testWidgets('the header shows how many are printing and the next one free',
       (tester) async {
     await tester.pumpWidget(_app(const DashboardState(printers: [
       PrinterWithStatus(
@@ -270,12 +270,12 @@ void main() {
     expect(find.textContaining('Następna wolna'), findsOneWidget);
   });
 
-  testWidgets('usługa ocalała po poprzednim uruchomieniu jest zatrzymywana',
+  testWidgets('a service that outlived the previous launch is stopped',
       (tester) async {
-    // Po zsunięciu apki Android wskrzesza usługę i ta przeżywa następny start.
-    // `onResume` jej nie łapie, bo odpala się na przejściu, a zimny start jest
-    // już „resumed" — więc wszystko, co zamroziła u siebie (przełączniki
-    // powiadomień, profil serwera), przeżywałoby całą sesję.
+    // After a swipe-away Android revives the service and it survives the next
+    // launch. `onResume` does not catch it, because that fires on a transition and
+    // a cold start is already "resumed" — so everything it froze at its own start
+    // (notification switches, server profile) would outlive the whole session.
     final monitor = _FakeBackgroundMonitor(running: true);
     await tester.pumpWidget(_app(
       const DashboardState(
@@ -288,11 +288,11 @@ void main() {
     expect(monitor.stops, 1);
   });
 
-  testWidgets('nieprzyznana zgoda nie zużywa jednorazowego onboardingu',
+  testWidgets('a refused permission does not spend the one-time onboarding',
       (tester) async {
-    // Flaga zapisywana przed pytaniem spalała jedyne automatyczne pytanie na
-    // przebieg, który user mógł odrzucić przez przypadek — a Android pokazuje
-    // swój dialog aż do drugiej odmowy.
+    // Writing the flag before asking burned the one automatic prompt on a run the
+    // user may have dismissed by accident — and Android keeps showing its dialog
+    // until it is refused twice.
     await _prefs.setBool('notif_onboarded', false);
 
     await tester.pumpWidget(_app(
@@ -306,10 +306,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_prefs.getBool('notif_onboarded'), isNot(isTrue),
-        reason: 'odmowa → pytamy przy kolejnym starcie');
+        reason: 'refused → we ask again on the next launch');
   });
 
-  testWidgets('przyznana zgoda zamyka onboarding na dobre', (tester) async {
+  testWidgets('a granted permission closes onboarding for good', (tester) async {
     await _prefs.setBool('notif_onboarded', false);
 
     await tester.pumpWidget(_app(
@@ -326,11 +326,12 @@ void main() {
     expect(_prefs.getBool('notif_onboarded'), isTrue);
   });
 
-  testWidgets('szukanie zdjęcia oddaje pole usłudze w tle i odbiera po powrocie',
+  testWidgets('the photo hunt yields to the background service and takes it back '
+      'on return',
       (tester) async {
-    // Obie kopie naraz pobierałyby to samo zdjęcie i deptały sobie zapisy do
-    // wspólnej pamięci alertów — przegrany wpis znika, a powiadomienie zostaje
-    // bez zdjęcia na zawsze.
+    // Both copies at once would fetch the same photo and trample each other's
+    // writes to the shared alert memory — the losing entry disappears and its
+    // notification stays without a photo forever.
     final spy = _SpyFinishPhoto();
     await tester.pumpWidget(_app(
       const DashboardState(
@@ -343,7 +344,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // AppLifecycleListener rozpoznaje przejścia, nie stany — stąd pełna droga.
+    // AppLifecycleListener recognises transitions, not states — hence the full path.
     Future<void> drive(List<AppLifecycleState> states) async {
       for (final s in states) {
         tester.binding.handleAppLifecycleStateChanged(s);
@@ -358,7 +359,7 @@ void main() {
     ];
 
     await drive(toBackground);
-    expect(spy.stops, 1, reason: 'usługa w tle przejmuje szukanie');
+    expect(spy.stops, 1, reason: 'the background service takes over the hunt');
     expect(spy.starts, 0);
 
     await drive(const [
@@ -366,18 +367,18 @@ void main() {
       AppLifecycleState.inactive,
       AppLifecycleState.resumed,
     ]);
-    expect(spy.starts, 1, reason: 'dopiero gdy usługa jest już zatrzymana');
+    expect(spy.starts, 1, reason: 'only once the service is already stopped');
 
-    // Powrót wznowił polling; bez tego jego timery przeżyją drzewo widgetów.
+    // Returning resumed polling; without this its timers outlive the widget tree.
     await drive(toBackground);
   });
 
-  group('ostrzeżenie o odrzuconym haśle', () {
+  group('rejected-password warning', () {
     const state = DashboardState(
       printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
     );
 
-    testWidgets('flaga ustawiona → dialog po pierwszej klatce', (tester) async {
+    testWidgets('flag set → dialog after the first frame', (tester) async {
       // The flag is set from an interceptor or the background isolate, both
       // invisible; without this dialog the app just stops loading anything.
       await _prefs.setBool('sign_in_required', true);
@@ -389,7 +390,7 @@ void main() {
       expect(find.textContaining('odrzucił zapisane hasło'), findsOneWidget);
     });
 
-    testWidgets('flaga zapisana przez obcy izolat też otwiera dialog',
+    testWidgets('a flag written by another isolate opens the dialog too',
         (tester) async {
       // Both writers (background service, action callback) run in their own
       // isolate, so the flag reaches this one only on disk. Reading the cache
@@ -399,7 +400,7 @@ void main() {
         'sign_in_required': true,
       });
       expect(_prefs.getBool('sign_in_required'), isNot(isTrue),
-          reason: 'cache tego izolatu nie może znać obcego zapisu');
+          reason: "this isolate's cache cannot know the other one's write");
 
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();
@@ -407,14 +408,14 @@ void main() {
       expect(find.text('Zaloguj się ponownie'), findsOneWidget);
     });
 
-    testWidgets('bez flagi nie ma dialogu', (tester) async {
+    testWidgets('no flag, no dialog', (tester) async {
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();
 
       expect(find.text('Zaloguj się ponownie'), findsNothing);
     });
 
-    testWidgets('„Zaloguj" prowadzi na ekran konfiguracji', (tester) async {
+    testWidgets('"Sign in" leads to the setup screen', (tester) async {
       await _prefs.setBool('sign_in_required', true);
 
       await tester.pumpWidget(_routedApp(state));
@@ -422,10 +423,10 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Zaloguj'));
       await tester.pumpAndSettle();
 
-      expect(find.text('EKRAN SETUP'), findsOneWidget);
+      expect(find.text('SETUP SCREEN'), findsOneWidget);
     });
 
-    testWidgets('„Później" zamyka dialog, ale flaga zostaje na kolejny start',
+    testWidgets('"Later" closes the dialog, but the flag stays for the next launch',
         (tester) async {
       // The app cannot load anything until the user signs in, so postponing
       // must not be mistaken for resolving it.

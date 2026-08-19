@@ -9,7 +9,7 @@ import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Nagrywa alerty zamiast dotykać pluginu.
+/// Records alerts instead of touching the plugin.
 class _FakeNotifications implements NotificationService {
   final posted = <Map<String, Object?>>[];
   bool active = true;
@@ -68,7 +68,7 @@ Archive _archive({
   status: 'completed',
   printerId: printerId,
   photos: photos,
-  // Domyślnie ten sam moment co alert: to wydruk, który właśnie się skończył.
+  // Same moment as the alert by default: this is the print that just finished.
   completedAt: completedAt ?? _now.subtract(const Duration(minutes: 1)),
   createdAt: createdAt,
 );
@@ -81,7 +81,7 @@ PostedAlert _alert({
   event: event,
   printerId: printerId,
   id: 1000 + printerId,
-  title: 'Wydruk zakończony',
+  title: 'Print finished',
   body: 'Benchy',
   payload: 'printer:$printerId',
   postedAt: postedAt ?? _now.subtract(const Duration(minutes: 1)),
@@ -103,8 +103,8 @@ void main() {
   AlertPicture? picture;
   bool enabled = true;
 
-  /// Odpala się w trakcie pobierania zdjęcia — miejsce, w którym test wstawia
-  /// to, co użytkownik może zrobić przez te kilkanaście sekund.
+  /// Fires during the picture fetch — where the test slips in whatever the user
+  /// might do over those dozen-odd seconds.
   void Function()? duringPictureFetch;
 
   setUp(() async {
@@ -128,7 +128,7 @@ void main() {
 
   tearDown(() => frames.close());
 
-  /// Startuje notifier, wysyła ramkę i czeka aż obsługa się zakończy.
+  /// Starts the notifier, sends a frame and waits for handling to finish.
   Future<FinishPhotoNotifier> send(WsArchiveUpdated frame) async {
     final notifier = FinishPhotoNotifier(
       updates: frames.stream,
@@ -151,8 +151,8 @@ void main() {
       clock: () => _now,
     )..start();
     frames.add(frame);
-    // Dwa obroty pętli zdarzeń: jeden na dostarczenie ramki, drugi na łańcuch
-    // asynchronicznych kroków obsługi.
+    // Two turns of the event loop: one to deliver the frame, one for the chain of
+    // async handling steps.
     await Future<void>.delayed(Duration.zero);
     await notifier.stop();
     return notifier;
@@ -160,7 +160,7 @@ void main() {
 
   const photoFrame = WsArchiveUpdated(82, photoAdded: 'finish_1.jpg');
 
-  /// Jeden przebieg odpytywania archiwum — to, co w tle robi timer.
+  /// One archive polling pass — what the timer does in the background.
   Future<void> pollOnce({DateTime? now}) async {
     final notifier = FinishPhotoNotifier(
       updates: frames.stream,
@@ -187,13 +187,13 @@ void main() {
   }
 
   group('FinishPhotoNotifier.runForAlert', () {
-    test('bierze wydruk po completed_at, nie po kolejności z serwera', () {
-      // Serwer sortuje po created_at, a wznowienie druku reużywa starego wpisu
-      // i nie rusza tego pola — więc plik wgrany po nim wychodzi na czoło listy.
-      // Wgrany plik, jeszcze nigdy nie drukowany: nowy wpis, bez completed_at.
+    test('picks the print by completed_at, not by the server order', () {
+      // The server sorts by created_at, and a reprint reuses the old entry without
+      // touching that field — so a file uploaded after it ends up at the head of the
+      // list. An uploaded file never printed yet: new entry, no completed_at.
       final justUploaded = Archive(
         id: 90,
-        filename: 'nowy.gcode',
+        filename: 'new.gcode',
         status: 'uploaded',
         printerId: 3,
         createdAt: _now,
@@ -210,7 +210,7 @@ void main() {
       );
     });
 
-    test('nic nie pasuje czasowo → null zamiast losowego archiwum', () {
+    test('nothing matches in time → null instead of a random archive', () {
       final old = _archive(
         completedAt: _now.subtract(const Duration(hours: 3)),
       );
@@ -218,11 +218,11 @@ void main() {
       expect(FinishPhotoNotifier.runForAlert([old], _alert()), isNull);
     });
 
-    test('pusta lista i archiwa bez completed_at → null', () {
+    test('empty list and archives without completed_at → null', () {
       expect(FinishPhotoNotifier.runForAlert(const [], _alert()), isNull);
       const neverPrinted = Archive(
         id: 90,
-        filename: 'nowy.gcode',
+        filename: 'new.gcode',
         status: 'uploaded',
         printerId: 3,
       );
@@ -234,21 +234,21 @@ void main() {
   });
 
   group('FinishPhotoNotifier.finishPhotoIn', () {
-    test('bierze najnowsze ujęcie serwera, nie pierwsze z brzegu', () {
-      // Zwykłe ujęcie dopisuje na koniec, ulepszone z timelapse'a wstawia na
-      // początek, a wznowiony wydruk zostawia zdjęcia poprzednich przebiegów.
+    test('takes the newest server shot, not whichever comes first', () {
+      // An ordinary shot is appended, an enhanced one from the timelapse is
+      // prepended, and a reprint leaves the photos of earlier runs behind.
       const photos = [
-        'finish_20260814_101500_aaaa.jpg', // poprzedni przebieg
-        'finish_20260815_115900_bbbb.jpg', // ten przebieg
+        'finish_20260814_101500_aaaa.jpg', // previous run
+        'finish_20260815_115900_bbbb.jpg', // this run
       ];
 
       expect(FinishPhotoNotifier.finishPhotoIn(photos),
           'finish_20260815_115900_bbbb.jpg');
     });
 
-    test('ujęcie ulepszone (wstawione na początek) wygrywa z wcześniejszym', () {
+    test('the enhanced shot (prepended) beats the earlier one', () {
       const photos = [
-        'finish_20260815_120200_cccc.jpg', // ulepszone, wstawione na czoło
+        'finish_20260815_120200_cccc.jpg', // enhanced, put at the head
         'finish_20260815_115900_bbbb.jpg',
       ];
 
@@ -256,7 +256,7 @@ void main() {
           'finish_20260815_120200_cccc.jpg');
     });
 
-    test('zdjęcia wgrane przez usera nie udają ujęcia z drukarki', () {
+    test('user-uploaded photos do not pass as a printer shot', () {
       expect(FinishPhotoNotifier.finishPhotoIn(const ['ab12cd34.jpg']), isNull);
       expect(
         FinishPhotoNotifier.finishPhotoIn(
@@ -266,13 +266,13 @@ void main() {
       );
     });
 
-    test('pusta lista → null', () {
+    test('empty list → null', () {
       expect(FinishPhotoNotifier.finishPhotoIn(const []), isNull);
     });
   });
 
-  group('odpytywanie archiwum (serwer nie ogłasza zwykłego zdjęcia)', () {
-    test('zdjęcie znalezione przy odpytywaniu trafia na powiadomienie',
+  group('archive polling (the server does not announce an ordinary photo)', () {
+    test('a photo found by polling lands on the notification',
         () async {
       await memory.remember(_alert());
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
@@ -284,7 +284,7 @@ void main() {
       expect(notifications.posted.single['photo'], '/tmp/finish_photo.png');
     });
 
-    test('archiwum bez zdjęcia → nic, wpis zostaje na kolejny przebieg',
+    test('an archive without a photo → nothing, the entry waits for the next pass',
         () async {
       await memory.remember(_alert());
       newest = _archive();
@@ -296,7 +296,7 @@ void main() {
       expect(await memory.recall(3, _now), isNotNull);
     });
 
-    test('po doklejeniu kolejny przebieg już nic nie robi', () async {
+    test('once attached, the next pass does nothing', () async {
       await memory.remember(_alert());
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
@@ -306,17 +306,17 @@ void main() {
       expect(notifications.posted, hasLength(1));
     });
 
-    test('po 15 minutach przestaje szukać', () async {
+    test('after 15 minutes it stops looking', () async {
       await memory.remember(_alert(postedAt: _now));
       newest = _archive(photos: const ['finish_20260815_115900_ab12.jpg']);
 
       await pollOnce(now: _now.add(const Duration(minutes: 16)));
 
-      expect(newestFetches, 0, reason: 'serwer nie dośle już nic dla tego druku');
+      expect(newestFetches, 0, reason: 'the server will not send anything more for this print');
       expect(notifications.posted, isEmpty);
     });
 
-    test('wyłączone w ustawieniach → zero ruchu', () async {
+    test('disabled in settings → no traffic at all', () async {
       await memory.remember(_alert());
       newest = _archive();
       enabled = false;
@@ -328,23 +328,23 @@ void main() {
     });
   });
 
-  test('dokłada zdjęcie do alertu, który wciąż wisi', () async {
+  test('attaches the photo to an alert that is still up', () async {
     await memory.remember(_alert());
 
     await send(photoFrame);
 
     expect(notifications.posted, hasLength(1));
     final post = notifications.posted.single;
-    expect(post['id'], 1003, reason: 'to samo id → podmiana, nie nowe');
+    expect(post['id'], 1003, reason: 'same id → replacement, not a new one');
     expect(post['event'], NotifEvent.printFinished);
-    expect(post['title'], 'Wydruk zakończony');
+    expect(post['title'], 'Print finished');
     expect(post['body'], 'Benchy');
     expect(post['payload'], 'printer:3');
     expect(post['photo'], '/tmp/finish_photo.png');
     expect(post['thumb'], '/tmp/finish_photo_thumb.png');
   });
 
-  test('alert o nieudanym wydruku też dostaje zdjęcie', () async {
+  test('a failed-print alert gets the photo too', () async {
     await memory.remember(_alert(event: NotifEvent.printFailed));
 
     await send(photoFrame);
@@ -352,7 +352,7 @@ void main() {
     expect(notifications.posted.single['event'], NotifEvent.printFailed);
   });
 
-  test('ramka bez photo_added nie rusza nawet archiwum', () async {
+  test('a frame without photo_added does not even touch the archive', () async {
     await memory.remember(_alert());
 
     await send(const WsArchiveUpdated(82));
@@ -361,7 +361,7 @@ void main() {
     expect(notifications.posted, isEmpty);
   });
 
-  test('wyłączone w ustawieniach → nic się nie dzieje', () async {
+  test('disabled in settings → nothing happens', () async {
     await memory.remember(_alert());
     enabled = false;
 
@@ -371,14 +371,14 @@ void main() {
     expect(notifications.posted, isEmpty);
   });
 
-  test('brak zapamiętanego alertu → nie tworzy nowego powiadomienia', () async {
+  test('no remembered alert → does not create a new notification', () async {
     await send(photoFrame);
 
     expect(notifications.posted, isEmpty);
-    expect(pictureFetches, 0, reason: 'nie ma po co pobierać zdjęcia');
+    expect(pictureFetches, 0, reason: 'no reason to fetch the picture');
   });
 
-  test('alert starszy niż okno → wydruk uznany za inny', () async {
+  test('an alert older than the window → treated as a different print', () async {
     await memory.remember(
       _alert(postedAt: _now.subtract(const Duration(minutes: 45))),
     );
@@ -388,22 +388,22 @@ void main() {
     expect(notifications.posted, isEmpty);
   });
 
-  test('powiadomienie zsunięte W TRAKCIE pobierania → też nie wskrzesza',
+  test('a notification dismissed DURING the fetch → also not resurrected',
       () async {
-    // Pobranie potrafi trwać kilkanaście sekund (timeouty Dio plus ponowienie po
-    // 401), a `onlyAlertOnce` wycisza jedynie aktualizację istniejącego wpisu —
-    // po anulowaniu Android liczy post jako nowy, więc zadzwoniłby drugi raz.
+    // The fetch can take a dozen-odd seconds (Dio timeouts plus the retry after a
+    // 401), and `onlyAlertOnce` only mutes an update to an existing entry — once
+    // cancelled, Android counts the post as new, so it would ring a second time.
     await memory.remember(_alert());
     duringPictureFetch = () => notifications.active = false;
 
     await send(photoFrame);
 
-    expect(pictureFetches, 1, reason: 'w chwili startu jeszcze wisiało');
+    expect(pictureFetches, 1, reason: 'it was still up when this started');
     expect(notifications.posted, isEmpty);
     expect(await memory.recall(3, _now), isNull);
   });
 
-  test('powiadomienie zsunięte przez usera → nie wskrzesza go', () async {
+  test('a notification the user dismissed → not resurrected', () async {
     await memory.remember(_alert());
     notifications.active = false;
 
@@ -414,11 +414,11 @@ void main() {
     expect(
       await memory.recall(3, _now),
       isNull,
-      reason: 'wpis skasowany, więc kolejna ramka też go nie wskrzesi',
+      reason: 'entry deleted, so the next frame will not resurrect it either',
     );
   });
 
-  test('druga ramka (ulepszone ujęcie) nie wystawia powiadomienia dwa razy',
+  test('a second frame (enhanced shot) does not post the notification twice',
       () async {
     await memory.remember(_alert());
 
@@ -428,7 +428,7 @@ void main() {
     expect(notifications.posted, hasLength(1));
   });
 
-  test('nieudane pobranie zdjęcia zostawia szansę kolejnej ramce', () async {
+  test('a failed picture fetch leaves the next frame a chance', () async {
     await memory.remember(_alert());
     picture = null;
 
@@ -441,11 +441,11 @@ void main() {
     expect(notifications.posted, hasLength(1));
   });
 
-  test('wyjątek przy jednej ramce nie zabija obsługi kolejnych', () async {
+  test('an exception on one frame does not kill handling of the rest', () async {
     await memory.remember(_alert());
-    // Rzuca zanim `_handle` wejdzie w swój try — to ten przypadek zostawiał
-    // odrzucony future w łańcuchu, przez co żadna następna ramka nie była już
-    // obsłużona, a `stop()` rzucał w `onDestroy` przed zamknięciem gniazda.
+    // Throws before `_handle` enters its own try — this is the case that left a
+    // rejected future in the chain, so no later frame was handled at all and
+    // `stop()` threw in `onDestroy` before the socket was closed.
     var explode = true;
     final notifier = FinishPhotoNotifier(
       updates: frames.stream,
@@ -455,7 +455,7 @@ void main() {
       notifications: notifications,
       memory: memory,
       isEnabled: () {
-        if (explode) throw StateError('prefs niedostępne');
+        if (explode) throw StateError('prefs unavailable');
         return true;
       },
       clock: () => _now,
@@ -469,11 +469,11 @@ void main() {
     frames.add(photoFrame);
     await Future<void>.delayed(Duration.zero);
 
-    expect(notifications.posted, hasLength(1), reason: 'łańcuch dalej żyje');
+    expect(notifications.posted, hasLength(1), reason: 'the chain is still alive');
     await expectLater(notifier.stop(), completes);
   });
 
-  test('archiwum bez drukarki → nie zgaduje, do którego alertu to pasuje',
+  test('an archive without a printer → does not guess which alert it matches',
       () async {
     await memory.remember(_alert());
     archive = _archive(printerId: null);

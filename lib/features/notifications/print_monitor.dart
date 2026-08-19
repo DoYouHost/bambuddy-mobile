@@ -645,7 +645,6 @@ class PrintMonitor {
     final threshold = _prefs.amsHumidityThreshold;
     final units = status.ams;
     if (units == null) return;
-    var triggered = false;
     int? value;
     bool? isHt;
     for (var i = 0; i < units.length; i++) {
@@ -675,9 +674,12 @@ class PrintMonitor {
         }
         memo.humidAlertedAt[key] = now;
         memo.humidAnnounced.add(key);
-        triggered = true;
-        value = humidity;
-        isHt = unit.isAmsHt;
+        // Worst unit wins when several cross in the same frame — there is
+        // only one notification slot per printer, so the driest excuse loses.
+        if (value == null || humidity > value) {
+          value = humidity;
+          isHt = unit.isAmsHt;
+        }
       } else if (humidity <= threshold - _humidityRearmMargin) {
         // Only a real retreat re-arms it. Sitting one point under the threshold
         // is the same damp unit, not a resolved one.
@@ -685,9 +687,9 @@ class PrintMonitor {
         memo.humidAnnounced.remove(key);
       }
     }
-    if (!triggered) return;
+    if (value == null) return;
     if (_on(NotifEvent.amsHumidity)) {
-      _alertHumidity(id, status, value ?? threshold, isHt ?? false);
+      _alertHumidity(id, status, value, isHt ?? false);
     } else {
       NotifProbe.suppressed(_offReason,
           printerId: id, event: NotifEvent.amsHumidity);

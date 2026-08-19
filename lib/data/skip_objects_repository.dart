@@ -35,16 +35,18 @@ class SkipObjectsRepository {
   /// not an error to show.
   Future<Uint8List?> fetchPickMask(int printerId, String token) async {
     try {
-      final res = await _dio.get<List<int>>(
-        Endpoints.printerCover(printerId),
-        queryParameters: {'view': 'pick', 'token': token},
-        options: Options(responseType: ResponseType.bytes),
-      );
-      final bytes = res.data;
-      return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return null;
-      throw mapDioException(e);
+      return await guard(() async {
+        final res = await _dio.get<List<int>>(
+          Endpoints.printerCover(printerId),
+          queryParameters: {'view': 'pick', 'token': token},
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final bytes = res.data;
+        return bytes == null || bytes.isEmpty ? null : Uint8List.fromList(bytes);
+      });
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
     }
   }
 
