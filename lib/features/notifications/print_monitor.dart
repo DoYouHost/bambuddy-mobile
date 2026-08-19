@@ -69,6 +69,12 @@ class _PrinterMemo {
   /// has been absent for [_hmsClearGrace], so a genuinely new occurrence can
   /// re-alert while brief flaps/gaps stay silent.
   final Map<String, DateTime> hmsLastSeen = {};
+
+  /// Codes that first showed up while the printer was disconnected, so no alert
+  /// was ever posted for them. Kept out of [hmsLastSeen] until the printer
+  /// answers again — held here only so the deferral is recorded once instead of
+  /// on every frame of the outage. Cleared the moment it is back.
+  final Set<String> hmsDeferredOffline = {};
   final Set<int> lowFilamentTrays = {}; // Latched tray IDs below threshold
   final Set<int> humidUnits = {}; // Latched AMS unit IDs above threshold
   bool awaitingBedCool = false;
@@ -449,21 +455,42 @@ class PrintMonitor {
     final errors = status.hmsErrors;
     if (errors == null) return; // Field missing in frame — no change
     final now = _now();
-    // Forget codes absent past the grace window — only those can re-alert. Run
-    // before refreshing so codes present this frame (still within grace) survive.
-    memo.hmsLastSeen
-        .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
-
     // An offline printer can't be actively faulting — its `hms_errors` are just
     // the last-known values carried forward by mergedWith. Never alert while
     // disconnected, but still REFRESH last-seen for present codes below: that
     // pauses the clear-grace clock across the outage, so a fault known before
     // the disconnect doesn't spuriously re-alert on reconnect.
     final online = status.connected != false;
+    // Forget codes absent past the grace window — only those can re-alert. Run
+    // before refreshing so codes present this frame (still within grace) survive,
+    // and only while connected: a frame from a disconnected printer carries no
+    // evidence that anything cleared, so the whole memory holds still for the
+    // outage rather than ageing out against a clock nothing is answering.
+    if (online) {
+      memo.hmsLastSeen
+          .removeWhere((_, seen) => now.difference(seen) >= _hmsClearGrace);
+      memo.hmsDeferredOffline.clear();
+    }
+
     for (final e in errors) {
       final key = _hmsKey(e);
       if (key == null) continue;
       final isNew = !memo.hmsLastSeen.containsKey(key);
+      if (isNew && !online) {
+        // Never announced, so latching it would silence it for good: the printer
+        // can come back with this fault still standing, and until then nothing
+        // ages it out — with a second printer streaming frames the grace window
+        // is refreshed faster than it can elapse. Defer the decision instead.
+        if (memo.hmsDeferredOffline.add(key)) {
+          NotifProbe.suppressed(
+            NotifSkip.offline,
+            printerId: id,
+            event: NotifEvent.printerError,
+            fields: {'code': _hmsCode(e), 'sev': e.severity},
+          );
+        }
+        continue;
+      }
       memo.hmsLastSeen[key] = now; // present this frame → refresh last-seen
       // Only ever the first sighting of a code gets this far, so each of the
       // records below is one per code per clear-grace window, not one per frame.
@@ -472,7 +499,7 @@ class PrintMonitor {
       // notification record next to it *is* the dedup, visible on the same
       // timeline.
       if (!isNew) continue;
-      final skip = _hmsSkipReason(e, online: online);
+      final skip = _hmsSkipReason(e);
       if (skip != null) {
         NotifProbe.suppressed(
           skip,
@@ -488,13 +515,14 @@ class PrintMonitor {
 
   /// Why this HMS code produces no alert, or null when it produces one.
   ///
-  /// Four separate answers where the code used to fold them into one boolean.
-  /// "Printer disconnected" is not "you turned this off", and neither is "the
-  /// firmware sent a code nobody documented" — which is the single largest silent
-  /// drop on this path, since one physical fault emits several codes and only one
-  /// of them is a real fault.
-  NotifSkip? _hmsSkipReason(HmsError e, {required bool online}) {
-    if (!online) return NotifSkip.offline;
+  /// Three separate answers where the code used to fold them into one boolean.
+  /// "You turned this off" is not "the firmware sent a code nobody documented" —
+  /// the latter being the single largest silent drop on this path, since one
+  /// physical fault emits several codes and only one of them is a real fault.
+  /// Every answer here settles the code for the life of this isolate; a
+  /// disconnected printer is the one case that does not, so it is deferred by
+  /// the caller rather than answered here.
+  NotifSkip? _hmsSkipReason(HmsError e) {
     if (!_on(NotifEvent.printerError)) return _offReason;
     if (_hmsSuppressed(e)) return NotifSkip.userAction;
     // Notify only on a real, documented fault (parity with bambuddy) — drops

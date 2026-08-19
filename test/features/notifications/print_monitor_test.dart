@@ -452,6 +452,33 @@ void main() {
     expect(errorAlerts(fake), hasLength(1));
   });
 
+  test('błąd HMS zauważony dopiero po rozłączeniu alarmuje po powrocie', () {
+    final fake = _FakeNotifications();
+    var t = DateTime(2026, 6, 12, 20, 0);
+    final m = monitorAll(fake, clock: () => t, hmsDescribe: describeAll);
+    const err = HmsError(code: 'A', severity: 2);
+
+    m.update({1: _status(state: 'RUNNING', connected: true)}); // priming
+    // Usterka pojawia się w tej samej ramce, w której drukarka znika — nikt jej
+    // jeszcze nie zgłosił, więc zapamiętanie jej wyciszyłoby ją na zawsze.
+    m.update({1: _status(state: 'RUNNING', connected: false, hms: [err])});
+    expect(errorAlerts(fake), isEmpty);
+
+    // Druga drukarka sypie ramkami: każda z nich przemiela też stan pierwszej,
+    // więc łaska nigdy by nie upłynęła, gdyby kod został zatrzaśnięty.
+    for (var i = 0; i < 3; i++) {
+      t = t.add(const Duration(seconds: 45));
+      m.update({1: _status(state: 'RUNNING', connected: false, hms: [err])});
+    }
+    expect(errorAlerts(fake), isEmpty);
+
+    // Drukarka wraca wciąż z tą usterką — teraz użytkownik musi się dowiedzieć.
+    t = t.add(const Duration(seconds: 45));
+    m.update({1: _status(state: 'RUNNING', connected: true, hms: [err])});
+
+    expect(errorAlerts(fake), hasLength(1));
+  });
+
   test('an HMS alert carries the fault it is about, and its buttons', () {
     final fake = _FakeNotifications();
     final m = monitorAll(fake, hmsDescribe: describeAll);
