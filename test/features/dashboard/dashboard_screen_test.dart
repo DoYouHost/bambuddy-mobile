@@ -218,6 +218,24 @@ void main() {
       expect(find.textContaining('odrzucił zapisane hasło'), findsOneWidget);
     });
 
+    testWidgets('flaga zapisana przez obcy izolat też otwiera dialog',
+        (tester) async {
+      // Both writers (background service, action callback) run in their own
+      // isolate, so the flag reaches this one only on disk. Reading the cache
+      // this handle started with would leave the app silently unable to load.
+      SharedPreferences.setMockInitialValues({
+        'notif_onboarded': true,
+        'sign_in_required': true,
+      });
+      expect(_prefs.getBool('sign_in_required'), isNot(isTrue),
+          reason: 'cache tego izolatu nie może znać obcego zapisu');
+
+      await tester.pumpWidget(_app(state));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zaloguj się ponownie'), findsOneWidget);
+    });
+
     testWidgets('bez flagi nie ma dialogu', (tester) async {
       await tester.pumpWidget(_app(state));
       await tester.pumpAndSettle();

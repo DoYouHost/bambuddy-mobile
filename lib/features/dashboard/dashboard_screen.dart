@@ -133,6 +133,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
   Future<void> _maybeWarnSignInRequired() async {
     if (_signInWarned || !mounted) return;
+    // Both writers are other isolates, so this handle still serves the cache the
+    // app started with — the rejection it is asking about is only on disk.
+    await ref.read(sharedPreferencesProvider).reload();
+    if (!mounted) return;
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
