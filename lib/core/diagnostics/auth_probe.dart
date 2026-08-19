@@ -93,4 +93,16 @@ class AuthProbe {
         'two_factor_silent_blocked',
         lvl: LogLevel.warn,
       );
+
+  /// A step of the proactive refresh threw instead of answering — the keystore
+  /// read is the one that does this on some OEMs. Worth a line of its own: the
+  /// schedule survives it now, but every request keeps working off a token
+  /// nothing renewed, so the failures that follow look like a server problem.
+  static void refreshStepFailed(Object error) =>
+      DiagnosticRecorder.active?.add(
+        LogSource.app,
+        'token_refresh_step_failed',
+        lvl: LogLevel.warn,
+        fields: {'cause': error.runtimeType.toString()},
+      );
 }

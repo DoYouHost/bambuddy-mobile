@@ -150,6 +150,45 @@ void main() {
     expect(timers.single.cancelled, isTrue);
   });
 
+  test('rzut przy odczycie ważności nie zabija harmonogramu', () async {
+    // `flutter_secure_storage` rzuca na części OEM-ów. Nikt na to nie czeka, więc
+    // bez osłony timer nie zostałby uzbrojony nigdy, a `start()` jest
+    // idempotentne — odświeżanie byłoby martwe do restartu izolatu.
+    ProactiveTokenRefresher(
+      readExpiry: () async => throw StateError('keystore'),
+      refresh: () async => null,
+      clock: () => t0,
+      fallbackDelay: const Duration(hours: 2),
+      timerFactory: factory(),
+    ).start();
+    await settle();
+
+    expect(timers.single.duration, const Duration(hours: 2));
+  });
+
+  test('rzut przy odnowie przeplanowuje, a nie kończy', () async {
+    var refreshCount = 0;
+    ProactiveTokenRefresher(
+      readExpiry: () async => t0.add(const Duration(hours: 1)),
+      refresh: () async {
+        refreshCount++;
+        throw StateError('keystore');
+      },
+      // Rzut nic nie mówi o haśle — inaczej niż `null` — więc pytanie o dalsze
+      // próby nie powinno paść.
+      canRetry: () async => fail('nie pytamy, gdy krok się wywalił'),
+      clock: () => t0,
+      fallbackDelay: const Duration(hours: 2),
+      timerFactory: factory(),
+    ).start();
+    await settle();
+    timers.single.fire();
+    await settle();
+
+    expect(refreshCount, 1);
+    expect(timers.last.duration, const Duration(hours: 2));
+  });
+
   test('stop() anuluje timer i blokuje przeplanowanie po odpaleniu', () async {
     var refreshCount = 0;
     final r = ProactiveTokenRefresher(

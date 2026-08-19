@@ -68,11 +68,16 @@ class _FakeRepo extends MaintenanceRepository {
   /// Wymusza błąd sieci na przeglądzie — repo puszcza go dalej, jak w produkcji.
   bool failOverview = false;
 
+  /// Odpala się w trakcie zapytania, żeby test mógł wstawić tam zdarzenie z
+  /// innego izolatu — tak jak tapnięcie „Mark Done" na powiadomieniu.
+  void Function()? onFetch;
+
   @override
   Future<List<PrinterMaintenanceOverview>> fetchOverview() async {
     if (failOverview) {
       throw DioException(requestOptions: RequestOptions(path: '/maintenance'));
     }
+    onFetch?.call();
     return overview;
   }
 
@@ -196,6 +201,22 @@ void main() {
     await m.check();
 
     expect(notifications.alerts, hasLength(1));
+  });
+
+  test('check: "Mark Done" w trakcie zapytania nie ginie pod zapisem', () async {
+    // Zapytanie trwa sekundy; tapnięcie w tym oknie przepisuje ten sam zbiór z
+    // izolatu callbacku. Odczyt przed zapytaniem oddawałby na końcu stan sprzed
+    // niego i cofał tamten zapis.
+    repo.overview = [
+      _printer([_item(id: 10, isDue: true)]),
+    ];
+    persisted = {10};
+    var onDisk = {10};
+    repo.onFetch = () => onDisk = {}; // użytkownik tapie w trakcie fetcha
+
+    await monitor(reload: () async => {...onDisk}).check();
+
+    expect(notifications.alerts, hasLength(1), reason: 'pozycja uzbrojona na nowo');
   });
 
   test('check: wyłączone zdarzenie → cisza', () async {

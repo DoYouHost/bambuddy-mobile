@@ -61,12 +61,6 @@ class MaintenanceMonitor {
   /// (dedup set not cleared, service not crashed).
   Future<void> check() async {
     if (!_enabled) return;
-    final synced = await reload?.call();
-    if (synced != null) {
-      _notified
-        ..clear()
-        ..addAll(synced);
-    }
     final List<PrinterMaintenanceOverview> printers;
     try {
       printers = await _repo.fetchOverview();
@@ -81,6 +75,17 @@ class MaintenanceMonitor {
         fields: {'cause': error.runtimeType.toString()},
       );
       return;
+    }
+
+    // After the fetch, not before it: the request takes seconds, and a "Mark
+    // Done" tapped inside that window rewrites this very set from the callback
+    // isolate. Reading first and writing at the end would hand back the state we
+    // started with and undo it.
+    final synced = await reload?.call();
+    if (synced != null) {
+      _notified
+        ..clear()
+        ..addAll(synced);
     }
 
     final dueNow = <int>{};
