@@ -30,10 +30,16 @@ import '../../helpers.dart';
 
 /// Onboarding powiadomień w initState czyta te providery; w teście są nieaktywne.
 class _NoopNotifications implements NotificationService {
+  _NoopNotifications({this.permissionGranted = false});
+
+  /// Co system odpowiada na prośbę o zgodę — odmowa jest domyślna, bo tak
+  /// wygląda host testowy.
+  final bool permissionGranted;
+
   @override
   Future<void> init() async {}
   @override
-  Future<bool> requestPermission() async => false;
+  Future<bool> requestPermission() async => permissionGranted;
   @override
   Future<void> showOngoing({
     required String title,
@@ -95,12 +101,18 @@ class _InertSmartPlugsNotifier extends SmartPlugsNotifier {
 /// Usługa w tle bez Androida pod spodem — testy cyklu życia sprawdzają, komu
 /// dashboard oddaje i odbiera pracę, nie samą usługę.
 class _FakeBackgroundMonitor implements BackgroundMonitor {
+  _FakeBackgroundMonitor({this.running = false});
+
+  /// Czy Android trzyma usługę żywą z poprzedniego uruchomienia aplikacji.
+  final bool running;
+  int stops = 0;
+
   @override
   Future<bool> start() async => true;
   @override
-  Future<void> stop() async {}
+  Future<void> stop() async => stops++;
   @override
-  Future<bool> isRunning() async => false;
+  Future<bool> isRunning() async => running;
   @override
   void syncDiagnostics() {}
 }
@@ -146,6 +158,9 @@ List<Override> _overrides(DashboardState state) => [
       inertFirmwareOverride,
       inertTotalPrintHoursOverride,
       sharedPreferencesProvider.overrideWithValue(_prefs),
+      // Dotykany już przy pierwszej klatce (przejęcie po ocalałej usłudze), więc
+      // bez atrapy każdy test tu sięgałby po kanał platformy.
+      backgroundMonitorProvider.overrideWithValue(_FakeBackgroundMonitor()),
       notificationServiceProvider.overrideWithValue(_NoopNotifications()),
       wsConnectionStateProvider.overrideWith(
         (ref) => Stream.value(WsConnectionState.connected),
@@ -255,6 +270,62 @@ void main() {
     expect(find.textContaining('Następna wolna'), findsOneWidget);
   });
 
+  testWidgets('usługa ocalała po poprzednim uruchomieniu jest zatrzymywana',
+      (tester) async {
+    // Po zsunięciu apki Android wskrzesza usługę i ta przeżywa następny start.
+    // `onResume` jej nie łapie, bo odpala się na przejściu, a zimny start jest
+    // już „resumed" — więc wszystko, co zamroziła u siebie (przełączniki
+    // powiadomień, profil serwera), przeżywałoby całą sesję.
+    final monitor = _FakeBackgroundMonitor(running: true);
+    await tester.pumpWidget(_app(
+      const DashboardState(
+        printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+      ),
+      extra: [backgroundMonitorProvider.overrideWithValue(monitor)],
+    ));
+    await tester.pumpAndSettle();
+
+    expect(monitor.stops, 1);
+  });
+
+  testWidgets('nieprzyznana zgoda nie zużywa jednorazowego onboardingu',
+      (tester) async {
+    // Flaga zapisywana przed pytaniem spalała jedyne automatyczne pytanie na
+    // przebieg, który user mógł odrzucić przez przypadek — a Android pokazuje
+    // swój dialog aż do drugiej odmowy.
+    await _prefs.setBool('notif_onboarded', false);
+
+    await tester.pumpWidget(_app(
+      const DashboardState(
+        printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+      ),
+      extra: [
+        notificationServiceProvider.overrideWithValue(_NoopNotifications()),
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    expect(_prefs.getBool('notif_onboarded'), isNot(isTrue),
+        reason: 'odmowa → pytamy przy kolejnym starcie');
+  });
+
+  testWidgets('przyznana zgoda zamyka onboarding na dobre', (tester) async {
+    await _prefs.setBool('notif_onboarded', false);
+
+    await tester.pumpWidget(_app(
+      const DashboardState(
+        printers: [PrinterWithStatus(printer: Printer(id: 1, name: 'X1C'))],
+      ),
+      extra: [
+        notificationServiceProvider
+            .overrideWithValue(_NoopNotifications(permissionGranted: true)),
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    expect(_prefs.getBool('notif_onboarded'), isTrue);
+  });
+
   testWidgets('szukanie zdjęcia oddaje pole usłudze w tle i odbiera po powrocie',
       (tester) async {
     // Obie kopie naraz pobierałyby to samo zdjęcie i deptały sobie zapisy do
@@ -267,7 +338,6 @@ void main() {
       ),
       extra: [
         finishPhotoNotifierProvider.overrideWithValue(spy),
-        backgroundMonitorProvider.overrideWithValue(_FakeBackgroundMonitor()),
         wearRelayHandlerProvider.overrideWithValue(_InertWearRelay()),
       ],
     ));

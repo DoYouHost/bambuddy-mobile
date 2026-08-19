@@ -123,8 +123,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
+    await _takeOverFromSurvivingService();
     await _maybeOnboardNotifications();
     await _maybeWarnSignInRequired();
+  }
+
+  /// Stops a service that outlived the app it was started from.
+  ///
+  /// `onResume` is the usual place for this, but it fires on a *transition* and
+  /// a cold start is already resumed, so this case never reached it: after the
+  /// user swipes the app away Android restarts the service, and it keeps running
+  /// straight through the next launch. Everything it froze at its own start-up —
+  /// the notification switches, the server profile — then outlives every change
+  /// made in that session, and its watch relay answers alongside this isolate's.
+  /// Stopping it here means the next trip to the background starts one that has
+  /// read all of it afresh.
+  Future<void> _takeOverFromSurvivingService() async {
+    final monitor = ref.read(backgroundMonitorProvider);
+    if (!await monitor.isRunning()) return;
+    _logBgService('stop_survivor');
+    await monitor.stop();
   }
 
   /// Warns once per app open that the server rejected the remembered login.
@@ -177,8 +195,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(_onboardingFlag) ?? false) return;
-    await prefs.setBool(_onboardingFlag, true);
-    await _runNotificationOnboarding();
+    final granted = await _runNotificationOnboarding();
+    // Marked done only once it actually landed. Writing the flag before asking
+    // spent the one automatic prompt on a run the user may have dismissed by
+    // accident — and Android keeps showing its dialog until it is refused twice,
+    // so a first "no" is worth another launch rather than permanent silence.
+    if (granted) await prefs.setBool(_onboardingFlag, true);
   }
 
   /// Requests notification permission, and if app is not exempt from battery
@@ -187,20 +209,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// `manual` = triggered by button (not auto-onboarding): then on "quiet"
   /// paths (permission denied / already set up) show SnackBar
   /// so button doesn't look dead.
-  Future<void> _runNotificationOnboarding({bool manual = false}) async {
+  ///
+  /// Answers whether the permission is in hand, which is what decides if the
+  /// automatic run counts as done.
+  Future<bool> _runNotificationOnboarding({bool manual = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final granted = await ref
         .read(notificationServiceProvider)
         .requestPermission();
-    if (!mounted) return;
+    if (!mounted) return granted;
     if (!granted) {
       if (manual) {
         messenger.showSnackBar(
           SnackBar(content: Text(l10n.notificationsBlocked)),
         );
       }
-      return;
+      return false;
     }
     final battery = BatteryOptimization();
     if (await battery.isIgnoring()) {
@@ -209,9 +234,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SnackBar(content: Text(l10n.notificationsReady)),
         );
       }
-      return;
+      return true;
     }
-    if (!mounted) return;
+    if (!mounted) return true;
     final open = await confirmDialog(
       context,
       title: l10n.batteryOptTitle,
@@ -221,6 +246,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       id: 'battery_opt',
     );
     if (open) await battery.request();
+    return true;
   }
 
   /// Notification menu: background monitoring toggle + re-onboard
