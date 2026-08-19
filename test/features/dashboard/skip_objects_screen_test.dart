@@ -260,6 +260,60 @@ void main() {
   });
 
   testWidgets(
+      'obiekt pominięty w tle po zaznaczeniu wypada z licznika, dialogu i żądania',
+      (tester) async {
+    final repo = await pumpScreen(tester);
+
+    await tapRow(tester, 'Divider_left.stl');
+    await tapRow(tester, 'Divider_right.stl');
+    expect(find.text('Zaznaczono: 2'), findsOneWidget);
+
+    // Someone else (another client, or the printer itself) skips 512 while it
+    // sits in the selection. Delivered through the screen's own
+    // pull-to-refresh, like the sibling test below.
+    repo._objects = const PrintableObjects(
+      objects: [
+        PrintableObject(id: 421, name: 'Divider_left.stl', x: 104, y: 104),
+        PrintableObject(
+          id: 512,
+          name: 'Divider_right.stl',
+          x: 152,
+          y: 104,
+          skipped: true,
+        ),
+      ],
+      total: 2,
+      skippedCount: 1,
+      isPrinting: true,
+      bboxAll: [88, 88, 168, 168],
+    );
+    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // The bar counts what is still skippable, not the raw selection.
+    expect(find.text('Zaznaczono: 1'), findsOneWidget);
+
+    await tester.tap(find.text('Pomiń'));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(AlertDialog);
+    expect(find.text('Pominąć ten obiekt?'), findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('Divider_right.stl')),
+      findsNothing,
+    );
+
+    await tester.tap(find.descendant(of: dialog, matching: find.text('Pomiń')));
+    await tester.pumpAndSettle();
+
+    // No redundant re-skip of 512 riding along.
+    expect(repo.skipCalls, [
+      [421],
+    ]);
+  });
+
+  testWidgets(
       'obiekt zniknięty z odświeżenia w tle po zaznaczeniu nie leci w żądaniu mimo braku w dialogu',
       (tester) async {
     tester.view.physicalSize = const Size(1080, 3600);

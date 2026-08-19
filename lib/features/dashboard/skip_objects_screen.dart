@@ -58,6 +58,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final async = ref.watch(skipObjectsProvider(widget.printerId));
+    final pending = _pendingIn(async.valueOrNull);
     final status =
         ref.watch(printerStatusesProvider.select((m) => m[widget.printerId]));
     final layerNum = status?.layerNum ?? 0;
@@ -127,7 +128,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                       },
                     ),
                     const SizedBox(height: 8),
-                    if (_selected.isEmpty)
+                    if (pending.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
@@ -154,10 +155,21 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                 ),
               ),
       ),
-      bottomNavigationBar:
-          _selected.isEmpty ? null : _confirmBar(t, l10n, canSelect),
+      bottomNavigationBar: pending.isEmpty
+          ? null
+          : _confirmBar(t, l10n, canSelect, pending.length),
     );
   }
+
+  /// Selected objects still worth skipping, measured against the freshest
+  /// list. The background poll can report one as already skipped — another
+  /// client did it, or the printer did it itself — while it sits in
+  /// [_selected]: keeping it would count it in the bar, name it in the
+  /// confirmation, and re-send an id the printer has already dropped.
+  List<PrintableObject> _pendingIn(PrintableObjects? data) => [
+        for (final obj in data?.objects ?? const <PrintableObject>[])
+          if (!obj.skipped && _selected.contains(obj.id)) obj,
+      ];
 
   /// Toggles one object in/out of the pending selection. The marker and tile
   /// widgets already withhold this callback (`onTap: null`) for a skipped
@@ -168,7 +180,12 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     });
   }
 
-  Widget _confirmBar(DashTokens t, AppLocalizations l10n, bool canConfirm) =>
+  Widget _confirmBar(
+    DashTokens t,
+    AppLocalizations l10n,
+    bool canConfirm,
+    int count,
+  ) =>
       DecoratedBox(
         decoration: BoxDecoration(
           color: t.navBar,
@@ -181,7 +198,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
               children: [
                 Expanded(
                   child: Text(
-                    l10n.skipObjectsSelectedCount(_selected.length),
+                    l10n.skipObjectsSelectedCount(count),
                     style: TextStyle(
                       fontFamily: DashTokens.fontUi,
                       fontSize: 13,
@@ -215,8 +232,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
     final l10n = AppLocalizations.of(context);
     final data = ref.read(skipObjectsProvider(widget.printerId)).valueOrNull;
     if (data == null) return;
-    final objs =
-        data.objects.where((o) => _selected.contains(o.id)).toList();
+    final objs = _pendingIn(data);
     if (objs.isEmpty) return;
 
     final names = objs.map((o) => o.name).join(', ');
@@ -232,9 +248,9 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
 
     setState(() => _skipping = true);
     // From `objs`, not `_selected`: the background poll can drop an object
-    // between selecting it and confirming (e.g. a 3MF reload), and `objs` is
-    // exactly what the dialog just showed — the request must match that, or
-    // an id the user never saw confirmed would go out anyway.
+    // between selecting it and confirming (a 3MF reload) or mark it skipped,
+    // and `objs` is exactly what the dialog just showed — the request must
+    // match that, or an id the user never saw confirmed would go out anyway.
     final ids = objs.map((o) => o.id).toList();
     final result = await ref
         .read(skipObjectsProvider(widget.printerId).notifier)
