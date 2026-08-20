@@ -13,6 +13,34 @@ import '../core/models/spool_label.dart';
 /// selected via setting (see `inventoryBackendProvider`).
 enum InventoryBackend { native, spoolman }
 
+/// [guard] that also keeps what the server wrote when it answers 404.
+///
+/// The from-slot routes spend that status on two unrelated failures — the
+/// printer is not connected, or the route does not exist on this server at all
+/// — and the base mapper keeps `detail` only for 403, so without this the two
+/// are indistinguishable and the user is told the wrong thing about half the
+/// time.
+Future<T> _guardKeeping404Detail<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    final mapped = mapDioException(e);
+    final detail = serverDetailOf(e.response?.data);
+    if (mapped is! ApiException ||
+        e.response?.statusCode != 404 ||
+        detail == null) {
+      throw mapped;
+    }
+    throw ApiException(
+      mapped.code,
+      statusCode: 404,
+      detail: detail,
+      method: mapped.method,
+      path: mapped.path,
+    );
+  }
+}
+
 /// Common interface for inventory data source — UI and providers don't know which
 /// backend is running (swappable pattern like `BackgroundMonitor`). Each implementation
 /// maps raw JSON from its API to normalized models.
@@ -32,6 +60,19 @@ abstract class SpoolInventorySource {
 
   /// Unassigns a spool from a slot.
   Future<void> unassignSpool(int printerId, int amsId, int trayId);
+
+  /// Registers whatever the AMS slot currently holds as a new spool and pins
+  /// it to that slot in one call. Returns the new spool's id, or null when the
+  /// backend created one without saying which.
+  ///
+  /// The slot must carry a readable RFID tag: without one the server refuses
+  /// (400), because a tagless slot has no identity to re-link to and every
+  /// confirm would mint another row.
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  });
 
   /// Usage history for a single spool (loaded on-demand in details).
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId);
@@ -164,6 +205,24 @@ class NativeInventorySource implements SpoolInventorySource {
           Endpoints.inventoryAssignment(printerId, amsId, trayId),
         ),
       );
+
+  @override
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  }) =>
+      _guardKeeping404Detail(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.inventorySpoolFromSlot,
+          data: {
+            'printer_id': printerId,
+            'ams_id': amsId,
+            'tray_id': trayId,
+          },
+        );
+        return toIntOrNull(res.data?['id']);
+      });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
@@ -310,6 +369,27 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   @override
   Future<void> unassignSpool(int printerId, int amsId, int trayId) async =>
       throw UnsupportedError('Spoolman backend does not support slot assignment');
+
+  /// The one slot write Spoolman does expose — and it answers with
+  /// `{success, spool_id}` rather than the spool itself
+  /// (`backend/app/api/routes/spoolman.py::create_spool_from_slot`).
+  @override
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  }) =>
+      _guardKeeping404Detail(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.spoolmanSpoolFromSlot,
+          data: {
+            'printer_id': printerId,
+            'ams_id': amsId,
+            'tray_id': trayId,
+          },
+        );
+        return toIntOrNull(res.data?['spool_id']);
+      });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];

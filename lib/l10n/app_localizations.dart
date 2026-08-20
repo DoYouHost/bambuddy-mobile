@@ -4196,6 +4196,42 @@ abstract class AppLocalizations {
   /// **'Spool unassigned'**
   String get inventorySpoolUnassigned;
 
+  /// No description provided for @inventoryFromSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to inventory'**
+  String get inventoryFromSlot;
+
+  /// No description provided for @inventoryFromSlotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Register the tagged spool the printer reports in this slot'**
+  String get inventoryFromSlotHint;
+
+  /// No description provided for @inventoryFromSlotDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool added and assigned to the slot'**
+  String get inventoryFromSlotDone;
+
+  /// No description provided for @inventoryFromSlotNoTag.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer no longer reports a tagged spool in this slot'**
+  String get inventoryFromSlotNoTag;
+
+  /// No description provided for @inventoryFromSlotOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is not connected, so it cannot say what is in the slot'**
+  String get inventoryFromSlotOffline;
+
+  /// No description provided for @inventoryFromSlotUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server version cannot add a spool straight from a slot'**
+  String get inventoryFromSlotUnsupported;
+
   /// No description provided for @inventoryScanSpool.
   ///
   /// In en, this message translates to:

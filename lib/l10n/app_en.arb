@@ -898,6 +898,12 @@
   "inventoryReassignAction": "Move",
   "inventorySpoolAssigned": "Spool assigned",
   "inventorySpoolUnassigned": "Spool unassigned",
+  "inventoryFromSlot": "Add to inventory",
+  "inventoryFromSlotHint": "Register the tagged spool the printer reports in this slot",
+  "inventoryFromSlotDone": "Spool added and assigned to the slot",
+  "inventoryFromSlotNoTag": "The printer no longer reports a tagged spool in this slot",
+  "inventoryFromSlotOffline": "The printer is not connected, so it cannot say what is in the slot",
+  "inventoryFromSlotUnsupported": "This server version cannot add a spool straight from a slot",
 
   "inventoryScanSpool": "Scan QR",
   "inventoryScanTitle": "Scan spool QR",

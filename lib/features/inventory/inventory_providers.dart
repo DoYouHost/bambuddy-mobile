@@ -21,6 +21,29 @@ class InventoryState {
   final Map<int, SpoolAssignment> assignmentBySpool;
 
   SpoolAssignment? assignmentFor(int spoolId) => assignmentBySpool[spoolId];
+
+  /// The spool already registered for an RFID tag, or null when the tag is new
+  /// to the inventory.
+  ///
+  /// One field at a time rather than one spool at a time, which is the server's
+  /// own order: a `tray_uuid` hit anywhere beats a `tag_uid` hit, because only
+  /// the UUID survives the filament being re-spooled onto another core
+  /// (`GET /inventory/spools/by-tag`, `backend/app/api/routes/inventory.py`).
+  Spool? spoolForTag({String? tagUid, String? trayUuid}) {
+    final uuid = normalizeTrayUuid(trayUuid);
+    if (uuid.isNotEmpty) {
+      for (final s in spools) {
+        if (normalizeTrayUuid(s.trayUuid) == uuid) return s;
+      }
+    }
+    final uid = normalizeTagUid(tagUid);
+    if (uid.isNotEmpty) {
+      for (final s in spools) {
+        if (normalizeTagUid(s.tagUid) == uid) return s;
+      }
+    }
+    return null;
+  }
 }
 
 final inventoryProvider =
@@ -144,6 +167,25 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       return null;
     }),
   );
+
+  /// Registers what the slot holds as a new spool and pins it there. The
+  /// server does both halves in one call, so the invariant "one spool, one
+  /// slot" needs no unpin step here — the slot was empty of a spool to begin
+  /// with, which is the only state the UI offers this from.
+  Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    try {
+      final id = await repo.createSpoolFromSlot(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+      );
+      _nudgeRepublish(printerId);
+      return id;
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+  }
 
   /// Assigning a spool makes the server push an `ams_filament_setting` to the
   /// printer, but the firmware does not reliably echo the new tray back —

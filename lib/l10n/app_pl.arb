@@ -767,6 +767,12 @@
   "inventoryReassignAction": "Przenieś",
   "inventorySpoolAssigned": "Szpula przypisana",
   "inventorySpoolUnassigned": "Szpula odpięta",
+  "inventoryFromSlot": "Dodaj do magazynu",
+  "inventoryFromSlotHint": "Zapisz szpulę z czipem, którą drukarka widzi w tym slocie",
+  "inventoryFromSlotDone": "Szpula dodana i przypisana do slotu",
+  "inventoryFromSlotNoTag": "Drukarka nie widzi już w tym slocie szpuli z czipem",
+  "inventoryFromSlotOffline": "Drukarka nie jest połączona, więc nie powie, co jest w slocie",
+  "inventoryFromSlotUnsupported": "Ta wersja serwera nie potrafi dodać szpuli prosto ze slotu",
 
   "inventoryScanSpool": "Skanuj QR",
   "inventoryScanTitle": "Skanuj kod QR szpuli",

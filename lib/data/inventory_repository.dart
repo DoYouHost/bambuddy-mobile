@@ -26,6 +26,17 @@ class InventoryRepository {
   Future<void> unassignSpool(int printerId, int amsId, int trayId) =>
       _source.unassignSpool(printerId, amsId, trayId);
 
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  }) =>
+      _source.createSpoolFromSlot(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+      );
+
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) =>
       _source.fetchUsage(spoolId);
 

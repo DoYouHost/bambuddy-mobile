@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
@@ -113,6 +114,58 @@ class _StockedInventory extends InventoryNotifier {
       );
 }
 
+/// A shelf that already holds the spool whose tag sits in the slot, so the
+/// sheet must offer to pick it rather than to create a second row for it.
+class _TaggedInventory extends InventoryNotifier {
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+        spools: [
+          Spool(
+            id: 21,
+            material: 'PLA',
+            subtype: 'Basic',
+            brand: 'Bambu',
+            tagUid: 'a1b2c3d4e5f60708',
+          ),
+        ],
+      );
+}
+
+/// Records the registration the sheet asks for, so a test can tell the button
+/// fired the right slot triple rather than merely being tappable.
+class _RecordingInventory extends InventoryNotifier {
+  static final calls = <String>[];
+
+  @override
+  Future<InventoryState> build() async => const InventoryState();
+
+  @override
+  Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
+    calls.add('$printerId:$amsId:$trayId');
+    return 99;
+  }
+}
+
+/// A session authenticated by API key rather than by an account.
+class _ApiKeyProfileNotifier extends ServerProfileNotifier {
+  @override
+  ServerProfile? build() => const ServerProfile(
+        baseUrl: 'http://s.local:8000',
+        authMode: AuthMode.apiKey,
+      );
+}
+
+/// The card tests run without a settings repository, and the real backend
+/// notifier reads one — so the choice is staged here instead.
+class _FixedBackendNotifier extends InventoryBackendNotifier {
+  _FixedBackendNotifier(this._backend);
+
+  final InventoryBackend _backend;
+
+  @override
+  InventoryBackend build() => _backend;
+}
+
 class _FakeProfileNotifier extends ServerProfileNotifier {
   @override
   ServerProfile? build() => const ServerProfile(
@@ -199,9 +252,19 @@ class _EmptyHeaterHistory extends HeaterHistoryRepository {
 /// Owija drzewo w ProviderScope — karta zawiera teraz interaktywny pasek
 /// sterowania (`_ControlsActions`, ConsumerWidget), więc każdy render karty
 /// ze statusem potrzebuje scope'a. Profil = bez auth, token kamery zaślepiony.
-Widget _scope(Widget child, {List<Override> extra = const []}) => ProviderScope(
+Widget _scope(
+  Widget child, {
+  List<Override> extra = const [],
+  InventoryBackend backend = InventoryBackend.native,
+  bool apiKeySession = false,
+}) =>
+    ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        serverProfileProvider.overrideWith(apiKeySession
+            ? _ApiKeyProfileNotifier.new
+            : _FakeProfileNotifier.new),
+        inventoryBackendProvider
+            .overrideWith(() => _FixedBackendNotifier(backend)),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
@@ -470,7 +533,10 @@ void main() {
   });
 
   group('rozwijane szczegóły (AMS)', () {
-    PrinterWithStatus realItem() {
+    /// [tagged] writes an RFID tag onto the first slot of AMS 1. The capture
+    /// this fixture comes from has none — the printer runs third-party spools
+    /// — and a tag is what the "add to inventory" affordance hangs off.
+    PrinterWithStatus realItem({bool tagged = false}) {
       final frame =
           readFixture('ws_printer_status.json') as Map<String, dynamic>;
       final data = Map<String, dynamic>.from(frame['data'] as Map);
@@ -478,6 +544,18 @@ void main() {
       // Miniatura okładki (sieciowa) jest testowana osobno — usuwamy ją tu,
       // by izolować sekcję AMS i nie czekać na request HTTP w teście.
       data.remove('cover_url');
+      if (tagged) {
+        final units = List<dynamic>.from(data['ams'] as List);
+        final unit = Map<String, dynamic>.from(units.first as Map);
+        final trays = List<dynamic>.from(unit['tray'] as List);
+        trays[0] = {
+          ...Map<String, dynamic>.from(trays.first as Map),
+          'tag_uid': 'A1B2C3D4E5F60708',
+        };
+        unit['tray'] = trays;
+        units[0] = unit;
+        data['ams'] = units;
+      }
       return PrinterWithStatus(
         printer: const Printer(id: 1, name: 'X2D-3DP'),
         status: PrinterStatus.fromJson(data),
@@ -594,8 +672,12 @@ void main() {
       required String state,
       _RecordingCommands? withCommands,
       bool stocked = false,
+      bool tagged = false,
+      InventoryNotifier Function()? inventory,
+      InventoryBackend backend = InventoryBackend.native,
+      bool apiKeySession = false,
     }) async {
-      final item = realItem();
+      final item = realItem(tagged: tagged);
       final status = PrinterStatus(
         id: item.printer.id,
         connected: true,
@@ -613,10 +695,11 @@ void main() {
         ),
         extra: [
           printerCommandsRepositoryProvider.overrideWithValue(commands),
-          inventoryProvider.overrideWith(stocked
-              ? _StockedInventory.new
-              : _EmptyInventory.new),
+          inventoryProvider.overrideWith(inventory ??
+              (stocked ? _StockedInventory.new : _EmptyInventory.new)),
         ],
+        backend: backend,
+        apiKeySession: apiKeySession,
       ));
 
       await tester.ensureVisible(find.text('Szczegóły'));
@@ -745,6 +828,92 @@ void main() {
 
       expect(find.text('Brak szpul w magazynie'), findsOneWidget);
       expect(find.textContaining('Brak wyników'), findsNothing);
+    });
+
+    /// The registration button, by the name it carries in the diagnostic log.
+    Finder registerButton() => find.byWidgetPredicate((w) =>
+        w is Semantics &&
+        w.properties.identifier == 'assign_spool.add_to_inventory');
+
+    testWidgets('a tagged slot the shelf does not know offers to register it',
+        (tester) async {
+      await openSlotSheet(tester, state: 'IDLE', tagged: true);
+      await reveal(tester, registerButton());
+
+      expect(registerButton(), findsOneWidget);
+      expect(find.text('Dodaj do magazynu'), findsOneWidget);
+    });
+
+    testWidgets('an untagged slot never offers it', (tester) async {
+      // Without a tag the server refuses: the slot has no identity to re-link
+      // to, so every confirm would mint another row.
+      await openSlotSheet(tester, state: 'IDLE');
+
+      expect(registerButton(), findsNothing);
+    });
+
+    testWidgets('a tag already on a spool is picked, not registered again',
+        (tester) async {
+      // The route creates unconditionally. The spool is in the list below —
+      // that is where this tag gets back onto the slot.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        inventory: _TaggedInventory.new,
+      );
+
+      expect(registerButton(), findsNothing);
+    });
+
+    testWidgets('an API key against Spoolman is not offered what it cannot do',
+        (tester) async {
+      // Spoolman's from-slot route is gated on `filaments:update`, which sits
+      // outside the API-key scope allowlist — a keyed session gets 403 there
+      // whatever its scopes.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        apiKeySession: true,
+        backend: InventoryBackend.spoolman,
+      );
+
+      expect(registerButton(), findsNothing);
+    });
+
+    testWidgets('the same key on the native inventory keeps the button',
+        (tester) async {
+      // Only the pair is refused: `inventory:update` maps to the
+      // `can_manage_inventory` scope, so a key can register a slot natively.
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        apiKeySession: true,
+      );
+      await reveal(tester, registerButton());
+
+      expect(registerButton(), findsOneWidget);
+    });
+
+    testWidgets('registering sends the slot the sheet was opened on',
+        (tester) async {
+      _RecordingInventory.calls.clear();
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        inventory: _RecordingInventory.new,
+      );
+      await reveal(tester, registerButton());
+
+      await tester.tap(registerButton());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(_RecordingInventory.calls, ['1:0:0']);
+      expect(find.text('Szpula dodana i przypisana do slotu'), findsOneWidget);
     });
 
     testWidgets('the scanner sits beside the search', (tester) async {

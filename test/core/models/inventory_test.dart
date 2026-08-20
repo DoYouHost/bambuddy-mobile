@@ -121,4 +121,38 @@ void main() {
       expect(assign(255, trayId: 1).extruder, 0);
     });
   });
+
+  group('RFID tag normalization', () {
+    test('upper-cases and keeps only hex digits', () {
+      expect(normalizeTagHex('a1b2c3d4'), 'A1B2C3D4');
+      expect(normalizeTagHex(' A1:B2-C3 D4 '), 'A1B2C3D4');
+    });
+
+    test('no tag at all normalizes to the empty string, never to null', () {
+      expect(normalizeTagHex(null), '');
+      expect(normalizeTagHex(''), '');
+      expect(normalizeTagHex('   '), '');
+      // A tag the firmware writes as "unset" carries no hex at all once the
+      // separators are stripped.
+      expect(normalizeTagHex('--'), '');
+    });
+
+    test('a tag UID longer than the column keeps its last 16 characters', () {
+      expect(normalizeTagUid('00112233445566778899'), '2233445566778899');
+      expect(normalizeTagUid('0011223344556677'), '0011223344556677');
+      expect(normalizeTagUid('00112233'), '00112233');
+    });
+
+    test('a tray UUID longer than the column keeps its first 32', () {
+      final long = 'A' * 40;
+      expect(normalizeTrayUuid(long), 'A' * 32);
+      expect(normalizeTrayUuid('deadbeef'), 'DEADBEEF');
+    });
+
+    test('an all-zero tag is still an identifier here, not an absence', () {
+      // Emptying it is the server's job (it nulls the zero tag before the app
+      // ever sees it); doing it twice would hide a real, if odd, value.
+      expect(normalizeTagUid('0000000000000000'), '0000000000000000');
+    });
+  });
 }
