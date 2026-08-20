@@ -110,11 +110,28 @@ do not stay silent because it was not part of the task.
   archive, inventory, projects, maintenance, …).
 - `lib/wear/` — the Wear OS app. Separate entry point
   (`lib/wear/main_wear.dart`), reuses `lib/core` and `lib/data`.
+- `lib/data/` — repositories on top of the API client, shared by both flavors.
 - `lib/l10n/` — `app_en.arb` / `app_pl.arb` plus the generated
   `app_localizations*.dart` (committed). User-visible strings go through
   `AppLocalizations`, never hardcoded.
 - `test/` — mirrors `lib/`; `test/helpers.dart` holds the shared harness.
-- `justfile` — `just test`, `just build`, `just ship X.Y.Z`, emulator recipes.
+- `justfile` — `just test`, `just build` / `build-wear` / `build-aab`,
+  `just ship X.Y.Z`, `just ship-dev`, emulator recipes.
+
+## Documentation
+
+- [docs/diagnostics-log.md](docs/diagnostics-log.md) — the bug-report log: what
+  it records, what it refuses to record, and why. Policy.
+- [docs/logging-guide.md](docs/logging-guide.md) — how to instrument a new
+  feature so a report about it explains anything: naming controls, sampled
+  endpoints, action failures, isolates, adding a field. **Read it before adding
+  a screen or a notification.**
+- [docs/play-store-listing.md](docs/play-store-listing.md),
+  [docs/privacy-policy.md](docs/privacy-policy.md), `docs/store-assets/` — what
+  Google Play shows.
+- `docs/plans/` is **gitignored**: local working notes, not history. A fresh
+  session will not find a plan through `git log`, and CI never sees one. Anything
+  that must survive belongs in the tracked docs above.
 
 ## Conventions
 
@@ -128,6 +145,11 @@ do not stay silent because it was not part of the task.
   [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
   (`feat(queue): …`, `fix(auth): …`).
 - Prefer self-documenting code; comment the non-obvious "why", not the "what".
+- Every new control (button, field, dropdown, list tile, sheet) gets a diagnostic
+  identifier — `logTag('area.thing', …)` / `.tagged('area.thing')`. Ids are wire
+  values and carry no user data; the grammar and the traps are in
+  [docs/logging-guide.md](docs/logging-guide.md). `/log-coverage` must stay at
+  zero unnamed controls.
 - Do **not** run `dart format` across the repo — the existing code is not
   formatted to its default and a bulk reformat would bury real diffs.
 - Server timestamps are UTC even when the `Z` is missing; parse through the
