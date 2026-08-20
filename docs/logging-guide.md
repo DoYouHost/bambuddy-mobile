@@ -12,8 +12,8 @@ Most of it is automatic. The work is in the five places it is not.
 | lane | hook | you touch it when |
 |---|---|---|
 | `http` | `HttpProbe`, a dio interceptor wired into `createBareDio()` | the endpoint should also contribute a **sample** (§2) |
-| `ws` | `lib/core/api/ws_client.dart` | a new frame field belongs to the printer, not the user (§5) |
-| `ui` route | `GoRouter` observers in `lib/router.dart` — one `ModalObserver` per `Navigator`, root **and** every shell branch | you add a shell branch; without its own observer, sheets opened from that tab are not logged |
+| `ws` | `lib/core/api/ws_client.dart` | a new frame field belongs to the printer, not the user (§6) |
+| `ui` route | `GoRouter` observers in `lib/router.dart` — one `ModalObserver` per `Navigator`, root **and** every shell branch | you add a shell branch; without its own observer, sheets opened from that tab are not logged (§5) |
 | `ui` tap | `InteractionProbe`, a global entry in `pointerRouter` resolved against the semantics tree | always — an untagged control records as `role=button` and nothing else (§1) |
 | `err` | `FlutterError.onError`, `PlatformDispatcher.instance.onError`, `runZonedGuarded` in `lib/main.dart` | never |
 
@@ -125,7 +125,20 @@ through a channel that swallows a Dart exception and reports success, so a
 recorder that throws leaves a service that says "monitoring" and monitors
 nothing.
 
-## 5. Adding a field or a whole record
+## 5. Two traps in the navigation lane
+
+Both are covered by tests; both were live bugs first.
+
+- **The screen name comes from `router.state.matchedLocation`, not from
+  `currentConfiguration.uri`.** Nearly every screen here opens with `context.push`,
+  and the uri stays on the screen underneath — so the log names the wrong screen
+  for exactly the navigation style the app uses.
+- **One `NavigatorObserver` belongs to one `Navigator`.** Flutter asserts
+  `observer.navigator == null`, so the root and every shell branch get their own
+  `ModalObserver()`. Share one and the app crashes in debug; give the branches
+  none and sheets opened from a tab are never logged.
+
+## 6. Adding a field or a whole record
 
 - **Whose is the value?** Everything the printer or the server owns goes in
   (states, stages, temperatures with targets, fans, slots, HMS codes, AMS). The
