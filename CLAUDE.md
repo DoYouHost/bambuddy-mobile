@@ -155,3 +155,47 @@ do not stay silent because it was not part of the task.
 - Server timestamps are UTC even when the `Z` is missing; parse through the
   helpers in [lib/core/models/json_utils.dart](lib/core/models/json_utils.dart)
   (`dateTimeFromJson`, `calendarDateFromJson`), never `DateTime.parse`.
+- **Select fields use M3 `DropdownMenu<T>`**, never `DropdownButtonFormField`
+  (its full-screen overlay is the old Material look and does not match the app):
+  `expandedInsets: EdgeInsets.zero`, `menuHeight: 320`, and a local
+  `inputDecorationTheme` with the same chrome as `dashFieldDecoration`. It builds
+  its own inner `TextField`, so it takes an `InputDecorationTheme`, not an
+  `InputDecoration`. A bottom sheet is for complex or searchable pickers only
+  (colours, core-weight catalogue). Patterns: `_combo` in
+  [inventory_form.dart](lib/features/inventory/inventory_form.dart), the model
+  field in
+  [add_printer_screen.dart](lib/features/dashboard/add_printer_screen.dart).
+- **Yes/no confirmations go through `confirmDialog`**
+  ([lib/features/common/confirm_dialog.dart](lib/features/common/confirm_dialog.dart)):
+  it gives the confirm button a `FilledButton` (red when `destructive: true`),
+  returns a plain `bool`, and names both buttons in the diagnostic log
+  (`<id>.cancel` / `<id>.confirm`). A hand-built `AlertDialog` is for bodies that
+  are a **form or a choice** (text field, colour picker, checkbox that changes the
+  outcome) — not for a plain question.
+- **Layout that depends on whether a label fits in one line must measure with the
+  `textStyle` and `padding` of the same `ButtonStyle` the button renders with**
+  (`FilledButtonTheme.of(context).style` and friends) — never with constants or
+  `textTheme.labelLarge`. The theme overrides buttons (horizontal padding 20,
+  Manrope w700) while `labelLarge` is w500, so constants underestimated the width
+  by ~11 px: invisible at normal text size, wrong at system text size "small"
+  (`font_scale 0.85`) on a 360 dp screen. Add ~10 px of slack — collapsing early
+  looks fine, a wrapped label does not. Related: `showModalBottomSheet` without
+  `isScrollControlled` is capped at 9/16 of the screen height.
+- **Every function that parses user input** (URLs, paths, formats) gets tests for
+  the basic path, missing input and odd input, written with it. A mocked
+  transport does not exercise network behaviour: the http/https/WS bug passed a
+  fully green suite because `normalizeBaseUrl` and `wsUrlFor` had no test of
+  their own and the mocked adapter never performs a real redirect. Extract the
+  input logic into a pure function and cover it directly.
+
+## Content and contact
+
+- **User-facing copy stays within PEGI 16.** Mild profanity and cheeky, absurd
+  humour are fine; heavy vulgarity is not — in either language, and regardless of
+  how the conversation itself is worded.
+- Humour that leans on pop culture has to be adapted from **real, recognizable
+  quotes**. A generic line with a character's name glued on is a fake and reads
+  as one; if you don't have the source, ask for it instead of inventing quotes.
+- The only contact address that belongs anywhere in this repo — code, docs, store
+  metadata, privacy policy — is **info.doyouhost@gmail.com** (the developer
+  account). Never a personal or employer address.
