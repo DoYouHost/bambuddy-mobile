@@ -13,7 +13,7 @@ import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
 import '../common/format_datetime.dart';
 import '../common/print_run_labels.dart';
-import '../stats/stats_common.dart' show fmtDuration, fmtNum;
+import '../stats/stats_common.dart' show fmtDuration, fmtGrams, fmtNum;
 import 'print_log_providers.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
@@ -158,40 +158,40 @@ class _PrintLogClassifySheetState
 
             // What the row could only show abbreviated, in full: the card has
             // one line for all of it and cuts whatever does not fit.
-            _DetailRow(
+            _RunDetailRow(
               label: l10n.printLogDetailStarted,
               value: entry.startedAt == null
                   ? null
                   : formatDateTime(entry.startedAt!),
             ),
-            _DetailRow(
+            _RunDetailRow(
               label: l10n.printLogDetailFinished,
               value: entry.completedAt == null
                   ? null
                   : formatDateTime(entry.completedAt!),
             ),
-            _DetailRow(
+            _RunDetailRow(
               label: l10n.printLogDetailDuration,
               value: entry.durationSeconds == null
                   ? null
                   : fmtDuration(entry.durationSeconds!),
             ),
-            _DetailRow(
+            _RunDetailRow(
               label: l10n.printLogDetailFilament,
               value: [
                 if (entry.filamentType != null) entry.filamentType!,
                 if (entry.filamentUsedGrams != null)
-                  '${entry.filamentUsedGrams!.toStringAsFixed(0)} g',
+                  fmtGrams(entry.filamentUsedGrams!),
               ].join(' · '),
             ),
             if (showMoney) ...[
-              _DetailRow(
+              _RunDetailRow(
                 label: l10n.printLogDetailCost,
                 value: entry.cost == null
                     ? null
                     : formatMoney(currency, fmtNum(entry.cost!)),
               ),
-              _DetailRow(
+              _RunDetailRow(
                 label: l10n.printLogDetailEnergy,
                 value: entry.energyKwh == null
                     ? null
@@ -334,8 +334,8 @@ class _PrintLogClassifySheetState
 /// One `label — value` line of the run's detail block. Renders nothing when
 /// the server has no value for it: an empty right-hand side reads as a zero,
 /// which for cost and energy is a different claim entirely.
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+class _RunDetailRow extends StatelessWidget {
+  const _RunDetailRow({required this.label, required this.value});
 
   final String label;
   final String? value;

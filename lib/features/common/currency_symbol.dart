@@ -1,5 +1,6 @@
-/// Symbols for the currency codes bambuddy offers in its settings, mirroring
-/// `frontend/src/utils/currency.ts` so a price reads the same in both clients.
+/// Symbols for the currency codes bambuddy offers in its settings, taken from
+/// `frontend/src/utils/currency.ts` so the two clients name a currency the same
+/// way. Where the symbol goes is deliberately not copied — see [formatMoney].
 ///
 /// An unknown code falls back to the code itself, which is what the web does
 /// and is still an answer: "12.50 XPF" says more than a bare 12.50.
@@ -50,7 +51,12 @@ String currencySymbol(String? code) {
 }
 
 /// [amount] with the server's currency symbol on the side that currency puts
-/// it — `$12.50`, but `12,50 zł`.
+/// it — `$12.50`, but `12.50 zł`.
+///
+/// **Deliberately unlike the web**, which renders `{symbol}{amount}` for every
+/// currency and so writes `zł12.50` — a spelling no Polish price uses. This app
+/// is translated and read in the locale it prices in, so it follows the
+/// currency rather than the other client; the figures are identical either way.
 ///
 /// The side is decided by the symbol's own first character rather than by a
 /// second table: every symbol here that is written after the amount is

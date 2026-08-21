@@ -26,7 +26,7 @@ import '../common/print_thumbnail.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/state_views.dart';
-import '../stats/stats_common.dart' show fmtDuration, fmtNum;
+import '../stats/stats_common.dart' show fmtDuration, fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
 import 'print_log_providers.dart';
@@ -377,8 +377,7 @@ class _PrintLogCard extends ConsumerWidget {
     ];
     final numbers = <String>[
       if (entry.durationSeconds != null) fmtDuration(entry.durationSeconds!),
-      if (entry.filamentUsedGrams != null)
-        '${entry.filamentUsedGrams!.toStringAsFixed(0)} g',
+      if (entry.filamentUsedGrams != null) fmtGrams(entry.filamentUsedGrams!),
       // Below 1.2.6 these are null for every row, which is not the same as
       // "this run cost nothing" — the gate is what keeps the two apart.
       if (showMoney && entry.cost != null)
@@ -530,6 +529,47 @@ class _Pill extends StatelessWidget {
   }
 }
 
+/// One "anything, or pick one" filter combo.
+///
+/// [anyValue] is what the "any" row carries, because a `DropdownMenu` has no
+/// null option and every row needs a value of its own — an id no printer has,
+/// an empty username. It never reaches [onPick]: choosing it, or choosing
+/// nothing, is reported as null, so the caller only ever handles "no filter"
+/// once. Duplicating that mapping per combo is how two pickers drift apart.
+///
+/// [options] pairs each value with the label it shows. Labels are names people
+/// gave things, so they stay out of the diagnostic id — every row of one
+/// picker records under the same `<id>.option`.
+Widget _anyOrOne<T>(
+  BuildContext context, {
+  required String id,
+  required String anyLabel,
+  required T anyValue,
+  required T? selected,
+  required List<(T, String)> options,
+  required ValueChanged<T?> onPick,
+}) =>
+    dashCombo<T>(
+      context,
+      id: id,
+      initialSelection: selected ?? anyValue,
+      textStyle: DashTokens.of(context).body,
+      onSelected: (v) => onPick(v == null || v == anyValue ? null : v),
+      entries: [
+        DropdownMenuEntry(
+          value: anyValue,
+          label: anyLabel,
+          labelWidget: logTag('$id.any', Text(anyLabel)),
+        ),
+        for (final (value, label) in options)
+          DropdownMenuEntry(
+            value: value,
+            label: label,
+            labelWidget: logTag('$id.option', Text(label)),
+          ),
+      ],
+    );
+
 /// Every filter here is applied by the server: the list is paged, so filtering
 /// what is already loaded would answer about this page rather than the log.
 class _PrintLogFilterSheet extends ConsumerWidget {
@@ -539,7 +579,6 @@ class _PrintLogFilterSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final t = DashTokens.of(context);
     final filters = ref.watch(printLogFiltersProvider);
     final notifier = ref.read(printLogFiltersProvider.notifier);
     final printers =
@@ -613,72 +652,37 @@ class _PrintLogFilterSheet extends ConsumerWidget {
 
               if (printers.isNotEmpty) ...[
                 FilterGroupLabel(label: l10n.printLogFilterPrinter),
-                dashCombo<int>(
+                _anyOrOne<int>(
                   context,
                   id: 'print_log.filters.printer',
-                  initialSelection: filters.printerId ?? -1,
-                  textStyle: t.body,
-                  onSelected: (v) => notifier.set(
-                    v == null || v == -1
+                  anyLabel: l10n.printLogAnyPrinter,
+                  // No printer carries it, so it cannot collide with a real id.
+                  anyValue: -1,
+                  selected: filters.printerId,
+                  options: [for (final p in printers) (p.id, p.name)],
+                  onPick: (v) => notifier.set(
+                    v == null
                         ? filters.copyWith(clearPrinter: true)
                         : filters.copyWith(printerId: v),
                   ),
-                  entries: [
-                    DropdownMenuEntry(
-                      value: -1,
-                      label: l10n.printLogAnyPrinter,
-                      labelWidget: logTag(
-                        'print_log.filters.printer.any',
-                        Text(l10n.printLogAnyPrinter),
-                      ),
-                    ),
-                    for (final p in printers)
-                      DropdownMenuEntry(
-                        value: p.id,
-                        label: p.name,
-                        labelWidget: logTag(
-                          'print_log.filters.printer.option',
-                          Text(p.name),
-                        ),
-                      ),
-                  ],
                 ),
                 const SizedBox(height: 16),
               ],
 
               if (users.isNotEmpty) ...[
                 FilterGroupLabel(label: l10n.printLogFilterUser),
-                dashCombo<String>(
+                _anyOrOne<String>(
                   context,
                   id: 'print_log.filters.user',
-                  initialSelection: filters.username ?? '',
-                  textStyle: t.body,
-                  onSelected: (v) => notifier.set(
-                    v == null || v.isEmpty
+                  anyLabel: l10n.printLogAnyUser,
+                  anyValue: '',
+                  selected: filters.username,
+                  options: [for (final u in users) (u.username, u.username)],
+                  onPick: (v) => notifier.set(
+                    v == null
                         ? filters.copyWith(clearUsername: true)
                         : filters.copyWith(username: v),
                   ),
-                  entries: [
-                    DropdownMenuEntry(
-                      value: '',
-                      label: l10n.printLogAnyUser,
-                      labelWidget: logTag(
-                        'print_log.filters.user.any',
-                        Text(l10n.printLogAnyUser),
-                      ),
-                    ),
-                    for (final u in users)
-                      DropdownMenuEntry(
-                        value: u.username,
-                        label: u.username,
-                        // The name is the user's own — the id says which
-                        // picker, never who was picked.
-                        labelWidget: logTag(
-                          'print_log.filters.user.option',
-                          Text(u.username),
-                        ),
-                      ),
-                  ],
                 ),
                 const SizedBox(height: 16),
               ],

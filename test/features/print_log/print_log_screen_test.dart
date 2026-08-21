@@ -1,7 +1,9 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
+import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
+import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
 import 'package:bambuddy_mobile/features/stats/stats_common.dart' show fmtNum;
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -128,6 +130,9 @@ void main() {
         // Money needs the server's currency, which otherwise means building an
         // API client — and there is no profile here to build one from.
         serverSettingsProvider.overrideWith((ref) async => {'currency': 'PLN'}),
+        printersForPickerProvider.overrideWith(
+          (ref) async => const [Printer(id: 3, name: 'P1S')],
+        ),
         serverProfileProvider.overrideWith(_NullProfile.new),
       ],
       child: plApp(const PrintLogScreen()),
@@ -333,6 +338,31 @@ void main() {
 
     expect(find.text(l10n.printLogDetailCost), findsNothing);
     expect(find.text(l10n.printLogDetailEnergy), findsNothing);
+  });
+
+  testWidgets('the printer filter reports "any" as no filter at all',
+      (tester) async {
+    // The combo has no null option, so "any" rides on a sentinel value. Mapping
+    // it back to null is the fiddly half, and it is what the query depends on.
+    await pumpScreen(tester);
+    await tester.tap(find.byIcon(Icons.tune));
+    await settle(tester);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PrintLogScreen)),
+    );
+    expect(container.read(printLogFiltersProvider).printerId, isNull);
+
+    await tester.tap(find.byType(DropdownMenu<int>));
+    await settle(tester);
+    final printer = find.text('P1S').last;
+    await tester.ensureVisible(printer);
+    await tester.pump();
+    await tester.tap(printer);
+    await settle(tester);
+
+    expect(container.read(printLogFiltersProvider).printerId, 3);
+    expect(container.read(printLogFiltersProvider).activeCount, 1);
   });
 
   testWidgets('an orphan run is marked as one', (tester) async {

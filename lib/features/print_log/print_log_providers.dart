@@ -159,18 +159,24 @@ final printLogProvider =
 /// Mutations here change what the Stats screen's Failure Analysis groups by, so
 /// each one drops that cache — see [_invalidateFailureViews].
 class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
-  /// Leaving the screen while a page or an edit is in flight disposes the
-  /// notifier, and writing to a disposed one throws. Reset in [build] rather
-  /// than only in the constructor: `onDispose` fires on every rebuild — a
-  /// filter change — not just on teardown.
-  var _disposed = false;
+  /// Bumped by every rebuild and by teardown. An async write compares the value
+  /// it started from against the current one, and drops its result when they
+  /// differ — the answer it is holding belongs to a state that is gone.
+  ///
+  /// A plain `disposed` flag cannot do this. `onDispose` fires on every
+  /// rebuild, not only on teardown, so the flag has to be cleared in [build] —
+  /// and a page still in flight when the filters changed slips straight through
+  /// the cleared flag and writes the previous filter's rows over the new
+  /// filter's. Counting instead of flagging tells the two cases apart, and
+  /// covers teardown as the case with no next build.
+  var _epoch = 0;
 
   @override
   Future<PrintLogState> build() async {
     ref.watch(serverProfileProvider);
     final filters = ref.watch(printLogFiltersProvider);
-    _disposed = false;
-    ref.onDispose(() => _disposed = true);
+    _epoch++;
+    ref.onDispose(() => _epoch++);
     return _page(filters, offset: 0);
   }
 
@@ -200,9 +206,10 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// Pull-to-refresh: back to the first page, keeping the filters.
   Future<void> refresh() async {
     final filters = ref.read(printLogFiltersProvider);
+    final epoch = _epoch;
     state = const AsyncValue<PrintLogState>.loading().copyWithPrevious(state);
     final next = await AsyncValue.guard(() => _page(filters, offset: 0));
-    if (_disposed) return;
+    if (epoch != _epoch) return;
     state = next;
   }
 
@@ -212,6 +219,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
     final current = state.valueOrNull;
     if (current == null || current.loadingMore || !current.hasMore) return;
 
+    final epoch = _epoch;
     state = AsyncValue.data(current.copyWith(loadingMore: true));
     try {
       final next = await _page(
@@ -219,10 +227,10 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
         offset: current.items.length,
         before: current.items,
       );
-      if (_disposed) return;
+      if (epoch != _epoch) return;
       state = AsyncValue.data(next);
     } on AppApiException {
-      if (_disposed) return;
+      if (epoch != _epoch) return;
       state = AsyncValue.data(current.copyWith(loadingMore: false));
     }
   }
@@ -239,6 +247,7 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
     bool clearFailureReason = false,
     String? status,
   }) async {
+    final epoch = _epoch;
     try {
       final updated = await ref.read(printLogRepositoryProvider).updateEntry(
             entryId,
@@ -246,7 +255,9 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
             clearFailureReason: clearFailureReason,
             status: status,
           );
-      if (_disposed) return null;
+      // The edit landed either way; only the local merge is skipped when the
+      // rows it would touch are no longer on screen.
+      if (epoch != _epoch) return null;
       _replace(
         entryId,
         (row) => row.copyWith(
@@ -264,20 +275,25 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
 
   /// Delete one run. Returns the exception to show, or null on success.
   Future<AppApiException?> deleteEntry(int entryId) async {
-    final current = state.valueOrNull;
-    if (current == null) return null;
+    final epoch = _epoch;
     try {
+      // The request goes first and unconditionally. Reading the list before it
+      // and giving up on an empty one reported success for a delete that never
+      // happened — reachable whenever the list is in its error state, which is
+      // exactly when a stale row is most likely to be the one being deleted.
       await ref.read(printLogRepositoryProvider).deleteEntry(entryId);
-      if (_disposed) return null;
-      state = AsyncValue.data(current.copyWith(
-        items: [
-          for (final row in current.items)
-            if (row.id != entryId) row,
-        ],
-        // The row left the server's count too, so the "load more" arithmetic
-        // stays right without a refetch.
-        total: current.total > 0 ? current.total - 1 : 0,
-      ));
+      final current = state.valueOrNull;
+      if (epoch == _epoch && current != null) {
+        state = AsyncValue.data(current.copyWith(
+          items: [
+            for (final row in current.items)
+              if (row.id != entryId) row,
+          ],
+          // The row left the server's count too, so the "load more" arithmetic
+          // stays right without a refetch.
+          total: current.total > 0 ? current.total - 1 : 0,
+        ));
+      }
       await _invalidateFailureViews();
       return null;
     } on AppApiException catch (e) {
@@ -288,9 +304,10 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
   /// Clear the whole log — every user's rows, every filter ignored. Answers how
   /// many went, or the exception to show.
   Future<(int?, AppApiException?)> clearAll() async {
+    final epoch = _epoch;
     try {
       final deleted = await ref.read(printLogRepositoryProvider).clearAll();
-      if (_disposed) return (deleted, null);
+      if (epoch != _epoch) return (deleted, null);
       state = const AsyncValue.data(PrintLogState(items: [], total: 0));
       await _invalidateFailureViews();
       return (deleted, null);

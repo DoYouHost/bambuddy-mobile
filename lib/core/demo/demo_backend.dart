@@ -1601,13 +1601,26 @@ class DemoBackend {
     return sorted;
   }
 
+  /// A `date_from` / `date_to` query value as the instant it means.
+  ///
+  /// The app sends those without a zone marker on purpose — the real server's
+  /// columns are naive UTC and a tz-aware bind param compares against them
+  /// differently per database. Dart reads a zoneless string as **local**, so
+  /// taking it as written moved the filter boundary by the device's offset
+  /// against the demo's own timestamps, which are tagged UTC.
+  static DateTime? _utcQueryInstant(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final zoned = RegExp(r'([Zz]|[+-]\d{2}:?\d{2})$').hasMatch(value);
+    return DateTime.tryParse(zoned ? value : '${value}Z');
+  }
+
   List<Map<String, dynamic>> _filterPrintLog(Map<String, String> q) {
     final search = (q['search'] ?? '').toLowerCase();
     final printerId = int.tryParse(q['printer_id'] ?? '');
     final status = q['status'];
     final username = q['created_by_username'];
-    final from = DateTime.tryParse(q['date_from'] ?? '');
-    final to = DateTime.tryParse(q['date_to'] ?? '');
+    final from = _utcQueryInstant(q['date_from']);
+    final to = _utcQueryInstant(q['date_to']);
     return _printLog.where((e) {
       if (search.isNotEmpty &&
           !'${e['print_name'] ?? ''}'.toLowerCase().contains(search)) {
@@ -1618,7 +1631,6 @@ class DemoBackend {
       if (username != null && e['created_by_username'] != username) {
         return false;
       }
-      // The query values are naive UTC, and so is `created_at` here.
       final created = DateTime.tryParse('${e['created_at']}');
       if (created == null) return true;
       if (from != null && created.isBefore(from)) return false;
