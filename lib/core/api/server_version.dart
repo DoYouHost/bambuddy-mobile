@@ -56,6 +56,21 @@ enum ServerFeature {
   ///
   /// See `docs/plans/13-users-slim-and-api-key-identity.md`.
   usersSlimListing,
+
+  /// `cost` / `energy_kwh` / `energy_cost` on a print-log entry, and the
+  /// `sort_by` / `sort_dir` query params that go with them (server #2636).
+  ///
+  /// Both halves are silent below it, in the two different ways that make a
+  /// version gate necessary rather than optional:
+  ///
+  /// - The three fields were written to the table all along but never named by
+  ///   the serialiser, so they arrive absent — which parses as `null`, exactly
+  ///   like a run made without a smart plug. Showing the columns anyway would
+  ///   put "no energy recorded" against every row of a server that records it.
+  /// - `sort_by` on an older server is an unknown query param, and FastAPI
+  ///   drops those without a word: the list comes back `created_at desc`
+  ///   whatever was asked for. Same silent-drop class as [sliceLayoutOptions].
+  printLogCostEnergy,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -153,6 +168,9 @@ class ServerVersion implements Comparable<ServerVersion> {
     ServerFeature.processOverrides: (1, 2, 6, 0),
     // GET /users/slim (server #1894) — probed, not gated on this. See the enum.
     ServerFeature.usersSlimListing: (1, 2, 6, 0),
+    // Print-log cost/energy fields + sortable columns (server #2636, commit
+    // a08d3e62).
+    ServerFeature.printLogCostEnergy: (1, 2, 6, 0),
     // Heater history (server commit 090c180e). The threshold is written in the
     // *old* numbering because that is where the route shipped — v0.2.4.8, two
     // releases before the scheme changed to 1.2.5. Every 1.x version outranks

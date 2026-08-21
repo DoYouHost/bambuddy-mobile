@@ -42,6 +42,7 @@ import 'data/ams_slot_config_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/printer_files_repository.dart';
 import 'data/maintenance_repository.dart';
+import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
@@ -611,6 +612,23 @@ final projectsRepositoryProvider = Provider<ProjectsRepository>(
 /// Smart plugs (M7). Shares authenticated Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Print log — one row per run, in a table that outlives the archives it
+/// points at. Shares authenticated Dio; the version service gates the
+/// cost/energy columns and the sort control.
+final printLogRepositoryProvider = Provider<PrintLogRepository>(
+  (ref) => PrintLogRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server sends per-run cost and energy, and honours a sort order
+/// (server #2636). Below it both are silent, so the columns and the sort
+/// control stay off rather than showing blanks and an order nobody applied.
+final printLogCostEnergyProvider = FutureProvider<bool>(
+  (ref) => ref.watch(printLogRepositoryProvider).supportsCostEnergy(),
 );
 
 /// Archive statistics. Shares authenticated Dio.

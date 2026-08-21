@@ -5805,4 +5805,231 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'Jedyne ustawienie, które klucz może zapisać — do taryfy dynamicznej.';
+
+  @override
+  String get printLogTitle => 'Log wydruków';
+
+  @override
+  String get printLogSearchHint => 'Szukaj przebiegów';
+
+  @override
+  String get printLogEmpty => 'Brak zapisanych przebiegów';
+
+  @override
+  String get printLogNoMatches => 'Żaden przebieg nie pasuje do filtrów';
+
+  @override
+  String get printLogLoadFailed => 'Nie udało się wczytać logu wydruków';
+
+  @override
+  String get printLogFilters => 'Filtry';
+
+  @override
+  String get printLogFilterPrinter => 'Drukarka';
+
+  @override
+  String get printLogFilterUser => 'Użytkownik';
+
+  @override
+  String get printLogFilterStatus => 'Status';
+
+  @override
+  String get printLogFilterDates => 'Zakres dat';
+
+  @override
+  String get printLogAnyPrinter => 'Dowolna drukarka';
+
+  @override
+  String get printLogAnyUser => 'Dowolny';
+
+  @override
+  String get printLogAnyStatus => 'Dowolny status';
+
+  @override
+  String get printLogNoUser => 'Bez użytkownika';
+
+  @override
+  String get printLogOrphan => 'Archiwum usunięte';
+
+  @override
+  String printLogShowing(int loaded, int total) {
+    return '$loaded z $total';
+  }
+
+  @override
+  String get printLogLoadMore => 'Wczytaj więcej';
+
+  @override
+  String get printLogSort => 'Sortuj po';
+
+  @override
+  String get printLogSortDate => 'Dacie';
+
+  @override
+  String get printLogSortName => 'Nazwie';
+
+  @override
+  String get printLogSortPrinter => 'Drukarce';
+
+  @override
+  String get printLogSortUser => 'Użytkowniku';
+
+  @override
+  String get printLogSortStatus => 'Statusie';
+
+  @override
+  String get printLogSortDuration => 'Czasie';
+
+  @override
+  String get printLogSortFilament => 'Zużyciu filamentu';
+
+  @override
+  String get printLogSortCost => 'Koszcie';
+
+  @override
+  String get printLogSortEnergy => 'Energii';
+
+  @override
+  String get printLogSortDescending => 'Malejąco';
+
+  @override
+  String get printLogSortAscending => 'Rosnąco';
+
+  @override
+  String get printLogStatusCompleted => 'Ukończony';
+
+  @override
+  String get printLogStatusFailed => 'Nieudany';
+
+  @override
+  String get printLogStatusStopped => 'Zatrzymany';
+
+  @override
+  String get printLogStatusCancelled => 'Anulowany';
+
+  @override
+  String get printLogStatusSkipped => 'Pominięty';
+
+  @override
+  String get printLogStatusAborted => 'Przerwany';
+
+  @override
+  String printLogEnergy(String value) {
+    return '$value kWh';
+  }
+
+  @override
+  String get printLogClassifyTitle => 'Sklasyfikuj przebieg';
+
+  @override
+  String get printLogFailureCause => 'Przyczyna niepowodzenia';
+
+  @override
+  String get printLogNoClassification => 'Bez klasyfikacji';
+
+  @override
+  String get printLogStatusLabel => 'Status';
+
+  @override
+  String get printLogCountsAsFailure =>
+      'Liczy się jako niepowodzenie — ten przebieg i jego przyczyna trafiają do analizy awarii.';
+
+  @override
+  String get printLogNotCountedAsFailure =>
+      'Nie liczy się jako niepowodzenie, więc przyczyna nie trafi do analizy awarii.';
+
+  @override
+  String printLogStatusOneWay(String status) {
+    return 'Ten serwer nie potrafi zapisać z powrotem „$status”. Po zmianie nie da się tam wrócić.';
+  }
+
+  @override
+  String get printLogSave => 'Zapisz';
+
+  @override
+  String get printLogSaveFailed => 'Nie udało się zapisać klasyfikacji';
+
+  @override
+  String get printLogDelete => 'Usuń przebieg';
+
+  @override
+  String get printLogDeleteTitle => 'Usunąć ten przebieg?';
+
+  @override
+  String get printLogDeleteBody =>
+      'Zniknie z logu, a jego filament, koszt i czas znikną ze statystyk. Archiwum, do którego wskazuje, zostaje.';
+
+  @override
+  String get printLogDeleteFailed => 'Nie udało się usunąć przebiegu';
+
+  @override
+  String get printLogClear => 'Wyczyść log wydruków';
+
+  @override
+  String get printLogClearTitle => 'Wyczyścić cały log wydruków?';
+
+  @override
+  String printLogClearBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zniknie wszystkie $count przebiegów',
+      many: 'Zniknie wszystkie $count przebiegów',
+      few: 'Znikną wszystkie $count przebiegi',
+      one: 'Zniknie jedyny przebieg w logu',
+    );
+    return '$_temp0 — wszystkich użytkowników, nie tylko Twoje — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
+  }
+
+  @override
+  String printLogCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count przebiegów',
+      many: 'Usunięto $count przebiegów',
+      few: 'Usunięto $count przebiegi',
+      one: 'Usunięto $count przebieg',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get printLogClearFailed => 'Nie udało się wyczyścić logu wydruków';
+
+  @override
+  String get failureReasonAdhesion => 'Brak przyczepności do stołu';
+
+  @override
+  String get failureReasonSpaghetti => 'Spaghetti / oderwany wydruk';
+
+  @override
+  String get failureReasonLayerShift => 'Przesunięcie warstw';
+
+  @override
+  String get failureReasonCloggedNozzle => 'Zapchana dysza';
+
+  @override
+  String get failureReasonFilamentRunout => 'Koniec filamentu';
+
+  @override
+  String get failureReasonWarping => 'Odkształcenie (warping)';
+
+  @override
+  String get failureReasonStringing => 'Nitkowanie';
+
+  @override
+  String get failureReasonUnderExtrusion => 'Niedomiar ekstruzji';
+
+  @override
+  String get failureReasonPowerFailure => 'Zanik zasilania';
+
+  @override
+  String get failureReasonUserCancelled => 'Anulowany przez użytkownika';
+
+  @override
+  String get failureReasonOther => 'Inna';
+
+  @override
+  String get failureReasonUnknown => 'Nieznana';
 }

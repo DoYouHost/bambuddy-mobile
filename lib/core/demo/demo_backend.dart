@@ -321,6 +321,9 @@ class DemoBackend {
       case 'archives':
         return _archivesRoute(m, s, q);
 
+      case 'print-log':
+        return _printLogRoute(m, s, q, body);
+
       case 'smart-plugs':
         return _plugsRoute(m, s, body);
 
@@ -1340,6 +1343,198 @@ class DemoBackend {
       a('Flexi dragon', 1, 26,
           estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
     ];
+  }
+
+  // --- Print log ---
+
+  /// One row per run, built from the archives plus the runs whose archive is
+  /// gone — the orphans are the half of this table nothing else in the app can
+  /// reach, so the demo would misrepresent the screen without them.
+  ///
+  /// No `cost` / `energy_kwh` / `energy_cost`: the demo reports 1.2.5.1, and
+  /// that server records them but never sends them (server #2636). Serving
+  /// values it would withhold would show columns no real 1.2.5 user can see.
+  late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
+
+  List<Map<String, dynamic>> _buildPrintLog() {
+    var id = 900;
+    Map<String, dynamic> row(
+      Map<String, dynamic> archive, {
+      String? failureReason,
+    }) =>
+        {
+          'id': id++,
+          'archive_id': archive['id'],
+          'print_name': archive['print_name'],
+          'printer_name': _printerName(archive['printer_id'] as int?),
+          'printer_id': archive['printer_id'],
+          'status': archive['status'],
+          'started_at': archive['started_at'],
+          'completed_at': archive['completed_at'],
+          'duration_seconds': archive['actual_time_seconds'],
+          'filament_type': archive['filament_type'],
+          'filament_color': archive['filament_color'],
+          'filament_used_grams': archive['filament_used_grams'],
+          'failure_reason': failureReason ?? archive['failure_reason'],
+          'thumbnail_path': null,
+          'created_by_id': 1,
+          'created_by_username': DemoConfig.username,
+          'created_at': archive['created_at'],
+        };
+
+    Map<String, dynamic> orphan(
+      String name,
+      int printerId,
+      int daysAgo, {
+      required String status,
+      String? failureReason,
+      int durationSeconds = 1800,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 5);
+      return {
+        'id': id++,
+        // The archive is gone; the run survived it (`ON DELETE SET NULL`).
+        'archive_id': null,
+        'print_name': name,
+        'printer_name': _printerName(printerId),
+        'printer_id': printerId,
+        'status': status,
+        'started_at': _iso(started),
+        'completed_at': _iso(started.add(Duration(seconds: durationSeconds))),
+        'duration_seconds': durationSeconds,
+        'filament_type': 'PLA',
+        'filament_color': '#0ACCB8',
+        'filament_used_grams': 18.4,
+        'failure_reason': failureReason,
+        'thumbnail_path': null,
+        'created_by_id': null,
+        'created_by_username': null,
+        'created_at': _iso(started),
+      };
+    }
+
+    return [
+      // Newest first, the order the server sorts by.
+      orphan('Bracket v3 (deleted archive)', 1, 0,
+          status: 'failed', failureReason: 'cloggedNozzle'),
+      for (final a in _archives) row(a),
+      orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
+    ];
+  }
+
+  String? _printerName(int? printerId) {
+    for (final p in _printers) {
+      if (p['id'] == printerId) return '${p['name']}';
+    }
+    return null;
+  }
+
+  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
+  /// refuses what the real server refuses, or the editor would look like it
+  /// accepts anything.
+  static const _printLogReasons = {
+    '',
+    'adhesionFailure',
+    'spaghettiDetached',
+    'layerShift',
+    'cloggedNozzle',
+    'filamentRunout',
+    'warping',
+    'stringing',
+    'underExtrusion',
+    'powerFailure',
+    'userCancelled',
+    'other',
+  };
+  static const _printLogStatuses = {
+    'completed',
+    'failed',
+    'stopped',
+    'cancelled',
+    'skipped',
+  };
+
+  DemoResult? _printLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') {
+        final matched = _filterPrintLog(q);
+        final offset = int.tryParse(q['offset'] ?? '') ?? 0;
+        final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+        final page = offset >= matched.length
+            ? const <Map<String, dynamic>>[]
+            : matched.sublist(offset, math.min(offset + limit, matched.length));
+        return _ok({'items': page, 'total': matched.length});
+      }
+      if (m == 'DELETE') {
+        // Clears every row, ignoring the filters above — as the route does.
+        final deleted = _printLog.length;
+        _printLog.clear();
+        return _ok({'deleted': deleted});
+      }
+      return _fallback(m);
+    }
+
+    final entryId = int.tryParse(s[1]);
+    final entry = _printLog.where((e) => e['id'] == entryId).firstOrNull;
+    if (s.length >= 3 && s[2] == 'thumbnail') return _notFound();
+    if (entry == null) return _notFound();
+
+    if (m == 'DELETE') {
+      _printLog.remove(entry);
+      return _ok({'status': 'deleted', 'id': entryId});
+    }
+    if (m == 'PATCH') {
+      if (body.containsKey('failure_reason')) {
+        final reason = '${body['failure_reason'] ?? ''}';
+        if (!_printLogReasons.contains(reason)) {
+          return (
+            status: 400,
+            body: {'detail': "Unknown failure_reason: '$reason'"},
+          );
+        }
+        entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body['status'] != null) {
+        final status = '${body['status']}';
+        if (!_printLogStatuses.contains(status)) {
+          return (status: 400, body: {'detail': "Unknown status: '$status'"});
+        }
+        entry['status'] = status;
+      }
+      return _ok(entry);
+    }
+    return _fallback(m);
+  }
+
+  List<Map<String, dynamic>> _filterPrintLog(Map<String, String> q) {
+    final search = (q['search'] ?? '').toLowerCase();
+    final printerId = int.tryParse(q['printer_id'] ?? '');
+    final status = q['status'];
+    final username = q['created_by_username'];
+    final from = DateTime.tryParse(q['date_from'] ?? '');
+    final to = DateTime.tryParse(q['date_to'] ?? '');
+    return _printLog.where((e) {
+      if (search.isNotEmpty &&
+          !'${e['print_name'] ?? ''}'.toLowerCase().contains(search)) {
+        return false;
+      }
+      if (printerId != null && e['printer_id'] != printerId) return false;
+      if (status != null && e['status'] != status) return false;
+      if (username != null && e['created_by_username'] != username) {
+        return false;
+      }
+      // The query values are naive UTC, and so is `created_at` here.
+      final created = DateTime.tryParse('${e['created_at']}');
+      if (created == null) return true;
+      if (from != null && created.isBefore(from)) return false;
+      if (to != null && created.isAfter(to)) return false;
+      return true;
+    }).toList();
   }
 
   DemoResult? _archivesRoute(String m, List<String> s, Map<String, String> q) {

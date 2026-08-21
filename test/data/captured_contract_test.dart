@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
+import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -106,6 +107,35 @@ void main() {
     expect(stats.totalPrints, greaterThan(0));
     expect(stats.printsByPrinter, isNotEmpty);
   });
+
+  // Older capture sets predate the print-log endpoint. Skipping by name beats
+  // failing on a missing file: the rest of the captures still hold the
+  // contract, and the message says what to re-run.
+  final printLogCapture = File('test/fixtures/captured/print_log.json');
+
+  test('print log page parses whole, with the fields a row shows', () async {
+    // The page is an object, not a list, so the record count comes from
+    // `items` rather than from `mock`'s return.
+    final payload =
+        readFixture('captured/print_log.json') as Map<String, dynamic>;
+    adapter.onGet(
+      '/api/v1/print-log/',
+      (server) => server.reply(200, payload),
+    );
+
+    final page = await PrintLogRepository(dio).list();
+
+    expect(page.items, hasLength((payload['items'] as List).length));
+    // An empty log would make every assertion below vacuous — and a capture
+    // that proves nothing should say so rather than pass.
+    expect(page.items, isNotEmpty, reason: 'the captured print log has no rows');
+    expect(page.total, greaterThanOrEqualTo(page.items.length));
+    expect(page.items.first.status, isNotEmpty);
+    expect(page.items.first.createdAt.year, greaterThan(2000));
+  },
+      skip: printLogCapture.existsSync()
+          ? null
+          : 'no captured/print_log.json — re-run tool/capture_fixtures.sh');
 
   test('spools parse whole, with what the filament screen shows', () async {
     final count = mock('/api/v1/inventory/spools', 'inventory_spools.json');

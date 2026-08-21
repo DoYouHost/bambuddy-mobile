@@ -18,10 +18,28 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.archiveId,
     this.size = 52,
     this.zoom = 1.4,
-  });
+  }) : printLogEntryId = null;
+
+  /// The same tile for a print-log row, served by the entry's own route.
+  ///
+  /// Not the archive's: a run outlives the archive it points at, and the log
+  /// route is the only one that can still answer for an orphan. Pass null once
+  /// `thumbnail_path` is empty — the server has nothing to send, and asking
+  /// anyway costs a 404 per row.
+  const PrintThumbnail.printLogEntry({
+    super.key,
+    required this.printLogEntryId,
+    this.size = 52,
+    this.zoom = 1.4,
+  }) : archiveId = null;
 
   /// Archive id; when null → placeholder (e.g. queue item without archive).
   final int? archiveId;
+
+  /// Print-log entry id; set instead of [archiveId] by
+  /// [PrintThumbnail.printLogEntry].
+  final int? printLogEntryId;
+
   final double size;
 
   /// Scale factor of thumbnail content (crop empty margin).
@@ -50,11 +68,16 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
       child: Icon(icon, color: scheme.onSurfaceVariant, size: size * 0.4),
     );
 
-    final id = widget.archiveId;
+    final entryId = widget.printLogEntryId;
+    final path = entryId != null
+        ? Endpoints.printLogThumbnail(entryId)
+        : (widget.archiveId == null
+            ? null
+            : Endpoints.archiveThumbnail(widget.archiveId!));
     final profile = ref.watch(serverProfileProvider);
     final baseUrl = profile?.baseUrl;
     // Demo mode has no thumbnail renders — placeholder beats a broken image.
-    if (id == null || baseUrl == null || profile?.isDemo == true) {
+    if (path == null || baseUrl == null || profile?.isDemo == true) {
       return placeholder();
     }
 
@@ -68,7 +91,7 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
             child: Transform.scale(
               scale: zoom,
               child: Image.network(
-                '$baseUrl${Endpoints.archiveThumbnail(id)}?token=$token',
+                '$baseUrl$path?token=$token',
                 width: size,
                 height: size,
                 // Server serves full-res renders; without this the decoder
