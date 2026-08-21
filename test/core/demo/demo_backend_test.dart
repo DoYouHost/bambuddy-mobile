@@ -176,6 +176,25 @@ void main() {
       expect(await source.fetchLocations(), contains('Dry box'));
     });
 
+    test('the consumed counter is a separate number from remaining', () async {
+      final spools = await source.fetchSpools();
+      // One demo spool has had its counter reset before, so the two numbers
+      // must not be reconstructible from each other.
+      final reset = spools.firstWhere((s) => s.weightUsedBaseline > 0);
+      expect(reset.consumedWeight, lessThan(reset.weightUsed));
+      expect(spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
+          greaterThan(0),
+          reason: 'the shelf total the list header shows');
+
+      // Resetting zeroes the counter and leaves the spool as empty as it was.
+      final target = spools.firstWhere((s) => s.consumedWeight > 0);
+      await source.resetUsage(target.id);
+      final after = (await source.fetchSpools())
+          .firstWhere((s) => s.id == target.id);
+      expect(after.consumedWeight, 0);
+      expect(after.remainingWeight, target.remainingWeight);
+    });
+
     test('spool CRUD round-trip', () async {
       const draft = SpoolDraft(
         material: 'PLA',

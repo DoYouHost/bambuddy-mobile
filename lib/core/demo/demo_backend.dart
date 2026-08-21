@@ -1786,6 +1786,7 @@ class DemoBackend {
       String? effect,
       String? archivedAt,
       int? lowStockPct,
+      double baseline = 0,
     }) =>
         {
           'id': id++,
@@ -1799,6 +1800,7 @@ class DemoBackend {
           'label_weight': label,
           'core_weight': 250,
           'weight_used': used,
+          'weight_used_baseline': baseline,
           'cost_per_kg': cost,
           'low_stock_threshold_pct': lowStockPct,
           'storage_location': location,
@@ -1821,8 +1823,11 @@ class DemoBackend {
       spool('PETG', 'Translucent', 'Teal', '0ACCB8FF', used: 80, cost: 29.99, location: 'Dry box'),
       spool('TPU', '95A', 'Green', '0ACC38FF',
           used: 445, cost: 34.99, location: 'Shelf B', lowStockPct: 20),
+      // The one spool whose counter has been reset before: consumed (405 g)
+      // reads lower than used (905 g), which is the split the reset action
+      // makes and the only way to see it without pressing the button.
       spool('PLA', 'Silk', 'Gold', 'D4AF37FF',
-          used: 905, effect: 'silk', location: 'Shelf A'),
+          used: 905, baseline: 500, effect: 'silk', location: 'Shelf A'),
       spool('ABS', null, 'Red', 'C12E1FFF',
           used: 380, archivedAt: _iso(_daysAgo(10))),
     ];

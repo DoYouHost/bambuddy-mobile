@@ -41,6 +41,43 @@ void main() {
     });
   });
 
+  group('consumed counter parsing', () {
+    test('the native shape carries the baseline', () {
+      final spool = Spool.fromNative({
+        'id': 1,
+        'material': 'PLA',
+        'label_weight': 1000,
+        'weight_used': 900.0,
+        'weight_used_baseline': 700.0,
+      });
+
+      expect(spool.consumedWeight, 200);
+      expect(spool.remainingWeight, 100);
+    });
+
+    test('Spoolman carries it too, under the same name', () {
+      // Spoolman has no such column — the backend derives it from its
+      // used_weight / remaining_weight pair and maps it onto the native name.
+      final spool = Spool.fromSpoolman({
+        'id': 1,
+        'material': 'PLA',
+        'label_weight': 1000,
+        'weight_used': 900.0,
+        'weight_used_baseline': 850.0,
+      });
+
+      expect(spool.consumedWeight, 50);
+    });
+
+    test('a server that says nothing about it counts from zero', () {
+      final spool = Spool.fromNative(
+          {'id': 1, 'material': 'PLA', 'weight_used': 120.0});
+
+      expect(spool.weightUsedBaseline, 0);
+      expect(spool.consumedWeight, 120);
+    });
+  });
+
   group('Spool getters', () {
     Spool spool({int label = 1000, double used = 0, int? threshold}) =>
         Spool(
@@ -68,6 +105,39 @@ void main() {
       expect(spool(label: 1000, used: 800).isLowStock, isFalse);
       // próg serwera 25% → 20% poniżej
       expect(spool(label: 1000, used: 800, threshold: 25).isLowStock, isTrue);
+    });
+
+    test('consumedWeight counts from the baseline, not from zero', () {
+      // The counter and the remaining weight are independent: a reset stamps
+      // the baseline up to weight_used, which zeroes the counter and leaves
+      // the spool exactly as empty as it was (server issue #1390).
+      const reset = Spool(
+        id: 1,
+        material: 'PLA',
+        labelWeight: 1000,
+        weightUsed: 650,
+        weightUsedBaseline: 650,
+      );
+
+      expect(reset.consumedWeight, 0);
+      expect(reset.remainingWeight, 350, reason: 'reset does not refill');
+    });
+
+    test('consumedWeight never reads negative', () {
+      // A baseline above weight_used is not a state the server writes, but a
+      // Spoolman spool whose weights were edited under it can arrive that way.
+      const odd = Spool(
+        id: 1,
+        material: 'PLA',
+        weightUsed: 100,
+        weightUsedBaseline: 400,
+      );
+
+      expect(odd.consumedWeight, 0);
+    });
+
+    test('a spool with no baseline counts everything it has used', () {
+      expect(spool(label: 1000, used: 240).consumedWeight, 240);
     });
 
     test('isArchived po niepustym archived_at', () {

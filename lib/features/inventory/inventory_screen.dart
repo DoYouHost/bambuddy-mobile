@@ -32,6 +32,7 @@ import '../common/dash_input.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
+import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
@@ -282,12 +283,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         itemCount: spools.length + 1,
                         itemBuilder: (context, i) {
                           if (i == 0) {
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                              child: Text(
-                                l10n.inventorySpoolCount(spools.length),
-                                style: t.monoLabel,
-                              ),
+                            return _ListHeader(
+                              visibleCount: spools.length,
+                              shelf: inv.spools,
                             );
                           }
                           final spool = spools[i - 1];

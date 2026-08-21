@@ -3602,6 +3602,18 @@ abstract class AppLocalizations {
   /// **'{grams} g left'**
   String inventoryRemaining(String grams);
 
+  /// No description provided for @inventoryTotalConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} consumed'**
+  String inventoryTotalConsumed(String weight);
+
+  /// No description provided for @inventoryConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset: {weight}'**
+  String inventoryConsumedSinceReset(String weight);
+
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
@@ -4031,7 +4043,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryResetUsageConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Reset usage to zero? The spool will count as full again.'**
+  /// **'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.'**
   String get inventoryResetUsageConfirm;
 
   /// No description provided for @inventorySpoolCreated.
@@ -4073,7 +4085,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryUsageReset.
   ///
   /// In en, this message translates to:
-  /// **'Usage reset'**
+  /// **'Counter reset'**
   String get inventoryUsageReset;
 
   /// No description provided for @inventorySaveFailed.
@@ -4337,7 +4349,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryBulkResetBody.
   ///
   /// In en, this message translates to:
-  /// **'They will count as full again.'**
+  /// **'Their consumed-filament counters go back to zero. Remaining weights are not changed.'**
   String get inventoryBulkResetBody;
 
   /// No description provided for @inventoryBulkDone.

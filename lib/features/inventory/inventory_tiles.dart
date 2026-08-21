@@ -1,5 +1,54 @@
 part of 'inventory_screen.dart';
 
+/// The line above the shelf: how many spools the filters let through, and how
+/// much filament has been consumed since the counters were last reset.
+///
+/// The two numbers count different things on purpose. [visibleCount] is what
+/// the user is looking at, filters and search included; the consumed total runs
+/// over the whole [shelf] — **archived spools included** — because it is a
+/// running counter and past consumption is real history. Dropping it when a
+/// spool is archived would make the total fall for no visible reason, which is
+/// the bug bambuddy fixed in its own tile (server issue #1390).
+class _ListHeader extends StatelessWidget {
+  const _ListHeader({required this.visibleCount, required this.shelf});
+
+  final int visibleCount;
+  final List<Spool> shelf;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    var consumed = 0.0;
+    for (final spool in shelf) {
+      consumed += spool.consumedWeight;
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.inventorySpoolCount(visibleCount),
+              style: t.monoLabel,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (consumed > 0) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.trending_down, size: 13, color: t.textTertiary),
+            const SizedBox(width: 4),
+            Text(
+              l10n.inventoryTotalConsumed(fmtGrams(consumed)),
+              style: t.monoLabel,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SpoolTile extends StatelessWidget {
   const _SpoolTile({
     required this.spool,
@@ -408,6 +457,16 @@ class _SpoolDetailSheet extends ConsumerWidget {
                         icon: Icons.place_outlined,
                         label:
                             '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                      ),
+                    // The counter the reset action resets. Without it on screen
+                    // that action had nothing to show for itself: it moves the
+                    // baseline, never the remaining weight above.
+                    if (spool.consumedWeight > 0)
+                      _DetailRow(
+                        icon: Icons.trending_down,
+                        label: l10n.inventoryConsumedSinceReset(
+                          fmtGrams(spool.consumedWeight),
+                        ),
                       ),
                     if (spool.costPerKg != null)
                       _DetailRow(

@@ -348,7 +348,10 @@ class _SpoolActions extends ConsumerWidget {
               icon: Icons.add_link,
               label: l10n.inventoryAssign,
             ).tagged('spool_actions.assign'),
-        if (spool.weightUsed > 0)
+        // Gated on the counter, not on lifetime use: a spool whose counter is
+        // already at zero has nothing to reset, however much filament it has
+        // been through.
+        if (spool.consumedWeight > 0)
           _ActionPill(
             tokens: t,
             onPressed: () => _resetUsage(context, ref, l10n),

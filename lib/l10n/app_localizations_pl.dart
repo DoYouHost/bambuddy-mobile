@@ -2080,6 +2080,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return 'zużyto $weight';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Zużyte od resetu: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'z $total g';
   }
@@ -2320,7 +2330,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Wyzerować zużycie? Szpula znów będzie liczona jako pełna.';
+      'Wyzerować licznik zużytego filamentu? Kolejne wydruki znów będą liczone od zera — pozostała waga zostaje bez zmian.';
 
   @override
   String get inventorySpoolCreated => 'Dodano szpulę';
@@ -2351,7 +2361,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySpoolRestored => 'Przywrócono szpulę';
 
   @override
-  String get inventoryUsageReset => 'Wyzerowano zużycie';
+  String get inventoryUsageReset => 'Wyzerowano licznik';
 
   @override
   String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
@@ -2532,7 +2542,8 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'Będą liczone jako pełne.';
+  String get inventoryBulkResetBody =>
+      'Ich liczniki zużytego filamentu wrócą do zera. Pozostałe wagi zostają bez zmian.';
 
   @override
   String inventoryBulkDone(int count) {

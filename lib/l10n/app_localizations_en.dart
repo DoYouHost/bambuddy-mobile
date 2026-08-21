@@ -2048,6 +2048,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return '$weight consumed';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Consumed since reset: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'of $total g';
   }
@@ -2286,7 +2296,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Reset usage to zero? The spool will count as full again.';
+      'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.';
 
   @override
   String get inventorySpoolCreated => 'Spool added';
@@ -2315,7 +2325,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventorySpoolRestored => 'Spool restored';
 
   @override
-  String get inventoryUsageReset => 'Usage reset';
+  String get inventoryUsageReset => 'Counter reset';
 
   @override
   String get inventorySaveFailed => 'Could not save spool';
@@ -2493,7 +2503,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'They will count as full again.';
+  String get inventoryBulkResetBody =>
+      'Their consumed-filament counters go back to zero. Remaining weights are not changed.';
 
   @override
   String inventoryBulkDone(int count) {
