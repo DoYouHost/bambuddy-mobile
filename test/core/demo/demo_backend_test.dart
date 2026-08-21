@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
@@ -92,6 +93,19 @@ void main() {
       expect(await version.supportsTriStateCalibration(), isTrue);
     });
 
+    test('the reported version matches what this backend actually serves',
+        () async {
+      // A version claiming less than the payload hides a control over data that
+      // is there; claiming more shows one over data that is not. Both read as
+      // "the app is broken", so the two are pinned together here.
+      final version = ServerVersionService(dio);
+
+      expect(await version.supports(ServerFeature.printLogCostEnergy), isTrue,
+          reason: 'the print log serves cost, energy and sorting');
+      expect(await version.supports(ServerFeature.crossModelVariants), isTrue,
+          reason: 'library variant groups are served below');
+    });
+
     test('archive list, search and purge preview', () async {
       final repo = ArchiveRepository(dio);
       final list = await repo.list();
@@ -140,6 +154,31 @@ void main() {
       final searched = await repo.list(search: 'benchy');
       expect(searched.items, hasLength(1));
       expect(searched.total, 1);
+    });
+
+    test('cost and energy come through, and a plugless run stays null',
+        () async {
+      final page = await repo.list();
+      final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
+
+      expect(withPlug.cost, isNotNull);
+      expect(withPlug.energyCost, isNotNull);
+      // Null, not zero: "no smart plug behind this printer" has to read
+      // differently from a run that drew nothing.
+      expect(page.items.any((e) => e.energyKwh == null), isTrue);
+    });
+
+    test('sorting is applied, not accepted and ignored', () async {
+      final cheapest = await repo.list(
+        sort: PrintLogSort.filamentUsed,
+        descending: false,
+      );
+      final heaviest = await repo.list(sort: PrintLogSort.filamentUsed);
+
+      final light = cheapest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      final heavy = heaviest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      expect(light.first, lessThanOrEqualTo(light.last));
+      expect(heavy.first, greaterThanOrEqualTo(heavy.last));
     });
 
     test('paging walks the log without repeating a row', () async {
@@ -546,6 +585,48 @@ void main() {
       await commands.stop(1);
       status = await printers.fetchStatus(1);
       expect(status!.state, 'IDLE');
+    });
+  });
+
+  group('library variant groups', () {
+    final library = LibraryRepository(dio);
+
+    test('a group across two models, then dissolved again', () async {
+      final files = await library.listAllFiles();
+      final x1c = files.firstWhere((f) => f.slicedForModel == 'X1C');
+      final p1s = files.firstWhere((f) => f.slicedForModel == 'P1S');
+
+      final group = await library.createVariantGroup([x1c.id, p1s.id]);
+      expect(group.targetModels, ['X1C', 'P1S'],
+          reason: 'selection order is the priority order');
+
+      // The listing has to show it too, or the file rows would not know they
+      // are grouped.
+      final grouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(grouped.variantGroupId, group.id);
+      expect(grouped.hasVariants, isTrue);
+
+      expect((await library.variantGroupForFile(p1s.id))?.id, group.id);
+
+      await library.deleteVariantGroup(group.id);
+      final ungrouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(ungrouped.variantGroupId, isNull);
+      expect(await library.variantGroupForFile(p1s.id), isNull);
+    });
+
+    test('two files sliced for the same printer are refused', () async {
+      // The refusal is the point of the feature: a group is a choice between
+      // printers, and two X1C files express none.
+      final files = await library.listAllFiles();
+      final sameModel =
+          files.where((f) => f.slicedForModel == 'X1C').take(2).toList();
+
+      await expectLater(
+        library.createVariantGroup([for (final f in sameModel) f.id]),
+        throwsA(isA<AppApiException>()),
+      );
     });
   });
 
