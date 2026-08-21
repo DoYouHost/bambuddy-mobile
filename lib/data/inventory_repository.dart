@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../core/models/inventory.dart';
+import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/spool_label.dart';
 import 'inventory_source.dart';
@@ -55,6 +56,23 @@ class InventoryRepository {
   Future<void> restoreSpool(int spoolId) => _source.restoreSpool(spoolId);
 
   Future<void> resetUsage(int spoolId) => _source.resetUsage(spoolId);
+
+  /// Bulk operations on a selection — see [SpoolInventorySource.bulkUpdate] for
+  /// how a server without the routes announces itself.
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
+      _source.bulkUpdate(spoolIds, patch);
+
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds) =>
+      _source.bulkArchive(spoolIds);
+
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds) =>
+      _source.bulkRestore(spoolIds);
+
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds) =>
+      _source.bulkDelete(spoolIds);
+
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) =>
+      _source.bulkResetUsage(spoolIds);
 
   Future<List<CoreWeightEntry>> fetchCoreWeights() => _source.fetchCoreWeights();
 

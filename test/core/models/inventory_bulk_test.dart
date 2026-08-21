@@ -194,4 +194,31 @@ void main() {
       expect(total.notFound, [9, 11, 12]);
     });
   });
+
+  group('chunkIds', () {
+    test('a selection inside the cap is one request', () {
+      expect(chunkIds([1, 2, 3]), [[1, 2, 3]]);
+    });
+
+    test('the cap itself is still one request', () {
+      final ids = [for (var i = 0; i < bulkIdLimit; i++) i];
+
+      expect(chunkIds(ids), hasLength(1));
+    });
+
+    test('one id over the cap splits, and nothing is lost or repeated', () {
+      final ids = [for (var i = 0; i < bulkIdLimit + 1; i++) i];
+
+      final chunks = chunkIds(ids);
+
+      expect(chunks.map((c) => c.length), [bulkIdLimit, 1]);
+      expect(chunks.expand((c) => c), ids);
+    });
+
+    test('nothing selected is no requests, not one empty request', () {
+      // The routes reject an empty `ids` list, so the right number of calls
+      // to make for an empty selection is zero.
+      expect(chunkIds([]), isEmpty);
+    });
+  });
 }

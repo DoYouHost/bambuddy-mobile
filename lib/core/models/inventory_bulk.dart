@@ -198,3 +198,19 @@ List<int> _idList(Object? value) {
 /// without it being an error.
 int _countOf(Object? value) =>
     value is List ? value.length : toIntOrNull(value) ?? 0;
+
+/// How many ids one bulk request may carry. The server's own cap
+/// (`Field(..., min_length=1, max_length=500)` on the request schemas) — a
+/// larger selection is split rather than refused, so "select all" stays usable
+/// on a shelf of any size.
+const bulkIdLimit = 500;
+
+/// Splits [ids] into requests that fit [bulkIdLimit].
+///
+/// An empty selection yields no chunks at all, which is what the routes need:
+/// they reject an empty `ids` list, so the right number of requests to send for
+/// nothing is zero.
+List<List<int>> chunkIds(List<int> ids, {int limit = bulkIdLimit}) => [
+      for (var start = 0; start < ids.length; start += limit)
+        ids.sublist(start, start + limit > ids.length ? ids.length : start + limit),
+    ];
