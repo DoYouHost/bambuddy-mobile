@@ -65,8 +65,6 @@ class HomeWidgetPublisher {
   /// applicationId). `home_widget` uses it for `updateWidget`.
   static const String _androidProvider = 'BambuddyWidgetProvider';
 
-  /// Status keys — must match color map in Kotlin.
-
   /// Last published key — static, so naturally per-isolate (foreground UI and
   /// background service each have their own Dart heap and never share this).
   static WidgetPublishKey? _lastKey;
