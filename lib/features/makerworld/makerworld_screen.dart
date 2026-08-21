@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/dash_text.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
@@ -120,12 +121,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
           children: [
             Text(
               l10n.mwIntro,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: t.textSecondary,
-              ),
+              style: t.bodySoft,
             ),
             const SizedBox(height: 16),
             _UrlBar(
@@ -202,12 +198,7 @@ class _UrlBar extends StatelessWidget {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.go,
               onSubmitted: (_) => onResolve(),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
                   .copyWith(
                 prefixIcon: Icon(Icons.link, color: t.textTertiary),
@@ -261,12 +252,7 @@ class _LoginBanner extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.mwLoginRequired,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
           const SizedBox(width: 8),
@@ -354,22 +340,12 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                       model.design.title ?? l10n.mwUntitledModel,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleMd,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.mwPlatesCount(model.instances.length),
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontMono,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textTertiary,
-                      ),
+                      style: t.monoLabel,
                     ),
                   ],
                 ),
@@ -382,11 +358,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 l10n.mwNoPlates,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  color: t.textSecondary,
-                ),
+                style: t.bodyPlain,
               ),
             )
           else ...[
@@ -454,12 +426,7 @@ class _PlateRow extends StatelessWidget {
               plate.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
           const SizedBox(width: 8),
@@ -504,23 +471,13 @@ class _RecentImports extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final async = ref.watch(makerworldRecentImportsProvider);
-    final emptyStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-      color: t.textTertiary,
-    );
+    final emptyStyle = t.bodySoft.copyWith(color: t.textTertiary);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.mwRecentImports,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         const SizedBox(height: 8),
         async.when(
@@ -584,12 +541,7 @@ class _RecentRow extends StatelessWidget {
                       item.filename,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                   ),
                   if (source != null)
@@ -635,11 +587,7 @@ class _InlineError extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13.5,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 12),
           OutlinedButton(

@@ -1,3 +1,4 @@
+
 /// A server capability the app has to gate, because an older bambuddy either
 /// refuses it or — worse — accepts the request and silently ignores it.
 ///

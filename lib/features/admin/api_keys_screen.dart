@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/api_key.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -136,21 +137,12 @@ class _ApiKeyCard extends ConsumerWidget {
                               apiKey.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                color: live ? t.textPrimary : t.textTertiary,
-                              ),
+                              style: t.titleMd.copyWith(color: live ? t.textPrimary : t.textTertiary),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               subtitle.join(' · '),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 11,
-                                color: t.textTertiary,
-                              ),
+                              style: t.monoMicro,
                             ),
                           ],
                         ),
@@ -290,11 +282,7 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
             ),
             child: SelectableText(
               apiKey,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12.5,
-                color: t.accentGreenInk,
-              ),
+              style: t.monoValue.copyWith(color: t.accentGreenInk),
             ),
           ),
         ],

@@ -29,11 +29,7 @@ class _ControlsActions extends ConsumerWidget {
             Flexible(
               child: Text(
                 l10n.ctrlForbidden,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textSecondary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textSecondary),
               ),
             ),
           ],
@@ -178,12 +174,7 @@ class _LightSwitchRow extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         l10n.ctrlLight,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.accentGreenInk,
-                        ),
+                        style: t.titleSm.copyWith(color: t.accentGreenInk),
                       ),
                     ],
                   ),
@@ -486,12 +477,7 @@ class _LifecycleButton extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                  ),
+                  style: t.bodyBold.copyWith(color: fg),
                 ),
               ],
             ),
@@ -534,12 +520,7 @@ class _SpeedControlTile extends ConsumerWidget {
           const SizedBox(width: 8),
           Text(
             l10n.ctrlSpeed,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.body.copyWith(color: t.textSecondary),
           ),
           const Spacer(),
           _SpeedControl(
@@ -612,12 +593,7 @@ class _SpeedControl extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
             Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
           ],

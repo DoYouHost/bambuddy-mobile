@@ -42,12 +42,7 @@ class _MovementTile extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Text(
                     l10n.ctrlMove,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                    ),
+                    style: t.titleSm,
                   ),
                   const Spacer(),
                   Icon(Icons.chevron_right, size: 18, color: t.textTertiary),
@@ -174,12 +169,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
                       children: [
                         Text(
                           l10n.ctrlMove,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleLg,
                         ),
                         const Spacer(),
                         _JogAction(
@@ -235,12 +225,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           child: Center(
             child: Text(
               '$_step',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: t.textTertiary,
-              ),
+              style: t.monoTitle.copyWith(color: t.textTertiary),
             ),
           ),
         );
@@ -313,12 +298,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
         const SizedBox(width: 8),
         Text(
           l10n.ctrlMoveZ,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.body.copyWith(color: t.textSecondary),
         ),
         const Spacer(),
         _JogAction(
@@ -399,12 +379,7 @@ class _StepSelector extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.body.copyWith(color: t.textSecondary),
         ),
         const Spacer(),
         Wrap(
@@ -514,12 +489,7 @@ class _JogAction extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: fg,
-                ),
+                style: t.bodyBold.copyWith(color: fg),
               ),
             ],
           ),
@@ -574,12 +544,7 @@ class _JogWideButton extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: fg,
-                ),
+                style: t.bodyBold.copyWith(color: fg),
               ),
             ],
           ),

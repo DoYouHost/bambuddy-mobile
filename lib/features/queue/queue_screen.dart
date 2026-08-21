@@ -9,6 +9,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -358,12 +359,7 @@ class _QueueCard extends ConsumerWidget {
                     item.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                    ),
+                    style: t.titleMd,
                   ),
                   const SizedBox(height: 6),
                   _Subtitle(item: item),
@@ -450,12 +446,7 @@ class _Subtitle extends StatelessWidget {
               parts.join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ),
       ],
@@ -499,13 +490,7 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: accent,
-        ),
+        style: t.micro.copyWith(color: accent, letterSpacing: 0.2),
       ),
     );
   }

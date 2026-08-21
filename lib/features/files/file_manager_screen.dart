@@ -10,6 +10,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -879,12 +880,7 @@ class _StatsBar extends ConsumerWidget {
       child: Text(
         parts.join('  ·  '),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: t.textTertiary,
-        ),
+        style: t.monoLabel,
       ),
     );
   }
@@ -901,12 +897,7 @@ class _Breadcrumb extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final crumbs = state.breadcrumb;
-    TextStyle crumbStyle(bool current) => TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: current ? t.textPrimary : t.accentGreenInk,
-        );
+    TextStyle crumbStyle(bool current) => t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
     return SizedBox(
       height: 44,
       child: ListView(
@@ -1078,22 +1069,12 @@ class _FolderTile extends StatelessWidget {
                           folder.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           l10n.fmFolderItems(folder.fileCount),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: t.textTertiary,
-                          ),
+                          style: t.label,
                         ),
                       ],
                     ),
@@ -1211,24 +1192,14 @@ class _FileTile extends StatelessWidget {
                           file.displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         const SizedBox(height: 3),
                         Text(
                           meta.join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoLabel,
                         ),
                         // Marks a file that is one of several alternatives, so
                         // the grouping is visible without opening the sheet.
@@ -1243,12 +1214,7 @@ class _FileTile extends StatelessWidget {
                               Text(
                                 AppLocalizations.of(context)
                                     .fmVariantsMemberCount(file.variantCount),
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.textTertiary,
-                                ),
+                                style: t.micro,
                               ),
                             ],
                           ),

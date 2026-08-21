@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// Unified search field for list screens (inventory, archive, …): a rounded
@@ -71,11 +72,7 @@ class _DashSearchFieldState extends State<DashSearchField> {
           controller: _controller,
           autofocus: widget.autofocus,
           textCapitalization: widget.textCapitalization,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14,
-            color: t.textPrimary,
-          ),
+          style: t.bodyStrong,
           decoration: InputDecoration(
             isDense: true,
             filled: false,

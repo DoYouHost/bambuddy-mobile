@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -106,12 +107,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
                     child: Text(
                       printer.printerName,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: t.accentGreenInk,
-                      ),
+                      style: t.bodyBold.copyWith(color: t.accentGreenInk),
                     ),
                   ),
                   _DashCard(
@@ -168,22 +164,12 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: t.textPrimary,
-          ),
+          style: t.titleMd,
         ),
         const SizedBox(height: 3),
         Text(
           subtitle,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            color: t.textTertiary,
-          ),
+          style: t.label,
         ),
         if (trailing != null) ...[const SizedBox(height: 10), trailing!],
       ],
@@ -244,12 +230,7 @@ class _TypeTile extends ConsumerWidget {
       ),
       title: Text(
         type.name,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w700,
-          color: t.textPrimary,
-        ),
+        style: t.titleSm,
       ),
       subtitle: Text(
         [
@@ -258,12 +239,7 @@ class _TypeTile extends ConsumerWidget {
               : l10n.maintenanceEveryHours(type.defaultIntervalHours.round()),
           if (type.isSystem) l10n.maintenanceSystemType,
         ].join(' · '),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: t.textTertiary,
-        ),
+        style: t.label,
       ),
       onTap: () => openTypeForm(context, existing: type),
       trailing: IconButton(
@@ -319,21 +295,11 @@ class _OverrideTile extends ConsumerWidget {
             color: t.textSecondary),
         title: Text(
           item.maintenanceTypeName,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           unit,
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

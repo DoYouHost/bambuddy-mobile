@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/dash_text.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
@@ -98,23 +99,13 @@ class _SignedInState extends ConsumerState<_SignedIn> {
                   children: [
                     Text(
                       status.email ?? l10n.cloudSignedIn,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleSm,
                     ),
                     if (status.region != null) ...[
                       const SizedBox(height: 3),
                       Text(
                         _regionLabel(l10n),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: t.textTertiary,
-                        ),
+                        style: t.label,
                       ),
                     ],
                   ],
@@ -126,12 +117,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
         const SizedBox(height: 16),
         Text(
           l10n.cloudCredsNote,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: t.textTertiary,
-          ),
+          style: t.label,
         ),
         const SizedBox(height: 24),
         OutlinedButton.icon(
@@ -274,12 +260,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
   Widget build(BuildContext context) {
     final l10n = _l10n;
     final t = DashTokens.of(context);
-    TextStyle fieldStyle() => TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        );
+    TextStyle fieldStyle() => t.bodyStrong;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -295,12 +276,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
             children: [
               Text(
                 l10n.cloudCredsNote,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: t.textTertiary,
-                ),
+                style: t.label,
               ),
               const SizedBox(height: 20),
               TextField(
@@ -352,12 +328,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                   _verificationPrompt.isNotEmpty
                       ? _verificationPrompt
                       : l10n.cloudVerificationPrompt,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodySoft,
                 ),
                 const SizedBox(height: 12),
                 TextField(

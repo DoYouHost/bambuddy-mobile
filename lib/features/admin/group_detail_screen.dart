@@ -5,6 +5,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -80,23 +81,13 @@ class GroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Text(
                   l10n.groupsMembersHeader,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
                 const SizedBox(height: 8),
                 if (group.members.isEmpty)
                   Text(
                     l10n.groupsNoMembers,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      color: t.textTertiary,
-                    ),
+                    style: t.bodyPlain.copyWith(color: t.textTertiary),
                   )
                 else
                   for (final member in group.members)
@@ -271,12 +262,7 @@ class _GroupHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   group.name,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleLg,
                 ),
               ),
               if (group.isSystem)
@@ -292,21 +278,12 @@ class _GroupHeader extends StatelessWidget {
             (group.description?.isNotEmpty ?? false)
                 ? group.description!
                 : l10n.groupsNoDescription,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 12),
           Text(
             l10n.groupsPermissionCount(group.permissions.length),
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.monoLabel,
           ),
           if (group.isSystem) ...[
             const SizedBox(height: 8),
@@ -315,11 +292,7 @@ class _GroupHeader extends StatelessWidget {
             // moves.
             Text(
               l10n.groupsSystemNote,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ],
         ],
@@ -360,12 +333,7 @@ class _MemberRow extends StatelessWidget {
                 member.username,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: member.isActive ? t.textPrimary : t.textTertiary,
-                ),
+                style: t.bodyStrong.copyWith(color: member.isActive ? t.textPrimary : t.textTertiary),
               ),
             ),
             if (!member.isActive)
@@ -373,12 +341,7 @@ class _MemberRow extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   l10n.usersInactive,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.danger,
-                  ),
+                  style: t.micro.copyWith(color: t.danger),
                 ),
               ),
             if (onRemove != null)
@@ -429,12 +392,7 @@ class _AccountPickerSheet extends ConsumerWidget {
             children: [
               Text(
                 l10n.groupsAddMemberTitle(group.name),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.titleMd,
               ),
               const SizedBox(height: 12),
               Flexible(

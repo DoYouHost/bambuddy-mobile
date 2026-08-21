@@ -81,21 +81,12 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
         children: [
           Text(
             l10n.inventoryAssignTitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: t.textPrimary,
-            ),
+            style: t.display,
           ),
           const SizedBox(height: 4),
           Text(
             widget.spool.displayName,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 16),
 
@@ -540,12 +531,7 @@ class _ActionPill extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
+                style: DashTokens.of(context).label.copyWith(color: color),
               ),
             ],
           ),

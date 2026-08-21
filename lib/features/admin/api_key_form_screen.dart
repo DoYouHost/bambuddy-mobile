@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/api_key.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -90,12 +91,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
               children: [
                 TextFormField(
                   controller: _name,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.bodyStrong,
                   decoration: dashFieldDecoration(
                     t,
                     labelText: l10n.apiKeysFieldName,
@@ -120,11 +116,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                 const SizedBox(height: 4),
                 Text(
                   l10n.apiKeysScopesHint,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    color: t.textTertiary,
-                  ),
+                  style: t.microSoft,
                 ),
                 for (final scope in ApiKeyScope.values)
                   SwitchListTile(
@@ -284,13 +276,7 @@ class _SectionLabel extends StatelessWidget {
     final t = DashTokens.of(context);
     return Text(
       text,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.3,
-        color: t.textSecondary,
-      ),
+      style: t.bodyBold.copyWith(letterSpacing: 0.3),
     );
   }
 }

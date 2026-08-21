@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -153,12 +154,7 @@ class _Header extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             project.name,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: t.textPrimary,
-                            ),
+                            style: t.display,
                           ),
                         ),
                       ],
@@ -174,11 +170,7 @@ class _Header extends ConsumerWidget {
                         if (project.dueDateParsed != null)
                           Text(
                             l10n.projectDueOn(formatDate(project.dueDateParsed!)),
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11.5,
-                              color: t.textTertiary,
-                            ),
+                            style: t.monoMicro,
                           ),
                       ],
                     ),
@@ -191,12 +183,7 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               project.description!,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w500,
-                color: t.textSecondary,
-              ),
+              style: t.bodySoft,
             ),
           ],
           if (project.url != null && project.url!.isNotEmpty) ...[
@@ -213,12 +200,7 @@ class _Header extends ConsumerWidget {
                       project.url!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.accentGreenInk,
-                      ),
+                      style: t.body.copyWith(color: t.accentGreenInk),
                     ),
                   ),
                 ],
@@ -243,12 +225,7 @@ class _Header extends ConsumerWidget {
                 leading: Icon(Icons.subdirectory_arrow_right, color: t.textSecondary),
                 title: Text(
                   project.parentName ?? '#${project.parentId}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
                 onTap: () => context.push('/projects/${project.parentId}'),
               ).tagged('project.parent'),
@@ -257,12 +234,7 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               l10n.projectChildren,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -276,12 +248,7 @@ class _Header extends ConsumerWidget {
                     avatar: ProjectColorDot(color: child.color),
                     label: Text(
                       child.name,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.label.copyWith(color: t.textPrimary),
                     ),
                     onPressed: () => context.push('/projects/${child.id}'),
                   ).tagged('project.child'),
@@ -314,12 +281,7 @@ class _DashTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
+        style: t.micro.copyWith(color: t.textSecondary),
       ),
     );
   }
@@ -406,23 +368,13 @@ class _ProgressRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
             Text(
               trailing == null
                   ? '${percent.toStringAsFixed(0)}%'
                   : '${percent.toStringAsFixed(0)}% · $trailing',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -528,23 +480,13 @@ class _StatTile extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleMd,
                 ),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: t.textTertiary,
-                  ),
+                  style: t.micro,
                 ),
               ],
             ),
@@ -580,12 +522,7 @@ class _NotesSection extends ConsumerWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Text(
           hasNotes ? notes : l10n.projectNotesEmpty,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            color: hasNotes ? t.textPrimary : t.textTertiary,
-          ),
+          style: t.bodySoft.copyWith(color: hasNotes ? t.textPrimary : t.textTertiary),
         ),
       ),
     );

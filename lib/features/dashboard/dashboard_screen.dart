@@ -12,6 +12,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
+import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -383,13 +384,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             leading: logTag('chrome.drawer', const DrawerButton()),
             title: Text(
               l10n.printersTitle,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: t.textPrimary,
-              ),
+              style: t.displayLg.copyWith(letterSpacing: -0.5),
             ),
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
@@ -423,11 +418,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         profile!.label!,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11.5,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                     ),
                   ),
@@ -661,13 +652,7 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: TextStyle(
-                                    fontFamily: DashTokens.fontUi,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.2,
-                                    color: t.textPrimary,
-                                  ),
+                                  style: t.display.copyWith(letterSpacing: 0.2),
                                 ),
                                 const SizedBox(height: 4),
                                 _ProfileChip(label: profileLabel),
@@ -811,11 +796,7 @@ class _AppDrawer extends ConsumerWidget {
                       snap.hasData
                           ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
                           : 'Bambuddy',
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        color: t.textTertiary,
-                      ),
+                      style: t.labelSoft,
                     ),
                   ),
                 ],
@@ -879,12 +860,7 @@ class _ProfileChip extends StatelessWidget {
               label!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
         ],
@@ -942,12 +918,7 @@ class _DrawerTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.bodyStrong,
                     ),
                   ),
                   Icon(
@@ -1231,12 +1202,7 @@ class _SummaryHeader extends ConsumerWidget {
             active.isEmpty
                 ? l10n.noActivePrints
                 : l10n.printingCount(active.length),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: active.isEmpty ? t.textSecondary : t.textPrimary,
-            ),
+            style: t.body.copyWith(color: active.isEmpty ? t.textSecondary : t.textPrimary),
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
@@ -1258,11 +1224,7 @@ class _SummaryHeader extends ConsumerWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    color: t.textSecondary,
-                  ),
+                  style: t.labelSoft.copyWith(color: t.textSecondary),
                 ),
               ),
             ),
@@ -1278,13 +1240,7 @@ class _SummaryHeader extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    style: t.monoValue.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ],
               ),

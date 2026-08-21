@@ -5,6 +5,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -44,12 +45,7 @@ class TagChip extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: t.accentGreenInk,
-        ),
+        style: t.micro.copyWith(color: t.accentGreenInk),
       ),
     );
   }
@@ -237,11 +233,7 @@ class _SheetHeader extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 11.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.microSoft,
                   ),
                 ],
               ],

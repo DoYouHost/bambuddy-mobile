@@ -5,6 +5,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/user_write.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -73,12 +74,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final advanced =
         ref.watch(advancedAuthStatusProvider).valueOrNull ?? AdvancedAuthStatus.legacy;
     final groups = ref.watch(groupOptionsProvider).valueOrNull ?? const [];
-    final fieldStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: t.textPrimary,
-    );
+    final fieldStyle = t.bodyStrong;
     // With advanced authentication on, the server picks the password itself and
     // mails it — an admin neither sets nor sees one (`users.py::create_user`).
     final serverPicksPassword = advanced.enabled && !widget.isEdit;
@@ -349,21 +345,12 @@ class _GroupPicker extends StatelessWidget {
       children: [
         Text(
           l10n.usersFieldGroups,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.label.copyWith(color: t.textSecondary),
         ),
         const SizedBox(height: 2),
         Text(
           l10n.usersGroupsAdminHint,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            color: t.textTertiary,
-          ),
+          style: t.microSoft,
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -383,12 +370,7 @@ class _GroupPicker extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         l10n.usersGroupSystem,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: t.accentOrange,
-                        ),
+                        style: t.micro.copyWith(color: t.accentOrange),
                       ),
                     ],
                   ],
@@ -434,12 +416,7 @@ class _Notice extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.label.copyWith(color: t.textPrimary),
             ),
           ),
         ],

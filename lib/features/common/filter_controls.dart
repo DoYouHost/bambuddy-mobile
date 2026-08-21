@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 
 /// Ink on [DashTokens.accentGreen] — the badge count has to stay readable on
@@ -84,12 +85,7 @@ class FilterGroupLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
+        style: t.bodyBold,
       ),
     );
   }

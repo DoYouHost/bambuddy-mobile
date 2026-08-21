@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_store.dart'
     show recordingLimit, recordingSizeLimit;
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../router.dart';
@@ -251,12 +252,7 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
 
   Widget _clock(DashTokens t, String elapsed) => Text(
         elapsed,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textSecondary,
-        ),
+        style: t.monoValue.copyWith(color: t.textSecondary),
       );
 
   Widget _bar(BuildContext context, String elapsed) {

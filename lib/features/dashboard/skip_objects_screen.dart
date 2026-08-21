@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printable_object.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -199,12 +200,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                 Expanded(
                   child: Text(
                     l10n.skipObjectsSelectedCount(count),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textSecondary,
-                    ),
+                    style: t.body.copyWith(color: t.textSecondary),
                   ),
                 ),
                 if (_skipping)
@@ -958,13 +954,7 @@ class _ObjectTile extends StatelessWidget {
                   children: [
                     Text(
                       '${object.id}',
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontMono,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                        color: accent,
-                      ),
+                      style: t.monoTitle.copyWith(color: accent, height: 1),
                     ),
                     Text(
                       'ID',

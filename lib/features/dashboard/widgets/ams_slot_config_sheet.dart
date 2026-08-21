@@ -14,6 +14,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
 import '../../../core/models/k_profile.dart';
+import '../../../core/theme/dash_text.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
@@ -216,11 +217,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                   TextField(
                     controller: _search,
                     onChanged: (_) => setState(() {}),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      color: t.textPrimary,
-                    ),
+                    style: t.bodyPlain.copyWith(color: t.textPrimary),
                     decoration: dashDecoration(
                       t,
                       hintText: l10n.amsSlotConfigSearch,
@@ -356,12 +353,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               const SizedBox(width: 8),
               Text(
                 (_colour ?? 'FFFFFF').toUpperCase(),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.monoValue,
               ),
             ],
           ),
@@ -472,12 +464,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         (false, false) => null,
       },
       enabled: matching.isNotEmpty || other.isNotEmpty,
-      textStyle: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: t.textPrimary,
-      ),
+      textStyle: t.body,
       onSelected: (value) => setState(() {
         _kProfile = choices?.byOptionId(value);
         _kProfileAnswered = true;
@@ -658,12 +645,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                       preset.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -673,13 +655,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                           ? '${l10n.amsSlotConfigCurrent} · '
                               '${_tierLabel(l10n, preset.source)}'
                           : _tierLabel(l10n, preset.source),
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11,
-                        color: preset.pickerId == _currentPresetId
+                      style: t.microSoft.copyWith(color: preset.pickerId == _currentPresetId
                             ? t.accentGreenInk
-                            : t.textTertiary,
-                      ),
+                            : t.textTertiary),
                     ),
                   ],
                 ),
@@ -706,11 +684,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             Expanded(
               child: Text(
                 l10n.amsSlotConfigCloudHint,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textPrimary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textPrimary),
               ),
             ),
             TextButton(
@@ -1021,12 +995,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text(
           text,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.micro,
         ),
       );
 }

@@ -6,6 +6,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/group_write.dart';
 import '../../core/models/permission_catalog.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -69,12 +70,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final catalog = ref.watch(permissionCatalogProvider);
-    final fieldStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: t.textPrimary,
-    );
+    final fieldStyle = t.bodyStrong;
 
     return DashBackground(
       child: Scaffold(
@@ -166,23 +162,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             Expanded(
               child: Text(
                 l10n.groupsPermissionsHeader,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                  color: t.textSecondary,
-                ),
+                style: t.bodyBold.copyWith(letterSpacing: 0.3),
               ),
             ),
             Text(
               l10n.groupsPermissionsSelected(_permissions.length),
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -215,12 +200,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                     Expanded(
                       child: Text(
                         l10n.groupsAdvancedPermissions,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.bodyBold.copyWith(color: t.textPrimary),
                       ),
                     ),
                     if (advancedSelected > 0)
@@ -237,11 +217,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               l10n.groupsAdvancedHint,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.microSoft,
             ),
           ),
           if (_showAdvanced)
@@ -378,22 +354,12 @@ class _CategoryTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     category.name,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                    ),
+                    style: t.titleSm,
                   ),
                 ),
                 Text(
                   '$count/${category.permissions.length}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: count > 0 ? t.accentGreenInk : t.textTertiary,
-                  ),
+                  style: t.monoLabel.copyWith(color: count > 0 ? t.accentGreenInk : t.textTertiary),
                 ),
                 Checkbox(
                   value: all,
@@ -417,20 +383,11 @@ class _CategoryTile extends StatelessWidget {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   title: Text(
                     p.label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
+                    style: t.body,
                   ),
                   subtitle: Text(
                     p.value,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 10.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.monoMicro,
                   ),
                 ).tagged('group_form.permission'),
             ],
@@ -464,12 +421,7 @@ class _LockedNotice extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.label.copyWith(color: t.textPrimary),
             ),
           ),
         ],

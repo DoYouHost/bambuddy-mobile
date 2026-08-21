@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_file.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -279,12 +280,7 @@ class _PrinterFileManagerScreenState
               padding: const EdgeInsets.only(bottom: 6),
               child: Text(
                 widget.printerName,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: t.textTertiary,
-                ),
+                style: t.label,
               ),
             ),
           ),
@@ -295,12 +291,7 @@ class _PrinterFileManagerScreenState
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
                     l10n.pfmStorageUsed(formatBytes(_storage.usedBytes!)),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: t.textTertiary,
-                    ),
+                    style: t.monoLabel,
                   ),
                 ),
               ),
@@ -372,12 +363,7 @@ class _PrinterFileManagerScreenState
                   backgroundColor: t.subCard,
                   side: BorderSide(color: t.subCardBorder),
                   selectedColor: t.accentGreen.withValues(alpha: 0.18),
-                  labelStyle: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: _path == path ? t.accentGreenInk : t.textSecondary,
-                  ),
+                  labelStyle: t.label.copyWith(color: _path == path ? t.accentGreenInk : t.textSecondary),
                 ).tagged('printer_files.quick_dir'),
               ),
           ],
@@ -410,12 +396,7 @@ class _PrinterFileManagerScreenState
               child: Text(
                 _path,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.monoValue,
               ),
             ),
           ],
@@ -518,12 +499,7 @@ class _PrinterFileManagerScreenState
           title: Text(
             file.name,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           trailing: Icon(Icons.chevron_right, color: t.textTertiary),
           onTap: () => _navigateTo(file.path),
@@ -543,21 +519,11 @@ class _PrinterFileManagerScreenState
         title: Text(
           file.name,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           _subtitle(file),
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         ),
         trailing: Icon(_iconFor(file.name), color: t.textSecondary),
         onTap: () => _toggleSelection(file.path),
@@ -586,12 +552,7 @@ class _PrinterFileManagerScreenState
                 Expanded(
                   child: Text(
                     l10n.pfmSelected(_selected.length),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textSecondary,
-                    ),
+                    style: t.body.copyWith(color: t.textSecondary),
                   ),
                 ),
                 if (_busy)
@@ -648,12 +609,7 @@ class _PrinterFileManagerScreenState
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: tokens.textSecondary,
-                ),
+                style: tokens.bodySoft,
               ),
               if (action != null) ...[const SizedBox(height: 16), action],
             ],

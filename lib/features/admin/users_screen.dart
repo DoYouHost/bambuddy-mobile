@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -125,24 +126,14 @@ class _UserCard extends ConsumerWidget {
                                 user.username,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.titleMd,
                               ),
                             ),
                             if (isSelf) ...[
                               const SizedBox(width: 8),
                               Text(
                                 l10n.usersYou,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.accentGreenInk,
-                                ),
+                                style: t.micro.copyWith(color: t.accentGreenInk),
                               ),
                             ],
                           ],
@@ -154,11 +145,7 @@ class _UserCard extends ConsumerWidget {
                               user.email!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 12.5,
-                                color: t.textSecondary,
-                              ),
+                              style: t.labelSoft.copyWith(color: t.textSecondary),
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -235,12 +222,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: user.isActive ? accent : t.textTertiary,
-        ),
+        style: t.titleLg.copyWith(color: user.isActive ? accent : t.textTertiary),
       ),
     );
   }
@@ -278,12 +260,7 @@ class _UserDetailSheet extends ConsumerWidget {
               children: [
                 Text(
                   user.username,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 16),
                 _DetailRow(
@@ -325,13 +302,7 @@ class _UserDetailSheet extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   l10n.usersOwnedTitle,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
                 const SizedBox(height: 8),
                 _OwnedCounts(userId: user.id),
@@ -446,11 +417,7 @@ class _OwnedCounts extends ConsumerWidget {
           ),
           error: (_, _) => Text(
             l10n.usersOwnedFailed,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           data: (counts) => Row(
             children: [
@@ -510,24 +477,14 @@ class _CountTile extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '$value',
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.monoHeadline,
           ),
           const SizedBox(height: 2),
           Text(
             label,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.micro,
           ),
         ],
       ),
@@ -560,23 +517,13 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
         ],

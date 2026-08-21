@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -354,11 +355,7 @@ class _OverviewCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     l10n.statsEnergyWarmingUp,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 11.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.microSoft,
                   ),
                 ),
               ],
@@ -372,22 +369,12 @@ class _OverviewCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.statsTotalCost,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
               ),
               Text(
                 fmtNum(data.totalCost + data.totalEnergyCost),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ],
           ),
@@ -419,23 +406,13 @@ class _StatTile extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: t.textTertiary,
-                ),
+                style: t.micro,
               ),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ],
           ),
@@ -523,12 +500,7 @@ class _TimeAccuracyCard extends StatelessWidget {
             Text(
               l10n.statsTimeAccuracyHint,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: t.textTertiary,
-              ),
+              style: t.label,
             ),
           ],
         ),

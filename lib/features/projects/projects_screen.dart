@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -195,12 +196,7 @@ class _ProjectCard extends StatelessWidget {
                                 project.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.titleMd,
                               ),
                             ),
                             ProjectStatusChip(status: project.status),
@@ -214,12 +210,7 @@ class _ProjectCard extends StatelessWidget {
                               project.description!,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                color: t.textSecondary,
-                              ),
+                              style: t.label.copyWith(color: t.textSecondary),
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -237,12 +228,7 @@ class _ProjectCard extends StatelessWidget {
                         ],
                         Text(
                           counts.join(' · '),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoLabel,
                         ),
                       ],
                     ),

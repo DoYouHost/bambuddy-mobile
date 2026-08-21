@@ -10,6 +10,7 @@ import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -629,12 +630,7 @@ class _ArchiveCard extends StatelessWidget {
                           archive.displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         if (meta.isNotEmpty) ...[
                           const SizedBox(height: 4),
@@ -642,12 +638,7 @@ class _ArchiveCard extends StatelessWidget {
                             meta.join(' · '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: t.textTertiary,
-                            ),
+                            style: t.monoLabel,
                           ),
                         ],
                       ],

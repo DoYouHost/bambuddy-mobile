@@ -10,6 +10,7 @@ import '../../core/api/endpoints.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/settings/server_profile.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -345,13 +346,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           iconTheme: IconThemeData(color: t.textPrimary),
           title: Text(
             widget.title ?? l10n.gcodeViewerTitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: t.textPrimary,
-            ),
+            style: t.display.copyWith(letterSpacing: -0.3),
           ),
         ),
       ),

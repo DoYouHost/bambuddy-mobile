@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/inventory_reference.dart' show ColorEntry;
 import '../../core/models/swatch_code.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/confirm_dialog.dart';
@@ -328,13 +329,7 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Text(
             label.toUpperCase(),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: t.accentGreenInk,
-            ),
+            style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.8),
           ),
           const SizedBox(width: 8),
           Container(
@@ -346,12 +341,7 @@ class _SectionHeader extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ),
         ],
@@ -414,13 +404,7 @@ class _CodeChip extends StatelessWidget {
       ),
       child: Text(
         code,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 15,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 3,
-          color: t.accentGreenInk,
-        ),
+        style: t.monoTitle.copyWith(color: t.accentGreenInk, letterSpacing: 3),
       ),
     );
   }
@@ -472,12 +456,7 @@ class _SwatchTile extends StatelessWidget {
                           code.displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         const SizedBox(height: 7),
                         _CodeChip(code: code.code),
@@ -548,12 +527,7 @@ class _UncodedTile extends StatelessWidget {
                       identity.displayName,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.bodyStrong,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -607,23 +581,14 @@ class _EmptyHint extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.body.copyWith(color: t.textSecondary),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ],
         ],

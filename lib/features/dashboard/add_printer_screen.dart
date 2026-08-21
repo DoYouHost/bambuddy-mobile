@@ -8,6 +8,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/discovery.dart';
 import '../../core/models/printer_create.dart';
 import '../../core/models/printer_diagnostic.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -372,12 +373,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       checkColor: const Color(0xFF0A0C08),
                       title: Text(
                         l10n.addPrinterAutoArchive,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                        ),
+                        style: t.bodyStrong,
                       ),
                     ).tagged('add_printer.auto_archive'),
                     const SizedBox(height: 4),
@@ -388,12 +384,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           _error!,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: t.danger,
-                          ),
+                          style: t.body.copyWith(color: t.danger),
                         ),
                       ),
                     FilledButton(
@@ -497,11 +488,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           isDocker
               ? l10n.addPrinterSubnetDockerNote
               : l10n.addPrinterSubnetCustomNote,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11,
-            color: t.textTertiary,
-          ),
+          style: t.microSoft,
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
@@ -534,11 +521,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           const SizedBox(height: 8),
           Text(
             l10n.addPrinterScanNoResults,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              color: t.textSecondary,
-            ),
+            style: t.labelSoft.copyWith(color: t.textSecondary),
           ),
         ],
       ],
@@ -577,20 +560,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     children: [
                       Text(
                         p.name.isNotEmpty ? p.name : p.serial,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       Text(
                         [p.ipAddress, if (p.model != null) p.model!].join(' · '),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 12,
-                          color: t.textSecondary,
-                        ),
+                        style: t.monoMicro.copyWith(color: t.textSecondary),
                       ),
                     ],
                   ),
@@ -642,12 +616,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           const SizedBox(height: 10),
           Text(
             _overallText(l10n, result.overall),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: _overallColor(t, result.overall),
-            ),
+            style: t.bodyBold.copyWith(color: _overallColor(t, result.overall)),
           ),
           const SizedBox(height: 6),
           for (final c in result.checks) _checkRow(t, l10n, c),
@@ -672,11 +641,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           Expanded(
             child: Text(
               _checkTitle(l10n, c.id),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textPrimary,
-              ),
+              style: t.bodyPlain.copyWith(color: t.textPrimary),
             ),
           ),
         ],
@@ -735,12 +700,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             enabled: false,
             labelWidget: Text(
               series,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
           for (final (value, label) in models)
@@ -784,23 +744,13 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     ).tagged('add_printer.field');
   }
 
-  TextStyle _fieldTextStyle(DashTokens t) => TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: t.textPrimary,
-      );
+  TextStyle _fieldTextStyle(DashTokens t) => t.bodyStrong;
 
   Widget _sectionLabel(DashTokens t, String label) => Align(
         alignment: Alignment.centerLeft,
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: t.textSecondary,
-          ),
+          style: t.bodyBold,
         ),
       );
 }

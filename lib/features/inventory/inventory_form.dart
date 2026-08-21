@@ -225,12 +225,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 Expanded(
                   child: Text(
                     _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: t.textPrimary,
-                    ),
+                    style: t.display,
                   ),
                 ),
                 // Bulk "restock": how many identical spools to create. Header
@@ -386,12 +381,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         label: Text(required ? '$label *' : label),
         errorText: errorText,
         filterable: true,
-        textStyle: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        ),
+        textStyle: t.body,
         onSelected: (v) {
           if (required && v != null && v.isNotEmpty) {
             setState(() => _materialMissing = false);
@@ -423,12 +413,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       width: cores.isEmpty ? null : 110,
       child: TextFormField(
         controller: _c['coreWeight'],
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        ),
+        style: t.body,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: dashDecoration(t, labelText: 'g'),
         onChanged: (_) => setState(() => _coreWeightCatalogId = null),
@@ -473,12 +458,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 ),
                 child: Text(
                   selected?.name ?? l10n.inventoryCoreWeightSelect,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: selected == null ? t.textTertiary : t.textPrimary,
-                  ),
+                  style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -513,12 +493,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       child: DropdownButtonFormField<String?>(
         initialValue: _effectType,
         isExpanded: true,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        ),
+        style: t.body,
         dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
         decoration: dashDecoration(t, labelText: l10n.inventoryFieldEffect),
         items: [
@@ -569,12 +544,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               child: Text(
                 '$_quantity',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ),
             btn(
@@ -617,12 +587,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ),
           child: Text(
             selected ?? l10n.inventorySlicerPresetNone,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected == null ? t.textTertiary : t.textPrimary,
-            ),
+            style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -672,12 +637,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             Expanded(
               child: Text(
                 hex.isEmpty ? l10n.inventoryColorNone : hex.toUpperCase(),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: color == null ? t.textTertiary : t.textPrimary,
-                ),
+                style: t.monoValue.copyWith(color: color == null ? t.textTertiary : t.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -754,12 +714,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: TextFormField(
           controller: _c[key],
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
+          style: t.body,
           keyboardType: number
               ? const TextInputType.numberWithOptions(decimal: true)
               : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
@@ -855,11 +810,7 @@ class _ColorPicker extends ConsumerWidget {
           if (q.isEmpty)
             Text(
               l10n.inventoryColorCommon,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.microSoft,
             ),
           const SizedBox(height: 4),
           Wrap(
@@ -960,12 +911,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldSlicerPreset,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
@@ -1102,12 +1048,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldEmptySpoolWeight,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
@@ -1130,11 +1071,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                           child: Text(
                             l10n.inventoryNoMatches,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 13,
-                              color: t.textTertiary,
-                            ),
+                            style: t.bodyPlain.copyWith(color: t.textTertiary),
                           ),
                         ),
                       ),
@@ -1177,13 +1114,7 @@ class _FormSection extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: t.accentGreenInk,
-        ),
+        style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
       ),
     );
   }

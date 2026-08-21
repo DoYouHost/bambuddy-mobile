@@ -5,6 +5,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -89,12 +90,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final fieldStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: t.textPrimary,
-    );
+    final fieldStyle = t.bodyStrong;
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -264,12 +260,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           alignment: AlignmentDirectional.centerStart,
           child: Text(
             l10n.projectColor,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.label.copyWith(color: t.textSecondary),
           ),
         ),
         const SizedBox(height: 8),
@@ -292,12 +283,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.body,
           ),
         ),
         if (_dueDate != null)

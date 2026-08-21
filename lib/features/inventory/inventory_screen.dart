@@ -10,6 +10,7 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -289,12 +290,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                               child: Text(
                                 l10n.inventorySpoolCount(spools.length),
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontMono,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.textTertiary,
-                                ),
+                                style: t.monoLabel,
                               ),
                             );
                           }

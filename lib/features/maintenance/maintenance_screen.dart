@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -173,12 +174,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                               printer.printerName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: t.textPrimary,
-                              ),
+                              style: t.titleLg,
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -188,12 +184,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                                 l10n.maintenanceTotalHours(
                                     printer.totalPrintHours.round()),
                               ].join(' · '),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: t.textTertiary,
-                              ),
+                              style: t.monoLabel,
                             ),
                           ],
                         ),
@@ -304,12 +295,7 @@ class _MaintenanceTile extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   item.maintenanceTypeName,
-                                  style: TextStyle(
-                                    fontFamily: DashTokens.fontUi,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: t.textPrimary,
-                                  ),
+                                  style: t.titleSm,
                                 ),
                               ),
                               TextButton(
@@ -341,12 +327,7 @@ class _MaintenanceTile extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             dueText,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: due ? t.accentOrange : t.textTertiary,
-                            ),
+                            style: t.monoLabel.copyWith(color: due ? t.accentOrange : t.textTertiary),
                           ),
                         ],
                       ),

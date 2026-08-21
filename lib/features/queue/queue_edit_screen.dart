@@ -10,6 +10,7 @@ import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -247,11 +248,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           Expanded(
             child: Text(
               l10n.queueEditGcodeInjectionNoSnippet(model),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ),
         ],
@@ -331,24 +328,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             children: [
               Text(
                 l10n.queueEditPrintJob,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: t.textTertiary,
-                ),
+                style: t.micro,
               ),
               const SizedBox(height: 2),
               Text(
                 it.displayName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.titleMd,
               ),
             ],
           ),
@@ -415,8 +402,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
     if (printers.isEmpty) {
       return Text(l10n.queueNoFreePrinters,
-          style: TextStyle(
-              fontFamily: DashTokens.fontUi, color: t.textTertiary, fontSize: 13));
+          style: t.bodyPlain.copyWith(color: t.textTertiary));
     }
     return Column(
       children: [
@@ -534,12 +520,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                       : (mapped > 0
                           ? l10n.queueEditMappingSummary(mapped)
                           : l10n.queueEditMappingAuto),
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
               ),
               if (printerId != null)
@@ -610,21 +591,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Text(
             l10n.queueEditFilamentOverrideDesc,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 12),
           if (reqs.isEmpty)
             Text(
               l10n.queueEditNoFilamentReqs,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textTertiary,
-              ),
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
             )
           else
             for (final r in reqs) _overrideRow(l10n, t, r, available),
@@ -790,11 +763,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Text(
             l10n.queueEditPreheatDesc,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 12),
           _SegToggle<String>(
@@ -812,12 +781,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               controller: _chamberTarget,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(
                 t,
                 labelText: l10n.queueEditChamberTarget,
@@ -908,12 +872,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.monoValue,
           ),
         ),
         OutlinedButton(
@@ -1192,13 +1151,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-              color: t.textSecondary,
-            ),
+            style: t.bodyBold.copyWith(letterSpacing: 0.2),
           ),
           const SizedBox(height: 12),
           child,
@@ -1272,12 +1225,7 @@ class _SegToggle<T> extends StatelessWidget {
                   seg.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isSel ? _onGreenFill : t.textPrimary,
-                  ),
+                  style: t.bodyBold.copyWith(color: isSel ? _onGreenFill : t.textPrimary),
                 ),
               ),
             ],
@@ -1336,21 +1284,12 @@ class _CalibrationRow extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           const SizedBox(height: 2),
           Text(
             subtitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 8),
           _SegToggle<CalibrationOption>(
@@ -1398,21 +1337,12 @@ class _OptionSwitch extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleSm,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    color: t.textTertiary,
-                  ),
+                  style: t.labelSoft,
                 ),
               ],
             ),
@@ -1470,12 +1400,7 @@ class _CheckRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.body,
               ),
             ),
           ],
@@ -1596,22 +1521,12 @@ class _Dropdown<T> extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textTertiary,
-                      ),
+                      style: t.micro,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       text,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleSm,
                     ),
                   ],
                 ),
@@ -1690,21 +1605,12 @@ class _SelectableTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       if (subtitle.isNotEmpty)
                         Text(
                           subtitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11.5,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoMicro,
                         ),
                     ],
                   ),

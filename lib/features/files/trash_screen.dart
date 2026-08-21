@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/trash_file.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -191,21 +192,11 @@ class _TrashTile extends StatelessWidget {
             file.filename,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           subtitle: Text(
             meta.join(' · '),
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.monoLabel,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

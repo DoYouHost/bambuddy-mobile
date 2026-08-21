@@ -58,11 +58,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
             Expanded(
               child: Text(
                 l10n.plateClearBadge,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  color: t.textPrimary,
-                ),
+                style: t.bodyPlain.copyWith(color: t.textPrimary),
               ),
             ),
             logTag(
@@ -151,12 +147,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                 Expanded(
                   child: Text(
                     l10n.hmsErrorsCount(widget.errors.length),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.error,
-                    ),
+                    style: DashTokens.of(context).bodyBold.copyWith(color: scheme.error),
                   ),
                 ),
                 Icon(
@@ -311,12 +302,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 label,
                 maxLines: _fullText ? null : 2,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  height: 1.25,
-                  color: t.textPrimary,
-                ),
+                style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
               ),
             ).tagged('printer.hms_description'),
             const SizedBox(height: 4),
@@ -326,11 +312,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
               Expanded(
                 child: Text(
                   error.displayCode,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 11.5,
-                    color: t.textTertiary,
-                  ),
+                  style: t.monoMicro,
                 ),
               ),
               if (url != null)
@@ -346,11 +328,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                     children: [
                       Text(
                         l10n.hmsViewInWiki,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 11.5,
-                          color: scheme.primary,
-                        ),
+                        style: t.microSoft.copyWith(color: scheme.primary),
                       ),
                       const SizedBox(width: 2),
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
@@ -453,12 +431,7 @@ class _DetailsToggle extends StatelessWidget {
                 children: [
                   Text(
                     expanded ? l10n.detailsHide : l10n.detailsShow,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: t.textSecondary,
-                    ),
+                    style: t.label.copyWith(color: t.textSecondary),
                   ),
                   const SizedBox(width: 6),
                   AnimatedRotation(
@@ -649,13 +622,7 @@ class _AmsSection extends ConsumerWidget {
           children: [
             Text(
               l10n.amsUnit(unitIndex + 1).toUpperCase(),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary, letterSpacing: 0.4),
             ),
             if (extruder != null) ...[
               const SizedBox(width: 8),
@@ -758,13 +725,7 @@ class _SpoolSection extends StatelessWidget {
       children: [
         Text(
           l10n.externalSpool.toUpperCase(),
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: t.textPrimary,
-          ),
+          style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
         ),
         const SizedBox(height: 10),
         for (var i = 0; i < trays.length; i++)
@@ -949,12 +910,7 @@ class _AmsMeta extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -1018,12 +974,7 @@ class _AmsDryControl extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: t.monoLabel.copyWith(color: color),
             ),
           ],
         ),
@@ -1155,22 +1106,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                       children: [
                         Text(
                           l10n.ctrlDry,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleLg,
                         ),
                         const Spacer(),
                         Text(
                           widget.amsLabel,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: t.textSecondary,
-                          ),
+                          style: t.body.copyWith(color: t.textSecondary),
                         ),
                       ],
                     ),
@@ -1230,12 +1171,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           initialSelection: _filament,
           menuHeight: 280,
           label: Text(l10n.ctrlDryFilament),
-          textStyle: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
+          textStyle: t.bodyStrong,
           // Tighter than the form chrome: this one sits inside a card, where
           // the 14 px radius and the taller field read as a second card.
           decorationTheme: InputDecorationTheme(
@@ -1356,22 +1292,12 @@ class _DrySlider extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.body.copyWith(color: t.textSecondary),
             ),
             const Spacer(),
             Text(
               valueText,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.monoTitle,
             ),
           ],
         ),
@@ -2112,12 +2038,7 @@ class _ExtruderBadge extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             short,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: t.monoLabel.copyWith(color: color),
           ),
         ],
       ),

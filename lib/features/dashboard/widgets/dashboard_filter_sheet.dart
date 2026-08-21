@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/theme/dash_text.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../common/dash_sheet.dart';
@@ -104,12 +105,7 @@ class _DashboardFilterSheet extends ConsumerWidget {
                           notifier.state = filters.copyWith(hideOffline: v),
                       title: Text(
                         l10n.hideOffline,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                        ),
+                        style: t.bodyStrong,
                       ),
                       activeThumbColor: t.accentGreen,
                     ),
@@ -147,12 +143,7 @@ class _GroupLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
+        style: t.bodyBold,
       ),
     );
   }

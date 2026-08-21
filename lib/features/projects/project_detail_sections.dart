@@ -8,6 +8,7 @@ import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
@@ -57,12 +58,7 @@ class SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleSm,
                 ),
               ),
               ?action,
@@ -99,12 +95,7 @@ Widget _emptyHint(BuildContext context, String text) {
     padding: const EdgeInsets.symmetric(vertical: 12),
     child: Text(
       text,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: t.textTertiary,
-      ),
+      style: t.bodySoft.copyWith(color: t.textTertiary),
     ),
   );
 }
@@ -294,20 +285,11 @@ class _FolderTile extends StatelessWidget {
         leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
         title: Text(
           folder.name,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           l10n.projectFolderFileCount(folder.fileCount),
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12,
-            color: t.textTertiary,
-          ),
+          style: t.labelSoft,
         ),
         trailing: IconButton(
           icon: Icon(Icons.link_off, color: t.textSecondary),
@@ -331,12 +313,7 @@ class _FolderTile extends StatelessWidget {
                   f.displayName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
                 trailing: f.isPrintable
                     ? IconButton(
@@ -387,12 +364,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -529,21 +501,11 @@ class ProjectBomSection extends ConsumerWidget {
       ).tagged('project.bom_done'),
       title: Text(
         item.name,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w600,
-          decoration: item.isComplete ? TextDecoration.lineThrough : null,
-          color: item.isComplete ? t.textTertiary : t.textPrimary,
-        ),
+        style: t.body.copyWith(color: item.isComplete ? t.textTertiary : t.textPrimary, decoration: item.isComplete ? TextDecoration.lineThrough : null),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11.5,
-          color: t.textTertiary,
-        ),
+        style: t.monoMicro,
       ),
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: t.textSecondary),
@@ -627,12 +589,7 @@ class ProjectTimelineSection extends ConsumerWidget {
                       leading: Icon(_eventIcon(e.eventType), color: t.accentGreenInk),
                       title: Text(
                         e.title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                        ),
+                        style: t.body,
                       ),
                       subtitle: Text(
                         [
@@ -640,11 +597,7 @@ class ProjectTimelineSection extends ConsumerWidget {
                           if (e.timestampParsed != null)
                             formatDateTime(e.timestampParsed!),
                         ].join('\n'),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11.5,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                       isThreeLine: e.description != null,
                     ),

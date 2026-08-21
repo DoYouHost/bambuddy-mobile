@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -185,13 +186,7 @@ class ProjectStatusChip extends StatelessWidget {
       ),
       child: Text(
         projectStatusLabel(l10n, status),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: color,
-        ),
+        style: t.micro.copyWith(color: color, letterSpacing: 0.2),
       ),
     );
   }
