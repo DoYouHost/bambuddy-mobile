@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
@@ -401,6 +402,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkResetUsage(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_reset_usage',
     title: AppLocalizations.of(context).inventoryBulkResetTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkResetBody,
     confirmLabel: AppLocalizations.of(context).inventoryResetUsage,
@@ -409,6 +411,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkArchive(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_archive',
     title: AppLocalizations.of(context).inventoryBulkArchiveTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkArchiveBody,
     confirmLabel: AppLocalizations.of(context).inventoryArchive,
@@ -417,6 +420,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkRestore(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_restore',
     title: AppLocalizations.of(context).inventoryBulkRestoreTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkRestoreBody,
     confirmLabel: AppLocalizations.of(context).inventoryRestore,
@@ -425,6 +429,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkDelete(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_delete',
     title: AppLocalizations.of(context).inventoryBulkDeleteTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkDeleteBody,
     confirmLabel: AppLocalizations.of(context).inventoryDelete,
@@ -435,12 +440,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Confirm → run a bulk mutation → report the tally. Selection is cleared
   /// either way: the notifier has reloaded, so keeping stale ids around would
   /// only invite a second action on rows that may no longer exist.
+  ///
+  /// A refusal reaches here as an exception now that one request stands for the
+  /// whole selection — a key without `filaments:update` fails the batch outright
+  /// instead of failing every id in turn, and the tally has nothing to say
+  /// about why.
   Future<void> _runBulk(
     Set<int> ids, {
+    required String logId,
     required String title,
     required String message,
     required String confirmLabel,
-    required Future<({int ok, int failed})> Function(InventoryNotifier) action,
+    required Future<BulkOutcome> Function(InventoryNotifier) action,
     bool destructive = false,
   }) async {
     final l10n = AppLocalizations.of(context);
@@ -455,7 +466,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     if (!ok || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final res = await action(ref.read(inventoryProvider.notifier));
+    final BulkOutcome res;
+    try {
+      res = await action(ref.read(inventoryProvider.notifier));
+    } on AppApiException catch (e) {
+      if (mounted) _clearSelection();
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
+      return;
+    }
     if (!mounted) return;
     _clearSelection();
     messenger.snack(res.failed == 0
