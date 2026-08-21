@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/diagnostics/log_tag.dart';
@@ -13,6 +14,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../../router.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -101,19 +103,52 @@ class _SheetSurface extends StatelessWidget {
 /// backdrop", not a half-rendered glitch bleeding through the top.
 const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
 
-/// Scans a spool QR code and opens its detail card (NOT edit mode).
-/// Scanner returns id (parsed from URL `?spool=`); we find the spool in the loaded
-/// list (includes archived, so it should be there). Newly added on server is fetched
-/// with one refresh; if still missing, we report it. Shared by Filaments FAB and
-/// home screen widget (scanner button), hence top-level function (not screen method).
+/// Scans a spool QR code and opens its detail card (NOT edit mode). The
+/// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
+/// turns it into a card. Shared by the Filaments FAB and the home-screen
+/// widget's scanner button, hence a top-level function and not a screen
+/// method.
 Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
-  final l10n = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
   final id = await Navigator.of(
     context,
     rootNavigator: true,
   ).push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
   if (id == null || !context.mounted) return;
+  await showSpoolDetail(context, ref, id);
+}
+
+/// Lands on Filaments and opens the spool's card there.
+///
+/// For the places outside the tab that name a spool — today the AMS slot sheet
+/// on the dashboard. The tab switch is the point of it: everything the card
+/// leads on to (usage history, editing, unassigning) lives in Filaments, and
+/// opening it over the printer card would hide where the user just went.
+Future<void> openSpoolInInventory(
+  BuildContext context,
+  WidgetRef ref,
+  int spoolId,
+) async {
+  context.go('/inventory');
+  // The sheet goes on the root navigator, above the shell that has just
+  // switched tabs — the branch's own context is the one being replaced.
+  final root = rootNavigatorKey.currentContext;
+  if (root == null) return;
+  await showSpoolDetail(root, ref, spoolId);
+}
+
+/// Opens one spool's detail card, the same the Filaments list opens.
+///
+/// [id] is resolved against the loaded shelf, and a miss is worth one refresh:
+/// a spool created since the list was fetched is the normal case for both
+/// callers — a freshly printed QR label, and a slot just registered from its
+/// chip.
+Future<void> showSpoolDetail(
+  BuildContext context,
+  WidgetRef ref,
+  int id,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
 
   Spool? findSpool() {
     final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];

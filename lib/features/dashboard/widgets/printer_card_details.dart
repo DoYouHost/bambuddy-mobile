@@ -1808,12 +1808,13 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                         ),
                       )
                     : null,
+                onTap: () => _openInInventory(context, current!.id),
                 trailing: TextButton.icon(
                   onPressed: () => _unassign(context, ref, l10n),
                   icon: const Icon(Icons.link_off, size: 18),
                   label: Text(l10n.inventoryUnassign),
                 ).taggedMaterial('assign_spool.unassign', current.material),
-              ),
+              ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
@@ -1865,6 +1866,17 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         ),
       )
     );
+  }
+
+  /// Leaves the printer for the spool's own card on Filaments.
+  ///
+  /// The row names a spool and until now did nothing when pressed, while the
+  /// identical row in the list below assigns — so the one that cannot assign
+  /// (it is already here) leads to where the rest of its story is: usage
+  /// history, cost, editing.
+  void _openInInventory(BuildContext context, int spoolId) {
+    Navigator.of(context).pop();
+    unawaited(openSpoolInInventory(context, ref, spoolId));
   }
 
   /// Whether to offer registering what the slot holds as a new spool.

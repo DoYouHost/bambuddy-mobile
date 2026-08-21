@@ -29,7 +29,7 @@ import '../../common/dash_search_field.dart';
 import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel;
+    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';

@@ -21,9 +21,12 @@ import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
@@ -111,6 +114,32 @@ class _StockedInventory extends InventoryNotifier {
             brand: 'Smart Print',
           ),
         ],
+      );
+}
+
+/// A shelf with a spool pinned to the slot the sheet opens on (X1C, AMS 1,
+/// first slot), so the "currently in this slot" row has something to show.
+class _AssignedInventory extends InventoryNotifier {
+  static const spool = Spool(
+    id: 42,
+    material: 'PLA',
+    subtype: 'Basic',
+    brand: 'Bambu Lab',
+    labelWeight: 1000,
+  );
+
+  @override
+  Future<InventoryState> build() async => const InventoryState(
+        spools: [spool],
+        assignmentBySpool: {
+          42: SpoolAssignment(
+            spoolId: 42,
+            printerId: 1,
+            amsId: 0,
+            trayId: 0,
+            printerName: 'X2D-3DP',
+          ),
+        },
       );
 }
 
@@ -828,6 +857,88 @@ void main() {
 
       expect(find.text('Brak szpul w magazynie'), findsOneWidget);
       expect(find.textContaining('Brak wyników'), findsNothing);
+    });
+
+    /// The card behind a router, for the one action that leaves the dashboard.
+    /// The real [rootNavigatorKey] is handed to it, because that is the key
+    /// `openSpoolInInventory` reaches the root navigator through.
+    Widget routedCard() {
+      final item = realItem();
+      // Idle, like [openSlotSheet]: a printing card animates its progress bar
+      // forever and nothing in this test would ever settle.
+      final idle = PrinterWithStatus(
+        printer: item.printer,
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE')
+            .mergedWith(item.status!),
+      );
+      final router = GoRouter(
+        navigatorKey: rootNavigatorKey,
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => Scaffold(
+              body: SingleChildScrollView(child: PrinterCard(item: idle)),
+            ),
+          ),
+          GoRoute(
+            path: '/inventory',
+            builder: (_, _) => const Scaffold(body: Text('FILAMENTY')),
+          ),
+        ],
+      );
+      return ProviderScope(
+        overrides: [
+          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          cameraTokenProvider.overrideWith((ref) async => 'tok'),
+          inertFirmwareOverride,
+          inertTotalPrintHoursOverride,
+          inertChamberMaxOverride,
+          ...inertHistorySupportOverrides,
+          smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
+          inventoryBackendProvider
+              .overrideWith(() => _FixedBackendNotifier(InventoryBackend.native)),
+          inventoryProvider.overrideWith(_AssignedInventory.new),
+          // The spool card fetches its usage on open; the repository behind it
+          // has no server here and this test is about arriving, not about what
+          // the card then loads.
+          spoolUsageProvider(_AssignedInventory.spool.id)
+              .overrideWith((ref) async => const <SpoolUsageEntry>[]),
+        ],
+        child: MaterialApp.router(
+          locale: const Locale('pl'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      );
+    }
+
+    testWidgets('the pinned spool leads to its card on Filaments',
+        (tester) async {
+      // The row names a spool and sits next to one that assigns; pressing it
+      // has to go somewhere, and everything else about that spool is in the
+      // Filaments tab.
+      await tester.pumpWidget(routedCard());
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tapSlotRow(tester);
+
+      final row = find.byWidgetPredicate((w) =>
+          w is Semantics &&
+          (w.properties.identifier ?? '').startsWith('assign_spool.current'));
+      await reveal(tester, row);
+      await tester.tap(row);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Landed on the tab, with the spool's own card over it.
+      expect(find.text('FILAMENTY'), findsOneWidget);
+      expect(find.text('#42'), findsOneWidget);
+      expect(find.text('Przypisz szpulę'), findsNothing);
     });
 
     /// The registration button, by the name it carries in the diagnostic log.
