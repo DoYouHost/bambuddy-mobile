@@ -452,7 +452,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final matching = choices?.matching ?? const <KProfile>[];
     final other = choices?.other ?? const <KProfile>[];
 
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'ams_slot_config.k_profile',
       initialSelection: _kProfile?.optionId ?? '',
       label: Text(l10n.amsSlotConfigKProfile),
       // Says why there is nothing to pick, which the field alone cannot: an
@@ -470,23 +472,17 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         (false, false) => null,
       },
       enabled: matching.isNotEmpty || other.isNotEmpty,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      // A select, not a combo: focusing it would raise the keyboard over the
-      // list the user is about to scroll.
-      requestFocusOnTap: false,
       textStyle: TextStyle(
         fontFamily: DashTokens.fontUi,
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: t.textPrimary,
       ),
-      inputDecorationTheme: dashInputTheme(t),
       onSelected: (value) => setState(() {
         _kProfile = choices?.byOptionId(value);
         _kProfileAnswered = true;
       }),
-      dropdownMenuEntries: [
+      entries: [
         entry('', l10n.amsSlotConfigKProfileDefault(k.format(_defaultK))),
         for (final p in matching) entry(p.optionId, labelFor(p)),
         if (other.isNotEmpty) ...[
@@ -496,7 +492,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           for (final p in other) entry(p.optionId, labelFor(p)),
         ],
       ],
-    ).tagged('ams_slot_config.k_profile');
+    );
   }
 
   /// What the picker shows for the current search and filter state, plus what

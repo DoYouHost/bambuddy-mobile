@@ -377,47 +377,42 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? errorText,
   }) {
     final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: DropdownMenu<String>(
-          controller: _c[key],
-          label: Text(required ? '$label *' : label),
-          expandedInsets: EdgeInsets.zero,
-          enableFilter: true,
-          requestFocusOnTap: true,
-          menuHeight: 320,
-          errorText: errorText,
-          textStyle: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
-          inputDecorationTheme: dashInputTheme(t),
-          onSelected: (v) {
-            if (required && v != null && v.isNotEmpty) {
-              setState(() => _materialMissing = false);
-            }
-          },
-          dropdownMenuEntries: [
-            // The menu opens in a route of its own, so the field's tag stays
-            // behind. `logTagMaterial` keeps the pick out of the identifier:
-            // on the material combo it rides in `mat`, and a brand or variant
-            // is not a known material, so it falls back to the bare id.
-            for (final o in options)
-              DropdownMenuEntry(
-                value: o,
-                label: o,
-                labelWidget:
-                    logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
-              ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: dashCombo<String>(
+        context,
+        id: _fieldTag(key),
+        controller: _c[key],
+        label: Text(required ? '$label *' : label),
+        errorText: errorText,
+        filterable: true,
+        textStyle: TextStyle(
+          fontFamily: DashTokens.fontUi,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: t.textPrimary,
         ),
-        ),
+        onSelected: (v) {
+          if (required && v != null && v.isNotEmpty) {
+            setState(() => _materialMissing = false);
+          }
+        },
+        entries: [
+          // `logTagMaterial` keeps the pick out of the identifier: on the
+          // material combo it rides in `mat`, and a brand or variant is not a
+          // known material, so it falls back to the bare id.
+          for (final o in options)
+            DropdownMenuEntry(
+              value: o,
+              label: o,
+              labelWidget:
+                  logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
+            ),
+        ],
+      ),
     );
   }
+
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -499,11 +494,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Opens the searchable empty-spool (core weight) picker; on selection stores
   /// the catalog id and fills the weight box from the chosen entry.
   Future<void> _openCoreWeightPicker(AppLocalizations l10n) async {
-    final picked = await showModalBottomSheet<CoreWeightEntry>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final picked = await dashSurfaceSheet<CoreWeightEntry>(
+      context,
       builder: (_) => const _CoreWeightPicker(),
     );
     if (picked == null || !mounted) return;
@@ -641,11 +633,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Opens the preset picker; on selection stores id+name and, when material is
   /// still blank, seeds it from the preset's filament type (cheap auto-fill).
   Future<void> _openSlicerPresetPicker(AppLocalizations l10n) async {
-    final picked = await showModalBottomSheet<SlicerPreset>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final picked = await dashSurfaceSheet<SlicerPreset>(
+      context,
       builder: (_) => const _SlicerPresetPicker(),
     );
     if (picked == null || !mounted) return;

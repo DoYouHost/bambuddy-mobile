@@ -16,6 +16,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_sheet.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -289,9 +290,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   void _openCreateSheet(FileManagerState s) {
     final l10n = _l10n;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -321,9 +322,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _openSortSheet(FileManagerState s) {
     final l10n = _l10n;
     final notifier = ref.read(fileManagerProvider.notifier);
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         // Six options fit at the default text scale and stop fitting well before
         // the largest one, so this scrolls for the same reason the file sheet
@@ -362,9 +363,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final canSlice =
         (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
     final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         // Scrollable, not a Column: this sheet reaches nine tiles plus the
         // thumbnail header (print + preview *or* slice, two for variants, tags,
@@ -816,9 +817,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final l10n = _l10n;
     final folders = [...s.allFolders]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return showModalBottomSheet<LibraryFolder>(
-      context: context,
-      showDragHandle: true,
+    return dashSheet<LibraryFolder>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,

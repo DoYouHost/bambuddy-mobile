@@ -24,10 +24,9 @@ class _MovementTile extends ConsumerWidget {
         child: logTag(
           'printer.move',
           InkWell(
-            onTap: () => showModalBottomSheet<void>(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
+            onTap: () => dashSurfaceSheet<void>(
+              context,
+              barrierColor: null,
               builder: (_) => _MovementSheet(printerId: printerId),
             ),
             child: Container(

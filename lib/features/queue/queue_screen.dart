@@ -15,6 +15,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_sheet.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -737,9 +738,9 @@ Future<Printer?> _pickQueuePrinter(
     messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
     return null;
   }
-  return showModalBottomSheet<Printer>(
-    context: context,
-    showDragHandle: true,
+  return dashSheet<Printer>(
+    context,
+    scrollControlled: false,
     builder: (ctx) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,

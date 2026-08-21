@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_sheet.dart';
 import '../common/state_views.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
@@ -400,10 +401,8 @@ Future<CurrentUser?> pickAccountForGroup(
   BuildContext context,
   GroupDetail group,
 ) =>
-    showModalBottomSheet<CurrentUser>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<CurrentUser>(
+      context,
       builder: (_) => _AccountPickerSheet(group: group),
     );
 

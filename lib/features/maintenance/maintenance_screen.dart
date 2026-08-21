@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_sheet.dart';
 import '../common/format_datetime.dart';
 import '../common/state_views.dart';
 import 'maintenance_icons.dart';
@@ -401,9 +402,9 @@ class _MaintenanceTile extends ConsumerWidget {
       sub.close();
       return;
     }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    await dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => _HistorySheet(item: item),
     );
     sub.close();

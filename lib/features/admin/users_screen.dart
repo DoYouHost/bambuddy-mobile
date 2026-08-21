@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_sheet.dart';
 import '../common/state_views.dart';
 import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
@@ -248,10 +249,8 @@ class _Avatar extends StatelessWidget {
 /// Opens the per-account detail: what the list has no room for, plus what the
 /// account owns (one request, made only when someone opens this).
 Future<void> showUserDetailSheet(BuildContext context, CurrentUser user) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
       builder: (_) => _UserDetailSheet(user: user),
     );
 

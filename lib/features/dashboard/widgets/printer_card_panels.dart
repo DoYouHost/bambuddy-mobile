@@ -611,10 +611,9 @@ class _FanCell extends ConsumerWidget {
         // user opened. Same fix as the temperature tiles.
         'printer.fan_$fan',
         InkWell(
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
+          onTap: () => dashSurfaceSheet<void>(
+            context,
+            barrierColor: null,
             builder: (_) => _FanControlSheet(
               printerId: printerId,
               fan: fan,

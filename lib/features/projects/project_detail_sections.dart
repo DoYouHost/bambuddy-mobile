@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_sheet.dart';
 import '../common/format_datetime.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
@@ -184,9 +185,9 @@ class ProjectFilesSection extends ConsumerWidget {
     }
     if (!context.mounted) return;
 
-    final folderId = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final folderId = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

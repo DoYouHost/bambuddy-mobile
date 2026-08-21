@@ -2,11 +2,8 @@ part of 'inventory_screen.dart';
 
 /// Opens spool create/edit sheet. [existing] != null → edit mode.
 void openSpoolForm(BuildContext context, {Spool? existing}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _SpoolFormSheet(existing: existing),
   );
 }
@@ -15,11 +12,8 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
 /// reverse flow from dashboard chip: spool is known, we pick a slot.
 /// Available when spool is not yet assigned anywhere.
 void _openAssignSheet(BuildContext context, Spool spool) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _AssignSheet(spool: spool),
   );
 }

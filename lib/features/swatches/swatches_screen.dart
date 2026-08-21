@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
 import '../common/sliver_search_bar.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
@@ -140,11 +140,8 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
   /// Open create sheet (initial == null) or edit existing code.
   Future<void> _openForm({SwatchCode? initial}) async {
     final l10n = _l10n;
-    final result = await showModalBottomSheet<SwatchCode>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
+    final result = await dashSheet<SwatchCode>(
+      context,
       builder: (_) => _SwatchFormSheet(initial: initial),
     );
     if (result == null || !mounted) return;
@@ -702,11 +699,8 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
   /// Open bambuddy color catalog browser (like in spool form). Selection fills
   /// color name AND hex (`rgba`); fields can still be edited manually after choice.
   Future<void> _pickColor() async {
-    final entry = await showModalBottomSheet<ColorEntry>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
+    final entry = await dashSheet<ColorEntry>(
+      context,
       builder: (_) => const _ColorCatalogSheet(),
     );
     if (entry == null) return;
@@ -749,10 +743,9 @@ class _SwatchFormSheetState extends ConsumerState<_SwatchFormSheet> {
     final theme = Theme.of(context);
     final preview = parseSpoolColor(_rgba.text);
     final mq = MediaQuery.of(context);
-    // useSafeArea only guards top/left/right (SafeArea bottom:false), so the
-    // nav bar inset must be added here. Keyboard (viewInsets) and nav bar
-    // (viewPadding) never stack, so take the larger of the two.
-    final bottomInset = math.max(mq.viewInsets.bottom, mq.viewPadding.bottom);
+    // The nav bar inset comes from [dashSheet]; what is left is the keyboard,
+    // which no SafeArea covers.
+    final bottomInset = mq.viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -948,7 +941,7 @@ class _ColorCatalogSheetState extends ConsumerState<_ColorCatalogSheet> {
     }
 
     final mq = MediaQuery.of(context);
-    final bottomInset = math.max(mq.viewInsets.bottom, mq.viewPadding.bottom);
+    final bottomInset = mq.viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,

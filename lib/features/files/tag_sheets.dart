@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_sheet.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
 
@@ -56,20 +57,16 @@ class TagChip extends StatelessWidget {
 
 /// Tag filter — multi-select with AND semantics, applied library-wide.
 Future<void> showTagFilterSheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => const _TagFilterSheet(),
     );
 
 /// Tags of a single file. Returns `true` when the assignment changed, so the
 /// caller knows whether to refresh the listing.
 Future<bool> showFileTagsSheet(BuildContext context, LibraryFile file) async =>
-    await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await dashSheet<bool>(
+      context,
       builder: (_) => _FileTagsSheet(file: file),
     ) ??
     false;
@@ -80,10 +77,8 @@ Future<bool> showBulkTagsSheet(
   BuildContext context,
   List<int> fileIds,
 ) async =>
-    await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await dashSheet<bool>(
+      context,
       builder: (_) => _BulkTagsSheet(fileIds: fileIds),
     ) ??
     false;
@@ -93,10 +88,8 @@ Future<bool> showBulkTagsSheet(
 /// — that surfaces as the usual "not allowed" snack rather than a hidden button,
 /// because the app cannot see the caller's permissions.
 Future<void> showTagManageSheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => const _TagManageSheet(),
     );
 

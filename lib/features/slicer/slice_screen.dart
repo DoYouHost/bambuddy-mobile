@@ -18,6 +18,7 @@ import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
 import '../stats/stats_common.dart' show fmtDuration;
 import 'process_settings_screen.dart';
@@ -611,9 +612,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           title: Text(label),
           onTap: () => Navigator.pop(context, value),
         ).tagged('slice.bed_type');
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
+    final picked = await dashSheet<String>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,
@@ -633,10 +634,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required List<SlicerPreset> filtered,
     required List<SlicerPreset> all,
   }) {
-    return showModalBottomSheet<SlicerPreset>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    return dashSheet<SlicerPreset>(
+      context,
       builder: (_) => _PresetPicker(title: title, filtered: filtered, all: all),
     );
   }

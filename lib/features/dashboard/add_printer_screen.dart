@@ -444,15 +444,13 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         // Detected subnets → dropdown (+ "Custom…" sentinel). No detected
         // subnets → a plain CIDR field below is the only input.
         if (subnets.isNotEmpty)
-          DropdownMenu<String>(
+          dashCombo<String>(
+            context,
+            id: 'add_printer.subnet',
             initialSelection: _useCustomSubnet ? _customSubnetOption : _subnet,
             enabled: !_scanning,
-            expandedInsets: EdgeInsets.zero,
-            menuHeight: 320,
-            requestFocusOnTap: false,
             label: Text(l10n.addPrinterSubnet),
             textStyle: _fieldTextStyle(t),
-            inputDecorationTheme: dashInputTheme(t),
             onSelected: (v) => setState(() {
               if (v == _customSubnetOption) {
                 _useCustomSubnet = true;
@@ -461,7 +459,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                 _subnet = v;
               }
             }),
-            dropdownMenuEntries: [
+            entries: [
               // The menu is a route of its own, so the field's tag does not
               // reach these — each option carries one on its label widget.
               for (final s in subnets)
@@ -478,7 +476,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     Text(l10n.addPrinterSubnetCustomOption)),
               ),
             ],
-          ).tagged('add_printer.subnet'),
+          ),
         if (custom) ...[
           if (subnets.isNotEmpty) const SizedBox(height: 8),
           TextField(
@@ -714,18 +712,16 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   // --- Shared field helpers ----------------------------------------------
 
   Widget _modelDropdown(DashTokens t, AppLocalizations l10n) {
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'add_printer.model',
       initialSelection: _model,
       enabled: !_busy,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
       label: Text(l10n.addPrinterModel),
       helperText: l10n.addPrinterModelOptional,
       textStyle: _fieldTextStyle(t),
-      inputDecorationTheme: dashInputTheme(t),
       onSelected: (v) => setState(() => _model = v ?? _modelNone),
-      dropdownMenuEntries: [
+      entries: [
         DropdownMenuEntry(
           value: _modelNone,
           label: l10n.addPrinterModelNone,
@@ -756,7 +752,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
         ],
       ],
-    ).tagged('add_printer.model');
+    );
   }
 
   Widget _field(

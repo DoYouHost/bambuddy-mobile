@@ -17,6 +17,7 @@ import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
 import '../common/dashed_line.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
@@ -42,10 +43,6 @@ part 'inventory_labels.dart';
 /// vivid swatch in both brightnesses, so a near-black ink keeps it readable
 /// either way.
 const Color _onAccentGreen = Color(0xFF08150D);
-
-/// Darker scrim for Filaments sheets so the screen behind reads as "dimmed
-/// backdrop", not a half-rendered glitch bleeding through the top.
-const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -118,11 +115,8 @@ Future<void> showSpoolDetail(
       .read(inventoryProvider)
       .valueOrNull
       ?.assignmentFor(spool.id);
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
   );
 }
@@ -410,11 +404,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// from selection mode (the picked spools) and from the app bar's print
   /// action outside it (every visible spool — "print labels for all").
   void _printLabels(List<Spool> pool, Set<int> preselected) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _LabelSheet(spools: pool, initialSelected: preselected),
     );
   }
@@ -520,11 +511,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Opens the filter sheet. Options (materials/brands/locations) counted from the
   /// full spool list to show only actually occurring values.
   void _openFilters(BuildContext context, List<Spool> all) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _FilterSheet(
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),

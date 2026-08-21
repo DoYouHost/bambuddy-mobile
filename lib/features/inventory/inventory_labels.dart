@@ -259,11 +259,8 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       return;
     }
 
-    final template = await showModalBottomSheet<SpoolLabelTemplate>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final template = await dashSurfaceSheet<SpoolLabelTemplate>(
+      context,
       builder: (_) => const _TemplateSheet(),
     );
     if (template == null || !mounted) return;
@@ -407,12 +404,7 @@ class _LabelFooter extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        16 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),

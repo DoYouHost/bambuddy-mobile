@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../common/dash_sheet.dart';
 import '../dashboard_filters.dart';
 
 /// Opens the dashboard filter bottom sheet. Changes are written straight to
 /// [dashboardFiltersProvider], so the list behind it updates live.
 Future<void> showDashboardFilterSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+  return dashSurfaceSheet<void>(
+    context,
+    barrierColor: null,
     builder: (_) => const _DashboardFilterSheet(),
   );
 }

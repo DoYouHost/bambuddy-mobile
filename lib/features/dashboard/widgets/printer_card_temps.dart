@@ -213,10 +213,9 @@ class _GaugeTile extends ConsumerWidget {
   }
 
   void _openSheet(BuildContext context, int initialTarget) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    dashSurfaceSheet<void>(
+      context,
+      barrierColor: null,
       builder: (_) => _TempControlSheet(
         printerId: printerId,
         reading: reading,

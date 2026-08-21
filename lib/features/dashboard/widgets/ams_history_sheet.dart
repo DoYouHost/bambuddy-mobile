@@ -9,6 +9,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// Which metric the AMS history chart is showing.
@@ -74,10 +75,8 @@ Future<void> showAmsHistorySheet(
   required String amsLabel,
   AmsHistoryMetric initialMetric = AmsHistoryMetric.humidity,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<void>(
+    context,
     builder: (_) => AmsHistorySheet(
       printerId: printerId,
       amsId: amsId,

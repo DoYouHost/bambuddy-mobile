@@ -910,10 +910,8 @@ class _FilamentRow extends StatelessWidget {
             tray.trayType,
             InkWell(
               borderRadius: BorderRadius.circular(8),
-              onTap: () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                showDragHandle: true,
+              onTap: () => dashSheet<void>(
+                context,
                 builder: (_) => _AssignSlotSheet(slot: slot),
               ),
               child: content,
@@ -996,10 +994,9 @@ class _AmsDryControl extends ConsumerWidget {
         drying && remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDry;
 
     return InkWell(
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
+      onTap: () => dashSurfaceSheet<void>(
+        context,
+        barrierColor: null,
         builder: (_) => _DryingSheet(
           printerId: printerId,
           amsId: amsId,
@@ -1227,11 +1224,11 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
-        DropdownMenu<String>(
+        dashCombo<String>(
+          context,
+          id: 'drying.filament',
           initialSelection: _filament,
-          expandedInsets: EdgeInsets.zero,
           menuHeight: 280,
-          requestFocusOnTap: false,
           label: Text(l10n.ctrlDryFilament),
           textStyle: TextStyle(
             fontFamily: DashTokens.fontUi,
@@ -1239,7 +1236,9 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             fontWeight: FontWeight.w600,
             color: t.textPrimary,
           ),
-          inputDecorationTheme: InputDecorationTheme(
+          // Tighter than the form chrome: this one sits inside a card, where
+          // the 14 px radius and the taller field read as a second card.
+          decorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: t.subCard,
             contentPadding:
@@ -1260,7 +1259,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           onSelected: (v) {
             if (v != null) _applyFilament(v);
           },
-          dropdownMenuEntries: [
+          entries: [
             // Preset keys are Bambu material names, so the pick rides in the
             // `mat` field instead of turning the identifier into content.
             for (final f in _dryingPresets.keys)
@@ -1271,7 +1270,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                     logTagMaterial('drying.filament_option', f, Text(f)),
               ),
           ],
-        ).tagged('drying.filament'),
+        ),
         const SizedBox(height: 16),
         _DrySlider(
           id: 'drying.temp',
@@ -1646,10 +1645,8 @@ class _SlotActions extends ConsumerWidget {
   /// user is done with.
   void _openConfig(BuildContext context) {
     Navigator.of(context).pop();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
       builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }

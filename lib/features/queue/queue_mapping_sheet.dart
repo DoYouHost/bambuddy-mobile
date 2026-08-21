@@ -9,6 +9,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
 import '../slicer/slice_providers.dart';
 
@@ -283,9 +284,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
   Future<void> _pickTray(int slot, List<_Tray> trays) async {
     final theme = Theme.of(context);
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final picked = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,

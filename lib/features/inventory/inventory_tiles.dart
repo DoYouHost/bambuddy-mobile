@@ -77,11 +77,8 @@ class _SpoolTile extends StatelessWidget {
             onLongPress: onLongPress,
             onTap:
                 onTap ??
-                () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  barrierColor: _sheetBarrier,
+                () => dashSurfaceSheet<void>(
+                  context,
                   builder: (_) =>
                       _SpoolDetailSheet(spool: spool, assignment: assignment),
                 ),

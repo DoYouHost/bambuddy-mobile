@@ -13,6 +13,12 @@ class SheetSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
+    final mq = MediaQuery.of(context);
+    // The sheet is drawn edge to edge, so the surface has to end the content
+    // above the navigation bar itself. An open keyboard already covers that
+    // strip, hence the subtraction rather than the larger of the two.
+    final navInset =
+        (mq.viewPadding.bottom - mq.viewInsets.bottom).clamp(0.0, double.infinity);
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -45,7 +51,12 @@ class SheetSurface extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Expanded(child: child),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: navInset),
+              child: child,
+            ),
+          ),
         ],
       ),
     );

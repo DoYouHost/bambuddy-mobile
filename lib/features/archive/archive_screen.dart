@@ -16,6 +16,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
 import '../common/filter_controls.dart';
 import '../common/format_datetime.dart';
 import '../common/sheet_surface.dart';
@@ -84,11 +85,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   void _openFilters() {
     final all = ref.read(archiveProvider).valueOrNull ?? const [];
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _ArchiveFilterSheet(archives: all),
     );
   }
@@ -260,12 +258,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   void _openSheet(Archive archive) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      // Content height varies (wrapped labels, stacked actions, text scale), so
-      // let the sheet grow past the default 9/16 cap instead of overflowing.
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => _ArchiveSheet(
         archive: archive,
         onReprint: () => _reprint(archive),
@@ -417,9 +411,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       return;
     }
 
-    final projectId = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final projectId = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1210,11 +1204,6 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
     );
   }
 }
-
-/// Darker scrim for the filter sheet so the screen behind reads as a dimmed
-/// backdrop, not a half-rendered glitch bleeding through the rounded top.
-/// Matches the Filaments sheets.
-const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
 
 /// Archive filter/sort sheet. All choices write straight to
 /// [archiveFiltersProvider]; the list behind the sheet re-filters live.

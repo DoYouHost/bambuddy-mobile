@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_sheet.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -393,10 +394,8 @@ class _OverrideTile extends ConsumerWidget {
 
 /// Opens the create/edit type sheet. [existing] != null → edit mode.
 void openTypeForm(BuildContext context, {MaintenanceType? existing}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  dashSheet<void>(
+    context,
     builder: (_) => _TypeFormSheet(existing: existing),
   );
 }

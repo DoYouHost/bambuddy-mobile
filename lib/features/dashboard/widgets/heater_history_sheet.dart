@@ -9,6 +9,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/heater_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// One selectable sensor: the server's key plus the label the card already
@@ -49,10 +50,8 @@ Future<void> showHeaterHistorySheet(
   required List<HeaterKindOption> kinds,
   required String initialKind,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<void>(
+    context,
     builder: (_) => HeaterHistorySheet(
       printerId: printerId,
       kinds: kinds,
