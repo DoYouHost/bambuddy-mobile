@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/api/endpoints.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'archive_providers.dart';
@@ -55,13 +54,12 @@ class ArchivePhotosScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: archive.when(
-        loading: () => const DashLoading(),
-        error: (e, _) => AsyncErrorView(
-          message: e is AppApiException ? e.localized(l10n) : l10n.connectFailed,
-          retryLabel: l10n.retry,
-          onRetry: () => ref.invalidate(archiveDetailProvider(archiveId)),
-        ),
+      body: dashAsync(
+        context,
+        archive,
+        onRetry: () => ref.invalidate(archiveDetailProvider(archiveId)),
+        skipLoadingOnReload: false,
+        skipLoadingOnRefresh: false,
         data: (a) => a.hasPhotos
             ? _PhotoPager(archive: a)
             : EmptyStateView(

@@ -11,10 +11,10 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
-import '../common/state_views.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
@@ -61,18 +61,10 @@ class GroupDetailScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () =>
-                ref.read(groupDetailProvider(groupId).notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(groupDetailProvider(groupId).notifier).refresh(),
           data: (group) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(groupDetailProvider(groupId).notifier).refresh(),

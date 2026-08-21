@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -51,17 +50,10 @@ class UsersScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(usersListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(usersListProvider.notifier).refresh(),
           data: (users) => RefreshIndicator(
             onRefresh: () => ref.read(usersListProvider.notifier).refresh(),
             child: users.isEmpty

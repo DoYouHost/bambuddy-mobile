@@ -13,10 +13,9 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -167,17 +166,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   ),
                 ],
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(archiveProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(archiveProvider.notifier).refresh(),
           data: (all) {
             final items = applyArchiveFilters(all, filters);
             return RefreshIndicator(

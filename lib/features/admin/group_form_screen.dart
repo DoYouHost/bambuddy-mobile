@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/group_write.dart';
@@ -9,11 +8,9 @@ import '../../core/models/permission_catalog.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
-import '../common/state_views.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
@@ -121,19 +118,13 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   maxLines: 2,
                 ).tagged('group_form.description'),
                 const SizedBox(height: 20),
-                catalog.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: DashLoading(),
-                  ),
-                  error: (err, _) => AsyncErrorView(
-                    message: err is AppApiException
-                        ? err.localized(l10n)
-                        : l10n.connectFailed,
-                    retryLabel: l10n.retry,
-                    onRetry: () => ref.invalidate(permissionCatalogProvider),
-                    icon: null,
-                  ),
+                dashAsync(
+                  context,
+                  catalog,
+                  onRetry: () => ref.invalidate(permissionCatalogProvider),
+                  errorIcon: null,
+                  skipLoadingOnReload: false,
+                  skipLoadingOnRefresh: false,
                   data: _permissionEditor,
                 ),
               ],

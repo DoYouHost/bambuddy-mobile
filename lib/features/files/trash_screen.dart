@@ -7,11 +7,10 @@ import '../../core/models/trash_file.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/state_views.dart';
@@ -46,15 +45,11 @@ class TrashScreen extends ConsumerWidget {
             ),
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            onRetry: () => ref.invalidate(libraryTrashProvider),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.invalidate(libraryTrashProvider),
+          skipLoadingOnRefresh: false,
           data: (items) => RefreshIndicator(
             onRefresh: () => ref.refresh(libraryTrashProvider.future),
             child: items.isEmpty

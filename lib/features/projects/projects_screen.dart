@@ -8,9 +8,8 @@ import '../../core/models/project.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'project_common.dart';
@@ -86,16 +85,10 @@ class ProjectsScreen extends ConsumerWidget {
             label: Text(l10n.projectCreate),
           ),
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
           data: (projects) => RefreshIndicator(
             onRefresh: () => ref.read(projectsListProvider.notifier).refresh(),
             child: projects.isEmpty

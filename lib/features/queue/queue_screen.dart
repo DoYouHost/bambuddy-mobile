@@ -16,7 +16,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/state_views.dart';
@@ -156,17 +156,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                   label: Text(l10n.queueStartNext),
                 ),
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () => ref.read(queueProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(queueProvider.notifier).refresh(),
           data: (items) => RefreshIndicator(
             onRefresh: () => ref.read(queueProvider.notifier).refresh(),
             child: items.isEmpty

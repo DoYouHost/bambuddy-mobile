@@ -13,10 +13,10 @@ import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -123,16 +123,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   child: const Icon(Icons.add),
                 ),
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.invalidate(fileManagerProvider),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.invalidate(fileManagerProvider),
           // Stats + breadcrumb stay pinned; the search/filter row rolls away
           // with the scrollable list below it.
           data: (s) => Column(

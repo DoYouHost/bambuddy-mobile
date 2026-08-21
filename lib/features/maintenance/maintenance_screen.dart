@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -83,18 +83,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
             ),
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () =>
-                ref.read(maintenanceOverviewProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(maintenanceOverviewProvider.notifier).refresh(),
           data: (printers) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(maintenanceOverviewProvider.notifier).refresh(),

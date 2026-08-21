@@ -13,10 +13,10 @@ import '../../core/models/spool_label.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
@@ -239,19 +239,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ],
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-            icon: null,
-            tonal: true,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+          tonalRetry: true,
+          errorIcon: null,
           data: (inv) {
             final spools = visible;
             return RefreshIndicator(
