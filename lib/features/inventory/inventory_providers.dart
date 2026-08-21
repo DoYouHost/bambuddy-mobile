@@ -342,6 +342,25 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
   },
 );
 
+/// Filament consumed since the counters were last reset, over the whole shelf.
+///
+/// Archived spools are counted in: it is a running total, and what a spool
+/// consumed before being archived is real history — dropping it would make the
+/// number fall for no visible reason (the bug bambuddy's own tile was fixed for,
+/// server issue #1390).
+///
+/// A provider rather than a sum inside the list header: the header rebuilds on
+/// every search keystroke, and this way the shelf is only walked again when the
+/// shelf itself changes.
+final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  var total = 0.0;
+  for (final spool in spools) {
+    total += spool.consumedWeight;
+  }
+  return total;
+});
+
 /// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');
 

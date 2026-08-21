@@ -712,6 +712,7 @@
   "inventoryFieldNote": "Notatka",
   "inventoryFieldRequired": "Wymagane",
   "inventoryFieldInvalidNumber": "Podaj liczbę",
+  "inventoryFieldRange": "Podaj wartość od {min} do {max}",
   "inventorySectionBasics": "Podstawy",
   "inventorySectionWeight": "Waga i koszt",
   "inventorySectionDetails": "Szczegóły",
@@ -799,6 +800,7 @@
   "inventoryBulkDone": "Zaktualizowano: {count}",
   "inventoryBulkPartial": "Udało się: {ok}, błędów: {failed}",
   "inventoryBulkSkipped": "Udało się: {ok}, już tak było: {skipped}",
+  "inventoryBulkPartialSkipped": "Udało się: {ok}, już tak było: {skipped}, błędów: {failed}",
 
   "inventoryBulkEdit": "Edytuj pola",
   "inventoryBulkEditTitle": "Edycja {count, plural, one{szpuli} other{{count} szpul}}",

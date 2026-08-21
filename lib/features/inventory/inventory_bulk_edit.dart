@@ -20,6 +20,11 @@ class _BulkEditSheet extends ConsumerStatefulWidget {
   ConsumerState<_BulkEditSheet> createState() => _BulkEditSheetState();
 }
 
+/// The per-spool low-stock override the server accepts (`ge=1, le=99` on
+/// `SpoolUpdate`); anything else fails the whole batch with a 422.
+const _lowStockMin = 1;
+const _lowStockMax = 99;
+
 class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   final _formKey = GlobalKey<FormState>();
 
@@ -57,14 +62,9 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) {
-    final v = _c[key]!.text.trim();
-    return v.isEmpty ? null : v;
-  }
+  String? _trim(String key) => _trimmedField(_c, key);
 
-  /// Same tolerance as the field's own validator: `int.tryParse` would drop
-  /// "1000.5" — a valid number that is not a valid int — and send nothing.
-  int? _int(String key) => double.tryParse(_c[key]!.text.trim())?.round();
+  int? _int(String key) => _intField(_c, key);
 
   /// Whether anything has been typed or picked at all — including a number
   /// that does not parse.
@@ -87,8 +87,13 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         coreWeight: _int('coreWeight'),
         costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
         category: _trim('category'),
-        // Server takes 1..99 and answers 422 outside it.
-        lowStockThresholdPct: _int('lowStock')?.clamp(1, 99),
+        // The range is enforced by the field's validator, which runs before
+        // this is ever built; the clamp is the backstop that keeps a 422 out
+        // of a batch of 500 spools if that ever stops being true.
+        lowStockThresholdPct: _int('lowStock')?.clamp(
+          _lowStockMin,
+          _lowStockMax,
+        ),
         storageLocation: _trim('location'),
         slicerFilament: _slicerFilament,
         slicerFilamentName: _slicerFilamentName,
@@ -144,6 +149,8 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final native =
+        ref.watch(inventoryBackendProvider) == InventoryBackend.native;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -186,9 +193,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
               _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
                   number: true),
               _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
-              _field('category', l10n.inventoryFieldCategory),
-              _field('lowStock', l10n.inventoryFieldLowStock,
-                  number: true, hint: l10n.inventoryLowStockHint),
+              // Category and the low-stock override are native-only columns:
+              // on Spoolman the patch drops them, so offering the fields would
+              // promise "1 field will be overwritten" and then change nothing.
+              if (native) ...[
+                _field('category', l10n.inventoryFieldCategory),
+                _field('lowStock', l10n.inventoryFieldLowStock,
+                    number: true,
+                    hint: l10n.inventoryLowStockHint,
+                    min: _lowStockMin,
+                    max: _lowStockMax),
+              ],
               _combo('location', l10n.inventoryFieldLocation,
                   ref.watch(locationOptionsProvider)),
               _field('note', l10n.inventoryFieldNote, maxLines: 3),
@@ -243,7 +258,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: dashCombo<String>(
           context,
-          id: _bulkFieldTag(key),
+          id: _fieldTag(key, area: 'bulk_edit'),
           controller: _c[key],
           label: Text(label),
           filterable: true,
@@ -254,23 +269,28 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
                 value: o,
                 label: o,
                 labelWidget: logTagMaterial(
-                    '${_bulkFieldTag(key)}.option', o, Text(o)),
+                    '${_fieldTag(key, area: 'bulk_edit')}.option', o, Text(o)),
               ),
           ],
         ),
       );
 
+  /// [min] and [max] bound a numeric field the server validates: typing
+  /// outside the range has to say so here, because silently clamping it would
+  /// apply a value the user never chose — across the whole selection.
   Widget _field(
     String key,
     String label, {
     bool number = false,
     String? hint,
     int maxLines = 1,
+    int? min,
+    int? max,
   }) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     return logTag(
-      _bulkFieldTag(key),
+      _fieldTag(key, area: 'bulk_edit'),
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: TextFormField(
@@ -286,8 +306,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
           decoration: dashDecoration(t, labelText: label, hintText: hint),
           validator: (v) {
             final text = (v ?? '').trim();
-            if (number && text.isNotEmpty && double.tryParse(text) == null) {
-              return l10n.inventoryFieldInvalidNumber;
+            if (!number || text.isEmpty) return null;
+            final value = double.tryParse(text);
+            if (value == null) return l10n.inventoryFieldInvalidNumber;
+            if (min != null && max != null && (value < min || value > max)) {
+              return l10n.inventoryFieldRange(min, max);
             }
             return null;
           },
@@ -432,8 +455,3 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     }
   }
 }
-
-/// `coreWeight` → `bulk_edit.core_weight`, the same camelCase-to-snake_case
-/// reduction [_fieldTag] does for the per-spool form.
-String _bulkFieldTag(String key) =>
-    'bulk_edit.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';

@@ -4,25 +4,19 @@ part of 'inventory_screen.dart';
 /// much filament has been consumed since the counters were last reset.
 ///
 /// The two numbers count different things on purpose. [visibleCount] is what
-/// the user is looking at, filters and search included; the consumed total runs
-/// over the whole [shelf] — **archived spools included** — because it is a
-/// running counter and past consumption is real history. Dropping it when a
-/// spool is archived would make the total fall for no visible reason, which is
-/// the bug bambuddy fixed in its own tile (server issue #1390).
+/// the user is looking at, filters and search included; [consumed] comes from
+/// [inventoryConsumedTotalProvider] and covers the whole shelf, archived spools
+/// included.
 class _ListHeader extends StatelessWidget {
-  const _ListHeader({required this.visibleCount, required this.shelf});
+  const _ListHeader({required this.visibleCount, required this.consumed});
 
   final int visibleCount;
-  final List<Spool> shelf;
+  final double consumed;
 
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    var consumed = 0.0;
-    for (final spool in shelf) {
-      consumed += spool.consumedWeight;
-    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Row(

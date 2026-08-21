@@ -185,6 +185,35 @@ Future<Uint8List> _postLabels(
 Map<String, dynamic>? _objectOf(Object? data) =>
     data is Map ? data.cast<String, dynamic>() : null;
 
+/// Sends one request per chunk of the 500-id cap and sums what came back.
+///
+/// A refusal part-way through keeps what the earlier chunks already did: those
+/// rows are mutated on the server, and throwing here would report the whole
+/// selection as failed while hundreds of spools had in fact been archived. The
+/// ids from the failing chunk on are counted as failed, since none of them took
+/// effect.
+///
+/// With nothing accumulated yet the error propagates instead — that is the path
+/// carrying "no permission" to the user, and the 404 the caller reads as "this
+/// server has no bulk routes" before falling back to per-spool calls.
+Future<BulkOutcome> _postChunked(
+  List<int> ids,
+  Future<BulkOutcome> Function(List<int> chunk) send,
+) async {
+  var total = BulkOutcome.empty;
+  var done = 0;
+  for (final chunk in chunkIds(ids)) {
+    try {
+      total += await send(chunk);
+    } on Object {
+      if (done == 0) rethrow;
+      return total + BulkOutcome(failed: ids.length - done);
+    }
+    done += chunk.length;
+  }
+  return total;
+}
+
 /// The three `{ids: […]}` routes — archive, restore, delete. [okKey] and
 /// [skippedKey] name the counters this particular route answers with.
 Future<BulkOutcome> _postBulkIds(
@@ -193,18 +222,14 @@ Future<BulkOutcome> _postBulkIds(
   List<int> ids, {
   required String okKey,
   String? skippedKey,
-}) => guard(() async {
-  var total = BulkOutcome.empty;
-  for (final chunk in chunkIds(ids)) {
-    final res = await dio.post<dynamic>(path, data: {'ids': chunk});
-    total += BulkOutcome.fromJson(
-      _objectOf(res.data),
-      okKey: okKey,
-      skippedKey: skippedKey,
-    );
-  }
-  return total;
-});
+}) => _postChunked(ids, (chunk) => guard(() async {
+      final res = await dio.post<dynamic>(path, data: {'ids': chunk});
+      return BulkOutcome.fromJson(
+        _objectOf(res.data),
+        okKey: okKey,
+        skippedKey: skippedKey,
+      );
+    }));
 
 /// `bulk-update`. [update] is the backend's own serialization of the patch, so
 /// an edit that only touches native-only columns arrives here empty on
@@ -215,30 +240,24 @@ Future<BulkOutcome> _postBulkUpdate(
   String path,
   List<int> ids,
   Map<String, dynamic> update,
-) => guard(() async {
+) async {
   if (update.isEmpty) return BulkOutcome.empty;
-  var total = BulkOutcome.empty;
-  for (final chunk in chunkIds(ids)) {
-    final res = await dio.post<dynamic>(
-      path,
-      data: {'ids': chunk, 'update': update},
-    );
-    total += BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
-  }
-  return total;
-});
+  return _postChunked(ids, (chunk) => guard(() async {
+        final res = await dio.post<dynamic>(
+          path,
+          data: {'ids': chunk, 'update': update},
+        );
+        return BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
+      }));
+}
 
 /// `reset-consumed-counter-bulk` — the one route keyed on `spool_ids` rather
 /// than `ids`, and the one that reports only a count.
 Future<BulkOutcome> _postBulkReset(Dio dio, String path, List<int> ids) =>
-    guard(() async {
-      var total = BulkOutcome.empty;
-      for (final chunk in chunkIds(ids)) {
-        final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
-        total += BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
-      }
-      return total;
-    });
+    _postChunked(ids, (chunk) => guard(() async {
+          final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
+          return BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
+        }));
 
 /// POSTs [path], and on 404 posts [legacyPath] instead.
 ///

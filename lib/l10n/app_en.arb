@@ -845,6 +845,8 @@
   "inventoryFieldNote": "Note",
   "inventoryFieldRequired": "Required",
   "inventoryFieldInvalidNumber": "Enter a number",
+  "inventoryFieldRange": "Enter a value from {min} to {max}",
+  "@inventoryFieldRange": { "placeholders": { "min": { "type": "int" }, "max": { "type": "int" } } },
   "inventorySectionBasics": "Basics",
   "inventorySectionWeight": "Weight & cost",
   "inventorySectionDetails": "Details",
@@ -940,6 +942,8 @@
   "@inventoryBulkPartial": { "placeholders": { "ok": { "type": "int" }, "failed": { "type": "int" } } },
   "inventoryBulkSkipped": "{ok} done, {skipped} already there",
   "@inventoryBulkSkipped": { "placeholders": { "ok": { "type": "int" }, "skipped": { "type": "int" } } },
+  "inventoryBulkPartialSkipped": "{ok} done, {skipped} already there, {failed} failed",
+  "@inventoryBulkPartialSkipped": { "placeholders": { "ok": { "type": "int" }, "skipped": { "type": "int" }, "failed": { "type": "int" } } },
 
   "inventoryBulkEdit": "Edit fields",
   "inventoryBulkEditTitle": "Edit {count} {count, plural, one{spool} other{spools}}",

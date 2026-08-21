@@ -176,6 +176,49 @@ void main() {
       expect(outcome.ok, 2);
     });
 
+    test('a refusal part-way through keeps what the earlier chunks did',
+        () async {
+      // The server has already archived those rows. Throwing here would report
+      // the whole selection as failed while hundreds of spools had moved.
+      adapter.onPost(
+        '/api/v1/inventory/spools/bulk-archive',
+        (s) => s.reply(200, {'archived': 500}),
+        data: Matchers.any,
+      );
+      var calls = 0;
+      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
+        calls++;
+        if (calls < 2) return h.next(o);
+        h.reject(DioException(
+          requestOptions: o,
+          response: Response(requestOptions: o, statusCode: 403),
+          type: DioExceptionType.badResponse,
+        ));
+      }));
+
+      final outcome = await NativeInventorySource(dio)
+          .bulkArchive([for (var i = 1; i <= 501; i++) i]);
+
+      expect(outcome.ok, 500);
+      expect(outcome.failed, 1, reason: 'the chunk that never took effect');
+    });
+
+    test('a refusal on the first chunk still reaches the caller', () async {
+      // Nothing has happened yet, so the error itself is the useful answer —
+      // it carries "no permission", and a 404 tells the caller to fall back.
+      adapter.onPost(
+        '/api/v1/inventory/spools/bulk-archive',
+        (s) => s.reply(403, {'detail': 'forbidden'}),
+        data: Matchers.any,
+      );
+
+      await expectLater(
+        NativeInventorySource(dio)
+            .bulkArchive([for (var i = 1; i <= 501; i++) i]),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+
     test('an empty selection sends nothing at all', () async {
       final outcome = await NativeInventorySource(dio).bulkDelete([]);
 

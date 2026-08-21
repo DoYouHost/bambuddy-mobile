@@ -3890,6 +3890,12 @@ abstract class AppLocalizations {
   /// **'Enter a number'**
   String get inventoryFieldInvalidNumber;
 
+  /// No description provided for @inventoryFieldRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {min} to {max}'**
+  String inventoryFieldRange(int min, int max);
+
   /// No description provided for @inventorySectionBasics.
   ///
   /// In en, this message translates to:
@@ -4369,6 +4375,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{ok} done, {skipped} already there'**
   String inventoryBulkSkipped(int ok, int skipped);
+
+  /// No description provided for @inventoryBulkPartialSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there, {failed} failed'**
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed);
 
   /// No description provided for @inventoryBulkEdit.
   ///

@@ -2,6 +2,7 @@ import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -16,10 +17,13 @@ import '../../helpers.dart';
 /// leaves the phone: a blank field must stay out of the patch, because the
 /// alternative — sending it — would blank that field on every selected spool.
 class _FakeInventory extends InventoryNotifier {
-  _FakeInventory({this.failure});
+  _FakeInventory({this.failure, this.outcome});
 
   /// Thrown instead of applying, to stand for a server that refuses.
   final AppApiException? failure;
+
+  /// What the server reports back, when the test cares about the tally.
+  final BulkOutcome? outcome;
 
   SpoolBulkPatch? patch;
   List<int>? ids;
@@ -38,8 +42,17 @@ class _FakeInventory extends InventoryNotifier {
     if (failure case final f?) throw f;
     ids = spoolIds.toList();
     patch = newPatch;
-    return BulkOutcome(ok: spoolIds.length);
+    return outcome ?? BulkOutcome(ok: spoolIds.length);
   }
+}
+
+class _FixedBackend extends InventoryBackendNotifier {
+  _FixedBackend(this._backend);
+
+  final InventoryBackend _backend;
+
+  @override
+  InventoryBackend build() => _backend;
 }
 
 /// Null profile: nothing here talks to a server, and building the API client
@@ -69,12 +82,15 @@ void main() {
   Future<_FakeInventory> openSheet(
     WidgetTester tester, {
     AppApiException? failure,
+    BulkOutcome? outcome,
+    InventoryBackend backend = InventoryBackend.native,
   }) async {
-    final fake = _FakeInventory(failure: failure);
+    final fake = _FakeInventory(failure: failure, outcome: outcome);
     await tester.pumpWidget(ProviderScope(
       overrides: [
         inventoryProvider.overrideWith(() => fake),
         serverProfileProvider.overrideWith(_NullProfile.new),
+        inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
       ],
       child: plApp(const InventoryScreen()),
     ));
@@ -156,6 +172,56 @@ void main() {
 
     expect(find.text(l10n.inventoryFieldInvalidNumber), findsOneWidget);
     expect(fake.patch, isNull);
+  });
+
+  testWidgets('a value outside the range the server takes is refused here',
+      (tester) async {
+    // Clamping it silently would apply a threshold the user never chose, to
+    // every spool in the selection.
+    final fake = await openSheet(tester);
+
+    await tester.enterText(
+      find.ancestor(
+        of: find.text(l10n.inventoryFieldLowStock),
+        matching: find.byType(TextFormField),
+      ),
+      '150',
+    );
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+
+    expect(find.text(l10n.inventoryFieldRange(1, 99)), findsOneWidget);
+    expect(fake.patch, isNull);
+  });
+
+  testWidgets('Spoolman is not offered the fields it has no column for',
+      (tester) async {
+    await openSheet(tester, backend: InventoryBackend.spoolman);
+
+    expect(find.text(l10n.inventoryFieldCategory), findsNothing);
+    expect(find.text(l10n.inventoryFieldLowStock), findsNothing);
+    // The fields it does take are still there.
+    expect(find.text(l10n.inventoryFieldNote), findsOneWidget);
+  });
+
+  testWidgets('a mixed tally reports all three counts', (tester) async {
+    await openSheet(
+      tester,
+      outcome: const BulkOutcome(ok: 1, skipped: 1, failed: 1),
+    );
+
+    await tester.enterText(noteField(), 'restocked');
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+    await tester.tap(find.text(l10n.inventoryApply));
+    await settle(tester);
+
+    expect(
+      find.text(l10n.inventoryBulkPartialSkipped(1, 1, 1)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a refusal leaves the sheet open with the values typed',

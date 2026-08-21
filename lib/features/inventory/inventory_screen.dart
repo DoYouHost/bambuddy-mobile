@@ -14,6 +14,7 @@ import '../../core/models/spool_label.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
@@ -165,6 +166,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
+    final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final visible = _filter(
       async.valueOrNull?.spools ?? const [],
       query,
@@ -285,7 +287,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           if (i == 0) {
                             return _ListHeader(
                               visibleCount: spools.length,
-                              shelf: inv.spools,
+                              consumed: consumedTotal,
                             );
                           }
                           final spool = spools[i - 1];
@@ -505,7 +507,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// the user asked for is called out separately: it is not a failure — the
   /// shelf ends up as intended — but "5 updated" would be a lie when two of
   /// them were archived already.
+  ///
+  /// All three counts can be non-zero at once on a chunked selection, so they
+  /// are reported together rather than one winning over the others.
   String _bulkTally(AppLocalizations l10n, BulkOutcome outcome) {
+    if (outcome.failed > 0 && outcome.skipped > 0) {
+      return l10n.inventoryBulkPartialSkipped(
+        outcome.ok,
+        outcome.skipped,
+        outcome.failed,
+      );
+    }
     if (outcome.failed > 0) {
       return l10n.inventoryBulkPartial(outcome.ok, outcome.failed);
     }

@@ -2250,6 +2250,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldInvalidNumber => 'Podaj liczbę';
 
   @override
+  String inventoryFieldRange(int min, int max) {
+    return 'Podaj wartość od $min do $max';
+  }
+
+  @override
   String get inventorySectionBasics => 'Podstawy';
 
   @override
@@ -2558,6 +2563,11 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String inventoryBulkSkipped(int ok, int skipped) {
     return 'Udało się: $ok, już tak było: $skipped';
+  }
+
+  @override
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed) {
+    return 'Udało się: $ok, już tak było: $skipped, błędów: $failed';
   }
 
   @override
