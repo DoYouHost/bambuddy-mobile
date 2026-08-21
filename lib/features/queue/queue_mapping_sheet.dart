@@ -348,7 +348,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       : _l10n.mappingAmsSlot('${t.global ~/ 4 + 1}', '${t.global % 4 + 1}');
 
   Widget _swatch(ThemeData theme, String? hex, double size) {
-    final c = _color(hex);
+    final c = colorFromHex(hex);
     return Container(
       width: size,
       height: size,
@@ -368,10 +368,4 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 bool _typeMatches(String a, String b) {
   final x = a.toUpperCase().trim(), y = b.toUpperCase().trim();
   return x == y || x.startsWith(y) || y.startsWith(x);
-}
-
-Color? _color(String? hex) {
-  final rgb = rgbFromHex(hex);
-  if (rgb == null) return null;
-  return Color.fromARGB(255, rgb.$1, rgb.$2, rgb.$3);
 }
