@@ -14,6 +14,7 @@ import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'file_manager_providers.dart';
 
 /// Library trash: list of deleted files with restore, permanent delete, and empty trash.
@@ -58,7 +59,10 @@ class TrashScreen extends ConsumerWidget {
                     icon: Icons.delete_outline,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.symmetric(vertical: 6),
+                    ),
                     itemCount: items.length,
                     itemBuilder: (context, i) => _TrashTile(
                       file: items[i],

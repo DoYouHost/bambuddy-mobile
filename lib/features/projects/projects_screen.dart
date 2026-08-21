@@ -12,6 +12,7 @@ import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_files.dart';
@@ -97,7 +98,10 @@ class ProjectsScreen extends ConsumerWidget {
                     icon: Icons.folder_special_outlined,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                    ),
                     itemCount: projects.length,
                     itemBuilder: (_, i) => _ProjectCard(
                       project: projects[i],

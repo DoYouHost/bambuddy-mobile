@@ -13,6 +13,7 @@ import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -51,7 +52,10 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
             await ref.read(maintenanceOverviewProvider.notifier).refresh();
           },
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: withSystemNavInset(
+              context,
+              const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            ),
             children: [
               // --- Maintenance types ---
               _SectionHeader(

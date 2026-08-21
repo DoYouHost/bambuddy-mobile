@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
+import '../common/system_insets.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -211,7 +212,10 @@ class _StatsBody extends ConsumerWidget {
     final computed = ref.watch(statsComputedProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      padding: withSystemNavInset(
+        context,
+        const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      ),
       children: [
         _OverviewCard(data: data),
         const SizedBox(height: 12),

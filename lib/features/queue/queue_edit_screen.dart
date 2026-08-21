@@ -19,6 +19,7 @@ import '../../providers.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import '../common/print_thumbnail.dart';
+import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/hex_color.dart';
@@ -282,7 +283,10 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         body: AbsorbPointer(
           absorbing: _saving,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            padding: withSystemNavInset(
+              context,
+              const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            ),
             children: [
               _header(l10n, t),
               const SizedBox(height: 16),

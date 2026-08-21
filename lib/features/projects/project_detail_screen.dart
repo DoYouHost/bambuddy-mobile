@@ -16,6 +16,7 @@ import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
@@ -68,7 +69,10 @@ class ProjectDetailScreen extends ConsumerWidget {
               await ref.read(projectDetailProvider(projectId).notifier).refresh();
             },
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.only(bottom: 32),
+              ),
               children: [
                 _Header(project: project),
                 if (project.stats != null)

@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 
@@ -55,7 +56,10 @@ class GroupsScreen extends ConsumerWidget {
                     icon: Icons.group_outlined,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                    ),
                     itemCount: groups.length,
                     itemBuilder: (_, i) => GroupCard(
                       group: groups[i],

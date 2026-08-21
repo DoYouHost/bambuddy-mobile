@@ -7,6 +7,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 import 'api_keys_providers.dart';
 import 'groups_providers.dart';
 import 'users_providers.dart';
@@ -27,7 +28,10 @@ class AdminScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.adminTitle),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.fromLTRB(12, 8, 12, 24),
+          ),
           children: [
             if (user != null) _SignedInAs(username: user.username),
             if (ref.watch(canReadUsersProvider))

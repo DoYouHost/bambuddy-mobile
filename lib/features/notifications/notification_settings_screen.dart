@@ -8,6 +8,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 
 /// Whether the system is currently swallowing every alert, which the switches
 /// below cannot show on their own: they keep reading "on" while nothing is
@@ -43,7 +44,10 @@ class NotificationSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.notifSettingsTitle),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          ),
           children: [
             if (ref.watch(_notificationsBlockedProvider).valueOrNull ?? false)
               _BlockedBanner(l10n.notificationsBlocked),

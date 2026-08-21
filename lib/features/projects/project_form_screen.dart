@@ -12,6 +12,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
 
@@ -111,7 +112,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 TextFormField(
                   controller: _name,

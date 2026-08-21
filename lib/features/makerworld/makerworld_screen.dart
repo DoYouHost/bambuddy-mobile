@@ -14,6 +14,7 @@ import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
 import 'makerworld_thumbnail.dart';
@@ -119,7 +120,10 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.makerworldTitle),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          ),
           children: [
             Text(
               l10n.mwIntro,
