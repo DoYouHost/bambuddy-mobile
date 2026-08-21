@@ -249,6 +249,45 @@ void main() {
     );
   });
 
+  testWidgets('the sort menu shows the current state, not the next action',
+      (tester) async {
+    // It used to be one row labelled with what a tap would do — "Ascending"
+    // while the list was sorted descending — which reads as the setting and
+    // says the opposite of it.
+    await pumpScreen(tester);
+
+    Future<void> openMenu() async {
+      await tester.tap(find.byIcon(Icons.sort));
+      await settle(tester);
+    }
+
+    bool checked(String label) => tester
+        .widget<CheckedPopupMenuItem<String>>(
+          find.widgetWithText(CheckedPopupMenuItem<String>, label),
+        )
+        .checked;
+
+    await openMenu();
+
+    // Both groups are captioned; a column name on its own says nothing about
+    // what the menu is for.
+    expect(find.text(l10n.printLogSort), findsOneWidget);
+    expect(find.text(l10n.printLogSortDirection), findsOneWidget);
+    expect(checked(l10n.printLogSortDate), isTrue);
+    expect(checked(l10n.printLogSortDescending), isTrue);
+    expect(checked(l10n.printLogSortAscending), isFalse);
+
+    final ascending = find.text(l10n.printLogSortAscending);
+    await tester.ensureVisible(ascending);
+    await tester.pump();
+    await tester.tap(ascending);
+    await settle(tester);
+    await openMenu();
+
+    expect(checked(l10n.printLogSortAscending), isTrue);
+    expect(checked(l10n.printLogSortDescending), isFalse);
+  });
+
   testWidgets('an orphan run is marked as one', (tester) async {
     await pumpScreen(tester, entries: [_entry(archiveId: null)]);
 

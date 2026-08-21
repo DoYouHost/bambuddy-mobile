@@ -5803,6 +5803,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printLogSortEnergy => 'Energy';
 
   @override
+  String get printLogSortDirection => 'Direction';
+
+  @override
   String get printLogSortDescending => 'Descending';
 
   @override

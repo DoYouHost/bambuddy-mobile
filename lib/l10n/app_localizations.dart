@@ -9920,6 +9920,12 @@ abstract class AppLocalizations {
   /// **'Energy'**
   String get printLogSortEnergy;
 
+  /// No description provided for @printLogSortDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get printLogSortDirection;
+
   /// No description provided for @printLogSortDescending.
   ///
   /// In en, this message translates to:

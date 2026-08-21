@@ -231,21 +231,36 @@ class _SortMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
     final notifier = ref.read(printLogFiltersProvider.notifier);
+
+    /// A caption above a group of rows. `enabled: false` because it is a label,
+    /// not a choice — tapping it must not close the menu.
+    PopupMenuEntry<String> caption(String text) => PopupMenuItem<String>(
+          enabled: false,
+          height: 32,
+          child: Text(text, style: t.micro.copyWith(color: t.textTertiary)),
+        );
+
     return logTag(
       'print_log.sort',
       PopupMenuButton<String>(
-        icon: Icon(Icons.sort, color: DashTokens.of(context).textSecondary),
+        icon: Icon(Icons.sort, color: t.textSecondary),
         tooltip: l10n.printLogSort,
         onSelected: (value) {
-          if (value == 'direction') {
-            notifier.set(filters.copyWith(descending: !filters.descending));
+          if (value == 'asc' || value == 'desc') {
+            notifier.set(filters.copyWith(descending: value == 'desc'));
             return;
           }
           final column = PrintLogSort.values.firstWhere((s) => s.name == value);
           notifier.set(filters.copyWith(sort: column));
         },
         itemBuilder: (context) => [
+          // Both groups are checkmarked states rather than actions. The
+          // direction used to be one row labelled with what a tap would do
+          // ("Ascending" while sorting descending), which reads as the current
+          // setting and says the opposite of it.
+          caption(l10n.printLogSort),
           for (final s in PrintLogSort.values)
             CheckedPopupMenuItem(
               value: s.name,
@@ -256,13 +271,21 @@ class _SortMenu extends ConsumerWidget {
               ),
             ),
           const PopupMenuDivider(),
-          PopupMenuItem(
-            value: 'direction',
+          caption(l10n.printLogSortDirection),
+          CheckedPopupMenuItem(
+            value: 'desc',
+            checked: filters.descending,
             child: logTag(
-              'print_log.sort.direction',
-              Text(filters.descending
-                  ? l10n.printLogSortAscending
-                  : l10n.printLogSortDescending),
+              'print_log.sort.desc',
+              Text(l10n.printLogSortDescending),
+            ),
+          ),
+          CheckedPopupMenuItem(
+            value: 'asc',
+            checked: !filters.descending,
+            child: logTag(
+              'print_log.sort.asc',
+              Text(l10n.printLogSortAscending),
             ),
           ),
         ],

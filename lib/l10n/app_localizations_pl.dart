@@ -5860,34 +5860,37 @@ class AppLocalizationsPl extends AppLocalizations {
   String get printLogLoadMore => 'Wczytaj więcej';
 
   @override
-  String get printLogSort => 'Sortuj po';
+  String get printLogSort => 'Sortuj według';
 
   @override
-  String get printLogSortDate => 'Dacie';
+  String get printLogSortDate => 'Data';
 
   @override
-  String get printLogSortName => 'Nazwie';
+  String get printLogSortName => 'Nazwa';
 
   @override
-  String get printLogSortPrinter => 'Drukarce';
+  String get printLogSortPrinter => 'Drukarka';
 
   @override
-  String get printLogSortUser => 'Użytkowniku';
+  String get printLogSortUser => 'Użytkownik';
 
   @override
-  String get printLogSortStatus => 'Statusie';
+  String get printLogSortStatus => 'Status';
 
   @override
-  String get printLogSortDuration => 'Czasie';
+  String get printLogSortDuration => 'Czas trwania';
 
   @override
-  String get printLogSortFilament => 'Zużyciu filamentu';
+  String get printLogSortFilament => 'Zużycie filamentu';
 
   @override
-  String get printLogSortCost => 'Koszcie';
+  String get printLogSortCost => 'Koszt';
 
   @override
-  String get printLogSortEnergy => 'Energii';
+  String get printLogSortEnergy => 'Energia';
+
+  @override
+  String get printLogSortDirection => 'Kierunek';
 
   @override
   String get printLogSortDescending => 'Malejąco';

@@ -2009,6 +2009,7 @@
   "printLogSortFilament": "Filament used",
   "printLogSortCost": "Cost",
   "printLogSortEnergy": "Energy",
+  "printLogSortDirection": "Direction",
   "printLogSortDescending": "Descending",
   "printLogSortAscending": "Ascending",
   "printLogStatusCompleted": "Completed",
