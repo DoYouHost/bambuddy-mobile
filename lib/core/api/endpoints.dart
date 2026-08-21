@@ -460,6 +460,33 @@ abstract final class Endpoints {
   static String archivePlates(int archiveId) =>
       '$apiPrefix/archives/$archiveId/plates';
 
+  // --- Print log (one row per run, in its own table) ---
+
+  /// Print log list (`GET`) → `{items: PrintLogEntry[], total}`. Query:
+  /// `search` (print name), `printer_id`, `status`, `created_by_username`,
+  /// `date_from`/`date_to` (instants, matched against `created_at`), `limit`
+  /// (**capped at 500**), `offset`, plus `sort_by`/`sort_dir` on 1.2.6+.
+  ///
+  /// Trailing slash required, like [archives].
+  ///
+  /// There is no `archive_id` filter — the runs of one archive cannot be
+  /// fetched here (`print_log.py::get_print_log`).
+  ///
+  /// `DELETE` on the same path clears the **whole** log, every user's rows,
+  /// and answers `{deleted}`. It ignores every filter above.
+  static const printLog = '$apiPrefix/print-log/';
+
+  /// One log entry. `PATCH` re-classifies it (`{failure_reason, status}` →
+  /// updated entry), `DELETE` removes that row alone and leaves the archive it
+  /// points at untouched. Both arrived in server 0.2.4.6; older servers 405.
+  static String printLogEntry(int entryId) => '$apiPrefix/print-log/$entryId';
+
+  /// Thumbnail authenticated via `?token=` (camera token), NOT via header —
+  /// same as [archiveThumbnail]. 404 once the file behind it is gone, which
+  /// also clears `thumbnail_path` on the entry server-side.
+  static String printLogThumbnail(int entryId) =>
+      '$apiPrefix/print-log/$entryId/thumbnail';
+
   // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
 
   /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).

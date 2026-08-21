@@ -150,10 +150,18 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     PopupMenuButton<String>(
                       onSelected: (v) {
                         if (v == 'purge') _purgeOlder();
+                        if (v == 'print_log') context.push('/print-log');
                       },
                       // Tag on the child: a wrapped `PopupMenuItem` is no
                       // longer a `PopupMenuEntry`.
                       itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'print_log',
+                          child: logTag(
+                            'archive.menu.print_log',
+                            Text(l10n.printLogTitle),
+                          ),
+                        ),
                         PopupMenuItem(
                           value: 'purge',
                           child: logTag(

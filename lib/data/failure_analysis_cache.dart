@@ -79,6 +79,20 @@ class FailureAnalysisCache {
         '$_prefix${signature(filter)}',
         jsonEncode(entry.toJson()),
       );
+
+  /// Drop every bucket, for when a run's classification changed underneath
+  /// them (the print-log editor).
+  ///
+  /// Deliberately not narrowed to one filter: the edited run belongs to some
+  /// range and some user, and this side cannot tell which. The "all time"
+  /// bucket is the load-bearing case — it banks complete days and only ever
+  /// appends, so it can never notice a value that changed behind it.
+  Future<void> clear() async {
+    final keys = _prefs.getKeys().where((k) => k.startsWith(_prefix)).toList();
+    for (final key in keys) {
+      await _prefs.remove(key);
+    }
+  }
 }
 
 String? _ymd(DateTime? d) {

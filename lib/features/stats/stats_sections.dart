@@ -3,14 +3,17 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_async.dart';
 import '../common/hex_color.dart';
+import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
@@ -29,6 +32,18 @@ class FailureAnalysisCard extends ConsumerWidget {
     final async = ref.watch(failureAnalysisProvider);
     return SectionCard(
       title: l10n.statsFailureAnalysis,
+      // The causes this card groups by are set per run in the print log, and
+      // that is the only place they can be set — so the widget that shows a
+      // pile of "Unknown" is also the way to go and name them.
+      trailing: logTag(
+        'stats.open_print_log',
+        IconButton(
+          icon: const Icon(Icons.receipt_long_outlined, size: 20),
+          tooltip: l10n.printLogTitle,
+          visualDensity: VisualDensity.compact,
+          onPressed: () => context.push('/print-log'),
+        ),
+      ),
       child: dashAsyncStrip(
         context,
         async,
@@ -87,7 +102,9 @@ class FailureAnalysisCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            e.key,
+                            // The server groups by its own i18n key, so the
+                            // raw map key reads `filamentRunout` on screen.
+                            failureReasonLabel(l10n, e.key),
                             overflow: TextOverflow.ellipsis,
                             style: t.bodySoft,
                           ),

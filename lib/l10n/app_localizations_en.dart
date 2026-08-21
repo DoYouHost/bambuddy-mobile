@@ -5718,4 +5718,248 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'The one settings value a key may write — for a dynamic tariff.';
+
+  @override
+  String get printLogTitle => 'Print log';
+
+  @override
+  String get printLogSearchHint => 'Search runs';
+
+  @override
+  String get printLogEmpty => 'No runs recorded yet';
+
+  @override
+  String get printLogNoMatches => 'No runs match your filters';
+
+  @override
+  String get printLogLoadFailed => 'Could not load the print log';
+
+  @override
+  String get printLogFilters => 'Filters';
+
+  @override
+  String get printLogFilterPrinter => 'Printer';
+
+  @override
+  String get printLogFilterUser => 'User';
+
+  @override
+  String get printLogFilterStatus => 'Status';
+
+  @override
+  String get printLogFilterDates => 'Date range';
+
+  @override
+  String get printLogAnyPrinter => 'Any printer';
+
+  @override
+  String get printLogAnyUser => 'Anyone';
+
+  @override
+  String get printLogAnyStatus => 'Any status';
+
+  @override
+  String get printLogNoUser => 'No user';
+
+  @override
+  String get printLogOrphan => 'Archive deleted';
+
+  @override
+  String printLogShowing(int loaded, int total) {
+    return '$loaded of $total';
+  }
+
+  @override
+  String get printLogLoadMore => 'Load more';
+
+  @override
+  String get printLogSort => 'Sort by';
+
+  @override
+  String get printLogSortDate => 'Date';
+
+  @override
+  String get printLogSortName => 'Name';
+
+  @override
+  String get printLogSortPrinter => 'Printer';
+
+  @override
+  String get printLogSortUser => 'User';
+
+  @override
+  String get printLogSortStatus => 'Status';
+
+  @override
+  String get printLogSortDuration => 'Duration';
+
+  @override
+  String get printLogSortFilament => 'Filament used';
+
+  @override
+  String get printLogSortCost => 'Cost';
+
+  @override
+  String get printLogSortEnergy => 'Energy';
+
+  @override
+  String get printLogSortDirection => 'Direction';
+
+  @override
+  String get printLogSortDescending => 'Descending';
+
+  @override
+  String get printLogSortAscending => 'Ascending';
+
+  @override
+  String get printLogStatusCompleted => 'Completed';
+
+  @override
+  String get printLogStatusFailed => 'Failed';
+
+  @override
+  String get printLogStatusStopped => 'Stopped';
+
+  @override
+  String get printLogStatusCancelled => 'Cancelled';
+
+  @override
+  String get printLogStatusSkipped => 'Skipped';
+
+  @override
+  String get printLogStatusAborted => 'Aborted';
+
+  @override
+  String printLogEnergy(String value) {
+    return '$value kWh';
+  }
+
+  @override
+  String get printLogClassifyTitle => 'Classify this run';
+
+  @override
+  String get printLogDetailStarted => 'Started';
+
+  @override
+  String get printLogDetailFinished => 'Finished';
+
+  @override
+  String get printLogDetailDuration => 'Duration';
+
+  @override
+  String get printLogDetailFilament => 'Filament';
+
+  @override
+  String get printLogDetailCost => 'Cost';
+
+  @override
+  String get printLogDetailEnergy => 'Energy';
+
+  @override
+  String get printLogFailureCause => 'Failure cause';
+
+  @override
+  String get printLogNoClassification => 'Not classified';
+
+  @override
+  String get printLogStatusLabel => 'Status';
+
+  @override
+  String get printLogCountsAsFailure =>
+      'Counted as a failure — this run and its cause show up in failure analysis.';
+
+  @override
+  String get printLogNotCountedAsFailure =>
+      'Not counted as a failure, so the cause stays out of failure analysis.';
+
+  @override
+  String printLogStatusOneWay(String status) {
+    return 'This server cannot write “$status” back. Change it and it is gone for good.';
+  }
+
+  @override
+  String get printLogSave => 'Save';
+
+  @override
+  String get printLogSaveFailed => 'Could not save the classification';
+
+  @override
+  String get printLogDelete => 'Delete run';
+
+  @override
+  String get printLogDeleteTitle => 'Delete this run?';
+
+  @override
+  String get printLogDeleteBody =>
+      'It leaves the log, and its filament, cost and time leave the statistics. The archive it points at stays.';
+
+  @override
+  String get printLogDeleteFailed => 'Could not delete the run';
+
+  @override
+  String get printLogClear => 'Clear print log';
+
+  @override
+  String get printLogClearTitle => 'Clear the whole print log?';
+
+  @override
+  String printLogClearBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'All $count runs go',
+      one: 'The one run in the log goes',
+    );
+    return '$_temp0 — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
+  }
+
+  @override
+  String printLogCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count runs deleted',
+      one: '$count run deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get printLogClearFailed => 'Could not clear the print log';
+
+  @override
+  String get failureReasonAdhesion => 'Adhesion failure';
+
+  @override
+  String get failureReasonSpaghetti => 'Spaghetti / detached print';
+
+  @override
+  String get failureReasonLayerShift => 'Layer shift';
+
+  @override
+  String get failureReasonCloggedNozzle => 'Clogged nozzle';
+
+  @override
+  String get failureReasonFilamentRunout => 'Filament runout';
+
+  @override
+  String get failureReasonWarping => 'Warping';
+
+  @override
+  String get failureReasonStringing => 'Stringing';
+
+  @override
+  String get failureReasonUnderExtrusion => 'Under-extrusion';
+
+  @override
+  String get failureReasonPowerFailure => 'Power failure';
+
+  @override
+  String get failureReasonUserCancelled => 'Cancelled by the user';
+
+  @override
+  String get failureReasonOther => 'Other';
+
+  @override
+  String get failureReasonUnknown => 'Unknown';
 }

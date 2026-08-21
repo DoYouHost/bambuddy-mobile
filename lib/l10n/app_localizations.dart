@@ -9757,6 +9757,444 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The one settings value a key may write — for a dynamic tariff.'**
   String get apiKeyScopeEnergyHint;
+
+  /// No description provided for @printLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print log'**
+  String get printLogTitle;
+
+  /// No description provided for @printLogSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search runs'**
+  String get printLogSearchHint;
+
+  /// No description provided for @printLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs recorded yet'**
+  String get printLogEmpty;
+
+  /// No description provided for @printLogNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs match your filters'**
+  String get printLogNoMatches;
+
+  /// No description provided for @printLogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the print log'**
+  String get printLogLoadFailed;
+
+  /// No description provided for @printLogFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get printLogFilters;
+
+  /// No description provided for @printLogFilterPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printLogFilterPrinter;
+
+  /// No description provided for @printLogFilterUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get printLogFilterUser;
+
+  /// No description provided for @printLogFilterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogFilterStatus;
+
+  /// No description provided for @printLogFilterDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get printLogFilterDates;
+
+  /// No description provided for @printLogAnyPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Any printer'**
+  String get printLogAnyPrinter;
+
+  /// No description provided for @printLogAnyUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone'**
+  String get printLogAnyUser;
+
+  /// No description provided for @printLogAnyStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Any status'**
+  String get printLogAnyStatus;
+
+  /// No description provided for @printLogNoUser.
+  ///
+  /// In en, this message translates to:
+  /// **'No user'**
+  String get printLogNoUser;
+
+  /// No description provided for @printLogOrphan.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive deleted'**
+  String get printLogOrphan;
+
+  /// No description provided for @printLogShowing.
+  ///
+  /// In en, this message translates to:
+  /// **'{loaded} of {total}'**
+  String printLogShowing(int loaded, int total);
+
+  /// No description provided for @printLogLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get printLogLoadMore;
+
+  /// No description provided for @printLogSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get printLogSort;
+
+  /// No description provided for @printLogSortDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get printLogSortDate;
+
+  /// No description provided for @printLogSortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get printLogSortName;
+
+  /// No description provided for @printLogSortPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printLogSortPrinter;
+
+  /// No description provided for @printLogSortUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get printLogSortUser;
+
+  /// No description provided for @printLogSortStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogSortStatus;
+
+  /// No description provided for @printLogSortDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get printLogSortDuration;
+
+  /// No description provided for @printLogSortFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get printLogSortFilament;
+
+  /// No description provided for @printLogSortCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get printLogSortCost;
+
+  /// No description provided for @printLogSortEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get printLogSortEnergy;
+
+  /// No description provided for @printLogSortDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get printLogSortDirection;
+
+  /// No description provided for @printLogSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get printLogSortDescending;
+
+  /// No description provided for @printLogSortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get printLogSortAscending;
+
+  /// No description provided for @printLogStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get printLogStatusCompleted;
+
+  /// No description provided for @printLogStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get printLogStatusFailed;
+
+  /// No description provided for @printLogStatusStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get printLogStatusStopped;
+
+  /// No description provided for @printLogStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get printLogStatusCancelled;
+
+  /// No description provided for @printLogStatusSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get printLogStatusSkipped;
+
+  /// No description provided for @printLogStatusAborted.
+  ///
+  /// In en, this message translates to:
+  /// **'Aborted'**
+  String get printLogStatusAborted;
+
+  /// No description provided for @printLogEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kWh'**
+  String printLogEnergy(String value);
+
+  /// No description provided for @printLogClassifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Classify this run'**
+  String get printLogClassifyTitle;
+
+  /// No description provided for @printLogDetailStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get printLogDetailStarted;
+
+  /// No description provided for @printLogDetailFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get printLogDetailFinished;
+
+  /// No description provided for @printLogDetailDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get printLogDetailDuration;
+
+  /// No description provided for @printLogDetailFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get printLogDetailFilament;
+
+  /// No description provided for @printLogDetailCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get printLogDetailCost;
+
+  /// No description provided for @printLogDetailEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get printLogDetailEnergy;
+
+  /// No description provided for @printLogFailureCause.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure cause'**
+  String get printLogFailureCause;
+
+  /// No description provided for @printLogNoClassification.
+  ///
+  /// In en, this message translates to:
+  /// **'Not classified'**
+  String get printLogNoClassification;
+
+  /// No description provided for @printLogStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogStatusLabel;
+
+  /// No description provided for @printLogCountsAsFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted as a failure — this run and its cause show up in failure analysis.'**
+  String get printLogCountsAsFailure;
+
+  /// No description provided for @printLogNotCountedAsFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted as a failure, so the cause stays out of failure analysis.'**
+  String get printLogNotCountedAsFailure;
+
+  /// No description provided for @printLogStatusOneWay.
+  ///
+  /// In en, this message translates to:
+  /// **'This server cannot write “{status}” back. Change it and it is gone for good.'**
+  String printLogStatusOneWay(String status);
+
+  /// No description provided for @printLogSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get printLogSave;
+
+  /// No description provided for @printLogSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the classification'**
+  String get printLogSaveFailed;
+
+  /// No description provided for @printLogDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete run'**
+  String get printLogDelete;
+
+  /// No description provided for @printLogDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this run?'**
+  String get printLogDeleteTitle;
+
+  /// No description provided for @printLogDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It leaves the log, and its filament, cost and time leave the statistics. The archive it points at stays.'**
+  String get printLogDeleteBody;
+
+  /// No description provided for @printLogDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the run'**
+  String get printLogDeleteFailed;
+
+  /// No description provided for @printLogClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear print log'**
+  String get printLogClear;
+
+  /// No description provided for @printLogClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the whole print log?'**
+  String get printLogClearTitle;
+
+  /// No description provided for @printLogClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
+  String printLogClearBody(int count);
+
+  /// No description provided for @printLogCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} run deleted} other{{count} runs deleted}}'**
+  String printLogCleared(int count);
+
+  /// No description provided for @printLogClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the print log'**
+  String get printLogClearFailed;
+
+  /// No description provided for @failureReasonAdhesion.
+  ///
+  /// In en, this message translates to:
+  /// **'Adhesion failure'**
+  String get failureReasonAdhesion;
+
+  /// No description provided for @failureReasonSpaghetti.
+  ///
+  /// In en, this message translates to:
+  /// **'Spaghetti / detached print'**
+  String get failureReasonSpaghetti;
+
+  /// No description provided for @failureReasonLayerShift.
+  ///
+  /// In en, this message translates to:
+  /// **'Layer shift'**
+  String get failureReasonLayerShift;
+
+  /// No description provided for @failureReasonCloggedNozzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clogged nozzle'**
+  String get failureReasonCloggedNozzle;
+
+  /// No description provided for @failureReasonFilamentRunout.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament runout'**
+  String get failureReasonFilamentRunout;
+
+  /// No description provided for @failureReasonWarping.
+  ///
+  /// In en, this message translates to:
+  /// **'Warping'**
+  String get failureReasonWarping;
+
+  /// No description provided for @failureReasonStringing.
+  ///
+  /// In en, this message translates to:
+  /// **'Stringing'**
+  String get failureReasonStringing;
+
+  /// No description provided for @failureReasonUnderExtrusion.
+  ///
+  /// In en, this message translates to:
+  /// **'Under-extrusion'**
+  String get failureReasonUnderExtrusion;
+
+  /// No description provided for @failureReasonPowerFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Power failure'**
+  String get failureReasonPowerFailure;
+
+  /// No description provided for @failureReasonUserCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled by the user'**
+  String get failureReasonUserCancelled;
+
+  /// No description provided for @failureReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get failureReasonOther;
+
+  /// No description provided for @failureReasonUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get failureReasonUnknown;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
@@ -17,6 +18,7 @@ import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
+import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -91,6 +93,19 @@ void main() {
       expect(await version.supportsTriStateCalibration(), isTrue);
     });
 
+    test('the reported version matches what this backend actually serves',
+        () async {
+      // A version claiming less than the payload hides a control over data that
+      // is there; claiming more shows one over data that is not. Both read as
+      // "the app is broken", so the two are pinned together here.
+      final version = ServerVersionService(dio);
+
+      expect(await version.supports(ServerFeature.printLogCostEnergy), isTrue,
+          reason: 'the print log serves cost, energy and sorting');
+      expect(await version.supports(ServerFeature.crossModelVariants), isTrue,
+          reason: 'library variant groups are served below');
+    });
+
     test('archive list, search and purge preview', () async {
       final repo = ArchiveRepository(dio);
       final list = await repo.list();
@@ -115,6 +130,68 @@ void main() {
       expect(failures.failuresByReason, isNotEmpty);
       final users = await repo.fetchUsers();
       expect(users, hasLength(1));
+    });
+  });
+
+  group('print log', () {
+    final repo = PrintLogRepository(dio);
+
+    test('the page carries the runs, the orphans among them', () async {
+      final page = await repo.list();
+      expect(page.items, isNotEmpty);
+      expect(page.total, greaterThanOrEqualTo(page.items.length));
+      // The runs whose archive is gone are the half of this table nothing else
+      // in the app can reach — a demo without them misrepresents the screen.
+      expect(page.items.where((e) => e.isOrphan), isNotEmpty);
+      expect(page.items.first.printerName, isNotNull);
+    });
+
+    test('filters narrow it the way the server does', () async {
+      final failed = await repo.list(status: 'failed');
+      expect(failed.items, isNotEmpty);
+      expect(failed.items.every((e) => e.status == 'failed'), isTrue);
+
+      final searched = await repo.list(search: 'benchy');
+      expect(searched.items, hasLength(1));
+      expect(searched.total, 1);
+    });
+
+    test('cost and energy come through, and a plugless run stays null',
+        () async {
+      final page = await repo.list();
+      final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
+
+      expect(withPlug.cost, isNotNull);
+      expect(withPlug.energyCost, isNotNull);
+      // Null, not zero: "no smart plug behind this printer" has to read
+      // differently from a run that drew nothing.
+      expect(page.items.any((e) => e.energyKwh == null), isTrue);
+    });
+
+    test('sorting is applied, not accepted and ignored', () async {
+      final cheapest = await repo.list(
+        sort: PrintLogSort.filamentUsed,
+        descending: false,
+      );
+      final heaviest = await repo.list(sort: PrintLogSort.filamentUsed);
+
+      final light = cheapest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      final heavy = heaviest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      expect(light.first, lessThanOrEqualTo(light.last));
+      expect(heavy.first, greaterThanOrEqualTo(heavy.last));
+    });
+
+    test('paging walks the log without repeating a row', () async {
+      final first = await repo.list(limit: 3, offset: 0);
+      final second = await repo.list(limit: 3, offset: 3);
+      expect(first.items, hasLength(3));
+      expect(first.total, second.total);
+      expect(
+        first.items.map((e) => e.id).toSet().intersection(
+              second.items.map((e) => e.id).toSet(),
+            ),
+        isEmpty,
+      );
     });
   });
 
@@ -508,6 +585,80 @@ void main() {
       await commands.stop(1);
       status = await printers.fetchStatus(1);
       expect(status!.state, 'IDLE');
+    });
+  });
+
+  group('library variant groups', () {
+    final library = LibraryRepository(dio);
+
+    test('a group across two models, then dissolved again', () async {
+      final files = await library.listAllFiles();
+      final x1c = files.firstWhere((f) => f.slicedForModel == 'X1C');
+      final p1s = files.firstWhere((f) => f.slicedForModel == 'P1S');
+
+      final group = await library.createVariantGroup([x1c.id, p1s.id]);
+      expect(group.targetModels, ['X1C', 'P1S'],
+          reason: 'selection order is the priority order');
+
+      // The listing has to show it too, or the file rows would not know they
+      // are grouped.
+      final grouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(grouped.variantGroupId, group.id);
+      expect(grouped.hasVariants, isTrue);
+
+      expect((await library.variantGroupForFile(p1s.id))?.id, group.id);
+
+      await library.deleteVariantGroup(group.id);
+      final ungrouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(ungrouped.variantGroupId, isNull);
+      expect(await library.variantGroupForFile(p1s.id), isNull);
+    });
+
+    test('two files sliced for the same printer are refused', () async {
+      // The refusal is the point of the feature: a group is a choice between
+      // printers, and two X1C files express none.
+      final files = await library.listAllFiles();
+      final sameModel =
+          files.where((f) => f.slicedForModel == 'X1C').take(2).toList();
+
+      await expectLater(
+        library.createVariantGroup([for (final f in sameModel) f.id]),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+  });
+
+  group('print log edits (empties the fake log — keep last)', () {
+    final repo = PrintLogRepository(dio);
+
+    test('classify, refuse a value off the list, delete, clear', () async {
+      final target = (await repo.list(status: 'failed')).items.first;
+
+      final classified =
+          await repo.updateEntry(target.id, failureReason: 'layerShift');
+      expect(classified.failureReason, 'layerShift');
+
+      final cleared =
+          await repo.updateEntry(target.id, clearFailureReason: true);
+      expect(cleared.failureReason, isNull);
+
+      // The demo refuses what the real server refuses; an editor that looked
+      // like it accepted anything would hide the 400 until a real server.
+      await expectLater(
+        repo.updateEntry(target.id, failureReason: 'nonsense'),
+        throwsA(isA<ApiException>()),
+      );
+
+      final before = await repo.list();
+      await repo.deleteEntry(target.id);
+      final after = await repo.list();
+      expect(after.total, before.total - 1);
+      expect(after.items.map((e) => e.id), isNot(contains(target.id)));
+
+      expect(await repo.clearAll(), after.total);
+      expect((await repo.list()).items, isEmpty);
     });
   });
 }

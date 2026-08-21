@@ -193,12 +193,19 @@ class DemoBackend {
         return _notFound();
 
       case 'updates':
-        // The demo queue speaks the 1.2.5 contract (tri-state calibrations), so
-        // it has to report a version that matches, or the print form would offer
-        // two states over three-state data.
+        // The version has to match what this backend actually serves, or a
+        // gated control appears over data that is not there — and the queue
+        // form would offer two states over three-state calibrations.
+        //
+        // 1.2.6 is what serves the print log's cost and energy and its sortable
+        // columns; the beta suffix because that is where the contract really
+        // lives today, 1.2.5.2 being the newest release. Everything else 1.2.6
+        // gates is either served below (library variant groups) or invisible
+        // here anyway: the two slicer features need `use_slicer_api`, which the
+        // demo reports off, and the users listing is decided by probing.
         if (at(1, 'version')) {
           return _ok(const {
-            'version': '1.2.5.1',
+            'version': '1.2.6b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -320,6 +327,9 @@ class DemoBackend {
 
       case 'archives':
         return _archivesRoute(m, s, q);
+
+      case 'print-log':
+        return _printLogRoute(m, s, q, body);
 
       case 'smart-plugs':
         return _plugsRoute(m, s, body);
@@ -1130,6 +1140,7 @@ class DemoBackend {
     required int createdDaysAgo,
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
+    List<Map<String, dynamic>> variants = const [],
   }) =>
       {
         'id': id,
@@ -1170,28 +1181,58 @@ class DemoBackend {
         'layer_height': 0.2,
         'nozzle_diameter': 0.4,
         'sliced_for_model': slicedForModel,
+        // Non-empty only for a cross-model job: the candidates the scheduler
+        // may pick between, in priority order (server #671).
+        'variants': variants,
       };
 
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
       if (m == 'GET') return _ok(_queue);
       if (m == 'POST') {
-        // Add from archive ("reprint").
+        // A cross-model job names itself after its first candidate and carries
+        // the rest; anything else is an "add from archive" (reprint).
+        final variantIds = [
+          for (final v in (body['variants'] as List?)?.whereType<Map>() ??
+              const <Map>[])
+            v['library_file_id'] as int?,
+        ].nonNulls.toList();
+        final variantFiles = [
+          for (final id in variantIds)
+            ..._libraryFiles.where((f) => f['id'] == id),
+        ];
         final archive = _archives
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
+        final lead = variantFiles.firstOrNull;
         _queue.add(_queueItem(
           id: _nextQueueId++,
           printerId: body['printer_id'] as int?,
           position: _queue.length + 1,
-          name: (archive?['print_name'] as String?) ?? 'Reprint',
+          name: (lead?['print_name'] as String?) ??
+              (archive?['print_name'] as String?) ??
+              'Reprint',
           status: 'pending',
-          timeSec: (archive?['print_time_seconds'] as int?) ?? 3600,
-          grams: (archive?['filament_used_grams'] as num?)?.toDouble() ?? 20,
+          timeSec: (lead?['print_time_seconds'] as int?) ??
+              (archive?['print_time_seconds'] as int?) ??
+              3600,
+          grams: (lead?['filament_used_grams'] as num?)?.toDouble() ??
+              (archive?['filament_used_grams'] as num?)?.toDouble() ??
+              20,
           type: (archive?['filament_type'] as String?) ?? 'PLA',
           color: (archive?['filament_color'] as String?) ?? '#808080',
           createdDaysAgo: 0,
           gcodeInjection: body['gcode_injection'] == true,
+          slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+          variants: [
+            for (final (position, f) in variantFiles.indexed)
+              {
+                'library_file_id': f['id'],
+                'filename': f['filename'],
+                'target_model': f['sliced_for_model'],
+                'position': position,
+              },
+          ],
         ));
         return _ok(_queue.last);
       }
@@ -1340,6 +1381,262 @@ class DemoBackend {
       a('Flexi dragon', 1, 26,
           estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
     ];
+  }
+
+  // --- Print log ---
+
+  /// One row per run, built from the archives plus the runs whose archive is
+  /// gone — the orphans are the half of this table nothing else in the app can
+  /// reach, so the demo would misrepresent the screen without them.
+  ///
+  /// Carries `cost` / `energy_kwh` / `energy_cost` because the reported version
+  /// is 1.2.6, which sends them (server #2636). The archives already hold both
+  /// figures, so a run reads the same here as it does in the statistics.
+  late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
+
+  List<Map<String, dynamic>> _buildPrintLog() {
+    var id = 900;
+    Map<String, dynamic> row(
+      Map<String, dynamic> archive, {
+      String? failureReason,
+    }) =>
+        {
+          'id': id++,
+          'archive_id': archive['id'],
+          'print_name': archive['print_name'],
+          'printer_name': _printerName(archive['printer_id'] as int?),
+          'printer_id': archive['printer_id'],
+          'status': archive['status'],
+          'started_at': archive['started_at'],
+          'completed_at': archive['completed_at'],
+          'duration_seconds': archive['actual_time_seconds'],
+          'filament_type': archive['filament_type'],
+          'filament_color': archive['filament_color'],
+          'filament_used_grams': archive['filament_used_grams'],
+          'cost': archive['cost'],
+          'energy_kwh': archive['energy_kwh'],
+          'energy_cost': archive['energy_cost'],
+          'failure_reason': failureReason ?? archive['failure_reason'],
+          'thumbnail_path': null,
+          'created_by_id': 1,
+          'created_by_username': DemoConfig.username,
+          'created_at': archive['created_at'],
+        };
+
+    Map<String, dynamic> orphan(
+      String name,
+      int printerId,
+      int daysAgo, {
+      required String status,
+      String? failureReason,
+      int durationSeconds = 1800,
+      double? energyKwh,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 5);
+      return {
+        'id': id++,
+        // The archive is gone; the run survived it (`ON DELETE SET NULL`).
+        'archive_id': null,
+        'print_name': name,
+        'printer_name': _printerName(printerId),
+        'printer_id': printerId,
+        'status': status,
+        'started_at': _iso(started),
+        'completed_at': _iso(started.add(Duration(seconds: durationSeconds))),
+        'duration_seconds': durationSeconds,
+        'filament_type': 'PLA',
+        'filament_color': '#0ACCB8',
+        'filament_used_grams': 18.4,
+        'cost': _r1(18.4 * 0.025),
+        // A run on a printer with a smart plug behind it. The orphan below is
+        // deliberately left without one — a null there is "no plug", and the
+        // screen has to read differently from a zero.
+        'energy_kwh': energyKwh,
+        'energy_cost': energyKwh == null ? null : _r1(energyKwh * 0.3),
+        'failure_reason': failureReason,
+        'thumbnail_path': null,
+        'created_by_id': null,
+        'created_by_username': null,
+        'created_at': _iso(started),
+      };
+    }
+
+    return [
+      // Newest first, the order the server sorts by.
+      orphan('Bracket v3 (deleted archive)', 1, 0,
+          status: 'failed', failureReason: 'cloggedNozzle', energyKwh: 0.06),
+      for (final a in _archives) row(a),
+      orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
+    ];
+  }
+
+  String? _printerName(int? printerId) {
+    for (final p in _printers) {
+      if (p['id'] == printerId) return '${p['name']}';
+    }
+    return null;
+  }
+
+  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
+  /// refuses what the real server refuses, or the editor would look like it
+  /// accepts anything.
+  static const _printLogReasons = {
+    '',
+    'adhesionFailure',
+    'spaghettiDetached',
+    'layerShift',
+    'cloggedNozzle',
+    'filamentRunout',
+    'warping',
+    'stringing',
+    'underExtrusion',
+    'powerFailure',
+    'userCancelled',
+    'other',
+  };
+  static const _printLogStatuses = {
+    'completed',
+    'failed',
+    'stopped',
+    'cancelled',
+    'skipped',
+  };
+
+  DemoResult? _printLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') {
+        final matched = _sortPrintLog(_filterPrintLog(q), q);
+        final offset = int.tryParse(q['offset'] ?? '') ?? 0;
+        final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+        final page = offset >= matched.length
+            ? const <Map<String, dynamic>>[]
+            : matched.sublist(offset, math.min(offset + limit, matched.length));
+        return _ok({'items': page, 'total': matched.length});
+      }
+      if (m == 'DELETE') {
+        // Clears every row, ignoring the filters above — as the route does.
+        final deleted = _printLog.length;
+        _printLog.clear();
+        return _ok({'deleted': deleted});
+      }
+      return _fallback(m);
+    }
+
+    final entryId = int.tryParse(s[1]);
+    final entry = _printLog.where((e) => e['id'] == entryId).firstOrNull;
+    if (s.length >= 3 && s[2] == 'thumbnail') return _notFound();
+    if (entry == null) return _notFound();
+
+    if (m == 'DELETE') {
+      _printLog.remove(entry);
+      return _ok({'status': 'deleted', 'id': entryId});
+    }
+    if (m == 'PATCH') {
+      if (body.containsKey('failure_reason')) {
+        final reason = '${body['failure_reason'] ?? ''}';
+        if (!_printLogReasons.contains(reason)) {
+          return (
+            status: 400,
+            body: {'detail': "Unknown failure_reason: '$reason'"},
+          );
+        }
+        entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body['status'] != null) {
+        final status = '${body['status']}';
+        if (!_printLogStatuses.contains(status)) {
+          return (status: 400, body: {'detail': "Unknown status: '$status'"});
+        }
+        entry['status'] = status;
+      }
+      return _ok(entry);
+    }
+    return _fallback(m);
+  }
+
+  /// Orders a filtered log the way `_SORTABLE_COLUMNS` does, nulls last in both
+  /// directions.
+  ///
+  /// Served rather than ignored because the app only shows the sort control on
+  /// a server that honours it — a demo that took the parameters and returned
+  /// the same order would be exactly the silent drop the version gate exists to
+  /// avoid.
+  List<Map<String, dynamic>> _sortPrintLog(
+    List<Map<String, dynamic>> rows,
+    Map<String, String> q,
+  ) {
+    final column = q['sort_by'];
+    if (column == null) return rows;
+    Comparable<Object>? key(Map<String, dynamic> e) => switch (column) {
+          'date' => '${e['started_at'] ?? e['created_at']}',
+          'print_name' => '${e['print_name'] ?? ''}'.toLowerCase(),
+          'printer' => '${e['printer_name'] ?? ''}'.toLowerCase(),
+          'user' => '${e['created_by_username'] ?? ''}'.toLowerCase(),
+          'status' => '${e['status']}',
+          'duration' => e['duration_seconds'] as int?,
+          'completed_at' => e['completed_at'] as String?,
+          'filament' => '${e['filament_type'] ?? ''}',
+          'filament_used' => (e['filament_used_grams'] as num?)?.toDouble(),
+          'cost' => (e['cost'] as num?)?.toDouble(),
+          'energy' => (e['energy_kwh'] as num?)?.toDouble(),
+          'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+          _ => null,
+        };
+    final descending = q['sort_dir'] != 'asc';
+    final sorted = [...rows]..sort((a, b) {
+        final ka = key(a);
+        final kb = key(b);
+        // Nulls last whichever way the column is pointing, as the server does:
+        // an empty column must not bury the rows that do have a value.
+        if (ka == null) return kb == null ? 0 : 1;
+        if (kb == null) return -1;
+        final cmp = ka.compareTo(kb as Object);
+        return descending ? -cmp : cmp;
+      });
+    return sorted;
+  }
+
+  /// A `date_from` / `date_to` query value as the instant it means.
+  ///
+  /// The app sends those without a zone marker on purpose — the real server's
+  /// columns are naive UTC and a tz-aware bind param compares against them
+  /// differently per database. Dart reads a zoneless string as **local**, so
+  /// taking it as written moved the filter boundary by the device's offset
+  /// against the demo's own timestamps, which are tagged UTC.
+  static DateTime? _utcQueryInstant(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final zoned = RegExp(r'([Zz]|[+-]\d{2}:?\d{2})$').hasMatch(value);
+    return DateTime.tryParse(zoned ? value : '${value}Z');
+  }
+
+  List<Map<String, dynamic>> _filterPrintLog(Map<String, String> q) {
+    final search = (q['search'] ?? '').toLowerCase();
+    final printerId = int.tryParse(q['printer_id'] ?? '');
+    final status = q['status'];
+    final username = q['created_by_username'];
+    final from = _utcQueryInstant(q['date_from']);
+    final to = _utcQueryInstant(q['date_to']);
+    return _printLog.where((e) {
+      if (search.isNotEmpty &&
+          !'${e['print_name'] ?? ''}'.toLowerCase().contains(search)) {
+        return false;
+      }
+      if (printerId != null && e['printer_id'] != printerId) return false;
+      if (status != null && e['status'] != status) return false;
+      if (username != null && e['created_by_username'] != username) {
+        return false;
+      }
+      final created = DateTime.tryParse('${e['created_at']}');
+      if (created == null) return true;
+      if (from != null && created.isBefore(from)) return false;
+      if (to != null && created.isAfter(to)) return false;
+      return true;
+    }).toList();
   }
 
   DemoResult? _archivesRoute(String m, List<String> s, Map<String, String> q) {
@@ -2244,12 +2541,19 @@ class DemoBackend {
     {'id': 2, 'name': 'Household', 'parent_id': null, 'file_count': 2, 'children': <Object>[]},
   ];
 
+  /// The models are spread across the demo fleet on purpose: a variant group is
+  /// the same job sliced for *different* printers, and the server refuses two
+  /// members that target the same one — so a library sliced entirely for the
+  /// X1C could never demonstrate the feature.
   late final List<Map<String, dynamic>> _libraryFiles = [
     _libFile(1, 'Benchy.gcode.3mf', 1, 2108509, printCount: 3, timeSec: 3540, grams: 15.8),
     _libFile(2, 'Calibration cube.gcode.3mf', 1, 812340, printCount: 1, timeSec: 1620, grams: 6.1),
-    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4),
-    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2),
-    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3),
+    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4,
+        model: 'P1S'),
+    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2,
+        model: 'P1S'),
+    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
+        model: 'P2S'),
     _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf'),
   ];
 
@@ -2265,6 +2569,7 @@ class DemoBackend {
     int? timeSec,
     double? grams,
     String fileType = 'gcode.3mf',
+    String model = 'X1C',
   }) =>
       {
         'id': id,
@@ -2280,8 +2585,120 @@ class DemoBackend {
         'print_name': filename.split('.').first,
         'print_time_seconds': timeSec,
         'filament_used_grams': grams,
-        'sliced_for_model': 'X1C',
+        'sliced_for_model': model,
+        'variant_group_id': null,
+        'variant_count': 0,
       };
+
+  /// Cross-model variant groups (server #671), served because the demo now
+  /// reports 1.2.6 — the file manager's grouping button appears at that version
+  /// and a button that answers nothing is worse than one that is absent.
+  ///
+  /// Refuses what the real route refuses: fewer than two members, a file that
+  /// is already grouped, a file that is not sliced output, and two members
+  /// sliced for the same printer — the last one being the whole point, since a
+  /// group of two X1C files expresses no choice for the scheduler.
+  final List<Map<String, dynamic>> _variantGroups = [];
+  int _nextVariantGroupId = 1;
+
+  DemoResult _variantGroupRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2 && m == 'POST') {
+      final members = (body['members'] as List?) ?? const [];
+      final ids = [
+        for (final member in members.whereType<Map>())
+          member['library_file_id'] as int?,
+      ].nonNulls.toList();
+      if (ids.length < 2) {
+        return (status: 400, body: {'detail': 'A variant group needs at least 2 members'});
+      }
+      final files = [
+        for (final id in ids)
+          ..._libraryFiles.where((f) => f['id'] == id),
+      ];
+      if (files.length != ids.length) {
+        return (status: 404, body: {'detail': 'Library file not found'});
+      }
+      final models = <String, String>{};
+      for (final f in files) {
+        if (f['file_type'] != 'gcode.3mf' && f['file_type'] != 'gcode') {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} is not a sliced file — only sliced '
+                  'output can be a print variant',
+            },
+          );
+        }
+        if (f['variant_group_id'] != null) {
+          return (
+            status: 409,
+            body: {'detail': '${f['filename']} already belongs to a variant group'},
+          );
+        }
+        final model = '${f['sliced_for_model']}';
+        final clash = models[model];
+        if (clash != null) {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} and $clash are both sliced for '
+                  '$model — variants must target different printers',
+            },
+          );
+        }
+        models[model] = '${f['filename']}';
+      }
+
+      final group = {
+        'id': _nextVariantGroupId++,
+        'name': body['name'] ?? files.first['filename'],
+        'members': [
+          for (final (position, f) in files.indexed)
+            {
+              'library_file_id': f['id'],
+              'filename': f['filename'],
+              'target_model': f['sliced_for_model'],
+              'position': position,
+            },
+        ],
+      };
+      _variantGroups.add(group);
+      for (final f in files) {
+        f['variant_group_id'] = group['id'];
+        f['variant_count'] = files.length;
+      }
+      return _ok(group);
+    }
+
+    if (s.length == 4 && s[2] == 'by-file' && m == 'GET') {
+      final fileId = int.tryParse(s[3]);
+      final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+      final groupId = file?['variant_group_id'];
+      final group =
+          _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+      // 404 is the ordinary answer for an ungrouped file, not an error.
+      return group == null ? _notFound() : _ok(group);
+    }
+
+    final groupId = int.tryParse(s.length > 2 ? s[2] : '');
+    final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+    if (group == null) return _notFound();
+    if (s.length == 3 && m == 'GET') return _ok(group);
+    if (s.length == 3 && m == 'DELETE') {
+      _variantGroups.remove(group);
+      for (final f in _libraryFiles) {
+        if (f['variant_group_id'] != groupId) continue;
+        f['variant_group_id'] = null;
+        f['variant_count'] = 0;
+      }
+      return _ok(const {'ok': true});
+    }
+    return _fallback(m);
+  }
 
   DemoResult? _libraryRoute(
     String m,
@@ -2360,6 +2777,9 @@ class DemoBackend {
           return _ok(const {'ok': true});
         }
         return _fallback(m);
+
+      case 'variant-groups':
+        return _variantGroupRoute(m, s, body);
 
       case 'folders':
         if (s.length == 2 && m == 'GET') return _ok(_libraryFolders);
