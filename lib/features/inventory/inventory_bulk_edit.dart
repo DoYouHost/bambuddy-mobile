@@ -66,6 +66,17 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// "1000.5" — a valid number that is not a valid int — and send nothing.
   int? _int(String key) => double.tryParse(_c[key]!.text.trim())?.round();
 
+  /// Whether anything has been typed or picked at all — including a number
+  /// that does not parse.
+  ///
+  /// This, and not "the patch is non-empty", is what enables Apply: a typo in a
+  /// numeric field produces no patch entry, and gating on the patch would leave
+  /// the button dead with nothing on screen saying why. Enabled, the tap runs
+  /// the validator and the field explains itself.
+  bool get _hasInput =>
+      _slicerFilament != null ||
+      _c.values.any((c) => c.text.trim().isNotEmpty);
+
   SpoolBulkPatch _patch() => SpoolBulkPatch(
         material: _trim('material'),
         brand: _trim('brand'),
@@ -193,7 +204,8 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
 
   /// Apply stays disabled until something is actually filled in — the route
   /// refuses an empty patch, and a button that fires a 400 is worse than a
-  /// button that says "nothing to do yet".
+  /// button that does nothing yet. See [_hasInput] for why the gate is "any
+  /// input" rather than "a patch would come out of it".
   Widget _applyButton(DashTokens t, AppLocalizations l10n) => ListenableBuilder(
         // One listenable for all twelve fields, so typing anywhere re-evaluates
         // the button without a setState on every keystroke.
@@ -209,7 +221,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
                 borderRadius: BorderRadius.circular(18),
               ),
             ),
-            onPressed: _saving || _patch().isEmpty ? null : _apply,
+            onPressed: _saving || !_hasInput ? null : _apply,
             child: _saving
                 ? DashSpinner(size: 20, color: _onAccentGreen)
                 : Text(
