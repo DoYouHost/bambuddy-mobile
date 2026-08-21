@@ -4352,6 +4352,66 @@ abstract class AppLocalizations {
   /// **'{ok} done, {failed} failed'**
   String inventoryBulkPartial(int ok, int failed);
 
+  /// No description provided for @inventoryBulkSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there'**
+  String inventoryBulkSkipped(int ok, int skipped);
+
+  /// No description provided for @inventoryBulkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit fields'**
+  String get inventoryBulkEdit;
+
+  /// No description provided for @inventoryBulkEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditTitle(int count);
+
+  /// No description provided for @inventoryBulkEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the fields you fill in change. Leave the rest blank.'**
+  String get inventoryBulkEditHint;
+
+  /// No description provided for @inventoryBulkEditUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchanged'**
+  String get inventoryBulkEditUnchanged;
+
+  /// No description provided for @inventoryBulkEditApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditApply(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkEditConfirmTitle(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{fields} {fields, plural, one{field} other{fields}} will be overwritten on every selected spool.'**
+  String inventoryBulkEditConfirmBody(int fields);
+
+  /// No description provided for @inventoryBulkEditUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.'**
+  String get inventoryBulkEditUnsupported;
+
+  /// No description provided for @inventoryApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get inventoryApply;
+
   /// No description provided for @inventoryLabelsTitle.
   ///
   /// In en, this message translates to:

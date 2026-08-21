@@ -40,6 +40,7 @@ part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
+part 'inventory_bulk_edit.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -127,8 +128,9 @@ Future<void> showSpoolDetail(
 /// history, AMS slot, calibration) and management (CRUD, assignments). Data from
 /// [inventoryProvider] via the selected backend (native/Spoolman).
 ///
-/// Long-pressing a spool enters multi-select mode for bulk reset-usage /
-/// archive / restore / delete / label printing, mirroring the Archive tab.
+/// Long-pressing a spool enters multi-select mode for a mass edit of fields
+/// plus bulk reset-usage / archive / restore / delete / label printing,
+/// mirroring the Archive tab.
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -317,6 +319,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// stay as icons (the two non-destructive, most-used actions); the rest live
   /// in an overflow menu so Delete can't be hit by a stray tap.
   ///
+  ///
   /// The list filter is exclusive (active XOR archived), so the whole selection
   /// is homogeneous and one archive/restore entry is always the right one.
   PreferredSizeWidget _selectionAppBar(
@@ -356,12 +359,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
         PopupMenuButton<String>(
           onSelected: (v) => switch (v) {
+            'edit' => _bulkEdit(ids),
             'reset' => _bulkResetUsage(ids),
             'archive' => _bulkArchive(ids),
             'restore' => _bulkRestore(ids),
             _ => _bulkDelete(ids),
           },
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: logTag('inventory.bulk_edit',
+                  Text(l10n.inventoryBulkEdit)),
+            ),
             PopupMenuItem(
               value: 'reset',
               child: logTag('inventory.bulk_reset_usage',
@@ -398,6 +407,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       context,
       builder: (_) => _LabelSheet(spools: pool, initialSelected: preselected),
     );
+  }
+
+  /// Opens the mass-edit sheet. It reports its own refusals — the sheet stays
+  /// open so the typed values survive one — and pops with the tally only when
+  /// the edit actually went through.
+  Future<void> _bulkEdit(Set<int> ids) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome = await dashSurfaceSheet<BulkOutcome>(
+      context,
+      builder: (_) => _BulkEditSheet(spoolIds: ids),
+    );
+    if (outcome == null || !mounted) return;
+    _clearSelection();
+    messenger.snack(_bulkTally(l10n, outcome));
   }
 
   Future<void> _bulkResetUsage(Set<int> ids) => _runBulk(
@@ -476,9 +500,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     }
     if (!mounted) return;
     _clearSelection();
-    messenger.snack(res.failed == 0
-              ? l10n.inventoryBulkDone(res.ok)
-              : l10n.inventoryBulkPartial(res.ok, res.failed));
+    messenger.snack(_bulkTally(l10n, res));
+  }
+
+  /// One line for what a bulk call did. A spool that was already in the state
+  /// the user asked for is called out separately: it is not a failure — the
+  /// shelf ends up as intended — but "5 updated" would be a lie when two of
+  /// them were archived already.
+  String _bulkTally(AppLocalizations l10n, BulkOutcome outcome) {
+    if (outcome.failed > 0) {
+      return l10n.inventoryBulkPartial(outcome.ok, outcome.failed);
+    }
+    if (outcome.skipped > 0) {
+      return l10n.inventoryBulkSkipped(outcome.ok, outcome.skipped);
+    }
+    return l10n.inventoryBulkDone(outcome.ok);
   }
 
   /// Client-side filter: status (active/archived), stock, material, brand, location,

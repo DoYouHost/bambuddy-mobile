@@ -796,6 +796,17 @@
   "inventoryBulkResetBody": "Będą liczone jako pełne.",
   "inventoryBulkDone": "Zaktualizowano: {count}",
   "inventoryBulkPartial": "Udało się: {ok}, błędów: {failed}",
+  "inventoryBulkSkipped": "Udało się: {ok}, już tak było: {skipped}",
+
+  "inventoryBulkEdit": "Edytuj pola",
+  "inventoryBulkEditTitle": "Edycja {count, plural, one{szpuli} other{{count} szpul}}",
+  "inventoryBulkEditHint": "Zmieniają się tylko pola, które wypełnisz. Reszta zostaje bez zmian.",
+  "inventoryBulkEditUnchanged": "Bez zmian",
+  "inventoryBulkEditApply": "Zastosuj do {count, plural, one{szpuli} other{{count} szpul}}",
+  "inventoryBulkEditConfirmTitle": "Zmienić {count, plural, one{szpulę} few{szpule} other{szpul}}?",
+  "inventoryBulkEditConfirmBody": "{fields, plural, one{Jedno pole} few{{fields} pola} other{{fields} pól}} zostanie nadpisane w każdej wybranej szpuli.",
+  "inventoryBulkEditUnsupported": "Ten serwer jest za stary na edycję masową. Zaktualizuj bambuddy albo edytuj szpule pojedynczo.",
+  "inventoryApply": "Zastosuj",
 
   "inventoryLabelsTitle": "Drukuj etykiety szpul",
   "inventoryLabelsPrint": "Drukuj etykiety",

@@ -2545,6 +2545,74 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return 'Udało się: $ok, już tak było: $skipped';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edytuj pola';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Edycja $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Zmieniają się tylko pola, które wypełnisz. Reszta zostaje bez zmian.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Bez zmian';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Zastosuj do $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Zmienić $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: '$fields pól',
+      few: '$fields pola',
+      one: 'Jedno pole',
+    );
+    return '$_temp0 zostanie nadpisane w każdej wybranej szpuli.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'Ten serwer jest za stary na edycję masową. Zaktualizuj bambuddy albo edytuj szpule pojedynczo.';
+
+  @override
+  String get inventoryApply => 'Zastosuj';
+
+  @override
   String get inventoryLabelsTitle => 'Drukuj etykiety szpul';
 
   @override

@@ -2512,6 +2512,72 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return '$ok done, $skipped already there';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edit fields';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Edit $count $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Only the fields you fill in change. Leave the rest blank.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Unchanged';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Apply to $count $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Change $count $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: 'fields',
+      one: 'field',
+    );
+    return '$fields $_temp0 will be overwritten on every selected spool.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
+
+  @override
+  String get inventoryApply => 'Apply';
+
+  @override
   String get inventoryLabelsTitle => 'Print spool labels';
 
   @override
