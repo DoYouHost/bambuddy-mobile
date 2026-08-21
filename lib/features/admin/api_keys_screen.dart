@@ -12,6 +12,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
@@ -68,8 +69,10 @@ class ApiKeysScreen extends ConsumerWidget {
                     icon: Icons.key_outlined,
                   )
                 : ListView.builder(
-                    padding:
-                        EdgeInsets.fromLTRB(12, 8, 12, canCreate ? 88 : 24),
+                    padding: withSystemNavInset(
+                      context,
+                      EdgeInsets.fromLTRB(12, 8, 12, canCreate ? 88 : 24),
+                    ),
                     itemCount: keys.length,
                     itemBuilder: (_, i) => _ApiKeyCard(apiKey: keys[i]),
                   ),

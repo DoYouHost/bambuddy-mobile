@@ -13,6 +13,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
 import 'timelapse_trim.dart';
@@ -229,7 +230,10 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     final output = (trim.end - trim.start) / _speed;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: withSystemNavInset(
+        context,
+        const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      ),
       children: [
         if (_preview case final preview?) ...[
           _Preview(

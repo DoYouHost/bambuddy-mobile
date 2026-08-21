@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
@@ -95,7 +96,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 if (_locked) ...[
                   _LockedNotice(text: l10n.groupsSystemFormNote),

@@ -8,6 +8,7 @@ import '../../core/models/user_write.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
 
@@ -102,7 +103,10 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 TextFormField(
                   controller: _username,

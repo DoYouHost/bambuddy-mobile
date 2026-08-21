@@ -11,6 +11,7 @@ import '../../core/slicer/process_toggle_rules.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_search_field.dart';
+import '../common/system_insets.dart';
 import 'slice_providers.dart';
 
 /// OrcaSlicer's process parameter set, editable before a slice.
@@ -182,7 +183,10 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
                   ),
                 )
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: withSystemNavInset(
+                    context,
+                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  ),
                   children: [
                     for (final page in shown) ...[
                       // Only worth a heading when several pages are on screen at

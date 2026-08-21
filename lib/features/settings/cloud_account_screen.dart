@@ -9,6 +9,7 @@ import '../../core/models/cloud_auth.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 
 /// Bambu Cloud account screen (login) — in app "settings" (drawer), intentionally
 /// separate from MakerWorld screen. Login here is prerequisite for importing models
@@ -70,7 +71,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
     final t = DashTokens.of(context);
     final status = widget.status;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: withSystemNavInset(context, const EdgeInsets.all(16)),
       children: [
         Container(
           padding: const EdgeInsets.all(16),
@@ -281,7 +282,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
           color: t.textPrimary,
         );
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: withSystemNavInset(context, const EdgeInsets.all(16)),
       children: [
         Container(
           padding: const EdgeInsets.all(18),

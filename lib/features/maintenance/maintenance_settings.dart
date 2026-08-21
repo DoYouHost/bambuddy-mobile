@@ -8,6 +8,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
+import '../common/system_insets.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -48,7 +49,10 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
             await ref.read(maintenanceOverviewProvider.notifier).refresh();
           },
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: withSystemNavInset(
+              context,
+              const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            ),
             children: [
               // --- Maintenance types ---
               _SectionHeader(

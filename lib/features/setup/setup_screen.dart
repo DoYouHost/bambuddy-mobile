@@ -10,6 +10,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../bug_report/recording_banner.dart';
 import '../common/qr_scanner_screen.dart';
+import '../common/system_insets.dart';
 import 'api_key_qr.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
@@ -112,7 +113,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: withSystemNavInset(context, const EdgeInsets.all(16)),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
