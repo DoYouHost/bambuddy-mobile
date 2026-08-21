@@ -5838,6 +5838,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printLogClassifyTitle => 'Classify this run';
 
   @override
+  String get printLogDetailStarted => 'Started';
+
+  @override
+  String get printLogDetailFinished => 'Finished';
+
+  @override
+  String get printLogDetailDuration => 'Duration';
+
+  @override
+  String get printLogDetailFilament => 'Filament';
+
+  @override
+  String get printLogDetailCost => 'Cost';
+
+  @override
+  String get printLogDetailEnergy => 'Energy';
+
+  @override
   String get printLogFailureCause => 'Failure cause';
 
   @override

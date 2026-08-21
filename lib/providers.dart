@@ -52,6 +52,7 @@ import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
 import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
+import 'features/common/currency_symbol.dart';
 
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -672,6 +673,13 @@ final slicerRepositoryProvider = Provider<SlicerRepository>(
 final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
   (ref) => ref.watch(slicerRepositoryProvider).serverSettings(),
 );
+
+/// The symbol for the currency the server keeps prices in, or `''` when it has
+/// not said. Reads the settings the app already fetches once per session.
+final currencySymbolProvider = Provider<String>((ref) {
+  final code = ref.watch(serverSettingsProvider).valueOrNull?['currency'];
+  return currencySymbol(code is String ? code : null);
+});
 
 /// Whether the scheduler requires per-printer plate-clear confirmation before
 /// starting queued prints. Gates the plate badge / "clear plate" button and the

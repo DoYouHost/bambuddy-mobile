@@ -13,6 +13,7 @@ import '../../providers.dart';
 import '../archive/archive_providers.dart' show printersForPickerProvider;
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/currency_symbol.dart';
 import '../common/dash_async.dart';
 import '../common/dash_input.dart';
 import '../common/dash_search_field.dart';
@@ -367,6 +368,8 @@ class _PrintLogCard extends ConsumerWidget {
     final showMoney =
         ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
 
+    final currency = ref.watch(currencySymbolProvider);
+
     final who = <String>[
       if (entry.printerName != null) entry.printerName!,
       entry.createdByUsername ?? l10n.printLogNoUser,
@@ -378,7 +381,8 @@ class _PrintLogCard extends ConsumerWidget {
         '${entry.filamentUsedGrams!.toStringAsFixed(0)} g',
       // Below 1.2.6 these are null for every row, which is not the same as
       // "this run cost nothing" — the gate is what keeps the two apart.
-      if (showMoney && entry.cost != null) fmtNum(entry.cost!),
+      if (showMoney && entry.cost != null)
+        formatMoney(currency, fmtNum(entry.cost!)),
       if (showMoney && entry.energyKwh != null)
         l10n.printLogEnergy(fmtNum(entry.energyKwh!)),
     ];
@@ -412,28 +416,56 @@ class _PrintLogCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          entry.printName ?? '#${entry.id}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: t.titleSm,
+                        // The status rides beside the name rather than beside
+                        // the whole card: it is the widest thing on the row,
+                        // and holding a column of its own cost the lines below
+                        // the space they need — the date and the energy both
+                        // ended in an ellipsis.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                entry.printName ?? '#${entry.id}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.titleSm,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _Pill(
+                              label: printRunStatusLabel(l10n, entry.status),
+                              color: entry.countsAsFailure
+                                  ? t.danger
+                                  : (entry.status == 'completed'
+                                      ? t.accentGreen
+                                      : t.textTertiary),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           who.join(' · '),
-                          maxLines: 1,
+                          // Wrapping, not an ellipsis: a run whose printer and
+                          // user are both long is still a run whose date the
+                          // reader came for.
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: t.monoLabel,
+                          style: t.label.copyWith(color: t.textSecondary),
                         ),
-                        if (numbers.isNotEmpty)
+                        if (numbers.isNotEmpty) ...[
+                          const SizedBox(height: 2),
                           Text(
                             numbers.join(' · '),
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: t.monoLabel,
+                            style: t.monoValue.copyWith(
+                              color: t.textSecondary,
+                            ),
                           ),
+                        ],
                         if (entry.failureReason != null || entry.isOrphan) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
@@ -455,15 +487,6 @@ class _PrintLogCard extends ConsumerWidget {
                         ],
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _Pill(
-                    label: printRunStatusLabel(l10n, entry.status),
-                    color: entry.countsAsFailure
-                        ? t.danger
-                        : (entry.status == 'completed'
-                            ? t.accentGreen
-                            : t.textTertiary),
                   ),
                 ],
               ),

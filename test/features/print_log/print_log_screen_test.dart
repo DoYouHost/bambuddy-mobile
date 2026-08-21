@@ -85,7 +85,9 @@ PrintLogEntry _entry({
       status: status,
       createdAt: DateTime(2026, 8, 1, 9, 59),
       startedAt: DateTime(2026, 8, 1, 10),
+      completedAt: DateTime(2026, 8, 1, 11, 30),
       archiveId: archiveId,
+      filamentType: 'PLA',
       printName: name,
       printerName: 'P1S',
       createdByUsername: 'zosia',
@@ -123,6 +125,9 @@ void main() {
       overrides: [
         printLogProvider.overrideWith(() => fake),
         printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
+        // Money needs the server's currency, which otherwise means building an
+        // API client — and there is no profile here to build one from.
+        serverSettingsProvider.overrideWith((ref) async => {'currency': 'PLN'}),
         serverProfileProvider.overrideWith(_NullProfile.new),
       ],
       child: plApp(const PrintLogScreen()),
@@ -286,6 +291,48 @@ void main() {
 
     expect(checked(l10n.printLogSortAscending), isTrue);
     expect(checked(l10n.printLogSortDescending), isFalse);
+  });
+
+  testWidgets('the sheet spells out what the row can only abbreviate',
+      (tester) async {
+    // The card fits one line of numbers and cuts the rest; opening a run used
+    // to show less than the row it was opened from.
+    await pumpScreen(tester);
+    await openSheet(tester, 'Benchy');
+
+    expect(find.text(l10n.printLogDetailStarted), findsOneWidget);
+    expect(find.text(l10n.printLogDetailFinished), findsOneWidget);
+    expect(find.text(l10n.printLogDetailDuration), findsOneWidget);
+    expect(find.text(l10n.printLogDetailFilament), findsOneWidget);
+    expect(find.text(l10n.printLogDetailCost), findsOneWidget);
+    expect(find.text(l10n.printLogDetailEnergy), findsOneWidget);
+    // The server's currency, on the side that currency writes it. Twice over:
+    // the row underneath the sheet carries it too.
+    expect(find.textContaining('1.23 zł'), findsWidgets);
+  });
+
+  testWidgets('the sheet drops the money rows a server withholds',
+      (tester) async {
+    await pumpScreen(tester, costEnergy: false);
+    await openSheet(tester, 'Benchy');
+
+    expect(find.text(l10n.printLogDetailDuration), findsOneWidget);
+    expect(find.text(l10n.printLogDetailCost), findsNothing);
+    expect(find.text(l10n.printLogDetailEnergy), findsNothing);
+  });
+
+  testWidgets('a run with nothing recorded shows no empty rows',
+      (tester) async {
+    // A blank right-hand side reads as a zero, which for cost and energy is a
+    // different claim than "the server has no figure".
+    await pumpScreen(
+      tester,
+      entries: [_entry(cost: null, energyKwh: null)],
+    );
+    await openSheet(tester, 'Benchy');
+
+    expect(find.text(l10n.printLogDetailCost), findsNothing);
+    expect(find.text(l10n.printLogDetailEnergy), findsNothing);
   });
 
   testWidgets('an orphan run is marked as one', (tester) async {

@@ -5925,6 +5925,24 @@ class AppLocalizationsPl extends AppLocalizations {
   String get printLogClassifyTitle => 'Sklasyfikuj przebieg';
 
   @override
+  String get printLogDetailStarted => 'Rozpoczęto';
+
+  @override
+  String get printLogDetailFinished => 'Zakończono';
+
+  @override
+  String get printLogDetailDuration => 'Czas trwania';
+
+  @override
+  String get printLogDetailFilament => 'Filament';
+
+  @override
+  String get printLogDetailCost => 'Koszt';
+
+  @override
+  String get printLogDetailEnergy => 'Energia';
+
+  @override
   String get printLogFailureCause => 'Przyczyna niepowodzenia';
 
   @override

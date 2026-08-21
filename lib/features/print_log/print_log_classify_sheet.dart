@@ -6,11 +6,14 @@ import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
 import '../common/format_datetime.dart';
 import '../common/print_run_labels.dart';
+import '../stats/stats_common.dart' show fmtDuration, fmtNum;
 import 'print_log_providers.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
@@ -116,9 +119,16 @@ class _PrintLogClassifySheetState
     final t = DashTokens.of(context);
     final entry = widget.entry;
 
+    // Cost and energy are absent from every row below 1.2.6, so their lines
+    // would read as "this run drew nothing" rather than "this server does not
+    // say" — the same gate the list columns are behind.
+    final showMoney =
+        ref.watch(printLogCostEnergyProvider).valueOrNull ?? false;
+    final currency = ref.watch(currencySymbolProvider);
+
     return logTag(
       'sheet.print_log_classify',
-      Padding(
+      SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
           20,
           4,
@@ -140,12 +150,61 @@ class _PrintLogClassifySheetState
               [
                 if (entry.printerName != null) entry.printerName!,
                 entry.createdByUsername ?? l10n.printLogNoUser,
-                formatDateTime(entry.displayDate),
                 if (entry.isOrphan) l10n.printLogOrphan,
               ].join(' · '),
-              style: t.monoLabel,
+              style: t.label.copyWith(color: t.textSecondary),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
+
+            // What the row could only show abbreviated, in full: the card has
+            // one line for all of it and cuts whatever does not fit.
+            _DetailRow(
+              label: l10n.printLogDetailStarted,
+              value: entry.startedAt == null
+                  ? null
+                  : formatDateTime(entry.startedAt!),
+            ),
+            _DetailRow(
+              label: l10n.printLogDetailFinished,
+              value: entry.completedAt == null
+                  ? null
+                  : formatDateTime(entry.completedAt!),
+            ),
+            _DetailRow(
+              label: l10n.printLogDetailDuration,
+              value: entry.durationSeconds == null
+                  ? null
+                  : fmtDuration(entry.durationSeconds!),
+            ),
+            _DetailRow(
+              label: l10n.printLogDetailFilament,
+              value: [
+                if (entry.filamentType != null) entry.filamentType!,
+                if (entry.filamentUsedGrams != null)
+                  '${entry.filamentUsedGrams!.toStringAsFixed(0)} g',
+              ].join(' · '),
+            ),
+            if (showMoney) ...[
+              _DetailRow(
+                label: l10n.printLogDetailCost,
+                value: entry.cost == null
+                    ? null
+                    : formatMoney(currency, fmtNum(entry.cost!)),
+              ),
+              _DetailRow(
+                label: l10n.printLogDetailEnergy,
+                value: entry.energyKwh == null
+                    ? null
+                    : [
+                        l10n.printLogEnergy(fmtNum(entry.energyKwh!)),
+                        if (entry.energyCost != null)
+                          formatMoney(currency, fmtNum(entry.energyCost!)),
+                      ].join(' · '),
+              ),
+            ],
+            const SizedBox(height: 14),
+            Divider(color: t.hairline, height: 1),
+            const SizedBox(height: 18),
 
             dashCombo<String>(
               context,
@@ -267,6 +326,35 @@ class _PrintLogClassifySheetState
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One `label — value` line of the run's detail block. Renders nothing when
+/// the server has no value for it: an empty right-hand side reads as a zero,
+/// which for cost and energy is a different claim entirely.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Expanded(child: Text(label, style: t.label)),
+          const SizedBox(width: 12),
+          Text(text, style: t.monoValue),
+        ],
       ),
     );
   }

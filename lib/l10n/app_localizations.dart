@@ -9986,6 +9986,42 @@ abstract class AppLocalizations {
   /// **'Classify this run'**
   String get printLogClassifyTitle;
 
+  /// No description provided for @printLogDetailStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get printLogDetailStarted;
+
+  /// No description provided for @printLogDetailFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get printLogDetailFinished;
+
+  /// No description provided for @printLogDetailDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get printLogDetailDuration;
+
+  /// No description provided for @printLogDetailFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get printLogDetailFilament;
+
+  /// No description provided for @printLogDetailCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get printLogDetailCost;
+
+  /// No description provided for @printLogDetailEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get printLogDetailEnergy;
+
   /// No description provided for @printLogFailureCause.
   ///
   /// In en, this message translates to:
