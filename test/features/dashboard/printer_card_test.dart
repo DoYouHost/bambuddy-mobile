@@ -175,6 +175,22 @@ class _RecordingInventory extends InventoryNotifier {
   }
 }
 
+/// Refuses the registration with a staged failure, so each refusal can be
+/// checked by the words it leaves in front of the user. The exception is a
+/// static because the override takes a constructor, not an instance.
+class _RefusingInventory extends InventoryNotifier {
+  static AppApiException failure =
+      const ApiException(AppErrorCode.badResponse, statusCode: 500);
+
+  @override
+  Future<InventoryState> build() async => const InventoryState();
+
+  @override
+  Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
+    throw failure;
+  }
+}
+
 /// A session authenticated by API key rather than by an account.
 class _ApiKeyProfileNotifier extends ServerProfileNotifier {
   @override
@@ -1025,6 +1041,98 @@ void main() {
 
       expect(_RecordingInventory.calls, ['1:0:0']);
       expect(find.text('Szpula dodana i przypisana do slotu'), findsOneWidget);
+    });
+
+    /// Registers with [failure] staged, and comes back once the sheet has
+    /// closed and the snack it left behind has been drawn.
+    Future<void> registerRefused(
+      WidgetTester tester,
+      AppApiException failure,
+    ) async {
+      _RefusingInventory.failure = failure;
+      await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        tagged: true,
+        inventory: _RefusingInventory.new,
+      );
+      await reveal(tester, registerButton());
+
+      await tester.tap(registerButton());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    testWidgets('a bare 404 is read as a server too old for the route',
+        (tester) async {
+      // FastAPI's own "Not Found" for a route that is not there at all.
+      await registerRefused(
+        tester,
+        const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 404,
+          detail: 'Not Found',
+        ),
+      );
+
+      expect(
+        find.text('Ta wersja serwera nie potrafi dodać szpuli prosto ze slotu'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("the route's own 404 is read as the printer being away",
+        (tester) async {
+      await registerRefused(
+        tester,
+        const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 404,
+          detail: 'Printer not connected or no state available',
+        ),
+      );
+
+      expect(
+        find.text(
+            'Drukarka nie jest połączona, więc nie powie, co jest w slocie'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a 400 says the slot stopped reporting a tag', (tester) async {
+      // Both of the route's 400s mean the same thing to the user: what the
+      // sheet was drawn from is no longer what the printer sees.
+      await registerRefused(
+        tester,
+        const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 400,
+          detail: 'Slot has no RFID tag',
+        ),
+      );
+
+      expect(
+        find.text('Drukarka nie widzi już w tym slocie szpuli z czipem'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a refusal keeps the permission the server named',
+        (tester) async {
+      // 403 is exactly what the shared wording exists for: which permission is
+      // missing lives only in what the server wrote.
+      await registerRefused(
+        tester,
+        const AuthException(
+          AppErrorCode.forbidden,
+          detail: 'Missing permission: inventory:update',
+        ),
+      );
+
+      expect(
+        find.text('Brak uprawnień: Missing permission: inventory:update'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the scanner sits beside the search', (tester) async {
