@@ -17,7 +17,9 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -61,7 +63,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   void _snack(String msg) =>
-      _messenger.showSnackBar(SnackBar(content: Text(msg)));
+      _messenger.snack(msg);
 
   /// Both halves of a failed action: the sentence, and the record that somebody
   /// was stopped. Unmounted — the screen was left while the request was in
@@ -124,7 +126,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message:
                 err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
@@ -162,7 +164,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       // Fetching search index, no results yet.
       content = const SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(child: CircularProgressIndicator()),
+        child: DashLoading(),
       );
     } else if (folders.isEmpty && files.isEmpty) {
       content = SliverFillRemaining(

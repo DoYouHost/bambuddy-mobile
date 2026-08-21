@@ -24,7 +24,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
       await ref
           .read(printerCommandsRepositoryProvider)
           .clearPlate(widget.printerId);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
+      messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
     } finally {
@@ -66,11 +66,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               TextButton(
               onPressed: _busy ? null : _clear,
               child: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 16)
                   : Text(l10n.plateClearAction),
               ),
             ),
@@ -111,11 +107,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .read(controlsProvider.notifier)
         .clearHmsErrors(widget.printerId);
     if (!mounted) return;
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ?? l10n.hmsDismissed),
-      ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.hmsDismissed, clearQueue: true);
   }
 
   @override
@@ -251,9 +243,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
     // Told through the messenger captured before the await, not through this
     // widget: the card is gone precisely when the command worked and the fault
     // cleared, and that is the outcome most worth reporting.
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(_resultText(result, l10n))));
+    messenger.snack(_resultText(result, l10n), clearQueue: true);
   }
 
   /// A 502 here is not a broken server: the command went out and the printer
@@ -374,11 +364,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                             : null,
                       ),
                       child: _pending == action
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const DashSpinner(size: 14)
                           : Text(hmsActionLabel(l10n, action)),
                     ),
                   ),
@@ -952,7 +938,6 @@ class _AmsDryControl extends ConsumerWidget {
     return InkWell(
       onTap: () => dashSurfaceSheet<void>(
         context,
-        barrierColor: null,
         builder: (_) => _DryingSheet(
           printerId: printerId,
           amsId: amsId,
@@ -1061,9 +1046,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -1588,11 +1571,7 @@ class _SlotActions extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     final outcome = await action();
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(outcome.messageFor(l10n) ?? startedMessage),
-      ));
+    messenger.snack(outcome.messageFor(l10n) ?? startedMessage, clearQueue: true);
   }
 }
 
@@ -1814,9 +1793,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       await ref
           .read(inventoryProvider.notifier)
           .createSpoolFromSlot(slot.printerId, slot.amsId, slot.trayId);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryFromSlotDone)),
-      );
+      messenger.snack(l10n.inventoryFromSlotDone);
     } on AppApiException catch (e) {
       showApiFailure(
         messenger,
@@ -1826,9 +1803,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         message: _registerFailure(e, l10n),
       );
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -1919,9 +1894,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       spool = scanned();
     }
     if (spool == null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-      );
+      messenger.snack(l10n.inventoryScanNotFound(id));
       return;
     }
 
@@ -1935,9 +1908,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       // Already where it is being put. Nothing to send, and asking to move it
       // off itself would be nonsense.
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
       return;
     }
     await _assign(context, ref, l10n, spool, from: from);
@@ -1977,15 +1948,11 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             ),
             from: from,
           );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -2000,15 +1967,11 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       await ref
           .read(inventoryProvider.notifier)
           .unassignSpool(slot.printerId, slot.amsId, slot.trayId);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolUnassigned)),
-      );
+      messenger.snack(l10n.inventorySpoolUnassigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }

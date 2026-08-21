@@ -192,14 +192,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               ),
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _onAccentGreen,
-                      ),
-                    )
+                  ? DashSpinner(color: _onAccentGreen)
                   : const Icon(Icons.add_link, size: 18),
               label: Text(
                 l10n.inventoryAssignConfirm,
@@ -231,9 +224,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       await ref.read(inventoryProvider.notifier).assignSpool(draft);
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
@@ -241,9 +232,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -469,13 +458,11 @@ class _SpoolActions extends ConsumerWidget {
     Navigator.of(context).pop();
     try {
       await action;
-      messenger.showSnackBar(SnackBar(content: Text(successMsg)));
+      messenger.snack(successMsg);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: logId);
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }

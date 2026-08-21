@@ -9,6 +9,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
@@ -47,7 +48,7 @@ class GroupsScreen extends ConsumerWidget {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)

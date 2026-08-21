@@ -12,6 +12,7 @@ import 'core/notifications/hms_stop_request.dart';
 import 'core/theme/dash_theme.dart';
 import 'features/bug_report/recording_banner.dart';
 import 'features/common/confirm_dialog.dart';
+import 'features/common/dash_snack.dart';
 import 'features/dashboard/controls_providers.dart';
 import 'features/dashboard/providers.dart';
 import 'features/inventory/inventory_screen.dart' show scanSpoolFlow;
@@ -114,11 +115,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
                 printError: request.fullCode,
                 action: hmsStopAction,
                 jobId: request.jobId);
-        messenger
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(
-            content: Text(result.messageFor(l10n) ?? l10n.hmsActionSent),
-          ));
+        messenger.snack(result.messageFor(l10n) ?? l10n.hmsActionSent, clearQueue: true);
       } finally {
         _hmsStopInFlight = false;
       }

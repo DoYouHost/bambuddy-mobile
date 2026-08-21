@@ -26,7 +26,6 @@ class _MovementTile extends ConsumerWidget {
           InkWell(
             onTap: () => dashSurfaceSheet<void>(
               context,
-              barrierColor: null,
               builder: (_) => _MovementSheet(printerId: printerId),
             ),
             child: Container(
@@ -99,9 +98,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
     });
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -125,9 +122,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
       _spin = null;
     });
     final msg = result.messageFor(l10n) ?? l10n.ctrlMoveHomeStarted;
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+    messenger.snack(msg, clearQueue: true);
   }
 
   @override
@@ -432,11 +427,7 @@ class _JogButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner()
               : Icon(icon, size: 26, color: fg),
         ),
       ),
@@ -480,11 +471,7 @@ class _JogAction extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 16)
                   : Icon(icon, size: 16, color: fg),
               const SizedBox(width: 6),
               Text(
@@ -535,11 +522,7 @@ class _JogWideButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 16)
                   : Icon(icon, size: 18, color: fg),
               const SizedBox(width: 8),
               Text(

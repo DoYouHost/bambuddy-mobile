@@ -14,6 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/sliver_search_bar.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
@@ -44,12 +45,10 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), duration: const Duration(seconds: 3)),
-    );
+    ScaffoldMessenger.of(context).snack(msg, duration: const Duration(seconds: 3));
   }
 
-  // --- Eksport / import ---
+  // --- Export / import ---
 
   Future<void> _export() async {
     final l10n = _l10n;

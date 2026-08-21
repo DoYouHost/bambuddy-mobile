@@ -10,6 +10,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../bug_report/recording_banner.dart';
+import '../common/dash_progress.dart';
 import '../common/qr_scanner_screen.dart';
 import 'api_key_qr.dart';
 import 'providers.dart';
@@ -181,7 +182,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 if (state.busy)
                   const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: DashLoading(),
                   ),
                 if (state.error != null)
                   Padding(

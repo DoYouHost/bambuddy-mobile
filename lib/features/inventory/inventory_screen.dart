@@ -17,8 +17,10 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/dashed_line.dart';
 import '../common/filter_controls.dart';
 import '../common/sheet_surface.dart';
@@ -107,9 +109,7 @@ Future<void> showSpoolDetail(
   }
   if (!context.mounted) return;
   if (spool == null) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-    );
+    messenger.snack(l10n.inventoryScanNotFound(id));
     return;
   }
   final assignment = ref
@@ -242,7 +242,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -465,15 +465,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final res = await action(ref.read(inventoryProvider.notifier));
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          res.failed == 0
+    messenger.snack(res.failed == 0
               ? l10n.inventoryBulkDone(res.ok)
-              : l10n.inventoryBulkPartial(res.ok, res.failed),
-        ),
-      ),
-    );
+              : l10n.inventoryBulkPartial(res.ok, res.failed));
   }
 
   /// Client-side filter: status (active/archived), stock, material, brand, location,

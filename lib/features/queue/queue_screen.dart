@@ -16,7 +16,9 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -157,7 +159,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -540,8 +542,7 @@ class _QueueActions extends ConsumerWidget {
                 item: item, printerId: printerId, confirmLabel: l10n.fmSave);
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.showSnackBar(SnackBar(
-                content: Text(r.messageFor(l10n) ?? l10n.mappingSaved)));
+            messenger.snack(r.messageFor(l10n) ?? l10n.mappingSaved);
             return;
           }
 
@@ -677,8 +678,7 @@ Future<void> _startQueueItem(
   final result = await ref
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
-  messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.queuePrintStarted)));
+  messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -720,7 +720,7 @@ Future<Printer?> _pickQueuePrinter(
   }
   if (!context.mounted) return null;
   if (candidates.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
+    messenger.snack(l10n.queueNoFreePrinters);
     return null;
   }
   return dashSheet<Printer>(
@@ -755,5 +755,5 @@ void _snackForResult(
 ) {
   final text = result.messageFor(l10n);
   if (text == null) return;
-  messenger.showSnackBar(SnackBar(content: Text(text)));
+  messenger.snack(text);
 }

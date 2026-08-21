@@ -10,7 +10,9 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import '../common/state_views.dart';
 import 'maintenance_icons.dart';
@@ -84,7 +86,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -359,8 +361,7 @@ class _MaintenanceTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .perform(item.id, notes: notes.isEmpty ? null : notes);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ?? l10n.maintenanceDone)));
+    messenger.snack(result.messageFor(l10n) ?? l10n.maintenanceDone);
   }
 
   Future<void> _showHistory(
@@ -483,7 +484,7 @@ class _HistorySheet extends ConsumerWidget {
             async.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
+                child: DashLoading(),
               ),
               error: (_, _) => Padding(
                 padding: const EdgeInsets.all(16),

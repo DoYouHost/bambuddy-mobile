@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../common/dash_progress.dart';
 
 /// Filmstrip, trim range and playhead in one control.
 ///
@@ -354,11 +355,7 @@ class _Frames extends StatelessWidget {
         color: scheme.surfaceContainerHigh,
         child: loading
             ? const Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                child: DashSpinner(size: 20),
               )
             : null,
       );

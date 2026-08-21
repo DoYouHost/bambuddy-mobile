@@ -8,6 +8,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
@@ -245,9 +246,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     setState(() => _saving = false);
 
     if (!result.ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(userWriteMessage(l10n, result))),
-      );
+      messenger.snack(userWriteMessage(l10n, result));
       return;
     }
     // Leave the form first: the key dialog is the last chance to read the key,
@@ -258,7 +257,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     if (key != null && key.isNotEmpty) {
       await showCreatedKeyDialog(navigator.context, key);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.apiKeysSaved)));
+      messenger.snack(l10n.apiKeysSaved);
     }
   }
 

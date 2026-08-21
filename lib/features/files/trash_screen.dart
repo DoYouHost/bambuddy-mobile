@@ -11,6 +11,8 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/state_views.dart';
 import 'file_manager_providers.dart';
@@ -46,7 +48,7 @@ class TrashScreen extends ConsumerWidget {
         ),
         body: async.when(
           skipLoadingOnReload: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message:
                 err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
@@ -75,9 +77,6 @@ class TrashScreen extends ConsumerWidget {
     );
   }
 
-  void _snack(BuildContext context, String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
   Future<void> _restore(
     BuildContext context,
     WidgetRef ref,
@@ -88,7 +87,7 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).restoreFromTrash(file.id);
       ref.invalidate(libraryTrashProvider);
       ref.invalidate(fileManagerProvider);
-      if (context.mounted) _snack(context, l10n.fmRestored);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmRestored);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -117,7 +116,7 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) _snack(context, l10n.fmDeletedForever);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -145,7 +144,7 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) _snack(context, l10n.fmDeletedForever);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,

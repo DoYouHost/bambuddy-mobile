@@ -18,6 +18,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
@@ -231,18 +234,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return granted;
     if (!granted) {
       if (manual) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsBlocked)),
-        );
+        messenger.snack(l10n.notificationsBlocked);
       }
       return false;
     }
     final battery = BatteryOptimization();
     if (await battery.isIgnoring()) {
       if (manual && mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsReady)),
-        );
+        messenger.snack(l10n.notificationsReady);
       }
       return true;
     }
@@ -262,8 +261,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Notification menu: background monitoring toggle + re-onboard
   /// (permission/battery). Opened from bell icon.
   void _openNotificationMenu(BuildContext context, AppLocalizations l10n) {
-    showModalBottomSheet<void>(
-      context: context,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -323,11 +323,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // takes effect at next background transition (FGS not needed in foreground).
     if (!enabled) await ref.read(backgroundMonitorProvider).stop();
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff),
-      ),
-    );
+    messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }
 
   @override
@@ -345,7 +341,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (expired) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.sessionExpired)));
+        ).snack(l10n.sessionExpired);
         context.go('/setup');
       }
     });
@@ -455,7 +451,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AppLocalizations l10n,
   ) {
     if (state.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashLoading();
     }
 
     // Initial load failed — nothing to show but error.

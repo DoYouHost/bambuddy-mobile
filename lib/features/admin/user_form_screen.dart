@@ -9,6 +9,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
 
@@ -303,11 +304,7 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.usersSaved : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.usersSaved : userWriteMessage(l10n, result));
     if (result.ok) navigator.pop();
   }
 

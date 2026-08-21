@@ -9,6 +9,7 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_progress.dart';
 import '../common/hex_color.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
@@ -31,7 +32,7 @@ class FailureAnalysisCard extends ConsumerWidget {
       child: async.when(
         loading: () => const SizedBox(
           height: 80,
-          child: Center(child: CircularProgressIndicator()),
+          child: DashLoading(),
         ),
         error: (_, _) => SizedBox(
           height: 60,

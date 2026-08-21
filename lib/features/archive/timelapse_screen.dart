@@ -12,6 +12,8 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'timelapse_export.dart';
 import 'timelapse_format.dart';
@@ -302,7 +304,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
       await action(export, token, widget.title ?? l10n.timelapseTitle);
       if (!mounted) return;
       if (announce) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.timelapseSaved)));
+        messenger.snack(l10n.timelapseSaved);
       }
     } catch (e) {
       final denied = e is TimelapseGalleryDenied;
@@ -316,13 +318,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
         },
       );
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            denied ? l10n.timelapseSaveDenied : l10n.timelapseSaveFailed,
-          ),
-        ),
-      );
+      messenger.snack(denied ? l10n.timelapseSaveDenied : l10n.timelapseSaveFailed);
     } finally {
       if (mounted) {
         setState(() {
@@ -349,9 +345,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
     _version++;
     await _retry();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).timelapseEdited)),
-    );
+    ScaffoldMessenger.of(context).snack(AppLocalizations.of(context).timelapseEdited);
   }
 
   /// One line per way this can go wrong — the status is worth showing, not
@@ -431,7 +425,7 @@ class _TimelapseScreenState extends ConsumerState<TimelapseScreen> {
               icon: Icons.videocam_off_outlined,
             )
           : controller == null || !_ready
-          ? const Center(child: CircularProgressIndicator())
+          ? const DashLoading()
           : SafeArea(
               top: false,
               child: Column(

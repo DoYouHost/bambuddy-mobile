@@ -13,6 +13,8 @@ import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -54,7 +56,7 @@ class ProjectDetailScreen extends ConsumerWidget {
         ),
         body: async.when(
           skipLoadingOnReload: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -539,9 +541,7 @@ class _NotesSection extends ConsumerWidget {
     final result = await ref
         .read(projectDetailProvider(project.id).notifier)
         .save(ProjectUpdate(notes: saved));
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
   }
 }
 
@@ -666,7 +666,7 @@ class _OverflowMenu extends ConsumerWidget {
       PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
+      messenger.snack(l10n.projectCoverUpdated);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.cover_upload');
     }
@@ -680,7 +680,7 @@ class _OverflowMenu extends ConsumerWidget {
       PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));
+      messenger.snack(l10n.projectCoverRemoved);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.cover_delete');
     }
@@ -698,10 +698,10 @@ class _OverflowMenu extends ConsumerWidget {
         dialogTitle: l10n.projectMenuExport,
       );
       if (path == null) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.projectSaveCancelled)));
+        messenger.snack(l10n.projectSaveCancelled);
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectExported(path))));
+      messenger.snack(l10n.projectExported(path));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.export');
     }
@@ -713,7 +713,7 @@ class _OverflowMenu extends ConsumerWidget {
     try {
       await ref.read(projectsRepositoryProvider).createTemplate(project.id);
       ref.invalidate(projectTemplatesProvider);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectTemplateCreated)));
+      messenger.snack(l10n.projectTemplateCreated);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.create_template');
     }
@@ -733,9 +733,7 @@ class _OverflowMenu extends ConsumerWidget {
     );
     if (!confirmed) return;
     final result = await ref.read(projectsListProvider.notifier).delete(project.id);
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectDeleted),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectDeleted);
     if (result.isOk) navigator.pop();
   }
 }

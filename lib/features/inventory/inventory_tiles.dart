@@ -484,7 +484,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
               usage.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: DashLoading(),
                 ),
                 error: (_, _) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),

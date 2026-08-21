@@ -10,7 +10,9 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
@@ -52,7 +54,7 @@ class UsersScreen extends ConsumerWidget {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -382,11 +384,7 @@ class _SheetActions extends ConsumerWidget {
       'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.usersDeleted : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.usersDeleted : userWriteMessage(l10n, result));
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();
@@ -409,11 +407,7 @@ class _OwnedCounts extends ConsumerWidget {
     return ref.watch(userItemsCountProvider(userId)).when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: DashSpinner(size: 20),
           ),
           error: (_, _) => Text(
             l10n.usersOwnedFailed,

@@ -16,6 +16,7 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
@@ -915,11 +916,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final navigator = Navigator.of(context);
 
     if (_modelMode && (_targetModel == null || _targetModel!.isEmpty)) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoModel)));
+      messenger.snack(l10n.queueEditNoModel);
       return;
     }
     if (!_modelMode && _printerId == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoPrinter)));
+      messenger.snack(l10n.queueEditNoPrinter);
       return;
     }
 
@@ -941,9 +942,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? ok),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? ok);
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
     if (result.isOk) navigator.pop(widget._isCreate);

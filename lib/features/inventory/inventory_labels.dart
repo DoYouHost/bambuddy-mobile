@@ -231,13 +231,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final messenger = ScaffoldMessenger.of(context);
 
     if (_selected.length > maxSpoolLabelsPerRequest) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest),
-          ),
-        ),
-      );
+      messenger.snack(l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest));
       return;
     }
 
@@ -280,9 +274,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryLabelsFailed)),
-      );
+      messenger.snack(l10n.inventoryLabelsFailed);
     }
   }
 }
@@ -409,14 +401,7 @@ class _LabelFooter extends StatelessWidget {
               ),
               onPressed: onPrint,
               icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _onAccentGreen,
-                      ),
-                    )
+                  ? DashSpinner(color: _onAccentGreen)
                   : Icon(share ? Icons.ios_share : Icons.print_outlined,
                       size: 18),
               label: Text(

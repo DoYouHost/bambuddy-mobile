@@ -6,6 +6,7 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_snack.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
@@ -110,7 +111,7 @@ class AboutScreen extends StatelessWidget {
     );
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.aboutOpenLinkError)));
+          .snack(l10n.aboutOpenLinkError);
     }
   }
 

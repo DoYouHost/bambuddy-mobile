@@ -16,8 +16,10 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
 import '../common/format_datetime.dart';
 import '../common/sheet_surface.dart';
@@ -168,7 +170,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -283,9 +285,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .read(archiveProvider.notifier)
         .toggleFavorite(archive.id);
     if (!ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.archiveFavoriteFailed)),
-      );
+      messenger.snack(l10n.archiveFavoriteFailed);
     }
   }
 
@@ -355,11 +355,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final ok = await ref
         .read(archiveProvider.notifier)
         .delete(archive.id, purgeStats: purgeStats);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
-      ),
-    );
+    messenger.snack(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed);
   }
 
   /// Delete all selected prints after one confirmation (with purge-stats
@@ -383,15 +379,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .deleteMany(ids, purgeStats: purge);
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          res.failed == 0
+    messenger.snack(res.failed == 0
               ? l10n.archiveDeletedCount(res.ok)
-              : l10n.archiveDeleteSomeFailed(res.ok, res.failed),
-        ),
-      ),
-    );
+              : l10n.archiveDeleteSomeFailed(res.ok, res.failed));
   }
 
   /// Add the selected prints to a project: pick a project from a sheet, then
@@ -408,7 +398,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     }
     if (!mounted) return;
     if (projects.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectsEmpty)));
+      messenger.snack(l10n.projectsEmpty);
       return;
     }
 
@@ -451,9 +441,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       await ref.read(projectsRepositoryProvider).addArchives(projectId, ids);
       if (!mounted) return;
       _clearSelection();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.projectArchivesAdded)),
-      );
+      messenger.snack(l10n.projectArchivesAdded);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
     }
@@ -475,9 +463,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           .read(archiveRepositoryProvider)
           .purge(olderThanDays: result.days, purgeStats: result.purgeStats);
       await ref.read(archiveProvider.notifier).refresh();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
-      );
+      messenger.snack(l10n.archivePurgeResult(deleted));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'archive.menu.purge');
     }

@@ -11,7 +11,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
@@ -62,7 +64,7 @@ class GroupDetailScreen extends ConsumerWidget {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -163,9 +165,7 @@ class GroupDetailScreen extends ConsumerWidget {
     // app offers you changes with it.
     await ref.read(currentUserProvider.notifier).refresh();
     if (!result.ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(userWriteMessage(l10n, result))),
-      );
+      messenger.snack(userWriteMessage(l10n, result));
     }
   }
 }
@@ -229,11 +229,7 @@ class _GroupMenu extends ConsumerWidget {
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.groupsDeleted : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.groupsDeleted : userWriteMessage(l10n, result));
     if (result.ok) navigator.pop();
   }
 }
@@ -399,7 +395,7 @@ class _AccountPickerSheet extends ConsumerWidget {
                 child: async.when(
                   loading: () => const Padding(
                     padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: DashLoading(),
                   ),
                   error: (err, _) => Padding(
                     padding: const EdgeInsets.all(24),

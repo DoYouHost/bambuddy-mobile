@@ -573,7 +573,6 @@ class _FanCell extends ConsumerWidget {
         InkWell(
           onTap: () => dashSurfaceSheet<void>(
             context,
-            barrierColor: null,
             builder: (_) => _FanControlSheet(
               printerId: printerId,
               fan: fan,
@@ -629,9 +628,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 

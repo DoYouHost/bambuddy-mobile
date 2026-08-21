@@ -14,6 +14,8 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import 'object_pick_mask.dart';
 import 'skip_objects_providers.dart';
 import 'ws_providers.dart';
@@ -86,7 +88,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
         ),
       ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DashLoading(),
         error: (_, _) => _ErrorState(
           message: l10n.skipObjectsLoadFailed,
           onRetry: () =>
@@ -206,11 +208,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
                 if (_skipping)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    child: DashSpinner(size: 20),
                   )
                 else
                   FilledButton(
@@ -260,9 +258,7 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
 
     final msg = result.messageFor(l10n) ??
         l10n.skipObjectsSkippedToast(objs.length, names);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
   }
 }
 

@@ -12,6 +12,8 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
@@ -53,7 +55,7 @@ class ApiKeysScreen extends ConsumerWidget {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message: err is AppApiException
                 ? err.localized(l10n)
@@ -228,11 +230,7 @@ class _ApiKeyCard extends ConsumerWidget {
       'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
   }
 }
 

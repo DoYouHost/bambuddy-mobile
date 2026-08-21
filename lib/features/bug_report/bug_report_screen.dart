@@ -14,6 +14,8 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import 'bug_report_controller.dart';
 import 'log_export.dart';
 import 'log_preview.dart';
@@ -248,9 +250,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
     final messenger = ScaffoldMessenger.of(context);
     final description = _description.text.trim();
     if (description.isEmpty) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestRequired)));
+      messenger.snack(l10n.bugReportRequestRequired, replaceCurrent: true);
       return;
     }
     // False means the app could not even describe itself — nothing was queued,
@@ -258,9 +258,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
     if (await ref.read(bugReportProvider.notifier).sendRequest(description)) {
       return;
     }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestNotPrepared)));
+    messenger.snack(l10n.bugReportRequestNotPrepared, replaceCurrent: true);
   }
 
   /// Nothing to delete here — a request leaves no recording behind — so this
@@ -268,9 +266,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
   void _finishRequest() {
     final l10n = AppLocalizations.of(context);
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(l10n.bugReportSent)));
+    ScaffoldMessenger.of(context).snack(l10n.bugReportSent, replaceCurrent: true);
     _description.clear();
     ref.read(bugReportProvider.notifier).reset();
     GoRouter.of(context).go(home);
@@ -371,9 +367,7 @@ class _RecordingView extends ConsumerWidget {
             label: Text(l10n.bugReportMark),
             onPressed: () {
               ref.read(bugReportProvider.notifier).mark();
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(content: Text(l10n.bugReportMarked)));
+              ScaffoldMessenger.of(context).snack(l10n.bugReportMarked, replaceCurrent: true);
             },
           ),
         ),
@@ -547,11 +541,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     final messenger = ScaffoldMessenger.of(context);
     final description = _description.text.trim();
     if (description.isEmpty) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(l10n.bugReportDescriptionRequired)),
-        );
+      messenger.snack(l10n.bugReportDescriptionRequired, replaceCurrent: true);
       return;
     }
     await ref.read(bugReportProvider.notifier).sendToIssue(description);
@@ -574,9 +564,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
       case LogSaveResult.cancelled:
         return;
       case LogSaveResult.failed:
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(l10n.bugReportSaveFailed)));
+        messenger.snack(l10n.bugReportSaveFailed, replaceCurrent: true);
       case LogSaveResult.saved:
         await _finish(messenger, l10n.bugReportSaved);
     }
@@ -594,9 +582,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
     final controller = ref.read(bugReportProvider.notifier);
     // Shown by the messenger above the routes, so it survives the trip back.
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    messenger.snack(message, replaceCurrent: true);
     await controller.discard();
     router.go(home);
   }
@@ -828,11 +814,7 @@ class _Working extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          const DashSpinner(size: 12),
           const SizedBox(width: 8),
           Text(
             l10n.bugReportSending,

@@ -14,7 +14,9 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
@@ -125,7 +127,7 @@ class ProjectFilesSection extends ConsumerWidget {
       child: foldersAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
+          child: DashLoading(),
         ),
         error: (e, _) => _emptyHint(
             context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
@@ -218,7 +220,7 @@ class ProjectFilesSection extends ConsumerWidget {
       await ref.read(projectsRepositoryProvider).setFolderProject(folderId, projectId);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderLinked)));
+      messenger.snack(l10n.projectFolderLinked);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.link_folder');
     }
@@ -232,7 +234,7 @@ class ProjectFilesSection extends ConsumerWidget {
       await ref.read(projectsRepositoryProvider).setFolderProject(folder.id, null);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderUnlinked)));
+      messenger.snack(l10n.projectFolderUnlinked);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.unlink_folder');
     }
@@ -393,7 +395,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final picked = await pickSingleFile();
     if (picked == null) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.projectUploading)));
+    messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).uploadAttachment(
             project.id,
@@ -401,7 +403,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
             filename: picked.name,
           );
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentUploaded)));
+      messenger.snack(l10n.projectAttachmentUploaded);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.attachment_upload');
     }
@@ -415,10 +417,10 @@ class ProjectAttachmentsSection extends ConsumerWidget {
           await ref.read(projectsRepositoryProvider).downloadAttachment(project.id, name);
       final path = await saveBytesToFile(fileName: name, bytes: bytes);
       if (path == null) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.projectSaveCancelled)));
+        messenger.snack(l10n.projectSaveCancelled);
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFileSaved(path))));
+      messenger.snack(l10n.projectFileSaved(path));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n,
           action: 'project.attachment_download',
@@ -432,7 +434,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     try {
       await ref.read(projectsRepositoryProvider).deleteAttachment(project.id, name);
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentDeleted)));
+      messenger.snack(l10n.projectAttachmentDeleted);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.attachment_delete');
     }
@@ -462,7 +464,7 @@ class ProjectBomSection extends ConsumerWidget {
       child: async.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
+          child: DashLoading(),
         ),
         error: (e, _) => _emptyHint(
             context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
@@ -551,9 +553,7 @@ class ProjectBomSection extends ConsumerWidget {
     final result =
         item == null ? await notifier.add(input) : await notifier.edit(item.id, input);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
   }
 }
 
@@ -575,7 +575,7 @@ class ProjectTimelineSection extends ConsumerWidget {
       child: async.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
+          child: DashLoading(),
         ),
         error: (_, _) => _emptyHint(context, l10n.projectTimelineEmpty),
         data: (events) => events.isEmpty

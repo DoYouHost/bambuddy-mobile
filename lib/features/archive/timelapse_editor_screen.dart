@@ -12,6 +12,8 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
@@ -196,7 +198,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
         ],
       ),
       body: info.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DashLoading(),
         error: (e, _) => AsyncErrorView(
           message: e is AppApiException ? e.localized(l10n) : l10n.connectFailed,
           onRetry: () => ref.invalidate(timelapseInfoProvider(widget.archiveId)),
@@ -328,7 +330,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       if (!mounted) return;
       if (!result.ok) {
         setState(() => _saving = false);
-        messenger.showSnackBar(SnackBar(content: Text(result.message)));
+        messenger.snack(result.message);
         return;
       }
       // The player reloads on a true result — the file behind its URL changed.
@@ -342,7 +344,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       if (e is AppApiException) {
         showApiFailure(messenger, e, l10n, action: 'timelapse_edit.save');
       } else {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.connectFailed)));
+        messenger.snack(l10n.connectFailed);
       }
     }
   }

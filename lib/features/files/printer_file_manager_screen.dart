@@ -11,7 +11,9 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/format_datetime.dart';
 import '../common/sliver_search_bar.dart';
@@ -256,9 +258,7 @@ class _PrinterFileManagerScreenState
     await _loadStorage();
   }
 
-  void _snack(String message) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => ScaffoldMessenger.of(context).snack(message, replaceCurrent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -440,7 +440,7 @@ class _PrinterFileManagerScreenState
     bool allSelected,
   ) {
     if (_loading && _files == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashLoading();
     }
     if (_error != null) {
       return _centered(
@@ -558,11 +558,7 @@ class _PrinterFileManagerScreenState
                 if (_busy)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    child: DashSpinner(size: 20),
                   )
                 else ...[
                   logTag(

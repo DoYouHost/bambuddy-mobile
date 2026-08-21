@@ -9,7 +9,9 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -20,9 +22,7 @@ void showMaintenanceResult(
   AppLocalizations l10n,
   ActionOutcome result,
 ) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(result.messageFor(l10n) ?? l10n.maintenanceSaved)),
-  );
+  ScaffoldMessenger.of(context).snack(result.messageFor(l10n) ?? l10n.maintenanceSaved);
 }
 
 /// Maintenance settings screen (pushed from the Status screen's gear action).
@@ -83,7 +83,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                 skipLoadingOnRefresh: true,
                 loading: () => const Padding(
                   padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: DashLoading(),
                 ),
                 error: (_, _) => Padding(
                   padding: const EdgeInsets.all(16),
@@ -335,9 +335,8 @@ class _OverrideTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .setEnabled(item.id, !item.enabled);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ??
-            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted))));
+    messenger.snack(result.messageFor(l10n) ??
+            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted));
   }
 
   Future<void> _editInterval(
@@ -413,9 +412,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
     final l10n = AppLocalizations.of(context);
     // Custom types only appear on printers they're assigned to (create only).
     if (!_isEdit && _availablePrinters().isNotEmpty && _printers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.maintenanceSelectPrinter)),
-      );
+      ScaffoldMessenger.of(context).snack(l10n.maintenanceSelectPrinter);
       return;
     }
     final draft = MaintenanceTypeDraft(
@@ -591,11 +588,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 20)
                   : Text(l10n.inventorySave),
             ).tagged('maintenance_type_form.save'),
           ],

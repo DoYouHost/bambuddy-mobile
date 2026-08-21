@@ -203,7 +203,6 @@ class _GaugeTile extends ConsumerWidget {
   void _openSheet(BuildContext context, int initialTarget) {
     dashSurfaceSheet<void>(
       context,
-      barrierColor: null,
       builder: (_) => _TempControlSheet(
         printerId: printerId,
         reading: reading,
@@ -571,9 +570,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -589,9 +586,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure != null) {
       setState(() => _airductHeating = previous); // revert on failure
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(failure)));
+      messenger.snack(failure, clearQueue: true);
     }
   }
 
@@ -608,11 +603,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure == null) return; // keep locked until live confirms
     setState(() => _switchingTo = null); // command failed — release the lock
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(failure),
-      ));
+    messenger.snack(failure, clearQueue: true);
   }
 
   /// Active-extruder control shown in the nozzle sheet on dual-head printers:
@@ -658,11 +649,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const DashSpinner(size: 16)
                     : Icon(Icons.swap_horiz,
                         size: 16,
                         color: enabled ? t.textPrimary : t.textTertiary),
@@ -1051,11 +1038,7 @@ class _SheetButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner()
               : Text(
                   label,
                   style: t.titleSm.copyWith(color: fg),

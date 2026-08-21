@@ -14,6 +14,8 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_input.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import 'providers.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series
@@ -248,7 +250,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           );
       await ref.read(dashboardProvider.notifier).refresh();
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.addPrinterSuccess)));
+      messenger.snack(l10n.addPrinterSuccess);
       navigator.pop();
     } on CreatePrinterException catch (e) {
       if (!mounted) return;
@@ -391,11 +393,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       style: dashPrimaryButtonStyle(t),
                       onPressed: _busy ? null : _submit,
                       child: _busy
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const DashSpinner(size: 20)
                           : Text(l10n.addPrinterSubmit),
                     ).tagged('add_printer.submit'),
                     const SizedBox(height: 10),
@@ -494,11 +492,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
-              ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner(size: 16)
               : const Icon(Icons.search),
           label: Text(_scanButtonLabel(l10n, progress)),
         ).tagged('add_printer.scan_network'),
@@ -588,11 +582,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _diagnosing ? null : _runDiagnostic,
           icon: _diagnosing
-              ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner(size: 16)
               : const Icon(Icons.troubleshoot),
           label: Text(
             _diagnosing

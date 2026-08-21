@@ -14,6 +14,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'gcode_viewer_page.dart';
 
@@ -353,7 +354,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
       body: failure != null
           ? _errorView(l10n, failure)
           : controller == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const DashLoading()
               // The page keeps its controls at its own edges, so it must not
               // extend under the navigation bar: down there the system takes
               // the touch and the slider never sees it.
@@ -366,7 +367,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
                       // own progress, and two spinners would sit one on top of
                       // the other with the page's text between them.
                       if (!_alive)
-                        const Center(child: CircularProgressIndicator()),
+                        const DashLoading(),
                     ],
                   ),
                 ),

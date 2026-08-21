@@ -9,6 +9,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
 import '../slicer/slice_providers.dart';
@@ -115,10 +116,8 @@ Future<List<int>?> showQueueMappingSheet(
   required String confirmLabel,
   String? printerName,
 }) {
-  return showModalBottomSheet<List<int>>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<List<int>>(
+    context,
     builder: (_) => _MappingSheet(
       item: item,
       printerId: printerId,
@@ -191,7 +190,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       reqsAsync.isLoading || traysAsync.isLoading
           ? const Padding(
               padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()))
+              child: DashLoading())
           : _content(theme, reqsAsync.valueOrNull ?? const [],
               traysAsync.valueOrNull ?? const []),
     );

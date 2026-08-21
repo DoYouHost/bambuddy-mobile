@@ -11,6 +11,8 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
@@ -122,7 +124,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                 catalog.when(
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: DashLoading(),
                   ),
                   error: (err, _) => AsyncErrorView(
                     message: err is AppApiException
@@ -291,11 +293,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.groupsSaved : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.groupsSaved : userWriteMessage(l10n, result));
     if (result.ok) navigator.pop();
   }
 

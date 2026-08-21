@@ -13,7 +13,6 @@ import '../dashboard_filters.dart';
 Future<void> showDashboardFilterSheet(BuildContext context) {
   return dashSurfaceSheet<void>(
     context,
-    barrierColor: null,
     builder: (_) => const _DashboardFilterSheet(),
   );
 }

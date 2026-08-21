@@ -11,6 +11,7 @@ import '../../core/slicer/process_toggle_rules.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../common/dash_input.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import 'slice_providers.dart';
 
@@ -115,7 +116,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
         actions: [if (ready) _revertAllAction(catalog, presetValues.value)],
       ),
       body: !ready
-          ? const Center(child: CircularProgressIndicator())
+          ? const DashLoading()
           : presetValues.value == null
               ? _unavailable(l10n)
               : _body(catalog, presetValues.value!),

@@ -17,6 +17,7 @@ import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
@@ -125,7 +126,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: presetsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(24),
             child: Text(err is AppApiException
@@ -380,10 +381,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           width: double.infinity,
           child: FilledButton.icon(
             icon: _submitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? const DashSpinner()
                 : const Icon(Icons.layers_outlined),
             label: Text(l10n.sliceStart),
             onPressed: ready ? _submit : null,

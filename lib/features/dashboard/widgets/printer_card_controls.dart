@@ -117,9 +117,7 @@ class _ControlsActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final msg = result.messageFor(l10n);
     if (msg == null) return;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
   }
 }
 
@@ -179,11 +177,7 @@ class _LightSwitchRow extends ConsumerWidget {
                     ],
                   ),
                   busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const DashSpinner(size: 20)
                       : _PillSwitch(on: on, tokens: t),
                 ],
               ),
@@ -205,9 +199,7 @@ class _LightSwitchRow extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }
@@ -330,9 +322,7 @@ class _SmartPlugButton extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }
@@ -387,11 +377,7 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-const _btnSpinner = SizedBox(
-  width: 16,
-  height: 16,
-  child: CircularProgressIndicator(strokeWidth: 2),
-);
+const _btnSpinner = DashSpinner(size: 16);
 
 /// Arranges control buttons in a 2-column grid; solo button takes full width.
 class _ControlsGrid extends StatelessWidget {
@@ -540,9 +526,7 @@ class _SpeedControlTile extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }

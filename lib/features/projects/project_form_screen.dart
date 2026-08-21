@@ -10,6 +10,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
@@ -424,9 +425,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
     if (result.isOk) navigator.pop();
   }
 

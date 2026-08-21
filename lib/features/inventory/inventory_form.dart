@@ -180,7 +180,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       }
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
@@ -188,7 +188,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.inventorySaveFailed)));
+      messenger.snack(l10n.inventorySaveFailed);
     }
   }
 
@@ -336,14 +336,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 ),
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _onAccentGreen,
-                        ),
-                      )
+                    ? DashSpinner(size: 20, color: _onAccentGreen)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
@@ -926,7 +919,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
           Expanded(
             child: async.when(
               loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+                  const DashLoading(),
               error: (_, _) => _message(
                 context,
                 controller,

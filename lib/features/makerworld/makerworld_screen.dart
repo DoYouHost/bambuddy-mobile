@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/dash_text.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
@@ -43,15 +45,15 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
+  /// A download offer needs longer than the usual four seconds to be read, and
+  /// must fade anyway — hence the explicit duration and `persist: false`.
   void _snack(String msg, {SnackBarAction? action}) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
+      ScaffoldMessenger.of(context).snack(
+        msg,
         action: action,
-        // SnackBar.persist defaults to (action != null), so WITH action it doesn't auto-close.
-        // Force auto-close after timeout — action stays clickable, but bar doesn't hang forever.
         persist: false,
         duration: const Duration(seconds: 5),
-      ));
+      );
 
   int _key(int? profileId) => profileId ?? -1;
 
@@ -142,7 +144,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
             resolveAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
+                child: DashLoading(),
               ),
               error: (e, _) => _InlineError(
                 message:
@@ -212,11 +214,7 @@ class _UrlBar extends StatelessWidget {
               style: dashPrimaryButtonStyle(t),
               onPressed: loading ? null : onResolve,
               icon: loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Color(0xFF0A0C08)),
+                  ? DashSpinner(color: Color(0xFF0A0C08),
                     )
                   : const Icon(Icons.arrow_forward),
               label: Text(l10n.mwResolve),
@@ -448,11 +446,7 @@ class _PlateRow extends StatelessWidget {
                 ),
                 onPressed: importing ? null : onImport,
                 icon: importing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFF0A0C08)),
+                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08),
                       )
                     : const Icon(Icons.download, size: 18),
                 label: Text(l10n.mwImport),
@@ -483,7 +477,7 @@ class _RecentImports extends ConsumerWidget {
         async.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
+            child: DashLoading(),
           ),
           error: (_, _) => Text(l10n.mwNoRecent, style: emptyStyle),
           data: (items) => items.isEmpty

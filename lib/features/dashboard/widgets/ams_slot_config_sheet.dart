@@ -21,6 +21,8 @@ import '../../../core/theme/dash_theme.dart';
 import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
+import '../../common/dash_progress.dart';
+import '../../common/dash_snack.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart' show SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
@@ -235,7 +237,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             Expanded(
               child: switch (sources) {
                 AsyncLoading() =>
-                  const Center(child: CircularProgressIndicator()),
+                  const DashLoading(),
                 AsyncError() => _scrollableMessage(t, l10n.amsSlotConfigEmpty),
                 _ => _presetList(l10n, t, view!),
               },
@@ -736,11 +738,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             FilledButton(
               onPressed: busy || _picked == null ? null : () => _apply(l10n),
               child: busy
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner()
                   : Text(l10n.amsSlotConfigApply),
             ).tagged('ams_slot_config.apply'),
             const SizedBox(height: 4),
@@ -861,9 +859,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     ref.invalidate(slotPresetProvider(widget.target.key));
     if (!mounted) return;
     navigator.pop();
-    messenger.showSnackBar(
-      SnackBar(content: Text(outcome.messageFor(l10n) ?? succeeded())),
-    );
+    messenger.snack(outcome.messageFor(l10n) ?? succeeded());
   }
 
   String _tierLabel(AppLocalizations l10n, AmsPresetSource source) =>

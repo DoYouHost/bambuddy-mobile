@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
+import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'archive_providers.dart';
 
@@ -55,7 +56,7 @@ class ArchivePhotosScreen extends ConsumerWidget {
         ),
       ),
       body: archive.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DashLoading(),
         error: (e, _) => AsyncErrorView(
           message: e is AppApiException ? e.localized(l10n) : l10n.connectFailed,
           retryLabel: l10n.retry,
@@ -153,7 +154,7 @@ class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
     return ref
         .watch(cameraTokenProvider)
         .when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (_, _) => _message(l10n.archivePhotoFailed),
           data: (token) => InteractiveViewer(
             maxScale: 5,
@@ -170,7 +171,7 @@ class _PhotoState extends ConsumerState<_Photo> with CameraTokenImageRecovery {
               },
               loadingBuilder: (_, child, progress) => progress == null
                   ? child
-                  : const Center(child: CircularProgressIndicator()),
+                  : const DashLoading(),
             ),
           ),
         );

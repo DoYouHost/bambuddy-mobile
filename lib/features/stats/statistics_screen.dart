@@ -8,6 +8,7 @@ import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
+import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
@@ -234,7 +235,7 @@ class _StatsBody extends ConsumerWidget {
         ...computed.when(
           loading: () => const [
             SizedBox(height: 12),
-            SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+            SizedBox(height: 80, child: DashLoading()),
           ],
           error: (_, _) => const [],
           data: (c) => c.isEmpty

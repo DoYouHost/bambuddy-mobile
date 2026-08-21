@@ -10,6 +10,8 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -87,7 +89,7 @@ class ProjectsScreen extends ConsumerWidget {
         body: async.when(
           skipLoadingOnReload: true,
           skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (err, _) => AsyncErrorView(
             message:
                 err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
@@ -124,16 +126,16 @@ class ProjectsScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final picked = await pickSingleFile();
     if (picked == null) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.projectUploading)));
+    messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).importFile(
             filePath: picked.path,
             filename: picked.name,
           );
       await ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectImported)));
+      messenger.snack(l10n.projectImported);
     } on AppApiException {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectImportFailed)));
+      messenger.snack(l10n.projectImportFailed);
     }
   }
 }

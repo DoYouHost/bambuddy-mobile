@@ -10,6 +10,8 @@ import '../../core/models/cloud_auth.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 
 /// Bambu Cloud account screen (login) — in app "settings" (drawer), intentionally
 /// separate from MakerWorld screen. Login here is prerequisite for importing models
@@ -26,7 +28,7 @@ class CloudAccountScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.cloudAccountTitle),
         body: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashLoading(),
           error: (_, _) => const _LoginForm(),
           data: (status) => status.isAuthenticated
               ? _SignedIn(status: status)
@@ -130,12 +132,7 @@ class _SignedInState extends ConsumerState<_SignedIn> {
           ),
           onPressed: _busy ? null : _signOut,
           icon: _busy
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: t.textPrimary),
-                )
+              ? DashSpinner(size: 16, color: t.textPrimary)
               : const Icon(Icons.logout),
           label: Text(l10n.cloudSignOut),
         ).tagged('cloud.sign_out'),
@@ -179,9 +176,6 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  void _snack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
   /// Both halves of a failed sign-in step: the sentence and the record that
   /// somebody was stopped. Unmounted there is neither a messenger nor an
   /// `l10n`, so only the record goes, marked as one that reached nobody.
@@ -194,7 +188,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      _snack(_l10n.cloudFillCredentials);
+      ScaffoldMessenger.of(context).snack(_l10n.cloudFillCredentials);
       return;
     }
     setState(() => _busy = true);
@@ -216,7 +210,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     FocusScope.of(context).unfocus();
     final code = _code.text.trim();
     if (code.isEmpty) {
-      _snack(_l10n.cloudEnterCode);
+      ScaffoldMessenger.of(context).snack(_l10n.cloudEnterCode);
       return;
     }
     setState(() => _busy = true);
@@ -248,12 +242,12 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
     if (res.success) {
       ref.invalidate(cloudAuthStatusProvider);
       ref.invalidate(makerworldStatusProvider);
-      _snack(_l10n.cloudSignedInOk);
+      ScaffoldMessenger.of(context).snack(_l10n.cloudSignedInOk);
       if (context.canPop()) context.pop();
       return;
     }
     // No success and no verification → server message (or generic).
-    _snack(res.message.isNotEmpty ? res.message : _l10n.cloudSignInFailed);
+    ScaffoldMessenger.of(context).snack(res.message.isNotEmpty ? res.message : _l10n.cloudSignInFailed);
   }
 
   @override
@@ -347,11 +341,7 @@ class _LoginFormState extends ConsumerState<_LoginForm> {
                 style: dashPrimaryButtonStyle(t),
                 onPressed: _busy ? null : (_verifying ? _verify : _signIn),
                 child: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFF0A0C08)),
+                    ? DashSpinner(color: Color(0xFF0A0C08),
                       )
                     : Text(_verifying ? l10n.cloudVerify : l10n.cloudSignIn),
               ).tagged('cloud.sign_in'),

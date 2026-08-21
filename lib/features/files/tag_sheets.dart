@@ -11,7 +11,9 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
 
@@ -94,7 +96,7 @@ mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   AppLocalizations get l10n => AppLocalizations.of(context);
 
   void snack(String message) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(message)));
+      .snack(message);
 
   /// Both halves of a failed action: the sentence and the record that somebody
   /// was stopped. Unmounted there is neither a messenger nor an `l10n` to
@@ -167,7 +169,7 @@ class _TagList extends ConsumerWidget {
     if (async.isLoading && tags == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
-        child: Center(child: CircularProgressIndicator()),
+        child: DashLoading(),
       );
     }
     if (async.hasError) {
@@ -455,7 +457,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
       // walking a tree this sheet is already leaving.
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context, true);
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       failed(e, 'bulk_tags.${action.name}');
@@ -595,7 +597,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
           if (async.isLoading && async.valueOrNull == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator()),
+              child: DashLoading(),
             )
           else
             Flexible(

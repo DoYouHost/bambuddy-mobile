@@ -9,6 +9,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_progress.dart';
 import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
@@ -174,7 +175,7 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
               async.when(
                 loading: () => const SizedBox(
                   height: 260,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: DashLoading(),
                 ),
                 error: (_, _) => SizedBox(
                   height: 260,
