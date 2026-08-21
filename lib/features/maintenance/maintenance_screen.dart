@@ -10,7 +10,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
@@ -473,15 +472,9 @@ class _HistorySheet extends ConsumerWidget {
             Text('${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            async.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: DashLoading(),
-              ),
-              error: (_, _) => Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(l10n.connectFailed),
-              ),
+            dashAsyncStrip(
+              context,
+              async,
               data: (entries) => entries.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(16),

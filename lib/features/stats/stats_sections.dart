@@ -9,7 +9,7 @@ import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/hex_color.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
@@ -29,18 +29,11 @@ class FailureAnalysisCard extends ConsumerWidget {
     final async = ref.watch(failureAnalysisProvider);
     return SectionCard(
       title: l10n.statsFailureAnalysis,
-      child: async.when(
-        loading: () => const SizedBox(
-          height: 80,
-          child: DashLoading(),
-        ),
-        error: (_, _) => SizedBox(
-          height: 60,
-          child: Center(
-            child: Text(l10n.statsLoadFailed,
-                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
-          ),
-        ),
+      child: dashAsyncStrip(
+        context,
+        async,
+        height: 80,
+        failureMessage: l10n.statsLoadFailed,
         data: (f) {
           final rateColor = f.failureRate <= 5
               ? t.accentGreen

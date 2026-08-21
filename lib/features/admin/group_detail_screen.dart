@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
-import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import 'group_form_screen.dart';
@@ -384,23 +381,10 @@ class _AccountPickerSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Flexible(
-                child: async.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: DashLoading(),
-                  ),
-                  error: (err, _) => Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      err is AppApiException
-                          ? err.localized(l10n)
-                          : l10n.connectFailed,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        color: t.textSecondary,
-                      ),
-                    ),
-                  ),
+                child: dashAsyncStrip(
+                  context,
+                  async,
+                  padding: const EdgeInsets.all(24),
                   data: (users) {
                     final candidates = [
                       for (final u in users)

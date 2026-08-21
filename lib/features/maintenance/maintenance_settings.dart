@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
@@ -78,17 +79,9 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              typesAsync.when(
-                skipLoadingOnReload: true,
-                skipLoadingOnRefresh: true,
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: DashLoading(),
-                ),
-                error: (_, _) => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(l10n.connectFailed),
-                ),
+              dashAsyncStrip(
+                context,
+                typesAsync,
                 data: (types) => _DashCard(
                   children: [for (final ty in types) _TypeTile(type: ty)],
                 ),

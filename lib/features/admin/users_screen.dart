@@ -393,18 +393,14 @@ class _OwnedCounts extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return ref.watch(userItemsCountProvider(userId)).when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: DashSpinner(size: 20),
-          ),
-          error: (_, _) => Text(
-            l10n.usersOwnedFailed,
-            style: t.labelSoft,
-          ),
+    return dashAsyncStrip(
+          context,
+          ref.watch(userItemsCountProvider(userId)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          loading: const DashSpinner(size: 20),
+          failureMessage: l10n.usersOwnedFailed,
           data: (counts) => Row(
             children: [
               Expanded(

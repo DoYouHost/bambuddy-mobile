@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
-import '../common/state_views.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -43,16 +41,14 @@ class StatisticsScreen extends ConsumerWidget {
             ref.invalidate(failureAnalysisProvider);
             await ref.read(statsProvider.notifier).refresh();
           },
-          child: stats.when(
-            loading: () => const _Centered(child: CircularProgressIndicator()),
-            error: (e, _) => AsyncErrorView(
-              message: e is AppApiException
-                  ? e.localized(l10n)
-                  : l10n.statsLoadFailed,
-              onRetry: () => ref.read(statsProvider.notifier).refresh(),
-              retryLabel: l10n.retry,
-              scrollable: true,
-            ),
+          child: dashAsync(
+            context,
+            stats,
+            onRetry: () => ref.read(statsProvider.notifier).refresh(),
+            fallbackMessage: l10n.statsLoadFailed,
+            scrollableError: true,
+            skipLoadingOnReload: false,
+            skipLoadingOnRefresh: false,
             data: (data) => _StatsBody(data: data),
           ),
         ),

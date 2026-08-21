@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/dash_text.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_snack.dart';
 import '../common/api_failure_snack.dart';
@@ -12,7 +13,6 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
@@ -141,16 +141,13 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
               }),
             ],
             const SizedBox(height: 8),
-            resolveAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: DashLoading(),
-              ),
-              error: (e, _) => _InlineError(
-                message:
-                    e is AppApiException ? e.localized(l10n) : l10n.ctrlFailed,
-                onRetry: _resolve,
-              ),
+            dashAsyncStrip(
+              context,
+              resolveAsync,
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              failureMessage: l10n.ctrlFailed,
+              failureBuilder: (message) =>
+                  _InlineError(message: message, onRetry: _resolve),
               data: (model) => model == null
                   ? const SizedBox.shrink()
                   : _ResolvedModel(

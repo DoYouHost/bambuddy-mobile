@@ -17,6 +17,7 @@ import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
@@ -125,14 +126,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       appBar: dashAppBar(context, title: l10n.sliceTitle),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: presetsAsync.when(
-          loading: () => const DashLoading(),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(err is AppApiException
-                ? err.localized(l10n)
-                : l10n.sliceNoPresets),
-          ),
+        child: dashAsyncStrip(
+          context,
+          presetsAsync,
+          padding: const EdgeInsets.all(24),
+          failureMessage: l10n.sliceNoPresets,
           data: (presets) {
             // One picker per *project* slot, because `filament_presets` is
             // positional — see [SlicerRepository.filamentRequirements].

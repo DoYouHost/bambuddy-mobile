@@ -14,7 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
@@ -124,13 +124,11 @@ class ProjectFilesSection extends ConsumerWidget {
         label: l10n.projectLinkFolder,
         onPressed: () => _linkFolder(context, ref),
       ),
-      child: foldersAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: DashLoading(),
-        ),
-        error: (e, _) => _emptyHint(
-            context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
+      child: dashAsyncStrip(
+        context,
+        foldersAsync,
+        padding: const EdgeInsets.all(12),
+        failureBuilder: (message) => _emptyHint(context, message),
         data: (folders) {
           if (folders.isEmpty) {
             return _emptyHint(context, l10n.projectFilesEmpty);
@@ -461,13 +459,11 @@ class ProjectBomSection extends ConsumerWidget {
         label: l10n.bomAdd,
         onPressed: () => _editItem(context, ref, null),
       ),
-      child: async.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: DashLoading(),
-        ),
-        error: (e, _) => _emptyHint(
-            context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
+      child: dashAsyncStrip(
+        context,
+        async,
+        padding: const EdgeInsets.all(12),
+        failureBuilder: (message) => _emptyHint(context, message),
         data: (items) => items.isEmpty
             ? _emptyHint(context, l10n.projectBomEmpty)
             : Column(
@@ -572,12 +568,14 @@ class ProjectTimelineSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.history,
       title: l10n.projectTabTimeline,
-      child: async.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: DashLoading(),
-        ),
-        error: (_, _) => _emptyHint(context, l10n.projectTimelineEmpty),
+      child: dashAsyncStrip(
+        context,
+        async,
+        padding: const EdgeInsets.all(12),
+        // A timeline nobody could load reads as one nothing happened on: this
+        // section is a sidebar of a screen that has already said the project
+        // failed to load, and does not need to say it twice.
+        failureBuilder: (_) => _emptyHint(context, l10n.projectTimelineEmpty),
         data: (events) => events.isEmpty
             ? _emptyHint(context, l10n.projectTimelineEmpty)
             : Column(

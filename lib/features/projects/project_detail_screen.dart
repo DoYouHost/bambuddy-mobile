@@ -13,7 +13,7 @@ import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
-import '../common/dash_progress.dart';
+import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
 import '../common/format_datetime.dart';
 import 'project_common.dart';
@@ -34,7 +34,6 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
     final async = ref.watch(projectDetailProvider(projectId));
 
     return DashBackground(
@@ -54,39 +53,12 @@ class ProjectDetailScreen extends ConsumerWidget {
             ],
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          loading: () => const DashLoading(),
-          error: (err, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.cloud_off, size: 48, color: t.textTertiary),
-                  const SizedBox(height: 12),
-                  Text(
-                    err is AppApiException
-                        ? err.localized(l10n)
-                        : l10n.connectFailed,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      color: t.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    style: dashPrimaryButtonStyle(t),
-                    onPressed: () => ref
-                        .read(projectDetailProvider(projectId).notifier)
-                        .refresh(),
-                    child: Text(l10n.retry),
-                  ).tagged('project.retry'),
-                ],
-              ),
-            ),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () =>
+              ref.read(projectDetailProvider(projectId).notifier).refresh(),
+          skipLoadingOnRefresh: false,
           data: (project) => RefreshIndicator(
             onRefresh: () async {
               // The per-file counts move whenever a print finishes, and they

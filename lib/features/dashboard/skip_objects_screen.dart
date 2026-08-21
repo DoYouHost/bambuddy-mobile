@@ -14,6 +14,7 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/camera_token_image_recovery.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_snack.dart';
 import 'object_pick_mask.dart';
@@ -87,13 +88,15 @@ class _SkipObjectsScreenState extends ConsumerState<SkipObjectsScreen>
           ),
         ),
       ),
-      body: async.when(
-        loading: () => const DashLoading(),
-        error: (_, _) => _ErrorState(
-          message: l10n.skipObjectsLoadFailed,
-          onRetry: () =>
-              ref.read(skipObjectsProvider(widget.printerId).notifier).refresh(),
-        ),
+      body: dashAsync(
+        context,
+        async,
+        onRetry: () =>
+            ref.read(skipObjectsProvider(widget.printerId).notifier).refresh(),
+        fallbackMessage: l10n.skipObjectsLoadFailed,
+        errorIcon: Icons.error_outline,
+        skipLoadingOnReload: false,
+        skipLoadingOnRefresh: false,
         data: (data) => data.objects.isEmpty
             ? _EmptyState(
                 onReload: () => ref
@@ -1040,38 +1043,3 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: t.textTertiary),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: t.textSecondary),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: Text(l10n.retry),
-            ).tagged('skip_objects.retry'),
-          ],
-        ),
-      ),
-    );
-  }
-}

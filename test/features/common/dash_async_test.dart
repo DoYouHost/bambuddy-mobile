@@ -78,4 +78,76 @@ void main() {
     expect(find.text(l10n.connectFailed), findsOneWidget);
     expect(find.text(l10n.retry), findsOneWidget);
   });
+
+  group('a section rather than a screen', () {
+    Future<AppLocalizations> pumpStrip(
+      WidgetTester tester,
+      AsyncValue<String> value, {
+      double? height,
+      String? failureMessage,
+    }) async {
+      late AppLocalizations l10n;
+      await tester.pumpWidget(
+        plApp(
+          Builder(
+            builder: (context) {
+              l10n = AppLocalizations.of(context);
+              return Scaffold(
+                body: dashAsyncStrip(
+                  context,
+                  value,
+                  height: height,
+                  failureMessage: failureMessage,
+                  data: (text) => Text(text),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      return l10n;
+    }
+
+    testWidgets('waiting and failing keep the height the content will have', (
+      tester,
+    ) async {
+      for (final state in <AsyncValue<String>>[
+        const AsyncValue.loading(),
+        AsyncValue.error(StateError('boom'), StackTrace.empty),
+      ]) {
+        await pumpStrip(tester, state, height: 120);
+        expect(tester.getSize(find.byType(SizedBox).first).height, 120);
+      }
+
+      // The data branch sizes itself — that is the height the other two were
+      // standing in for.
+      await pumpStrip(tester, const AsyncValue.data('done'), height: 120);
+      expect(find.text('done'), findsOneWidget);
+      expect(find.byType(SizedBox), findsNothing);
+    });
+
+    testWidgets('says the section words its own failure', (tester) async {
+      await pumpStrip(
+        tester,
+        AsyncValue<String>.error(StateError('boom'), StackTrace.empty),
+        failureMessage: 'no readings yet',
+      );
+
+      expect(find.text('no readings yet'), findsOneWidget);
+    });
+
+    testWidgets('but still quotes the server when the server answered', (
+      tester,
+    ) async {
+      const failure = NetworkException(AppErrorCode.serverUnreachable);
+      final l10n = await pumpStrip(
+        tester,
+        AsyncValue<String>.error(failure, StackTrace.empty),
+        failureMessage: 'no readings yet',
+      );
+
+      expect(find.text(failure.localized(l10n)), findsOneWidget);
+    });
+  });
 }

@@ -9,7 +9,7 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/heater_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
-import '../../common/dash_progress.dart';
+import '../../common/dash_async.dart';
 import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
@@ -130,15 +130,11 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
                 onChanged: (h) => setState(() => _hours = h),
               ),
               const SizedBox(height: 16),
-              async.when(
-                loading: () => const SizedBox(
-                  height: 260,
-                  child: DashLoading(),
-                ),
-                error: (_, _) => SizedBox(
-                  height: 260,
-                  child: Center(child: Text(l10n.sensorHistoryError)),
-                ),
+              dashAsyncStrip(
+                context,
+                async,
+                height: 260,
+                failureMessage: l10n.sensorHistoryError,
                 data: (history) => _Content(
                   series: history.seriesFor(_kind),
                   color: _kindColor(_kind),
