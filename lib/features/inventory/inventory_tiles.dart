@@ -75,24 +75,37 @@ class _SpoolTile extends StatelessWidget {
     final low = spool.isLowStock && !spool.isArchived;
     final fillColor = low ? t.danger : t.accentGreen;
 
+    // The weight line takes the leftover space and the slot label keeps its
+    // natural width, right-aligned by that.
+    //
+    // NOT a `Spacer` between the two: the weight text was unconstrained, so it
+    // took whatever it wanted first, and the Spacer — a flex child itself —
+    // then halved what was left with the label. The label got 50% of the
+    // remainder at best and nothing at all once the weight text filled the row:
+    // "AMS0 ·…", or no slot at all. Which half gives way is decided here
+    // instead, and it is the weight line: it ends in `/ 1000g`, which the
+    // progress bar above already shows, while the slot is what the reader
+    // came for.
     final metaLine = Row(
       children: [
-        Text(
-          '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
-          '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
-          style: t.monoLabel,
+        Expanded(
+          child: Text(
+            '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
+            '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
+          ),
         ),
         if (assignment != null) ...[
-          const Spacer(),
+          const SizedBox(width: 8),
           Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
           const SizedBox(width: 3),
-          Flexible(
-            child: Text(
-              assignmentSlotLabel(l10n, assignment!),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.monoLabel,
-            ),
+          Text(
+            assignmentSlotLabel(l10n, assignment!),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
           ),
         ],
       ],
