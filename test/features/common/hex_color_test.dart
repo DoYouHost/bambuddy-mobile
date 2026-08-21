@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:bambuddy_mobile/features/common/hex_color.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +36,19 @@ void main() {
     test('a colour nobody knows loses to any known one', () {
       expect(colorDistance(null, '#FFFFFF'), double.maxFinite);
       expect(colorDistance('#FFFFFF', 'nonsense'), double.maxFinite);
+    });
+  });
+
+  group('colorFromHex', () {
+    test('paints the named colour, opaque, whatever the alpha said', () {
+      expect(colorFromHex('#FF8040'), const Color(0xFFFF8040));
+      // The inventory's RGBA: a fully transparent spool colour is still drawn.
+      expect(colorFromHex('FF804000'), const Color(0xFFFF8040));
+    });
+
+    test('gives back null for anything that is not a colour', () {
+      expect(colorFromHex(null), isNull);
+      expect(colorFromHex('#GGG'), isNull);
     });
   });
 }

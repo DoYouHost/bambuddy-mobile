@@ -309,6 +309,7 @@ InputDecoration dashFieldDecoration(
   String? hintText,
   String? helperText,
   String? errorText,
+  String? suffixText,
   Widget? suffixIcon,
   Widget? prefixIcon,
 }) {
@@ -324,6 +325,7 @@ InputDecoration dashFieldDecoration(
     hintText: hintText,
     helperText: helperText,
     errorText: errorText,
+    suffixText: suffixText,
     suffixIcon: suffixIcon,
     prefixIcon: prefixIcon,
     labelStyle: TextStyle(
@@ -342,6 +344,11 @@ InputDecoration dashFieldDecoration(
     helperStyle: TextStyle(
       fontFamily: DashTokens.fontUi,
       fontSize: 11,
+      color: t.textTertiary,
+    ),
+    suffixStyle: TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 11.5,
       color: t.textTertiary,
     ),
     border: border(t.subCardBorder),

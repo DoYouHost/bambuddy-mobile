@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/format_datetime.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'project_files.dart';
@@ -636,7 +637,7 @@ class ProjectTimelineSection extends ConsumerWidget {
                         [
                           if (e.description != null) e.description!,
                           if (e.timestampParsed != null)
-                            _fmtDateTime(e.timestampParsed!),
+                            formatDateTime(e.timestampParsed!),
                         ].join('\n'),
                         style: TextStyle(
                           fontFamily: DashTokens.fontMono,
@@ -663,9 +664,6 @@ class ProjectTimelineSection extends ConsumerWidget {
     return Icons.fiber_manual_record_outlined;
   }
 
-  String _fmtDateTime(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 /// Add / edit dialog for a BOM line item.

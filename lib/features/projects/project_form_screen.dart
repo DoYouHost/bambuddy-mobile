@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/format_datetime.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
 
@@ -283,7 +284,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   Widget _dueDateRow(AppLocalizations l10n, DashTokens t) {
     final label = _dueDate == null
         ? l10n.projectDueDate
-        : '${l10n.projectDueDate}: ${_fmtDate(_dueDate!)}';
+        : '${l10n.projectDueDate}: ${formatDate(_dueDate!)}';
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
@@ -442,9 +443,6 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     ));
     if (result.isOk) navigator.pop();
   }
-
-  String _fmtDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   String? _emptyToNull(String s) => s.trim().isEmpty ? null : s.trim();
   int? _intOrNull(String s) => int.tryParse(s.trim());

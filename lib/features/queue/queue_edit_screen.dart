@@ -15,10 +15,11 @@ import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/format_datetime.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
-import '../stats/stats_common.dart' show colorFromHex;
+import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 
@@ -722,12 +723,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return entries.isEmpty ? null : entries;
   }
 
-  /// Parse a `#RRGGBB(AA)` hex to a swatch colour (alpha stripped for display).
-  Color? _swatch(String hex) {
-    if (hex.isEmpty) return null;
-    final h = hex.startsWith('#') ? hex.substring(1) : hex;
-    return colorFromHex('#${h.length >= 6 ? h.substring(0, 6) : h}');
-  }
+  Color? _swatch(String hex) => colorFromHex(hex);
 
   // --- Print options ---
   Widget _printOptionsSection(AppLocalizations l10n, DashTokens t) {
@@ -904,7 +900,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   Widget _scheduleTimeRow(AppLocalizations l10n, DashTokens t) {
     final label =
-        _scheduledTime == null ? l10n.queueEditPickTime : _fmtDateTime(_scheduledTime!);
+        _scheduledTime == null ? l10n.queueEditPickTime : formatDateTime(_scheduledTime!);
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
@@ -952,10 +948,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
-
-  String _fmtDateTime(DateTime d) =>
-      '${d.year}-${_two(d.month)}-${_two(d.day)} ${_two(d.hour)}:${_two(d.minute)}';
-  String _two(int n) => n.toString().padLeft(2, '0');
 
   // --- Save ---
   Future<void> _submit() async {

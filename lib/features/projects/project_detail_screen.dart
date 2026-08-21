@@ -12,6 +12,7 @@ import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
+import '../common/format_datetime.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
@@ -172,7 +173,7 @@ class _Header extends ConsumerWidget {
                         _DashTag(label: projectPriorityLabel(l10n, project.priority)),
                         if (project.dueDateParsed != null)
                           Text(
-                            l10n.projectDueOn(_fmtDate(project.dueDateParsed!)),
+                            l10n.projectDueOn(formatDate(project.dueDateParsed!)),
                             style: TextStyle(
                               fontFamily: DashTokens.fontMono,
                               fontSize: 11.5,
@@ -292,8 +293,6 @@ class _Header extends ConsumerWidget {
     );
   }
 
-  String _fmtDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// Neutral pill tag (priority, free-form tags) — same shape family as

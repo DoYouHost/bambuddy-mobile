@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/hex_color.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';

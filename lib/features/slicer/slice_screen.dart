@@ -19,7 +19,7 @@ import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
 import '../common/hex_color.dart';
-import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
+import '../stats/stats_common.dart' show fmtDuration;
 import 'process_settings_screen.dart';
 import 'slice_providers.dart';
 

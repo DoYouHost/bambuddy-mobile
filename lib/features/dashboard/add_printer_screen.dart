@@ -12,6 +12,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_input.dart';
 import 'providers.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series
@@ -451,7 +452,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             requestFocusOnTap: false,
             label: Text(l10n.addPrinterSubnet),
             textStyle: _fieldTextStyle(t),
-            inputDecorationTheme: _fieldTheme(t),
+            inputDecorationTheme: dashInputTheme(t),
             onSelected: (v) => setState(() {
               if (v == _customSubnetOption) {
                 _useCustomSubnet = true;
@@ -722,7 +723,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       label: Text(l10n.addPrinterModel),
       helperText: l10n.addPrinterModelOptional,
       textStyle: _fieldTextStyle(t),
-      inputDecorationTheme: _fieldTheme(t),
+      inputDecorationTheme: dashInputTheme(t),
       onSelected: (v) => setState(() => _model = v ?? _modelNone),
       dropdownMenuEntries: [
         DropdownMenuEntry(
@@ -808,34 +809,3 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
       );
 }
 
-/// Input chrome for the [DropdownMenu]s — they build their own internal text
-/// field and can't take a plain [InputDecoration], so they need a matching
-/// theme (same rounded [DashTokens.subCard] fill as [dashFieldDecoration]).
-InputDecorationTheme _fieldTheme(DashTokens t) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: BorderSide(color: color, width: width),
-      );
-  return InputDecorationTheme(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.textSecondary,
-    ),
-    helperStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 11,
-      color: t.textTertiary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-  );
-}

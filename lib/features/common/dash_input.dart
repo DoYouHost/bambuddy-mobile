@@ -17,70 +17,36 @@ InputDecoration dashDecoration(
   String? helperText,
   Widget? suffixIcon,
   Widget? prefixIcon,
-}) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
-  return InputDecoration(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelText: labelText,
-    hintText: hintText,
-    suffixText: suffixText,
-    errorText: errorText,
-    helperText: helperText,
-    suffixIcon: suffixIcon,
-    prefixIcon: prefixIcon,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.textSecondary,
-    ),
-    floatingLabelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.accentGreenInk,
-    ),
-    hintStyle: TextStyle(fontFamily: DashTokens.fontUi, color: t.textTertiary),
-    helperStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 11,
-      color: t.textTertiary,
-    ),
-    suffixStyle: TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 11.5,
-      color: t.textTertiary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-    focusedErrorBorder: border(t.danger, 1.5),
-  );
-}
+}) =>
+    dashFieldDecoration(
+      t,
+      labelText: labelText,
+      hintText: hintText,
+      helperText: helperText,
+      errorText: errorText,
+      suffixText: suffixText,
+      suffixIcon: suffixIcon,
+      prefixIcon: prefixIcon,
+    );
 
 /// The same chrome as an [InputDecorationTheme], for [DropdownMenu] — it builds
-/// its own text field internally and takes no [InputDecoration].
+/// its own text field internally and takes no [InputDecoration]. Read off
+/// [dashFieldDecoration] rather than restated, which is how the two drifted
+/// apart the last time.
 InputDecorationTheme dashInputTheme(DashTokens t) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: color, width: width));
+  final d = dashFieldDecoration(t);
   return InputDecorationTheme(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      color: t.textSecondary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
+    isDense: d.isDense ?? true,
+    filled: d.filled ?? true,
+    fillColor: d.fillColor,
+    labelStyle: d.labelStyle,
+    floatingLabelStyle: d.floatingLabelStyle,
+    hintStyle: d.hintStyle,
+    helperStyle: d.helperStyle,
+    border: d.border,
+    enabledBorder: d.enabledBorder,
+    focusedBorder: d.focusedBorder,
+    errorBorder: d.errorBorder,
+    focusedErrorBorder: d.focusedErrorBorder,
   );
 }

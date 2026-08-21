@@ -17,6 +17,7 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
 import '../common/filter_controls.dart';
+import '../common/format_datetime.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
@@ -576,7 +577,7 @@ class _ArchiveCard extends StatelessWidget {
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
-      if (archive.createdAt != null) _date(archive.createdAt!),
+      if (archive.createdAt != null) formatDate(archive.createdAt!),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -689,8 +690,6 @@ class _ArchiveCard extends StatelessWidget {
     );
   }
 
-  String _date(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// Corner markers on a card's thumbnail for the media a print carries beyond

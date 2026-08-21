@@ -246,13 +246,3 @@ String fmtDuration(int seconds) {
   return '${seconds}s';
 }
 
-/// Parse `#RRGGBB`/`RRGGBB` to [Color]; null if invalid.
-Color? colorFromHex(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length != 6) return null;
-  final v = int.tryParse(h, radix: 16);
-  if (v == null) return null;
-  return Color(0xFF000000 | v);
-}

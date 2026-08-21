@@ -11,6 +11,8 @@ import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
+import '../common/format_bytes.dart';
+import '../common/format_datetime.dart';
 import '../common/sliver_search_bar.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
 
@@ -292,7 +294,7 @@ class _PrinterFileManagerScreenState
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    l10n.pfmStorageUsed(_formatBytes(_storage.usedBytes!)),
+                    l10n.pfmStorageUsed(formatBytes(_storage.usedBytes!)),
                     style: TextStyle(
                       fontFamily: DashTokens.fontMono,
                       fontSize: 11,
@@ -564,13 +566,11 @@ class _PrinterFileManagerScreenState
   }
 
   String _subtitle(PrinterFile file) {
-    final size = _formatBytes(file.size);
+    final size = formatBytes(file.size);
     final date = file.modifiedAt;
     if (date == null) return size;
     // Already local — [dateTimeFromJson] converts once, at parse time.
-    final d =
-        '${date.year}-${_two(date.month)}-${_two(date.day)} ${_two(date.hour)}:${_two(date.minute)}';
-    return '$size · $d';
+    return '$size · ${formatDateTime(date)}';
   }
 
   Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(
@@ -664,20 +664,6 @@ class _PrinterFileManagerScreenState
 
 enum _QuickTab { root, cache, models, timelapse }
 
-String _two(int v) => v.toString().padLeft(2, '0');
-
-/// Human-readable byte size (binary units), e.g. `833.8 KB`, `1.2 GB`.
-String _formatBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  var value = bytes / 1024;
-  var unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return '${value.toStringAsFixed(value >= 100 ? 0 : 1)} ${units[unit]}';
-}
 
 /// Rough icon by extension — matches the file types printers store.
 IconData _iconFor(String name) {

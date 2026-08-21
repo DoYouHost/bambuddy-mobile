@@ -9,6 +9,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/format_datetime.dart';
 import '../common/state_views.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
@@ -537,11 +538,6 @@ class _HistorySheet extends ConsumerWidget {
   }
 }
 
-/// Simple date format `YYYY-MM-DD HH:MM` (local) without intl dependency.
-String? _formatDate(DateTime? dt) {
-  if (dt == null) return null;
-  // Already local — [dateTimeFromJson] converts once, at parse time.
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
-}
+/// Local `YYYY-MM-DD HH:MM`, or null for a date the server never sent.
+String? _formatDate(DateTime? dt) => dt == null ? null : formatDateTime(dt);
 
