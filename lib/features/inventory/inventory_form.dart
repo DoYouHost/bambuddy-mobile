@@ -86,17 +86,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) {
-    final v = _c[key]!.text.trim();
-    return v.isEmpty ? null : v;
-  }
+  String? _trim(String key) => _trimmedField(_c, key);
 
-  /// Parses an integer-typed weight field with the same tolerance as its
-  /// validator (`double.tryParse`) — a plain `int.tryParse` would silently
-  /// drop a value like "1000.5" (passes validation as a valid number, but
-  /// isn't a valid int), sending `null` instead of a rounded weight.
-  int? _parseIntField(String key) =>
-      double.tryParse(_c[key]!.text.trim())?.round();
+  int? _parseIntField(String key) => _intField(_c, key);
 
   /// Measured weight is gross (filament + empty spool/core). After entering scale
   /// reading, calculate remaining filament: remaining = measured − empty spool weight.
@@ -736,10 +728,28 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
-/// underscores, while the form's controller keys are camelCase. The replacement
+/// underscores, while the controller keys are camelCase. The replacement
 /// callback lowercases each capital and puts an underscore in front of it.
-String _fieldTag(String key) =>
-    'spool_form.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+///
+/// [area] is the sheet the control lives on — the per-spool form or the
+/// mass-edit sheet, which name their fields identically.
+String _fieldTag(String key, {String area = 'spool_form'}) =>
+    '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// A trimmed field value, or null when the user left it blank. Blank means
+/// "unset" on both sheets: the form sends no key rather than an empty string,
+/// and the mass-edit patch leaves the field alone.
+String? _trimmedField(Map<String, TextEditingController> c, String key) {
+  final v = c[key]!.text.trim();
+  return v.isEmpty ? null : v;
+}
+
+/// An integer-typed field parsed with the same tolerance as its validator
+/// (`double.tryParse`) — a plain `int.tryParse` would silently drop a value
+/// like "1000.5" (passes validation as a valid number, but is not a valid
+/// int), sending `null` instead of a rounded weight.
+int? _intField(Map<String, TextEditingController> c, String key) =>
+    double.tryParse(c[key]!.text.trim())?.round();
 
 
 /// Color picker: large preview + popular swatches from database + search.

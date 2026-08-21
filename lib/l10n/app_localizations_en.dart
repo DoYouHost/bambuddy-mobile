@@ -2048,6 +2048,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return '$weight consumed';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Consumed since reset: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'of $total g';
   }
@@ -2206,6 +2216,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldInvalidNumber => 'Enter a number';
 
   @override
+  String inventoryFieldRange(int min, int max) {
+    return 'Enter a value from $min to $max';
+  }
+
+  @override
   String get inventorySectionBasics => 'Basics';
 
   @override
@@ -2286,7 +2301,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Reset usage to zero? The spool will count as full again.';
+      'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.';
 
   @override
   String get inventorySpoolCreated => 'Spool added';
@@ -2315,7 +2330,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventorySpoolRestored => 'Spool restored';
 
   @override
-  String get inventoryUsageReset => 'Usage reset';
+  String get inventoryUsageReset => 'Counter reset';
 
   @override
   String get inventorySaveFailed => 'Could not save spool';
@@ -2493,7 +2508,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'They will count as full again.';
+  String get inventoryBulkResetBody =>
+      'Their consumed-filament counters go back to zero. Remaining weights are not changed.';
 
   @override
   String inventoryBulkDone(int count) {
@@ -2510,6 +2526,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String inventoryBulkPartial(int ok, int failed) {
     return '$ok done, $failed failed';
   }
+
+  @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return '$ok done, $skipped already there';
+  }
+
+  @override
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed) {
+    return '$ok done, $skipped already there, $failed failed';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edit fields';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Edit $count $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Only the fields you fill in change. Leave the rest blank.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Unchanged';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Apply to $count $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Change $count $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: 'fields',
+      one: 'field',
+    );
+    return '$fields $_temp0 will be overwritten on every selected spool.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
+
+  @override
+  String get inventoryApply => 'Apply';
 
   @override
   String get inventoryLabelsTitle => 'Print spool labels';

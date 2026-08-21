@@ -7,12 +7,14 @@ import 'package:printing/printing.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
@@ -31,6 +33,7 @@ import '../common/dash_input.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
+import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
@@ -39,6 +42,7 @@ part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
+part 'inventory_bulk_edit.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -126,8 +130,9 @@ Future<void> showSpoolDetail(
 /// history, AMS slot, calibration) and management (CRUD, assignments). Data from
 /// [inventoryProvider] via the selected backend (native/Spoolman).
 ///
-/// Long-pressing a spool enters multi-select mode for bulk reset-usage /
-/// archive / restore / delete / label printing, mirroring the Archive tab.
+/// Long-pressing a spool enters multi-select mode for a mass edit of fields
+/// plus bulk reset-usage / archive / restore / delete / label printing,
+/// mirroring the Archive tab.
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -161,6 +166,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
+    final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final visible = _filter(
       async.valueOrNull?.spools ?? const [],
       query,
@@ -279,12 +285,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         itemCount: spools.length + 1,
                         itemBuilder: (context, i) {
                           if (i == 0) {
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                              child: Text(
-                                l10n.inventorySpoolCount(spools.length),
-                                style: t.monoLabel,
-                              ),
+                            return _ListHeader(
+                              visibleCount: spools.length,
+                              consumed: consumedTotal,
                             );
                           }
                           final spool = spools[i - 1];
@@ -315,6 +318,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Contextual app bar shown while spools are selected. Print and "select all"
   /// stay as icons (the two non-destructive, most-used actions); the rest live
   /// in an overflow menu so Delete can't be hit by a stray tap.
+  ///
   ///
   /// The list filter is exclusive (active XOR archived), so the whole selection
   /// is homogeneous and one archive/restore entry is always the right one.
@@ -355,12 +359,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
         PopupMenuButton<String>(
           onSelected: (v) => switch (v) {
+            'edit' => _bulkEdit(ids),
             'reset' => _bulkResetUsage(ids),
             'archive' => _bulkArchive(ids),
             'restore' => _bulkRestore(ids),
             _ => _bulkDelete(ids),
           },
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: logTag('inventory.bulk_edit',
+                  Text(l10n.inventoryBulkEdit)),
+            ),
             PopupMenuItem(
               value: 'reset',
               child: logTag('inventory.bulk_reset_usage',
@@ -399,8 +409,24 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     );
   }
 
+  /// Opens the mass-edit sheet. It reports its own refusals — the sheet stays
+  /// open so the typed values survive one — and pops with the tally only when
+  /// the edit actually went through.
+  Future<void> _bulkEdit(Set<int> ids) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome = await dashSurfaceSheet<BulkOutcome>(
+      context,
+      builder: (_) => _BulkEditSheet(spoolIds: ids),
+    );
+    if (outcome == null || !mounted) return;
+    _clearSelection();
+    messenger.snack(_bulkTally(l10n, outcome));
+  }
+
   Future<void> _bulkResetUsage(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_reset_usage',
     title: AppLocalizations.of(context).inventoryBulkResetTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkResetBody,
     confirmLabel: AppLocalizations.of(context).inventoryResetUsage,
@@ -409,6 +435,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkArchive(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_archive',
     title: AppLocalizations.of(context).inventoryBulkArchiveTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkArchiveBody,
     confirmLabel: AppLocalizations.of(context).inventoryArchive,
@@ -417,6 +444,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkRestore(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_restore',
     title: AppLocalizations.of(context).inventoryBulkRestoreTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkRestoreBody,
     confirmLabel: AppLocalizations.of(context).inventoryRestore,
@@ -425,6 +453,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkDelete(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_delete',
     title: AppLocalizations.of(context).inventoryBulkDeleteTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkDeleteBody,
     confirmLabel: AppLocalizations.of(context).inventoryDelete,
@@ -435,12 +464,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Confirm → run a bulk mutation → report the tally. Selection is cleared
   /// either way: the notifier has reloaded, so keeping stale ids around would
   /// only invite a second action on rows that may no longer exist.
+  ///
+  /// A refusal reaches here as an exception now that one request stands for the
+  /// whole selection — a key without `filaments:update` fails the batch outright
+  /// instead of failing every id in turn, and the tally has nothing to say
+  /// about why.
   Future<void> _runBulk(
     Set<int> ids, {
+    required String logId,
     required String title,
     required String message,
     required String confirmLabel,
-    required Future<({int ok, int failed})> Function(InventoryNotifier) action,
+    required Future<BulkOutcome> Function(InventoryNotifier) action,
     bool destructive = false,
   }) async {
     final l10n = AppLocalizations.of(context);
@@ -455,12 +490,41 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     if (!ok || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final res = await action(ref.read(inventoryProvider.notifier));
+    final BulkOutcome res;
+    try {
+      res = await action(ref.read(inventoryProvider.notifier));
+    } on AppApiException catch (e) {
+      if (mounted) _clearSelection();
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
+      return;
+    }
     if (!mounted) return;
     _clearSelection();
-    messenger.snack(res.failed == 0
-              ? l10n.inventoryBulkDone(res.ok)
-              : l10n.inventoryBulkPartial(res.ok, res.failed));
+    messenger.snack(_bulkTally(l10n, res));
+  }
+
+  /// One line for what a bulk call did. A spool that was already in the state
+  /// the user asked for is called out separately: it is not a failure — the
+  /// shelf ends up as intended — but "5 updated" would be a lie when two of
+  /// them were archived already.
+  ///
+  /// All three counts can be non-zero at once on a chunked selection, so they
+  /// are reported together rather than one winning over the others.
+  String _bulkTally(AppLocalizations l10n, BulkOutcome outcome) {
+    if (outcome.failed > 0 && outcome.skipped > 0) {
+      return l10n.inventoryBulkPartialSkipped(
+        outcome.ok,
+        outcome.skipped,
+        outcome.failed,
+      );
+    }
+    if (outcome.failed > 0) {
+      return l10n.inventoryBulkPartial(outcome.ok, outcome.failed);
+    }
+    if (outcome.skipped > 0) {
+      return l10n.inventoryBulkSkipped(outcome.ok, outcome.skipped);
+    }
+    return l10n.inventoryBulkDone(outcome.ok);
   }
 
   /// Client-side filter: status (active/archived), stock, material, brand, location,

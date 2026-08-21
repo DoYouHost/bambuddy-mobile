@@ -25,6 +25,7 @@ import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -175,6 +176,25 @@ void main() {
       expect(await source.fetchLocations(), contains('Dry box'));
     });
 
+    test('the consumed counter is a separate number from remaining', () async {
+      final spools = await source.fetchSpools();
+      // One demo spool has had its counter reset before, so the two numbers
+      // must not be reconstructible from each other.
+      final reset = spools.firstWhere((s) => s.weightUsedBaseline > 0);
+      expect(reset.consumedWeight, lessThan(reset.weightUsed));
+      expect(spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
+          greaterThan(0),
+          reason: 'the shelf total the list header shows');
+
+      // Resetting zeroes the counter and leaves the spool as empty as it was.
+      final target = spools.firstWhere((s) => s.consumedWeight > 0);
+      await source.resetUsage(target.id);
+      final after = (await source.fetchSpools())
+          .firstWhere((s) => s.id == target.id);
+      expect(after.consumedWeight, 0);
+      expect(after.remainingWeight, target.remainingWeight);
+    });
+
     test('spool CRUD round-trip', () async {
       const draft = SpoolDraft(
         material: 'PLA',
@@ -199,6 +219,72 @@ void main() {
       await source.deleteSpool(created.id);
       final after = await source.fetchSpools(includeArchived: true);
       expect(after.any((s) => s.id == created.id), isFalse);
+    });
+
+    test('bulk operations on a selection round-trip', () async {
+      // Spools of its own, deleted at the end, so the counts the first test
+      // asserts stay true whatever order the group runs in.
+      final ids = <int>[
+        for (var i = 0; i < 3; i++)
+          (await source.createSpool(
+            SpoolDraft(material: 'PLA', colorName: 'Bulk $i'),
+          )).id,
+      ];
+      const unknown = 999999;
+
+      final updated =
+          await source.bulkUpdate([...ids, unknown], const SpoolBulkPatch(
+        brand: 'Bulked',
+        note: 'mass edit',
+      ));
+      expect((updated.ok, updated.failed), (3, 1));
+      expect(updated.notFound, [unknown]);
+      final shelf = await source.fetchSpools(includeArchived: true);
+      final touched = shelf.where((s) => ids.contains(s.id));
+      expect(touched.every((s) => s.brand == 'Bulked'), isTrue);
+      expect(touched.every((s) => s.note == 'mass edit'), isTrue);
+
+      final archived = await source.bulkArchive(ids);
+      expect((archived.ok, archived.skipped), (3, 0));
+      // Asking twice is not a failure — the shelf already reads as intended.
+      final again = await source.bulkArchive(ids);
+      expect((again.ok, again.skipped, again.failed), (0, 3, 0));
+
+      final restored = await source.bulkRestore(ids);
+      expect((restored.ok, restored.skipped), (3, 0));
+
+      final reset = await source.bulkResetUsage([...ids, unknown]);
+      // The route answers with a count and nothing else, so the unknown id
+      // shows up only as the gap against what was asked for.
+      expect((reset.ok, reset.failed), (3, 1));
+
+      final deleted = await source.bulkDelete(ids);
+      expect((deleted.ok, deleted.failed), (3, 0));
+      final after = await source.fetchSpools(includeArchived: true);
+      expect(after.any((s) => ids.contains(s.id)), isFalse);
+    });
+
+    test('an empty selection and an empty edit are refused', () async {
+      // Posted raw: the source short-circuits both before they leave the
+      // phone, so going through it would assert the client guard and never
+      // reach the refusal these routes actually answer with.
+      Matcher rejects(int status) => throwsA(isA<DioException>()
+          .having((e) => e.response?.statusCode, 'status', status));
+
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-archive',
+          data: {'ids': <int>[]},
+        ),
+        rejects(400),
+      );
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-update',
+          data: {'ids': [1], 'update': <String, dynamic>{}},
+        ),
+        rejects(400),
+      );
     });
 
     // Last in the group on purpose: it registers a spool and pins it to a

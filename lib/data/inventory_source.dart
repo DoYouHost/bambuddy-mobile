@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
+import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/spool_label.dart';
@@ -95,8 +96,21 @@ abstract class SpoolInventorySource {
   Future<void> archiveSpool(int spoolId);
   Future<void> restoreSpool(int spoolId);
 
-  /// Resets spool usage (full again).
+  /// Resets the spool's "Total Consumed" counter. Remaining weight is
+  /// preserved and the weight lock is left alone, so the spool keeps taking
+  /// AMS auto-sync from the next print on.
   Future<void> resetUsage(int spoolId);
+
+  /// Bulk operations on a selection. Each returns what the server did, chunked
+  /// to the 500-id cap and summed. All of them throw with `statusCode == 404`
+  /// on a server older than the routes (0.2.5b1) — unknown ids are reported in
+  /// the body, never as a status, so the caller can read that 404 as "this
+  /// server has no bulk routes" and fall back to per-spool calls.
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch);
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds);
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds);
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds);
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds);
 
   /// Form reference data (core weight catalog, color database, filament profiles).
   /// Degrade to empty lists — form allows manual entry.
@@ -163,6 +177,106 @@ Future<Uint8List> _postLabels(
     );
   }
   return bytes;
+});
+
+/// A JSON object out of a response body, or null when the server answered with
+/// something else — the demo backend replies `{}` to unrouted POSTs and an old
+/// build could answer a bare list, and neither may crash a bulk tally.
+Map<String, dynamic>? _objectOf(Object? data) =>
+    data is Map ? data.cast<String, dynamic>() : null;
+
+/// Sends one request per chunk of the 500-id cap and sums what came back.
+///
+/// A refusal part-way through keeps what the earlier chunks already did: those
+/// rows are mutated on the server, and throwing here would report the whole
+/// selection as failed while hundreds of spools had in fact been archived. The
+/// ids from the failing chunk on are counted as failed, since none of them took
+/// effect.
+///
+/// With nothing accumulated yet the error propagates instead — that is the path
+/// carrying "no permission" to the user, and the 404 the caller reads as "this
+/// server has no bulk routes" before falling back to per-spool calls.
+Future<BulkOutcome> _postChunked(
+  List<int> ids,
+  Future<BulkOutcome> Function(List<int> chunk) send,
+) async {
+  var total = BulkOutcome.empty;
+  var done = 0;
+  for (final chunk in chunkIds(ids)) {
+    try {
+      total += await send(chunk);
+    } on Object {
+      if (done == 0) rethrow;
+      return total + BulkOutcome(failed: ids.length - done);
+    }
+    done += chunk.length;
+  }
+  return total;
+}
+
+/// The three `{ids: […]}` routes — archive, restore, delete. [okKey] and
+/// [skippedKey] name the counters this particular route answers with.
+Future<BulkOutcome> _postBulkIds(
+  Dio dio,
+  String path,
+  List<int> ids, {
+  required String okKey,
+  String? skippedKey,
+}) => _postChunked(ids, (chunk) => guard(() async {
+      final res = await dio.post<dynamic>(path, data: {'ids': chunk});
+      return BulkOutcome.fromJson(
+        _objectOf(res.data),
+        okKey: okKey,
+        skippedKey: skippedKey,
+      );
+    }));
+
+/// `bulk-update`. [update] is the backend's own serialization of the patch, so
+/// an edit that only touches native-only columns arrives here empty on
+/// Spoolman — nothing to apply, and the route answers 400 to an empty `update`,
+/// so it is not sent at all.
+Future<BulkOutcome> _postBulkUpdate(
+  Dio dio,
+  String path,
+  List<int> ids,
+  Map<String, dynamic> update,
+) async {
+  if (update.isEmpty) return BulkOutcome.empty;
+  return _postChunked(ids, (chunk) => guard(() async {
+        final res = await dio.post<dynamic>(
+          path,
+          data: {'ids': chunk, 'update': update},
+        );
+        return BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
+      }));
+}
+
+/// `reset-consumed-counter-bulk` — the one route keyed on `spool_ids` rather
+/// than `ids`, and the one that reports only a count.
+Future<BulkOutcome> _postBulkReset(Dio dio, String path, List<int> ids) =>
+    _postChunked(ids, (chunk) => guard(() async {
+          final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
+          return BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
+        }));
+
+/// POSTs [path], and on 404 posts [legacyPath] instead.
+///
+/// For a route the server renamed without leaving an alias: the two names never
+/// coexist, so a 404 on the current one identifies an older server rather than
+/// a missing spool. Written for `reset-consumed-counter`, which replaced
+/// `reset-usage` (server issue #1644) — the app has to keep working on both
+/// sides of that rename.
+Future<void> _postWithLegacyFallback(
+  Dio dio,
+  String path,
+  String legacyPath,
+) => guard(() async {
+  try {
+    await dio.post<dynamic>(path);
+  } on DioException catch (e) {
+    if (e.response?.statusCode != 404) rethrow;
+    await dio.post<dynamic>(legacyPath);
+  }
 });
 
 /// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
@@ -276,8 +390,53 @@ class NativeInventorySource implements SpoolInventorySource {
       guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolResetUsage(spoolId)));
+  Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
+        _dio,
+        Endpoints.inventorySpoolResetConsumedCounter(spoolId),
+        Endpoints.inventorySpoolResetUsage(spoolId),
+      );
+
+  @override
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
+      _postBulkUpdate(
+        _dio,
+        Endpoints.inventorySpoolsBulkUpdate,
+        spoolIds,
+        patch.toNativeJson(),
+      );
+
+  @override
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkArchive,
+        spoolIds,
+        okKey: 'archived',
+        skippedKey: 'already_archived',
+      );
+
+  @override
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkRestore,
+        spoolIds,
+        okKey: 'restored',
+        skippedKey: 'already_active',
+      );
+
+  @override
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkDelete,
+        spoolIds,
+        okKey: 'deleted',
+      );
+
+  @override
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
+        _dio,
+        Endpoints.inventorySpoolsResetConsumedCounterBulk,
+        spoolIds,
+      );
 
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async {
@@ -442,8 +601,57 @@ class SpoolmanInventorySource implements SpoolInventorySource {
       guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolResetUsage(spoolId)));
+  Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
+        _dio,
+        Endpoints.spoolmanSpoolResetConsumedCounter(spoolId),
+        Endpoints.spoolmanSpoolResetUsage(spoolId),
+      );
+
+  /// Spoolman's `update` is the narrower one: `category` and
+  /// `low_stock_threshold_pct` have no column there, so an edit that touches
+  /// only those reaches the backend as nothing to do.
+  @override
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
+      _postBulkUpdate(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkUpdate,
+        spoolIds,
+        patch.toSpoolmanJson(),
+      );
+
+  // No `skippedKey` on either of these: Spoolman re-issues the archive/restore
+  // call per spool and counts it as done whatever state the spool was in, so
+  // there is no already-in-state list to read.
+  @override
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkArchive,
+        spoolIds,
+        okKey: 'archived',
+      );
+
+  @override
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkRestore,
+        spoolIds,
+        okKey: 'restored',
+      );
+
+  @override
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkDelete,
+        spoolIds,
+        okKey: 'deleted',
+      );
+
+  @override
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
+        _dio,
+        Endpoints.spoolmanSpoolsResetConsumedCounterBulk,
+        spoolIds,
+      );
 
   // Reference data comes from native backend catalogs — on Spoolman, form uses
   // manual entry (empty lists).

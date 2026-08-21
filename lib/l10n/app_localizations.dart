@@ -3602,6 +3602,18 @@ abstract class AppLocalizations {
   /// **'{grams} g left'**
   String inventoryRemaining(String grams);
 
+  /// No description provided for @inventoryTotalConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} consumed'**
+  String inventoryTotalConsumed(String weight);
+
+  /// No description provided for @inventoryConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset: {weight}'**
+  String inventoryConsumedSinceReset(String weight);
+
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
@@ -3878,6 +3890,12 @@ abstract class AppLocalizations {
   /// **'Enter a number'**
   String get inventoryFieldInvalidNumber;
 
+  /// No description provided for @inventoryFieldRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {min} to {max}'**
+  String inventoryFieldRange(int min, int max);
+
   /// No description provided for @inventorySectionBasics.
   ///
   /// In en, this message translates to:
@@ -4031,7 +4049,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryResetUsageConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Reset usage to zero? The spool will count as full again.'**
+  /// **'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.'**
   String get inventoryResetUsageConfirm;
 
   /// No description provided for @inventorySpoolCreated.
@@ -4073,7 +4091,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryUsageReset.
   ///
   /// In en, this message translates to:
-  /// **'Usage reset'**
+  /// **'Counter reset'**
   String get inventoryUsageReset;
 
   /// No description provided for @inventorySaveFailed.
@@ -4337,7 +4355,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryBulkResetBody.
   ///
   /// In en, this message translates to:
-  /// **'They will count as full again.'**
+  /// **'Their consumed-filament counters go back to zero. Remaining weights are not changed.'**
   String get inventoryBulkResetBody;
 
   /// No description provided for @inventoryBulkDone.
@@ -4351,6 +4369,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{ok} done, {failed} failed'**
   String inventoryBulkPartial(int ok, int failed);
+
+  /// No description provided for @inventoryBulkSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there'**
+  String inventoryBulkSkipped(int ok, int skipped);
+
+  /// No description provided for @inventoryBulkPartialSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there, {failed} failed'**
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed);
+
+  /// No description provided for @inventoryBulkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit fields'**
+  String get inventoryBulkEdit;
+
+  /// No description provided for @inventoryBulkEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditTitle(int count);
+
+  /// No description provided for @inventoryBulkEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the fields you fill in change. Leave the rest blank.'**
+  String get inventoryBulkEditHint;
+
+  /// No description provided for @inventoryBulkEditUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchanged'**
+  String get inventoryBulkEditUnchanged;
+
+  /// No description provided for @inventoryBulkEditApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditApply(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkEditConfirmTitle(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{fields} {fields, plural, one{field} other{fields}} will be overwritten on every selected spool.'**
+  String inventoryBulkEditConfirmBody(int fields);
+
+  /// No description provided for @inventoryBulkEditUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.'**
+  String get inventoryBulkEditUnsupported;
+
+  /// No description provided for @inventoryApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get inventoryApply;
 
   /// No description provided for @inventoryLabelsTitle.
   ///

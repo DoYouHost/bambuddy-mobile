@@ -582,6 +582,36 @@ abstract final class Endpoints {
   /// `SpoolResponse[]`.
   static const inventorySpoolsBulk = '$apiPrefix/inventory/spools/bulk';
 
+  // --- Bulk operations on a selection (server 0.2.5b1 and newer) ---
+  //
+  // All `POST`, all take `{ids: [int]}` — capped at 500 server-side, so the
+  // client chunks — except [inventorySpoolsResetConsumedCounterBulk], whose key
+  // is `spool_ids`. An unknown id is reported in the response body, never as a
+  // 404, so a 404 here means one thing only: the server predates the routes.
+  // Response shapes differ per backend and are normalized in `BulkOutcome`.
+
+  /// Apply one partial `SpoolUpdate` to every listed spool. Body
+  /// `{ids: [int], update: {…}}`, response `{updated, not_found}`.
+  static const inventorySpoolsBulkUpdate =
+      '$apiPrefix/inventory/spools/bulk-update';
+
+  /// Response `{deleted, not_found}`.
+  static const inventorySpoolsBulkDelete =
+      '$apiPrefix/inventory/spools/bulk-delete';
+
+  /// Response `{archived, already_archived, not_found}`.
+  static const inventorySpoolsBulkArchive =
+      '$apiPrefix/inventory/spools/bulk-archive';
+
+  /// Response `{restored, already_active, not_found}`.
+  static const inventorySpoolsBulkRestore =
+      '$apiPrefix/inventory/spools/bulk-restore';
+
+  /// Body `{spool_ids: [int]}` (not `ids`), response `{reset}` — the count of
+  /// spools the server found, so it cannot report a partial failure.
+  static const inventorySpoolsResetConsumedCounterBulk =
+      '$apiPrefix/inventory/spools/reset-consumed-counter-bulk';
+
   /// Single spool: `GET` (details), `PATCH` (edit, body `SpoolUpdate`),
   /// `DELETE` (permanent deletion). Writes require permission on key (→ 403).
   static String inventorySpool(int spoolId) =>
@@ -595,7 +625,15 @@ abstract final class Endpoints {
   static String inventorySpoolRestore(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/restore';
 
-  /// Reset spool usage to zero (`POST`, no body).
+  /// Reset the "Total Consumed" counter (`POST`, no body). Stamps
+  /// `weight_used_baseline = weight_used`, so remaining is preserved and
+  /// `weight_locked` is left alone — the spool keeps taking AMS auto-sync.
+  static String inventorySpoolResetConsumedCounter(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/reset-consumed-counter';
+
+  /// The pre-0.2.5 name of [inventorySpoolResetConsumedCounter], kept for
+  /// servers older than the rename (issue #1644). Try the current path first
+  /// and fall back here on 404 — the two never coexist.
   static String inventorySpoolResetUsage(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/reset-usage';
 
@@ -658,8 +696,28 @@ abstract final class Endpoints {
       '$apiPrefix/spoolman/inventory/spools/$spoolId/archive';
   static String spoolmanSpoolRestore(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/restore';
+  static String spoolmanSpoolResetConsumedCounter(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-consumed-counter';
+
+  /// Pre-rename twin of [spoolmanSpoolResetConsumedCounter] — see
+  /// [inventorySpoolResetUsage].
   static String spoolmanSpoolResetUsage(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-usage';
+
+  /// Spoolman twins of the native bulk routes. Same request bodies; the
+  /// responses report per-spool failures as `{errors: [{id, status, detail}]}`
+  /// instead of native's `not_found` / `already_*` lists, because the backend
+  /// loops the per-spool proxy calls rather than one SQL statement.
+  static const spoolmanSpoolsBulkUpdate =
+      '$apiPrefix/spoolman/inventory/spools/bulk-update';
+  static const spoolmanSpoolsBulkDelete =
+      '$apiPrefix/spoolman/inventory/spools/bulk-delete';
+  static const spoolmanSpoolsBulkArchive =
+      '$apiPrefix/spoolman/inventory/spools/bulk-archive';
+  static const spoolmanSpoolsBulkRestore =
+      '$apiPrefix/spoolman/inventory/spools/bulk-restore';
+  static const spoolmanSpoolsResetConsumedCounterBulk =
+      '$apiPrefix/spoolman/inventory/spools/reset-consumed-counter-bulk';
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
 

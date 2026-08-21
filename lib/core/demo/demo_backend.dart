@@ -1786,6 +1786,7 @@ class DemoBackend {
       String? effect,
       String? archivedAt,
       int? lowStockPct,
+      double baseline = 0,
     }) =>
         {
           'id': id++,
@@ -1799,6 +1800,7 @@ class DemoBackend {
           'label_weight': label,
           'core_weight': 250,
           'weight_used': used,
+          'weight_used_baseline': baseline,
           'cost_per_kg': cost,
           'low_stock_threshold_pct': lowStockPct,
           'storage_location': location,
@@ -1821,8 +1823,11 @@ class DemoBackend {
       spool('PETG', 'Translucent', 'Teal', '0ACCB8FF', used: 80, cost: 29.99, location: 'Dry box'),
       spool('TPU', '95A', 'Green', '0ACC38FF',
           used: 445, cost: 34.99, location: 'Shelf B', lowStockPct: 20),
+      // The one spool whose counter has been reset before: consumed (405 g)
+      // reads lower than used (905 g), which is the split the reset action
+      // makes and the only way to see it without pressing the button.
       spool('PLA', 'Silk', 'Gold', 'D4AF37FF',
-          used: 905, effect: 'silk', location: 'Shelf A'),
+          used: 905, baseline: 500, effect: 'silk', location: 'Shelf A'),
       spool('ABS', null, 'Red', 'C12E1FFF',
           used: 380, archivedAt: _iso(_daysAgo(10))),
     ];
@@ -1888,6 +1893,12 @@ class DemoBackend {
               _createSpool(draft is Map<String, dynamic> ? draft : const {}),
           ]);
         }
+        // Before the id lookup below: `bulk-archive` and friends are siblings
+        // of `{spool_id}` in the path, and would otherwise be read as an id.
+        if (s.length == 3 && m == 'POST') {
+          final bulk = _bulkSpools(s[2], body);
+          if (bulk != null) return bulk;
+        }
         final spoolId = int.tryParse(s.length > 2 ? s[2] : '');
         final spool = _spools.where((x) => x['id'] == spoolId).firstOrNull;
         if (spool == null) return _notFound();
@@ -1911,8 +1922,14 @@ class DemoBackend {
             case 'restore':
               spool['archived_at'] = null;
               return _ok(spool);
-            case 'reset-usage':
-              spool['weight_used'] = 0.0;
+            // Stamps the baseline the "Total Consumed" display counts from,
+            // and leaves `weight_used` — so remaining does NOT jump back to
+            // the label weight. That is what the route does since it was
+            // renamed from `/reset-usage`, which zeroed the weight instead
+            // (server issue #1644); the old name is gone there, so it is gone
+            // here too and the app's fallback to it stays honest.
+            case 'reset-consumed-counter':
+              spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
               return _ok(spool);
             case 'usage':
               return _ok(_spoolUsage(spoolId!));
@@ -1963,6 +1980,112 @@ class DemoBackend {
         ]);
     }
     return _fallback(m);
+  }
+
+  /// The `/inventory/spools/bulk-*` routes plus `reset-consumed-counter-bulk`,
+  /// answering in the shapes the native backend answers in: a count, the ids it
+  /// could not find, and — for archive/restore — the ids that were already in
+  /// the state asked for. Returns null for a path segment that is not one of
+  /// them, so the caller can go on reading it as a spool id.
+  ///
+  /// The refusals are copied deliberately, like [_createSpoolFromSlot]'s: an
+  /// empty selection and an empty patch are both 400 on the server, and a demo
+  /// that accepted them would leave the app's wording for them untried.
+  DemoResult? _bulkSpools(String action, Map<String, dynamic> body) {
+    // `reset-consumed-counter-bulk` is the one route keyed on `spool_ids`.
+    final isReset = action == 'reset-consumed-counter-bulk';
+    if (!isReset && !const {
+      'bulk-update',
+      'bulk-delete',
+      'bulk-archive',
+      'bulk-restore',
+    }.contains(action)) {
+      return null;
+    }
+
+    final key = isReset ? 'spool_ids' : 'ids';
+    final ids = [
+      for (final raw in body[key] as List? ?? const [])
+        if (raw is num) raw.toInt(),
+    ];
+    if (ids.isEmpty) {
+      return (status: 400, body: {'detail': '$key must be a non-empty list'});
+    }
+    if (ids.length > 500) {
+      return (
+        status: 422,
+        body: {'detail': '$key accepts at most 500 entries'},
+      );
+    }
+
+    final found = [
+      for (final id in ids)
+        ?_spools.where((x) => x['id'] == id).firstOrNull,
+    ];
+    final foundIds = {for (final spool in found) spool['id']};
+    final notFound = [
+      for (final id in ids)
+        if (!foundIds.contains(id)) id,
+    ];
+
+    switch (action) {
+      case 'bulk-update':
+        final update = body['update'];
+        if (update is! Map || update.isEmpty) {
+          return (
+            status: 400,
+            body: {'detail': 'update must include at least one field'},
+          );
+        }
+        for (final spool in found) {
+          update.forEach((k, v) => spool['$k'] = v);
+        }
+        return _ok({'updated': found.length, 'not_found': notFound});
+
+      case 'bulk-delete':
+        for (final spool in found) {
+          _spools.remove(spool);
+          _assignments.removeWhere((a) => a['spool_id'] == spool['id']);
+        }
+        return _ok({'deleted': found.length, 'not_found': notFound});
+
+      case 'bulk-archive':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] != null) spool['id'],
+        ];
+        final now = _iso(DateTime.now());
+        for (final spool in found) {
+          spool['archived_at'] ??= now;
+        }
+        return _ok({
+          'archived': found.length - already.length,
+          'already_archived': already,
+          'not_found': notFound,
+        });
+
+      case 'bulk-restore':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] == null) spool['id'],
+        ];
+        for (final spool in found) {
+          spool['archived_at'] = null;
+        }
+        return _ok({
+          'restored': found.length - already.length,
+          'already_active': already,
+          'not_found': notFound,
+        });
+
+      default:
+        // Reset counts the rows it found and reports nothing else, exactly as
+        // the server does — the app reads the gap against what it asked for.
+        for (final spool in found) {
+          spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
+        }
+        return _ok({'reset': found.length});
+    }
   }
 
   /// `POST /inventory/spools/from-slot` — registers what the AMS reports in one

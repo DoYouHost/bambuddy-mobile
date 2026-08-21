@@ -57,6 +57,7 @@ class Spool {
     this.brand,
     this.labelWeight = 0,
     this.weightUsed = 0,
+    this.weightUsedBaseline = 0,
     this.coreWeight = 250,
     this.coreWeightCatalogId,
     this.lastScaleWeight,
@@ -90,6 +91,7 @@ class Spool {
         brand: toStringOrNull(json['brand']),
         labelWeight: toIntOrNull(json['label_weight']) ?? 0,
         weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
+        weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
         coreWeight: toIntOrNull(json['core_weight']) ?? 250,
         coreWeightCatalogId: toIntOrNull(json['core_weight_catalog_id']),
         lastScaleWeight: toIntOrNull(json['last_scale_weight']),
@@ -129,6 +131,10 @@ class Spool {
           toIntOrNull(fil['weight']) ??
           0,
       weightUsed: toDoubleOrNull(json['weight_used']) ?? toDoubleOrNull(json['used_weight']) ?? 0,
+      // Spoolman has no such column: the backend derives the baseline from its
+      // `used_weight` vs `remaining_weight` pair and hands it over under the
+      // native name (`routes/_spoolman_helpers.py::_map_spoolman_spool`).
+      weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
       costPerKg: toDoubleOrNull(json['cost_per_kg']) ?? toDoubleOrNull(fil['price']),
       lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
       storageLocation: toStringOrNull(json['storage_location']) ?? toStringOrNull(json['location']),
@@ -161,6 +167,11 @@ class Spool {
 
   /// Used filament [g].
   final double weightUsed;
+
+  /// Where the resettable consumption counter starts from [g]. Stamped equal to
+  /// [weightUsed] by the reset action, which is why resetting the counter does
+  /// not give the spool its remaining weight back.
+  final double weightUsedBaseline;
 
   /// Empty spool/core weight [g] (`core_weight`).
   final int coreWeight;
@@ -201,6 +212,18 @@ class Spool {
   double get remainingWeight {
     final r = labelWeight - weightUsed;
     return r < 0 ? 0 : r;
+  }
+
+  /// Filament consumed since the counter was last reset [g].
+  ///
+  /// The resettable counter, not lifetime use: `weight_used` keeps climbing
+  /// while the reset action moves [weightUsedBaseline] up to meet it. It is
+  /// therefore independent of [remainingWeight] — resetting this to zero leaves
+  /// the spool as empty as it was, which is the whole point of the split
+  /// (server issue #1390).
+  double get consumedWeight {
+    final c = weightUsed - weightUsedBaseline;
+    return c < 0 ? 0 : c;
   }
 
   /// Remaining filament fraction (0..1); null if label weight unknown.

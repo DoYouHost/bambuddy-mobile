@@ -2080,6 +2080,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return 'zużyto $weight';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Zużyte od resetu: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'z $total g';
   }
@@ -2240,6 +2250,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldInvalidNumber => 'Podaj liczbę';
 
   @override
+  String inventoryFieldRange(int min, int max) {
+    return 'Podaj wartość od $min do $max';
+  }
+
+  @override
   String get inventorySectionBasics => 'Podstawy';
 
   @override
@@ -2320,7 +2335,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Wyzerować zużycie? Szpula znów będzie liczona jako pełna.';
+      'Wyzerować licznik zużytego filamentu? Kolejne wydruki znów będą liczone od zera — pozostała waga zostaje bez zmian.';
 
   @override
   String get inventorySpoolCreated => 'Dodano szpulę';
@@ -2351,7 +2366,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySpoolRestored => 'Przywrócono szpulę';
 
   @override
-  String get inventoryUsageReset => 'Wyzerowano zużycie';
+  String get inventoryUsageReset => 'Wyzerowano licznik';
 
   @override
   String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
@@ -2532,7 +2547,8 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'Będą liczone jako pełne.';
+  String get inventoryBulkResetBody =>
+      'Ich liczniki zużytego filamentu wrócą do zera. Pozostałe wagi zostają bez zmian.';
 
   @override
   String inventoryBulkDone(int count) {
@@ -2543,6 +2559,79 @@ class AppLocalizationsPl extends AppLocalizations {
   String inventoryBulkPartial(int ok, int failed) {
     return 'Udało się: $ok, błędów: $failed';
   }
+
+  @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return 'Udało się: $ok, już tak było: $skipped';
+  }
+
+  @override
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed) {
+    return 'Udało się: $ok, już tak było: $skipped, błędów: $failed';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edytuj pola';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Edycja $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Zmieniają się tylko pola, które wypełnisz. Reszta zostaje bez zmian.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Bez zmian';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Zastosuj do $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Zmienić $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: '$fields pól',
+      few: '$fields pola',
+      one: 'Jedno pole',
+    );
+    return '$_temp0 zostanie nadpisane w każdej wybranej szpuli.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'Ten serwer jest za stary na edycję masową. Zaktualizuj bambuddy albo edytuj szpule pojedynczo.';
+
+  @override
+  String get inventoryApply => 'Zastosuj';
 
   @override
   String get inventoryLabelsTitle => 'Drukuj etykiety szpul';

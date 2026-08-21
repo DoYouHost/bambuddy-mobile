@@ -1,5 +1,48 @@
 part of 'inventory_screen.dart';
 
+/// The line above the shelf: how many spools the filters let through, and how
+/// much filament has been consumed since the counters were last reset.
+///
+/// The two numbers count different things on purpose. [visibleCount] is what
+/// the user is looking at, filters and search included; [consumed] comes from
+/// [inventoryConsumedTotalProvider] and covers the whole shelf, archived spools
+/// included.
+class _ListHeader extends StatelessWidget {
+  const _ListHeader({required this.visibleCount, required this.consumed});
+
+  final int visibleCount;
+  final double consumed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.inventorySpoolCount(visibleCount),
+              style: t.monoLabel,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (consumed > 0) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.trending_down, size: 13, color: t.textTertiary),
+            const SizedBox(width: 4),
+            Text(
+              l10n.inventoryTotalConsumed(fmtGrams(consumed)),
+              style: t.monoLabel,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SpoolTile extends StatelessWidget {
   const _SpoolTile({
     required this.spool,
@@ -32,24 +75,37 @@ class _SpoolTile extends StatelessWidget {
     final low = spool.isLowStock && !spool.isArchived;
     final fillColor = low ? t.danger : t.accentGreen;
 
+    // The weight line takes the leftover space and the slot label keeps its
+    // natural width, right-aligned by that.
+    //
+    // NOT a `Spacer` between the two: the weight text was unconstrained, so it
+    // took whatever it wanted first, and the Spacer — a flex child itself —
+    // then halved what was left with the label. The label got 50% of the
+    // remainder at best and nothing at all once the weight text filled the row:
+    // "AMS0 ·…", or no slot at all. Which half gives way is decided here
+    // instead, and it is the weight line: it ends in `/ 1000g`, which the
+    // progress bar above already shows, while the slot is what the reader
+    // came for.
     final metaLine = Row(
       children: [
-        Text(
-          '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
-          '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
-          style: t.monoLabel,
+        Expanded(
+          child: Text(
+            '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
+            '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
+          ),
         ),
         if (assignment != null) ...[
-          const Spacer(),
+          const SizedBox(width: 8),
           Icon(Icons.print_outlined, size: 12, color: t.textTertiary),
           const SizedBox(width: 3),
-          Flexible(
-            child: Text(
-              assignmentSlotLabel(l10n, assignment!),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.monoLabel,
-            ),
+          Text(
+            assignmentSlotLabel(l10n, assignment!),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.monoLabel,
           ),
         ],
       ],
@@ -408,6 +464,16 @@ class _SpoolDetailSheet extends ConsumerWidget {
                         icon: Icons.place_outlined,
                         label:
                             '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                      ),
+                    // The counter the reset action resets. Without it on screen
+                    // that action had nothing to show for itself: it moves the
+                    // baseline, never the remaining weight above.
+                    if (spool.consumedWeight > 0)
+                      _DetailRow(
+                        icon: Icons.trending_down,
+                        label: l10n.inventoryConsumedSinceReset(
+                          fmtGrams(spool.consumedWeight),
+                        ),
                       ),
                     if (spool.costPerKg != null)
                       _DetailRow(
