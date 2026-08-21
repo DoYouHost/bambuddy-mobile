@@ -12,11 +12,16 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
+import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
@@ -229,18 +234,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return granted;
     if (!granted) {
       if (manual) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsBlocked)),
-        );
+        messenger.snack(l10n.notificationsBlocked);
       }
       return false;
     }
     final battery = BatteryOptimization();
     if (await battery.isIgnoring()) {
       if (manual && mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsReady)),
-        );
+        messenger.snack(l10n.notificationsReady);
       }
       return true;
     }
@@ -260,8 +261,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Notification menu: background monitoring toggle + re-onboard
   /// (permission/battery). Opened from bell icon.
   void _openNotificationMenu(BuildContext context, AppLocalizations l10n) {
-    showModalBottomSheet<void>(
-      context: context,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -321,11 +323,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // takes effect at next background transition (FGS not needed in foreground).
     if (!enabled) await ref.read(backgroundMonitorProvider).stop();
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff),
-      ),
-    );
+    messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }
 
   @override
@@ -343,7 +341,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (expired) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.sessionExpired)));
+        ).snack(l10n.sessionExpired);
         context.go('/setup');
       }
     });
@@ -382,13 +380,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             leading: logTag('chrome.drawer', const DrawerButton()),
             title: Text(
               l10n.printersTitle,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: t.textPrimary,
-              ),
+              style: t.displayLg.copyWith(letterSpacing: -0.5),
             ),
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
@@ -422,11 +414,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         profile!.label!,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11.5,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                     ),
                   ),
@@ -463,7 +451,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AppLocalizations l10n,
   ) {
     if (state.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashLoading();
     }
 
     // Initial load failed — nothing to show but error.
@@ -660,13 +648,7 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: TextStyle(
-                                    fontFamily: DashTokens.fontUi,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.2,
-                                    color: t.textPrimary,
-                                  ),
+                                  style: t.display.copyWith(letterSpacing: 0.2),
                                 ),
                                 const SizedBox(height: 4),
                                 _ProfileChip(label: profileLabel),
@@ -810,11 +792,7 @@ class _AppDrawer extends ConsumerWidget {
                       snap.hasData
                           ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
                           : 'Bambuddy',
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        color: t.textTertiary,
-                      ),
+                      style: t.labelSoft,
                     ),
                   ),
                 ],
@@ -878,12 +856,7 @@ class _ProfileChip extends StatelessWidget {
               label!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
         ],
@@ -941,12 +914,7 @@ class _DrawerTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.bodyStrong,
                     ),
                   ),
                   Icon(
@@ -1039,8 +1007,11 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _FilterButton(
+                          FilterButton(
                             count: filterCount,
+                            tooltip: AppLocalizations.of(context)
+                                .dashboardFilters,
+                            id: 'dashboard.filters',
                             onTap: onOpenFilters,
                           ),
                         ],
@@ -1076,57 +1047,6 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.hasSearch != hasSearch ||
       old.hint != hint ||
       old.filterCount != filterCount;
-}
-
-/// Square button opening the dashboard filter sheet; a badge shows the count of
-/// active filters. Mirrors the inventory screen's filter button.
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final active = count > 0;
-    return Tooltip(
-      message: l10n.dashboardFilters,
-      child: Badge(
-        isLabelVisible: active,
-        label: Text('$count'),
-        backgroundColor: t.accentGreen,
-        textColor: const Color(0xFF08150D),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Material(
-            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: active
-                        ? t.accentGreen.withValues(alpha: 0.4)
-                        : t.subCardBorder,
-                  ),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: active ? t.accentGreenInk : t.textSecondary,
-                ),
-              ),
-            ).tagged('dashboard.filters'),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Opaque backdrop for the pinned header. A flat color can't match the screen's
@@ -1278,12 +1198,7 @@ class _SummaryHeader extends ConsumerWidget {
             active.isEmpty
                 ? l10n.noActivePrints
                 : l10n.printingCount(active.length),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: active.isEmpty ? t.textSecondary : t.textPrimary,
-            ),
+            style: t.body.copyWith(color: active.isEmpty ? t.textSecondary : t.textPrimary),
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
@@ -1305,11 +1220,7 @@ class _SummaryHeader extends ConsumerWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    color: t.textSecondary,
-                  ),
+                  style: t.labelSoft.copyWith(color: t.textSecondary),
                 ),
               ),
             ),
@@ -1325,13 +1236,7 @@ class _SummaryHeader extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    style: t.monoValue.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ],
               ),

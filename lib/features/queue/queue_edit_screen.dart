@@ -10,15 +10,18 @@ import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/queue_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
+import '../common/format_datetime.dart';
 import '../common/print_thumbnail.dart';
 import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
-import '../stats/stats_common.dart' show colorFromHex;
+import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
 import 'queue_providers.dart';
 
@@ -246,11 +249,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           Expanded(
             child: Text(
               l10n.queueEditGcodeInjectionNoSnippet(model),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ),
         ],
@@ -330,24 +329,14 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             children: [
               Text(
                 l10n.queueEditPrintJob,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: t.textTertiary,
-                ),
+                style: t.micro,
               ),
               const SizedBox(height: 2),
               Text(
                 it.displayName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.titleMd,
               ),
             ],
           ),
@@ -414,8 +403,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Widget _printerList(AppLocalizations l10n, DashTokens t, List printers) {
     if (printers.isEmpty) {
       return Text(l10n.queueNoFreePrinters,
-          style: TextStyle(
-              fontFamily: DashTokens.fontUi, color: t.textTertiary, fontSize: 13));
+          style: t.bodyPlain.copyWith(color: t.textTertiary));
     }
     return Column(
       children: [
@@ -533,12 +521,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                       : (mapped > 0
                           ? l10n.queueEditMappingSummary(mapped)
                           : l10n.queueEditMappingAuto),
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
               ),
               if (printerId != null)
@@ -609,21 +592,13 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Text(
             l10n.queueEditFilamentOverrideDesc,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 12),
           if (reqs.isEmpty)
             Text(
               l10n.queueEditNoFilamentReqs,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textTertiary,
-              ),
+              style: t.bodyPlain.copyWith(color: t.textTertiary),
             )
           else
             for (final r in reqs) _overrideRow(l10n, t, r, available),
@@ -722,12 +697,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     return entries.isEmpty ? null : entries;
   }
 
-  /// Parse a `#RRGGBB(AA)` hex to a swatch colour (alpha stripped for display).
-  Color? _swatch(String hex) {
-    if (hex.isEmpty) return null;
-    final h = hex.startsWith('#') ? hex.substring(1) : hex;
-    return colorFromHex('#${h.length >= 6 ? h.substring(0, 6) : h}');
-  }
+  Color? _swatch(String hex) => colorFromHex(hex);
 
   // --- Print options ---
   Widget _printOptionsSection(AppLocalizations l10n, DashTokens t) {
@@ -794,11 +764,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         children: [
           Text(
             l10n.queueEditPreheatDesc,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 12),
           _SegToggle<String>(
@@ -816,12 +782,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               controller: _chamberTarget,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(
                 t,
                 labelText: l10n.queueEditChamberTarget,
@@ -904,7 +865,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
 
   Widget _scheduleTimeRow(AppLocalizations l10n, DashTokens t) {
     final label =
-        _scheduledTime == null ? l10n.queueEditPickTime : _fmtDateTime(_scheduledTime!);
+        _scheduledTime == null ? l10n.queueEditPickTime : formatDateTime(_scheduledTime!);
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
@@ -912,12 +873,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.monoValue,
           ),
         ),
         OutlinedButton(
@@ -953,10 +909,6 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     });
   }
 
-  String _fmtDateTime(DateTime d) =>
-      '${d.year}-${_two(d.month)}-${_two(d.day)} ${_two(d.hour)}:${_two(d.minute)}';
-  String _two(int n) => n.toString().padLeft(2, '0');
-
   // --- Save ---
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
@@ -964,11 +916,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     final navigator = Navigator.of(context);
 
     if (_modelMode && (_targetModel == null || _targetModel!.isEmpty)) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoModel)));
+      messenger.snack(l10n.queueEditNoModel);
       return;
     }
     if (!_modelMode && _printerId == null) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.queueEditNoPrinter)));
+      messenger.snack(l10n.queueEditNoPrinter);
       return;
     }
 
@@ -990,9 +942,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     final ok = widget._isCreate ? l10n.queueCreateAdded : l10n.queueEditSaved;
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? ok),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? ok);
     // Create pops `true` — its caller (a list of archives or files) refreshes
     // what it shows only when something was really added.
     if (result.isOk) navigator.pop(widget._isCreate);
@@ -1200,13 +1150,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-              color: t.textSecondary,
-            ),
+            style: t.bodyBold.copyWith(letterSpacing: 0.2),
           ),
           const SizedBox(height: 12),
           child,
@@ -1280,12 +1224,7 @@ class _SegToggle<T> extends StatelessWidget {
                   seg.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isSel ? _onGreenFill : t.textPrimary,
-                  ),
+                  style: t.bodyBold.copyWith(color: isSel ? _onGreenFill : t.textPrimary),
                 ),
               ),
             ],
@@ -1344,21 +1283,12 @@ class _CalibrationRow extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           const SizedBox(height: 2),
           Text(
             subtitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              color: t.textTertiary,
-            ),
+            style: t.labelSoft,
           ),
           const SizedBox(height: 8),
           _SegToggle<CalibrationOption>(
@@ -1406,21 +1336,12 @@ class _OptionSwitch extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleSm,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    color: t.textTertiary,
-                  ),
+                  style: t.labelSoft,
                 ),
               ],
             ),
@@ -1478,12 +1399,7 @@ class _CheckRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.body,
               ),
             ),
           ],
@@ -1604,22 +1520,12 @@ class _Dropdown<T> extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textTertiary,
-                      ),
+                      style: t.micro,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       text,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleSm,
                     ),
                   ],
                 ),
@@ -1698,21 +1604,12 @@ class _SelectableTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       if (subtitle.isNotEmpty)
                         Text(
                           subtitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11.5,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoMicro,
                         ),
                     ],
                   ),

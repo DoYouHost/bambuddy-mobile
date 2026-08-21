@@ -109,13 +109,7 @@ class _GaugeTile extends ConsumerWidget {
         Flexible(
           child: Text(
             reading.label(l10n).toUpperCase(),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-              color: t.textSecondary,
-            ),
+            style: t.micro.copyWith(color: t.textSecondary, letterSpacing: 0.3),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -177,13 +171,7 @@ class _GaugeTile extends ConsumerWidget {
                   ],
                   Text(
                     actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      height: 1.0,
-                      color: t.textPrimary,
-                    ),
+                    style: t.monoDisplay.copyWith(height: 1.0),
                   ),
                 ],
               ),
@@ -213,10 +201,8 @@ class _GaugeTile extends ConsumerWidget {
   }
 
   void _openSheet(BuildContext context, int initialTarget) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _TempControlSheet(
         printerId: printerId,
         reading: reading,
@@ -327,13 +313,7 @@ class _StateChip extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-          color: fg,
-        ),
+        style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
       ),
     );
   }
@@ -590,9 +570,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -608,9 +586,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure != null) {
       setState(() => _airductHeating = previous); // revert on failure
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(failure)));
+      messenger.snack(failure, clearQueue: true);
     }
   }
 
@@ -627,11 +603,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure == null) return; // keep locked until live confirms
     setState(() => _switchingTo = null); // command failed — release the lock
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(failure),
-      ));
+    messenger.snack(failure, clearQueue: true);
   }
 
   /// Active-extruder control shown in the nozzle sheet on dual-head printers:
@@ -653,12 +625,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
             const SizedBox(width: 6),
             Text(
               l10n.ctrlNozzleActive,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: t.accentGreenInk,
-              ),
+              style: t.label.copyWith(color: t.accentGreenInk),
             ),
           ],
         )
@@ -682,23 +649,14 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const DashSpinner(size: 16)
                     : Icon(Icons.swap_horiz,
                         size: 16,
                         color: enabled ? t.textPrimary : t.textTertiary),
                 const SizedBox(width: 6),
                 Text(
                   l10n.ctrlActivate,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: enabled ? t.textPrimary : t.textTertiary,
-                  ),
+                  style: t.bodyBold.copyWith(color: enabled ? t.textPrimary : t.textTertiary),
                 ),
               ],
             ),
@@ -770,21 +728,15 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                     children: [
                       Text(
                         _reading.label(l10n),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleLg,
                       ),
                       const Spacer(),
                       Text(
                         _reading.actual == null
                             ? '—'
                             : '${_reading.actual!.toStringAsFixed(0)}°',
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 16,
+                        style: t.monoTitle.copyWith(
+                          fontWeight: FontWeight.w400,
                           color: t.textSecondary,
                         ),
                       ),
@@ -954,12 +906,7 @@ class _PresetChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: fg,
-            ),
+            style: t.monoValue.copyWith(color: fg),
           ),
         ),
       ).tagged(id),
@@ -1023,12 +970,7 @@ class _AirductToggle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           l10n.ctrlAirduct,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.body.copyWith(color: t.textSecondary),
         ),
         const Spacer(),
         SegmentedButton<bool>(
@@ -1096,19 +1038,10 @@ class _SheetButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner()
               : Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                  ),
+                  style: t.titleSm.copyWith(color: fg),
                 ),
         ),
       ).tagged(id),

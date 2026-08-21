@@ -9,12 +9,16 @@ import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -152,17 +156,10 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                   label: Text(l10n.queueStartNext),
                 ),
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () => ref.read(queueProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(queueProvider.notifier).refresh(),
           data: (items) => RefreshIndicator(
             onRefresh: () => ref.read(queueProvider.notifier).refresh(),
             child: items.isEmpty
@@ -357,12 +354,7 @@ class _QueueCard extends ConsumerWidget {
                     item.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                    ),
+                    style: t.titleMd,
                   ),
                   const SizedBox(height: 6),
                   _Subtitle(item: item),
@@ -449,12 +441,7 @@ class _Subtitle extends StatelessWidget {
               parts.join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ),
       ],
@@ -498,13 +485,7 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: accent,
-        ),
+        style: t.micro.copyWith(color: accent, letterSpacing: 0.2),
       ),
     );
   }
@@ -554,8 +535,7 @@ class _QueueActions extends ConsumerWidget {
                 item: item, printerId: printerId, confirmLabel: l10n.fmSave);
             if (mapping == null) return;
             final r = await notifier.saveMapping(item.id, mapping);
-            messenger.showSnackBar(SnackBar(
-                content: Text(r.messageFor(l10n) ?? l10n.mappingSaved)));
+            messenger.snack(r.messageFor(l10n) ?? l10n.mappingSaved);
             return;
           }
 
@@ -691,8 +671,7 @@ Future<void> _startQueueItem(
   final result = await ref
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
-  messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.queuePrintStarted)));
+  messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
 }
 
 /// Whether [printerId] still has a finished job on the plate AND the scheduler
@@ -734,12 +713,12 @@ Future<Printer?> _pickQueuePrinter(
   }
   if (!context.mounted) return null;
   if (candidates.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.queueNoFreePrinters)));
+    messenger.snack(l10n.queueNoFreePrinters);
     return null;
   }
-  return showModalBottomSheet<Printer>(
-    context: context,
-    showDragHandle: true,
+  return dashSheet<Printer>(
+    context,
+    scrollControlled: false,
     builder: (ctx) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -769,5 +748,5 @@ void _snackForResult(
 ) {
   final text = result.messageFor(l10n);
   if (text == null) return;
-  messenger.showSnackBar(SnackBar(content: Text(text)));
+  messenger.snack(text);
 }

@@ -10,6 +10,8 @@ import '../../core/slicer/process_settings_codec.dart';
 import '../../core/slicer/process_toggle_rules.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_input.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import 'slice_providers.dart';
 
@@ -114,7 +116,7 @@ class _ProcessSettingsScreenState extends ConsumerState<ProcessSettingsScreen> {
         actions: [if (ready) _revertAllAction(catalog, presetValues.value)],
       ),
       body: !ready
-          ? const Center(child: CircularProgressIndicator())
+          ? const DashLoading()
           : presetValues.value == null
               ? _unavailable(l10n)
               : _body(catalog, presetValues.value!),
@@ -601,16 +603,15 @@ class _OptionRow extends StatelessWidget {
           ),
         );
 
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'process_settings.option_filament',
       // Keyed by the selection for the reason spelled out in [_enumControl].
-      key: ValueKey(current),
+      fieldKey: ValueKey(current),
       initialSelection: current,
       enabled: enabled,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
       onSelected: (selected) => onChanged(selected),
-      dropdownMenuEntries: [
+      entries: [
         entry('0', l10n.processSettingsFilamentDefault),
         for (final slot in filamentSlots)
           entry('${slot.slot}', slotLabel(slot), dim: slot.unused),
@@ -618,7 +619,7 @@ class _OptionRow extends StatelessWidget {
           entry(missing, l10n.processSettingsFilamentSlotMissing(missing),
               dim: true),
       ],
-    ).tagged('process_settings.option_filament');
+    );
   }
 
   /// M3 [DropdownMenu] rather than `DropdownButtonFormField`: the latter uses the
@@ -629,20 +630,19 @@ class _OptionRow extends StatelessWidget {
     final current = value?.toString() ??
         baselineForDisplay(option, presetValue);
     final selectable = values.contains(current);
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'process_settings.option_enum',
       // Keyed by the selection so `initialSelection` always takes effect.
       // `DropdownMenu` re-applies it on update only when the value matches an
       // entry, so a preset holding a value the vendored schema does not declare
       // would keep displaying the last pick after a revert — showing a setting
       // the slice is not going to use.
-      key: ValueKey(selectable ? current : null),
+      fieldKey: ValueKey(selectable ? current : null),
       initialSelection: selectable ? current : null,
       enabled: enabled,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
       onSelected: (selected) => onChanged(selected),
-      dropdownMenuEntries: [
+      entries: [
         for (var i = 0; i < values.length; i++)
           if ((labels != null && i < labels.length) ? labels[i] : values[i]
               case final text)
@@ -657,7 +657,7 @@ class _OptionRow extends StatelessWidget {
                   logTag('process_settings.option_enum_value', Text(text)),
             ),
       ],
-    ).tagged('process_settings.option_enum');
+    );
   }
 
   Widget _textControl(BuildContext context, AppLocalizations l10n) {

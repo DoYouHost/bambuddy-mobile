@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Pieces shared by the two sensor-history sheets (AMS units and printer
 /// heaters), which differ only in the series they plot.
 
@@ -80,3 +82,12 @@ class HistoryStat extends StatelessWidget {
     );
   }
 }
+
+/// Label of a history window in the range picker. The four values are the ones
+/// the sheets offer; anything else reads as the 24 h default.
+String sensorRangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
+      6 => l10n.sensorHistoryRange6h,
+      48 => l10n.sensorHistoryRange48h,
+      168 => l10n.sensorHistoryRange7d,
+      _ => l10n.sensorHistoryRange24h,
+    };

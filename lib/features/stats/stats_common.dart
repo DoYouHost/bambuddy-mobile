@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'stats_computed.dart';
@@ -58,12 +59,7 @@ class SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleSm,
                 ),
               ),
               ?trailing,
@@ -131,12 +127,7 @@ class RingGauge extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: t.textPrimary,
-            ),
+            style: t.display,
           ),
         ),
       ),
@@ -207,12 +198,7 @@ class LegendDot extends StatelessWidget {
           child: Text(
             text,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.label.copyWith(color: t.textSecondary),
           ),
         ),
       ],
@@ -246,13 +232,3 @@ String fmtDuration(int seconds) {
   return '${seconds}s';
 }
 
-/// Parse `#RRGGBB`/`RRGGBB` to [Color]; null if invalid.
-Color? colorFromHex(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length != 6) return null;
-  final v = int.tryParse(h, radix: 16);
-  if (v == null) return null;
-  return Color(0xFF000000 | v);
-}

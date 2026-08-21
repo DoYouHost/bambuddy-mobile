@@ -3,14 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/api_key.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
@@ -49,17 +50,10 @@ class ApiKeysScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(apiKeysListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(apiKeysListProvider.notifier).refresh(),
           data: (keys) => RefreshIndicator(
             onRefresh: () => ref.read(apiKeysListProvider.notifier).refresh(),
             child: keys.isEmpty
@@ -136,21 +130,12 @@ class _ApiKeyCard extends ConsumerWidget {
                               apiKey.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                color: live ? t.textPrimary : t.textTertiary,
-                              ),
+                              style: t.titleMd.copyWith(color: live ? t.textPrimary : t.textTertiary),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               subtitle.join(' · '),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 11,
-                                color: t.textTertiary,
-                              ),
+                              style: t.monoMicro,
                             ),
                           ],
                         ),
@@ -236,11 +221,7 @@ class _ApiKeyCard extends ConsumerWidget {
       'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
   }
 }
 
@@ -290,11 +271,7 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
             ),
             child: SelectableText(
               apiKey,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12.5,
-                color: t.accentGreenInk,
-              ),
+              style: t.monoValue.copyWith(color: t.accentGreenInk),
             ),
           ),
         ],

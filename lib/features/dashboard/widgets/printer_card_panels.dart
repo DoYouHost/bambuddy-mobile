@@ -23,12 +23,7 @@ class _InfoRow extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: t.monoLabel.copyWith(color: color),
             ),
           ],
         );
@@ -153,12 +148,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
       child: Text(
         l10n.maintenanceTotalHours(hours.round()),
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          color: t.textTertiary,
-        ),
+        style: t.monoLabel,
       ),
     );
   }
@@ -218,12 +208,7 @@ class _PrintPanel extends StatelessWidget {
         if (name != null)
           Text(
             name,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.body,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -237,11 +222,7 @@ class _PrintPanel extends StatelessWidget {
               Flexible(
                 child: Text(
                   stage,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    color: t.accentGreenInk,
-                  ),
+                  style: t.microSoft.copyWith(color: t.accentGreenInk),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -292,12 +273,7 @@ class _PrintPanel extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   '${progress.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.monoValue,
                 ),
               ],
             ],
@@ -329,12 +305,7 @@ class _MetaItem extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           text,
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.monoLabel.copyWith(color: t.textSecondary),
         ),
       ],
     );
@@ -577,23 +548,12 @@ class _FanCell extends ConsumerWidget {
             label.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: tokens.textTertiary,
-            ),
+            style: tokens.micro,
           ),
           const SizedBox(height: 3),
           Text(
             '$shown%',
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: valueColor,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: tokens.monoTitle.copyWith(color: valueColor, fontFeatures: const [FontFeature.tabularFigures()]),
           ),
         ],
       ),
@@ -611,10 +571,8 @@ class _FanCell extends ConsumerWidget {
         // user opened. Same fix as the temperature tiles.
         'printer.fan_$fan',
         InkWell(
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
+          onTap: () => dashSurfaceSheet<void>(
+            context,
             builder: (_) => _FanControlSheet(
               printerId: printerId,
               fan: fan,
@@ -670,9 +628,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -713,12 +669,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   children: [
                     Text(
                       widget.label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleLg,
                     ),
                     const SizedBox(height: 16),
                     Center(

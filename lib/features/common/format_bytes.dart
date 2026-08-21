@@ -1,6 +1,7 @@
-/// Human-readable byte size (binary units), e.g. `12.3 MB` / `12 MB`.
-/// Whole-number-looking results (≥10 in the chosen unit) drop the decimal —
-/// "12 MB" reads cleaner than "12.0 MB".
+/// Human-readable byte size (binary units), e.g. `12.3 MB` / `834 KB`.
+/// The decimal survives only below 100 in the chosen unit: on a three-digit
+/// result it is noise, but between 10 and 99 it is what tells two similar
+/// files apart.
 String formatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
   const units = ['KB', 'MB', 'GB', 'TB'];
@@ -10,5 +11,5 @@ String formatBytes(int bytes) {
     size /= 1024;
     i++;
   }
-  return '${size.toStringAsFixed(size >= 10 ? 0 : 1)} ${units[i]}';
+  return '${size.toStringAsFixed(size >= 100 ? 0 : 1)} ${units[i]}';
 }

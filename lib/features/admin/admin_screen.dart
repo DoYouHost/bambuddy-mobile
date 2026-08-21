@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -80,11 +81,7 @@ class _SignedInAs extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.adminSignedInAs(username),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ),
         ],
@@ -149,21 +146,12 @@ class _AdminEntry extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleMd,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12.5,
-                            color: t.textSecondary,
-                          ),
+                          style: t.labelSoft.copyWith(color: t.textSecondary),
                         ),
                       ],
                     ),

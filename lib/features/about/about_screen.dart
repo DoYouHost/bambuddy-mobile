@@ -3,8 +3,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_snack.dart';
 
 /// Public source URL — app is AGPL-3.0, so code link is license requirement
 /// (see 02 §license hygiene).
@@ -44,12 +46,7 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   'Bambuddy',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 4),
                 const _VersionLabel(),
@@ -57,12 +54,7 @@ class AboutScreen extends StatelessWidget {
                 Text(
                   l10n.aboutTagline,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodySoft,
                 ),
               ],
             ),
@@ -119,7 +111,7 @@ class AboutScreen extends StatelessWidget {
     );
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.aboutOpenLinkError)));
+          .snack(l10n.aboutOpenLinkError);
     }
   }
 
@@ -160,12 +152,7 @@ class _VersionLabelState extends State<_VersionLabel> {
             : '…';
         return Text(
           l10n.aboutVersion(v),
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         );
       },
     );
@@ -198,24 +185,13 @@ class _AboutSection extends StatelessWidget {
           if (title != null)
             Text(
               title!,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-                color: t.accentGreenInk,
-              ),
+              style: t.bodyBold.copyWith(color: t.accentGreenInk, letterSpacing: 0.2),
             ),
           if (body != null) ...[
             const SizedBox(height: 6),
             Text(
               body!,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: t.textSecondary,
-              ),
+              style: t.bodySoft,
             ),
           ],
           if (title != null || body != null) const SizedBox(height: 12),
@@ -285,23 +261,13 @@ class _AboutRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 3),
                         Text(
                           subtitle!,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: t.textTertiary,
-                          ),
+                          style: t.label,
                         ),
                       ],
                     ],

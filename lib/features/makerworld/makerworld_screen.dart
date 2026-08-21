@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/dash_text.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/makerworld.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../files/library_thumbnail.dart';
 import 'makerworld_providers.dart';
@@ -42,15 +45,15 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
+  /// A download offer needs longer than the usual four seconds to be read, and
+  /// must fade anyway — hence the explicit duration and `persist: false`.
   void _snack(String msg, {SnackBarAction? action}) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
+      ScaffoldMessenger.of(context).snack(
+        msg,
         action: action,
-        // SnackBar.persist defaults to (action != null), so WITH action it doesn't auto-close.
-        // Force auto-close after timeout — action stays clickable, but bar doesn't hang forever.
         persist: false,
         duration: const Duration(seconds: 5),
-      ));
+      );
 
   int _key(int? profileId) => profileId ?? -1;
 
@@ -120,12 +123,7 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
           children: [
             Text(
               l10n.mwIntro,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: t.textSecondary,
-              ),
+              style: t.bodySoft,
             ),
             const SizedBox(height: 16),
             _UrlBar(
@@ -143,16 +141,13 @@ class _MakerWorldScreenState extends ConsumerState<MakerWorldScreen> {
               }),
             ],
             const SizedBox(height: 8),
-            resolveAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => _InlineError(
-                message:
-                    e is AppApiException ? e.localized(l10n) : l10n.ctrlFailed,
-                onRetry: _resolve,
-              ),
+            dashAsyncStrip(
+              context,
+              resolveAsync,
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              failureMessage: l10n.ctrlFailed,
+              failureBuilder: (message) =>
+                  _InlineError(message: message, onRetry: _resolve),
               data: (model) => model == null
                   ? const SizedBox.shrink()
                   : _ResolvedModel(
@@ -202,12 +197,7 @@ class _UrlBar extends StatelessWidget {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.go,
               onSubmitted: (_) => onResolve(),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(t, hintText: l10n.mwUrlHint)
                   .copyWith(
                 prefixIcon: Icon(Icons.link, color: t.textTertiary),
@@ -221,11 +211,7 @@ class _UrlBar extends StatelessWidget {
               style: dashPrimaryButtonStyle(t),
               onPressed: loading ? null : onResolve,
               icon: loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Color(0xFF0A0C08)),
+                  ? DashSpinner(color: Color(0xFF0A0C08),
                     )
                   : const Icon(Icons.arrow_forward),
               label: Text(l10n.mwResolve),
@@ -261,12 +247,7 @@ class _LoginBanner extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.mwLoginRequired,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
           const SizedBox(width: 8),
@@ -354,22 +335,12 @@ class _ResolvedModelState extends State<_ResolvedModel> {
                       model.design.title ?? l10n.mwUntitledModel,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleMd,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.mwPlatesCount(model.instances.length),
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontMono,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textTertiary,
-                      ),
+                      style: t.monoLabel,
                     ),
                   ],
                 ),
@@ -382,11 +353,7 @@ class _ResolvedModelState extends State<_ResolvedModel> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 l10n.mwNoPlates,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  color: t.textSecondary,
-                ),
+                style: t.bodyPlain,
               ),
             )
           else ...[
@@ -454,12 +421,7 @@ class _PlateRow extends StatelessWidget {
               plate.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
           const SizedBox(width: 8),
@@ -481,11 +443,7 @@ class _PlateRow extends StatelessWidget {
                 ),
                 onPressed: importing ? null : onImport,
                 icon: importing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFF0A0C08)),
+                    ? DashSpinner(size: 16, color: Color(0xFF0A0C08),
                       )
                     : const Icon(Icons.download, size: 18),
                 label: Text(l10n.mwImport),
@@ -504,29 +462,19 @@ class _RecentImports extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final async = ref.watch(makerworldRecentImportsProvider);
-    final emptyStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-      color: t.textTertiary,
-    );
+    final emptyStyle = t.bodySoft.copyWith(color: t.textTertiary);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.mwRecentImports,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         const SizedBox(height: 8),
         async.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
+            child: DashLoading(),
           ),
           error: (_, _) => Text(l10n.mwNoRecent, style: emptyStyle),
           data: (items) => items.isEmpty
@@ -584,12 +532,7 @@ class _RecentRow extends StatelessWidget {
                       item.filename,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                   ),
                   if (source != null)
@@ -635,11 +578,7 @@ class _InlineError extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13.5,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 12),
           OutlinedButton(

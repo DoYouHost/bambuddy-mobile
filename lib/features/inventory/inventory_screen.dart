@@ -10,13 +10,20 @@ import '../../core/models/inventory.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/dashed_line.dart';
+import '../common/filter_controls.dart';
+import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
@@ -39,69 +46,6 @@ part 'inventory_labels.dart';
 /// vivid swatch in both brightnesses, so a near-black ink keeps it readable
 /// either way.
 const Color _onAccentGreen = Color(0xFF08150D);
-
-/// Opaque rounded-top surface for every Filaments bottom sheet. Pairs with
-/// `backgroundColor: Colors.transparent` on the enclosing
-/// `showModalBottomSheet` — that keeps the framework's drag handle, while
-/// this paints the actual dark (or light) sheet fill instead of the default
-/// Material `colorScheme.surface`, which doesn't match the "2a" backdrop.
-/// Rounded-top surface for a Filaments bottom sheet, with its own grab handle
-/// pinned at the top. Used INSIDE each `DraggableScrollableSheet` builder,
-/// wrapping the scroll view ([child]) — NOT the framework `showDragHandle`,
-/// which detaches from a partial-height draggable sheet and floats in the dim
-/// area above it. Gives a distinct top edge (hairline + lift shadow) so the
-/// sheet reads as its own surface above the dimmed backdrop.
-class _SheetSurface extends StatelessWidget {
-  const _SheetSurface({required this.child});
-
-  /// The scroll view (typically a `ListView` bound to the drag controller).
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: t.isDark ? const Color(0xFF0E1310) : const Color(0xFFF6F8F4),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(
-            color: t.isDark ? const Color(0x24FFFFFF) : const Color(0x14000000),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: t.isDark ? 0.5 : 0.22),
-            blurRadius: 40,
-            offset: const Offset(0, -12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: t.isDark
-                  ? const Color(0x40FFFFFF)
-                  : const Color(0x33000000),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-/// Darker scrim for Filaments sheets so the screen behind reads as "dimmed
-/// backdrop", not a half-rendered glitch bleeding through the top.
-const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
 
 /// Scans a spool QR code and opens its detail card (NOT edit mode). The
 /// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
@@ -165,20 +109,15 @@ Future<void> showSpoolDetail(
   }
   if (!context.mounted) return;
   if (spool == null) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-    );
+    messenger.snack(l10n.inventoryScanNotFound(id));
     return;
   }
   final assignment = ref
       .read(inventoryProvider)
       .valueOrNull
       ?.assignmentFor(spool.id);
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
   );
 }
@@ -300,19 +239,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ],
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-            icon: null,
-            tonal: true,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+          tonalRetry: true,
+          errorIcon: null,
           data: (inv) {
             final spools = visible;
             return RefreshIndicator(
@@ -351,12 +283,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                               child: Text(
                                 l10n.inventorySpoolCount(spools.length),
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontMono,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.textTertiary,
-                                ),
+                                style: t.monoLabel,
                               ),
                             );
                           }
@@ -466,11 +393,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// from selection mode (the picked spools) and from the app bar's print
   /// action outside it (every visible spool — "print labels for all").
   void _printLabels(List<Spool> pool, Set<int> preselected) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _LabelSheet(spools: pool, initialSelected: preselected),
     );
   }
@@ -534,15 +458,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final res = await action(ref.read(inventoryProvider.notifier));
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          res.failed == 0
+    messenger.snack(res.failed == 0
               ? l10n.inventoryBulkDone(res.ok)
-              : l10n.inventoryBulkPartial(res.ok, res.failed),
-        ),
-      ),
-    );
+              : l10n.inventoryBulkPartial(res.ok, res.failed));
   }
 
   /// Client-side filter: status (active/archived), stock, material, brand, location,
@@ -576,11 +494,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Opens the filter sheet. Options (materials/brands/locations) counted from the
   /// full spool list to show only actually occurring values.
   void _openFilters(BuildContext context, List<Spool> all) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _FilterSheet(
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),

@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_file.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_snack.dart';
+import '../common/format_bytes.dart';
+import '../common/format_datetime.dart';
 import '../common/sliver_search_bar.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
 
@@ -253,9 +258,7 @@ class _PrinterFileManagerScreenState
     await _loadStorage();
   }
 
-  void _snack(String message) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => ScaffoldMessenger.of(context).snack(message, replaceCurrent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -277,12 +280,7 @@ class _PrinterFileManagerScreenState
               padding: const EdgeInsets.only(bottom: 6),
               child: Text(
                 widget.printerName,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: t.textTertiary,
-                ),
+                style: t.label,
               ),
             ),
           ),
@@ -292,13 +290,8 @@ class _PrinterFileManagerScreenState
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    l10n.pfmStorageUsed(_formatBytes(_storage.usedBytes!)),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: t.textTertiary,
-                    ),
+                    l10n.pfmStorageUsed(formatBytes(_storage.usedBytes!)),
+                    style: t.monoLabel,
                   ),
                 ),
               ),
@@ -370,12 +363,7 @@ class _PrinterFileManagerScreenState
                   backgroundColor: t.subCard,
                   side: BorderSide(color: t.subCardBorder),
                   selectedColor: t.accentGreen.withValues(alpha: 0.18),
-                  labelStyle: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: _path == path ? t.accentGreenInk : t.textSecondary,
-                  ),
+                  labelStyle: t.label.copyWith(color: _path == path ? t.accentGreenInk : t.textSecondary),
                 ).tagged('printer_files.quick_dir'),
               ),
           ],
@@ -408,12 +396,7 @@ class _PrinterFileManagerScreenState
               child: Text(
                 _path,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.monoValue,
               ),
             ),
           ],
@@ -457,7 +440,7 @@ class _PrinterFileManagerScreenState
     bool allSelected,
   ) {
     if (_loading && _files == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashLoading();
     }
     if (_error != null) {
       return _centered(
@@ -516,12 +499,7 @@ class _PrinterFileManagerScreenState
           title: Text(
             file.name,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           trailing: Icon(Icons.chevron_right, color: t.textTertiary),
           onTap: () => _navigateTo(file.path),
@@ -541,21 +519,11 @@ class _PrinterFileManagerScreenState
         title: Text(
           file.name,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           _subtitle(file),
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         ),
         trailing: Icon(_iconFor(file.name), color: t.textSecondary),
         onTap: () => _toggleSelection(file.path),
@@ -564,13 +532,11 @@ class _PrinterFileManagerScreenState
   }
 
   String _subtitle(PrinterFile file) {
-    final size = _formatBytes(file.size);
+    final size = formatBytes(file.size);
     final date = file.modifiedAt;
     if (date == null) return size;
     // Already local — [dateTimeFromJson] converts once, at parse time.
-    final d =
-        '${date.year}-${_two(date.month)}-${_two(date.day)} ${_two(date.hour)}:${_two(date.minute)}';
-    return '$size · $d';
+    return '$size · ${formatDateTime(date)}';
   }
 
   Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(
@@ -586,22 +552,13 @@ class _PrinterFileManagerScreenState
                 Expanded(
                   child: Text(
                     l10n.pfmSelected(_selected.length),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textSecondary,
-                    ),
+                    style: t.body.copyWith(color: t.textSecondary),
                   ),
                 ),
                 if (_busy)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    child: DashSpinner(size: 20),
                   )
                 else ...[
                   logTag(
@@ -648,12 +605,7 @@ class _PrinterFileManagerScreenState
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: tokens.textSecondary,
-                ),
+                style: tokens.bodySoft,
               ),
               if (action != null) ...[const SizedBox(height: 16), action],
             ],
@@ -664,20 +616,6 @@ class _PrinterFileManagerScreenState
 
 enum _QuickTab { root, cache, models, timelapse }
 
-String _two(int v) => v.toString().padLeft(2, '0');
-
-/// Human-readable byte size (binary units), e.g. `833.8 KB`, `1.2 GB`.
-String _formatBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  var value = bytes / 1024;
-  var unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return '${value.toStringAsFixed(value >= 100 ? 0 : 1)} ${units[unit]}';
-}
 
 /// Rough icon by extension — matches the file types printers store.
 IconData _iconFor(String name) {

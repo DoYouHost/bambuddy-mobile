@@ -2,6 +2,7 @@ import 'package:home_widget/home_widget.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../models/printer_status.dart';
+import 'widget_status.dart';
 
 /// Publishes the whole fleet to the native multi-printer widget
 /// ([BambuddyMultiWidgetProvider]). Fed from the same two sources as
@@ -16,13 +17,6 @@ class MultiWidgetPublisher {
 
   /// How many printer rows the list layout renders (must match MAX_ROWS in Kotlin).
   static const int _maxRows = 3;
-
-  static const String _kPrinting = 'printing';
-  static const String _kPaused = 'paused';
-  static const String _kFinished = 'finished';
-  static const String _kFailed = 'failed';
-  static const String _kIdle = 'idle';
-  static const String _kOffline = 'offline';
 
   /// Last published signature — per-isolate (static, separate Dart heaps).
   static String? _lastSig;
@@ -53,8 +47,9 @@ class MultiWidgetPublisher {
     final ranked = _ranked(statuses);
     final total = ranked.length;
     final printing =
-        ranked.where((s) => _isActive(_statusKey(s))).length;
-    final offline = ranked.where((s) => _statusKey(s) == _kOffline).length;
+        ranked.where((s) => WidgetStatus.isActive(WidgetStatus.keyFor(s))).length;
+    final offline =
+        ranked.where((s) => WidgetStatus.keyFor(s) == WidgetStatus.offline).length;
     final idle = total - printing - offline;
 
     await HomeWidget.saveWidgetData<String>('multi_title', l10n.widgetMultiTitle);
@@ -77,15 +72,15 @@ class MultiWidgetPublisher {
     for (var i = 0; i < _maxRows; i++) {
       if (i < shown.length) {
         final s = shown[i];
-        final key = _statusKey(s);
-        final active = _isActive(key);
+        final key = WidgetStatus.keyFor(s);
+        final active = WidgetStatus.isActive(key);
         await HomeWidget.saveWidgetData<String>(
             'multi_name_$i', s.name ?? l10n.widgetNoPrinter);
         await HomeWidget.saveWidgetData<String>('multi_status_$i', key);
         await HomeWidget.saveWidgetData<String>(
             'multi_sub_$i', _sub(s, l10n, key));
         await HomeWidget.saveWidgetData<int>(
-            'multi_pct_$i', active ? _progressPct(s) : -1);
+            'multi_pct_$i', active ? WidgetStatus.progressPct(s) : -1);
       } else {
         // Clear leftover slots so a shrinking roster doesn't show stale rows.
         await HomeWidget.saveWidgetData<String>('multi_name_$i', '');
@@ -106,8 +101,8 @@ class MultiWidgetPublisher {
   static List<PrinterStatus> _ranked(Map<int, PrinterStatus> statuses) {
     final list = statuses.values.toList()
       ..sort((a, b) {
-        final ra = _rank(_statusKey(a));
-        final rb = _rank(_statusKey(b));
+        final ra = _rank(WidgetStatus.keyFor(a));
+        final rb = _rank(WidgetStatus.keyFor(b));
         if (ra != rb) return ra.compareTo(rb);
         return a.id.compareTo(b.id);
       });
@@ -115,66 +110,29 @@ class MultiWidgetPublisher {
   }
 
   static int _rank(String key) {
-    if (_isActive(key)) return 0;
-    if (key == _kOffline) return 2;
+    if (WidgetStatus.isActive(key)) return 0;
+    if (key == WidgetStatus.offline) return 2;
     return 1;
   }
 
-  static bool _isActive(String key) => key == _kPrinting || key == _kPaused;
-
   /// Sub-label: the print file name while active, otherwise the status word.
   static String _sub(PrinterStatus s, AppLocalizations l10n, String key) {
-    if (_isActive(key)) {
+    if (WidgetStatus.isActive(key)) {
       final name = (s.currentPrint ?? s.gcodeFile)?.trim();
       if (name != null && name.isNotEmpty) return name;
       return s.stgCurName?.trim() ?? '';
     }
-    return _statusLabel(l10n, key);
+    return WidgetStatus.label(l10n, key);
   }
 
   /// A compact signature of everything the widget shows — to skip no-op publishes.
   static String _signature(Map<int, PrinterStatus> statuses) {
     final ranked = _ranked(statuses);
     return ranked
-        .map((s) => '${s.id}:${_statusKey(s)}:${_progressPct(s)}:'
+        .map((s) =>
+            '${s.id}:${WidgetStatus.keyFor(s)}:${WidgetStatus.progressPct(s)}:'
             '${(s.currentPrint ?? s.gcodeFile)?.trim() ?? ''}')
         .join('|');
   }
 
-  static String _statusKey(PrinterStatus s) {
-    if (!(s.connected ?? false)) return _kOffline;
-    if (s.isPaused) return _kPaused;
-    if (s.isPrinting) return _kPrinting;
-    switch (s.state?.toUpperCase()) {
-      case 'FINISH':
-      case 'FINISHED':
-        return _kFinished;
-      case 'FAILED':
-        return _kFailed;
-    }
-    return _kIdle;
-  }
-
-  static String _statusLabel(AppLocalizations l10n, String key) {
-    switch (key) {
-      case _kPrinting:
-        return l10n.widgetStatusPrinting;
-      case _kPaused:
-        return l10n.widgetStatusPaused;
-      case _kFinished:
-        return l10n.widgetStatusFinished;
-      case _kFailed:
-        return l10n.widgetStatusFailed;
-      case _kOffline:
-        return l10n.widgetStatusOffline;
-      default:
-        return l10n.widgetStatusIdle;
-    }
-  }
-
-  static int _progressPct(PrinterStatus s) {
-    final p = s.progress ?? 0;
-    final pct = p <= 1 ? (p * 100).round() : p.round();
-    return pct.clamp(0, 100);
-  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -48,12 +49,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
               _BlockedBanner(l10n.notificationsBlocked),
             Text(
               l10n.notifSettingsHint,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: t.textTertiary,
-              ),
+              style: t.label,
             ),
             const SizedBox(height: 12),
             _DashSection(
@@ -187,12 +183,7 @@ class _BlockedBanner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: scheme.onErrorContainer,
-              ),
+              style: DashTokens.of(context).body.copyWith(color: scheme.onErrorContainer),
             ),
           ),
         ],
@@ -212,13 +203,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
         text.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-          color: t.accentGreenInk,
-        ),
+        style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.4),
       ),
     );
   }
@@ -298,22 +283,12 @@ class _DashSwitchRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: t.textTertiary,
-                        ),
+                        style: t.label,
                       ),
                     ],
                   ),
@@ -364,12 +339,7 @@ class _ThresholdSlider extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(

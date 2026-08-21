@@ -14,6 +14,7 @@ import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
 import '../../../core/settings/server_profile.dart';
+import '../../../core/theme/dash_text.dart';
 import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';
@@ -25,7 +26,12 @@ import '../../camera/camera_view.dart';
 import '../../common/api_failure_snack.dart';
 import '../../common/camera_token_image_recovery.dart';
 import '../../common/confirm_dialog.dart';
+import '../../common/dash_input.dart';
+import '../../common/dash_progress.dart';
 import '../../common/dash_search_field.dart';
+import '../../common/dash_sheet.dart';
+import '../../common/dash_snack.dart';
+import '../../common/dashed_line.dart';
 import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
@@ -362,13 +368,7 @@ class _NameText extends StatelessWidget {
       maxLines: 1,
       softWrap: false,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.3,
-        color: tokens.textPrimary,
-      ),
+      style: tokens.display.copyWith(letterSpacing: -0.3),
     );
   }
 }

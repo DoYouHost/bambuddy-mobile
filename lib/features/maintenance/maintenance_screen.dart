@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
-import '../../core/api/api_exceptions.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/format_datetime.dart';
 import '../common/state_views.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
@@ -78,18 +82,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
             ),
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () =>
-                ref.read(maintenanceOverviewProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(maintenanceOverviewProvider.notifier).refresh(),
           data: (printers) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(maintenanceOverviewProvider.notifier).refresh(),
@@ -171,12 +167,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                               printer.printerName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: t.textPrimary,
-                              ),
+                              style: t.titleLg,
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -186,12 +177,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                                 l10n.maintenanceTotalHours(
                                     printer.totalPrintHours.round()),
                               ].join(' · '),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: t.textTertiary,
-                              ),
+                              style: t.monoLabel,
                             ),
                           ],
                         ),
@@ -302,12 +288,7 @@ class _MaintenanceTile extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   item.maintenanceTypeName,
-                                  style: TextStyle(
-                                    fontFamily: DashTokens.fontUi,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: t.textPrimary,
-                                  ),
+                                  style: t.titleSm,
                                 ),
                               ),
                               TextButton(
@@ -339,12 +320,7 @@ class _MaintenanceTile extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             dueText,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: due ? t.accentOrange : t.textTertiary,
-                            ),
+                            style: t.monoLabel.copyWith(color: due ? t.accentOrange : t.textTertiary),
                           ),
                         ],
                       ),
@@ -376,8 +352,7 @@ class _MaintenanceTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .perform(item.id, notes: notes.isEmpty ? null : notes);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ?? l10n.maintenanceDone)));
+    messenger.snack(result.messageFor(l10n) ?? l10n.maintenanceDone);
   }
 
   Future<void> _showHistory(
@@ -400,9 +375,9 @@ class _MaintenanceTile extends ConsumerWidget {
       sub.close();
       return;
     }
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    await dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => _HistorySheet(item: item),
     );
     sub.close();
@@ -497,15 +472,9 @@ class _HistorySheet extends ConsumerWidget {
             Text('${item.maintenanceTypeName} · ${l10n.maintenanceHistory}',
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            async.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(l10n.connectFailed),
-              ),
+            dashAsyncStrip(
+              context,
+              async,
               data: (entries) => entries.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(16),
@@ -537,11 +506,6 @@ class _HistorySheet extends ConsumerWidget {
   }
 }
 
-/// Simple date format `YYYY-MM-DD HH:MM` (local) without intl dependency.
-String? _formatDate(DateTime? dt) {
-  if (dt == null) return null;
-  // Already local — [dateTimeFromJson] converts once, at parse time.
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${dt.year}-${two(dt.month)}-${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
-}
+/// Local `YYYY-MM-DD HH:MM`, or null for a date the server never sent.
+String? _formatDate(DateTime? dt) => dt == null ? null : formatDateTime(dt);
 

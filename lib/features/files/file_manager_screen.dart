@@ -10,12 +10,16 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -59,7 +63,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   }
 
   void _snack(String msg) =>
-      _messenger.showSnackBar(SnackBar(content: Text(msg)));
+      _messenger.snack(msg);
 
   /// Both halves of a failed action: the sentence, and the record that somebody
   /// was stopped. Unmounted — the screen was left while the request was in
@@ -119,16 +123,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
                   child: const Icon(Icons.add),
                 ),
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.invalidate(fileManagerProvider),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.invalidate(fileManagerProvider),
           // Stats + breadcrumb stay pinned; the search/filter row rolls away
           // with the scrollable list below it.
           data: (s) => Column(
@@ -160,7 +158,7 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
       // Fetching search index, no results yet.
       content = const SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(child: CircularProgressIndicator()),
+        child: DashLoading(),
       );
     } else if (folders.isEmpty && files.isEmpty) {
       content = SliverFillRemaining(
@@ -289,9 +287,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   void _openCreateSheet(FileManagerState s) {
     final l10n = _l10n;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -321,9 +319,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
   void _openSortSheet(FileManagerState s) {
     final l10n = _l10n;
     final notifier = ref.read(fileManagerProvider.notifier);
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         // Six options fit at the default text scale and stop fitting well before
         // the largest one, so this scrolls for the same reason the file sheet
@@ -362,9 +360,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final canSlice =
         (ref.read(slicerEnabledProvider).valueOrNull ?? false) && !file.isPrintable;
     final tagsSupported = libraryTagsSupported(ref.read(libraryTagsProvider));
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         // Scrollable, not a Column: this sheet reaches nine tiles plus the
         // thumbnail header (print + preview *or* slice, two for variants, tags,
@@ -816,9 +814,9 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
     final l10n = _l10n;
     final folders = [...s.allFolders]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return showModalBottomSheet<LibraryFolder>(
-      context: context,
-      showDragHandle: true,
+    return dashSheet<LibraryFolder>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,
@@ -878,12 +876,7 @@ class _StatsBar extends ConsumerWidget {
       child: Text(
         parts.join('  ·  '),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: t.textTertiary,
-        ),
+        style: t.monoLabel,
       ),
     );
   }
@@ -900,12 +893,7 @@ class _Breadcrumb extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final crumbs = state.breadcrumb;
-    TextStyle crumbStyle(bool current) => TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: current ? t.textPrimary : t.accentGreenInk,
-        );
+    TextStyle crumbStyle(bool current) => t.bodyBold.copyWith(color: current ? t.textPrimary : t.accentGreenInk);
     return SizedBox(
       height: 44,
       child: ListView(
@@ -1077,22 +1065,12 @@ class _FolderTile extends StatelessWidget {
                           folder.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           l10n.fmFolderItems(folder.fileCount),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: t.textTertiary,
-                          ),
+                          style: t.label,
                         ),
                       ],
                     ),
@@ -1210,24 +1188,14 @@ class _FileTile extends StatelessWidget {
                           file.displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         const SizedBox(height: 3),
                         Text(
                           meta.join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoLabel,
                         ),
                         // Marks a file that is one of several alternatives, so
                         // the grouping is visible without opening the sheet.
@@ -1242,12 +1210,7 @@ class _FileTile extends StatelessWidget {
                               Text(
                                 AppLocalizations.of(context)
                                     .fmVariantsMemberCount(file.variantCount),
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.textTertiary,
-                                ),
+                                style: t.micro,
                               ),
                             ],
                           ),

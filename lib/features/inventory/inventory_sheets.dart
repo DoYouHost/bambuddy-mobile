@@ -2,11 +2,8 @@ part of 'inventory_screen.dart';
 
 /// Opens spool create/edit sheet. [existing] != null → edit mode.
 void openSpoolForm(BuildContext context, {Spool? existing}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _SpoolFormSheet(existing: existing),
   );
 }
@@ -15,11 +12,8 @@ void openSpoolForm(BuildContext context, {Spool? existing}) {
 /// reverse flow from dashboard chip: spool is known, we pick a slot.
 /// Available when spool is not yet assigned anywhere.
 void _openAssignSheet(BuildContext context, Spool spool) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _AssignSheet(spool: spool),
   );
 }
@@ -81,27 +75,18 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       initialChildSize: 0.55,
       maxChildSize: 0.9,
       minChildSize: 0.3,
-      builder: (context, controller) => _SheetSurface(child: ListView(
+      builder: (context, controller) => SheetSurface(child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           Text(
             l10n.inventoryAssignTitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: t.textPrimary,
-            ),
+            style: t.display,
           ),
           const SizedBox(height: 4),
           Text(
             widget.spool.displayName,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 16),
 
@@ -207,14 +192,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
               ),
               onPressed: _saving || _printerId == null ? null : _assign,
               icon: _saving
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _onAccentGreen,
-                      ),
-                    )
+                  ? DashSpinner(color: _onAccentGreen)
                   : const Icon(Icons.add_link, size: 18),
               label: Text(
                 l10n.inventoryAssignConfirm,
@@ -246,9 +224,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       await ref.read(inventoryProvider.notifier).assignSpool(draft);
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
@@ -256,9 +232,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -484,13 +458,11 @@ class _SpoolActions extends ConsumerWidget {
     Navigator.of(context).pop();
     try {
       await action;
-      messenger.showSnackBar(SnackBar(content: Text(successMsg)));
+      messenger.snack(successMsg);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: logId);
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -546,12 +518,7 @@ class _ActionPill extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
+                style: DashTokens.of(context).label.copyWith(color: color),
               ),
             ],
           ),

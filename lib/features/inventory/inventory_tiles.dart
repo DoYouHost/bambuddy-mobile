@@ -37,12 +37,7 @@ class _SpoolTile extends StatelessWidget {
         Text(
           '#${spool.id} · ${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
           '${spool.labelWeight > 0 ? ' / ${spool.labelWeight}g' : ''}',
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         ),
         if (assignment != null) ...[
           const Spacer(),
@@ -53,12 +48,7 @@ class _SpoolTile extends StatelessWidget {
               assignmentSlotLabel(l10n, assignment!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ),
         ],
@@ -77,11 +67,8 @@ class _SpoolTile extends StatelessWidget {
             onLongPress: onLongPress,
             onTap:
                 onTap ??
-                () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  barrierColor: _sheetBarrier,
+                () => dashSurfaceSheet<void>(
+                  context,
                   builder: (_) =>
                       _SpoolDetailSheet(spool: spool, assignment: assignment),
                 ),
@@ -141,14 +128,9 @@ class _SpoolTile extends StatelessWidget {
                                       spool.displayName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontFamily: DashTokens.fontUi,
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: spool.isArchived
+                                      style: t.titleSm.copyWith(color: spool.isArchived
                                             ? t.textTertiary
-                                            : t.textPrimary,
-                                      ),
+                                            : t.textPrimary),
                                     ),
                                   ),
                                   if (low) ...[
@@ -210,12 +192,7 @@ class _MaterialTag extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
-          color: tokens.textSecondary,
-        ),
+        style: tokens.monoLabel.copyWith(color: tokens.textSecondary),
       ),
     );
   }
@@ -238,12 +215,7 @@ class _LowBadge extends StatelessWidget {
       ),
       child: Text(
         l10n.inventoryLowStock.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
-          color: tokens.danger,
-        ),
+        style: tokens.micro.copyWith(color: tokens.danger),
       ),
     );
   }
@@ -341,7 +313,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
         initialChildSize: 0.7,
         maxChildSize: 0.95,
         minChildSize: 0.4,
-        builder: (context, controller) => _SheetSurface(
+        builder: (context, controller) => SheetSurface(
           child: ListView(
             controller: controller,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -363,34 +335,20 @@ class _SpoolDetailSheet extends ConsumerWidget {
                                 spool.displayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.display,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '#${spool.id}',
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: t.accentGreenInk,
-                              ),
+                              style: t.monoHeadline.copyWith(color: t.accentGreenInk),
                             ),
                           ],
                         ),
                         if (spool.colorName != null)
                           Text(
                             spool.colorName!,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 13,
-                              color: t.textSecondary,
-                            ),
+                            style: t.bodyPlain,
                           ),
                       ],
                     ),
@@ -418,12 +376,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 Text(
                   '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
                   ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textSecondary,
-                  ),
+                  style: t.label.copyWith(color: t.textSecondary),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -531,17 +484,13 @@ class _SpoolDetailSheet extends ConsumerWidget {
               usage.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: DashLoading(),
                 ),
                 error: (_, _) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     l10n.inventoryUsageEmpty,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 12.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.labelSoft,
                   ),
                 ),
                 data: (entries) => entries.isEmpty
@@ -549,11 +498,7 @@ class _SpoolDetailSheet extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Text(
                           l10n.inventoryUsageEmpty,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12.5,
-                            color: t.textTertiary,
-                          ),
+                          style: t.labelSoft,
                         ),
                       )
                     : Column(
@@ -586,12 +531,7 @@ class _SheetSectionTitle extends StatelessWidget {
     final t = DashTokens.of(context);
     return Text(
       label,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: t.textPrimary,
-      ),
+      style: t.bodyBold.copyWith(color: t.textPrimary),
     );
   }
 }
@@ -626,39 +566,25 @@ class _UsageRow extends StatelessWidget {
                       entry.printName ?? '—',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                     if (entry.createdAt != null)
                       Text(
                         entry.createdAt!.split('T').first,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                   ],
                 ),
               ),
               Text(
                 l10n.inventoryUsageWeight(entry.weightUsed.toStringAsFixed(0)),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textSecondary,
-                ),
+                style: t.monoValue.copyWith(color: t.textSecondary),
               ),
             ],
           ),
           if (!last) ...[
             const SizedBox(height: 8),
-            _DashedLine(color: t.dottedRule),
+            DashedLine(color: t.dottedRule),
           ],
         ],
       ),
@@ -685,12 +611,7 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
         ],
@@ -699,39 +620,3 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// Thin dotted horizontal rule between rows (mirrors the dashboard filament
-/// row separator).
-class _DashedLine extends StatelessWidget {
-  const _DashedLine({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: const Size(double.infinity, 1),
-    painter: _DashedPainter(color),
-  );
-}
-
-class _DashedPainter extends CustomPainter {
-  _DashedPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dash = 2.0;
-    const gap = 3.0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    var x = 0.0;
-    while (x < size.width) {
-      canvas.drawLine(Offset(x, 0), Offset(x + dash, 0), paint);
-      x += dash + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedPainter old) => old.color != color;
-}

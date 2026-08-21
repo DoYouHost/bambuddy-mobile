@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -92,13 +93,7 @@ class _QrScannerScreenState<T extends Object>
           elevation: 0,
           title: Text(
             widget.title,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: t.textPrimary,
-            ),
+            style: t.display.copyWith(letterSpacing: -0.3),
           ),
           actions: [
             IconButton(
@@ -145,13 +140,7 @@ class _QrScannerScreenState<T extends Object>
                   child: Text(
                     widget.hint,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      color: t.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      shadows: const [Shadow(blurRadius: 8, color: Colors.black)],
-                    ),
+                    style: t.titleMd.copyWith(shadows: const [Shadow(blurRadius: 8, color: Colors.black)]),
                   ),
                 ),
               ],
@@ -196,12 +185,7 @@ class _ScannerError extends StatelessWidget {
             Text(
               denied ? l10n.cameraPermissionTitle : title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                color: t.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+              style: t.titleLg,
             ),
             if (denied) ...[
               const SizedBox(height: 8),
