@@ -895,7 +895,7 @@ class _FilamentRow extends StatelessWidget {
         if (!last)
           active
               ? Container(height: 1, color: t.accentGreen)
-              : _DashedLine(color: t.dottedRule)
+              : DashedLine(color: t.dottedRule)
         else if (active)
           Container(height: 1, color: t.accentGreen),
         if (!last) const SizedBox(height: 7),
@@ -1417,40 +1417,6 @@ class _DrySlider extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Thin dotted horizontal rule between filament rows.
-class _DashedLine extends StatelessWidget {
-  const _DashedLine({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: const Size(double.infinity, 1), painter: _DashedPainter(color));
-}
-
-class _DashedPainter extends CustomPainter {
-  _DashedPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dash = 2.0;
-    const gap = 3.0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    var x = 0.0;
-    while (x < size.width) {
-      canvas.drawLine(Offset(x, 0), Offset(x + dash, 0), paint);
-      x += dash + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedPainter old) => old.color != color;
 }
 
 /// Physical slot identification for spool assignment from a row.

@@ -126,7 +126,7 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
               HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
-                labelOf: (h) => _rangeLabel(l10n, h),
+                labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
               const SizedBox(height: 16),
@@ -158,13 +158,6 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
       ),
     );
   }
-
-  String _rangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-        6 => l10n.sensorHistoryRange6h,
-        48 => l10n.sensorHistoryRange48h,
-        168 => l10n.sensorHistoryRange7d,
-        _ => l10n.sensorHistoryRange24h,
-      };
 
   /// Same hue per sensor as the live tile reads: hot end orange, bed blue,
   /// chamber green.

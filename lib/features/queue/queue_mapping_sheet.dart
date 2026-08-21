@@ -9,6 +9,7 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/hex_color.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
@@ -336,8 +337,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         if (req.type == null ||
             (t.type != null && _typeMatches(t.type!, req.type!)))
           t,
-    ]..sort((a, b) => _colorDistance(a.color, req.color)
-        .compareTo(_colorDistance(b.color, req.color)));
+    ]..sort((a, b) => colorDistance(a.color, req.color)
+        .compareTo(colorDistance(b.color, req.color)));
     if (ofType.isNotEmpty) return ofType.first.global;
     return trays.length == 1 ? trays.first.global : null;
   }
@@ -369,26 +370,8 @@ bool _typeMatches(String a, String b) {
   return x == y || x.startsWith(y) || y.startsWith(x);
 }
 
-double _colorDistance(String? a, String? b) {
-  final ca = _rgb(a), cb = _rgb(b);
-  if (ca == null || cb == null) return double.maxFinite;
-  final dr = ca.$1 - cb.$1, dg = ca.$2 - cb.$2, db = ca.$3 - cb.$3;
-  return (dr * dr + dg * dg + db * db).toDouble();
-}
-
-/// Parse the leading `RRGGBB` of `#RRGGBB` or `RRGGBBAA`.
-(int, int, int)? _rgb(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return ((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
-}
-
 Color? _color(String? hex) {
-  final rgb = _rgb(hex);
+  final rgb = rgbFromHex(hex);
   if (rgb == null) return null;
   return Color.fromARGB(255, rgb.$1, rgb.$2, rgb.$3);
 }

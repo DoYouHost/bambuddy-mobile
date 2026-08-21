@@ -85,7 +85,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       initialChildSize: 0.85,
       maxChildSize: 0.95,
       minChildSize: 0.5,
-      builder: (context, controller) => _SheetSurface(
+      builder: (context, controller) => SheetSurface(
         child: Column(
           children: [
             Padding(
@@ -515,7 +515,7 @@ class _TemplateSheet extends StatelessWidget {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(
+      builder: (context, controller) => SheetSurface(
         child: ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),

@@ -208,7 +208,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       initialChildSize: 0.9,
       maxChildSize: 0.95,
       minChildSize: 0.5,
-      builder: (context, controller) => _SheetSurface(child: Form(
+      builder: (context, controller) => SheetSurface(child: Form(
         key: _formKey,
         child: ListView(
           controller: controller,
@@ -962,7 +962,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(child: Column(
+      builder: (context, controller) => SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1104,7 +1104,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(child: Column(
+      builder: (context, controller) => SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

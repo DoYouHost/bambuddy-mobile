@@ -81,7 +81,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
       initialChildSize: 0.55,
       maxChildSize: 0.9,
       minChildSize: 0.3,
-      builder: (context, controller) => _SheetSurface(child: ListView(
+      builder: (context, controller) => SheetSurface(child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [

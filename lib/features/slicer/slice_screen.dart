@@ -18,6 +18,7 @@ import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
 import '../common/dash_search_field.dart';
+import '../common/hex_color.dart';
 import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'process_settings_screen.dart';
 import 'slice_providers.dart';
@@ -758,8 +759,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         for (final o in owned)
           if (req.type == null || _typeMatches(o.material, req.type!)) o,
       ]..sort((a, b) =>
-          _colorDistance(a.color, req.color)
-              .compareTo(_colorDistance(b.color, req.color)));
+          colorDistance(a.color, req.color)
+              .compareTo(colorDistance(b.color, req.color)));
       for (final o in ofType) {
         final match = filtered.where((p) => p.name == o.name);
         if (match.isNotEmpty) return match.first;
@@ -780,27 +781,6 @@ bool _typeMatches(String material, String type) {
   final m = material.toUpperCase();
   final t = type.toUpperCase();
   return m == t || m.startsWith(t) || t.startsWith(m);
-}
-
-/// Squared RGB distance between two colours; large when either is missing so
-/// known colours win. Accepts `#RRGGBB` (requirement) and `RRGGBBAA` (spool).
-double _colorDistance(String? a, String? b) {
-  final ca = _rgb(a);
-  final cb = _rgb(b);
-  if (ca == null || cb == null) return double.maxFinite;
-  final dr = ca.$1 - cb.$1, dg = ca.$2 - cb.$2, db = ca.$3 - cb.$3;
-  return (dr * dr + dg * dg + db * db).toDouble();
-}
-
-/// Parse the leading `RRGGBB` of a hex colour (with or without `#`/alpha).
-(int, int, int)? _rgb(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return ((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
 }
 
 /// A preset's name contains the printer [code] as a whole token, so "X1"

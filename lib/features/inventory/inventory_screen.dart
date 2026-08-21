@@ -17,6 +17,9 @@ import '../../providers.dart';
 import '../../router.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_search_field.dart';
+import '../common/dashed_line.dart';
+import '../common/filter_controls.dart';
+import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
@@ -39,65 +42,6 @@ part 'inventory_labels.dart';
 /// vivid swatch in both brightnesses, so a near-black ink keeps it readable
 /// either way.
 const Color _onAccentGreen = Color(0xFF08150D);
-
-/// Opaque rounded-top surface for every Filaments bottom sheet. Pairs with
-/// `backgroundColor: Colors.transparent` on the enclosing
-/// `showModalBottomSheet` — that keeps the framework's drag handle, while
-/// this paints the actual dark (or light) sheet fill instead of the default
-/// Material `colorScheme.surface`, which doesn't match the "2a" backdrop.
-/// Rounded-top surface for a Filaments bottom sheet, with its own grab handle
-/// pinned at the top. Used INSIDE each `DraggableScrollableSheet` builder,
-/// wrapping the scroll view ([child]) — NOT the framework `showDragHandle`,
-/// which detaches from a partial-height draggable sheet and floats in the dim
-/// area above it. Gives a distinct top edge (hairline + lift shadow) so the
-/// sheet reads as its own surface above the dimmed backdrop.
-class _SheetSurface extends StatelessWidget {
-  const _SheetSurface({required this.child});
-
-  /// The scroll view (typically a `ListView` bound to the drag controller).
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: t.isDark ? const Color(0xFF0E1310) : const Color(0xFFF6F8F4),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(
-            color: t.isDark ? const Color(0x24FFFFFF) : const Color(0x14000000),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: t.isDark ? 0.5 : 0.22),
-            blurRadius: 40,
-            offset: const Offset(0, -12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: t.isDark
-                  ? const Color(0x40FFFFFF)
-                  : const Color(0x33000000),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
 
 /// Darker scrim for Filaments sheets so the screen behind reads as "dimmed
 /// backdrop", not a half-rendered glitch bleeding through the top.

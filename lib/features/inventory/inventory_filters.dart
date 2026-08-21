@@ -28,61 +28,13 @@ class _SearchBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          logTag(
-            'inventory.filters',
-            _FilterButton(count: filterCount, onTap: onOpenFilters),
+          FilterButton(
+            count: filterCount,
+            tooltip: l10n.inventoryFilters,
+            id: 'inventory.filters',
+            onTap: onOpenFilters,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Square button opening the filter sheet; badge shows count of active filters.
-/// Size matches search field (48×48).
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final active = count > 0;
-    return Tooltip(
-      message: AppLocalizations.of(context).inventoryFilters,
-      child: Badge(
-        isLabelVisible: active,
-        label: Text('$count'),
-        backgroundColor: t.accentGreen,
-        textColor: _onAccentGreen,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Material(
-            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: active
-                        ? t.accentGreen.withValues(alpha: 0.4)
-                        : t.subCardBorder,
-                  ),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: active ? t.accentGreenInk : t.textSecondary,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -122,7 +74,7 @@ class _FilterSheet extends ConsumerWidget {
         initialChildSize: 0.6,
         maxChildSize: 0.9,
         minChildSize: 0.35,
-        builder: (context, controller) => _SheetSurface(child: ListView(
+        builder: (context, controller) => SheetSurface(child: ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
@@ -139,7 +91,7 @@ class _FilterSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
 
-            _FilterGroup(label: l10n.inventoryFilterStatus),
+            FilterGroupLabel(label: l10n.inventoryFilterStatus),
             SegmentedButton<bool>(
               segments: [
                 ButtonSegment(
@@ -159,7 +111,7 @@ class _FilterSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            _FilterGroup(label: l10n.inventoryFilterStock),
+            FilterGroupLabel(label: l10n.inventoryFilterStock),
             SegmentedButton<bool>(
               segments: [
                 ButtonSegment(value: false, label: Text(l10n.inventoryStockAll)),
@@ -176,7 +128,7 @@ class _FilterSheet extends ConsumerWidget {
 
             if (materials.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _FilterGroup(label: l10n.inventoryFilterMaterial),
+              FilterGroupLabel(label: l10n.inventoryFilterMaterial),
               _ChipWrap(
                 options: materials,
                 selected: filters.materials,
@@ -187,7 +139,7 @@ class _FilterSheet extends ConsumerWidget {
             ],
             if (brands.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _FilterGroup(label: l10n.inventoryFilterBrand),
+              FilterGroupLabel(label: l10n.inventoryFilterBrand),
               _ChipWrap(
                 options: brands,
                 selected: filters.brands,
@@ -198,7 +150,7 @@ class _FilterSheet extends ConsumerWidget {
             ],
             if (locations.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _FilterGroup(label: l10n.inventoryLocation),
+              FilterGroupLabel(label: l10n.inventoryLocation),
               _ChipWrap(
                 options: locations,
                 selected: filters.locations,
@@ -210,29 +162,6 @@ class _FilterSheet extends ConsumerWidget {
           ],
         )),
       )
-    );
-  }
-}
-
-class _FilterGroup extends StatelessWidget {
-  const _FilterGroup({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
-      ),
     );
   }
 }

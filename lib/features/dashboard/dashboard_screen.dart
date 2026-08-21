@@ -17,6 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/filter_controls.dart';
 import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
@@ -1039,8 +1040,11 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _FilterButton(
+                          FilterButton(
                             count: filterCount,
+                            tooltip: AppLocalizations.of(context)
+                                .dashboardFilters,
+                            id: 'dashboard.filters',
                             onTap: onOpenFilters,
                           ),
                         ],
@@ -1076,57 +1080,6 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.hasSearch != hasSearch ||
       old.hint != hint ||
       old.filterCount != filterCount;
-}
-
-/// Square button opening the dashboard filter sheet; a badge shows the count of
-/// active filters. Mirrors the inventory screen's filter button.
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final active = count > 0;
-    return Tooltip(
-      message: l10n.dashboardFilters,
-      child: Badge(
-        isLabelVisible: active,
-        label: Text('$count'),
-        backgroundColor: t.accentGreen,
-        textColor: const Color(0xFF08150D),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Material(
-            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: active
-                        ? t.accentGreen.withValues(alpha: 0.4)
-                        : t.subCardBorder,
-                  ),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: active ? t.accentGreenInk : t.textSecondary,
-                ),
-              ),
-            ).tagged('dashboard.filters'),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Opaque backdrop for the pinned header. A flat color can't match the screen's
