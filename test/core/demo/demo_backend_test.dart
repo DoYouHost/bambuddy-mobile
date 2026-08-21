@@ -200,6 +200,50 @@ void main() {
       final after = await source.fetchSpools(includeArchived: true);
       expect(after.any((s) => s.id == created.id), isFalse);
     });
+
+    // Last in the group on purpose: it registers a spool and pins it to a
+    // slot, and the counts asserted above are taken before that.
+    test('registering an AMS slot creates the spool and pins it there',
+        () async {
+      // P1S slot 3 holds a tagged Bambu spool the shelf has never seen — the
+      // state the affordance exists for.
+      final id = await source.createSpoolFromSlot(
+        printerId: 2,
+        amsId: 0,
+        trayId: 2,
+      );
+      expect(id, isNotNull);
+
+      final spools = await source.fetchSpools();
+      final created = spools.firstWhere((s) => s.id == id);
+      expect(created.material, 'PLA');
+      expect(created.subtype, 'Basic');
+      expect(created.rgba, '00AE42FF');
+      expect(normalizeTagUid(created.tagUid), 'B7A21C0439E5D168');
+
+      final assignments = await source.fetchAssignments();
+      final pinned = assignments.firstWhere((a) => a.spoolId == id);
+      expect(pinned.printerId, 2);
+      expect(pinned.amsId, 0);
+      expect(pinned.trayId, 2);
+    });
+
+    test('a slot without a tag is refused, not silently duplicated', () async {
+      // X1C slot 3 runs a third-party PETG: filament, but no identity.
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 1, amsId: 0, trayId: 2),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+
+    test('an empty slot is refused too', () async {
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 2, amsId: 0, trayId: 3),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
   });
 
   group('projects', () {

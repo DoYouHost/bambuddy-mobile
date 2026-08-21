@@ -2417,6 +2417,28 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySpoolUnassigned => 'Szpula odpięta';
 
   @override
+  String get inventoryFromSlot => 'Dodaj do magazynu';
+
+  @override
+  String get inventoryFromSlotHint =>
+      'Zapisz szpulę z czipem, którą drukarka widzi w tym slocie';
+
+  @override
+  String get inventoryFromSlotDone => 'Szpula dodana i przypisana do slotu';
+
+  @override
+  String get inventoryFromSlotNoTag =>
+      'Drukarka nie widzi już w tym slocie szpuli z czipem';
+
+  @override
+  String get inventoryFromSlotOffline =>
+      'Drukarka nie jest połączona, więc nie powie, co jest w slocie';
+
+  @override
+  String get inventoryFromSlotUnsupported =>
+      'Ta wersja serwera nie potrafi dodać szpuli prosto ze slotu';
+
+  @override
   String get inventoryScanSpool => 'Skanuj QR';
 
   @override

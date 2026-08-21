@@ -707,6 +707,8 @@ class _AmsSection extends ConsumerWidget {
                   trayId: trays[i].id ?? 0,
                 ),
                 canRereadRfid: true,
+                tagUid: trays[i].tagUid,
+                trayUuid: trays[i].trayUuid,
                 trayInfoIdx: trays[i].trayInfoIdx,
                 trayColour: trays[i].trayColor,
                 caliIdx: trays[i].caliIdx,
@@ -1462,6 +1464,8 @@ class _SlotRef {
     required this.printing,
     this.loadTrayId,
     this.canRereadRfid = false,
+    this.tagUid,
+    this.trayUuid,
     this.trayInfoIdx,
     this.trayColour,
     this.caliIdx,
@@ -1492,6 +1496,24 @@ class _SlotRef {
   /// Whether the slot has a tag to re-read. False for external spools: they
   /// have no RFID reader, and the web hides the action there too.
   final bool canRereadRfid;
+
+  /// RFID identity of the spool sitting in the slot, for matching it against
+  /// the inventory and for [canRegisterSpool].
+  ///
+  /// Left null for external spools even when the firmware reports a tag: the
+  /// route that registers a slot looks it up in the printer's `ams` array, and
+  /// an external spool is reported outside it, so it could only ever answer
+  /// "slot is empty"
+  /// (`backend/app/api/routes/inventory.py::create_spool_from_slot`).
+  final String? tagUid;
+  final String? trayUuid;
+
+  /// Whether a spool can be created out of what this slot holds. Needs a
+  /// readable tag — a tagless slot has no identity to re-link to, so the
+  /// server refuses one rather than mint a fresh row per confirm.
+  bool get canRegisterSpool =>
+      normalizeTrayUuid(trayUuid).isNotEmpty ||
+      normalizeTagUid(tagUid).isNotEmpty;
 
   /// What the printer currently holds in this slot, for the configuration
   /// sheet: the filament id identifies the preset in force, the colour is what
@@ -1757,6 +1779,21 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             ),
             const SizedBox(height: 16),
             _SlotActions(slot: slot),
+            if (_offersRegister(inv, current)) ...[
+              FilledButton.tonalIcon(
+                onPressed: () => _registerFromSlot(context, ref, l10n),
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: Text(l10n.inventoryFromSlot),
+              ).tagged('assign_spool.add_to_inventory'),
+              const SizedBox(height: 6),
+              Text(
+                l10n.inventoryFromSlotHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Divider(height: 24),
+            ],
             if (current != null) ...[
               Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
@@ -1771,12 +1808,13 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                         ),
                       )
                     : null,
+                onTap: () => _openInInventory(context, current!.id),
                 trailing: TextButton.icon(
                   onPressed: () => _unassign(context, ref, l10n),
                   icon: const Icon(Icons.link_off, size: 18),
                   label: Text(l10n.inventoryUnassign),
                 ).taggedMaterial('assign_spool.unassign', current.material),
-              ),
+              ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
@@ -1828,6 +1866,95 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         ),
       )
     );
+  }
+
+  /// Leaves the printer for the spool's own card on Filaments.
+  ///
+  /// The row names a spool and until now did nothing when pressed, while the
+  /// identical row in the list below assigns — so the one that cannot assign
+  /// (it is already here) leads to where the rest of its story is: usage
+  /// history, cost, editing.
+  void _openInInventory(BuildContext context, int spoolId) {
+    Navigator.of(context).pop();
+    unawaited(openSpoolInInventory(context, ref, spoolId));
+  }
+
+  /// Whether to offer registering what the slot holds as a new spool.
+  ///
+  /// Four things have to line up, and each one is a request the server would
+  /// otherwise refuse or a row it would duplicate:
+  ///
+  /// * the slot reports a readable RFID tag — see [_SlotRef.canRegisterSpool];
+  /// * no spool is pinned here yet;
+  /// * the inventory is loaded and does not already know that tag. The route
+  ///   creates unconditionally, so offering it for a tag that is already on a
+  ///   spool would mint a second one; that spool is in the list below, which
+  ///   is where the user should pick it up from;
+  /// * the session is not an API key against a Spoolman inventory. Spoolman's
+  ///   own from-slot route is gated on `filaments:update`, which sits outside
+  ///   the API-key scope allowlist entirely, so it answers 403 to every key
+  ///   whatever its scopes (`backend/app/core/auth.py`). Under a JWT it works,
+  ///   so only the pair is refused.
+  bool _offersRegister(InventoryState? inv, Spool? current) {
+    if (current != null || !slot.canRegisterSpool || inv == null) return false;
+    if (inv.spoolForTag(tagUid: slot.tagUid, trayUuid: slot.trayUuid) != null) {
+      return false;
+    }
+    final onSpoolman =
+        ref.watch(inventoryBackendProvider) == InventoryBackend.spoolman;
+    final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
+    return !(onSpoolman && keyed);
+  }
+
+  /// Registers the slot's spool and pins it there, in the server's one call.
+  ///
+  /// The sheet closes first, like every other action here. The refusals worth
+  /// their own words are the ones the user can act on: a 404 that is the route
+  /// missing rather than the printer being away tells them their server is too
+  /// old, and both 400s mean the slot stopped reporting a tag since the sheet
+  /// was drawn. Everything else — 403 above all, where the server names the
+  /// permission — goes through the shared wording.
+  Future<void> _registerFromSlot(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    try {
+      await ref
+          .read(inventoryProvider.notifier)
+          .createSpoolFromSlot(slot.printerId, slot.amsId, slot.trayId);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryFromSlotDone)),
+      );
+    } on AppApiException catch (e) {
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'assign_spool.add_to_inventory',
+        message: _registerFailure(e, l10n),
+      );
+    } on Object {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.inventoryActionFailed)),
+      );
+    }
+  }
+
+  /// The wording for a refusal this screen says better than the shared one,
+  /// or null to fall through to it.
+  String? _registerFailure(AppApiException e, AppLocalizations l10n) {
+    final detail = e.detail?.toLowerCase() ?? '';
+    return switch (e.statusCode) {
+      // FastAPI's own "Not Found" for a route that does not exist on this
+      // server; the route's own 404 says the printer is not connected.
+      404 when detail.contains('not found') => l10n.inventoryFromSlotUnsupported,
+      404 => l10n.inventoryFromSlotOffline,
+      400 => l10n.inventoryFromSlotNoTag,
+      _ => null,
+    };
   }
 
   /// Narrow the list, or skip it entirely by scanning the spool's label.

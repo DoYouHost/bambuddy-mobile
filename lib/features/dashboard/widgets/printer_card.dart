@@ -13,6 +13,8 @@ import '../../../core/models/printer_status.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
+import '../../../core/settings/server_profile.dart';
+import '../../../data/inventory_source.dart';
 import '../../../data/printer_commands_repository.dart';
 import '../../../data/printers_repository.dart';
 import '../../../data/smart_plugs_repository.dart';
@@ -27,7 +29,7 @@ import '../../common/dash_search_field.dart';
 import '../../files/printer_file_manager_screen.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
-    show SpoolSwatch, assignmentSlotLabel;
+    show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';

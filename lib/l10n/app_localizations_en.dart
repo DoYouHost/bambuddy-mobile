@@ -2381,6 +2381,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventorySpoolUnassigned => 'Spool unassigned';
 
   @override
+  String get inventoryFromSlot => 'Add to inventory';
+
+  @override
+  String get inventoryFromSlotHint =>
+      'Register the tagged spool the printer reports in this slot';
+
+  @override
+  String get inventoryFromSlotDone => 'Spool added and assigned to the slot';
+
+  @override
+  String get inventoryFromSlotNoTag =>
+      'The printer no longer reports a tagged spool in this slot';
+
+  @override
+  String get inventoryFromSlotOffline =>
+      'The printer is not connected, so it cannot say what is in the slot';
+
+  @override
+  String get inventoryFromSlotUnsupported =>
+      'This server version cannot add a spool straight from a slot';
+
+  @override
   String get inventoryScanSpool => 'Scan QR';
 
   @override

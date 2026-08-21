@@ -690,6 +690,9 @@ class DemoBackend {
         'ipcam': true,
       };
 
+  /// [tagUid] / [trayUuid] are what the AMS read off an RFID spool. Null on a
+  /// third-party spool and on an empty slot, exactly as the server sends it —
+  /// it nulls the firmware's empty and all-zero tags before they leave.
   Map<String, dynamic> _tray(
     int id,
     String? color,
@@ -698,6 +701,8 @@ class DemoBackend {
     String? idName,
     String? infoIdx,
     int remain = -1,
+    String? tagUid,
+    String? trayUuid,
   }) =>
       {
         'id': id,
@@ -707,6 +712,8 @@ class DemoBackend {
         'tray_id_name': idName ?? '',
         'tray_info_idx': infoIdx ?? '',
         'remain': remain,
+        'tag_uid': tagUid,
+        'tray_uuid': trayUuid,
         'nozzle_temp_min': type == null ? null : '190',
         'nozzle_temp_max': type == null ? null : '240',
         'state': type == null ? 9 : 11,
@@ -918,7 +925,16 @@ class DemoBackend {
           _tray(0, '0ACCB8FF', 'PETG', infoIdx: 'GFG02', remain: 92),
           _tray(1, 'D4AF37FF', 'PLA',
               subBrand: 'PLA Silk', infoIdx: 'GFA05', remain: 10),
-          _tray(2, null, null),
+          // A genuine Bambu spool the shelf has never seen: tagged, full, and
+          // deliberately absent from `_assignments`. That is the one state the
+          // slot sheet offers "add to inventory" from.
+          _tray(2, '00AE42FF', 'PLA',
+              subBrand: 'PLA Basic',
+              idName: 'A00-G1',
+              infoIdx: 'GFA00',
+              remain: 100,
+              tagUid: 'B7A21C0439E5D168',
+              trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
           _tray(3, null, null),
         ],
       };
@@ -1861,6 +1877,9 @@ class DemoBackend {
           }
           if (m == 'POST') return _ok(_createSpool(body));
         }
+        if (s.length >= 3 && s[2] == 'from-slot' && m == 'POST') {
+          return _createSpoolFromSlot(body);
+        }
         if (s.length >= 3 && s[2] == 'bulk' && m == 'POST') {
           final quantity = (body['quantity'] as num?)?.toInt() ?? 1;
           final draft = body['spool'];
@@ -1944,6 +1963,86 @@ class DemoBackend {
         ]);
     }
     return _fallback(m);
+  }
+
+  /// `POST /inventory/spools/from-slot` — registers what the AMS reports in one
+  /// slot and pins it there, in one call, like the server does.
+  ///
+  /// The two refusals are copied from it deliberately: they are what the app's
+  /// wording for this action is built on, and a demo that always succeeded
+  /// would leave both untested by hand.
+  DemoResult _createSpoolFromSlot(Map<String, dynamic> body) {
+    final printerId = (body['printer_id'] as num?)?.toInt();
+    final amsId = (body['ams_id'] as num?)?.toInt();
+    final trayId = (body['tray_id'] as num?)?.toInt();
+    if (printerId == null || amsId == null || trayId == null) {
+      return (status: 400, body: {'detail': 'Provide printer_id, ams_id and tray_id'});
+    }
+
+    final units = statusData(printerId)['ams'];
+    Map<String, dynamic>? tray;
+    if (units is List) {
+      for (final unit in units) {
+        if (unit is! Map || (unit['id'] as num?)?.toInt() != amsId) continue;
+        for (final t in (unit['tray'] as List? ?? const [])) {
+          if (t is Map && (t['id'] as num?)?.toInt() == trayId) {
+            tray = Map<String, dynamic>.from(t);
+            break;
+          }
+        }
+        if (tray != null) break;
+      }
+    }
+
+    final material = (tray?['tray_type'] as String?)?.trim() ?? '';
+    if (tray == null || material.isEmpty) {
+      return (
+        status: 400,
+        body: {'detail': 'Slot is empty or has no readable tray data'},
+      );
+    }
+    final tagUid = tray['tag_uid'] as String?;
+    final trayUuid = tray['tray_uuid'] as String?;
+    if ((tagUid ?? '').isEmpty && (trayUuid ?? '').isEmpty) {
+      return (status: 400, body: {'detail': 'Slot has no RFID tag'});
+    }
+
+    // "PLA Basic" → subtype "Basic", the same split the server makes.
+    final subBrands = (tray['tray_sub_brands'] as String?)?.trim() ?? '';
+    final subtype = subBrands.toUpperCase().startsWith('${material.toUpperCase()} ')
+        ? subBrands.substring(material.length + 1)
+        : null;
+
+    // The AMS reports RRGGBBAA; the colour catalogue is keyed on #RRGGBB.
+    final rgba = (tray['tray_color'] as String?) ?? 'FFFFFFFF';
+    final hex = rgba.length >= 6 ? '#${rgba.substring(0, 6)}' : null;
+
+    final spool = _createSpool({
+      'material': material,
+      'subtype': ?subtype,
+      'brand': 'Bambu Lab',
+      'color_name': _colorCatalog
+          .where((c) => c['hex_color'] == hex)
+          .firstOrNull?['color_name'],
+      'rgba': rgba,
+      'label_weight': 1000,
+      'tag_uid': tagUid,
+      'tray_uuid': trayUuid,
+    });
+
+    _assignments.removeWhere((a) =>
+        a['printer_id'] == printerId &&
+        a['ams_id'] == amsId &&
+        a['tray_id'] == trayId);
+    _assignments.add({
+      'spool_id': spool['id'],
+      'printer_id': printerId,
+      'ams_id': amsId,
+      'tray_id': trayId,
+      'printer_name':
+          _printers.where((p) => p['id'] == printerId).firstOrNull?['name'],
+    });
+    return _ok(spool);
   }
 
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {

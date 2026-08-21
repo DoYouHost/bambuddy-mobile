@@ -612,6 +612,14 @@ abstract final class Endpoints {
   static String inventoryAssignment(int printerId, int amsId, int trayId) =>
       '$apiPrefix/inventory/assignments/$printerId/$amsId/$trayId';
 
+  /// Create a spool from what an AMS slot currently holds and assign it there
+  /// in the same call (`POST`, body `{printer_id, ams_id, tray_id}`, response
+  /// `SpoolResponse`). Server-side the slot must hold a readable RFID tag —
+  /// without one there is no stable identity and every confirm would make a
+  /// duplicate, so it answers 400.
+  static const inventorySpoolFromSlot =
+      '$apiPrefix/inventory/spools/from-slot';
+
   // --- Spool form reference data (Phase 2) ---
 
   /// Spool core weight catalog (`CatalogEntryResponse[]`: id/name/weight/
@@ -654,6 +662,13 @@ abstract final class Endpoints {
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-usage';
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
+
+  /// Spoolman counterpart of [inventorySpoolFromSlot]. Like [spoolmanLabels]
+  /// it does NOT live under `/spoolman/inventory/`, and unlike every other
+  /// inventory write it is gated on `filaments:update`, which no API key may
+  /// hold — a key-authenticated session gets 403 here whatever its scopes.
+  static const spoolmanSpoolFromSlot =
+      '$apiPrefix/spoolman/spools/from-slot';
 
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
