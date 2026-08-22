@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/maintenance.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -12,7 +13,6 @@ import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
-import '../common/format_datetime.dart';
 import '../common/state_views.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
@@ -456,6 +456,7 @@ class _HistorySheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final fmt = DateTimeFormats.of(context);
     final async = ref.watch(maintenanceHistoryProvider(item.id));
 
     return SafeArea(
@@ -488,7 +489,8 @@ class _HistorySheet extends ConsumerWidget {
                             ListTile(
                               dense: true,
                               leading: const Icon(Icons.check_circle_outline),
-                              title: Text(_formatDate(e.performedAtDate) ?? '—'),
+                              title: Text(
+                                  _formatDate(fmt, e.performedAtDate) ?? '—'),
                               subtitle: e.notes == null || e.notes!.isEmpty
                                   ? null
                                   : Text(e.notes!),
@@ -506,6 +508,6 @@ class _HistorySheet extends ConsumerWidget {
   }
 }
 
-/// Local `YYYY-MM-DD HH:MM`, or null for a date the server never sent.
-String? _formatDate(DateTime? dt) => dt == null ? null : formatDateTime(dt);
+String? _formatDate(DateTimeFormats fmt, DateTime? dt) =>
+    dt == null ? null : fmt.dateTime(dt);
 

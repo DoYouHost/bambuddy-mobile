@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/printer_file.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -15,7 +16,6 @@ import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
-import '../common/format_datetime.dart';
 import '../common/sliver_search_bar.dart';
 import '../projects/project_files.dart' show saveBytesToFile;
 
@@ -536,7 +536,7 @@ class _PrinterFileManagerScreenState
     final date = file.modifiedAt;
     if (date == null) return size;
     // Already local — [dateTimeFromJson] converts once, at parse time.
-    return '$size · ${formatDateTime(date)}';
+    return '$size · ${DateTimeFormats.of(context).dateTime(date)}';
   }
 
   Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(

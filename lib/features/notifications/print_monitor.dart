@@ -4,6 +4,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/widgets.dart' show Locale;
 
 import '../../core/diagnostics/notif_probe.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/background_api.dart';
 import '../../core/notifications/hms_actions.dart';
@@ -163,19 +164,26 @@ class PrintMonitor {
     this._prefs = NotificationPrefs.defaults,
     AppLocalizations Function()? l10n,
     DateTime Function()? clock,
+    DateTimeFormats Function()? formats,
     TimerFactory? timerFactory,
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
   })  : _l10n = l10n ?? systemAppLocalizations,
         _now = clock ?? DateTime.now,
+        _formats = formats ?? DateTimeFormats.system,
         _timer = timerFactory ?? Timer.new,
-        // ignore: prefer_initializing_formals — pole prywatne z nazwanym paramem
+        // ignore: prefer_initializing_formals — private field with a named param
         _hmsDescribe = hmsDescribe;
 
   final NotificationService _notifications;
   final NotificationPrefs _prefs;
   final AppLocalizations Function() _l10n;
   final DateTime Function() _now;
+
+  /// Read per notification rather than cached: the user can flip the system
+  /// 24-hour switch while the service runs, and a monitor built at boot would
+  /// otherwise keep spelling ETAs the old way until the next restart.
+  final DateTimeFormats Function() _formats;
   final TimerFactory _timer;
 
   /// Callback invoked after print ends (success/error) — hooks up overdue
@@ -970,22 +978,12 @@ class PrintMonitor {
   }
 
   /// ETA as concrete finish time (e.g. "21:20"), not "in X".
-  /// If print finishes different day, add date "dd.MM 21:20".
-  /// Manual format (24h) — no intl init, works outside widget tree.
+  /// If print finishes different day, the date comes along.
   String? _etaClock(int? minutes) {
     if (minutes == null) return null;
     final now = _now();
-    final finish = now.add(Duration(minutes: minutes));
-    final hh = finish.hour.toString().padLeft(2, '0');
-    final mm = finish.minute.toString().padLeft(2, '0');
-    final time = '$hh:$mm';
-    final sameDay = finish.year == now.year &&
-        finish.month == now.month &&
-        finish.day == now.day;
-    if (sameDay) return time;
-    final dd = finish.day.toString().padLeft(2, '0');
-    final mo = finish.month.toString().padLeft(2, '0');
-    return '$dd.$mo $time';
+    return _formats()
+        .clockOnDay(now.add(Duration(minutes: minutes)), now: now);
   }
 }
 

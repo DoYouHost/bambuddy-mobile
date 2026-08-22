@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:bambuddy_mobile/core/diagnostics/diagnostic_recorder.dart';
 import 'package:bambuddy_mobile/core/diagnostics/notif_probe.dart';
 import 'package:bambuddy_mobile/core/diagnostics/session_facts.dart';
+import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_prefs.dart';
 import 'package:bambuddy_mobile/core/notifications/notification_service.dart';
@@ -145,11 +146,17 @@ void main() {
   // lookupAppLocalizations inside the monitor needs an initialised binding.
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Fixed clock → a deterministic ETA time in the assertions.
-  PrintMonitor monitor(_FakeNotifications fake) => PrintMonitor(
+  // Fixed clock and a pinned 24-hour formatter → a deterministic ETA time in
+  // the assertions, independent of the host's own clock preference.
+  PrintMonitor monitor(_FakeNotifications fake, {bool use24Hour = true}) =>
+      PrintMonitor(
         fake,
         l10n: () => lookupAppLocalizations(const Locale('en')),
         clock: () => DateTime(2026, 6, 12, 20, 0),
+        formats: () => DateTimeFormats.forTest(
+          locale: 'en_US',
+          use24Hour: use24Hour,
+        ),
       );
 
   test('entering a print shows the ongoing notification once; a repeat throttles',
@@ -170,6 +177,15 @@ void main() {
     // The same frame (no change in %/ETA) → no extra update.
     m.update(Map.of(frame));
     expect(fake.ongoingCount, 1);
+  });
+
+  test('the ongoing ETA follows the system clock preference', () {
+    final fake = _FakeNotifications();
+    monitor(fake, use24Hour: false).update({
+      1: _status(state: 'RUNNING', progress: 42, remaining: 80, job: 'cube.3mf'),
+    });
+    // Same 21:20 finish, spelled the way a 12-hour device spells it.
+    expect(fake.lastBody, contains('ETA 9:20 PM'));
   });
 
   test('a progress change updates the notification', () {

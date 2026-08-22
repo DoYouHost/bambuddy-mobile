@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
@@ -17,7 +18,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
-import '../common/format_datetime.dart';
 import '../common/print_thumbnail.dart';
 import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
@@ -868,8 +868,9 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   Widget _scheduleTimeRow(AppLocalizations l10n, DashTokens t) {
-    final label =
-        _scheduledTime == null ? l10n.queueEditPickTime : formatDateTime(_scheduledTime!);
+    final label = _scheduledTime == null
+        ? l10n.queueEditPickTime
+        : DateTimeFormats.of(context).dateTime(_scheduledTime!);
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),

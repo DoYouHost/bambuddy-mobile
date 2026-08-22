@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -20,7 +21,6 @@ import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
-import '../common/format_datetime.dart';
 import '../common/print_run_labels.dart';
 import '../common/print_thumbnail.dart';
 import '../common/sheet_surface.dart';
@@ -373,7 +373,7 @@ class _PrintLogCard extends ConsumerWidget {
     final who = <String>[
       if (entry.printerName != null) entry.printerName!,
       entry.createdByUsername ?? l10n.printLogNoUser,
-      formatDateTime(entry.displayDate),
+      DateTimeFormats.of(context).dateTime(entry.displayDate),
     ];
     final numbers = <String>[
       if (entry.durationSeconds != null) fmtDuration(entry.durationSeconds!),
@@ -695,9 +695,9 @@ class _PrintLogFilterSheet extends ConsumerWidget {
                   label: Text(
                     filters.from == null && filters.to == null
                         ? l10n.printLogFilterDates
-                        : '${filters.from == null ? '' : formatDate(filters.from!)}'
+                        : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
                             ' – '
-                            '${filters.to == null ? '' : formatDate(filters.to!)}',
+                            '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
                   ),
                   onPressed: () async {
                     final now = DateTime.now();

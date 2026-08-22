@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/current_user.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -239,7 +239,7 @@ class _UserDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
     final created = user.createdAt;
 
     return logTag(
@@ -291,7 +291,7 @@ class _UserDetailSheet extends ConsumerWidget {
                   _DetailRow(
                     icon: Icons.event_outlined,
                     label: l10n.usersCreatedLabel,
-                    value: DateFormat.yMMMd(locale).add_Hm().format(created),
+                    value: fmt.dateNamedMonthTime(created),
                   ),
                 const SizedBox(height: 16),
                 Text(

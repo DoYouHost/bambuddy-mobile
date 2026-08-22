@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
@@ -20,7 +21,6 @@ import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/filter_controls.dart';
-import '../common/format_datetime.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
@@ -558,7 +558,8 @@ class _ArchiveCard extends StatelessWidget {
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
-      if (archive.createdAt != null) formatDate(archive.createdAt!),
+      if (archive.createdAt != null)
+        DateTimeFormats.of(context).date(archive.createdAt!),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

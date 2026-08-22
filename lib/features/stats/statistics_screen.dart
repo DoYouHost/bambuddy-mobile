@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -208,7 +209,7 @@ class _StatsBody extends ConsumerWidget {
       );
     }
 
-    final locale = Localizations.localeOf(context).languageCode;
+    final fmt = DateTimeFormats.of(context);
     final computed = ref.watch(statsComputedProvider);
 
     return ListView(
@@ -242,20 +243,20 @@ class _StatsBody extends ConsumerWidget {
               ? const <Widget>[]
               : [
                   const SizedBox(height: 12),
-                  PrintActivityCard(data: c, locale: locale),
+                  PrintActivityCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
-                  RecordsCard(data: c, locale: locale),
+                  RecordsCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
                   PrinterStatsCard(data: c),
                   const SizedBox(height: 12),
                   FilamentTrendsHeader(stats: data),
                   const SizedBox(height: 12),
-                  UsageOverTimeCard(data: c, locale: locale),
+                  UsageOverTimeCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
                   // Per-print energy only reaches us from a 1.2.5.2 server, and
                   // only once energy tracking has recorded something.
                   if (c.hasEnergyData) ...[
-                    EnergyOverTimeCard(data: c, locale: locale),
+                    EnergyOverTimeCard(data: c, fmt: fmt),
                     const SizedBox(height: 12),
                   ],
                   ByMaterialCard(data: c),
@@ -266,9 +267,9 @@ class _StatsBody extends ConsumerWidget {
                   const SizedBox(height: 12),
                   DurationHistogramCard(data: c),
                   const SizedBox(height: 12),
-                  HabitsCard(data: c, locale: locale),
+                  HabitsCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
-                  TimeOfDayCard(data: c),
+                  TimeOfDayCard(data: c, fmt: fmt),
                 ],
         ),
       ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -11,7 +12,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
-import '../common/format_datetime.dart';
 import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
@@ -280,7 +280,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   Widget _dueDateRow(AppLocalizations l10n, DashTokens t) {
     final label = _dueDate == null
         ? l10n.projectDueDate
-        : '${l10n.projectDueDate}: ${formatDate(_dueDate!)}';
+        : '${l10n.projectDueDate}: ${DateTimeFormats.of(context).date(_dueDate!)}';
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
@@ -17,7 +18,6 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
-import '../common/format_datetime.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
 import 'project_files.dart';
@@ -593,7 +593,8 @@ class ProjectTimelineSection extends ConsumerWidget {
                         [
                           if (e.description != null) e.description!,
                           if (e.timestampParsed != null)
-                            formatDateTime(e.timestampParsed!),
+                            DateTimeFormats.of(context)
+                                .dateTime(e.timestampParsed!),
                         ].join('\n'),
                         style: t.monoMicro,
                       ),

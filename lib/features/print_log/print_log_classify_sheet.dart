@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -11,7 +12,6 @@ import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../common/currency_symbol.dart';
 import '../common/dash_input.dart';
-import '../common/format_datetime.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtDuration, fmtGrams, fmtNum;
 import 'print_log_providers.dart';
@@ -162,13 +162,13 @@ class _PrintLogClassifySheetState
               label: l10n.printLogDetailStarted,
               value: entry.startedAt == null
                   ? null
-                  : formatDateTime(entry.startedAt!),
+                  : DateTimeFormats.of(context).dateTime(entry.startedAt!),
             ),
             _RunDetailRow(
               label: l10n.printLogDetailFinished,
               value: entry.completedAt == null
                   ? null
-                  : formatDateTime(entry.completedAt!),
+                  : DateTimeFormats.of(context).dateTime(entry.completedAt!),
             ),
             _RunDetailRow(
               label: l10n.printLogDetailDuration,

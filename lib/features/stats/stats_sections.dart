@@ -4,9 +4,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -128,10 +128,10 @@ class FailureAnalysisCard extends ConsumerWidget {
 // ── Print Activity (heatmapa) ───────────────────────────────────────────────
 
 class PrintActivityCard extends StatelessWidget {
-  const PrintActivityCard({super.key, required this.data, required this.locale});
+  const PrintActivityCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   static const _margin = 3.0;
   static const _labelW = 30.0;
@@ -172,10 +172,8 @@ class PrintActivityCard extends StatelessWidget {
 
     DateTime dayAt(int w, int d) => startMonday.add(Duration(days: w * 7 + d));
 
-    // Short weekday names in locale.
-    final wd = DateFormat.E(locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    String weekdayLabel(int d) => d.isEven ? wd[(d + 1) % 7] : '';
-    final monthFmt = DateFormat.MMM(locale);
+    final wd = fmt.shortWeekdaysMondayFirst;
+    String weekdayLabel(int d) => d.isEven ? wd[d] : '';
 
     return SectionCard(
       title: l10n.statsPrintActivity,
@@ -201,7 +199,7 @@ class PrintActivityCard extends StatelessWidget {
                       width: colW,
                       child: (w == 0 ||
                               dayAt(w, 0).month != dayAt(w - 1, 0).month)
-                          ? Text(monthFmt.format(dayAt(w, 0)),
+                          ? Text(fmt.monthAbbr(dayAt(w, 0)),
                               style: labelStyle, overflow: TextOverflow.visible)
                           : null,
                     ),
@@ -285,10 +283,10 @@ class PrintActivityCard extends StatelessWidget {
 // ── Records ─────────────────────────────────────────────────────────────────
 
 class RecordsCard extends StatelessWidget {
-  const RecordsCard({super.key, required this.data, required this.locale});
+  const RecordsCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +322,7 @@ class RecordsCard extends StatelessWidget {
     if (data.busiestDay != null) {
       add(Icons.calendar_today, l10n.statsBusiestDay,
           l10n.statsPrintsCount(data.busiestDayCount),
-          DateFormat.yMMMd(locale).format(data.busiestDay!));
+          fmt.dateNamedMonth(data.busiestDay!));
     }
     if (data.bestSuccessStreak > 0) {
       add(Icons.bolt, l10n.statsSuccessStreak,
@@ -551,16 +549,16 @@ class _Metric extends StatelessWidget {
 // ── Usage / energy over time (line charts) ──────────────────────────────
 
 class UsageOverTimeCard extends StatelessWidget {
-  const UsageOverTimeCard({super.key, required this.data, required this.locale});
+  const UsageOverTimeCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
         title: AppLocalizations.of(context).statsUsageOverTime,
         points: data.usageOverTime,
-        locale: locale,
+        fmt: fmt,
         color: DashTokens.of(context).accentGreen,
         formatY: (v) =>
             v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
@@ -572,16 +570,16 @@ class UsageOverTimeCard extends StatelessWidget {
 /// and an older one (or an install that never had energy tracking on) would
 /// otherwise get a flat zero line reading as "you used no power".
 class EnergyOverTimeCard extends StatelessWidget {
-  const EnergyOverTimeCard({super.key, required this.data, required this.locale});
+  const EnergyOverTimeCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
         title: AppLocalizations.of(context).statsEnergyOverTime,
         points: data.energyOverTime,
-        locale: locale,
+        fmt: fmt,
         color: DashTokens.of(context).accentBlue,
         // kWh per day lands in single digits, where the filament chart's
         // integer axis would collapse every day into "0" or "1".
@@ -593,14 +591,14 @@ class _OverTimeChart extends StatelessWidget {
   const _OverTimeChart({
     required this.title,
     required this.points,
-    required this.locale,
+    required this.fmt,
     required this.color,
     required this.formatY,
   });
 
   final String title;
   final List<MapEntry<DateTime, double>> points;
-  final String locale;
+  final DateTimeFormats fmt;
   final Color color;
   final String Function(double) formatY;
 
@@ -626,7 +624,6 @@ class _OverTimeChart extends StatelessWidget {
         FlSpot(i.toDouble(), points[i].value),
     ];
     final maxY = points.fold<double>(1, (m, e) => math.max(m, e.value));
-    final df = DateFormat.MMMd(locale);
 
     return SectionCard(
       title: title,
@@ -659,7 +656,7 @@ class _OverTimeChart extends StatelessWidget {
                     if (i < 0 || i >= points.length) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(df.format(points[i].key), style: axisStyle),
+                      child: Text(fmt.dayNamedMonth(points[i].key), style: axisStyle),
                     );
                   },
                 ),
@@ -1108,10 +1105,10 @@ class DurationHistogramCard extends StatelessWidget {
 }
 
 class HabitsCard extends StatefulWidget {
-  const HabitsCard({super.key, required this.data, required this.locale});
+  const HabitsCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   State<HabitsCard> createState() => _HabitsCardState();
@@ -1123,9 +1120,7 @@ class _HabitsCardState extends State<HabitsCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Short weekday names in user's locale.
-    final symbols = DateFormat.E(widget.locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    final labels = [for (var i = 1; i <= 7; i++) symbols[i % 7]];
+    final labels = widget.fmt.shortWeekdaysMondayFirst;
     return SectionCard(
       title: l10n.statsPrintHabits,
       trailing: MetricToggle(
@@ -1141,9 +1136,10 @@ class _HabitsCardState extends State<HabitsCard> {
 }
 
 class TimeOfDayCard extends StatelessWidget {
-  const TimeOfDayCard({super.key, required this.data});
+  const TimeOfDayCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) {
@@ -1153,8 +1149,7 @@ class TimeOfDayCard extends StatelessWidget {
       child: _BarHistogram(
         values: data.byHour.map((e) => e.toDouble()).toList(),
         labels: [
-          for (var h = 0; h < 24; h++)
-            h % 6 == 0 ? '${h.toString().padLeft(2, '0')}:00' : '',
+          for (var h = 0; h < 24; h++) h % 6 == 0 ? fmt.hourOfDay(h) : '',
         ],
         everyLabel: 6,
       ),
