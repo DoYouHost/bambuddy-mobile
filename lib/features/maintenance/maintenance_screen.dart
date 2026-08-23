@@ -214,7 +214,7 @@ class _PrinterSectionState extends State<_PrinterSection> {
                           // the header from the first task and a printer with
                           // no tasks gets no stray line.
                           for (final item in items) ...[
-                            Divider(height: 1, color: t.hairline),
+                            const Divider(height: 1),
                             _MaintenanceRow(item: item),
                           ],
                         ],
