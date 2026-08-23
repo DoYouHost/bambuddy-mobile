@@ -5,6 +5,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/models/json_utils.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -373,11 +374,8 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
 
-    final dueIso = _dueDate == null
-        ? null
-        : '${_dueDate!.year.toString().padLeft(4, '0')}-'
-            '${_dueDate!.month.toString().padLeft(2, '0')}-'
-            '${_dueDate!.day.toString().padLeft(2, '0')}';
+    final dueIso =
+        _dueDate == null ? null : calendarDateToJson(_dueDate!);
 
     ActionOutcome result;
     try {

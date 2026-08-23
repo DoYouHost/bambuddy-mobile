@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format/duration_format.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
@@ -22,7 +23,6 @@ import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
-import '../stats/stats_common.dart' show fmtDuration;
 import 'process_settings_screen.dart';
 import 'slice_providers.dart';
 
@@ -986,7 +986,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
           if (r?.printTimeSeconds != null)
-            Text(l10n.sliceResultTime(fmtDuration(r!.printTimeSeconds!))),
+            Text(l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!))),
           if (r?.filamentUsedG != null)
             Text(l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1))),
         ],

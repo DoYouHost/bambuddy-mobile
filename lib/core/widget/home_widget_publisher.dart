@@ -4,6 +4,7 @@ import 'package:home_widget/home_widget.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../format/datetime_format.dart';
+import '../format/duration_format.dart';
 import '../models/printer_status.dart';
 import 'widget_status.dart';
 import '../notifications/hms_catalog.dart';
@@ -274,15 +275,12 @@ class HomeWidgetPublisher {
   }
 
   /// ETA row: remaining time + finish time. Empty outside printing or if
-  /// server doesn't provide remaining time. Format matches the printer card
-  /// (`durationMinutes`/`durationHoursMinutes`).
+  /// server doesn't provide remaining time.
   static String _eta(PrinterStatus s, AppLocalizations l10n, String key) {
     if (key != WidgetStatus.printing && key != WidgetStatus.paused) return '';
     final mins = s.remainingTime ?? 0;
     if (mins <= 0) return '';
-    final dur = mins < 60
-        ? l10n.durationMinutes(mins)
-        : l10n.durationHoursMinutes(mins ~/ 60, mins % 60);
+    final dur = formatMinutes(l10n, mins);
     final at = DateTime.now().add(Duration(minutes: mins));
     return '$dur · ${DateTimeFormats.system().time(at)}';
   }

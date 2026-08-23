@@ -450,8 +450,10 @@
   "widgetMultiDescription": "Wszystkie drukarki na raz",
   "remaining": "pozostało {time}",
   "eta": "ETA {time}",
-  "durationMinutes": "{minutes} min",
-  "durationHoursMinutes": "{hours} h {minutes} min",
+  "durationMinutes": "{minutes}min",
+  "durationHoursMinutes": "{hours}h {minutes}min",
+  "durationHours": "{hours}h",
+  "durationSeconds": "{seconds}s",
 
   "connectToServer": "Połącz z serwerem",
   "serverAddressLabel": "Adres serwera bambuddy",

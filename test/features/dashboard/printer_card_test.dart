@@ -369,7 +369,7 @@ void main() {
     expect(find.text('benchy.3mf'), findsOneWidget);
     expect(find.textContaining('43%'), findsOneWidget);
     expect(find.textContaining('87/203'), findsOneWidget);
-    expect(find.textContaining('pozostało 2 h 17 min'), findsOneWidget);
+    expect(find.textContaining('pozostało 2h 17min'), findsOneWidget);
     // Gauge tile: label (uppercase) and value are separate texts.
     expect(find.text('DYSZA'), findsOneWidget);
     expect(find.text('220°'), findsOneWidget);

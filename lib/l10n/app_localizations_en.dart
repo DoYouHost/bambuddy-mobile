@@ -1380,12 +1380,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String durationMinutes(int minutes) {
-    return '$minutes min';
+    return '${minutes}min';
   }
 
   @override
   String durationHoursMinutes(int hours, int minutes) {
-    return '$hours h $minutes min';
+    return '${hours}h ${minutes}min';
+  }
+
+  @override
+  String durationHours(int hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String durationSeconds(int seconds) {
+    return '${seconds}s';
   }
 
   @override

@@ -164,14 +164,6 @@ class PrintLogRepository {
   /// sends a bare `YYYY-MM-DD`, which lands on UTC midnight and quietly shifts
   /// the range for anyone not on UTC — passing the converted instant is the
   /// same wire type without that skew.
-  static String? _instant(DateTime? value) {
-    if (value == null) return null;
-    final utc = value.toUtc();
-    return '${utc.year.toString().padLeft(4, '0')}-'
-        '${utc.month.toString().padLeft(2, '0')}-'
-        '${utc.day.toString().padLeft(2, '0')}T'
-        '${utc.hour.toString().padLeft(2, '0')}:'
-        '${utc.minute.toString().padLeft(2, '0')}:'
-        '${utc.second.toString().padLeft(2, '0')}';
-  }
+  static String? _instant(DateTime? value) =>
+      value == null ? null : instantToJson(value);
 }

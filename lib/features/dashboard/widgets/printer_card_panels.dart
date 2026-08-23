@@ -182,7 +182,7 @@ class _PrintPanel extends StatelessWidget {
       if (remaining != null && remaining > 0)
         _MetaItem(
           icon: Icons.schedule,
-          text: l10n.remaining(_durationText(l10n, remaining)),
+          text: l10n.remaining(formatMinutes(l10n, remaining)),
         ),
       if (remaining != null && remaining > 0)
         _MetaItem(

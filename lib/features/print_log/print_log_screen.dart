@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/print_log_entry.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -26,7 +27,7 @@ import '../common/print_thumbnail.dart';
 import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/state_views.dart';
-import '../stats/stats_common.dart' show fmtDuration, fmtGrams, fmtNum;
+import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
 import 'print_log_providers.dart';
@@ -376,7 +377,8 @@ class _PrintLogCard extends ConsumerWidget {
       DateTimeFormats.of(context).dateTime(entry.displayDate),
     ];
     final numbers = <String>[
-      if (entry.durationSeconds != null) fmtDuration(entry.durationSeconds!),
+      if (entry.durationSeconds != null)
+        formatSeconds(l10n, entry.durationSeconds!),
       if (entry.filamentUsedGrams != null) fmtGrams(entry.filamentUsedGrams!),
       // Below 1.2.6 these are null for every row, which is not the same as
       // "this run cost nothing" — the gate is what keeps the two apart.

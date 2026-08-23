@@ -486,10 +486,6 @@ _TempReading _readingFor(
   );
 }
 
-String _durationText(AppLocalizations l10n, int minutes) => minutes < 60
-    ? l10n.durationMinutes(minutes)
-    : l10n.durationHoursMinutes(minutes ~/ 60, minutes % 60);
-
 /// ETA as a clock reading = now + remaining minutes.
 String _etaTime(DateTimeFormats fmt, int remainingMinutes) =>
     fmt.time(DateTime.now().add(Duration(minutes: remainingMinutes)));

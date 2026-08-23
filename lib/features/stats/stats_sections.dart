@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -300,7 +301,7 @@ class RecordsCard extends StatelessWidget {
     final longest = data.longest;
     if (longest?.effectiveSeconds != null) {
       add(Icons.schedule, l10n.statsLongestPrint,
-          fmtDuration(longest!.effectiveSeconds!), longest.printName);
+          formatSeconds(l10n, longest!.effectiveSeconds!), longest.printName);
     }
     final heaviest = data.heaviest;
     if (heaviest?.filamentUsedGrams != null) {
@@ -475,7 +476,7 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
           for (final e in entries)
             (
               label: names[e.key] ?? l10n.statsPrinterFallback('${e.key}'),
-              value: _metric.format(_metric.of(e.value)),
+              value: _metric.format(l10n, _metric.of(e.value)),
               fraction: _metric.of(e.value) / maxVal,
               color: null,
             ),
@@ -785,7 +786,7 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                           ),
                         ),
                         Text(
-                          '${_metric.format(_metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
+                          '${_metric.format(l10n, _metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
                           style: t.monoLabel,
                         ),
                       ],

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/printer.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
@@ -450,8 +451,7 @@ class _Subtitle extends StatelessWidget {
 
   String _eta(AppLocalizations l10n, int seconds) {
     final minutes = seconds ~/ 60;
-    if (minutes < 60) return l10n.durationMinutes(minutes);
-    return l10n.durationHoursMinutes(minutes ~/ 60, minutes % 60);
+    return formatMinutes(l10n, minutes);
   }
 }
 
