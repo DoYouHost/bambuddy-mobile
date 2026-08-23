@@ -636,7 +636,7 @@ class _UsageRow extends StatelessWidget {
                     ),
                     if (entry.createdAt != null)
                       Text(
-                        entry.createdAt!.split('T').first,
+                        DateTimeFormats.of(context).date(entry.createdAt!),
                         style: t.monoMicro,
                       ),
                   ],

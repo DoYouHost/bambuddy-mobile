@@ -185,7 +185,7 @@ void main() {
       1: _status(state: 'RUNNING', progress: 42, remaining: 80, job: 'cube.3mf'),
     });
     // Same 21:20 finish, spelled the way a 12-hour device spells it.
-    expect(fake.lastBody, contains('ETA 9:20 PM'));
+    expect(fake.lastBody, contains('ETA 9:20 PM'));
   });
 
   test('a progress change updates the notification', () {

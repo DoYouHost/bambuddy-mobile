@@ -5,9 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// Fixed instant used everywhere below: a PM time on a two-digit day, so a
 /// 12-hour clock and a day/month swap are both visible in the output.
 ///
-/// CLDR separates the am/pm marker with U+202F (narrow no-break space), not a
-/// plain one — spelling it out here keeps a failure legible instead of showing
-/// two identical-looking strings.
+/// The am/pm marker is preceded by a plain space here because the 12-hour clock
+/// is built from an explicit `h:mm a` pattern. Skeletons like `jm` use U+202F
+/// (narrow no-break space) instead, so an expectation copied from one of those
+/// fails against two strings that look identical on screen.
 final _at = DateTime(2026, 8, 22, 21, 20);
 
 DateTimeFormats _fmt({String locale = 'en_US', bool use24Hour = false}) =>
@@ -17,18 +18,28 @@ void main() {
   group('clock', () {
     test('the system 24-hour switch wins over the locale', () {
       expect(_fmt(locale: 'en_US', use24Hour: true).time(_at), '21:20');
-      expect(_fmt(locale: 'en_US').time(_at), '9:20 PM');
+      expect(_fmt(locale: 'en_US').time(_at), '9:20 PM');
     });
 
-    test('a locale that never uses am/pm reads the same either way', () {
+    test('a 24-hour locale still honours a hand-picked 12-hour clock', () {
+      // Deferring to the locale here would silently ignore the setting.
       expect(_fmt(locale: 'pl', use24Hour: true).time(_at), '21:20');
-      expect(_fmt(locale: 'pl').time(_at), '21:20');
+      expect(_fmt(locale: 'pl').time(_at), '9:20 PM');
+    });
+
+    test('thin am/pm markers are replaced, not shown', () {
+      // intl gives pl the single letters a/p; `9:20 p` reads as a typo, and
+      // Android itself shows AM/PM there.
+      expect(_fmt(locale: 'pl').time(_at), contains('PM'));
+      // A locale with usable markers of its own keeps them.
+      expect(_fmt(locale: 'en_GB').time(_at), '9:20 pm');
+      expect(_fmt(locale: 'en_CA').time(_at), '9:20 p.m.');
     });
 
     test('midnight and noon do not collapse onto 0 or 24', () {
       final f = _fmt();
-      expect(f.time(DateTime(2026, 8, 22, 0, 5)), '12:05 AM');
-      expect(f.time(DateTime(2026, 8, 22, 12, 5)), '12:05 PM');
+      expect(f.time(DateTime(2026, 8, 22, 0, 5)), '12:05 AM');
+      expect(f.time(DateTime(2026, 8, 22, 12, 5)), '12:05 PM');
     });
   });
 
@@ -54,7 +65,7 @@ void main() {
     });
 
     test('a date and time together carry both settings', () {
-      expect(_fmt(locale: 'en_US').dateTime(_at), '8/22/2026 9:20 PM');
+      expect(_fmt(locale: 'en_US').dateTime(_at), '8/22/2026 9:20 PM');
       expect(
         _fmt(locale: 'en_GB', use24Hour: true).dateTime(_at),
         '22/08/2026 21:20',
@@ -91,7 +102,9 @@ void main() {
         ['00:00', '06:00', '12:00', '18:00']);
     final h12 = _fmt(locale: 'en_US');
     expect([for (final h in [0, 6, 12, 18]) h12.hourOfDay(h)],
-        ['12 AM', '6 AM', '12 PM', '6 PM']);
+        ['12:00 AM', '6:00 AM', '12:00 PM', '6:00 PM']);
+    // A 24-hour locale forced to 12h reads the axis the same way.
+    expect(_fmt(locale: 'pl').hourOfDay(6), '6:00 AM');
   });
 
   test('short weekdays start on Monday, as every grid here draws them', () {
@@ -124,6 +137,9 @@ void main() {
       );
 
       expect(fmt.dateNamedMonth(_at), 'Aug 22, 2026');
+      // The digits still follow the device: `5/8/2026` would read as a
+      // different day to the person holding a German phone.
+      expect(fmt.date(_at), '22.8.2026');
     });
 
     testWidgets('a translated language keeps its region', (tester) async {

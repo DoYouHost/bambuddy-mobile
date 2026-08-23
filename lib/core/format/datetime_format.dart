@@ -18,39 +18,51 @@ final Set<String> _translatedLanguages = {
 /// outside it (background isolate, home widget publisher).
 @immutable
 class DateTimeFormats {
-  const DateTimeFormats._(this._locale, this.use24Hour);
+  const DateTimeFormats._(this._locale, this._wordLocale, this.use24Hour);
 
   /// `alwaysUse24HourFormatOf`, not `MediaQuery.of`, which would subscribe the
   /// caller to every metric and rebuild the dashboard card on each frame of a
   /// keyboard animation. The locale comes off the view so a test can override it.
+  ///
+  /// Reading the platform locale registers no dependency, and `Localizations`
+  /// notifies only when the *resolved* locale changes — so a region-only switch
+  /// (`en_US` → `en_GB`, both resolving to `en`) reaches the screen on its next
+  /// rebuild rather than at once. Everything here is rebuilt by ordinary
+  /// navigation, so no observer earns its keep.
   factory DateTimeFormats.of(BuildContext context) => DateTimeFormats._resolve(
         View.of(context).platformDispatcher.locale,
         Localizations.localeOf(context),
         MediaQuery.alwaysUse24HourFormatOf(context),
       );
 
+  /// No app locale is knowable outside the tree, so an untranslated system
+  /// language falls back to `en` — the same fallback `lib/app.dart` declares.
   factory DateTimeFormats.system() {
     final dispatcher = PlatformDispatcher.instance;
     return DateTimeFormats._resolve(
       dispatcher.locale,
-      dispatcher.locale,
+      const Locale('en'),
       dispatcher.alwaysUse24HourFormat,
     );
   }
 
-  /// The system locale wins so a region the app has no translation for still
-  /// gets its own field order (`en_GB` → `22/08/2026`); an untranslated system
-  /// *language* falls back, or German month names would land in an English UI.
+  /// Digits and words resolve differently. Field order is the device's business
+  /// whatever language it is set to, so numbers keep the system locale — a
+  /// `de_DE` phone gets `8.5.2026`, not the US `5/8/2026` it would read as a
+  /// different day. Month and weekday names have to come from a language we
+  /// translate, or German words would land in an English UI.
   factory DateTimeFormats._resolve(
     Locale systemLocale,
     Locale appLocale,
     bool use24Hour,
   ) {
     _ensureLocaleData();
-    final preferred = _translatedLanguages.contains(systemLocale.languageCode)
-        ? systemLocale
-        : appLocale;
-    return DateTimeFormats._(_intlName(preferred), use24Hour);
+    final translated = _translatedLanguages.contains(systemLocale.languageCode);
+    return DateTimeFormats._(
+      _intlName(systemLocale),
+      _intlName(translated ? systemLocale : appLocale),
+      use24Hour,
+    );
   }
 
   /// Visible for tests, which cannot move the platform's switches.
@@ -58,15 +70,23 @@ class DateTimeFormats {
   factory DateTimeFormats.forTest({
     required String locale,
     required bool use24Hour,
+    String? wordLocale,
   }) {
     _ensureLocaleData();
-    return DateTimeFormats._(locale, use24Hour);
+    return DateTimeFormats._(locale, wordLocale ?? locale, use24Hour);
   }
 
+  /// Numeric field order — the system locale, translated or not.
   final String _locale;
 
-  /// False does not mean 12-hour — it hands the choice to the locale, and `pl`
-  /// reads 24-hour either way.
+  /// Where a month name, weekday name or am/pm marker comes from.
+  final String _wordLocale;
+
+  /// Android hands us the *resolved* setting, not the raw switch: with nothing
+  /// chosen it already answers the locale's own convention. So false is a real
+  /// "12-hour" and is forced as one — deferring to the locale (which is what
+  /// `TimeOfDay.format` does) would ignore a `pl` user who went and picked
+  /// 12-hour by hand.
   final bool use24Hour;
 
   // What each of these actually renders, per locale and clock setting, is
@@ -81,28 +101,29 @@ class DateTimeFormats {
   String dateTime(DateTime at) => '${date(at)} ${time(at)}';
 
   String dateNamedMonth(DateTime at) =>
-      _cached('yMMMd', DateFormat.yMMMd).format(at);
+      _cachedWords('yMMMd', DateFormat.yMMMd).format(at);
 
   String dateNamedMonthTime(DateTime at) => '${dateNamedMonth(at)} ${time(at)}';
 
   String dayNamedMonth(DateTime at) =>
-      _cached('MMMd', DateFormat.MMMd).format(at);
+      _cachedWords('MMMd', DateFormat.MMMd).format(at);
 
   String dayMonthNumeric(DateTime at) =>
       _cached('Md', DateFormat.Md).format(at);
 
-  String monthAbbr(DateTime at) => _cached('MMM', DateFormat.MMM).format(at);
+  String monthAbbr(DateTime at) =>
+      _cachedWords('MMM', DateFormat.MMM).format(at);
 
   /// Takes the hour rather than a [DateTime] because the caller is labelling a
-  /// bucket, not an instant, and no particular day is meant.
-  String hourOfDay(int hour) => use24Hour
-      ? '${hour.toString().padLeft(2, '0')}:00'
-      : _cached('j', DateFormat.j).format(DateTime(2000, 1, 1, hour));
+  /// bucket, not an instant, and no particular day is meant. Goes through the
+  /// same format as [time] instead of an hour-only one: `DateFormat.j` drops the
+  /// minutes, and a bare `06` on an axis reads as a day number.
+  String hourOfDay(int hour) => time(DateTime(2000, 1, 1, hour));
 
   /// `dateSymbols` orders weekdays Sunday first, which no grid here draws.
   List<String> get shortWeekdaysMondayFirst {
     final sundayFirst =
-        _cached('E', DateFormat.E).dateSymbols.STANDALONESHORTWEEKDAYS;
+        _cachedWords('E', DateFormat.E).dateSymbols.STANDALONESHORTWEEKDAYS;
     return [...sundayFirst.skip(1), sundayFirst.first];
   }
 
@@ -114,9 +135,29 @@ class DateTimeFormats {
     return sameDay ? time(at) : '${dayMonthNumeric(at)} ${time(at)}';
   }
 
-  DateFormat get _time => use24Hour
-      ? _cached('Hm', DateFormat.Hm)
-      : _cached('jm', DateFormat.jm);
+  /// The 12-hour branch spells the pattern out rather than using the `jm`
+  /// skeleton, which would hand the hour cycle back to the locale — the one
+  /// thing [use24Hour] has already settled. `en_GB` has perfectly good `am`/`pm`
+  /// markers but a 24-hour `jm`, so the skeleton cannot be asked.
+  DateFormat get _time {
+    if (use24Hour) return _cached('Hm', DateFormat.Hm);
+    final locale = _clockLocale(_wordLocale);
+    return _formatCache.putIfAbsent(
+        'h:mm a/$locale', () => DateFormat('h:mm a', locale));
+  }
+
+  static final Map<String, String> _clockLocaleCache = {};
+
+  /// intl ships some locales' am/pm markers as single letters (`pl` → `a`/`p`),
+  /// which reads as a typo next to a time. Android shows `AM`/`PM` there — its
+  /// ICU data carries the abbreviated form intl lacks — so borrow English
+  /// markers whenever the locale's own are that thin.
+  static String _clockLocale(String wordLocale) =>
+      _clockLocaleCache.putIfAbsent(wordLocale, () {
+        final markers = DateFormat.jm(wordLocale).dateSymbols.AMPMS;
+        final thin = markers.any((m) => m.trim().length < 2);
+        return thin ? 'en' : wordLocale;
+      });
 
   /// A chart axis formats one label per tick on every paint, and building a
   /// [DateFormat] re-verifies the locale and re-parses the pattern each time.
@@ -125,6 +166,10 @@ class DateTimeFormats {
 
   DateFormat _cached(String skeleton, DateFormat Function(String) build) =>
       _formatCache.putIfAbsent('$skeleton/$_locale', () => build(_locale));
+
+  DateFormat _cachedWords(String skeleton, DateFormat Function(String) build) =>
+      _formatCache.putIfAbsent(
+          '$skeleton/$_wordLocale', () => build(_wordLocale));
 
   /// `Locale.toString` already joins with `_`, but a script subtag would make a
   /// name `intl` has no data for, and the language alone always resolves.
