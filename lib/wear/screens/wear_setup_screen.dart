@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/two_factor.dart';
+import '../../core/watch/wear_text_input.dart';
 import '../../features/setup/providers.dart';
 import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
 /// verbatim (probe → auth), just with a vertically-scrollable, round-safe layout.
+///
+/// Typing is the fallback, not the plan: the screen leads with the phone→watch
+/// handoff, because a wrist is a bad place to enter a URL and a worse one to
+/// enter a password. When someone does type, the text comes from the watch's own
+/// input activity — a Flutter `TextField` has no working keyboard on Wear OS
+/// (see [WearTextInput]).
 class WearSetupScreen extends ConsumerStatefulWidget {
   const WearSetupScreen({super.key});
 
@@ -21,7 +29,36 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
+  final _wearInput = WearTextInput();
+
   bool _useLogin = false;
+
+  /// Typing was chosen over the handoff. Sticky for the rest of the flow: the
+  /// auth step is part of the same manual path.
+  bool _manual = false;
+  bool _checkingPhone = false;
+
+  /// The last check found nothing latched — worth saying out loud, or the button
+  /// looks broken.
+  bool _phoneEmpty = false;
+
+  /// The last check failed outright, as opposed to coming back empty.
+  Object? _phoneError;
+
+  /// Whether fields hand off to the watch input activity. Settled before the
+  /// fields are reachable, since they live behind "enter manually".
+  bool _viaWatchInput = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveInputPath();
+  }
+
+  Future<void> _resolveInputPath() async {
+    final supported = await _wearInput.isSupported();
+    if (mounted && supported) setState(() => _viaWatchInput = true);
+  }
 
   @override
   void dispose() {
@@ -49,39 +86,134 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 12),
-            _compactField(_url, l10n.wearServerUrl,
-                keyboard: TextInputType.url, enabled: !state.busy),
-            const SizedBox(height: 8),
-            if (state.busy)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(8),
-                child: SizedBox(
-                    width: 22, height: 22, child: CircularProgressIndicator()),
-              ))
-            else if (!state.needsAuth)
-              FilledButton(
-                onPressed: () => controller.probe(_url.text),
-                child: Text(l10n.wearConnect),
-              ),
-            if (state.error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _errorText(l10n, state.error!),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.error, fontSize: 12),
-                ),
-              ),
-            if (state.twoFactor case final challenge?)
-              ..._twoFactorSection(controller, l10n, challenge, state)
-            else if (state.needsAuth && !state.busy)
-              ..._authSection(controller, l10n),
+            if (!_manual)
+              ..._phoneHandoffSection(l10n)
+            else
+              ..._manualSection(controller, l10n, state),
           ],
         ),
       ),
     );
   }
+
+  /// The path almost everybody should take: the phone already knows the server
+  /// and the credentials, and pushes both over the Data Layer.
+  List<Widget> _phoneHandoffSection(AppLocalizations l10n) => [
+        Text(
+          l10n.wearSetupPhoneTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l10n.wearSetupPhoneBody,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 11),
+        ),
+        if (_phoneEmpty || _phoneError != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            switch (_phoneError) {
+              final error? => _errorText(l10n, error),
+              null => l10n.wearSetupPhoneEmpty,
+            },
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 11, color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        const SizedBox(height: 10),
+        if (_checkingPhone)
+          _spinner
+        else
+          FilledButton(
+            onPressed: _checkPhone,
+            child: Text(l10n.wearSetupPhoneCheck),
+          ),
+        TextButton(
+          onPressed: () => setState(() => _manual = true),
+          child:
+              Text(l10n.wearSetupManual, style: const TextStyle(fontSize: 12)),
+        ),
+      ];
+
+  /// Adopt whatever the phone last latched. A live push is picked up by `WearApp`
+  /// on its own; this button is for the config that arrived while the watch app
+  /// was closed, and for the user who wants to see something happen.
+  Future<void> _checkPhone() async {
+    setState(() {
+      _checkingPhone = true;
+      _phoneEmpty = false;
+      _phoneError = null;
+    });
+    try {
+      // Bounded on purpose: the Data Layer call never answers at all where
+      // Google Play services are missing, and a spinner that never stops is a
+      // dead screen. Coming back empty at least leaves the manual path
+      // reachable.
+      final adopted = await ref
+          .read(watchConfigSyncProvider)
+          .adoptLatestPending()
+          .timeout(const Duration(seconds: 5), onTimeout: () => false);
+      if (!mounted) return;
+      setState(() {
+        _checkingPhone = false;
+        _phoneEmpty = !adopted;
+      });
+      // Re-reads the freshly persisted profile, which re-routes to WearHome.
+      if (adopted) ref.invalidate(serverProfileProvider);
+    } catch (error) {
+      // The timeout above only covers a call that never answers. Persisting the
+      // adopted config is a secure-storage write, and that one throws — an
+      // invalidated Keystore after a device restore is enough. Without this the
+      // spinner outlives the failure and the screen has no way back.
+      if (!mounted) return;
+      setState(() {
+        _checkingPhone = false;
+        _phoneError = error;
+      });
+    }
+  }
+
+  List<Widget> _manualSection(
+    SetupController controller,
+    AppLocalizations l10n,
+    SetupState state,
+  ) =>
+      [
+        _compactField(_url, l10n.wearServerUrl,
+            keyboard: TextInputType.url, enabled: !state.busy),
+        const SizedBox(height: 8),
+        if (state.busy)
+          _spinner
+        else if (!state.needsAuth)
+          FilledButton(
+            onPressed: () => controller.probe(_url.text),
+            child: Text(l10n.wearConnect),
+          ),
+        if (state.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _errorText(l10n, state.error!),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 12),
+            ),
+          ),
+        if (state.twoFactor case final challenge?)
+          ..._twoFactorSection(controller, l10n, challenge, state)
+        else if (state.needsAuth && !state.busy)
+          ..._authSection(controller, l10n)
+        else if (!state.busy)
+          // Only offered before the server answers: once we are past the probe,
+          // dropping back to the handoff would throw that progress away.
+          TextButton(
+            onPressed: () => setState(() => _manual = false),
+            child: Text(l10n.wearSetupPhoneTitle,
+                style: const TextStyle(fontSize: 12)),
+          ),
+      ];
 
   List<Widget> _authSection(SetupController controller, AppLocalizations l10n) => [
         const SizedBox(height: 12),
@@ -181,21 +313,65 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
     TextInputType? keyboard,
     bool obscure = false,
     bool enabled = true,
-  }) =>
-      TextField(
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final decoration = InputDecoration(
+      labelText: label,
+      isDense: true,
+      border: const OutlineInputBorder(),
+      labelStyle: const TextStyle(fontSize: 12),
+    );
+    if (!_viaWatchInput) {
+      return TextField(
         controller: controller,
         enabled: enabled,
         obscureText: obscure,
         keyboardType: keyboard,
         autocorrect: false,
         style: const TextStyle(fontSize: 13),
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: decoration,
       );
+    }
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      // The value is edited elsewhere, so nothing here may take focus — a focused
+      // field on the watch is exactly what asks for the keyboard that never comes.
+      readOnly: true,
+      canRequestFocus: false,
+      obscureText: obscure,
+      style: const TextStyle(fontSize: 13),
+      onTap: enabled ? () => _editOnWatch(controller, label) : null,
+      decoration: decoration.copyWith(
+        suffixIcon: const Icon(Icons.keyboard_alt_outlined, size: 16),
+        // Drops away once the field has a value, so the hint teaches the gesture
+        // without permanently eating a line on a 450 px screen.
+        helperText: controller.text.isEmpty ? l10n.wearSetupTapToType : null,
+        helperStyle: const TextStyle(fontSize: 9),
+      ),
+    );
+  }
+
+  Future<void> _editOnWatch(
+      TextEditingController controller, String label) async {
+    try {
+      final text = await _wearInput.request(label: label);
+      if (text != null && mounted) setState(() => controller.text = text);
+    } on WearTextInputUnavailable {
+      // Nothing to hand the request to. An editable field is a poor answer on a
+      // watch, but a dead tap is no answer at all.
+      if (mounted) setState(() => _viaWatchInput = false);
+    }
+  }
 }
+
+/// Watch-sized busy indicator, shown wherever this screen waits for something.
+const _spinner = Center(
+  child: Padding(
+    padding: EdgeInsets.all(8),
+    child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator()),
+  ),
+);
 
 /// Localized via the shared setup mapper; anything unexpected stays short.
 String _errorText(AppLocalizations l10n, Object error) {

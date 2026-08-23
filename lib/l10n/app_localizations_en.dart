@@ -4598,6 +4598,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearUsername => 'Username';
 
   @override
+  String get wearSetupPhoneTitle => 'Set up from your phone';
+
+  @override
+  String get wearSetupPhoneBody =>
+      'Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.';
+
+  @override
+  String get wearSetupPhoneCheck => 'Check again';
+
+  @override
+  String get wearSetupPhoneEmpty => 'Nothing from the phone yet.';
+
+  @override
+  String get wearSetupManual => 'Enter manually';
+
+  @override
+  String get wearSetupTapToType => 'Tap to type';
+
+  @override
   String get commonOn => 'On';
 
   @override

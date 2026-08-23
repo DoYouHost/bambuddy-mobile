@@ -1464,6 +1464,12 @@
   "wearAuthKey": "Klucz",
   "wearAuthLogin": "Logowanie",
   "wearUsername": "Użytkownik",
+  "wearSetupPhoneTitle": "Ustaw z telefonu",
+  "wearSetupPhoneBody": "Otwórz Bambuddy na sparowanym telefonie — zegarek sam pobierze z niego serwer i logowanie.",
+  "wearSetupPhoneCheck": "Sprawdź ponownie",
+  "wearSetupPhoneEmpty": "Telefon jeszcze nic nie przysłał.",
+  "wearSetupManual": "Wpisz ręcznie",
+  "wearSetupTapToType": "Dotknij, aby wpisać",
 
   "commonOn": "Wł.",
   "commonOff": "Wył.",

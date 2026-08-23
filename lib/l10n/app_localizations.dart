@@ -7874,6 +7874,42 @@ abstract class AppLocalizations {
   /// **'Username'**
   String get wearUsername;
 
+  /// No description provided for @wearSetupPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up from your phone'**
+  String get wearSetupPhoneTitle;
+
+  /// No description provided for @wearSetupPhoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.'**
+  String get wearSetupPhoneBody;
+
+  /// No description provided for @wearSetupPhoneCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get wearSetupPhoneCheck;
+
+  /// No description provided for @wearSetupPhoneEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing from the phone yet.'**
+  String get wearSetupPhoneEmpty;
+
+  /// No description provided for @wearSetupManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get wearSetupManual;
+
+  /// No description provided for @wearSetupTapToType.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to type'**
+  String get wearSetupTapToType;
+
   /// No description provided for @commonOn.
   ///
   /// In en, this message translates to:

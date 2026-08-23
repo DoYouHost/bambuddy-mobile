@@ -1633,6 +1633,12 @@
   "wearAuthKey": "Key",
   "wearAuthLogin": "Login",
   "wearUsername": "Username",
+  "wearSetupPhoneTitle": "Set up from your phone",
+  "wearSetupPhoneBody": "Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.",
+  "wearSetupPhoneCheck": "Check again",
+  "wearSetupPhoneEmpty": "Nothing from the phone yet.",
+  "wearSetupManual": "Enter manually",
+  "wearSetupTapToType": "Tap to type",
 
   "commonOn": "On",
   "commonOff": "Off",

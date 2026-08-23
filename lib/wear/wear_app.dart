@@ -63,8 +63,9 @@ class _WearAppState extends ConsumerState<WearApp>
   /// yet, so a locally-completed setup isn't clobbered.
   Future<void> _ingestPendingConfig() async {
     if (ref.read(serverProfileProvider) != null) return;
-    final configs = await ref.read(watchConfigSyncProvider).pendingConfigs();
-    if (configs.isNotEmpty) await _applyConfig(configs.last);
+    final adopted =
+        await ref.read(watchConfigSyncProvider).adoptLatestPending();
+    if (adopted && mounted) ref.invalidate(serverProfileProvider);
   }
 
   Future<void> _applyConfig(WatchConfig config) async {

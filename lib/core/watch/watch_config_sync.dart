@@ -154,6 +154,17 @@ class WatchConfigSync {
     }
   }
 
+  /// WATCH side: adopt the newest latched config, if the phone has pushed one.
+  /// Returns whether anything was applied, so the caller knows to refresh its
+  /// profile — and, on the setup screen, whether to tell the user we came back
+  /// empty-handed.
+  Future<bool> adoptLatestPending() async {
+    final configs = await pendingConfigs();
+    if (configs.isEmpty) return false;
+    await apply(configs.last);
+    return true;
+  }
+
   /// WATCH side: live stream of incoming configs (phone pushes while the watch
   /// app is open).
   Stream<WatchConfig> configStream() =>
