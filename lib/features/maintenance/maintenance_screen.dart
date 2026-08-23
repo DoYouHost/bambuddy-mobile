@@ -95,8 +95,8 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
                     icon: Icons.build_circle_outlined,
                   )
                 : ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     children: [
-                      const SizedBox(height: 8),
                       for (final p in printers)
                         _PrinterSection(
                           printer: p,
@@ -104,7 +104,6 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
                           // several, collapse by default so the list stays scannable.
                           initiallyExpanded: printers.length == 1,
                         ),
-                      const SizedBox(height: 16),
                     ],
                   ),
           ),
@@ -136,93 +135,102 @@ class _PrinterSectionState extends State<_PrinterSection> {
       ..sort((a, b) => a.hoursUntilDue.compareTo(b.hoursUntilDue));
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Material(
-            type: MaterialType.transparency,
-            child: logTag(
-              'maintenance.printer_toggle',
-              InkWell(
-                borderRadius: BorderRadius.circular(22),
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                  decoration: BoxDecoration(
-                    gradient: t.cardGradient,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: t.cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              printer.printerName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.titleLg,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              [
-                                if (printer.printerModel != null)
-                                  printer.printerModel!,
-                                l10n.maintenanceTotalHours(
-                                    printer.totalPrintHours.round()),
-                              ].join(' · '),
-                              style: t.monoLabel,
-                            ),
-                          ],
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: t.cardGradient,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: t.cardBorder),
+        ),
+        // One card per printer: the tasks live inside it, split off by
+        // hairlines, so nesting needs no indent to read. Clipping keeps the
+        // header and last-row ink inside the rounded corners.
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              logTag(
+                'maintenance.printer_toggle',
+                InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                printer.printerName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.titleLg,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                [
+                                  if (printer.printerModel != null)
+                                    printer.printerModel!,
+                                  l10n.maintenanceTotalHours(
+                                      printer.totalPrintHours.round()),
+                                ].join(' · '),
+                                style: t.monoLabel,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (printer.dueCount > 0) ...[
-                        const SizedBox(width: 12),
-                        DashPill(
-                          label: l10n.maintenanceDueBadge(printer.dueCount),
-                          accent: t.accentOrange,
+                        if (printer.dueCount > 0) ...[
+                          const SizedBox(width: 12),
+                          DashPill(
+                            label: l10n.maintenanceDueBadge(printer.dueCount),
+                            accent: t.accentOrange,
+                          ),
+                        ],
+                        const SizedBox(width: 8),
+                        AnimatedRotation(
+                          turns: _expanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(Icons.expand_more, color: t.textSecondary),
                         ),
                       ],
-                      const SizedBox(width: 8),
-                      AnimatedRotation(
-                        turns: _expanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(Icons.expand_more, color: t.textSecondary),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _expanded
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Divider goes before each row, so it also separates
+                          // the header from the first task and a printer with
+                          // no tasks gets no stray line.
+                          for (final item in items) ...[
+                            Divider(height: 1, color: t.hairline),
+                            _MaintenanceRow(item: item),
+                          ],
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: _expanded
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 12),
-                      for (final item in items) _MaintenanceTile(item: item),
-                    ],
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _MaintenanceTile extends ConsumerWidget {
-  const _MaintenanceTile({required this.item});
+class _MaintenanceRow extends ConsumerWidget {
+  const _MaintenanceRow({required this.item});
 
   final MaintenanceStatus item;
 
@@ -242,92 +250,65 @@ class _MaintenanceTile extends ConsumerWidget {
 
     return Opacity(
       opacity: item.enabled ? 1 : 0.5,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Material(
-          type: MaterialType.transparency,
-          child: logTag(
-            'maintenance.task',
-            InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => _showHistory(context, ref, l10n),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  // Urgency reads from the icon tile, progress bar and "Overdue
-                  // by" text alone — the card itself stays neutral so an
-                  // overdue tile doesn't read as an error/alert box.
-                  color: t.subCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: t.subCardBorder),
+      child: logTag(
+        'maintenance.task',
+        InkWell(
+          onTap: () => _showHistory(context, ref, l10n),
+          child: Padding(
+            // Trimmed on the right because the perform button brings its own
+            // padding; without that the row would sit visibly off-centre.
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: tileAccent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    maintenanceIcon(item.maintenanceTypeIcon),
+                    size: 18,
+                    color: inkAccent,
+                  ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: tileAccent.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(12),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.maintenanceTypeName, style: t.titleSm),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: item.progress,
+                          minHeight: 5,
+                          backgroundColor: t.gaugeTrack,
+                          valueColor: AlwaysStoppedAnimation(tileAccent),
+                        ),
                       ),
-                      child: Icon(
-                        maintenanceIcon(item.maintenanceTypeIcon),
-                        size: 18,
-                        color: inkAccent,
+                      const SizedBox(height: 6),
+                      Text(
+                        dueText,
+                        style: t.monoLabel.copyWith(
+                            color: due ? t.accentOrange : t.textTertiary),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item.maintenanceTypeName,
-                                  style: t.titleSm,
-                                ),
-                              ),
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  // Matches the tile's own urgency accent
-                                  // (orange when overdue) instead of always
-                                  // green, so it doesn't clash with the rest.
-                                  foregroundColor: inkAccent,
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(0, 0),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () =>
-                                    _confirmPerform(context, ref, l10n),
-                                child: Text(l10n.maintenancePerform),
-                              ).tagged('maintenance.perform'),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: item.progress,
-                              minHeight: 5,
-                              backgroundColor: t.gaugeTrack,
-                              valueColor: AlwaysStoppedAnimation(tileAccent),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            dueText,
-                            style: t.monoLabel.copyWith(color: due ? t.accentOrange : t.textTertiary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.check_circle_outline, size: 28),
+                  // Matches the row's own urgency accent (orange when overdue)
+                  // instead of always green, so it doesn't clash with the rest.
+                  color: inkAccent,
+                  tooltip: l10n.maintenancePerform,
+                  onPressed: () => _confirmPerform(context, ref, l10n),
+                ).tagged('maintenance.perform'),
+              ],
             ),
           ),
         ),
@@ -386,7 +367,7 @@ class _MaintenanceTile extends ConsumerWidget {
 
 /// "Perform maintenance" confirm dialog with optional notes — a StatefulWidget
 /// so it owns and disposes its own controller in the State lifecycle, same as
-/// `_NotesEditDialog` in project_detail_screen.dart (`_MaintenanceTile` is a
+/// `_NotesEditDialog` in project_detail_screen.dart (`_MaintenanceRow` is a
 /// plain `ConsumerWidget` with no dispose hook of its own to hang this off).
 /// Returns the trimmed notes text on confirm (possibly empty), `null` on cancel.
 class _PerformConfirmDialog extends StatefulWidget {
