@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -68,7 +68,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final printers = ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
 
     return DashBackground(
       child: Scaffold(
@@ -177,7 +177,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                   title: Text(
                     _expiresAt == null
                         ? l10n.apiKeysNoExpiry
-                        : DateFormat.yMMMd(locale).format(_expiresAt!),
+                        : fmt.dateNamedMonth(_expiresAt!),
                   ),
                   subtitle: Text(l10n.apiKeysExpiryHint),
                   trailing: _expiresAt == null

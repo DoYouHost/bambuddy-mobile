@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
@@ -278,7 +278,8 @@ class _Content extends StatelessWidget {
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
-    final timeFmt = hours > 24 ? DateFormat.Md() : DateFormat.Hm();
+    final fmt = DateTimeFormats.of(context);
+    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
 
     // Humidity has a natural 0..100 scale; temperature auto-scales but must keep
     // the Good/Fair lines in view, so widen the range to include them.
@@ -333,7 +334,7 @@ class _Content extends StatelessWidget {
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                timeFmt.format(
+                axisLabel(
                   DateTime.fromMillisecondsSinceEpoch(v.toInt()),
                 ),
                 style: axis,

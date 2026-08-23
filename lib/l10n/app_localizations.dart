@@ -2447,14 +2447,26 @@ abstract class AppLocalizations {
   /// No description provided for @durationMinutes.
   ///
   /// In en, this message translates to:
-  /// **'{minutes} min'**
+  /// **'{minutes}min'**
   String durationMinutes(int minutes);
 
   /// No description provided for @durationHoursMinutes.
   ///
   /// In en, this message translates to:
-  /// **'{hours} h {minutes} min'**
+  /// **'{hours}h {minutes}min'**
   String durationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @durationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String durationHours(int hours);
+
+  /// No description provided for @durationSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String durationSeconds(int seconds);
 
   /// No description provided for @connectToServer.
   ///

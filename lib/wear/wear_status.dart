@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/format/duration_format.dart';
 import '../core/models/printer_status.dart';
 import '../l10n/app_localizations.dart';
 
@@ -44,11 +45,7 @@ extension WearStateView on WearState {
       };
 }
 
-/// "1h 23m" from remaining minutes; empty when unknown.
-String formatEta(int? minutes) {
-  if (minutes == null || minutes <= 0) return '';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  if (h > 0) return '${h}h ${m}m';
-  return '${m}m';
-}
+/// Remaining minutes as `1h 23min`; empty when unknown, which is what the
+/// caller filters on.
+String formatEta(AppLocalizations l10n, int? minutes) =>
+    minutes == null || minutes <= 0 ? '' : formatMinutes(l10n, minutes);

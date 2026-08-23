@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -26,10 +27,10 @@ extension StatMetricValue on StatMetric {
       };
 
   /// Formatted metric value for row label.
-  String format(num v) => switch (this) {
+  String format(AppLocalizations l, num v) => switch (this) {
         StatMetric.weight => fmtGrams(v.toDouble()),
         StatMetric.prints => '${v.round()}',
-        StatMetric.time => fmtDuration(v.round()),
+        StatMetric.time => formatSeconds(l, v.round()),
       };
 }
 
@@ -221,14 +222,3 @@ String fmtNum(num v) {
 /// Filament: grams below 1 kg, otherwise kilograms.
 String fmtGrams(double g) =>
     g >= 1000 ? '${(g / 1000).toStringAsFixed(2)} kg' : '${g.toStringAsFixed(0)} g';
-
-/// Duration from seconds: "9h 31m", "45m", "30s".
-String fmtDuration(int seconds) {
-  if (seconds <= 0) return '0m';
-  final h = seconds ~/ 3600;
-  final m = (seconds % 3600) ~/ 60;
-  if (h > 0) return m > 0 ? '${h}h ${m}m' : '${h}h';
-  if (m > 0) return '${m}m';
-  return '${seconds}s';
-}
-

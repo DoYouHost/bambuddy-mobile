@@ -86,7 +86,7 @@ class _WearPrinterControlBodyState
               Center(child: WearStatusChip(state: state)),
               const SizedBox(height: 10),
               if (state == WearState.printing || state == WearState.paused)
-                _progress(status),
+                _progress(l10n, status),
               const SizedBox(height: 10),
               ..._faults(item),
               ..._actions(item, state, requirePlateClear, fleet?.queuePending),
@@ -106,9 +106,9 @@ class _WearPrinterControlBodyState
     );
   }
 
-  Widget _progress(PrinterStatus? s) {
+  Widget _progress(AppLocalizations l10n, PrinterStatus? s) {
     final pct = (s?.progress ?? 0).clamp(0, 100).toDouble();
-    final eta = formatEta(s?.remainingTime);
+    final eta = formatEta(l10n, s?.remainingTime);
     final layers = (s?.layerNum != null && s?.totalLayers != null)
         ? 'L ${s!.layerNum}/${s.totalLayers}'
         : '';

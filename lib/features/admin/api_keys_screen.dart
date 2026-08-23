@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -86,7 +86,7 @@ class _ApiKeyCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
     final canEdit = ref.watch(canUpdateApiKeysProvider);
     final canRevoke = ref.watch(canRevokeApiKeysProvider);
     final expired = apiKey.isExpired(DateTime.now());
@@ -96,7 +96,7 @@ class _ApiKeyCard extends ConsumerWidget {
     final subtitle = <String>[
       '${apiKey.keyPrefix}••••••••',
       if (apiKey.lastUsed != null)
-        l10n.apiKeysLastUsed(DateFormat.yMMMd(locale).format(apiKey.lastUsed!))
+        l10n.apiKeysLastUsed(fmt.dateNamedMonth(apiKey.lastUsed!))
       else
         l10n.apiKeysNeverUsed,
     ];
@@ -172,7 +172,7 @@ class _ApiKeyCard extends ConsumerWidget {
                       if (apiKey.expiresAt != null && !expired)
                         DashPill(
                           label: l10n.apiKeysExpiresOn(
-                              DateFormat.yMMMd(locale).format(apiKey.expiresAt!)),
+                              fmt.dateNamedMonth(apiKey.expiresAt!)),
                           accent: t.accentOrange,
                           icon: Icons.schedule,
                         ),

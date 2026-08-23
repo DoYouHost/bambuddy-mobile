@@ -933,7 +933,7 @@ class _AmsDryControl extends ConsumerWidget {
     final remain = unit.dryTime ?? 0;
     final color = drying ? t.accentOrange : t.textTertiary;
     final label =
-        drying && remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDry;
+        drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
 
     return InkWell(
       onTap: () => dashSurfaceSheet<void>(
@@ -1122,7 +1122,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             Icon(Icons.local_fire_department, size: 32, color: t.accentOrange),
             const SizedBox(height: 8),
             Text(
-              remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDrying,
+              remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,

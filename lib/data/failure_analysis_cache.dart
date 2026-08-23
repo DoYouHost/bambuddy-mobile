@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models/failure_analysis.dart';
+import '../core/models/json_utils.dart';
 import '../features/stats/stats_providers.dart';
 
 /// Failure analysis cache entry: an aggregate plus the extent of coverage.
@@ -95,12 +96,7 @@ class FailureAnalysisCache {
   }
 }
 
-String? _ymd(DateTime? d) {
-  if (d == null) return null;
-  final m = d.month.toString().padLeft(2, '0');
-  final day = d.day.toString().padLeft(2, '0');
-  return '${d.year}-$m-$day';
-}
+String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
 
 DateTime? _parseDate(Object? v) {
   if (v is! String || v.isEmpty) return null;

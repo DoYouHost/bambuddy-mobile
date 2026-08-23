@@ -80,6 +80,28 @@ DateTime? calendarDateFromJson(dynamic value) {
       : DateTime(parsed.year, parsed.month, parsed.day);
 }
 
+/// Inverse of [calendarDateFromJson]: the date as the user picked it, with no
+/// zone conversion. `toIso8601String` cannot stand in — it would carry a time,
+/// and on a UTC-negative device `toUtc` first would move the day.
+String calendarDateToJson(DateTime date) =>
+    '${_pad(date.year, 4)}-${_pad(date.month, 2)}-${_pad(date.day, 2)}';
+
+/// An instant the server can compare against its own columns.
+///
+/// UTC but **without** the `Z`: the columns are naive UTC (`DateTime` with no
+/// timezone), and a tz-aware bind param compares against those differently
+/// depending on the database behind the server. Sending a bare `YYYY-MM-DD`
+/// instead — as the web does — lands on UTC midnight and quietly shifts the
+/// range for anyone not on UTC. `toIso8601String` would append the `Z` and the
+/// milliseconds, so the string is built here.
+String instantToJson(DateTime value) {
+  final utc = value.toUtc();
+  return '${calendarDateToJson(utc)}T'
+      '${_pad(utc.hour, 2)}:${_pad(utc.minute, 2)}:${_pad(utc.second, 2)}';
+}
+
+String _pad(int value, int width) => value.toString().padLeft(width, '0');
+
 /// Tolerant list parse: skips elements that aren't the expected shape, and
 /// skips (rather than propagates) any element [fromJson] itself fails to
 /// parse — one malformed record drops just that entry instead of the whole

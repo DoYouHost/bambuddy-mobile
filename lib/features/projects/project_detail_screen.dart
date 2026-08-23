@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -15,7 +16,6 @@ import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
-import '../common/format_datetime.dart';
 import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
@@ -147,7 +147,8 @@ class _Header extends ConsumerWidget {
                         _DashTag(label: projectPriorityLabel(l10n, project.priority)),
                         if (project.dueDateParsed != null)
                           Text(
-                            l10n.projectDueOn(formatDate(project.dueDateParsed!)),
+                            l10n.projectDueOn(DateTimeFormats.of(context)
+                                .date(project.dueDateParsed!)),
                             style: t.monoMicro,
                           ),
                       ],

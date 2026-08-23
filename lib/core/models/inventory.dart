@@ -498,7 +498,7 @@ class SpoolUsageEntry {
         percentUsed: toIntOrNull(json['percent_used']) ?? 0,
         status: toStringOrNull(json['status']),
         cost: toDoubleOrNull(json['cost']),
-        createdAt: toStringOrNull(json['created_at']),
+        createdAt: dateTimeFromJson(json['created_at']),
       );
 
   final int id;
@@ -507,7 +507,7 @@ class SpoolUsageEntry {
   final int percentUsed;
   final String? status;
   final double? cost;
-  final String? createdAt;
+  final DateTime? createdAt;
 }
 
 /// K-calibration profile pinned to spool (`SpoolKProfileResponse`) — show

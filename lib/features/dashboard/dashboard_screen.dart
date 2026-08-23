@@ -9,6 +9,7 @@ import '../../core/api/ws_client.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
 import '../../core/notifications/battery_optimization.dart';
 import '../../core/settings/sign_in_reason.dart';
@@ -1252,10 +1253,7 @@ class _SummaryHeader extends ConsumerWidget {
     final r = next.status?.remainingTime;
     final parts = [
       if (p != null) '${p.toStringAsFixed(0)}%',
-      if (r != null)
-        r < 60
-            ? l10n.durationMinutes(r)
-            : l10n.durationHoursMinutes(r ~/ 60, r % 60),
+      if (r != null) formatMinutes(l10n, r),
     ];
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
   }
