@@ -10,6 +10,7 @@ import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_providers.dart';
+import '../widgets/wear_spinner.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
 /// verbatim (probe → auth), just with a vertically-scrollable, round-safe layout.
@@ -142,7 +143,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
         ],
         const SizedBox(height: 10),
         if (_checkingPhone)
-          _spinner
+          wearSpinner
         else
           FilledButton(
             onPressed: () => _useOffer(offer),
@@ -207,7 +208,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
         ],
         const SizedBox(height: 10),
         if (_checkingPhone)
-          _spinner
+          wearSpinner
         else
           FilledButton(
             onPressed: _checkPhone,
@@ -266,7 +267,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
             keyboard: TextInputType.url, enabled: !state.busy),
         const SizedBox(height: 8),
         if (state.busy)
-          _spinner
+          wearSpinner
         else if (!state.needsAuth)
           FilledButton(
             onPressed: () => controller.probe(_url.text),
@@ -445,14 +446,6 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
     }
   }
 }
-
-/// Watch-sized busy indicator, shown wherever this screen waits for something.
-const _spinner = Center(
-  child: Padding(
-    padding: EdgeInsets.all(8),
-    child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator()),
-  ),
-);
 
 /// Localized via the shared setup mapper; anything unexpected stays short.
 String _errorText(AppLocalizations l10n, Object error) {

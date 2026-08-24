@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -34,16 +36,23 @@ class _FakeProfile extends ServerProfileNotifier {
 }
 
 class _RecordingConfigSync extends WatchConfigSync {
-  _RecordingConfigSync()
+  _RecordingConfigSync({this.gate})
       : super(
           watch: WatchConnectivity(),
           credentials: InMemoryCredentialsStore(),
         );
 
+  /// When set, `apply` does not finish until the test completes it — that is how
+  /// a write still in flight is held open while the screen goes away.
+  final Completer<void>? gate;
+
   final applied = <WatchConfig>[];
 
   @override
-  Future<void> apply(WatchConfig config) async => applied.add(config);
+  Future<void> apply(WatchConfig config) async {
+    applied.add(config);
+    if (gate != null) await gate!.future;
+  }
 }
 
 WatchConfig _configFor(String host, {String? label}) => WatchConfig(
@@ -144,6 +153,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sync.applied.single.profile.label, 'Garage');
+  });
+
+  testWidgets('a double tap on the switch writes once, not twice',
+      (tester) async {
+    final gate = Completer<void>();
+    sync = _RecordingConfigSync(gate: gate);
+    await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
+
+    await tester.tap(find.text('Użyj tego serwera'));
+    await tester.pump();
+    // The button is gone while the write runs, so the second tap has nothing to
+    // hit — two concurrent writes of the same secrets is not a race worth having.
+    expect(find.text('Użyj tego serwera'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(sync.applied, hasLength(1));
+  });
+
+  testWidgets('leaving mid-write does not touch a disposed widget',
+      (tester) async {
+    final gate = Completer<void>();
+    sync = _RecordingConfigSync(gate: gate);
+    await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
+
+    await tester.tap(find.text('Użyj tego serwera'));
+    await tester.pump();
+
+    // Swipe-to-dismiss is a sideways swipe on Wear OS, so leaving mid-write is
+    // an easy accident. Replacing the tree is this test's version of it.
+    await tester.pumpWidget(plApp(const SizedBox.shrink()));
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    // `ref` on a disposed widget throws rather than no-oping, so an unguarded
+    // continuation lands here as a test failure.
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('says nothing about an offer for the server already running',
