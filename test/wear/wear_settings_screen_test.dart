@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../helpers.dart';
 
@@ -35,25 +34,6 @@ class _FakeProfile extends ServerProfileNotifier {
   }
 }
 
-class _RecordingConfigSync extends WatchConfigSync {
-  _RecordingConfigSync({this.gate})
-      : super(
-          watch: WatchConnectivity(),
-          credentials: InMemoryCredentialsStore(),
-        );
-
-  /// When set, `apply` does not finish until the test completes it — that is how
-  /// a write still in flight is held open while the screen goes away.
-  final Completer<void>? gate;
-
-  final applied = <WatchConfig>[];
-
-  @override
-  Future<void> apply(WatchConfig config) async {
-    applied.add(config);
-    if (gate != null) await gate!.future;
-  }
-}
 
 WatchConfig _configFor(String host, {String? label}) => WatchConfig(
       profile: ServerProfile(
@@ -66,12 +46,12 @@ WatchConfig _configFor(String host, {String? label}) => WatchConfig(
 
 void main() {
   late _FakeProfile profile;
-  late _RecordingConfigSync sync;
+  late FakeWatchConfigSync sync;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     profile = _FakeProfile();
-    sync = _RecordingConfigSync();
+    sync = FakeWatchConfigSync();
   });
 
   Future<ProviderContainer> pumpSettings(
@@ -158,7 +138,7 @@ void main() {
   testWidgets('a double tap on the switch writes once, not twice',
       (tester) async {
     final gate = Completer<void>();
-    sync = _RecordingConfigSync(gate: gate);
+    sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
     await tester.tap(find.text('Użyj tego serwera'));
@@ -176,7 +156,7 @@ void main() {
   testWidgets('leaving mid-write does not touch a disposed widget',
       (tester) async {
     final gate = Completer<void>();
-    sync = _RecordingConfigSync(gate: gate);
+    sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
     await tester.tap(find.text('Użyj tego serwera'));

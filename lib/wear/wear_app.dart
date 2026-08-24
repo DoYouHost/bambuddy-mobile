@@ -85,15 +85,12 @@ class _WearAppState extends ConsumerState<WearApp>
 
   Future<void> _applyConfig(WatchConfig config) async {
     try {
-      await ref.read(watchConfigSyncProvider).apply(config);
+      await ref.read(pendingWatchConfigProvider.notifier).adopt(config);
     } catch (_) {
-      // A secure-storage write that fails leaves the profile as it was; the
-      // offer stays on the latch, so the user can try again from setup.
-      return;
+      // Nothing on screen to tell: this runs without anyone having asked for it.
+      // A failed write leaves the profile as it was and the config on the Data
+      // Layer latch, so the setup screen can offer it again.
     }
-    if (!mounted) return;
-    // Re-read the freshly persisted profile → re-routes to WearHome.
-    ref.invalidate(serverProfileProvider);
   }
 
   @override

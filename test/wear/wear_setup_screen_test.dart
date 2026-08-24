@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../helpers.dart';
 
@@ -17,27 +16,6 @@ import '../helpers.dart';
 /// So two things are asserted here — that the phone handoff leads, and that the
 /// manual path types through the watch's own input activity rather than a
 /// keyboard that is not coming.
-/// The phone's side of the handoff, faked: it offers [config], and persisting it
-/// blows up the way secure storage does when the Keystore no longer holds the
-/// key the secrets were written with.
-class _FakeConfigSync extends WatchConfigSync {
-  _FakeConfigSync({this.config, this.failsToApply = false})
-      : super(
-          watch: WatchConnectivity(),
-          credentials: InMemoryCredentialsStore(),
-        );
-
-  final WatchConfig? config;
-  final bool failsToApply;
-
-  @override
-  Future<WatchConfig?> latestPending() async => config;
-
-  @override
-  Future<void> apply(WatchConfig config) async {
-    if (failsToApply) throw Exception('keystore is gone');
-  }
-}
 
 final _offered = WatchConfig(
   profile: const ServerProfile(
@@ -117,7 +95,7 @@ void main() {
 
   testWidgets('what the phone sent is shown before it is used', (tester) async {
     await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(_FakeConfigSync(config: _offered)),
+      watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
     ]);
 
     await tester.tap(find.text('Sprawdź ponownie'));
@@ -136,7 +114,7 @@ void main() {
   testWidgets('"not now" hands the screen back, it does not apply anything',
       (tester) async {
     await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(_FakeConfigSync(config: _offered)),
+      watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
     ]);
     await tester.tap(find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
@@ -153,7 +131,7 @@ void main() {
       (tester) async {
     await pumpSetup(tester, overrides: [
       watchConfigSyncProvider.overrideWithValue(
-          _FakeConfigSync(config: _offered, failsToApply: true)),
+          FakeWatchConfigSync(pending: _offered, failsToApply: true)),
     ]);
     await tester.tap(find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -10,7 +8,6 @@ import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 
 import '../helpers.dart';
 
@@ -20,25 +17,6 @@ import '../helpers.dart';
 /// every one of those straight into the watch's storage — so a phone that had
 /// moved to another server silently moved the watch with it, with nothing on
 /// screen saying which server it was now on.
-class _StreamingConfigSync extends WatchConfigSync {
-  _StreamingConfigSync()
-      : super(
-          watch: WatchConnectivity(),
-          credentials: InMemoryCredentialsStore(),
-        );
-
-  final pushes = StreamController<WatchConfig>.broadcast();
-  final applied = <WatchConfig>[];
-
-  @override
-  Future<WatchConfig?> latestPending() async => null;
-
-  @override
-  Stream<WatchConfig> configStream() => pushes.stream;
-
-  @override
-  Future<void> apply(WatchConfig config) async => applied.add(config);
-}
 
 class _ProfileOn extends ServerProfileNotifier {
   _ProfileOn(this._profile);
@@ -70,11 +48,11 @@ WatchConfig _configFor(ServerProfile profile, {String key = 'bb_secret'}) =>
     WatchConfig(profile: profile, apiKey: key);
 
 void main() {
-  late _StreamingConfigSync sync;
+  late FakeWatchConfigSync sync;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    sync = _StreamingConfigSync();
+    sync = FakeWatchConfigSync();
   });
 
   tearDown(() => sync.pushes.close());

@@ -103,17 +103,15 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
   Future<void> _switchTo(WatchConfig config) async {
     setState(() => _busy = true);
     try {
-      await ref.read(watchConfigSyncProvider).apply(config);
+      await ref.read(pendingWatchConfigProvider.notifier).adopt(config);
     } catch (_) {
-      // Secure storage refused the write. The offer stays on the latch, so the
+      // Secure storage refused the write. The offer stays standing, so the
       // button comes back to try again — better than a screen that lies about
       // having switched.
       if (mounted) setState(() => _busy = false);
       return;
     }
     if (!mounted) return;
-    ref.read(pendingWatchConfigProvider.notifier).dismiss();
-    ref.invalidate(serverProfileProvider);
     Navigator.of(context).pop();
   }
 
@@ -125,16 +123,13 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
     // Read before the dialog: `clear()` has to reach the notifier even if this
     // widget goes away while the question is on screen.
     final profiles = ref.read(serverProfileProvider.notifier);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.swap_horiz_rounded,
-        title: l10n.changeServerQuestion,
-        subtitle: profile?.displayName,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final confirmed = await wearConfirm(
+      context,
+      icon: Icons.swap_horiz_rounded,
+      title: l10n.changeServerQuestion,
+      subtitle: profile?.displayName,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _busy = true);
     await profiles.clear();
     if (!mounted) return;

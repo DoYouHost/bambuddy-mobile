@@ -210,16 +210,13 @@ class _WearPrinterControlBodyState
 
   Future<void> _confirmHmsStop(
       WearActions actions, int id, HmsError fault, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.stop_rounded,
-        title: AppLocalizations.of(ctx).hmsStopConfirmTitle,
-        subtitle: name,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).hmsStopConfirmTitle,
+      subtitle: name,
     );
-    if (ok != true) return;
+    if (!ok) return;
     await _run(() => actions.executeHmsAction(id,
         printError: fault.fullCode!,
         action: hmsStopAction,
@@ -272,7 +269,7 @@ class _WearPrinterControlBodyState
         !offeredByFaults.contains(hmsStopAction)) {
       buttons.add(_btn(l10n.ctrlStop, Icons.stop,
           () => _confirmStop(actions, id, item.printer.name),
-          color: const Color(0xFFB3261E)));
+          color: wearDestructive));
     }
 
     if (buttons.isEmpty) {
@@ -327,16 +324,13 @@ class _WearPrinterControlBodyState
       );
 
   Future<void> _confirmStop(WearActions actions, int id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.stop_rounded,
-        title: AppLocalizations.of(ctx).ctrlStopConfirmTitle,
-        subtitle: name,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).ctrlStopConfirmTitle,
+      subtitle: name,
     );
-    if (ok == true) await actions.stop(id);
+    if (ok) await actions.stop(id);
   }
 
   /// Runs an action with a full-screen busy veil, then refreshes the poll.
@@ -450,7 +444,7 @@ class _WearFaultState extends State<_WearFault> {
                   textStyle: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w600),
                   backgroundColor:
-                      action == hmsStopAction ? const Color(0xFFB3261E) : null,
+                      action == hmsStopAction ? wearDestructive : null,
                 ),
                 child: Text(
                   hmsActionLabel(l10n, action),

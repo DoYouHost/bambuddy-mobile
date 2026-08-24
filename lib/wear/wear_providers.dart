@@ -26,6 +26,20 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
   void offer(WatchConfig config) => state = config;
 
   void dismiss() => state = null;
+
+  /// Persist [config] as this watch's server, clear the offer and re-read the
+  /// profile so the app re-routes. Rethrows what secure storage threw: whether
+  /// that failure becomes a red line, a spinner coming back or nothing at all is
+  /// the screen's business, and only the screen knows whether it is still alive
+  /// to show it — a notifier cannot check somebody else's `mounted`.
+  ///
+  /// Failing leaves the offer standing, so the button that started this is still
+  /// there to try again.
+  Future<void> adopt(WatchConfig config) async {
+    await ref.read(watchConfigSyncProvider).apply(config);
+    state = null;
+    ref.invalidate(serverProfileProvider);
+  }
 }
 
 /// Transport for everything the watch asks of the server: relay through the

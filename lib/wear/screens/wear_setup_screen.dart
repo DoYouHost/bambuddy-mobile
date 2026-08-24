@@ -166,11 +166,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
       _phoneError = null;
     });
     try {
-      await ref.read(watchConfigSyncProvider).apply(offer);
-      if (!mounted) return;
-      ref.read(pendingWatchConfigProvider.notifier).dismiss();
-      // Re-reads the freshly persisted profile, which re-routes to WearHome.
-      ref.invalidate(serverProfileProvider);
+      await ref.read(pendingWatchConfigProvider.notifier).adopt(offer);
     } catch (error) {
       if (!mounted) return;
       setState(() {

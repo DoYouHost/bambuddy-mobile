@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
+import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
@@ -9,6 +11,7 @@ import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart'
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:watch_connectivity/watch_connectivity.dart';
 
 /// Inertny firmware dla testów widgetów: karta drukarki czyta firmware przy
 /// renderze, a testy go nie sprawdzają — zwracamy null, by nie bić po sieci
@@ -56,6 +59,55 @@ dynamic readFixture(String name) => jsonDecode(readFixtureString(name));
 /// Surowa zawartość fixture'a (do parserów przyjmujących tekst, np. ramki WS).
 String readFixtureString(String name) =>
     File('test/fixtures/$name').readAsStringSync();
+
+/// The phone→watch handoff, faked, with knobs for every shape the wear tests
+/// need: what the Data Layer has latched, what it pushes live, and whether
+/// persisting the result works.
+///
+/// One fake rather than one per test file: three of them had grown, each
+/// re-deriving the same `super(...)` and stubbing a different third of the API.
+class FakeWatchConfigSync extends WatchConfigSync {
+  FakeWatchConfigSync({
+    this.pending,
+    StreamController<WatchConfig>? pushes,
+    this.failsToApply = false,
+    this.applyGate,
+  })  : pushes = pushes ?? StreamController<WatchConfig>.broadcast(),
+        super(
+          watch: WatchConnectivity(),
+          credentials: InMemoryCredentialsStore(),
+        );
+
+  /// What the phone has latched — what [latestPending] answers.
+  final WatchConfig? pending;
+
+  /// Live pushes. Add to it to act as a phone that pushed while the app is open.
+  final StreamController<WatchConfig> pushes;
+
+  /// Make [apply] throw, the way secure storage does when the Keystore no longer
+  /// holds the key the secrets were written with.
+  final bool failsToApply;
+
+  /// When set, [apply] does not finish until the test completes it — that is how
+  /// a write still in flight is held open while the screen goes away.
+  final Completer<void>? applyGate;
+
+  /// Every config [apply] was asked to persist, in order.
+  final applied = <WatchConfig>[];
+
+  @override
+  Future<WatchConfig?> latestPending() async => pending;
+
+  @override
+  Stream<WatchConfig> configStream() => pushes.stream;
+
+  @override
+  Future<void> apply(WatchConfig config) async {
+    applied.add(config);
+    if (failsToApply) throw Exception('keystore is gone');
+    if (applyGate != null) await applyGate!.future;
+  }
+}
 
 /// CredentialsStore w pamięci — testy rdzenia nie dotykają pluginu.
 class InMemoryCredentialsStore implements CredentialsStore {
