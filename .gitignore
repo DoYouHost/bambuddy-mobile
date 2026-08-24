@@ -218,3 +218,6 @@ tool/gcode_viewer/node_modules/
 !assets/gcode/viewer.js
 !tool/gcode_viewer/src/entry.js
 !tool/gcode_viewer/src/vendor/toolpathRenderer.js
+
+# Working directory of the server-drift job (briefing, report, extracted facts).
+.server-drift/

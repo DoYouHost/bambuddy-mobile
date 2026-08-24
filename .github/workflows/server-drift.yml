@@ -1,0 +1,178 @@
+# Weekly: what moved in the bambuddy server since we last looked, and what of it
+# is still ours to do.
+#
+# State lives in the GitHub issue labelled `server-drift` — its body carries the
+# last triaged server commit. Nothing is committed to this repo, and a run that
+# cannot find that state fails loudly instead of picking a baseline: guessing too
+# far back buries the report, guessing too recent swallows changes nobody would
+# ever hear about. Seed it once by hand with `from_sha`.
+#
+# The tree checked out is `dev`, because "do we already have this" is a question
+# about our integration branch, not about the default branch the cron runs from.
+name: Server drift
+
+on:
+  schedule:
+    # Monday 06:00 UTC. The server does ~100 commits a fortnight but touches the
+    # contract in about 20 files, so a daily run would mostly report nothing.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      from_sha:
+        description: 'Seed: server commit already triaged. Used only when no server-drift issue exists yet.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: server-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: [self-hosted, flutter]
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Server reference clone
+        run: |
+          echo "REF_DIR=$HOME/.cache/bambuddy-ref" >> "$GITHUB_ENV"
+          REF_DIR="$HOME/.cache/bambuddy-ref"
+          if [[ ! -d "$REF_DIR/.git" ]]; then
+            # Partial, never shallow: a shallow clone has no history, and this
+            # job's whole job is to diff two commits.
+            git clone --filter=blob:none --no-tags \
+              https://github.com/maziggy/bambuddy.git "$REF_DIR"
+          fi
+          git -C "$REF_DIR" fetch --quiet origin "+dev:refs/remotes/origin/dev"
+
+      - name: Resolve the baseline
+        id: state
+        run: |
+          issue="$(gh issue list --label server-drift --state all --limit 1 \
+            --json number,state,body 2>/dev/null || echo '[]')"
+          number="$(jq -r '.[0].number // empty' <<<"$issue")"
+          state="$(jq -r '.[0].state // empty' <<<"$issue")"
+          from="$(jq -r '.[0].body // ""' <<<"$issue" | sed -n 's/^server_sha: \([0-9a-f]\{7,\}\).*/\1/p' | head -1)"
+
+          if [[ -z "$from" ]]; then
+            from="${{ inputs.from_sha }}"
+            if [[ -z "$from" ]]; then
+              echo "::error::No server-drift issue and no from_sha input. Seed this job once by hand: Actions → Server drift → Run workflow, with the server commit already triaged."
+              exit 1
+            fi
+            echo "seeding from $from"
+            gh label create server-drift \
+              --color BFD4F2 \
+              --description "Bambuddy server changes we have not caught up with" 2>/dev/null || true
+          fi
+
+          {
+            echo "from=$from"
+            echo "issue_number=$number"
+            echo "issue_state=$state"
+          } >> "$GITHUB_OUTPUT"
+
+          # The list as it stands, without the state marker. The triage edits
+          # this rather than appending to it, so a finished item leaves the
+          # issue body the week it is finished.
+          mkdir -p .server-drift
+          # GitHub returns issue bodies with CRLF: without the tr, the marker's
+          # closing line never matches and the sed range would delete the whole
+          # list instead of four lines.
+          jq -r '.[0].body // ""' <<<"$issue" | tr -d '\r' \
+            | sed '/^<!-- server-drift state/,/^-->$/d' > .server-drift/open-items-current.md
+
+      - name: Filter the range
+        id: filter
+        run: |
+          tool/server-ref-diff.sh \
+            --from "${{ steps.state.outputs.from }}" \
+            --ref "$REF_DIR" \
+            --no-fetch \
+            --out "$GITHUB_WORKSPACE/.server-drift"
+          echo "drift=$(cat .server-drift/drift)" >> "$GITHUB_OUTPUT"
+          # The facts, not the filtered diff — the diff alone runs to hundreds
+          # of kilobytes and a job summary is capped at a megabyte.
+          sed -n '1,/^## Filtered diff/p' .server-drift/briefing.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Triage
+        if: steps.filter.outputs.drift == 'yes'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read .claude/skills/reference-update/SKILL.md and follow it.
+
+            The baseline is already resolved and the briefing is already written:
+            skip step 1 and step 2, start from step 3. The briefing is at
+            .server-drift/briefing.md and the server reference clone is at
+            ${{ env.REF_DIR }}.
+
+            Write both files the skill asks for — .server-drift/report.md and
+            .server-drift/open-items.md — and change nothing else in the working
+            tree. The list standing before this run is at
+            .server-drift/open-items-current.md; it is empty on the first run.
+          claude_args: |
+            --model claude-sonnet-5
+            --effort medium
+            --add-dir ${{ env.REF_DIR }}
+            --allowedTools
+            "Read" "Grep" "Glob" "Write"
+            "Bash(git -C ${{ env.REF_DIR }} show:*)" "Bash(git -C ${{ env.REF_DIR }} diff:*)" "Bash(git -C ${{ env.REF_DIR }} log:*)"
+            "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)"
+
+      - name: File the report
+        if: steps.filter.outputs.drift == 'yes'
+        run: |
+          report=.server-drift/report.md
+          items=.server-drift/open-items.md
+          for f in "$report" "$items"; do
+            if [[ ! -s "$f" ]]; then
+              echo "::error::The triage step produced no $f."
+              exit 1
+            fi
+          done
+
+          to_sha="$(cat .server-drift/to_sha)"
+          dev_sha="$(cat .server-drift/dev_sha)"
+          title="Server drift: ${to_sha:0:8}"
+          number="${{ steps.state.outputs.issue_number }}"
+
+          # Body = the marker plus what is still owed, rewritten every run.
+          # Comment = what this range changed, including every item struck off,
+          # so the list can shrink without the reason for it being lost.
+          {
+            echo "<!-- server-drift state, read by .github/workflows/server-drift.yml"
+            echo "server_sha: $to_sha"
+            echo "dev_sha: $dev_sha"
+            echo "-->"
+            echo
+            cat "$items"
+          } > body.md
+
+          # An open issue is a debt still owed, so the run appends its record to
+          # it; a closed one means that range was dealt with, and the next range
+          # gets an issue of its own.
+          if [[ -n "$number" && "${{ steps.state.outputs.issue_state }}" == "OPEN" ]]; then
+            gh issue comment "$number" --body-file "$report"
+            gh issue edit "$number" --title "$title" --body-file body.md
+            echo "updated issue #$number"
+          else
+            url="$(gh issue create --title "$title" --label server-drift --body-file body.md)"
+            gh issue comment "${url##*/}" --body-file "$report"
+            echo "opened ${url}"
+          fi
+
+      - name: Nothing moved
+        if: steps.filter.outputs.drift == 'no'
+        run: echo "No contract path changed in this range — no issue filed."
