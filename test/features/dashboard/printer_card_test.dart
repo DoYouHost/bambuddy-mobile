@@ -213,15 +213,6 @@ class _RefusingInventory extends InventoryNotifier {
   }
 }
 
-/// A session authenticated by API key rather than by an account.
-class _ApiKeyProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.apiKey,
-      );
-}
-
 /// The card tests run without a settings repository, and the real backend
 /// notifier reads one — so the choice is staged here instead.
 class _FixedBackendNotifier extends InventoryBackendNotifier {
@@ -231,14 +222,6 @@ class _FixedBackendNotifier extends InventoryBackendNotifier {
 
   @override
   InventoryBackend build() => _backend;
-}
-
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
 }
 
 /// Inert gniazdka: testy karty nie sprawdzają smart gniazdek, więc nie pollujemy
@@ -289,7 +272,7 @@ SmartPlugsState _plugState() => SmartPlugsState(
 Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
@@ -327,9 +310,8 @@ Widget _scope(
 }) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(apiKeySession
-            ? _ApiKeyProfileNotifier.new
-            : _FakeProfileNotifier.new),
+        fakeServerProfileOverride(
+            authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none),
         inventoryBackendProvider
             .overrideWith(() => _FixedBackendNotifier(backend)),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
@@ -356,7 +338,7 @@ Widget _cardWithProviders(
 /// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
 Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
@@ -926,7 +908,7 @@ void main() {
       );
       return ProviderScope(
         overrides: [
-          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          fakeServerProfileOverride(),
           cameraTokenProvider.overrideWith((ref) async => 'tok'),
           inertFirmwareOverride,
           inertTotalPrintHoursOverride,
@@ -1430,7 +1412,7 @@ void main() {
   group('firmware pod nazwą drukarki', () {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
           overrides: [
-            serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+            fakeServerProfileOverride(),
             cameraTokenProvider.overrideWith((ref) async => 'tok'),
             smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
             printerFirmwareProvider(1).overrideWithValue(info),
@@ -1482,7 +1464,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [
-          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          fakeServerProfileOverride(),
           cameraTokenProvider.overrideWith((ref) async => 'tok'),
           smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
           inertFirmwareOverride, // zwraca null

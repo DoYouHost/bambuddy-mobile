@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,16 +16,10 @@ class _FakeArchiveNotifier extends ArchiveNotifier {
   Future<List<Archive>> build() async => _items;
 }
 
-/// Profil null → miniatura pokazuje placeholder zamiast bić po sieci.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 Widget _screen(List<Archive> items) => ProviderScope(
   overrides: [
     archiveProvider.overrideWith(() => _FakeArchiveNotifier(items)),
-    serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+    noServerProfileOverride,
   ],
   child: plApp(const ArchiveScreen()),
 );

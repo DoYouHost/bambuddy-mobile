@@ -17,23 +17,13 @@ class _FakeCurrentUser extends CurrentUserNotifier {
   Future<CurrentUser?> build() async => _user;
 }
 
-class _FakeProfile extends ServerProfileNotifier {
-  _FakeProfile({this.authMode = AuthMode.jwt});
-
-  final AuthMode authMode;
-
-  @override
-  ServerProfile? build() =>
-      ServerProfile(baseUrl: 'http://s.local:8000', authMode: authMode);
-}
-
 ProviderContainer _containerFor(
   CurrentUser? user, {
   AuthMode authMode = AuthMode.jwt,
 }) {
   final container = ProviderContainer(overrides: [
     currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
-    serverProfileProvider.overrideWith(() => _FakeProfile(authMode: authMode)),
+    fakeServerProfileOverride(authMode: authMode),
   ]);
   addTearDown(container.dispose);
   return container;

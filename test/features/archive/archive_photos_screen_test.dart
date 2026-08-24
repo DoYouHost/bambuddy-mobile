@@ -1,19 +1,11 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/archive/archive_photos_screen.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
-
-/// Profil null → ekran nie buduje URL-i i nie sięga po token kamery.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
 
 Archive _archive(List<String> photos) => Archive(
   id: 7,
@@ -26,7 +18,7 @@ Archive _archive(List<String> photos) => Archive(
 Widget _screen(List<String> photos) => ProviderScope(
   overrides: [
     archiveDetailProvider(7).overrideWith((ref) async => _archive(photos)),
-    serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+    noServerProfileOverride,
   ],
   child: plApp(const ArchivePhotosScreen(archiveId: 7, title: 'Benchy')),
 );

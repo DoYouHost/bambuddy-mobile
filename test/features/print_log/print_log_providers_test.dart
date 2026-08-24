@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -9,6 +8,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers.dart';
 
 /// What the notifier has to get right about requests that outlive the state
 /// they started from — a page still in flight when the filters changed, a
@@ -63,13 +64,6 @@ PrintLogPage _page(List<int> ids, {int? total}) => PrintLogPage(
       total: total ?? ids.length,
     );
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 void main() {
   late _FakeRepository repo;
   late ProviderContainer container;
@@ -81,7 +75,7 @@ void main() {
     container = ProviderContainer(overrides: [
       printLogRepositoryProvider.overrideWithValue(repo),
       sharedPreferencesProvider.overrideWithValue(prefs),
-      serverProfileProvider.overrideWith(_NullProfile.new),
+      noServerProfileOverride,
     ]);
     // Keep the notifier alive for the whole test: it is autoDispose, and a
     // listener is what a screen would be.

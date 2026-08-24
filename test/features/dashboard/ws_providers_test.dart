@@ -3,20 +3,12 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
+import '../../helpers.dart';
 
 /// Połączenie, które nigdy nie kończy handshake'u i nie nadaje ramek — WS
 /// zostaje „cichy", więc testujemy wyłącznie tor pollingu ([ingestPoll]).
@@ -38,7 +30,7 @@ class _HangConn implements WsConnection {
 ProviderContainer _container() {
   final c = ProviderContainer(
     overrides: [
-      serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+      fakeServerProfileOverride(),
       wsClientProvider.overrideWith((ref) {
         final client = WsClient(
           url: Uri.parse('ws://s.local:8000/api/v1/ws'),

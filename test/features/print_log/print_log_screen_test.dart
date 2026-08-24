@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
@@ -65,14 +64,6 @@ class _FakePrintLog extends PrintLogNotifier {
   }
 }
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design. It also keeps the thumbnail tile on its
-/// placeholder instead of reaching for a camera token.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 PrintLogEntry _entry({
   int id = 7,
   String name = 'Benchy',
@@ -133,7 +124,7 @@ void main() {
         printersForPickerProvider.overrideWith(
           (ref) async => const [Printer(id: 3, name: 'P1S')],
         ),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
       ],
       child: plApp(const PrintLogScreen()),
     ));

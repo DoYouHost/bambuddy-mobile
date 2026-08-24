@@ -3,7 +3,6 @@ import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
@@ -54,13 +53,6 @@ QueueRepository _repo({required bool triState}) {
   return QueueRepository(dio, ServerVersionService(dio));
 }
 
-/// Null profile: [QueueNotifier.refresh] short-circuits, so the only request
-/// this screen makes is the create POST itself.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 const _printer = Printer(id: 1, name: 'X2D-3DP', model: 'X2D');
 
 late SharedPreferences _prefs;
@@ -79,7 +71,7 @@ Widget _screen(
 }) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
         queueRepositoryProvider.overrideWithValue(_repo(triState: triState)),
         allPrintersProvider.overrideWith((ref) async => const [_printer]),
         sharedPreferencesProvider.overrideWithValue(_prefs),

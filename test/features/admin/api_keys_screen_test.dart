@@ -68,14 +68,6 @@ class _FakeCurrentUser extends CurrentUserNotifier {
   Future<void> refresh() async {}
 }
 
-class _FakeProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.jwt,
-      );
-}
-
 const _admin = CurrentUser(id: 1, username: 'admin', isAdmin: true);
 
 /// `api_keys:read` and nothing else — the list, no buttons.
@@ -91,7 +83,7 @@ Widget _app(Widget child, {required _FakeKeys repo, CurrentUser? signedInAs}) =>
       overrides: [
         apiKeysRepositoryProvider.overrideWithValue(repo),
         currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
-        serverProfileProvider.overrideWith(_FakeProfile.new),
+        fakeServerProfileOverride(authMode: AuthMode.jwt),
         apiKeyPrinterOptionsProvider.overrideWith(
           (ref) async => const [
             Printer(id: 2, name: 'X1C Warsztat'),

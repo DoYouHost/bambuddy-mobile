@@ -1,8 +1,6 @@
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_screen.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,17 +17,10 @@ class _FakeQueueNotifier extends QueueNotifier {
   Future<List<QueueItem>> build() async => _items;
 }
 
-/// Profil null → miniatura pokazuje placeholder, bez próby sieciowej
-/// (i bez sięgania po SharedPreferences, którego w teście nie ma).
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 Widget _screen(List<QueueItem> items) => ProviderScope(
       overrides: [
         queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
       ],
       child: plApp(const QueueScreen()),
     );

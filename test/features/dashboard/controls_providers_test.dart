@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/controls_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -9,13 +8,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Profil bez auth — `controlsProvider.build` tylko go obserwuje (reset przy
-/// zmianie), więc wartość jest nieistotna, ale provider musi się zbudować.
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() =>
-      const ServerProfile(baseUrl: 'http://s.local:8000', authMode: AuthMode.none);
-}
+import '../../helpers.dart';
 
 /// Atrapa repozytorium komend: zapisuje wywołania, opcjonalnie czeka na bramkę
 /// i/lub rzuca skonfigurowany wyjątek.
@@ -109,7 +102,7 @@ class _FakeCommands implements PrinterCommandsRepository {
 ProviderContainer _container(_FakeCommands fake) {
   final c = ProviderContainer(
     overrides: [
-      serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+      fakeServerProfileOverride(),
       printerCommandsRepositoryProvider.overrideWithValue(fake),
     ],
   );

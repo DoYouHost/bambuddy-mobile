@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_screen.dart';
@@ -55,13 +54,6 @@ class _FixedBackend extends InventoryBackendNotifier {
   InventoryBackend build() => _backend;
 }
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 void main() {
   late AppLocalizations l10n;
 
@@ -89,7 +81,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         inventoryProvider.overrideWith(() => fake),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
         inventoryBackendProvider.overrideWith(() => _FixedBackend(backend)),
       ],
       child: plApp(const InventoryScreen()),
