@@ -4,8 +4,8 @@
 # Between two `dev` commits two weeks apart the server changed 324 files and
 # +44876/-2567 lines; the directories that define the API held 20 files and
 # +1779/-295. Everything else is frontend, tests and migrations. So the model
-# never reads the raw range: it reads the briefing this script writes, which is
-# the filtered diff plus the mechanical facts about our side of it.
+# never reads the raw range: it reads what this script writes — facts.md, the
+# mechanical picture of both sides, and diff.md, the filtered diff behind it.
 #
 #   tool/server-ref-diff.sh --from 7c117dc6 [--to origin/dev] [--out DIR]
 #
@@ -41,8 +41,8 @@ CONTRACT_PATHS=(
   CHANGELOG.md
 )
 
-# A whole range of raw diff would drown the briefing; these caps keep it
-# readable, and the briefing prints the command that shows what was cut.
+# A whole range of raw diff would drown diff.md; these caps keep it readable,
+# and the file ends with the command that shows whatever was cut.
 MAX_DIFF_LINES_PER_FILE=400
 MAX_CHANGELOG_LINES=600
 
@@ -68,7 +68,8 @@ done
 
 OUT="${OUT:-$REPO_ROOT/.server-drift}"
 mkdir -p "$OUT"
-BRIEFING="$OUT/briefing.md"
+FACTS="$OUT/facts.md"
+DIFF="$OUT/diff.md"
 
 ref_git() { git -C "$REF" "$@"; }
 
@@ -104,7 +105,7 @@ if [[ -z "$CHANGED" ]]; then
     echo
     echo "\`${FROM_SHA:0:8}\` → \`${TO_SHA:0:8}\`, $(ref_git rev-list --count "$FROM_SHA..$TO_SHA") commits,"
     echo "none of them touching a path that can move the API contract."
-  } > "$BRIEFING"
+  } > "$FACTS"
   exit 0
 fi
 
@@ -116,7 +117,7 @@ echo "yes" > "$OUT/drift"
 # constructed with, plus the decorator's own path. The prefix is read from the
 # first `prefix="…"` in the file, which is how every route module in this server
 # is written; a module that ever splits the constructor across lines would need
-# a real parser, and the briefing would show its routes with an empty prefix.
+# a real parser, and facts.md would show its routes with an empty prefix.
 routes_at() {
   local rev="$1" file
   while read -r file; do
@@ -200,18 +201,18 @@ app_key_evidence() {
   printf '%d file(s): %s' "$count" "$list"
 }
 
-# ---- the briefing ----
+# ---- the two documents ----
 
 DEV_SHA="$(git -C "$REPO_ROOT" rev-parse dev 2>/dev/null || git -C "$REPO_ROOT" rev-parse HEAD)"
 
 {
-  echo "# Server reference drift briefing"
+  echo "# Server reference drift — the facts"
   echo
   echo "- server range: \`${FROM_SHA:0:8}\` → \`${TO_SHA:0:8}\` ($(ref_git rev-list --count "$FROM_SHA..$TO_SHA") commits)"
   echo "- contract files changed: $(printf '%s\n' "$CHANGED" | wc -l)"
   echo "- our baseline: \`dev\` at \`${DEV_SHA:0:8}\`"
   echo
-  echo "Facts below are mechanical — greps over \`lib/core/api/endpoints.dart\` and"
+  echo "Everything below is mechanical — greps over \`lib/core/api/endpoints.dart\` and"
   echo "over every JSON key \`lib/\` reads. They say what exists, never whether it is"
   echo "wired to anything a user can see; that part is yours to judge from the code."
   echo
@@ -291,7 +292,11 @@ DEV_SHA="$(git -C "$REPO_ROOT" rev-parse dev 2>/dev/null || git -C "$REPO_ROOT" 
   echo '```'
   echo
 
-  echo "## Filtered diff"
+  echo "The filtered diff of every file above is in \`$DIFF\`."
+} > "$FACTS"
+
+{
+  echo "# Server reference drift — the filtered diff"
   echo
   printf '%s\n' "$CHANGED" | while read -r file; do
     [[ "$file" == "CHANGELOG.md" ]] && continue
@@ -312,10 +317,11 @@ DEV_SHA="$(git -C "$REPO_ROOT" rev-parse dev 2>/dev/null || git -C "$REPO_ROOT" 
   echo '```sh'
   echo "git -C $REF diff $FROM_SHA $TO_SHA -- <path>"
   echo '```'
-} > "$BRIEFING"
+} > "$DIFF"
 
 echo "$FROM_SHA" > "$OUT/from_sha"
 echo "$TO_SHA" > "$OUT/to_sha"
 echo "$DEV_SHA" > "$OUT/dev_sha"
 
-echo "briefing: $BRIEFING"
+echo "facts: $FACTS ($(wc -l < "$FACTS") lines)"
+echo "diff:  $DIFF ($(wc -l < "$DIFF") lines)"
