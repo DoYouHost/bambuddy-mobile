@@ -4124,9 +4124,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectDownloadFailed => 'Download failed';
 
   @override
-  String get projectSaveCancelled => 'Save cancelled';
-
-  @override
   String get projectCoverUpload => 'Set cover image';
 
   @override

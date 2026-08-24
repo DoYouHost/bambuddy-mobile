@@ -422,7 +422,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
       final saved = await saveBytesToDevice(fileName: name, bytes: bytes);
       switch (saved.outcome) {
         case DeviceFileOutcome.cancelled:
-          messenger.snack(l10n.projectSaveCancelled);
+          return;
         case DeviceFileOutcome.failed:
           messenger.snack(l10n.filePickerFailed);
         case DeviceFileOutcome.done:

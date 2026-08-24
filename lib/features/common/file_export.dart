@@ -21,6 +21,15 @@ import 'device_files.dart';
 /// it whenever it likes, which is right for a copy that exists only to be
 /// passed on — the one that matters is the one the user saved or the receiving
 /// app kept.
+///
+/// **Whether the caller may drop that copy itself depends on the hand-off, and
+/// the two differ.** [saveDownloadedFile] has finished copying by the time it
+/// returns, so its source is free the moment it does — a caller that downloads
+/// under the file's own name should delete it, or it leaves one duplicate per
+/// distinct name behind. [shareDownloadedFile] has *not* finished: the sheet
+/// closes before the receiving app reads the URI, so deleting there is how a
+/// share arrives empty. Only the first may clean up after itself; the second
+/// really does have to wait for the system to reclaim it.
 
 /// Streams a download into the cache directory under [scratchName], then
 /// renames it to whatever [name] makes of the served `Content-Type`.
@@ -29,6 +38,11 @@ import 'device_files.dart';
 /// two-step rename exists because some routes only say what the file is *as*
 /// they serve it — the timelapse route answers MP4, AVI or MKV from one URL —
 /// and a file saved under the wrong extension is one nothing will open.
+/// A download that fails takes its part-file with it: nothing here resumes one,
+/// so what is left on disk is bytes no code path will ever read again. The
+/// timelapse names its scratch after the archive, so without this every
+/// interrupted video would keep its own partial copy — a full-size one, if the
+/// connection dropped near the end.
 Future<File> downloadToCacheFile({
   required String scratchName,
   required Future<String?> Function(String savePath) download,
@@ -36,10 +50,28 @@ Future<File> downloadToCacheFile({
 }) async {
   final dir = await getTemporaryDirectory();
   final scratch = '${dir.path}/$scratchName';
-  final contentType = await download(scratch);
+  final String? contentType;
+  try {
+    contentType = await download(scratch);
+  } on Object {
+    await discardCacheCopy(File(scratch));
+    rethrow;
+  }
   final target = File('${dir.path}/${name(contentType)}');
   if (await target.exists()) await target.delete();
   return File(scratch).rename(target.path);
+}
+
+/// Drops a cache copy that has served its purpose, or was never going to.
+///
+/// Missing is not an error here — it is the wanted state, and the system may
+/// have reclaimed the cache at any point on the way.
+Future<void> discardCacheCopy(File file) async {
+  try {
+    await file.delete();
+  } on FileSystemException {
+    // Already gone.
+  }
 }
 
 /// Hands [file] to the system share sheet.
@@ -60,6 +92,10 @@ Future<void> shareDownloadedFile(File file, {String? mimeType}) =>
 /// local storage at all.
 ///
 /// [fileName] is the name suggested in the dialog; the user may change it.
+///
+/// Returns only once the copy is done, so [file] is the caller's to delete
+/// straight after — on a cancel and a failure too, neither of which leaves the
+/// dialog holding it.
 Future<SavedFileResult> saveDownloadedFile(
   File file, {
   required String fileName,

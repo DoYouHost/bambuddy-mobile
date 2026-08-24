@@ -1474,7 +1474,6 @@
   "projectFileSaved": "Saved to {path}",
   "@projectFileSaved": { "placeholders": { "path": { "type": "String" } } },
   "projectDownloadFailed": "Download failed",
-  "projectSaveCancelled": "Save cancelled",
   "projectCoverUpload": "Set cover image",
   "projectCoverDelete": "Remove cover image",
   "projectCoverUpdated": "Cover updated",

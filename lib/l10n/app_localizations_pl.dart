@@ -4191,9 +4191,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectDownloadFailed => 'Pobieranie nie powiodło się';
 
   @override
-  String get projectSaveCancelled => 'Anulowano zapis';
-
-  @override
   String get projectCoverUpload => 'Ustaw okładkę';
 
   @override

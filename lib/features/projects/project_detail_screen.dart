@@ -681,8 +681,11 @@ class _OverflowMenu extends ConsumerWidget {
         dialogTitle: l10n.projectMenuExport,
       );
       switch (saved.outcome) {
+        // Backing out of the dialog is an answer, not a failure — the user just
+        // said so themselves, and confirming it back is noise. Same silence as
+        // every other screen that saves a file.
         case DeviceFileOutcome.cancelled:
-          messenger.snack(l10n.projectSaveCancelled);
+          return;
         case DeviceFileOutcome.failed:
           messenger.snack(l10n.filePickerFailed);
         case DeviceFileOutcome.done:

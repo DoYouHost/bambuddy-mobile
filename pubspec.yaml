@@ -60,6 +60,11 @@ dev_dependencies:
   mocktail: ^1.0.4
   fake_async: ^1.3.3
   flutter_launcher_icons: ^0.14.4
+  # Test-only: swaps the temporary directory for one the test owns, so the
+  # cache a download lands in can be inspected. Already in the tree as a
+  # transitive dependency of path_provider; named here because the analyzer
+  # will not let a test import what the pubspec does not list.
+  path_provider_platform_interface: ^2.1.2
 
 flutter:
   uses-material-design: true

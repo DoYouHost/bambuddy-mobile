@@ -13,8 +13,24 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
+
+/// Hands the app a temporary directory the test owns, so whatever a download
+/// leaves in the cache can be listed afterwards.
+///
+/// Assign it to `PathProviderPlatform.instance` in `setUp` and delete the
+/// directory in `tearDown`; there is nothing to restore, the app reads the
+/// instance on every call.
+class TempDirProvider extends PathProviderPlatform {
+  TempDirProvider(this.path);
+
+  final String path;
+
+  @override
+  Future<String?> getTemporaryPath() async => path;
+}
 
 /// Inertny firmware dla testów widgetów: karta drukarki czyta firmware przy
 /// renderze, a testy go nie sprawdzają — zwracamy null, by nie bić po sieci

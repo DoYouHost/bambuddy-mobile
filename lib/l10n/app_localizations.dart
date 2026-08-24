@@ -7058,12 +7058,6 @@ abstract class AppLocalizations {
   /// **'Download failed'**
   String get projectDownloadFailed;
 
-  /// No description provided for @projectSaveCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Save cancelled'**
-  String get projectSaveCancelled;
-
   /// No description provided for @projectCoverUpload.
   ///
   /// In en, this message translates to:

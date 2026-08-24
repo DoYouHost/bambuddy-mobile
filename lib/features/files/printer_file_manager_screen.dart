@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -198,12 +200,16 @@ class _PrinterFileManagerScreenState
       _busy = true;
       _downloadProgress = null;
     });
+    // Dropped in the `finally`, whichever way this leaves — including the two
+    // `mounted` returns, which are how a copy used to be left behind on a screen
+    // the user walked away from. Declared out here so that block can see it.
+    File? cached;
     try {
       final single = paths.length == 1;
       final safeName = widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
       final fileName =
           single ? paths.first.split('/').last : '$safeName-files.zip';
-      final file = await downloadToCacheFile(
+      cached = await downloadToCacheFile(
         scratchName: 'printer-files-${widget.printerId}.download',
         download: (savePath) async {
           if (single) {
@@ -229,7 +235,7 @@ class _PrinterFileManagerScreenState
       );
       if (!mounted) return;
       final saved = await saveDownloadedFile(
-        file,
+        cached,
         fileName: fileName,
         mimeType: mimeTypeForFileName(fileName),
       );
@@ -252,6 +258,14 @@ class _PrinterFileManagerScreenState
         message: _downloadFailure(e, l10n),
       );
     } finally {
+      // The save dialog copies the file on the platform side and returns only
+      // once it has, so by here nothing is reading this copy — not the user's
+      // saved file, and never the printer's own, which a download does not
+      // touch. Keeping it would leave a duplicate of every distinct file name
+      // in the cache until Android runs short of storage. The share sheet is
+      // the case where this would be wrong (see `file_export.dart`), and it is
+      // not the hand-off this screen uses.
+      if (cached != null) await discardCacheCopy(cached);
       if (mounted) {
         setState(() {
           _busy = false;
