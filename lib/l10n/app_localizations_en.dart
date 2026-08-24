@@ -4519,6 +4519,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pfmNoMatches => 'No files match your filter';
 
   @override
+  String get pfmPrinterUnavailable =>
+      'The printer did not answer, so its files could not be listed';
+
+  @override
+  String get pfmDownloadTooLarge =>
+      'The selection is too large for the server to bundle';
+
+  @override
+  String get pfmDownloadNoServerSpace =>
+      'The server has no room to prepare this download';
+
+  @override
+  String get pfmDownloadTookTooLong =>
+      'Preparing the download took too long and the server gave up';
+
+  @override
   String get pfmDownload => 'Download';
 
   @override

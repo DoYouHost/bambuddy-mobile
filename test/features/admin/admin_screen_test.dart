@@ -108,7 +108,7 @@ void main() {
 
     test('an API-key session is refused the whole section', () async {
       // `/auth/me` calls a key session an admin with every permission; the
-      // routes refuse it all three (`core/auth.py::_resolve_apikey_scope`).
+      // routes refuse it all three (`core/auth.py::_required_apikey_scopes`).
       final container = _containerFor(
         const CurrentUser(
           id: 0,

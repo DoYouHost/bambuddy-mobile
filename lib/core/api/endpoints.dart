@@ -1087,7 +1087,7 @@ abstract final class Endpoints {
   /// Reachable where [users] is not: gated on `users:read_slim` *or*
   /// `users:read` (any-of), and the slim permission is mapped to the API-key
   /// `can_read_status` scope
-  /// (`backend/app/core/auth.py::_resolve_apikey_scope`) — so a key reads this
+  /// (`backend/app/core/auth.py::_required_apikey_scopes`) — so a key reads this
   /// and not the full listing, which is the whole point of server issue #1894.
   ///
   /// **An older server cannot answer this successfully**, so support is probed

@@ -37,6 +37,26 @@ void main() {
       expect(stats.isEmpty, isFalse);
     });
 
+    test('printer_names is kept, and missing or non-string entries are dropped',
+        () {
+      final stats = ArchiveStats.fromJson(const {
+        'prints_by_printer': {'1': 4, '7': 2},
+        'printer_names': {'1': 'Ultron', '7': null, '9': 'Gone'},
+      });
+
+      expect(stats.printerNames['1'], 'Ultron');
+      expect(stats.printerNames.containsKey('7'), isFalse);
+      // A name for an id no breakdown mentions is harmless — the caller looks up
+      // by id, so an extra entry is never read.
+      expect(stats.printerNames['9'], 'Gone');
+    });
+
+    test('a server that sends no printer_names leaves the map empty', () {
+      final stats = ArchiveStats.fromJson(const {'prints_by_printer': {'1': 4}});
+
+      expect(stats.printerNames, isEmpty);
+    });
+
     test('successRate liczony z sukcesów względem rozstrzygniętych', () {
       final stats = ArchiveStats.fromJson(const {
         'successful_prints': 77,

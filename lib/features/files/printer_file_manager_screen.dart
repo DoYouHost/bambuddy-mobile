@@ -48,6 +48,10 @@ class _PrinterFileManagerScreenState
   List<PrinterFile>? _files; // null = not loaded yet
   bool _loading = false;
   String? _error; // localized load error
+  // The listing came back empty because the printer did not answer, which older
+  // servers cannot tell us — then this stays false and an empty listing reads as
+  // an empty folder, exactly as before.
+  bool _printerUnavailable = false;
   PrinterStorage _storage = const PrinterStorage();
 
   PrinterFileSort _sort = PrinterFileSort.nameAsc;
@@ -74,14 +78,16 @@ class _PrinterFileManagerScreenState
     setState(() {
       _loading = true;
       _error = null;
+      _printerUnavailable = false;
       _selected.clear();
     });
     try {
       final repo = ref.read(printerFilesRepositoryProvider);
-      final files = await repo.listFiles(widget.printerId, _path);
+      final listing = await repo.listFiles(widget.printerId, _path);
       if (!mounted) return;
       setState(() {
-        _files = files;
+        _files = listing.files;
+        _printerUnavailable = listing.printerUnavailable;
         _loading = false;
       });
     } on AppApiException catch (e) {
@@ -205,11 +211,25 @@ class _PrinterFileManagerScreenState
         e,
         l10n,
         action: 'printer_files.download',
+        message: _downloadFailure(e, l10n),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// The three refusals the download routes explain in a way the user can act
+  /// on: the bundle exceeds what the server will build, the server has no disk
+  /// space to build it in, or it ran past its own preparation ceiling. Null for
+  /// everything else, which keeps the shared wording — and null on older
+  /// servers too, which answer none of these.
+  String? _downloadFailure(AppApiException e, AppLocalizations l10n) =>
+      switch (e.statusCode) {
+        413 => l10n.pfmDownloadTooLarge,
+        504 => l10n.pfmDownloadTookTooLong,
+        507 => l10n.pfmDownloadNoServerSpace,
+        _ => null,
+      };
 
   Future<void> _delete() async {
     if (_selected.isEmpty || _busy) return;
@@ -467,13 +487,24 @@ class _PrinterFileManagerScreenState
           if (items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: _centered(
-                icon: Icons.folder_open,
-                message: (_files?.isEmpty ?? true)
-                    ? l10n.pfmEmpty
-                    : l10n.pfmNoMatches,
-                tokens: t,
-              ),
+              child: _printerUnavailable
+                  ? _centered(
+                      icon: Icons.cloud_off,
+                      message: l10n.pfmPrinterUnavailable,
+                      tokens: t,
+                      action: FilledButton(
+                        style: dashPrimaryButtonStyle(t),
+                        onPressed: _load,
+                        child: Text(l10n.retry),
+                      ).tagged('printer_files.retry'),
+                    )
+                  : _centered(
+                      icon: Icons.folder_open,
+                      message: (_files?.isEmpty ?? true)
+                          ? l10n.pfmEmpty
+                          : l10n.pfmNoMatches,
+                      tokens: t,
+                    ),
             )
           else
             SliverPadding(

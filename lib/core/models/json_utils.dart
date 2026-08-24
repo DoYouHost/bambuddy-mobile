@@ -199,6 +199,19 @@ Map<String, double> toDoubleMap(dynamic value) {
   return out;
 }
 
+/// Tolerant `Map<String, String>` coercion, see [toIntMap]. Non-string values
+/// are dropped rather than stringified: a server aggregate keyed by an id maps
+/// to a name, and `"null"` would read as one.
+Map<String, String> toStringMap(dynamic value) {
+  if (value is! Map) return const {};
+  final out = <String, String>{};
+  value.forEach((key, v) {
+    final text = toStringOrNull(v);
+    if (text != null) out['$key'] = text;
+  });
+  return out;
+}
+
 /// Tolerant `List<String>` coercion: keeps only string elements.
 List<String> toStringList(dynamic value) {
   if (value is! List) return const [];

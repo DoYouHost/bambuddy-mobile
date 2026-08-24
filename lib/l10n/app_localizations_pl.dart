@@ -4590,6 +4590,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pfmNoMatches => 'Brak plików pasujących do filtra';
 
   @override
+  String get pfmPrinterUnavailable =>
+      'Drukarka nie odpowiedziała, więc nie udało się wylistować jej plików';
+
+  @override
+  String get pfmDownloadTooLarge =>
+      'Wybór jest za duży, żeby serwer spakował go w paczkę';
+
+  @override
+  String get pfmDownloadNoServerSpace =>
+      'Serwer nie ma miejsca na przygotowanie tego pobrania';
+
+  @override
+  String get pfmDownloadTookTooLong =>
+      'Przygotowanie pobrania trwało zbyt długo i serwer je przerwał';
+
+  @override
   String get pfmDownload => 'Pobierz';
 
   @override

@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
-import '../core/models/json_utils.dart';
 import '../core/models/printer_file.dart';
 
 /// REST data source for the printer's on-device storage (file manager).
@@ -21,17 +20,31 @@ class PrinterFilesRepository {
 
   final Dio _dio;
 
+  /// No receive deadline for a download, on any server version. Both routes
+  /// answer only once the whole payload exists — older servers built it in
+  /// memory, current ones assemble it on disk and allow themselves 30 minutes
+  /// (`MAX_PRINTER_ZIP_PREPARE_SECONDS`) — while the printer feeds it over one
+  /// FTP socket. The client-wide 15 s in `api_client.dart` measures the gap
+  /// between bytes, so it fails a transfer that is merely slow, and the user
+  /// cannot tell that from a broken one. `connectTimeout` still guards a server
+  /// that is not there at all.
+  static const Duration _downloadTimeout = Duration.zero;
+
   /// List entries at [path] (default root). Directories and files mixed;
   /// caller sorts. Auth/network errors bubble up via [guard].
-  Future<List<PrinterFile>> listFiles(int printerId, String path) async {
-    final files = await guard(() async {
+  ///
+  /// Returns the listing rather than the bare list because an empty `files` has
+  /// two meanings and only the response can tell them apart — see
+  /// [PrinterFileListing].
+  Future<PrinterFileListing> listFiles(int printerId, String path) async {
+    final data = await guard(() async {
       final res = await _dio.get<Map<String, dynamic>>(
         Endpoints.printerFiles(printerId),
         queryParameters: {'path': path},
       );
-      return res.data?['files'];
+      return res.data;
     });
-    return parseJsonList(files, PrinterFile.fromJson);
+    return PrinterFileListing.fromJson(data ?? const {});
   }
 
   /// Storage usage. Degrades to an empty [PrinterStorage] on non-auth errors
@@ -51,18 +64,28 @@ class PrinterFilesRepository {
         final res = await _dio.get<List<int>>(
           Endpoints.printerFileDownload(printerId),
           queryParameters: {'path': path},
-          options: Options(responseType: ResponseType.bytes),
+          options: Options(
+            responseType: ResponseType.bytes,
+            receiveTimeout: _downloadTimeout,
+          ),
         );
         return Uint8List.fromList(res.data ?? const []);
       });
 
   /// Download [paths] bundled as a single ZIP archive.
+  ///
+  /// The body stays `{"paths": [...]}`: every server version accepts it, and
+  /// the optional `sizes` the newest one takes only buys an earlier rejection.
   Future<Uint8List> downloadZip(int printerId, List<String> paths) =>
       guard(() async {
         final res = await _dio.post<List<int>>(
           Endpoints.printerFilesDownloadZip(printerId),
           data: {'paths': paths},
-          options: Options(responseType: ResponseType.bytes),
+          options: Options(
+            responseType: ResponseType.bytes,
+            receiveTimeout: _downloadTimeout,
+            sendTimeout: _downloadTimeout,
+          ),
         );
         return Uint8List.fromList(res.data ?? const []);
       });

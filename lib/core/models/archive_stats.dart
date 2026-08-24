@@ -17,6 +17,7 @@ class ArchiveStats {
     this.totalCost = 0,
     this.printsByFilamentType = const {},
     this.printsByPrinter = const {},
+    this.printerNames = const {},
     this.averageTimeAccuracy = 0,
     this.timeAccuracyByPrinter = const {},
     this.totalEnergyKwh = 0,
@@ -34,6 +35,7 @@ class ArchiveStats {
         totalCost: toDouble(json['total_cost']),
         printsByFilamentType: toIntMap(json['prints_by_filament_type']),
         printsByPrinter: toIntMap(json['prints_by_printer']),
+        printerNames: toStringMap(json['printer_names']),
         averageTimeAccuracy: toDouble(json['average_time_accuracy']),
         timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
         totalEnergyKwh: toDouble(json['total_energy_kwh']),
@@ -68,6 +70,14 @@ class ArchiveStats {
 
   /// Print count per printer (key = `printer_id` as string).
   final Map<String, int> printsByPrinter;
+
+  /// Name each `printer_id` was last recorded under in the print log. The print
+  /// log outlives both the archive and the printer row, so this is the only
+  /// place a name survives a deleted printer — and it is also a name for an id
+  /// the caller cannot look up because it may not read `/printers` at all.
+  /// Empty on servers that predate the field, and then the caller falls back to
+  /// the live printer list and finally to the bare id, as it always did.
+  final Map<String, String> printerNames;
 
   /// Average time estimate accuracy in percent (100% = perfect).
   final double averageTimeAccuracy;

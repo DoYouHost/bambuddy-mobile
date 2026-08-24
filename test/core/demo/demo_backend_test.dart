@@ -458,9 +458,10 @@ void main() {
     });
 
     test('printer files + storage + AMS history', () async {
-      final files = await PrinterFilesRepository(dio).listFiles(1, '/');
-      expect(files, isNotEmpty);
-      expect(files.any((f) => f.isDirectory), isTrue);
+      final listing = await PrinterFilesRepository(dio).listFiles(1, '/');
+      expect(listing.files, isNotEmpty);
+      expect(listing.files.any((f) => f.isDirectory), isTrue);
+      expect(listing.printerUnavailable, isFalse);
       final storage = await PrinterFilesRepository(dio).fetchStorage(1);
       expect(storage.hasData, isTrue);
 

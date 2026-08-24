@@ -7748,6 +7748,30 @@ abstract class AppLocalizations {
   /// **'No files match your filter'**
   String get pfmNoMatches;
 
+  /// No description provided for @pfmPrinterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not answer, so its files could not be listed'**
+  String get pfmPrinterUnavailable;
+
+  /// No description provided for @pfmDownloadTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The selection is too large for the server to bundle'**
+  String get pfmDownloadTooLarge;
+
+  /// No description provided for @pfmDownloadNoServerSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'The server has no room to prepare this download'**
+  String get pfmDownloadNoServerSpace;
+
+  /// No description provided for @pfmDownloadTookTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the download took too long and the server gave up'**
+  String get pfmDownloadTookTooLong;
+
   /// No description provided for @pfmDownload.
   ///
   /// In en, this message translates to:
