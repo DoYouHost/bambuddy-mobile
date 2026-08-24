@@ -26,6 +26,9 @@ on:
 permissions:
   contents: read
   issues: write
+  # claude-code-action authenticates over OIDC and fails its three retries
+  # without this, whatever token the secret holds.
+  id-token: write
 
 concurrency:
   group: server-drift
