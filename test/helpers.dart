@@ -11,6 +11,9 @@ import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart'
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 /// Inertny firmware dla testów widgetów: karta drukarki czyta firmware przy
@@ -51,6 +54,43 @@ Widget plApp(Widget child) => MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       home: child,
     );
+
+/// Pumps a wear widget with what every wear test needs anyway: mock preferences,
+/// an in-memory credentials store, and a handle on the container so a test can
+/// read or seed providers.
+///
+/// [wrapInApp] is false for `WearApp`, which builds its own `MaterialApp` (and
+/// therefore runs in the system locale, not `plApp`'s Polish); every other wear
+/// widget needs the harness to have localizations at all.
+///
+/// The scope owns the container on purpose, rather than the test holding one and
+/// handing it over: `wearFleetProvider` runs a poll timer, and a container that
+/// outlives the widget tree keeps that timer alive past the end of the test —
+/// which trips the framework's pending-timer check. Tearing the tree down
+/// disposes the container, which cancels it.
+Future<ProviderContainer> pumpWear(
+  WidgetTester tester,
+  Widget child, {
+  List<Override> overrides = const [],
+  bool wrapInApp = true,
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  late ProviderContainer container;
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
+      ...overrides,
+    ],
+    child: Builder(builder: (context) {
+      container = ProviderScope.containerOf(context, listen: false);
+      return wrapInApp ? plApp(child) : child;
+    }),
+  ));
+  await tester.pumpAndSettle();
+  return container;
+}
 
 /// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —
 /// tak uruchamia testy `flutter test`).

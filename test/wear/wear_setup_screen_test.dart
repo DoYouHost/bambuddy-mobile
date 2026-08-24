@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
 
@@ -50,7 +49,6 @@ void main() {
     calls.clear();
     entered = null;
     isWatch = true;
-    SharedPreferences.setMockInitialValues({});
     mockWatchInput();
   });
 
@@ -60,18 +58,8 @@ void main() {
   });
 
   Future<void> pumpSetup(WidgetTester tester,
-      {List<Override> overrides = const []}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
-        ...overrides,
-      ],
-      child: plApp(const WearSetupScreen()),
-    ));
-    await tester.pumpAndSettle();
-  }
+          {List<Override> overrides = const []}) =>
+      pumpWear(tester, const WearSetupScreen(), overrides: overrides);
 
   testWidgets('leads with the phone handoff, not with a field to type in',
       (tester) async {

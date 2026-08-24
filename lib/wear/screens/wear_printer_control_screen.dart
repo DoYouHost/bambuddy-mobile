@@ -10,6 +10,7 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_transport.dart';
@@ -52,8 +53,7 @@ class WearPrinterControlBody extends ConsumerStatefulWidget {
 }
 
 class _WearPrinterControlBodyState
-    extends ConsumerState<WearPrinterControlBody> {
-  bool _busy = false;
+    extends ConsumerState<WearPrinterControlBody> with WearAction {
 
   PrinterWithStatus? _find(List<PrinterWithStatus> printers) =>
       printers.firstWhereOrNull((p) => p.printer.id == widget.printerId);
@@ -107,7 +107,7 @@ class _WearPrinterControlBodyState
             ],
           ),
         ),
-        if (_busy)
+        if (busy)
           const Positioned.fill(
             child: ColoredBox(
               color: Color(0x99000000),
@@ -187,7 +187,7 @@ class _WearPrinterControlBodyState
           padding: const EdgeInsets.only(bottom: 8),
           child: _WearFault(
             fault: fault,
-            busy: _busy,
+            busy: busy,
             onAction: (action) => action == hmsStopAction
                 ? _confirmHmsStop(actions, id, fault, item.printer.name)
                 : _run(() => actions.executeHmsAction(id,
@@ -284,7 +284,7 @@ class _WearPrinterControlBodyState
   Widget _btn(String label, IconData icon, Future<void> Function() action,
           {String? okMsg, Color? color}) =>
       FilledButton.icon(
-        onPressed: _busy ? null : () => _run(action, okMsg: okMsg),
+        onPressed: busy ? null : () => _run(action, okMsg: okMsg),
         icon: Icon(icon, size: 18),
         label: Text(label),
         style: color != null
@@ -333,20 +333,23 @@ class _WearPrinterControlBodyState
     if (ok) await actions.stop(id);
   }
 
-  /// Runs an action with a full-screen busy veil, then refreshes the poll.
-  /// Errors surface as a short SnackBar; the screen never crashes on failure.
-  Future<void> _run(Future<void> Function() action, {String? okMsg}) async {
-    setState(() => _busy = true);
-    try {
-      await action();
-      await ref.read(wearFleetProvider.notifier).refresh();
-      if (okMsg != null && mounted) _toast(okMsg);
-    } catch (e) {
-      if (mounted) _toast(_shortError(AppLocalizations.of(context), e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  /// Runs an action behind the full-screen busy veil, then refreshes the poll.
+  ///
+  /// Failures go to a SnackBar, not to text on the screen: these are commands on
+  /// live printer state, repeatable by tapping again, and a red line under one of
+  /// eight buttons in a scrolling list is missed. The refresh is why this wrapper
+  /// still exists on top of [run] — nothing else on the watch has a poll to pull.
+  Future<void> _run(Future<void> Function() action, {String? okMsg}) => run(
+        () async {
+          await action();
+          await ref.read(wearFleetProvider.notifier).refresh();
+        },
+        onDone: () {
+          if (okMsg != null) _toast(okMsg);
+        },
+        onError: (error) =>
+            _toast(_shortError(AppLocalizations.of(context), error)),
+      );
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(

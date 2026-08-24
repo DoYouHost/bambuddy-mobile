@@ -5,6 +5,7 @@ import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../widgets/wear_confirm_dialog.dart';
 import '../widgets/wear_spinner.dart';
@@ -30,8 +31,8 @@ class WearSettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<WearSettingsScreen> createState() => _WearSettingsScreenState();
 }
 
-class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
-  bool _busy = false;
+class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
+    with WearAction {
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +64,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
               ),
               const SizedBox(height: 12),
             ],
-            if (_busy)
+            if (busy)
               wearSpinner
             else ...[
               // Only when it is a different server: an offer for the one already
@@ -100,20 +101,13 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
   }
 
   /// Adopt the server the phone offered, in place of the one running.
-  Future<void> _switchTo(WatchConfig config) async {
-    setState(() => _busy = true);
-    try {
-      await ref.read(pendingWatchConfigProvider.notifier).adopt(config);
-    } catch (_) {
-      // Secure storage refused the write. The offer stays standing, so the
-      // button comes back to try again — better than a screen that lies about
-      // having switched.
-      if (mounted) setState(() => _busy = false);
-      return;
-    }
-    if (!mounted) return;
-    Navigator.of(context).pop();
-  }
+  Future<void> _switchTo(WatchConfig config) => run(
+        () => ref.read(pendingWatchConfigProvider.notifier).adopt(config),
+        onDone: () => Navigator.of(context).pop(),
+        // No onError: a refused write leaves the offer standing and brings the
+        // button back, which is the whole message. Saying more would need copy
+        // this screen does not have yet.
+      );
 
   /// Drop the profile and every secret, which routes the app back to setup. The
   /// same wording and the same clearing the phone's drawer uses, so "change
@@ -130,11 +124,8 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen> {
       subtitle: profile?.displayName,
     );
     if (!confirmed || !mounted) return;
-    setState(() => _busy = true);
-    await profiles.clear();
-    if (!mounted) return;
     // Back to the printer screen we came from, which `WearApp` immediately
     // replaces with setup now that there is no profile.
-    Navigator.of(context).pop();
+    await run(profiles.clear, onDone: () => Navigator.of(context).pop());
   }
 }

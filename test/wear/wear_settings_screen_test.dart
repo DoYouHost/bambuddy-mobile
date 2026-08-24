@@ -9,7 +9,6 @@ import 'package:bambuddy_mobile/wear/widgets/wear_confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
 
@@ -49,7 +48,6 @@ void main() {
   late FakeWatchConfigSync sync;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
     profile = _FakeProfile();
     sync = FakeWatchConfigSync();
   });
@@ -58,22 +56,18 @@ void main() {
     WidgetTester tester, {
     WatchConfig? offered,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
-      serverProfileProvider.overrideWith(() => profile),
-      watchConfigSyncProvider.overrideWithValue(sync),
-    ]);
-    addTearDown(container.dispose);
+    final container = await pumpWear(
+      tester,
+      const WearSettingsScreen(),
+      overrides: [
+        serverProfileProvider.overrideWith(() => profile),
+        watchConfigSyncProvider.overrideWithValue(sync),
+      ],
+    );
     if (offered != null) {
       container.read(pendingWatchConfigProvider.notifier).offer(offered);
+      await tester.pumpAndSettle();
     }
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: plApp(const WearSettingsScreen()),
-    ));
-    await tester.pumpAndSettle();
     return container;
   }
 

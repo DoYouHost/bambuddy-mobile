@@ -9,6 +9,7 @@ import '../../features/setup/providers.dart';
 import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../widgets/wear_spinner.dart';
 
@@ -27,7 +28,8 @@ class WearSetupScreen extends ConsumerStatefulWidget {
   ConsumerState<WearSetupScreen> createState() => _WearSetupScreenState();
 }
 
-class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
+class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
+    with WearAction {
   final _url = TextEditingController();
   final _apiKey = TextEditingController();
   final _username = TextEditingController();
@@ -40,7 +42,6 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
   /// Typing was chosen over the handoff. Sticky for the rest of the flow: the
   /// auth step is part of the same manual path.
   bool _manual = false;
-  bool _checkingPhone = false;
 
   /// The last check found nothing latched — worth saying out loud, or the button
   /// looks broken.
@@ -142,7 +143,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
           ),
         ],
         const SizedBox(height: 10),
-        if (_checkingPhone)
+        if (busy)
           wearSpinner
         else
           FilledButton(
@@ -157,23 +158,15 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
         ),
       ];
 
-  /// Adopt the offered config. Guarded like every other write on this screen:
-  /// secure storage throws outright, and a spinner that outlives the failure
-  /// would leave the watch with no way forward.
-  Future<void> _useOffer(WatchConfig offer) async {
-    setState(() {
-      _checkingPhone = true;
-      _phoneError = null;
-    });
-    try {
-      await ref.read(pendingWatchConfigProvider.notifier).adopt(offer);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _checkingPhone = false;
-        _phoneError = error;
-      });
-    }
+  /// Adopt the offered config. The failure has to stay on screen: it is what
+  /// stands between the user and a working watch, so a message that times out
+  /// would be no message at all.
+  Future<void> _useOffer(WatchConfig offer) {
+    setState(() => _phoneError = null);
+    return run(
+      () => ref.read(pendingWatchConfigProvider.notifier).adopt(offer),
+      onError: (error) => setState(() => _phoneError = error),
+    );
   }
 
   /// The path almost everybody should take: the phone already knows the server
@@ -203,7 +196,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
           ),
         ],
         const SizedBox(height: 10),
-        if (_checkingPhone)
+        if (busy)
           wearSpinner
         else
           FilledButton(
@@ -221,36 +214,31 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
   /// up by `WearApp` on its own; this button is for the config that arrived
   /// while the watch app was closed, and for the user who wants to see
   /// something happen.
-  Future<void> _checkPhone() async {
+  Future<void> _checkPhone() {
     setState(() {
-      _checkingPhone = true;
       _phoneEmpty = false;
       _phoneError = null;
     });
-    try {
-      // Bounded on purpose: the Data Layer call never answers at all where
-      // Google Play services are missing, and a spinner that never stops is a
-      // dead screen. Coming back empty at least leaves the manual path
-      // reachable.
-      final found = await ref
-          .read(watchConfigSyncProvider)
-          .latestPending()
-          .timeout(const Duration(seconds: 5), onTimeout: () => null);
-      if (!mounted) return;
-      setState(() {
-        _checkingPhone = false;
-        _phoneEmpty = found == null;
-      });
-      if (found != null) {
-        ref.read(pendingWatchConfigProvider.notifier).offer(found);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _checkingPhone = false;
-        _phoneError = error;
-      });
-    }
+    return run(
+      () async {
+        // Bounded on purpose: the Data Layer call never answers at all where
+        // Google Play services are missing, and the run guard covers a throw,
+        // not a call that simply never returns. Coming back empty at least
+        // leaves the manual path reachable.
+        final found = await ref
+            .read(watchConfigSyncProvider)
+            .latestPending()
+            .timeout(const Duration(seconds: 5), onTimeout: () => null);
+        if (!mounted) return;
+        // Empty is an outcome, not a failure — hence a field of its own rather
+        // than an error.
+        setState(() => _phoneEmpty = found == null);
+        if (found != null) {
+          ref.read(pendingWatchConfigProvider.notifier).offer(found);
+        }
+      },
+      onError: (error) => setState(() => _phoneError = error),
+    );
   }
 
   List<Widget> _manualSection(

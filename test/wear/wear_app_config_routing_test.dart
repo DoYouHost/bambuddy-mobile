@@ -7,7 +7,6 @@ import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers.dart';
 
@@ -50,36 +49,26 @@ WatchConfig _configFor(ServerProfile profile, {String key = 'bb_secret'}) =>
 void main() {
   late FakeWatchConfigSync sync;
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-    sync = FakeWatchConfigSync();
-  });
+  setUp(() => sync = FakeWatchConfigSync());
 
   tearDown(() => sync.pushes.close());
 
-  /// The container is disposed by hand at the end of each test rather than in a
-  /// tearDown: `wearFleetProvider` holds a poll timer, and the framework checks
-  /// for pending timers before tearDowns run.
+  /// `WearApp` brings its own MaterialApp, so no `plApp` wrapper.
   Future<ProviderContainer> pumpApp(
     WidgetTester tester, {
     ServerProfile? profile,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      credentialsStoreProvider.overrideWithValue(InMemoryCredentialsStore()),
-      serverProfileProvider.overrideWith(() => _ProfileOn(profile)),
-      watchConfigSyncProvider.overrideWithValue(sync),
-      wearTransportProvider
-          .overrideWith((ref) => HybridWearTransport(relay: _EmptyTransport())),
-    ]);
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: const WearApp(),
-    ));
-    await tester.pumpAndSettle();
-    return container;
-  }
+  }) =>
+      pumpWear(
+        tester,
+        const WearApp(),
+        wrapInApp: false,
+        overrides: [
+          serverProfileProvider.overrideWith(() => _ProfileOn(profile)),
+          watchConfigSyncProvider.overrideWithValue(sync),
+          wearTransportProvider.overrideWith(
+              (ref) => HybridWearTransport(relay: _EmptyTransport())),
+        ],
+      );
 
   testWidgets('a push for the server already running is adopted silently',
       (tester) async {
@@ -92,7 +81,6 @@ void main() {
 
     expect(sync.applied.single.apiKey, 'bb_rotated');
     expect(container.read(pendingWatchConfigProvider), isNull);
-    container.dispose();
   });
 
   testWidgets('a push naming another server is offered, never applied',
@@ -107,7 +95,6 @@ void main() {
 
     expect(sync.applied, isEmpty);
     expect(container.read(pendingWatchConfigProvider)?.profile.label, 'Garage');
-    container.dispose();
   });
 
   testWidgets('with nothing configured the push still waits for a tap',
@@ -123,6 +110,5 @@ void main() {
     // pumps `WearApp`, which builds its own MaterialApp on the system locale,
     // rather than the `plApp` harness the other wear tests wrap widgets in.
     expect(find.text('Use this server'), findsOneWidget);
-    container.dispose();
   });
 }
