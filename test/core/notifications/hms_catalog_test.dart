@@ -220,6 +220,78 @@ void main() {
     });
   });
 
+  group('displayableHmsErrors', () {
+    // The catalogue is not loaded in this suite, so the only text a fault can
+    // resolve to is the one the caller's describer returns — which is exactly
+    // what makes the filter observable here.
+    String? named(HmsError e) => e.fullCode == '03008004' ? 'Filament runout' : null;
+
+    const runout = HmsError(code: '0x8004', fullCode: '03008004');
+    const unnameable = HmsError(code: '0x20070', fullCode: '05000600');
+
+    test('keeps the nameable faults, in the order the server sent them', () {
+      const status = PrinterStatus(
+        id: 1,
+        connected: true,
+        hmsErrors: [unnameable, runout, unnameable],
+      );
+
+      expect(displayableHmsErrors(status, describe: named), [runout]);
+    });
+
+    test('a disconnected printer has no faults at all', () {
+      // mergedWith carries the codes through an outage on purpose (the alert
+      // path pauses its clear-grace clock on them), so they are last-known
+      // values here — not something to put in front of anyone.
+      const status = PrinterStatus(
+        id: 1,
+        connected: false,
+        hmsErrors: [runout],
+      );
+
+      expect(displayableHmsErrors(status, describe: named), isEmpty);
+    });
+
+    test('connectivity the frame never stated is not treated as offline', () {
+      // `connected: null` is "nobody said", not "disconnected" — the surfaces
+      // that want to be stricter than that own the decision themselves (the
+      // home-screen widget does).
+      const status = PrinterStatus(id: 1, hmsErrors: [runout]);
+
+      expect(displayableHmsErrors(status, describe: named), [runout]);
+    });
+
+    test('no status, no faults, and no describer are each just empty', () {
+      expect(displayableHmsErrors(null, describe: named), isEmpty);
+      expect(
+        displayableHmsErrors(const PrinterStatus(id: 1, connected: true),
+            describe: named),
+        isEmpty,
+      );
+      // An isolate without a catalogue passes null, and a fault the server did
+      // not word itself stays unnameable.
+      expect(
+        displayableHmsErrors(
+          const PrinterStatus(id: 1, connected: true, hmsErrors: [runout]),
+          describe: null,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('the server wording alone is enough to show a fault', () {
+      const spoken = HmsError(
+        code: '0xFFFF',
+        fullCode: '0300FFFF',
+        message: 'The toolhead reported a fault this app has no text for.',
+      );
+      const status =
+          PrinterStatus(id: 1, connected: true, hmsErrors: [spoken]);
+
+      expect(displayableHmsErrors(status, describe: null), [spoken]);
+    });
+  });
+
   group('hmsIsNotifiable', () {
     test('known severity without a description → no alert (bambuddy parity)', () {
       expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 1)), isFalse);

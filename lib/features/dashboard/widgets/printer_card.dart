@@ -77,12 +77,6 @@ class _PrinterCardState extends State<PrinterCard> {
   late bool _offline;
   Timer? _offlineGrace;
 
-  /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
-  List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
-    for (final e in status?.hmsErrors ?? const <HmsError>[])
-      if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
-  ];
-
   /// Grace period before collapsing the card when offline is sustained; fresh
   /// `connected:true` within this window resets the timer (debounce flashing).
   static const _offlineGracePeriod = Duration(seconds: 15);
@@ -194,7 +188,8 @@ class _PrinterCardState extends State<PrinterCard> {
     // has something to show (speed is only actionable while printing).
     final showDetailsToggle =
         status != null && (hasDetails || hasFans || printing || canMove);
-    final hmsErrors = _displayableHmsErrors(status);
+    final hmsErrors =
+        displayableHmsErrors(status, describe: HmsCatalog.instance.describe);
 
     return _CardShell(
       tokens: t,

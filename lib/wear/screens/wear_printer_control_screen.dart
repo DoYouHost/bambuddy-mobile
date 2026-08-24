@@ -147,17 +147,14 @@ class _WearPrinterControlBodyState
     );
   }
 
-  /// Faults worth putting on screen — none at all while the printer is out of
-  /// reach. `hms_errors` is carried forward across a disconnect, so without this
-  /// the last-known faults would sit under the OFFLINE chip looking current,
-  /// each offering buttons the server answers with "Printer not connected".
-  List<HmsError> _displayableFaults(PrinterWithStatus item) {
-    if (wearStateOf(item.status) == WearState.offline) return const [];
-    return [
-      for (final e in item.status?.hmsErrors ?? const <HmsError>[])
-        if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
-    ];
-  }
+  /// Faults worth putting on screen. The shared filter already answers "none"
+  /// for a printer out of reach, which matters more here than on the phone: the
+  /// watch has no collapsed-card state to hide them in, so last-known faults
+  /// would sit under the OFFLINE chip looking current, each offering a button
+  /// the server answers with "Printer not connected".
+  List<HmsError> _displayableFaults(PrinterWithStatus item) =>
+      displayableHmsErrors(item.status,
+          describe: HmsCatalog.instance.describe);
 
   /// Every action the faults on screen are offering, so the generic lifecycle
   /// buttons can stand down where they would duplicate one.

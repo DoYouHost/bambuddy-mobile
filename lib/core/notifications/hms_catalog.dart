@@ -89,6 +89,32 @@ bool hmsIsDisplayable(HmsError e, {String? description}) =>
     (e.message?.trim().isNotEmpty ?? false) ||
     (description?.trim().isNotEmpty ?? false);
 
+/// The faults on [status] worth putting in front of a user, in the order the
+/// server listed them.
+///
+/// **A disconnected printer has none**, whatever its `hms_errors` still say.
+/// [PrinterStatus.mergedWith] carries the codes through an outage on purpose —
+/// the notification path pauses its clear-grace clock on them, so a fault known
+/// before the outage does not re-alert on reconnect — which leaves every surface
+/// on the hook for answering "these are last-known values, not live faults".
+/// Four of them were answering it in four different wordings; this is the one
+/// place that answers it now.
+///
+/// [describe] is required rather than defaulted to [HmsCatalog.instance]: the
+/// home-screen widget and the notification isolate hold their own catalogue, or
+/// none at all — `null` is then the honest answer — and a hidden fallback would
+/// quietly hand them the UI isolate's instead.
+List<HmsError> displayableHmsErrors(
+  PrinterStatus? status, {
+  required String? Function(HmsError)? describe,
+}) {
+  if (status == null || status.connected == false) return const [];
+  return [
+    for (final e in status.hmsErrors ?? const <HmsError>[])
+      if (hmsIsDisplayable(e, description: describe?.call(e))) e,
+  ];
+}
+
 /// Whether an HMS error should fire a NOTIFICATION — stricter than
 /// [hmsIsDisplayable]. Parity with bambuddy's notification path, which pushes an
 /// error ONLY when it resolves to a known description ("Only notify for errors
