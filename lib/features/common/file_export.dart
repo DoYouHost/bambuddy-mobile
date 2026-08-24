@@ -1,0 +1,109 @@
+import 'dart:io';
+
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
+import 'device_files.dart';
+
+/// Getting something big out of the app: pull it down into a file, then let the
+/// user say where it goes.
+///
+/// Two steps, both shared, because the alternative is what the printer's file
+/// manager used to do — read the whole payload into memory and hand the bytes
+/// to the system save dialog. `file_picker`'s `saveFile` cannot take anything
+/// else on Android, which is why the save dialog here is
+/// `flutter_file_dialog`'s: that one takes a *path* and copies it into the
+/// chosen location with a stream on the platform side, so nothing the size of a
+/// print ever passes through the phone's RAM.
+///
+/// The cache directory is the landing ground on purpose. The system may reclaim
+/// it whenever it likes, which is right for a copy that exists only to be
+/// passed on — the one that matters is the one the user saved or the receiving
+/// app kept.
+
+/// Streams a download into the cache directory under [scratchName], then
+/// renames it to whatever [name] makes of the served `Content-Type`.
+///
+/// [download] is handed the path to write to and returns that content type. The
+/// two-step rename exists because some routes only say what the file is *as*
+/// they serve it — the timelapse route answers MP4, AVI or MKV from one URL —
+/// and a file saved under the wrong extension is one nothing will open.
+Future<File> downloadToCacheFile({
+  required String scratchName,
+  required Future<String?> Function(String savePath) download,
+  required String Function(String? contentType) name,
+}) async {
+  final dir = await getTemporaryDirectory();
+  final scratch = '${dir.path}/$scratchName';
+  final contentType = await download(scratch);
+  final target = File('${dir.path}/${name(contentType)}');
+  if (await target.exists()) await target.delete();
+  return File(scratch).rename(target.path);
+}
+
+/// Hands [file] to the system share sheet.
+///
+/// [mimeType] decides which apps the sheet offers, so a ZIP announced as a
+/// video reaches the wrong half of the phone. Null lets the platform guess from
+/// the extension.
+Future<void> shareDownloadedFile(File file, {String? mimeType}) =>
+    SharePlus.instance.share(
+      ShareParams(files: [XFile(file.path, mimeType: mimeType)]),
+    );
+
+/// Asks the user where to keep [file] and copies it there.
+///
+/// This is "Save as…", the dialog the download of a printer's file has always
+/// ended in — not the share sheet, which offers whatever apps happen to be
+/// installed and on a phone without Files by Google cannot save anything to
+/// local storage at all.
+///
+/// [fileName] is the name suggested in the dialog; the user may change it.
+Future<SavedFileResult> saveDownloadedFile(
+  File file, {
+  required String fileName,
+  String? mimeType,
+}) async {
+  try {
+    final path = await FlutterFileDialog.saveFile(
+      params: SaveFileDialogParams(
+        sourceFilePath: file.path,
+        fileName: fileName,
+        mimeTypesFilter: mimeType == null ? null : [mimeType],
+      ),
+    );
+    return path == null
+        ? (outcome: DeviceFileOutcome.cancelled, path: null)
+        : (outcome: DeviceFileOutcome.done, path: path);
+  } on Exception {
+    // The plugin throws on a failed copy — no room on the target, a revoked
+    // permission, a URI the system would not open.
+    return (outcome: DeviceFileOutcome.failed, path: null);
+  }
+}
+
+/// Media types for the files a printer keeps, by extension.
+///
+/// Only the ones the printer actually stores are listed; `null` for anything
+/// else leaves the guess to the platform, which is a better answer than
+/// declaring an octet-stream that some share targets refuse outright.
+const _printerFileTypes = {
+  '3mf': 'model/3mf',
+  'gcode': 'text/x.gcode',
+  'zip': 'application/zip',
+  'json': 'application/json',
+  'png': 'image/png',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'mp4': 'video/mp4',
+  'avi': 'video/x-msvideo',
+  'mkv': 'video/x-matroska',
+};
+
+/// Media type for a file the app has just saved, read off its own name.
+String? mimeTypeForFileName(String fileName) {
+  final parts = fileName.toLowerCase().split('.');
+  if (parts.length < 2) return null;
+  return _printerFileTypes[parts.last];
+}

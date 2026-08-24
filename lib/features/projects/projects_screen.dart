@@ -11,11 +11,11 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../common/state_views.dart';
 import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
-import 'project_files.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
 
@@ -121,13 +121,19 @@ class ProjectsScreen extends ConsumerWidget {
   Future<void> _importProject(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickSingleFile();
-    if (picked == null) return;
+    final picked = await pickFileFromDevice();
+    final file = picked.file;
+    if (file == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.filePickerFailed);
+      }
+      return;
+    }
     messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).importFile(
-            filePath: picked.path,
-            filename: picked.name,
+            filePath: file.path,
+            filename: file.name,
           );
       await ref.read(projectsListProvider.notifier).refresh();
       messenger.snack(l10n.projectImported);

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../common/sliver_search_bar.dart';
 import '../inventory/inventory_providers.dart'
     show colorCatalogProvider, inventoryProvider;
@@ -63,36 +63,34 @@ class _SwatchesScreenState extends ConsumerState<SwatchesScreen> {
       'codes': [for (final c in codes) c.toJson()],
     };
     final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
-    try {
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: l10n.swatchExport,
-        fileName: 'swatch-codes.json',
-        bytes: bytes,
-      );
-      if (path == null || !mounted) return; // Cancelled
-      _snack(l10n.swatchExported(codes.length));
-    } on Exception {
-      if (!mounted) return;
-      _snack(l10n.swatchExportFailed);
+    final saved = await saveBytesToDevice(
+      dialogTitle: l10n.swatchExport,
+      fileName: 'swatch-codes.json',
+      bytes: bytes,
+    );
+    if (!mounted) return;
+    switch (saved.outcome) {
+      case DeviceFileOutcome.cancelled:
+        return;
+      case DeviceFileOutcome.failed:
+        _snack(l10n.swatchExportFailed);
+      case DeviceFileOutcome.done:
+        _snack(l10n.swatchExported(codes.length));
     }
   }
 
   Future<void> _import() async {
     final l10n = _l10n;
-    final FilePickerResult? picked;
-    try {
-      picked = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['json'],
-        withData: true,
-      );
-    } on Exception {
-      if (!mounted) return;
+    final picked = await pickFileFromDevice(
+      allowedExtensions: const ['json'],
+      withData: true,
+    );
+    if (!mounted) return;
+    if (picked.outcome == DeviceFileOutcome.failed) {
       _snack(l10n.swatchImportFailed);
       return;
     }
-    if (!mounted) return;
-    final bytes = picked?.files.single.bytes;
+    final bytes = picked.file?.bytes;
     if (bytes == null) return; // Cancelled
 
     final List<SwatchCode> incoming;

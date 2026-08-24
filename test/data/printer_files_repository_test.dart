@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:dio/dio.dart';
@@ -9,8 +11,11 @@ void main() {
   late DioAdapter adapter;
   late PrinterFilesRepository repo;
   late List<RequestOptions> sent;
+  late Directory scratch;
 
   setUp(() {
+    scratch = Directory.systemTemp.createTempSync('printer-files-test');
+    addTearDown(() => scratch.deleteSync(recursive: true));
     dio = Dio(BaseOptions(
       baseUrl: 'http://s.local:8000',
       receiveTimeout: const Duration(seconds: 15),
@@ -96,35 +101,61 @@ void main() {
   });
 
   group('downloads', () {
-    test('a single file carries no receive deadline', () async {
+    test('a single file lands on disk, never in memory, and cannot time out',
+        () async {
       adapter.onGet(
         '/api/v1/printers/1/files/download',
-        (s) => s.reply(200, [1, 2, 3]),
+        (s) => s.reply(200, 'model bytes'),
         queryParameters: {'path': '/a.3mf'},
       );
+      final target = '${scratch.path}/a.3mf';
 
-      final bytes = await repo.downloadFile(1, '/a.3mf');
+      await repo.downloadFileTo(1, '/a.3mf', target);
 
-      expect(bytes, isNotEmpty);
+      // The adapter serves the reply JSON-encoded, so the quotes are the
+      // mock's, not the route's: what matters is that the body reached the file.
+      expect(File(target).readAsStringSync(), contains('model bytes'));
       expect(sent.single.receiveTimeout, Duration.zero);
+      expect(sent.single.responseType, ResponseType.stream);
     });
 
-    test('the ZIP body stays {paths} and both deadlines are lifted', () async {
+    test('the ZIP is asked for with a POST and the body stays {paths}',
+        () async {
       adapter.onPost(
         '/api/v1/printers/1/files/download-zip',
-        (s) => s.reply(200, [1]),
+        (s) => s.reply(200, 'zip bytes'),
         data: {
           'paths': ['/a.3mf', '/b.3mf']
         },
       );
+      final target = '${scratch.path}/files.zip';
 
-      await repo.downloadZip(1, const ['/a.3mf', '/b.3mf']);
+      await repo.downloadZipTo(1, const ['/a.3mf', '/b.3mf'], target);
 
+      expect(File(target).readAsStringSync(), contains('zip bytes'));
+      expect(sent.single.method, 'POST');
       expect(sent.single.data, {
         'paths': ['/a.3mf', '/b.3mf']
       });
       expect(sent.single.receiveTimeout, Duration.zero);
-      expect(sent.single.sendTimeout, Duration.zero);
+    });
+
+    test('progress is reported as it arrives', () async {
+      adapter.onGet(
+        '/api/v1/printers/1/files/download',
+        (s) => s.reply(200, 'model bytes'),
+        queryParameters: {'path': '/a.3mf'},
+      );
+      final seen = <int>[];
+
+      await repo.downloadFileTo(
+        1,
+        '/a.3mf',
+        '${scratch.path}/a.3mf',
+        onProgress: (received, _) => seen.add(received),
+      );
+
+      expect(seen, isNotEmpty);
     });
 
     test('the refusals the file manager words itself keep their status',
@@ -137,7 +168,7 @@ void main() {
         );
 
         await expectLater(
-          repo.downloadFile(1, '/big.3mf'),
+          repo.downloadFileTo(1, '/big.3mf', '${scratch.path}/big.3mf'),
           throwsA(isA<ApiException>()
               .having((e) => e.statusCode, 'statusCode', status)),
         );

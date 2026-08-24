@@ -57,6 +57,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectFailed => 'Could not connect to the server';
 
   @override
+  String get filePickerFailed => 'The file dialog could not be opened';
+
+  @override
   String get retry => 'Try again';
 
   @override
@@ -4535,13 +4538,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Preparing the download took too long and the server gave up';
 
   @override
+  String get pfmDownloadSaved => 'File saved';
+
+  @override
+  String get pfmDownloadNotSaved =>
+      'The file could not be saved where you chose';
+
+  @override
   String get pfmDownload => 'Download';
 
   @override
   String get pfmDelete => 'Delete';
-
-  @override
-  String get pfmDownloadSaved => 'File saved';
 
   @override
   String get pfmDeleteConfirmTitle => 'Delete files?';

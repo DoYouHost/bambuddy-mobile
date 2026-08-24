@@ -59,6 +59,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get connectFailed => 'Nie udało się połączyć z serwerem';
 
   @override
+  String get filePickerFailed => 'Nie udało się otworzyć okna wyboru pliku';
+
+  @override
   String get retry => 'Spróbuj ponownie';
 
   @override
@@ -4606,13 +4609,17 @@ class AppLocalizationsPl extends AppLocalizations {
       'Przygotowanie pobrania trwało zbyt długo i serwer je przerwał';
 
   @override
+  String get pfmDownloadSaved => 'Zapisano plik';
+
+  @override
+  String get pfmDownloadNotSaved =>
+      'Nie udało się zapisać pliku we wskazanym miejscu';
+
+  @override
   String get pfmDownload => 'Pobierz';
 
   @override
   String get pfmDelete => 'Usuń';
-
-  @override
-  String get pfmDownloadSaved => 'Zapisano plik';
 
   @override
   String get pfmDeleteConfirmTitle => 'Usunąć pliki?';

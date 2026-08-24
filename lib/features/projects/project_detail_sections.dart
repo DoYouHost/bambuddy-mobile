@@ -18,9 +18,9 @@ import '../common/api_failure_snack.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
-import 'project_files.dart';
 import 'projects_providers.dart';
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
@@ -391,14 +391,20 @@ class ProjectAttachmentsSection extends ConsumerWidget {
   Future<void> _upload(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickSingleFile();
-    if (picked == null) return;
+    final picked = await pickFileFromDevice();
+    final chosen = picked.file;
+    if (chosen == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.filePickerFailed);
+      }
+      return;
+    }
     messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).uploadAttachment(
             project.id,
-            filePath: picked.path,
-            filename: picked.name,
+            filePath: chosen.path,
+            filename: chosen.name,
           );
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       messenger.snack(l10n.projectAttachmentUploaded);
@@ -413,12 +419,15 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     try {
       final bytes =
           await ref.read(projectsRepositoryProvider).downloadAttachment(project.id, name);
-      final path = await saveBytesToFile(fileName: name, bytes: bytes);
-      if (path == null) {
-        messenger.snack(l10n.projectSaveCancelled);
-        return;
+      final saved = await saveBytesToDevice(fileName: name, bytes: bytes);
+      switch (saved.outcome) {
+        case DeviceFileOutcome.cancelled:
+          messenger.snack(l10n.projectSaveCancelled);
+        case DeviceFileOutcome.failed:
+          messenger.snack(l10n.filePickerFailed);
+        case DeviceFileOutcome.done:
+          messenger.snack(l10n.projectFileSaved(saved.path!));
       }
-      messenger.snack(l10n.projectFileSaved(path));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n,
           action: 'project.attachment_download',

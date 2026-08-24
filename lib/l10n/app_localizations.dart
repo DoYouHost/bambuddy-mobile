@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Could not connect to the server'**
   String get connectFailed;
 
+  /// No description provided for @filePickerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file dialog could not be opened'**
+  String get filePickerFailed;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -7772,6 +7778,18 @@ abstract class AppLocalizations {
   /// **'Preparing the download took too long and the server gave up'**
   String get pfmDownloadTookTooLong;
 
+  /// No description provided for @pfmDownloadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved'**
+  String get pfmDownloadSaved;
+
+  /// No description provided for @pfmDownloadNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be saved where you chose'**
+  String get pfmDownloadNotSaved;
+
   /// No description provided for @pfmDownload.
   ///
   /// In en, this message translates to:
@@ -7783,12 +7801,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get pfmDelete;
-
-  /// No description provided for @pfmDownloadSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'File saved'**
-  String get pfmDownloadSaved;
 
   /// No description provided for @pfmDeleteConfirmTitle.
   ///

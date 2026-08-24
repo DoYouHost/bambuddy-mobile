@@ -1,9 +1,22 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'demo_config.dart';
 
 /// Result of a routed demo request: HTTP status + JSON-encodable body.
 typedef DemoResult = ({int status, Object? body});
+
+/// A response that is a file rather than a document.
+///
+/// Carried as the result's `body` so every other route keeps its two-field
+/// shape; `DemoHttpClientAdapter` serves this one as bytes with its own content
+/// type instead of JSON-encoding it.
+class DemoFile {
+  const DemoFile(this.bytes, this.contentType);
+
+  final Uint8List bytes;
+  final String contentType;
+}
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -167,6 +180,8 @@ class DemoBackend {
 
   DemoResult _ok(Object? body) => (status: 200, body: body);
   DemoResult _notFound() => (status: 404, body: {'detail': 'Not Found'});
+  DemoResult _file(Uint8List bytes, String contentType) =>
+      (status: 200, body: DemoFile(bytes, contentType));
   DemoResult _fallback(String method) =>
       method == 'GET' ? _notFound() : _ok(const <String, dynamic>{});
 
@@ -290,6 +305,22 @@ class DemoBackend {
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') return _ok(_printerFiles(q['path'] ?? '/'));
+          // Downloading is the one printer-file action with something to hand
+          // back, so demo mode serves it rather than falling through: without
+          // this a tap answered 404 for a single file and, because the fallback
+          // says yes to a POST, handed the ZIP button two bytes of JSON.
+          if (s.length == 4 && at(3, 'download') && m == 'GET') {
+            final path = q['path'] ?? '';
+            if (path.isEmpty) return _notFound();
+            return _file(_printerFileBytes(path), _demoContentType(path));
+          }
+          if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
+            final paths = (body['paths'] as List?)?.whereType<String>().toList();
+            if (paths == null || paths.isEmpty) {
+              return (status: 400, body: {'detail': 'No files specified'});
+            }
+            return _file(_emptyZip(), 'application/zip');
+          }
           return _fallback(m);
         }
         if (at(2, 'storage')) {
@@ -950,6 +981,50 @@ class DemoBackend {
       };
 
   // --- Printer files (on-device storage) ---
+
+  /// Filler standing in for a printer's file: the same size the listing claims,
+  /// capped so a demo download stays a download rather than a memory test.
+  ///
+  /// Deliberately not a real 3MF. Demo mode fabricates the whole dataset, and
+  /// what this exercises is the transfer — the progress it reports, the save
+  /// dialog it ends in — not the contents, which no demo screen opens.
+  Uint8List _printerFileBytes(String path) {
+    const cap = 2 * 1024 * 1024;
+    final listed = _listedSize(path);
+    final size = listed <= 0 ? 64 * 1024 : (listed > cap ? cap : listed);
+    // A repeating pattern rather than zeroes, so a saved file is recognisably
+    // this and not an empty allocation.
+    return Uint8List.fromList(
+      List<int>.generate(size, (i) => 0x30 + (i % 10)),
+    );
+  }
+
+  /// Size the listing gives [path], or 0 when nothing lists it.
+  int _listedSize(String path) {
+    final parent = path.contains('/')
+        ? path.substring(0, path.lastIndexOf('/'))
+        : '';
+    final listing = _printerFiles(parent.isEmpty ? '/' : parent);
+    final files = (listing as Map)['files'] as List;
+    for (final file in files.whereType<Map>()) {
+      if (file['path'] == path) return (file['size'] as int?) ?? 0;
+    }
+    return 0;
+  }
+
+  /// The 22 bytes of an empty ZIP — a valid archive every tool opens, which is
+  /// the honest answer for a bundle of files that do not exist.
+  Uint8List _emptyZip() => Uint8List.fromList([
+        0x50, 0x4B, 0x05, 0x06, // end-of-central-directory signature
+        ...List<int>.filled(18, 0),
+      ]);
+
+  String _demoContentType(String path) {
+    final name = path.toLowerCase();
+    if (name.endsWith('.3mf')) return 'model/3mf';
+    if (name.endsWith('.gcode')) return 'text/x.gcode';
+    return 'application/octet-stream';
+  }
 
   Object _printerFiles(String path) {
     final files = switch (path) {

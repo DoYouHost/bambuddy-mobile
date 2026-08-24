@@ -17,7 +17,8 @@ import '../common/dash_search_field.dart';
 import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/sliver_search_bar.dart';
-import '../projects/project_files.dart' show saveBytesToFile;
+import '../common/device_files.dart';
+import '../common/file_export.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -58,6 +59,9 @@ class _PrinterFileManagerScreenState
   String _query = '';
   final Set<String> _selected = {}; // full paths of selected files
   bool _busy = false; // download/delete in progress
+  // Fraction of the running download, or null while the server has not said how
+  // much there is to come.
+  double? _downloadProgress;
 
   // Quick-navigation shortcuts, mirroring the server web UI.
   static const _quickDirs = [
@@ -177,33 +181,67 @@ class _PrinterFileManagerScreenState
     });
   }
 
+  /// Pulls the selection down and asks the user where to keep it.
+  ///
+  /// Streamed into a cache file rather than read into memory: a printer's card
+  /// holds gigabytes, the server will now bundle as much of it as is asked for,
+  /// and the bytes used to pass through the phone's RAM on their way to the save
+  /// dialog. The dialog stays — [saveDownloadedFile] copies the finished file
+  /// into the chosen location on the platform side, so the size never reaches
+  /// Dart.
   Future<void> _download() async {
     if (_selected.isEmpty || _busy) return;
     final l10n = AppLocalizations.of(context);
     final repo = ref.read(printerFilesRepositoryProvider);
     final paths = _selected.toList();
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _downloadProgress = null;
+    });
     try {
-      if (paths.length == 1) {
-        final bytes = await repo.downloadFile(widget.printerId, paths.first);
-        final name = paths.first.split('/').last;
-        final saved = await saveBytesToFile(fileName: name, bytes: bytes);
-        if (!mounted) return;
-        if (saved != null) {
-          _snack(l10n.pfmDownloadSaved);
+      final single = paths.length == 1;
+      final safeName = widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
+      final fileName =
+          single ? paths.first.split('/').last : '$safeName-files.zip';
+      final file = await downloadToCacheFile(
+        scratchName: 'printer-files-${widget.printerId}.download',
+        download: (savePath) async {
+          if (single) {
+            await repo.downloadFileTo(
+              widget.printerId,
+              paths.first,
+              savePath,
+              onProgress: _onDownloadProgress,
+            );
+          } else {
+            await repo.downloadZipTo(
+              widget.printerId,
+              paths,
+              savePath,
+              onProgress: _onDownloadProgress,
+            );
+          }
+          // The name is already known here; the served content type only
+          // matters for routes that answer with more than one kind of file.
+          return null;
+        },
+        name: (_) => fileName,
+      );
+      if (!mounted) return;
+      final saved = await saveDownloadedFile(
+        file,
+        fileName: fileName,
+        mimeType: mimeTypeForFileName(fileName),
+      );
+      if (!mounted) return;
+      switch (saved.outcome) {
+        case DeviceFileOutcome.cancelled:
+          return;
+        case DeviceFileOutcome.failed:
+          _snack(l10n.pfmDownloadNotSaved);
+        case DeviceFileOutcome.done:
           setState(_selected.clear);
-        }
-      } else {
-        final bytes = await repo.downloadZip(widget.printerId, paths);
-        final safeName =
-            widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
-        final saved =
-            await saveBytesToFile(fileName: '$safeName-files.zip', bytes: bytes);
-        if (!mounted) return;
-        if (saved != null) {
           _snack(l10n.pfmDownloadSaved);
-          setState(_selected.clear);
-        }
       }
     } on AppApiException catch (e) {
       showApiFailure(
@@ -214,8 +252,25 @@ class _PrinterFileManagerScreenState
         message: _downloadFailure(e, l10n),
       );
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _downloadProgress = null;
+        });
+      }
     }
+  }
+
+  /// Dio reports progress per received chunk, which on a gigabyte of models is
+  /// thousands of callbacks — each one rebuilding the whole listing for a bar
+  /// that moves by a fraction of a pixel. Only a change the bar can show is
+  /// worth a frame. A server streaming without a length reports -1 as the total,
+  /// and then the bar stays indeterminate rather than inventing a fraction.
+  void _onDownloadProgress(int received, int total) {
+    if (!mounted) return;
+    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    if (next == _downloadProgress) return;
+    setState(() => _downloadProgress = next);
   }
 
   /// The three refusals the download routes explain in a way the user can act
@@ -587,9 +642,21 @@ class _PrinterFileManagerScreenState
                   ),
                 ),
                 if (_busy)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: DashSpinner(size: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        if (_downloadProgress != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              '${(_downloadProgress! * 100).round()}%',
+                              style: t.monoLabel,
+                            ),
+                          ),
+                        DashSpinner(size: 20, value: _downloadProgress),
+                      ],
+                    ),
                   )
                 else ...[
                   logTag(
