@@ -38,13 +38,46 @@ jobs:
   drift:
     runs-on: [self-hosted, flutter]
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
         with:
           ref: dev
           fetch-depth: 0
+
+      - name: Ensure the gh CLI
+        run: |
+          # This runner ships without gh, and the first version of this job
+          # discovered that only after a finished 12-minute triage died at 127.
+          # No sudo is assumed: gh lands in the runner's own ~/.local/bin and
+          # stays there for later runs, like the reference clone below.
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          if command -v gh >/dev/null || [[ -x "$HOME/.local/bin/gh" ]]; then
+            "$(command -v gh || echo "$HOME/.local/bin/gh")" --version | head -1
+            exit 0
+          fi
+
+          for bin in curl jq tar; do
+            command -v "$bin" >/dev/null || { echo "::error::$bin is missing on this runner."; exit 1; }
+          done
+          case "$(uname -m)" in
+            x86_64) arch=amd64 ;;
+            aarch64|arm64) arch=arm64 ;;
+            *) echo "::error::No gh build for $(uname -m)."; exit 1 ;;
+          esac
+
+          tag="$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name)"
+          ver="${tag#v}"
+          tmp="$(mktemp -d)"
+          curl -fsSL "https://github.com/cli/cli/releases/download/${tag}/gh_${ver}_linux_${arch}.tar.gz" \
+            | tar -xz -C "$tmp"
+          install -m 0755 "$tmp/gh_${ver}_linux_${arch}/bin/gh" "$HOME/.local/bin/gh"
+          rm -rf "$tmp"
+          "$HOME/.local/bin/gh" --version | head -1
 
       - name: Server reference clone
         run: |
@@ -61,8 +94,16 @@ jobs:
       - name: Resolve the baseline
         id: state
         run: |
-          issue="$(gh issue list --label server-drift --state all --limit 1 \
-            --json number,state,body 2>/dev/null || echo '[]')"
+          # The label is what the state query filters on, so it has to exist
+          # before the first query, not only on the seeding path. Its failure is
+          # swallowed because "already there" is the normal case — but nothing
+          # else here is: a broken gh has to surface on the next line, which is
+          # exactly what the first version of this job got wrong.
+          gh label create server-drift \
+            --color BFD4F2 \
+            --description "Bambuddy server changes we have not caught up with" 2>/dev/null || true
+
+          issue="$(gh issue list --label server-drift --state all --limit 1 --json number,state,body)"
           number="$(jq -r '.[0].number // empty' <<<"$issue")"
           state="$(jq -r '.[0].state // empty' <<<"$issue")"
           from="$(jq -r '.[0].body // ""' <<<"$issue" | sed -n 's/^server_sha: \([0-9a-f]\{7,\}\).*/\1/p' | head -1)"
@@ -74,9 +115,6 @@ jobs:
               exit 1
             fi
             echo "seeding from $from"
-            gh label create server-drift \
-              --color BFD4F2 \
-              --description "Bambuddy server changes we have not caught up with" 2>/dev/null || true
           fi
 
           {
@@ -108,6 +146,10 @@ jobs:
           # of kilobytes and a job summary is capped at a megabyte.
           sed -n '1,/^## Filtered diff/p' .server-drift/briefing.md >> "$GITHUB_STEP_SUMMARY"
 
+      # The tool list is read-only on purpose. `sed -n` rather than `sed`, because
+      # -i writes; no `find`, whose -delete and -exec are a shell in disguise and
+      # whose job the Glob tool already does. The triage's only output is the two
+      # files it is told to Write.
       - name: Triage
         if: steps.filter.outputs.drift == 'yes'
         uses: anthropics/claude-code-action@v1
@@ -133,6 +175,15 @@ jobs:
             "Read" "Grep" "Glob" "Write"
             "Bash(git -C ${{ env.REF_DIR }} show:*)" "Bash(git -C ${{ env.REF_DIR }} diff:*)" "Bash(git -C ${{ env.REF_DIR }} log:*)"
             "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)"
+            "Bash(cat:*)" "Bash(ls:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(wc:*)" "Bash(grep:*)" "Bash(sed -n:*)"
+
+      - name: Keep the triage output
+        if: always() && steps.filter.outputs.drift == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-drift-${{ github.run_id }}
+          path: .server-drift/
+          retention-days: 30
 
       - name: File the report
         if: steps.filter.outputs.drift == 'yes'
@@ -167,14 +218,15 @@ jobs:
           # it; a closed one means that range was dealt with, and the next range
           # gets an issue of its own.
           if [[ -n "$number" && "${{ steps.state.outputs.issue_state }}" == "OPEN" ]]; then
-            gh issue comment "$number" --body-file "$report"
             gh issue edit "$number" --title "$title" --body-file body.md
             echo "updated issue #$number"
           else
             url="$(gh issue create --title "$title" --label server-drift --body-file body.md)"
-            gh issue comment "${url##*/}" --body-file "$report"
-            echo "opened ${url}"
+            number="${url##*/}"
+            echo "opened $url"
           fi
+
+          gh issue comment "$number" --body-file "$report"
 
       - name: Nothing moved
         if: steps.filter.outputs.drift == 'no'
