@@ -150,8 +150,14 @@ fields_at() {
     { ref_git show "$rev:$file" 2>/dev/null || true; } | awk '
       /^class [A-Za-z_]/ { cls = $2; sub(/[(:].*$/, "", cls); next }
       cls != "" && /^    [a-z_][a-z0-9_]*[[:space:]]*:/ {
-        f = $1; sub(/:.*$/, "", f)
-        print cls "." f
+        line = $0
+        sub(/^[[:space:]]+/, "", line)
+        f = line; sub(/[[:space:]]*:.*$/, "", f)
+        ann = substr(line, index(line, ":") + 1)
+        sub(/=.*$/, "", ann)
+        gsub(/[[:space:]]+/, " ", ann)
+        gsub(/^ | $/, "", ann)
+        print cls "." f "\t" ann
       }
     '
   done < <(printf '%s\n' "$CHANGED" | grep '^backend/app/schemas/' || true)
@@ -167,8 +173,49 @@ fields_at "$TO_SHA"   | sort -u > "$OUT/fields.to"
 
 comm -13 "$OUT/routes.from" "$OUT/routes.to" > "$OUT/routes.added"
 comm -23 "$OUT/routes.from" "$OUT/routes.to" > "$OUT/routes.removed"
-comm -13 "$OUT/fields.from" "$OUT/fields.to" > "$OUT/fields.added"
-comm -23 "$OUT/fields.from" "$OUT/fields.to" > "$OUT/fields.removed"
+# A field keeps its name and changes its type or its optionality more often
+# than it appears or disappears, and that change is exactly the kind that breaks
+# a client quietly — so names and annotations are diffed separately.
+cut -f1 "$OUT/fields.from" | sort -u > "$OUT/fields.from.names"
+cut -f1 "$OUT/fields.to"   | sort -u > "$OUT/fields.to.names"
+comm -13 "$OUT/fields.from.names" "$OUT/fields.to.names" > "$OUT/fields.added"
+comm -23 "$OUT/fields.from.names" "$OUT/fields.to.names" > "$OUT/fields.removed"
+
+: > "$OUT/fields.changed"
+while IFS=$'\t' read -r name ann; do
+  old_ann="$(awk -F'\t' -v n="$name" '$1 == n { print $2; exit }' "$OUT/fields.from")"
+  if [[ -n "$old_ann" && "$old_ann" != "$ann" ]]; then
+    printf '%s\t%s\t%s\n' "$name" "$old_ann" "$ann" >> "$OUT/fields.changed"
+  fi
+done < "$OUT/fields.to"
+
+# A gate, a status code and a ranking function all live inside a route body:
+# nothing about them appears in a list of routes or a list of fields, which is
+# how a per-key permission that now answers 403, a new 413, and a rewritten
+# main-plug ranking all passed the first version of this script unseen. They are
+# read from the diff, because what matters is that they moved and where.
+route_signals() {
+  local file diff gates codes defs
+  while read -r file; do
+    diff="$(ref_git diff "$FROM_SHA" "$TO_SHA" -- "$file")"
+    gates="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
+      | grep -oE '(Require[A-Za-z_]+|Depends\([a-zA-Z_.]+|Security\([a-zA-Z_.]+)' \
+      | sed -E 's/^(Depends|Security)\(//' | sort -u | paste -sd' ' - || true)"
+    codes="$(printf '%s\n' "$diff" | grep -E '^\+' \
+      | grep -oE '(status_code=|HTTPException\()[0-9]{3}' | grep -oE '[0-9]{3}' \
+      | sort -u | paste -sd',' - || true)"
+    defs="$(printf '%s\n' "$diff" | grep -E '^[+-][[:space:]]*(async )?def ' \
+      | sed -E 's/^[+-][[:space:]]*(async )?def ([a-zA-Z_0-9]+).*/\2/' \
+      | sort -u | paste -sd' ' - || true)"
+    if [[ -n "$gates$codes$defs" ]]; then
+      echo "- \`${file#backend/app/}\`"
+      [[ -n "$gates" ]] && echo "  - gates touched: $gates"
+      [[ -n "$codes" ]] && echo "  - error codes on added lines: $codes"
+      [[ -n "$defs" ]] && echo "  - functions added or removed: $defs"
+    fi
+  done < <(printf '%s\n' "$CHANGED" | grep -E '^backend/app/(api/|core/)' | grep '\.py$' || true)
+  return 0
+}
 
 # ---- our side: what dev actually calls and parses, right now ----
 
@@ -276,6 +323,38 @@ DEV_SHA="$(git -C "$REPO_ROOT" rev-parse dev 2>/dev/null || git -C "$REPO_ROOT" 
         echo "- \`$field\` — **\`$key\` read nowhere in lib/**"
       fi
     done < "$OUT/fields.added"
+  else
+    echo "_none_"
+  fi
+  echo
+
+  echo "## Schema fields changed in place"
+  echo
+  if [[ -s "$OUT/fields.changed" ]]; then
+    while IFS=$'\t' read -r field old new; do
+      key="${field#*.}"
+      if app_has_key "$key"; then
+        echo "- **[WE PARSE THIS]** \`$field\` — was \`$old\`, now \`$new\` — \`$key\` read in $(app_key_evidence "$key")"
+      else
+        echo "- \`$field\` — was \`$old\`, now \`$new\`"
+      fi
+    done < "$OUT/fields.changed"
+  else
+    echo "_none_"
+  fi
+  echo
+
+  echo "## Route bodies: gates, error codes, functions"
+  echo
+  echo "Nothing here is a new route or a new field, so none of it shows above."
+  echo "A gate that appeared is a request that used to be answered and now may be"
+  echo "**403**; a status code that appeared is an error our client has never had"
+  echo "to word; a function that appeared is logic inside an existing route that"
+  echo "changed its answer without changing its shape."
+  echo
+  signals="$(route_signals)"
+  if [[ -n "$signals" ]]; then
+    printf '%s\n' "$signals"
   else
     echo "_none_"
   fi
