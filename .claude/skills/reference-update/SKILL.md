@@ -1,14 +1,14 @@
 ---
 name: reference-update
-description: Triage what changed in the bambuddy server reference since the last review into a one-line-per-change checklist — regressions first, then half-done, then missing. Use when catching up with the server's dev branch, when the weekly server-drift job needs its report, or when asking "what did maziggy change that we have to follow".
+description: Triage what changed in the bambuddy server reference since the last review into a one-line-per-change checklist sorted by urgency — what is already broken, what is a cheap win, what is a feature, what only needs knowing. Use when catching up with the server's dev branch, when the weekly server-drift job needs its report, or when asking "what did maziggy change that we have to follow".
 ---
 
 # Server reference triage
 
 The server moves faster than the app: 102 commits in the range this was first
 built for, of which 20 files could move the API contract. This skill turns that
-range into a checklist: one line per change, sorted into the category that says
-how urgent it is. It is an index of what moved, not an analysis of it — the
+range into a checklist: one line per change, sorted into the section that says
+how urgent it is, so a glance at the issue answers "what do I fix this week". It is an index of what moved, not an analysis of it — the
 analysis happens when someone picks a line up and reads the code.
 
 Paths are relative to the repo root.
@@ -65,55 +65,72 @@ files are the whole output.
 ## The format: one line, one checkbox
 
 ```markdown
-## Regressions
-- [ ] `GET /printers/{id}/foo` — route gone; called from `endpoints.dart:412`
+## Broken now
+- [ ] `GET /printers/{id}/files` — restricted API keys now get 403; the file manager shows a generic error — `printer_file_manager_screen.dart:88` — S
 
-## Half-done
-- [ ] `PrinterStatus.ams_switch_inlet` — parsed in `printer_status.g.dart:88`, shown nowhere
+## Cheap win
+- [ ] `hms_errors[].description` — server sends the fault sentence; `HmsError` has no field for it — `printer_status.dart:770` — S
 
-## Missing
-- [ ] `hms_errors[].description` — new field; `printer_status.dart:788` still reads `message`
-- [ ] `GET /scheduled-dryings` — new route, not in `endpoints.dart`
+## Feature
+- [ ] `/scheduled-dryings` — schedule a dry run; new repository, sheet entry, l10n — M
+
+## Watch only
+- `PATCH /archives/{id}` rejects a weight over 100 kg — nothing to change, but it is the answer if a 422 shows up in a report
+
+## Questions
+- Keep-warm settings are readable but we have no settings writer — build one, or leave them?
 ```
 
-Each line names what moved on the server and where we stand, with a `file:line`
-whenever there is one. **That is the entire entry.** No "what changed", no "why
-it matters", no "do", no "done when", no size tag. Whoever picks an item up
-reads the code; a paragraph explaining the code to them takes longer to read
-than the code.
+**One line per change: what moved, what it means for us, `file:line` when there
+is one, and a size.** No "what changed", no "why it matters", no "do", no "done
+when" — whoever picks a line up reads the code, and a paragraph explaining the
+code to them takes longer than the code. A line that cannot be understood
+without a caveat gets one short parenthetical; anything longer belongs under
+`## Questions` as one sentence.
 
-One short parenthetical is the budget for a line that genuinely cannot be
-understood without one. Anything longer is not an item but a question: put it
-under the list, under `## Questions`, in one sentence.
+Sizes are `XS` (a field and its test), `S` (a field plus one screen), `M` (a
+route, a form, l10n), `L` (a screen or a parked branch).
 
-The three sections mean:
+## The five sections, and what decides which one a line lands in
 
-- **Regressions** — a route or field that vanished server-side and that our code
-  still depends on. The only category that breaks the app for someone who has
-  already updated their server, and the easiest to miss, because a diff invites
-  you to read what was added.
-- **Half-done** — the route is in `endpoints.dart` but nothing calls it; the
-  field is in the model but no screen shows it.
-- **Missing** — everything else that is still owed.
+The point of the sections is that a person scanning the issue can tell, without
+reading a word of prose, what to do this week and what can wait.
+
+**`## Broken now`** — the app already misbehaves against a server that has
+shipped this. A route or field we call is gone; a gate now answers **403** where
+the request used to work; a status code we surface as a generic error; a field
+whose meaning changed under a name we still read. **Every line here says what
+the user sees**, because that is what decides whether it is worth a hotfix.
+
+**`## Cheap win`** — mechanical and small, with obvious value: a new field to
+parse, a route already in `endpoints.dart` that nothing calls, a field parsed
+into a model that no screen shows.
+
+**`## Feature`** — a new surface. UI, l10n, diagnostic ids, a product call about
+whether we want it at all.
+
+**`## Watch only`** — nothing to do, and that is the finding. A validation rule,
+a migration that shifts stored numbers, a limit — the things that explain a
+future bug report. No checkbox: these are not work.
+
+**`## Questions`** — one sentence each, for what is not yours to decide.
 
 An empty section keeps its heading and says `- none`.
 
-The report is short by construction — on a first run it is three lines:
+Where each kind of finding comes from in `facts.md`:
 
-```markdown
-`7c117dc6` → `ed84f0f7`, 102 commits, 24 contract files.
+| facts.md section | usually lands in |
+|---|---|
+| routes removed, marked `[WE CALL THIS]` | Broken now |
+| route bodies → gates touched | Broken now (403) — check who the gate admits |
+| route bodies → error codes on added lines | Broken now if we word that code generically |
+| fields changed in place, marked `[WE PARSE THIS]` | Broken now or Cheap win |
+| fields added, key read nowhere | Cheap win or Feature |
+| routes added | Cheap win if one call, Feature if a screen |
+| route bodies → functions added | read the diff: ranking and gating changes hide here |
 
-Added 7 items: 0 regressions, 1 half-done, 6 missing.
-Already covered: 3 (`endpoints.dart:412`, `queue_item.dart:257`, `archive.g.dart:88`).
-
-Struck off:
-- `POST /printers/{id}/files/download-job` — done in `printer_files_repository.dart:50`
-```
-
-**Never restate the items it added.** They are in the checklist directly above
-the comment; printing them twice is how the first version of this job produced
-one list in the body and the same list underneath it. What only the comment can
-say is what *left* — and that gets a line each, with its evidence.
+The report carries the same sections and the same one-line entries, plus
+**Struck off**.
 
 ## Rules that decide what goes in
 
@@ -130,6 +147,12 @@ say is what *left* — and that gets a line each, with its evidence.
 - **Every removal is accounted for.** A line may leave `open-items.md` only
   through the report's *Struck off* section. A line that quietly differs between
   the old body and the new one is a bug in the triage, not tidying.
+- **"Broken now: none" is a claim, not a default.** It is only allowed with a
+  sentence saying what was checked and found harmless — the gates that moved,
+  the codes that appeared, the fields that changed shape. An empty section
+  because nobody looked reads exactly like an empty section because nothing is
+  wrong, and the first version of this job filed "Regressions: none" over a
+  per-printer key allowlist that had started answering 403.
 - **`dev` is the only baseline.** Work sitting on an unmerged feature branch
   counts as not done. That is deliberate: it repeats an item you are mid-way
   through rather than hiding one that was abandoned.
