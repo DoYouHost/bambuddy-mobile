@@ -167,6 +167,9 @@ jobs:
             The list standing before this run is at
             .server-drift/open-items-current.md; it is empty on the first run.
 
+            The checklist is one `- [ ]` line per change, and nothing else: no
+            "what changed", no "why it matters", no "do", no "done when".
+
             You are done only once both .server-drift/report.md and
             .server-drift/open-items.md exist and are non-empty. Write them
             before you finish, whatever else you did or did not manage to
