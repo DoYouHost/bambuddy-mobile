@@ -40,6 +40,36 @@ void main() {
     test('empty code renders as a question mark', () {
       expect(const HmsError().displayCode, '?');
     });
+
+    test('the server sentence parses, and blank means absent', () {
+      // `description` is the server's own text for the fault, under the bundled
+      // catalogue in `HmsCatalog.describe`. Three wire shapes: present, blank,
+      // and missing — the last one being every server older than 0.2.5.x.
+      HmsError parse(Map<String, dynamic> json) => HmsError.fromJson({
+            'code': '0x8004',
+            'attr': 0x03008004,
+            ...json,
+          });
+      expect(parse({'description': 'Filament ran out.'}).description,
+          'Filament ran out.');
+      expect(parse({'description': '  Door is open. '}).description,
+          'Door is open.');
+      expect(parse({'description': '   '}).description, isNull);
+      expect(parse({'description': null}).description, isNull);
+      expect(parse({}).description, isNull);
+    });
+
+    test('the description takes part in equality', () {
+      // Dashboard state is compared frame to frame; a fault whose text changed
+      // is a changed fault, or the card keeps the older server's silence.
+      const bare = HmsError(code: '0x8004', attr: 0x03008004);
+      const named =
+          HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.');
+      expect(named, isNot(bare));
+      expect(named.hashCode, isNot(bare.hashCode));
+      expect(named,
+          const HmsError(code: '0x8004', attr: 0x03008004, description: 'Ran out.'));
+    });
   });
 
   group('hmsHumanText', () {
@@ -75,6 +105,7 @@ void main() {
                   severity: sev,
                   module: mod,
                   message: message,
+                  description: description,
                 );
                 final where = 'code=${c.code} sev=$sev mod=$mod '
                     'message=${message?.length} desc=${description?.length}';

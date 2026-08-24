@@ -19,7 +19,6 @@ class PrinterFilesRepository {
 
   final Dio _dio;
 
-
   /// List entries at [path] (default root). Directories and files mixed;
   /// caller sorts. Auth/network errors bubble up via [guard].
   ///

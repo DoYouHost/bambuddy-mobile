@@ -39,10 +39,19 @@ class HmsCatalog {
     _loadedLang = lang;
   }
 
-  /// Returns the code description, or null if unknown/not loaded. Lookup order
-  /// is the server's own (`HMSErrorModal.tsx::lookupDescription`): the lossless
-  /// full code first, the lossy short form as the fallback that carries the
-  /// bulk of the table.
+  /// The whole describe chain, not just this table: bundled catalogue in the
+  /// user's language → [HmsError.description] from the server → null. Every
+  /// surface that names a fault takes this method as `describeHms`, so the
+  /// chain is decided here once rather than at each of them.
+  ///
+  /// Inside the table the lookup order is the server's own
+  /// (`HMSErrorModal.tsx::lookupDescription`): the lossless full code first, the
+  /// lossy short form as the fallback that carries the bulk of it.
+  ///
+  /// The server's sentence is English whatever the UI language is — a
+  /// deliberate mix, chosen over leaving a Polish user with a bare hex code for
+  /// every `hms[]` fault, which is all our assets cover. It ranks under the
+  /// bundled table so a code we do translate is never displaced by it.
   String? describe(HmsError e) {
     final full = e.fullCode?.toUpperCase();
     if (full != null) {
@@ -50,7 +59,8 @@ class HmsCatalog {
       if (hit != null) return hit;
     }
     final short = e.shortCode;
-    return short == null ? null : _map[short.replaceAll('_', '')];
+    final byShort = short == null ? null : _map[short.replaceAll('_', '')];
+    return byShort ?? e.description;
   }
 }
 
@@ -59,7 +69,8 @@ class HmsCatalog {
 /// which drops every code missing from its description table so it never turns
 /// an unrecognized code into a red card. Show if:
 ///  • server provided a message, OR
-///  • code resolves in the catalog (known error).
+///  • the code resolves through [HmsCatalog.describe] — our table or, failing
+///    that, the sentence the server itself attached to the fault.
 ///
 /// One deliberate departure from bambuddy: it keeps an uncataloged fault when
 /// the firmware offers actions for it, so an unnamed error can still get
@@ -99,10 +110,10 @@ bool hmsIsNotifiable(HmsError e, {String? description}) {
   return description?.trim().isNotEmpty ?? false;
 }
 
-/// Human-readable error label WITHOUT the code: server message → catalog
-/// description. null when neither is known — and such an error is not shown at
-/// all ([hmsIsDisplayable]), so nothing is composed out of `severity`/`module`
-/// to stand in for it.
+/// Human-readable error label WITHOUT the code: server message → whatever
+/// [HmsCatalog.describe] resolved. null when neither is known — and such an
+/// error is not shown at all ([hmsIsDisplayable]), so nothing is composed out of
+/// `severity`/`module` to stand in for it.
 /// Used by the printer card, which shows the code separately (with wiki link).
 String? hmsLabel(HmsError e, {String? description}) {
   final msg = e.message?.trim();

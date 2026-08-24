@@ -777,6 +777,7 @@ class HmsError {
     this.actions = const [],
     this.jobId,
     this.fullCode,
+    this.description,
   });
 
   factory HmsError.fromJson(Map<String, dynamic> json) =>
@@ -828,6 +829,17 @@ class HmsError {
   @JsonKey(fromJson: _toNonBlankStringOrNull)
   final String? fullCode;
 
+  /// The sentence the server's own catalogue has for this fault, resolved from
+  /// [fullCode] (`hms_errors.py::describe_fault`). **English only** — that table
+  /// ships one language — so it is the fallback under the bundled localized
+  /// catalogue, never above it (`HmsCatalog.describe`).
+  ///
+  /// Null on a server too old to send it and on a code the server's table does
+  /// not cover; either way that means "no text", never "no fault" — [fullCode]
+  /// is what identifies one.
+  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  final String? description;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -839,11 +851,12 @@ class HmsError {
           other.module == module &&
           _stringListEquality.equals(other.actions, actions) &&
           other.jobId == jobId &&
-          other.fullCode == fullCode;
+          other.fullCode == fullCode &&
+          other.description == description;
 
   @override
   int get hashCode => Object.hash(code, message, severity, attr, module,
-      _stringListEquality.hash(actions), jobId, fullCode);
+      _stringListEquality.hash(actions), jobId, fullCode, description);
 
   /// Numeric value of `code` (firmware sends hex-string "0x20070" or number);
   /// null if `code` already in canonical form with separators.

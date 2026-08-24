@@ -114,6 +114,8 @@ Future<void> _command(String raw) async {
   hms[]    an hms[]-channel fault (0300_0100_0001_000A) — the app is meant to
            stay silent about it, card and notification alike
   blank    a fault whose full_code the server left empty — named, no buttons
+  served   a code outside the bundled catalogue, named by the server's own
+           `description` — the English fallback, whatever the UI language
   ok       clear the faults, as `hms/clear` would
   ack      toggle whether the printer answers an action (off → the route 502s)
 
@@ -202,6 +204,15 @@ Future<void> _command(String raw) async {
       _pause('hms[] 0300_0100_0001_000A (${_hmsErrors.length} reported)');
     case 'blank':
       _fault(0x03008004, actions: ['RESUME_PRINTING'], fullCode: '');
+    case 'served':
+      // 0300_FFFF is in no catalogue, ours or the server's, so the only thing
+      // that can name this card is the `description` on the wire.
+      _fault(
+        0x0300FFFF,
+        add: add,
+        actions: ['STOP_PRINTING'],
+        description: 'The toolhead reported a fault this app has no text for.',
+      );
     case 'ok':
       _clearFaults(from: 'console');
     case 'ack':
@@ -230,6 +241,7 @@ void _fault(
   int printError, {
   List<String> actions = const [],
   String? fullCode,
+  String? description,
   bool add = false,
 }) {
   final code = fullCode ??
@@ -244,6 +256,9 @@ void _fault(
     // Defaults to the 8-hex key; `blank` passes '' to reproduce the server's
     // own empty default, which must not turn into a button.
     'full_code': code,
+    // Absent unless a command asks for it: an older server sends no such field,
+    // and that absence is what the rest of these faults are testing.
+    'description': ?description,
   };
   _hmsErrors = [
     if (add)
