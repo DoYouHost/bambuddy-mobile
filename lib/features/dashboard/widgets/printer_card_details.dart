@@ -24,6 +24,9 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
       await ref
           .read(printerCommandsRepositoryProvider)
           .clearPlate(widget.printerId);
+      ref
+          .read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(widget.printerId);
       messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
@@ -45,7 +48,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
         decoration: BoxDecoration(
           color: t.accentBlue.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -61,14 +64,19 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
                 style: t.bodyPlain.copyWith(color: t.textPrimary),
               ),
             ),
-            logTag(
-              'printer.plate_clear',
-              TextButton(
+            // A checkmark rather than the full "mark plate as cleared": the
+            // sentence spelled the badge next to it out twice and left the badge
+            // itself two words wide on a 360 dp screen. The wording survives as
+            // the tooltip, which is also what a screen reader announces. Being
+            // disabled is how the card's other network buttons say "in flight"
+            // (see `_SmartPlugButton`), so no spinner of its own.
+            _HeaderIconButton(
+              id: 'printer.plate_clear',
+              icon: Icons.check_rounded,
+              tooltip: l10n.plateClearAction,
+              color: t.accentBlue,
+              borderColor: t.accentBlue.withValues(alpha: 0.5),
               onPressed: _busy ? null : _clear,
-              child: _busy
-                  ? const DashSpinner(size: 16)
-                  : Text(l10n.plateClearAction),
-              ),
             ),
           ],
         ),

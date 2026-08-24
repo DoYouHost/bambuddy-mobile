@@ -400,6 +400,39 @@ void main() {
       expect(merged.hmsErrors, isNotNull);
     });
 
+    // With Auto Power Off the printer is switched off the moment the print ends,
+    // so "gate up, printer down" is the normal end state rather than an edge
+    // case — and the gate is Bambuddy-side state the server persists, not
+    // telemetry that goes stale with the machine (#2864).
+    test('offline keeps the plate-clear gate', () {
+      const prev = PrinterStatus(
+        id: 1,
+        connected: true,
+        state: 'FINISH',
+        awaitingPlateClear: true,
+      );
+      const offline =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: true);
+
+      final merged = offline.mergedWith(prev);
+      expect(merged.connected, isFalse);
+      expect(merged.state, isNull); // telemetry still goes
+      expect(merged.awaitingPlateClear, isTrue);
+    });
+
+    // A server older than #2864 answers the status route for a printer with no
+    // MQTT client from the schema default. That explicit `false` is a value on
+    // the wire, so it wins over the carried-forward `true` and the app behaves
+    // exactly as it did before — no banner that outlives the truth.
+    test('older server: explicit false lowers the carried-forward gate', () {
+      const prev =
+          PrinterStatus(id: 1, connected: true, awaitingPlateClear: true);
+      const offline =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: false);
+
+      expect(offline.mergedWith(prev).awaitingPlateClear, isFalse);
+    });
+
     test('powrót online repopuluje telemetrię ze świeżej ramki', () {
       const offline = PrinterStatus(id: 1, connected: false, model: 'P1S');
       const online = PrinterStatus(

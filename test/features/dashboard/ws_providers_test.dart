@@ -104,4 +104,44 @@ void main() {
     c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1, state: 'RUNNING')]);
     expect(c.read(printerStatusesProvider).keys, [1]);
   });
+
+  group('plateGateAcknowledged', () {
+    // The printer this matters for is off: Auto Power Off cut its power when the
+    // print ended, so the server has no MQTT client for it and pushes no frame
+    // when the gate goes down. Without the local drop the banner would sit there
+    // until the next REST poll — a minute, with the socket up.
+    test('lowers the gate on an offline printer without waiting for a poll', () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([
+        PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'P1'),
+          status: const PrinterStatus(
+            id: 1,
+            connected: false,
+            awaitingPlateClear: true,
+            model: 'X1C',
+          ),
+        ),
+      ]);
+      expect(c.read(printerStatusesProvider)[1]!.awaitingPlateClear, isTrue);
+
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(1);
+
+      final after = c.read(printerStatusesProvider)[1]!;
+      expect(after.awaitingPlateClear, isFalse);
+      expect(after.connected, isFalse); // nothing else invented
+      expect(after.model, 'X1C');
+    });
+
+    test('a printer that is not waiting is left alone', () {
+      final c = _container();
+      c.read(printerStatusesProvider.notifier).ingestPoll([_pws(1, state: 'IDLE')]);
+      final before = c.read(printerStatusesProvider);
+
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(1);
+      c.read(printerStatusesProvider.notifier).plateGateAcknowledged(7); // unknown
+
+      expect(c.read(printerStatusesProvider), same(before));
+    });
+  });
 }

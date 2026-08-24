@@ -34,17 +34,26 @@ class WearRelayHandler {
   /// frame for a printer, or null when there's nothing trustworthy (WS down /
   /// printer never seen) — the handler then falls back to a REST status fetch
   /// for that printer.
+  ///
+  /// [plateGateAcknowledged] lets that cache be told the plate-clear gate is
+  /// down. The server pushes a fresh frame for the flag only while the printer
+  /// has a live MQTT client, so after acknowledging a printer that Auto Power
+  /// Off already switched off nothing would ever correct the cached `true`, and
+  /// the watch's own post-action refresh would draw the button again.
   WearRelayHandler({
     required WatchConnectivity watch,
     required Dio? Function() dio,
     Map<String, dynamic>? Function(int printerId)? liveStatus,
+    void Function(int printerId)? plateGateAcknowledged,
   })  : _watch = watch,
         _dio = dio,
-        _liveStatus = liveStatus;
+        _liveStatus = liveStatus,
+        _plateGateAcknowledged = plateGateAcknowledged;
 
   final WatchConnectivity _watch;
   final Dio? Function() _dio;
   final Map<String, dynamic>? Function(int printerId)? _liveStatus;
+  final void Function(int printerId)? _plateGateAcknowledged;
 
   StreamSubscription<Map<String, dynamic>>? _sub;
 
@@ -107,6 +116,7 @@ class WearRelayHandler {
         await commands.stop(printerId);
       case WearRpcAction.clearPlate:
         await commands.clearPlate(printerId);
+        _plateGateAcknowledged?.call(printerId);
       case WearRpcAction.startNext:
         await QueueRepository(dio).startNextPending(printerId);
       case WearRpcAction.hmsClear:

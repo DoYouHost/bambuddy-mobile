@@ -16,6 +16,7 @@ import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
@@ -87,6 +88,27 @@ class _RecordingCommands implements PrinterCommandsRepository {
     String? jobId,
   }) async =>
       calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not part of this test');
+}
+
+/// The shared status map without the WebSocket client behind it — the card only
+/// reads it to lower the plate-clear gate after an acknowledgement, and building
+/// the real notifier would have this test dial a server.
+class _InertStatuses extends PrinterStatusesNotifier {
+  @override
+  Map<int, PrinterStatus> build() => const {};
+}
+
+/// Records the plate-clear acknowledgement instead of sending it. Nothing else
+/// on the collapsed card talks to this repository.
+class _PlateCommands implements PrinterCommandsRepository {
+  final List<int> cleared = [];
+
+  @override
+  Future<void> clearPlate(int printerId) async => cleared.add(printerId);
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -1816,6 +1838,75 @@ void main() {
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
+    });
+  });
+
+  group('plate-clear gate on a collapsed OFFLINE card', () {
+    // Auto Power Off switches the printer off the moment the print ends, so the
+    // state this covers — gate up, printer down — is the ordinary one on a farm,
+    // and since #2864 the server both reports it for a disconnected printer and
+    // accepts the acknowledgement without an MQTT client.
+    PrinterWithStatus offline({bool awaiting = true}) => PrinterWithStatus(
+          printer: const Printer(id: 1, name: 'X1C Warsztat'),
+          status: PrinterStatus(
+            id: 1,
+            connected: false,
+            awaitingPlateClear: awaiting,
+          ),
+        );
+
+    Widget card(PrinterWithStatus item, {
+      required bool require,
+      PrinterCommandsRepository? commands,
+    }) =>
+        _cardWithProviders(item, extra: [
+          requirePlateClearProvider.overrideWith((ref) async => require),
+          printerStatusesProvider.overrideWith(_InertStatuses.new),
+          if (commands != null)
+            printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ]);
+
+    testWidgets('the banner survives the collapse', (tester) async {
+      await tester.pumpWidget(card(offline(), require: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFFLINE'), findsOneWidget); // still the collapsed card
+      expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
+      // The button is a bare checkmark; the sentence it replaced is the tooltip,
+      // which is also what a screen reader reads out.
+      expect(find.byTooltip('Oznacz płytę jako pustą'), findsOneWidget);
+    });
+
+    testWidgets('acknowledging posts clear-plate for this printer',
+        (tester) async {
+      final commands = _PlateCommands();
+      await tester.pumpWidget(
+        card(offline(), require: true, commands: commands),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Oznacz płytę jako pustą'));
+      await tester.pumpAndSettle();
+
+      expect(commands.cleared, [1]);
+    });
+
+    testWidgets('nothing is offered when the scheduler does not require it',
+        (tester) async {
+      await tester.pumpWidget(card(offline(), require: false));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Płyta niewyczyszczona'), findsNothing);
+    });
+
+    testWidgets('an offline printer with a clear plate keeps the bare header',
+        (tester) async {
+      await tester.pumpWidget(card(offline(awaiting: false), require: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Płyta niewyczyszczona'), findsNothing);
     });
   });
 }

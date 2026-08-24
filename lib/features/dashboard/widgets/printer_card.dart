@@ -134,29 +134,42 @@ class _PrinterCardState extends State<PrinterCard> {
     if (_offline) {
       return _CardShell(
         tokens: t,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _IconSquare(tokens: t, offline: true),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _NameText(name: name, tokens: t),
-                  _TotalPrintTimeLine(printerId: printerId),
-                ],
-              ),
+            Row(
+              children: [
+                _IconSquare(tokens: t, offline: true),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _NameText(name: name, tokens: t),
+                      _TotalPrintTimeLine(printerId: printerId),
+                    ],
+                  ),
+                ),
+                // Smart plug stays controllable even when OFFLINE — the only way to
+                // remotely power the printer back on. Auto-hides if none assigned.
+                _SmartPlugButton(printerId: printerId, printing: false),
+                const SizedBox(width: 8),
+                _StateChip(
+                  label: l10n.statusOffline,
+                  connected: false,
+                  offline: true,
+                ),
+              ],
             ),
-            // Smart plug stays controllable even when OFFLINE — the only way to
-            // remotely power the printer back on. Auto-hides if none assigned.
-            _SmartPlugButton(printerId: printerId, printing: false),
-            const SizedBox(width: 8),
-            _StateChip(
-              label: l10n.statusOffline,
-              connected: false,
-              offline: true,
-            ),
+            // The plate-clear gate survives the collapse for the same reason as
+            // the plug: it is Bambuddy-side state, not stale telemetry, and with
+            // Auto Power Off the printer is *expected* to be off while the bed is
+            // still full. Hiding it here left a farm with no way to release the
+            // gate short of powering every printer back on.
+            if (status != null)
+              _PlateClearBanner(printerId: printerId, status: status),
           ],
         ),
       );

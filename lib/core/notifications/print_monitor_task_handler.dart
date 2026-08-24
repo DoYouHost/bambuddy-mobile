@@ -344,6 +344,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
       watch: WatchConnectivity(),
       dio: () => api?.dio,
       liveStatus: (id) => _wsUp ? _rawStatuses[id] : null,
+      plateGateAcknowledged: (id) =>
+          _rawStatuses[id]?['awaiting_plate_clear'] = false,
     )..start();
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
