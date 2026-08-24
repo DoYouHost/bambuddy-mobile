@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
 
 /// Printer picker (shown only when more than one printer). Tapping a row pushes
@@ -48,6 +49,8 @@ class WearPrinterListBody extends ConsumerWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 4),
+          const WearSettingsEntry(),
         ],
       ),
     );

@@ -14,6 +14,7 @@ import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_settings_entry.dart';
 import '../widgets/wear_status_chip.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
@@ -32,7 +33,16 @@ class WearPrinterControlScreen extends StatelessWidget {
 /// Status readout + the four watch actions for one printer. Reads live data
 /// from the polled [wearFleetProvider]; actions go through [wearActionsProvider].
 class WearPrinterControlBody extends ConsumerStatefulWidget {
-  const WearPrinterControlBody({super.key, required this.printerId});
+  const WearPrinterControlBody({
+    super.key,
+    required this.printerId,
+    this.showSettings = false,
+  });
+
+  /// Whether to park the settings entry at the end of the scroll. True only
+  /// where this body *is* the home screen (a single printer, no picker to hang
+  /// it off); pushed from the list it would be a second door to the same place.
+  final bool showSettings;
 
   final int printerId;
 
@@ -90,6 +100,10 @@ class _WearPrinterControlBodyState
               const SizedBox(height: 10),
               ..._faults(item),
               ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+              if (widget.showSettings) ...[
+                const SizedBox(height: 4),
+                const WearSettingsEntry(),
+              ],
             ],
           ),
         ),

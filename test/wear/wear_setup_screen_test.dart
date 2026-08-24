@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_setup_screen.dart';
@@ -16,19 +17,36 @@ import '../helpers.dart';
 /// So two things are asserted here — that the phone handoff leads, and that the
 /// manual path types through the watch's own input activity rather than a
 /// keyboard that is not coming.
-/// A handoff that blows up while persisting, the way secure storage does when
-/// the Keystore no longer holds the key it was written with.
-class _FailingConfigSync extends WatchConfigSync {
-  _FailingConfigSync()
+/// The phone's side of the handoff, faked: it offers [config], and persisting it
+/// blows up the way secure storage does when the Keystore no longer holds the
+/// key the secrets were written with.
+class _FakeConfigSync extends WatchConfigSync {
+  _FakeConfigSync({this.config, this.failsToApply = false})
       : super(
           watch: WatchConnectivity(),
           credentials: InMemoryCredentialsStore(),
         );
 
+  final WatchConfig? config;
+  final bool failsToApply;
+
   @override
-  Future<bool> adoptLatestPending() async =>
-      throw Exception('keystore is gone');
+  Future<WatchConfig?> latestPending() async => config;
+
+  @override
+  Future<void> apply(WatchConfig config) async {
+    if (failsToApply) throw Exception('keystore is gone');
+  }
 }
+
+final _offered = WatchConfig(
+  profile: const ServerProfile(
+    baseUrl: 'http://workshop.local:8000',
+    authMode: AuthMode.apiKey,
+    label: 'Workshop',
+  ),
+  apiKey: 'bb_secret',
+);
 
 void main() {
   const inputChannel =
@@ -97,21 +115,57 @@ void main() {
     expect(find.text('Telefon jeszcze nic nie przysłał.'), findsOneWidget);
   });
 
-  testWidgets('a failed check gives the spinner back, not a dead screen',
-      (tester) async {
+  testWidgets('what the phone sent is shown before it is used', (tester) async {
     await pumpSetup(tester, overrides: [
-      watchConfigSyncProvider.overrideWithValue(_FailingConfigSync()),
+      watchConfigSyncProvider.overrideWithValue(_FakeConfigSync(config: _offered)),
     ]);
 
     await tester.tap(find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
-    // Persisting an adopted config is a secure-storage write, and that throws
-    // outright rather than hanging — the timeout alone would leave the user
-    // watching a spinner with no way back.
+    // The name and the auth mode, so the user can tell this is the server they
+    // meant — a phone that switched servers used to reconfigure the watch with
+    // nothing on screen to say so.
+    expect(find.text('Z telefonu'), findsOneWidget);
+    expect(find.text('Workshop'), findsOneWidget);
+    expect(find.text('Klucz'), findsOneWidget);
+    expect(find.text('Użyj tego serwera'), findsOneWidget);
+    expect(find.text('Nie teraz'), findsOneWidget);
+  });
+
+  testWidgets('"not now" hands the screen back, it does not apply anything',
+      (tester) async {
+    await pumpSetup(tester, overrides: [
+      watchConfigSyncProvider.overrideWithValue(_FakeConfigSync(config: _offered)),
+    ]);
+    await tester.tap(find.text('Sprawdź ponownie'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nie teraz'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Użyj tego serwera'), findsNothing);
+    expect(find.text('Ustaw z telefonu'), findsOneWidget);
+    expect(find.text('Wpisz ręcznie'), findsOneWidget);
+  });
+
+  testWidgets('a failed adopt gives the spinner back, not a dead screen',
+      (tester) async {
+    await pumpSetup(tester, overrides: [
+      watchConfigSyncProvider.overrideWithValue(
+          _FakeConfigSync(config: _offered, failsToApply: true)),
+    ]);
+    await tester.tap(find.text('Sprawdź ponownie'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Użyj tego serwera'));
+    await tester.pumpAndSettle();
+
+    // Persisting is a secure-storage write, and that throws outright rather
+    // than hanging — a timeout alone would leave the user watching a spinner.
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.textContaining('keystore'), findsOneWidget);
-    expect(find.text('Sprawdź ponownie'), findsOneWidget);
+    expect(find.text('Użyj tego serwera'), findsOneWidget);
   });
 
   testWidgets('manual entry reveals the URL field', (tester) async {

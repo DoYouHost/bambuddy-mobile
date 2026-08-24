@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/two_factor.dart';
+import '../../core/settings/server_profile.dart';
+import '../../core/watch/watch_config_sync.dart';
 import '../../core/watch/wear_text_input.dart';
 import '../../features/setup/providers.dart';
 import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../wear_providers.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
 /// verbatim (probe → auth), just with a vertically-scrollable, round-safe layout.
@@ -86,7 +89,10 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 12),
-            if (!_manual)
+            if (ref.watch(pendingWatchConfigProvider) case final offer?
+                when !_manual)
+              ..._offerSection(l10n, offer)
+            else if (!_manual)
               ..._phoneHandoffSection(l10n)
             else
               ..._manualSection(controller, l10n, state),
@@ -94,6 +100,83 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
         ),
       ),
     );
+  }
+
+  /// What the phone sent, shown before it is used rather than after.
+  ///
+  /// The push carries credentials for a server the watch has never talked to, so
+  /// it is worth a look: a phone that switched servers used to reconfigure the
+  /// watch silently, and nothing on the watch said which server it was on.
+  List<Widget> _offerSection(AppLocalizations l10n, WatchConfig offer) => [
+        Text(
+          l10n.wearFromPhone,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          offer.profile.displayName,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          switch (offer.profile.authMode) {
+            AuthMode.apiKey => l10n.wearAuthKey,
+            AuthMode.jwt => l10n.wearAuthLogin,
+            AuthMode.none => l10n.wearAuthNone,
+          },
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 10, color: Colors.white54),
+        ),
+        if (_phoneError != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _errorText(l10n, _phoneError!),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 11, color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        const SizedBox(height: 10),
+        if (_checkingPhone)
+          _spinner
+        else
+          FilledButton(
+            onPressed: () => _useOffer(offer),
+            child: Text(l10n.wearFromPhoneUse),
+          ),
+        TextButton(
+          onPressed: () =>
+              ref.read(pendingWatchConfigProvider.notifier).dismiss(),
+          child: Text(l10n.wearFromPhoneLater,
+              style: const TextStyle(fontSize: 12)),
+        ),
+      ];
+
+  /// Adopt the offered config. Guarded like every other write on this screen:
+  /// secure storage throws outright, and a spinner that outlives the failure
+  /// would leave the watch with no way forward.
+  Future<void> _useOffer(WatchConfig offer) async {
+    setState(() {
+      _checkingPhone = true;
+      _phoneError = null;
+    });
+    try {
+      await ref.read(watchConfigSyncProvider).apply(offer);
+      if (!mounted) return;
+      ref.read(pendingWatchConfigProvider.notifier).dismiss();
+      // Re-reads the freshly persisted profile, which re-routes to WearHome.
+      ref.invalidate(serverProfileProvider);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _checkingPhone = false;
+        _phoneError = error;
+      });
+    }
   }
 
   /// The path almost everybody should take: the phone already knows the server
@@ -137,9 +220,10 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
         ),
       ];
 
-  /// Adopt whatever the phone last latched. A live push is picked up by `WearApp`
-  /// on its own; this button is for the config that arrived while the watch app
-  /// was closed, and for the user who wants to see something happen.
+  /// Look for what the phone last latched and *offer* it. A live push is picked
+  /// up by `WearApp` on its own; this button is for the config that arrived
+  /// while the watch app was closed, and for the user who wants to see
+  /// something happen.
   Future<void> _checkPhone() async {
     setState(() {
       _checkingPhone = true;
@@ -151,22 +235,19 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen> {
       // Google Play services are missing, and a spinner that never stops is a
       // dead screen. Coming back empty at least leaves the manual path
       // reachable.
-      final adopted = await ref
+      final found = await ref
           .read(watchConfigSyncProvider)
-          .adoptLatestPending()
-          .timeout(const Duration(seconds: 5), onTimeout: () => false);
+          .latestPending()
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
       if (!mounted) return;
       setState(() {
         _checkingPhone = false;
-        _phoneEmpty = !adopted;
+        _phoneEmpty = found == null;
       });
-      // Re-reads the freshly persisted profile, which re-routes to WearHome.
-      if (adopted) ref.invalidate(serverProfileProvider);
+      if (found != null) {
+        ref.read(pendingWatchConfigProvider.notifier).offer(found);
+      }
     } catch (error) {
-      // The timeout above only covers a call that never answers. Persisting the
-      // adopted config is a secure-storage write, and that one throws — an
-      // invalidated Keystore after a device restore is enough. Without this the
-      // spinner outlives the failure and the screen has no way back.
       if (!mounted) return;
       setState(() {
         _checkingPhone = false;

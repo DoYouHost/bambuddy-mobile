@@ -4617,6 +4617,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSetupTapToType => 'Tap to type';
 
   @override
+  String get wearSettingsTitle => 'Settings';
+
+  @override
+  String get wearFromPhone => 'From your phone';
+
+  @override
+  String get wearFromPhoneUse => 'Use this server';
+
+  @override
+  String get wearFromPhoneLater => 'Not now';
+
+  @override
+  String get wearAuthNone => 'No sign-in';
+
+  @override
+  String get wearFromPhoneWaiting => 'The phone offers a different server.';
+
+  @override
+  String get wearCurrentServer => 'Current server';
+
+  @override
   String get commonOn => 'On';
 
   @override

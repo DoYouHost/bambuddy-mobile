@@ -25,6 +25,18 @@ class WatchConfig {
   final String? jwt;
   final String? username;
   final String? password;
+
+  /// Whether [current] already points at this server in this auth mode.
+  ///
+  /// The phone pushes on every launch, so most of what arrives is the config the
+  /// watch is already running — adopting that silently is what keeps a rotated
+  /// JWT working. A push naming a *different* server is a server switch, and
+  /// that is the user's call, not ours. The label is deliberately not compared:
+  /// renaming a server is not switching to another one.
+  bool isSameServerAs(ServerProfile? current) =>
+      current != null &&
+      current.baseUrl == profile.baseUrl &&
+      current.authMode == profile.authMode;
 }
 
 /// Shape of the application-context map exchanged over the Data Layer. Keeping
@@ -154,15 +166,13 @@ class WatchConfigSync {
     }
   }
 
-  /// WATCH side: adopt the newest latched config, if the phone has pushed one.
-  /// Returns whether anything was applied, so the caller knows to refresh its
-  /// profile — and, on the setup screen, whether to tell the user we came back
-  /// empty-handed.
-  Future<bool> adoptLatestPending() async {
+  /// WATCH side: the newest config the phone has latched, or null when it has
+  /// pushed none. Reading is deliberately separate from [apply]: which server
+  /// the watch talks to is the user's decision, so the caller shows what
+  /// arrived and adopts it only on a tap.
+  Future<WatchConfig?> latestPending() async {
     final configs = await pendingConfigs();
-    if (configs.isEmpty) return false;
-    await apply(configs.last);
-    return true;
+    return configs.isEmpty ? null : configs.last;
   }
 
   /// WATCH side: live stream of incoming configs (phone pushes while the watch

@@ -2,9 +2,31 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/watch/watch_config_sync.dart';
 import '../providers.dart';
 import 'wear_status.dart';
 import 'wear_transport.dart';
+
+/// Config the phone has pushed but the watch has not adopted — either it has no
+/// profile yet, or the push names a different server than the one running. Kept
+/// here so the setup screen can ask before switching and the settings screen can
+/// offer the switch later; [WearApp] is what fills it.
+///
+/// Nothing is persisted: the Data Layer latches the last context itself, so a
+/// dropped offer is re-read from there on the next launch.
+final pendingWatchConfigProvider =
+    NotifierProvider<PendingWatchConfig, WatchConfig?>(
+  PendingWatchConfig.new,
+);
+
+class PendingWatchConfig extends Notifier<WatchConfig?> {
+  @override
+  WatchConfig? build() => null;
+
+  void offer(WatchConfig config) => state = config;
+
+  void dismiss() => state = null;
+}
 
 /// Transport for everything the watch asks of the server: relay through the
 /// phone (Data Layer/BT) first, direct REST as fallback — see plan 05.

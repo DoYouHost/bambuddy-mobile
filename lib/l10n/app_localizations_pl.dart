@@ -4690,6 +4690,27 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSetupTapToType => 'Dotknij, aby wpisać';
 
   @override
+  String get wearSettingsTitle => 'Ustawienia';
+
+  @override
+  String get wearFromPhone => 'Z telefonu';
+
+  @override
+  String get wearFromPhoneUse => 'Użyj tego serwera';
+
+  @override
+  String get wearFromPhoneLater => 'Nie teraz';
+
+  @override
+  String get wearAuthNone => 'Bez logowania';
+
+  @override
+  String get wearFromPhoneWaiting => 'Telefon proponuje inny serwer.';
+
+  @override
+  String get wearCurrentServer => 'Obecny serwer';
+
+  @override
   String get commonOn => 'Wł.';
 
   @override

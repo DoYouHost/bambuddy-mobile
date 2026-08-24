@@ -1639,6 +1639,13 @@
   "wearSetupPhoneEmpty": "Nothing from the phone yet.",
   "wearSetupManual": "Enter manually",
   "wearSetupTapToType": "Tap to type",
+  "wearSettingsTitle": "Settings",
+  "wearFromPhone": "From your phone",
+  "wearFromPhoneUse": "Use this server",
+  "wearFromPhoneLater": "Not now",
+  "wearAuthNone": "No sign-in",
+  "wearFromPhoneWaiting": "The phone offers a different server.",
+  "wearCurrentServer": "Current server",
 
   "commonOn": "On",
   "commonOff": "Off",
