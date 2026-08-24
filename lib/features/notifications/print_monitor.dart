@@ -530,7 +530,12 @@ class PrintMonitor {
     if (errors == null) return; // Field missing in frame — no change
     final now = _now();
     // An offline printer can't be actively faulting — its `hms_errors` are just
-    // the last-known values carried forward by mergedWith. Never alert while
+    // the last-known values carried forward by mergedWith. This is the same rule
+    // `displayableHmsErrors` applies for every screen; it is spelled out again
+    // here because this path needs the carried-forward codes themselves, which
+    // that function drops. Change the meaning of "offline" there and this line
+    // has to move with it.
+    // Never alert while
     // disconnected, but still REFRESH last-seen for present codes below: that
     // pauses the clear-grace clock across the outage, so a fault known before
     // the disconnect doesn't spuriously re-alert on reconnect.

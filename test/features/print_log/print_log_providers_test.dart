@@ -114,6 +114,21 @@ void main() {
     expect(repo.calls.last, 'failed');
   });
 
+  test('clearing the filters leaves the search alone', () {
+    // The search has its own box on screen and its own text — `activeCount`
+    // leaves it out of the badge for that reason. Clearing it from under the
+    // box left the field showing a term the list had stopped filtering by.
+    final notifier = container.read(printLogFiltersProvider.notifier);
+    notifier.set(const PrintLogFilters(query: 'benchy', status: 'failed'));
+
+    notifier.clear();
+
+    final filters = container.read(printLogFiltersProvider);
+    expect(filters.query, 'benchy');
+    expect(filters.status, isNull);
+    expect(filters.activeCount, 0);
+  });
+
   test('a delete is sent even when the list is holding an error', () async {
     // Reachable by a refresh failing behind the open sheet. Reading the list
     // first and giving up on an empty one told the user the run was deleted

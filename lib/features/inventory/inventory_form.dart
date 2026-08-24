@@ -716,9 +716,13 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ),
           validator: (v) {
             final text = (v ?? '').trim();
-            if (number && text.isNotEmpty && double.tryParse(text) == null) {
-              return l10n.inventoryFieldInvalidNumber;
-            }
+            if (!number || text.isEmpty) return null;
+            final value = double.tryParse(text);
+            if (value == null) return l10n.inventoryFieldInvalidNumber;
+            // Same floor as the bulk sheet: the server takes a negative core
+            // weight without a word and every remaining-weight sum built on it
+            // is then wrong.
+            if (value < 0) return l10n.inventoryFieldNegative;
             return null;
           },
         ),

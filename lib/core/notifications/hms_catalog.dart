@@ -115,6 +115,24 @@ List<HmsError> displayableHmsErrors(
   ];
 }
 
+/// The first fault worth showing, or null — [displayableHmsErrors] for a caller
+/// that only needs to know *whether* there is one, or which one is on top.
+///
+/// Separate function rather than `displayableHmsErrors(...).firstOrNull` so the
+/// walk stops at the first hit: the dashboard filter asks this of every printer
+/// on every rebuild, and the home widget asks it on every publish, including
+/// from the notification isolate.
+HmsError? firstDisplayableHmsError(
+  PrinterStatus? status, {
+  required String? Function(HmsError)? describe,
+}) {
+  if (status == null || status.connected == false) return null;
+  for (final e in status.hmsErrors ?? const <HmsError>[]) {
+    if (hmsIsDisplayable(e, description: describe?.call(e))) return e;
+  }
+  return null;
+}
+
 /// Whether an HMS error should fire a NOTIFICATION — stricter than
 /// [hmsIsDisplayable]. Parity with bambuddy's notification path, which pushes an
 /// error ONLY when it resolves to a known description ("Only notify for errors

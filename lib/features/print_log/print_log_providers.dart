@@ -109,7 +109,12 @@ class PrintLogFiltersNotifier extends AutoDisposeNotifier<PrintLogFilters> {
 
   void setQuery(String query) => state = state.copyWith(query: query);
 
+  /// Clears the structured filters — not the search, which [activeCount]
+  /// deliberately leaves out and which has its own box on screen. That box owns
+  /// its text, so dropping `query` here left the two disagreeing: the field kept
+  /// showing what the user typed while the list had stopped filtering by it.
   void clear() => state = PrintLogFilters(
+        query: state.query,
         sort: state.sort,
         descending: state.descending,
       );

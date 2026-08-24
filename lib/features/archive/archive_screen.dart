@@ -31,6 +31,7 @@ import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_screen.dart';
 import 'archive_providers.dart';
+import '../common/hex_color.dart';
 
 /// Archive screen for prints (M5): browsing with search and thumbnails,
 /// reprint and add to queue (both require printer selection).
@@ -1440,7 +1441,7 @@ class _ColorSwatchWrap extends StatelessWidget {
       children: [
         for (final hex in colors)
           _ColorSwatch(
-            color: _archiveColor(hex),
+            color: colorFromHex(hex),
             selected: selected.contains(hex),
             accent: t.accentGreen,
             border: t.subCardBorder,
@@ -1495,13 +1496,3 @@ class _ColorSwatch extends StatelessWidget {
   }
 }
 
-/// Parse the leading `RRGGBB` of `#RRGGBB` / `RRGGBBAA` into an opaque color.
-/// Returns null for unparseable tokens (rendered as a "?" swatch).
-Color? _archiveColor(String hex) {
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return Color.fromARGB(255, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
-}

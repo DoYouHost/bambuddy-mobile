@@ -3914,6 +3914,12 @@ abstract class AppLocalizations {
   /// **'Enter a value from {min} to {max}'**
   String inventoryFieldRange(int min, int max);
 
+  /// Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value of 0 or more'**
+  String get inventoryFieldNegative;
+
   /// No description provided for @inventorySectionBasics.
   ///
   /// In en, this message translates to:
@@ -10231,6 +10237,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
   String printLogClearBody(int count);
+
+  /// Shown instead of printLogClearBody when a filter or search is active. The route deletes the whole log and cannot take a filter, so this one quotes no count — printLogClearBody's number is the filtered total and would understate what goes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every run in the log goes — everyone\'s, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
+  String get printLogClearBodyFiltered;
 
   /// No description provided for @printLogCleared.
   ///

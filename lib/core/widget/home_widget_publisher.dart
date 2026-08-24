@@ -234,10 +234,8 @@ class HomeWidgetPublisher {
   static HmsError? _topHmsError(
     PrinterStatus s,
     String? Function(HmsError)? describeHms,
-  ) {
-    final faults = displayableHmsErrors(s, describe: describeHms);
-    return faults.isEmpty ? null : faults.first;
-  }
+  ) =>
+      firstDisplayableHmsError(s, describe: describeHms);
 
   /// Layers as "X/Y" during printing, if server provides both fields. Otherwise empty.
   static String _layers(PrinterStatus s, String key) {

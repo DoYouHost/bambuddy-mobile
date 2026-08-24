@@ -662,6 +662,14 @@ Future<void> _startQueueItem(
     if (!confirmed) return;
     try {
       await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
+      // The cached status has to hear about it here as much as on the card. The
+      // server pushes no frame for a printer with no MQTT client, so on the
+      // printer this gate exists for the next start inside the poll window would
+      // read the stale `true`, ack a gate that is already down, and take the
+      // route's 400 as a reason not to start the print at all.
+      ref
+          .read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(printerId);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'queue.plate_clear');
       return;

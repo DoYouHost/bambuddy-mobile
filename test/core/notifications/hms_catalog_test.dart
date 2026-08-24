@@ -292,6 +292,48 @@ void main() {
     });
   });
 
+  group('firstDisplayableHmsError', () {
+    const runout = HmsError(code: '0x8004', fullCode: '03008004');
+    const other = HmsError(code: '0x8016', fullCode: '03008016');
+
+    test('stops at the first fault it can name', () {
+      // The point of this function existing next to displayableHmsErrors: the
+      // dashboard filter asks it per printer per rebuild, so it must not walk
+      // (and describe) the whole list to answer "is there one".
+      final asked = <String?>[];
+      String? describe(HmsError e) {
+        asked.add(e.fullCode);
+        return 'Filament runout';
+      }
+
+      const status = PrinterStatus(
+        id: 1,
+        connected: true,
+        hmsErrors: [runout, other],
+      );
+
+      expect(firstDisplayableHmsError(status, describe: describe), runout);
+      expect(asked, ['03008004']);
+    });
+
+    test('a disconnected printer answers null, like the list does', () {
+      const status =
+          PrinterStatus(id: 1, connected: false, hmsErrors: [runout]);
+
+      expect(
+        firstDisplayableHmsError(status, describe: (_) => 'named'),
+        isNull,
+      );
+    });
+
+    test('nothing nameable is null, not the first code', () {
+      const status = PrinterStatus(id: 1, connected: true, hmsErrors: [runout]);
+
+      expect(firstDisplayableHmsError(status, describe: (_) => null), isNull);
+      expect(firstDisplayableHmsError(null, describe: (_) => 'named'), isNull);
+    });
+  });
+
   group('hmsIsNotifiable', () {
     test('known severity without a description → no alert (bambuddy parity)', () {
       expect(hmsIsNotifiable(const HmsError(code: 'x', severity: 1)), isFalse);

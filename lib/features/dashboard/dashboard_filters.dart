@@ -16,8 +16,8 @@ PrinterStatusBucket classifyPrinter(PrinterStatus? status) {
   // Error = the same displayable HMS errors the card surfaces, or a FAILED
   // terminal state — through the shared filter, so the two cannot drift.
   final hasError =
-      displayableHmsErrors(status!, describe: HmsCatalog.instance.describe)
-          .isNotEmpty;
+      firstDisplayableHmsError(status!, describe: HmsCatalog.instance.describe) !=
+          null;
   if (hasError) return PrinterStatusBucket.error;
   switch (status.state?.toUpperCase()) {
     case 'RUNNING':

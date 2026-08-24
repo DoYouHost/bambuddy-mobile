@@ -2268,6 +2268,9 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get inventoryFieldNegative => 'Podaj wartość 0 lub większą';
+
+  @override
   String get inventorySectionBasics => 'Podstawy';
 
   @override
@@ -6071,6 +6074,10 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$_temp0 — wszystkich użytkowników, nie tylko Twoje — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
   }
+
+  @override
+  String get printLogClearBodyFiltered =>
+      'Zniknie każdy przebieg w logu — wszystkich użytkowników, nie tylko Twoje, i włączony filtr tego nie zawęża — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
 
   @override
   String printLogCleared(int count) {

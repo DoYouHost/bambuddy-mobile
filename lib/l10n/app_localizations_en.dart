@@ -2234,6 +2234,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get inventoryFieldNegative => 'Enter a value of 0 or more';
+
+  @override
   String get inventorySectionBasics => 'Basics';
 
   @override
@@ -5982,6 +5985,10 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0 — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
   }
+
+  @override
+  String get printLogClearBodyFiltered =>
+      'Every run in the log goes — everyone\'s, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
 
   @override
   String printLogCleared(int count) {

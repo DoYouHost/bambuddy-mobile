@@ -187,6 +187,28 @@ void main() {
     expect(fake.patch, isNull);
   });
 
+  testWidgets('a negative weight is refused, range or no range',
+      (tester) async {
+    // `core_weight` carries no `ge` constraint server-side, so a negative one is
+    // stored as given and every remaining-weight sum built on it comes out
+    // wrong — across the whole selection, silently.
+    final fake = await openSheet(tester);
+
+    await tester.enterText(
+      find.ancestor(
+        of: find.text(l10n.inventoryFieldEmptySpoolWeight),
+        matching: find.byType(TextFormField),
+      ),
+      '-250',
+    );
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+
+    expect(find.text(l10n.inventoryFieldNegative), findsOneWidget);
+    expect(fake.patch, isNull);
+  });
+
   testWidgets('Spoolman is not offered the fields it has no column for',
       (tester) async {
     await openSheet(tester, backend: InventoryBackend.spoolman);
