@@ -59,8 +59,10 @@ So the checklist shrinks as work gets done, and nothing is lost by the
 shrinking — the comment from that week says what went and why. The record is
 append-only; the checklist is not.
 
-Change nothing else — no source files, no `app_en.arb`, no branch. Those two
-files are the whole output.
+**Neither file is optional.** Write both before finishing, even half-checked —
+the job fails without them, and a partial checklist is worth more than none. And
+change nothing else: no source files, no `app_en.arb`, no branch. Those two files
+are the whole output.
 
 ## The format: one line, one checkbox
 

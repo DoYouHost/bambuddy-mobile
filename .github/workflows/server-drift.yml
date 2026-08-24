@@ -153,30 +153,20 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Deliberately thin. claude-code-action refuses to run unless this
+          # file is byte-identical to master's copy, so anything that will be
+          # reworded lives in the skill, which is read from the checkout and
+          # needs no such push.
           prompt: |
-            Read .claude/skills/reference-update/SKILL.md and follow it.
+            Read .claude/skills/reference-update/SKILL.md and follow it from
+            step 3 — the baseline is resolved and the input is written.
 
-            The baseline is already resolved and the input is already written:
-            skip step 1 and step 2, start from step 3. Read
-            .server-drift/facts.md first — it is short and it is the whole
-            mechanical picture. .server-drift/diff.md holds the filtered diff
-            those facts came from; it runs to thousands of lines, so read the
-            parts an item depends on rather than the whole file. The server
-            reference clone is at ${{ env.REF_DIR }}.
+            Inputs: .server-drift/facts.md, .server-drift/diff.md, and the list
+            standing before this run at .server-drift/open-items-current.md
+            (empty on a first run). The server reference clone is at
+            ${{ env.REF_DIR }}.
 
-            The list standing before this run is at
-            .server-drift/open-items-current.md; it is empty on the first run.
-
-            The checklist is one line per change, sorted into the section that
-            says how urgent it is — Broken now, Cheap win, Feature, Watch only,
-            Questions. No "what changed", no "why it matters", no "do", no
-            "done when": the line, its file:line and its size are the entry.
-
-            You are done only once both .server-drift/report.md and
-            .server-drift/open-items.md exist and are non-empty. Write them
-            before you finish, whatever else you did or did not manage to
-            check — the job fails without them, and a partial report is worth
-            more than none. Change nothing else in the working tree.
+            Outputs: .server-drift/report.md and .server-drift/open-items.md.
           claude_args: |
             --model claude-sonnet-5
             --effort medium
