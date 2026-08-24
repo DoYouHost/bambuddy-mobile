@@ -1380,12 +1380,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String durationMinutes(int minutes) {
-    return '$minutes min';
+    return '${minutes}min';
   }
 
   @override
   String durationHoursMinutes(int hours, int minutes) {
-    return '$hours h $minutes min';
+    return '${hours}h ${minutes}min';
+  }
+
+  @override
+  String durationHours(int hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String durationSeconds(int seconds) {
+    return '${seconds}s';
   }
 
   @override
@@ -2048,6 +2058,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return '$weight consumed';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Consumed since reset: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'of $total g';
   }
@@ -2206,6 +2226,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryFieldInvalidNumber => 'Enter a number';
 
   @override
+  String inventoryFieldRange(int min, int max) {
+    return 'Enter a value from $min to $max';
+  }
+
+  @override
   String get inventorySectionBasics => 'Basics';
 
   @override
@@ -2286,7 +2311,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Reset usage to zero? The spool will count as full again.';
+      'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.';
 
   @override
   String get inventorySpoolCreated => 'Spool added';
@@ -2315,7 +2340,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventorySpoolRestored => 'Spool restored';
 
   @override
-  String get inventoryUsageReset => 'Usage reset';
+  String get inventoryUsageReset => 'Counter reset';
 
   @override
   String get inventorySaveFailed => 'Could not save spool';
@@ -2379,6 +2404,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inventorySpoolUnassigned => 'Spool unassigned';
+
+  @override
+  String get inventoryFromSlot => 'Add to inventory';
+
+  @override
+  String get inventoryFromSlotHint =>
+      'Register the tagged spool the printer reports in this slot';
+
+  @override
+  String get inventoryFromSlotDone => 'Spool added and assigned to the slot';
+
+  @override
+  String get inventoryFromSlotNoTag =>
+      'The printer no longer reports a tagged spool in this slot';
+
+  @override
+  String get inventoryFromSlotOffline =>
+      'The printer is not connected, so it cannot say what is in the slot';
+
+  @override
+  String get inventoryFromSlotUnsupported =>
+      'This server version cannot add a spool straight from a slot';
 
   @override
   String get inventoryScanSpool => 'Scan QR';
@@ -2471,7 +2518,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'They will count as full again.';
+  String get inventoryBulkResetBody =>
+      'Their consumed-filament counters go back to zero. Remaining weights are not changed.';
 
   @override
   String inventoryBulkDone(int count) {
@@ -2488,6 +2536,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String inventoryBulkPartial(int ok, int failed) {
     return '$ok done, $failed failed';
   }
+
+  @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return '$ok done, $skipped already there';
+  }
+
+  @override
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed) {
+    return '$ok done, $skipped already there, $failed failed';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edit fields';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Edit $count $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Only the fields you fill in change. Leave the rest blank.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Unchanged';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Apply to $count $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'spools',
+      one: 'spool',
+    );
+    return 'Change $count $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: 'fields',
+      one: 'field',
+    );
+    return '$fields $_temp0 will be overwritten on every selected spool.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.';
+
+  @override
+  String get inventoryApply => 'Apply';
 
   @override
   String get inventoryLabelsTitle => 'Print spool labels';
@@ -4479,6 +4598,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearUsername => 'Username';
 
   @override
+  String get wearSetupPhoneTitle => 'Set up from your phone';
+
+  @override
+  String get wearSetupPhoneBody =>
+      'Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.';
+
+  @override
+  String get wearSetupPhoneCheck => 'Check again';
+
+  @override
+  String get wearSetupPhoneEmpty => 'Nothing from the phone yet.';
+
+  @override
+  String get wearSetupManual => 'Enter manually';
+
+  @override
+  String get wearSetupTapToType => 'Tap to type';
+
+  @override
+  String get wearSettingsTitle => 'Settings';
+
+  @override
+  String get wearFromPhone => 'From your phone';
+
+  @override
+  String get wearFromPhoneUse => 'Use this server';
+
+  @override
+  String get wearFromPhoneLater => 'Not now';
+
+  @override
+  String get wearAuthNone => 'No sign-in';
+
+  @override
+  String get wearFromPhoneWaiting => 'The phone offers a different server.';
+
+  @override
+  String get wearCurrentServer => 'Current server';
+
+  @override
   String get commonOn => 'On';
 
   @override
@@ -5609,4 +5768,248 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'The one settings value a key may write — for a dynamic tariff.';
+
+  @override
+  String get printLogTitle => 'Print log';
+
+  @override
+  String get printLogSearchHint => 'Search runs';
+
+  @override
+  String get printLogEmpty => 'No runs recorded yet';
+
+  @override
+  String get printLogNoMatches => 'No runs match your filters';
+
+  @override
+  String get printLogLoadFailed => 'Could not load the print log';
+
+  @override
+  String get printLogFilters => 'Filters';
+
+  @override
+  String get printLogFilterPrinter => 'Printer';
+
+  @override
+  String get printLogFilterUser => 'User';
+
+  @override
+  String get printLogFilterStatus => 'Status';
+
+  @override
+  String get printLogFilterDates => 'Date range';
+
+  @override
+  String get printLogAnyPrinter => 'Any printer';
+
+  @override
+  String get printLogAnyUser => 'Anyone';
+
+  @override
+  String get printLogAnyStatus => 'Any status';
+
+  @override
+  String get printLogNoUser => 'No user';
+
+  @override
+  String get printLogOrphan => 'Archive deleted';
+
+  @override
+  String printLogShowing(int loaded, int total) {
+    return '$loaded of $total';
+  }
+
+  @override
+  String get printLogLoadMore => 'Load more';
+
+  @override
+  String get printLogSort => 'Sort by';
+
+  @override
+  String get printLogSortDate => 'Date';
+
+  @override
+  String get printLogSortName => 'Name';
+
+  @override
+  String get printLogSortPrinter => 'Printer';
+
+  @override
+  String get printLogSortUser => 'User';
+
+  @override
+  String get printLogSortStatus => 'Status';
+
+  @override
+  String get printLogSortDuration => 'Duration';
+
+  @override
+  String get printLogSortFilament => 'Filament used';
+
+  @override
+  String get printLogSortCost => 'Cost';
+
+  @override
+  String get printLogSortEnergy => 'Energy';
+
+  @override
+  String get printLogSortDirection => 'Direction';
+
+  @override
+  String get printLogSortDescending => 'Descending';
+
+  @override
+  String get printLogSortAscending => 'Ascending';
+
+  @override
+  String get printLogStatusCompleted => 'Completed';
+
+  @override
+  String get printLogStatusFailed => 'Failed';
+
+  @override
+  String get printLogStatusStopped => 'Stopped';
+
+  @override
+  String get printLogStatusCancelled => 'Cancelled';
+
+  @override
+  String get printLogStatusSkipped => 'Skipped';
+
+  @override
+  String get printLogStatusAborted => 'Aborted';
+
+  @override
+  String printLogEnergy(String value) {
+    return '$value kWh';
+  }
+
+  @override
+  String get printLogClassifyTitle => 'Classify this run';
+
+  @override
+  String get printLogDetailStarted => 'Started';
+
+  @override
+  String get printLogDetailFinished => 'Finished';
+
+  @override
+  String get printLogDetailDuration => 'Duration';
+
+  @override
+  String get printLogDetailFilament => 'Filament';
+
+  @override
+  String get printLogDetailCost => 'Cost';
+
+  @override
+  String get printLogDetailEnergy => 'Energy';
+
+  @override
+  String get printLogFailureCause => 'Failure cause';
+
+  @override
+  String get printLogNoClassification => 'Not classified';
+
+  @override
+  String get printLogStatusLabel => 'Status';
+
+  @override
+  String get printLogCountsAsFailure =>
+      'Counted as a failure — this run and its cause show up in failure analysis.';
+
+  @override
+  String get printLogNotCountedAsFailure =>
+      'Not counted as a failure, so the cause stays out of failure analysis.';
+
+  @override
+  String printLogStatusOneWay(String status) {
+    return 'This server cannot write “$status” back. Change it and it is gone for good.';
+  }
+
+  @override
+  String get printLogSave => 'Save';
+
+  @override
+  String get printLogSaveFailed => 'Could not save the classification';
+
+  @override
+  String get printLogDelete => 'Delete run';
+
+  @override
+  String get printLogDeleteTitle => 'Delete this run?';
+
+  @override
+  String get printLogDeleteBody =>
+      'It leaves the log, and its filament, cost and time leave the statistics. The archive it points at stays.';
+
+  @override
+  String get printLogDeleteFailed => 'Could not delete the run';
+
+  @override
+  String get printLogClear => 'Clear print log';
+
+  @override
+  String get printLogClearTitle => 'Clear the whole print log?';
+
+  @override
+  String printLogClearBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'All $count runs go',
+      one: 'The one run in the log goes',
+    );
+    return '$_temp0 — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
+  }
+
+  @override
+  String printLogCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count runs deleted',
+      one: '$count run deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get printLogClearFailed => 'Could not clear the print log';
+
+  @override
+  String get failureReasonAdhesion => 'Adhesion failure';
+
+  @override
+  String get failureReasonSpaghetti => 'Spaghetti / detached print';
+
+  @override
+  String get failureReasonLayerShift => 'Layer shift';
+
+  @override
+  String get failureReasonCloggedNozzle => 'Clogged nozzle';
+
+  @override
+  String get failureReasonFilamentRunout => 'Filament runout';
+
+  @override
+  String get failureReasonWarping => 'Warping';
+
+  @override
+  String get failureReasonStringing => 'Stringing';
+
+  @override
+  String get failureReasonUnderExtrusion => 'Under-extrusion';
+
+  @override
+  String get failureReasonPowerFailure => 'Power failure';
+
+  @override
+  String get failureReasonUserCancelled => 'Cancelled by the user';
+
+  @override
+  String get failureReasonOther => 'Other';
+
+  @override
+  String get failureReasonUnknown => 'Unknown';
 }

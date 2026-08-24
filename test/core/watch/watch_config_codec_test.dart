@@ -91,4 +91,42 @@ void main() {
       );
     });
   });
+
+  group('isSameServerAs', () {
+    WatchConfig configFor(String url, AuthMode mode, {String? label}) =>
+        WatchConfig(
+          profile: ServerProfile(baseUrl: url, authMode: mode, label: label),
+        );
+
+    test('same url and mode → the same server, whatever the label says', () {
+      final incoming = configFor('http://h:8000', AuthMode.apiKey, label: 'new');
+      expect(
+        incoming.isSameServerAs(const ServerProfile(
+            baseUrl: 'http://h:8000', authMode: AuthMode.apiKey, label: 'old')),
+        isTrue,
+      );
+    });
+
+    test('another host → a switch, and the user decides that', () {
+      expect(
+        configFor('http://other:8000', AuthMode.apiKey).isSameServerAs(
+            const ServerProfile(
+                baseUrl: 'http://h:8000', authMode: AuthMode.apiKey)),
+        isFalse,
+      );
+    });
+
+    test('same host, other auth mode → a switch too', () {
+      expect(
+        configFor('http://h:8000', AuthMode.jwt).isSameServerAs(
+            const ServerProfile(
+                baseUrl: 'http://h:8000', authMode: AuthMode.apiKey)),
+        isFalse,
+      );
+    });
+
+    test('nothing configured yet → never "the same"', () {
+      expect(configFor('http://h', AuthMode.none).isSameServerAs(null), isFalse);
+    });
+  });
 }

@@ -172,7 +172,7 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   if (mapped is! ApiException || (status != 400 && status != 422)) {
     return mapped;
   }
-  final detail = _detailOf(e.response?.data);
+  final detail = serverDetailOf(e.response?.data);
   if (detail == null) return mapped;
   return ApiException(
     mapped.code,
@@ -183,10 +183,16 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   );
 }
 
-/// FastAPI answers a rule violation with `{"detail": "..."}` and a schema
-/// violation with `{"detail": [{"msg": "..."}, ...]}` — the password
-/// complexity validator produces the second shape.
-String? _detailOf(Object? data) {
+/// What the server wrote, out of a FastAPI error body.
+///
+/// It answers a rule violation with `{"detail": "..."}` and a schema violation
+/// with `{"detail": [{"msg": "..."}, ...]}` — the password complexity
+/// validator produces the second shape.
+///
+/// Public because a route can answer one status for two unrelated reasons, and
+/// then the text is the only thing that tells them apart — see
+/// `_guardKeeping404Detail` in `data/inventory_source.dart`.
+String? serverDetailOf(Object? data) {
   if (data is! Map) return null;
   final detail = data['detail'];
   if (detail is String) return detail.isEmpty ? null : detail;
@@ -232,7 +238,7 @@ AppApiException mapDioException(DioException e) {
         // covers the owner-narrowing refusals that are new to existing keys.
         return AuthException(
           AppErrorCode.forbidden,
-          detail: _detailOf(e.response?.data),
+          detail: serverDetailOf(e.response?.data),
           method: method,
           path: path,
         );

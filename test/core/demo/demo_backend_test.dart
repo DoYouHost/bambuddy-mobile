@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
@@ -17,6 +18,7 @@ import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
+import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -25,6 +27,7 @@ import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,6 +93,19 @@ void main() {
       expect(await version.supportsTriStateCalibration(), isTrue);
     });
 
+    test('the reported version matches what this backend actually serves',
+        () async {
+      // A version claiming less than the payload hides a control over data that
+      // is there; claiming more shows one over data that is not. Both read as
+      // "the app is broken", so the two are pinned together here.
+      final version = ServerVersionService(dio);
+
+      expect(await version.supports(ServerFeature.printLogCostEnergy), isTrue,
+          reason: 'the print log serves cost, energy and sorting');
+      expect(await version.supports(ServerFeature.crossModelVariants), isTrue,
+          reason: 'library variant groups are served below');
+    });
+
     test('archive list, search and purge preview', () async {
       final repo = ArchiveRepository(dio);
       final list = await repo.list();
@@ -114,6 +130,68 @@ void main() {
       expect(failures.failuresByReason, isNotEmpty);
       final users = await repo.fetchUsers();
       expect(users, hasLength(1));
+    });
+  });
+
+  group('print log', () {
+    final repo = PrintLogRepository(dio);
+
+    test('the page carries the runs, the orphans among them', () async {
+      final page = await repo.list();
+      expect(page.items, isNotEmpty);
+      expect(page.total, greaterThanOrEqualTo(page.items.length));
+      // The runs whose archive is gone are the half of this table nothing else
+      // in the app can reach — a demo without them misrepresents the screen.
+      expect(page.items.where((e) => e.isOrphan), isNotEmpty);
+      expect(page.items.first.printerName, isNotNull);
+    });
+
+    test('filters narrow it the way the server does', () async {
+      final failed = await repo.list(status: 'failed');
+      expect(failed.items, isNotEmpty);
+      expect(failed.items.every((e) => e.status == 'failed'), isTrue);
+
+      final searched = await repo.list(search: 'benchy');
+      expect(searched.items, hasLength(1));
+      expect(searched.total, 1);
+    });
+
+    test('cost and energy come through, and a plugless run stays null',
+        () async {
+      final page = await repo.list();
+      final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
+
+      expect(withPlug.cost, isNotNull);
+      expect(withPlug.energyCost, isNotNull);
+      // Null, not zero: "no smart plug behind this printer" has to read
+      // differently from a run that drew nothing.
+      expect(page.items.any((e) => e.energyKwh == null), isTrue);
+    });
+
+    test('sorting is applied, not accepted and ignored', () async {
+      final cheapest = await repo.list(
+        sort: PrintLogSort.filamentUsed,
+        descending: false,
+      );
+      final heaviest = await repo.list(sort: PrintLogSort.filamentUsed);
+
+      final light = cheapest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      final heavy = heaviest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      expect(light.first, lessThanOrEqualTo(light.last));
+      expect(heavy.first, greaterThanOrEqualTo(heavy.last));
+    });
+
+    test('paging walks the log without repeating a row', () async {
+      final first = await repo.list(limit: 3, offset: 0);
+      final second = await repo.list(limit: 3, offset: 3);
+      expect(first.items, hasLength(3));
+      expect(first.total, second.total);
+      expect(
+        first.items.map((e) => e.id).toSet().intersection(
+              second.items.map((e) => e.id).toSet(),
+            ),
+        isEmpty,
+      );
     });
   });
 
@@ -175,6 +253,25 @@ void main() {
       expect(await source.fetchLocations(), contains('Dry box'));
     });
 
+    test('the consumed counter is a separate number from remaining', () async {
+      final spools = await source.fetchSpools();
+      // One demo spool has had its counter reset before, so the two numbers
+      // must not be reconstructible from each other.
+      final reset = spools.firstWhere((s) => s.weightUsedBaseline > 0);
+      expect(reset.consumedWeight, lessThan(reset.weightUsed));
+      expect(spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
+          greaterThan(0),
+          reason: 'the shelf total the list header shows');
+
+      // Resetting zeroes the counter and leaves the spool as empty as it was.
+      final target = spools.firstWhere((s) => s.consumedWeight > 0);
+      await source.resetUsage(target.id);
+      final after = (await source.fetchSpools())
+          .firstWhere((s) => s.id == target.id);
+      expect(after.consumedWeight, 0);
+      expect(after.remainingWeight, target.remainingWeight);
+    });
+
     test('spool CRUD round-trip', () async {
       const draft = SpoolDraft(
         material: 'PLA',
@@ -199,6 +296,116 @@ void main() {
       await source.deleteSpool(created.id);
       final after = await source.fetchSpools(includeArchived: true);
       expect(after.any((s) => s.id == created.id), isFalse);
+    });
+
+    test('bulk operations on a selection round-trip', () async {
+      // Spools of its own, deleted at the end, so the counts the first test
+      // asserts stay true whatever order the group runs in.
+      final ids = <int>[
+        for (var i = 0; i < 3; i++)
+          (await source.createSpool(
+            SpoolDraft(material: 'PLA', colorName: 'Bulk $i'),
+          )).id,
+      ];
+      const unknown = 999999;
+
+      final updated =
+          await source.bulkUpdate([...ids, unknown], const SpoolBulkPatch(
+        brand: 'Bulked',
+        note: 'mass edit',
+      ));
+      expect((updated.ok, updated.failed), (3, 1));
+      expect(updated.notFound, [unknown]);
+      final shelf = await source.fetchSpools(includeArchived: true);
+      final touched = shelf.where((s) => ids.contains(s.id));
+      expect(touched.every((s) => s.brand == 'Bulked'), isTrue);
+      expect(touched.every((s) => s.note == 'mass edit'), isTrue);
+
+      final archived = await source.bulkArchive(ids);
+      expect((archived.ok, archived.skipped), (3, 0));
+      // Asking twice is not a failure — the shelf already reads as intended.
+      final again = await source.bulkArchive(ids);
+      expect((again.ok, again.skipped, again.failed), (0, 3, 0));
+
+      final restored = await source.bulkRestore(ids);
+      expect((restored.ok, restored.skipped), (3, 0));
+
+      final reset = await source.bulkResetUsage([...ids, unknown]);
+      // The route answers with a count and nothing else, so the unknown id
+      // shows up only as the gap against what was asked for.
+      expect((reset.ok, reset.failed), (3, 1));
+
+      final deleted = await source.bulkDelete(ids);
+      expect((deleted.ok, deleted.failed), (3, 0));
+      final after = await source.fetchSpools(includeArchived: true);
+      expect(after.any((s) => ids.contains(s.id)), isFalse);
+    });
+
+    test('an empty selection and an empty edit are refused', () async {
+      // Posted raw: the source short-circuits both before they leave the
+      // phone, so going through it would assert the client guard and never
+      // reach the refusal these routes actually answer with.
+      Matcher rejects(int status) => throwsA(isA<DioException>()
+          .having((e) => e.response?.statusCode, 'status', status));
+
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-archive',
+          data: {'ids': <int>[]},
+        ),
+        rejects(400),
+      );
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-update',
+          data: {'ids': [1], 'update': <String, dynamic>{}},
+        ),
+        rejects(400),
+      );
+    });
+
+    // Last in the group on purpose: it registers a spool and pins it to a
+    // slot, and the counts asserted above are taken before that.
+    test('registering an AMS slot creates the spool and pins it there',
+        () async {
+      // P1S slot 3 holds a tagged Bambu spool the shelf has never seen — the
+      // state the affordance exists for.
+      final id = await source.createSpoolFromSlot(
+        printerId: 2,
+        amsId: 0,
+        trayId: 2,
+      );
+      expect(id, isNotNull);
+
+      final spools = await source.fetchSpools();
+      final created = spools.firstWhere((s) => s.id == id);
+      expect(created.material, 'PLA');
+      expect(created.subtype, 'Basic');
+      expect(created.rgba, '00AE42FF');
+      expect(normalizeTagUid(created.tagUid), 'B7A21C0439E5D168');
+
+      final assignments = await source.fetchAssignments();
+      final pinned = assignments.firstWhere((a) => a.spoolId == id);
+      expect(pinned.printerId, 2);
+      expect(pinned.amsId, 0);
+      expect(pinned.trayId, 2);
+    });
+
+    test('a slot without a tag is refused, not silently duplicated', () async {
+      // X1C slot 3 runs a third-party PETG: filament, but no identity.
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 1, amsId: 0, trayId: 2),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+
+    test('an empty slot is refused too', () async {
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 2, amsId: 0, trayId: 3),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
     });
   });
 
@@ -378,6 +585,80 @@ void main() {
       await commands.stop(1);
       status = await printers.fetchStatus(1);
       expect(status!.state, 'IDLE');
+    });
+  });
+
+  group('library variant groups', () {
+    final library = LibraryRepository(dio);
+
+    test('a group across two models, then dissolved again', () async {
+      final files = await library.listAllFiles();
+      final x1c = files.firstWhere((f) => f.slicedForModel == 'X1C');
+      final p1s = files.firstWhere((f) => f.slicedForModel == 'P1S');
+
+      final group = await library.createVariantGroup([x1c.id, p1s.id]);
+      expect(group.targetModels, ['X1C', 'P1S'],
+          reason: 'selection order is the priority order');
+
+      // The listing has to show it too, or the file rows would not know they
+      // are grouped.
+      final grouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(grouped.variantGroupId, group.id);
+      expect(grouped.hasVariants, isTrue);
+
+      expect((await library.variantGroupForFile(p1s.id))?.id, group.id);
+
+      await library.deleteVariantGroup(group.id);
+      final ungrouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(ungrouped.variantGroupId, isNull);
+      expect(await library.variantGroupForFile(p1s.id), isNull);
+    });
+
+    test('two files sliced for the same printer are refused', () async {
+      // The refusal is the point of the feature: a group is a choice between
+      // printers, and two X1C files express none.
+      final files = await library.listAllFiles();
+      final sameModel =
+          files.where((f) => f.slicedForModel == 'X1C').take(2).toList();
+
+      await expectLater(
+        library.createVariantGroup([for (final f in sameModel) f.id]),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+  });
+
+  group('print log edits (empties the fake log — keep last)', () {
+    final repo = PrintLogRepository(dio);
+
+    test('classify, refuse a value off the list, delete, clear', () async {
+      final target = (await repo.list(status: 'failed')).items.first;
+
+      final classified =
+          await repo.updateEntry(target.id, failureReason: 'layerShift');
+      expect(classified.failureReason, 'layerShift');
+
+      final cleared =
+          await repo.updateEntry(target.id, clearFailureReason: true);
+      expect(cleared.failureReason, isNull);
+
+      // The demo refuses what the real server refuses; an editor that looked
+      // like it accepted anything would hide the 400 until a real server.
+      await expectLater(
+        repo.updateEntry(target.id, failureReason: 'nonsense'),
+        throwsA(isA<ApiException>()),
+      );
+
+      final before = await repo.list();
+      await repo.deleteEntry(target.id);
+      final after = await repo.list();
+      expect(after.total, before.total - 1);
+      expect(after.items.map((e) => e.id), isNot(contains(target.id)));
+
+      expect(await repo.clearAll(), after.total);
+      expect((await repo.list()).items, isEmpty);
     });
   });
 }

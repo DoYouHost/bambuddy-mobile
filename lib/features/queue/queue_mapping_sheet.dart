@@ -9,6 +9,9 @@ import '../../core/models/printer_status.dart';
 import '../../core/models/queue_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/hex_color.dart';
 import '../slicer/slice_providers.dart';
 
 /// One AMS slot (or external spool) a file filament can be mapped to.
@@ -113,10 +116,8 @@ Future<List<int>?> showQueueMappingSheet(
   required String confirmLabel,
   String? printerName,
 }) {
-  return showModalBottomSheet<List<int>>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<List<int>>(
+    context,
     builder: (_) => _MappingSheet(
       item: item,
       printerId: printerId,
@@ -189,7 +190,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       reqsAsync.isLoading || traysAsync.isLoading
           ? const Padding(
               padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()))
+              child: DashLoading())
           : _content(theme, reqsAsync.valueOrNull ?? const [],
               traysAsync.valueOrNull ?? const []),
     );
@@ -282,9 +283,9 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 
   Future<void> _pickTray(int slot, List<_Tray> trays) async {
     final theme = Theme.of(context);
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final picked = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,
@@ -336,8 +337,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
         if (req.type == null ||
             (t.type != null && _typeMatches(t.type!, req.type!)))
           t,
-    ]..sort((a, b) => _colorDistance(a.color, req.color)
-        .compareTo(_colorDistance(b.color, req.color)));
+    ]..sort((a, b) => colorDistance(a.color, req.color)
+        .compareTo(colorDistance(b.color, req.color)));
     if (ofType.isNotEmpty) return ofType.first.global;
     return trays.length == 1 ? trays.first.global : null;
   }
@@ -347,7 +348,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       : _l10n.mappingAmsSlot('${t.global ~/ 4 + 1}', '${t.global % 4 + 1}');
 
   Widget _swatch(ThemeData theme, String? hex, double size) {
-    final c = _color(hex);
+    final c = colorFromHex(hex);
     return Container(
       width: size,
       height: size,
@@ -367,28 +368,4 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
 bool _typeMatches(String a, String b) {
   final x = a.toUpperCase().trim(), y = b.toUpperCase().trim();
   return x == y || x.startsWith(y) || y.startsWith(x);
-}
-
-double _colorDistance(String? a, String? b) {
-  final ca = _rgb(a), cb = _rgb(b);
-  if (ca == null || cb == null) return double.maxFinite;
-  final dr = ca.$1 - cb.$1, dg = ca.$2 - cb.$2, db = ca.$3 - cb.$3;
-  return (dr * dr + dg * dg + db * db).toDouble();
-}
-
-/// Parse the leading `RRGGBB` of `#RRGGBB` or `RRGGBBAA`.
-(int, int, int)? _rgb(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return ((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
-}
-
-Color? _color(String? hex) {
-  final rgb = _rgb(hex);
-  if (rgb == null) return null;
-  return Color.fromARGB(255, rgb.$1, rgb.$2, rgb.$3);
 }

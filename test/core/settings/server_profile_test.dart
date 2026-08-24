@@ -117,4 +117,45 @@ void main() {
       expect(base, 'http://host');
     });
   });
+
+  group('displayName', () {
+    test('the label wins — it is what the user called it', () {
+      expect(
+        const ServerProfile(
+                baseUrl: 'http://192.168.1.10:8000',
+                authMode: AuthMode.none,
+                label: 'Workshop')
+            .displayName,
+        'Workshop',
+      );
+    });
+
+    test('a blank label is no label', () {
+      expect(
+        const ServerProfile(
+                baseUrl: 'http://192.168.1.10:8000',
+                authMode: AuthMode.none,
+                label: '   ')
+            .displayName,
+        '192.168.1.10',
+      );
+    });
+
+    test('no label → the host, which is what tells two LAN servers apart', () {
+      expect(
+        const ServerProfile(
+                baseUrl: 'http://printer.local:8000', authMode: AuthMode.none)
+            .displayName,
+        'printer.local',
+      );
+    });
+
+    test('a url with no host falls back to the url rather than to nothing', () {
+      expect(
+        const ServerProfile(baseUrl: 'garbage', authMode: AuthMode.none)
+            .displayName,
+        'garbage',
+      );
+    });
+  });
 }

@@ -193,12 +193,19 @@ class DemoBackend {
         return _notFound();
 
       case 'updates':
-        // The demo queue speaks the 1.2.5 contract (tri-state calibrations), so
-        // it has to report a version that matches, or the print form would offer
-        // two states over three-state data.
+        // The version has to match what this backend actually serves, or a
+        // gated control appears over data that is not there — and the queue
+        // form would offer two states over three-state calibrations.
+        //
+        // 1.2.6 is what serves the print log's cost and energy and its sortable
+        // columns; the beta suffix because that is where the contract really
+        // lives today, 1.2.5.2 being the newest release. Everything else 1.2.6
+        // gates is either served below (library variant groups) or invisible
+        // here anyway: the two slicer features need `use_slicer_api`, which the
+        // demo reports off, and the users listing is decided by probing.
         if (at(1, 'version')) {
           return _ok(const {
-            'version': '1.2.5.1',
+            'version': '1.2.6b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -320,6 +327,9 @@ class DemoBackend {
 
       case 'archives':
         return _archivesRoute(m, s, q);
+
+      case 'print-log':
+        return _printLogRoute(m, s, q, body);
 
       case 'smart-plugs':
         return _plugsRoute(m, s, body);
@@ -690,6 +700,9 @@ class DemoBackend {
         'ipcam': true,
       };
 
+  /// [tagUid] / [trayUuid] are what the AMS read off an RFID spool. Null on a
+  /// third-party spool and on an empty slot, exactly as the server sends it —
+  /// it nulls the firmware's empty and all-zero tags before they leave.
   Map<String, dynamic> _tray(
     int id,
     String? color,
@@ -698,6 +711,8 @@ class DemoBackend {
     String? idName,
     String? infoIdx,
     int remain = -1,
+    String? tagUid,
+    String? trayUuid,
   }) =>
       {
         'id': id,
@@ -707,6 +722,8 @@ class DemoBackend {
         'tray_id_name': idName ?? '',
         'tray_info_idx': infoIdx ?? '',
         'remain': remain,
+        'tag_uid': tagUid,
+        'tray_uuid': trayUuid,
         'nozzle_temp_min': type == null ? null : '190',
         'nozzle_temp_max': type == null ? null : '240',
         'state': type == null ? 9 : 11,
@@ -918,7 +935,16 @@ class DemoBackend {
           _tray(0, '0ACCB8FF', 'PETG', infoIdx: 'GFG02', remain: 92),
           _tray(1, 'D4AF37FF', 'PLA',
               subBrand: 'PLA Silk', infoIdx: 'GFA05', remain: 10),
-          _tray(2, null, null),
+          // A genuine Bambu spool the shelf has never seen: tagged, full, and
+          // deliberately absent from `_assignments`. That is the one state the
+          // slot sheet offers "add to inventory" from.
+          _tray(2, '00AE42FF', 'PLA',
+              subBrand: 'PLA Basic',
+              idName: 'A00-G1',
+              infoIdx: 'GFA00',
+              remain: 100,
+              tagUid: 'B7A21C0439E5D168',
+              trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
           _tray(3, null, null),
         ],
       };
@@ -1114,6 +1140,7 @@ class DemoBackend {
     required int createdDaysAgo,
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
+    List<Map<String, dynamic>> variants = const [],
   }) =>
       {
         'id': id,
@@ -1154,28 +1181,58 @@ class DemoBackend {
         'layer_height': 0.2,
         'nozzle_diameter': 0.4,
         'sliced_for_model': slicedForModel,
+        // Non-empty only for a cross-model job: the candidates the scheduler
+        // may pick between, in priority order (server #671).
+        'variants': variants,
       };
 
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
       if (m == 'GET') return _ok(_queue);
       if (m == 'POST') {
-        // Add from archive ("reprint").
+        // A cross-model job names itself after its first candidate and carries
+        // the rest; anything else is an "add from archive" (reprint).
+        final variantIds = [
+          for (final v in (body['variants'] as List?)?.whereType<Map>() ??
+              const <Map>[])
+            v['library_file_id'] as int?,
+        ].nonNulls.toList();
+        final variantFiles = [
+          for (final id in variantIds)
+            ..._libraryFiles.where((f) => f['id'] == id),
+        ];
         final archive = _archives
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
+        final lead = variantFiles.firstOrNull;
         _queue.add(_queueItem(
           id: _nextQueueId++,
           printerId: body['printer_id'] as int?,
           position: _queue.length + 1,
-          name: (archive?['print_name'] as String?) ?? 'Reprint',
+          name: (lead?['print_name'] as String?) ??
+              (archive?['print_name'] as String?) ??
+              'Reprint',
           status: 'pending',
-          timeSec: (archive?['print_time_seconds'] as int?) ?? 3600,
-          grams: (archive?['filament_used_grams'] as num?)?.toDouble() ?? 20,
+          timeSec: (lead?['print_time_seconds'] as int?) ??
+              (archive?['print_time_seconds'] as int?) ??
+              3600,
+          grams: (lead?['filament_used_grams'] as num?)?.toDouble() ??
+              (archive?['filament_used_grams'] as num?)?.toDouble() ??
+              20,
           type: (archive?['filament_type'] as String?) ?? 'PLA',
           color: (archive?['filament_color'] as String?) ?? '#808080',
           createdDaysAgo: 0,
           gcodeInjection: body['gcode_injection'] == true,
+          slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+          variants: [
+            for (final (position, f) in variantFiles.indexed)
+              {
+                'library_file_id': f['id'],
+                'filename': f['filename'],
+                'target_model': f['sliced_for_model'],
+                'position': position,
+              },
+          ],
         ));
         return _ok(_queue.last);
       }
@@ -1324,6 +1381,262 @@ class DemoBackend {
       a('Flexi dragon', 1, 26,
           estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
     ];
+  }
+
+  // --- Print log ---
+
+  /// One row per run, built from the archives plus the runs whose archive is
+  /// gone — the orphans are the half of this table nothing else in the app can
+  /// reach, so the demo would misrepresent the screen without them.
+  ///
+  /// Carries `cost` / `energy_kwh` / `energy_cost` because the reported version
+  /// is 1.2.6, which sends them (server #2636). The archives already hold both
+  /// figures, so a run reads the same here as it does in the statistics.
+  late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
+
+  List<Map<String, dynamic>> _buildPrintLog() {
+    var id = 900;
+    Map<String, dynamic> row(
+      Map<String, dynamic> archive, {
+      String? failureReason,
+    }) =>
+        {
+          'id': id++,
+          'archive_id': archive['id'],
+          'print_name': archive['print_name'],
+          'printer_name': _printerName(archive['printer_id'] as int?),
+          'printer_id': archive['printer_id'],
+          'status': archive['status'],
+          'started_at': archive['started_at'],
+          'completed_at': archive['completed_at'],
+          'duration_seconds': archive['actual_time_seconds'],
+          'filament_type': archive['filament_type'],
+          'filament_color': archive['filament_color'],
+          'filament_used_grams': archive['filament_used_grams'],
+          'cost': archive['cost'],
+          'energy_kwh': archive['energy_kwh'],
+          'energy_cost': archive['energy_cost'],
+          'failure_reason': failureReason ?? archive['failure_reason'],
+          'thumbnail_path': null,
+          'created_by_id': 1,
+          'created_by_username': DemoConfig.username,
+          'created_at': archive['created_at'],
+        };
+
+    Map<String, dynamic> orphan(
+      String name,
+      int printerId,
+      int daysAgo, {
+      required String status,
+      String? failureReason,
+      int durationSeconds = 1800,
+      double? energyKwh,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 5);
+      return {
+        'id': id++,
+        // The archive is gone; the run survived it (`ON DELETE SET NULL`).
+        'archive_id': null,
+        'print_name': name,
+        'printer_name': _printerName(printerId),
+        'printer_id': printerId,
+        'status': status,
+        'started_at': _iso(started),
+        'completed_at': _iso(started.add(Duration(seconds: durationSeconds))),
+        'duration_seconds': durationSeconds,
+        'filament_type': 'PLA',
+        'filament_color': '#0ACCB8',
+        'filament_used_grams': 18.4,
+        'cost': _r1(18.4 * 0.025),
+        // A run on a printer with a smart plug behind it. The orphan below is
+        // deliberately left without one — a null there is "no plug", and the
+        // screen has to read differently from a zero.
+        'energy_kwh': energyKwh,
+        'energy_cost': energyKwh == null ? null : _r1(energyKwh * 0.3),
+        'failure_reason': failureReason,
+        'thumbnail_path': null,
+        'created_by_id': null,
+        'created_by_username': null,
+        'created_at': _iso(started),
+      };
+    }
+
+    return [
+      // Newest first, the order the server sorts by.
+      orphan('Bracket v3 (deleted archive)', 1, 0,
+          status: 'failed', failureReason: 'cloggedNozzle', energyKwh: 0.06),
+      for (final a in _archives) row(a),
+      orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
+    ];
+  }
+
+  String? _printerName(int? printerId) {
+    for (final p in _printers) {
+      if (p['id'] == printerId) return '${p['name']}';
+    }
+    return null;
+  }
+
+  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
+  /// refuses what the real server refuses, or the editor would look like it
+  /// accepts anything.
+  static const _printLogReasons = {
+    '',
+    'adhesionFailure',
+    'spaghettiDetached',
+    'layerShift',
+    'cloggedNozzle',
+    'filamentRunout',
+    'warping',
+    'stringing',
+    'underExtrusion',
+    'powerFailure',
+    'userCancelled',
+    'other',
+  };
+  static const _printLogStatuses = {
+    'completed',
+    'failed',
+    'stopped',
+    'cancelled',
+    'skipped',
+  };
+
+  DemoResult? _printLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') {
+        final matched = _sortPrintLog(_filterPrintLog(q), q);
+        final offset = int.tryParse(q['offset'] ?? '') ?? 0;
+        final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+        final page = offset >= matched.length
+            ? const <Map<String, dynamic>>[]
+            : matched.sublist(offset, math.min(offset + limit, matched.length));
+        return _ok({'items': page, 'total': matched.length});
+      }
+      if (m == 'DELETE') {
+        // Clears every row, ignoring the filters above — as the route does.
+        final deleted = _printLog.length;
+        _printLog.clear();
+        return _ok({'deleted': deleted});
+      }
+      return _fallback(m);
+    }
+
+    final entryId = int.tryParse(s[1]);
+    final entry = _printLog.where((e) => e['id'] == entryId).firstOrNull;
+    if (s.length >= 3 && s[2] == 'thumbnail') return _notFound();
+    if (entry == null) return _notFound();
+
+    if (m == 'DELETE') {
+      _printLog.remove(entry);
+      return _ok({'status': 'deleted', 'id': entryId});
+    }
+    if (m == 'PATCH') {
+      if (body.containsKey('failure_reason')) {
+        final reason = '${body['failure_reason'] ?? ''}';
+        if (!_printLogReasons.contains(reason)) {
+          return (
+            status: 400,
+            body: {'detail': "Unknown failure_reason: '$reason'"},
+          );
+        }
+        entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body['status'] != null) {
+        final status = '${body['status']}';
+        if (!_printLogStatuses.contains(status)) {
+          return (status: 400, body: {'detail': "Unknown status: '$status'"});
+        }
+        entry['status'] = status;
+      }
+      return _ok(entry);
+    }
+    return _fallback(m);
+  }
+
+  /// Orders a filtered log the way `_SORTABLE_COLUMNS` does, nulls last in both
+  /// directions.
+  ///
+  /// Served rather than ignored because the app only shows the sort control on
+  /// a server that honours it — a demo that took the parameters and returned
+  /// the same order would be exactly the silent drop the version gate exists to
+  /// avoid.
+  List<Map<String, dynamic>> _sortPrintLog(
+    List<Map<String, dynamic>> rows,
+    Map<String, String> q,
+  ) {
+    final column = q['sort_by'];
+    if (column == null) return rows;
+    Comparable<Object>? key(Map<String, dynamic> e) => switch (column) {
+          'date' => '${e['started_at'] ?? e['created_at']}',
+          'print_name' => '${e['print_name'] ?? ''}'.toLowerCase(),
+          'printer' => '${e['printer_name'] ?? ''}'.toLowerCase(),
+          'user' => '${e['created_by_username'] ?? ''}'.toLowerCase(),
+          'status' => '${e['status']}',
+          'duration' => e['duration_seconds'] as int?,
+          'completed_at' => e['completed_at'] as String?,
+          'filament' => '${e['filament_type'] ?? ''}',
+          'filament_used' => (e['filament_used_grams'] as num?)?.toDouble(),
+          'cost' => (e['cost'] as num?)?.toDouble(),
+          'energy' => (e['energy_kwh'] as num?)?.toDouble(),
+          'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+          _ => null,
+        };
+    final descending = q['sort_dir'] != 'asc';
+    final sorted = [...rows]..sort((a, b) {
+        final ka = key(a);
+        final kb = key(b);
+        // Nulls last whichever way the column is pointing, as the server does:
+        // an empty column must not bury the rows that do have a value.
+        if (ka == null) return kb == null ? 0 : 1;
+        if (kb == null) return -1;
+        final cmp = ka.compareTo(kb as Object);
+        return descending ? -cmp : cmp;
+      });
+    return sorted;
+  }
+
+  /// A `date_from` / `date_to` query value as the instant it means.
+  ///
+  /// The app sends those without a zone marker on purpose — the real server's
+  /// columns are naive UTC and a tz-aware bind param compares against them
+  /// differently per database. Dart reads a zoneless string as **local**, so
+  /// taking it as written moved the filter boundary by the device's offset
+  /// against the demo's own timestamps, which are tagged UTC.
+  static DateTime? _utcQueryInstant(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final zoned = RegExp(r'([Zz]|[+-]\d{2}:?\d{2})$').hasMatch(value);
+    return DateTime.tryParse(zoned ? value : '${value}Z');
+  }
+
+  List<Map<String, dynamic>> _filterPrintLog(Map<String, String> q) {
+    final search = (q['search'] ?? '').toLowerCase();
+    final printerId = int.tryParse(q['printer_id'] ?? '');
+    final status = q['status'];
+    final username = q['created_by_username'];
+    final from = _utcQueryInstant(q['date_from']);
+    final to = _utcQueryInstant(q['date_to']);
+    return _printLog.where((e) {
+      if (search.isNotEmpty &&
+          !'${e['print_name'] ?? ''}'.toLowerCase().contains(search)) {
+        return false;
+      }
+      if (printerId != null && e['printer_id'] != printerId) return false;
+      if (status != null && e['status'] != status) return false;
+      if (username != null && e['created_by_username'] != username) {
+        return false;
+      }
+      final created = DateTime.tryParse('${e['created_at']}');
+      if (created == null) return true;
+      if (from != null && created.isBefore(from)) return false;
+      if (to != null && created.isAfter(to)) return false;
+      return true;
+    }).toList();
   }
 
   DemoResult? _archivesRoute(String m, List<String> s, Map<String, String> q) {
@@ -1770,6 +2083,7 @@ class DemoBackend {
       String? effect,
       String? archivedAt,
       int? lowStockPct,
+      double baseline = 0,
     }) =>
         {
           'id': id++,
@@ -1783,6 +2097,7 @@ class DemoBackend {
           'label_weight': label,
           'core_weight': 250,
           'weight_used': used,
+          'weight_used_baseline': baseline,
           'cost_per_kg': cost,
           'low_stock_threshold_pct': lowStockPct,
           'storage_location': location,
@@ -1805,8 +2120,11 @@ class DemoBackend {
       spool('PETG', 'Translucent', 'Teal', '0ACCB8FF', used: 80, cost: 29.99, location: 'Dry box'),
       spool('TPU', '95A', 'Green', '0ACC38FF',
           used: 445, cost: 34.99, location: 'Shelf B', lowStockPct: 20),
+      // The one spool whose counter has been reset before: consumed (405 g)
+      // reads lower than used (905 g), which is the split the reset action
+      // makes and the only way to see it without pressing the button.
       spool('PLA', 'Silk', 'Gold', 'D4AF37FF',
-          used: 905, effect: 'silk', location: 'Shelf A'),
+          used: 905, baseline: 500, effect: 'silk', location: 'Shelf A'),
       spool('ABS', null, 'Red', 'C12E1FFF',
           used: 380, archivedAt: _iso(_daysAgo(10))),
     ];
@@ -1861,6 +2179,9 @@ class DemoBackend {
           }
           if (m == 'POST') return _ok(_createSpool(body));
         }
+        if (s.length >= 3 && s[2] == 'from-slot' && m == 'POST') {
+          return _createSpoolFromSlot(body);
+        }
         if (s.length >= 3 && s[2] == 'bulk' && m == 'POST') {
           final quantity = (body['quantity'] as num?)?.toInt() ?? 1;
           final draft = body['spool'];
@@ -1868,6 +2189,12 @@ class DemoBackend {
             for (var i = 0; i < quantity; i++)
               _createSpool(draft is Map<String, dynamic> ? draft : const {}),
           ]);
+        }
+        // Before the id lookup below: `bulk-archive` and friends are siblings
+        // of `{spool_id}` in the path, and would otherwise be read as an id.
+        if (s.length == 3 && m == 'POST') {
+          final bulk = _bulkSpools(s[2], body);
+          if (bulk != null) return bulk;
         }
         final spoolId = int.tryParse(s.length > 2 ? s[2] : '');
         final spool = _spools.where((x) => x['id'] == spoolId).firstOrNull;
@@ -1892,8 +2219,14 @@ class DemoBackend {
             case 'restore':
               spool['archived_at'] = null;
               return _ok(spool);
-            case 'reset-usage':
-              spool['weight_used'] = 0.0;
+            // Stamps the baseline the "Total Consumed" display counts from,
+            // and leaves `weight_used` — so remaining does NOT jump back to
+            // the label weight. That is what the route does since it was
+            // renamed from `/reset-usage`, which zeroed the weight instead
+            // (server issue #1644); the old name is gone there, so it is gone
+            // here too and the app's fallback to it stays honest.
+            case 'reset-consumed-counter':
+              spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
               return _ok(spool);
             case 'usage':
               return _ok(_spoolUsage(spoolId!));
@@ -1944,6 +2277,192 @@ class DemoBackend {
         ]);
     }
     return _fallback(m);
+  }
+
+  /// The `/inventory/spools/bulk-*` routes plus `reset-consumed-counter-bulk`,
+  /// answering in the shapes the native backend answers in: a count, the ids it
+  /// could not find, and — for archive/restore — the ids that were already in
+  /// the state asked for. Returns null for a path segment that is not one of
+  /// them, so the caller can go on reading it as a spool id.
+  ///
+  /// The refusals are copied deliberately, like [_createSpoolFromSlot]'s: an
+  /// empty selection and an empty patch are both 400 on the server, and a demo
+  /// that accepted them would leave the app's wording for them untried.
+  DemoResult? _bulkSpools(String action, Map<String, dynamic> body) {
+    // `reset-consumed-counter-bulk` is the one route keyed on `spool_ids`.
+    final isReset = action == 'reset-consumed-counter-bulk';
+    if (!isReset && !const {
+      'bulk-update',
+      'bulk-delete',
+      'bulk-archive',
+      'bulk-restore',
+    }.contains(action)) {
+      return null;
+    }
+
+    final key = isReset ? 'spool_ids' : 'ids';
+    final ids = [
+      for (final raw in body[key] as List? ?? const [])
+        if (raw is num) raw.toInt(),
+    ];
+    if (ids.isEmpty) {
+      return (status: 400, body: {'detail': '$key must be a non-empty list'});
+    }
+    if (ids.length > 500) {
+      return (
+        status: 422,
+        body: {'detail': '$key accepts at most 500 entries'},
+      );
+    }
+
+    final found = [
+      for (final id in ids)
+        ?_spools.where((x) => x['id'] == id).firstOrNull,
+    ];
+    final foundIds = {for (final spool in found) spool['id']};
+    final notFound = [
+      for (final id in ids)
+        if (!foundIds.contains(id)) id,
+    ];
+
+    switch (action) {
+      case 'bulk-update':
+        final update = body['update'];
+        if (update is! Map || update.isEmpty) {
+          return (
+            status: 400,
+            body: {'detail': 'update must include at least one field'},
+          );
+        }
+        for (final spool in found) {
+          update.forEach((k, v) => spool['$k'] = v);
+        }
+        return _ok({'updated': found.length, 'not_found': notFound});
+
+      case 'bulk-delete':
+        for (final spool in found) {
+          _spools.remove(spool);
+          _assignments.removeWhere((a) => a['spool_id'] == spool['id']);
+        }
+        return _ok({'deleted': found.length, 'not_found': notFound});
+
+      case 'bulk-archive':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] != null) spool['id'],
+        ];
+        final now = _iso(DateTime.now());
+        for (final spool in found) {
+          spool['archived_at'] ??= now;
+        }
+        return _ok({
+          'archived': found.length - already.length,
+          'already_archived': already,
+          'not_found': notFound,
+        });
+
+      case 'bulk-restore':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] == null) spool['id'],
+        ];
+        for (final spool in found) {
+          spool['archived_at'] = null;
+        }
+        return _ok({
+          'restored': found.length - already.length,
+          'already_active': already,
+          'not_found': notFound,
+        });
+
+      default:
+        // Reset counts the rows it found and reports nothing else, exactly as
+        // the server does — the app reads the gap against what it asked for.
+        for (final spool in found) {
+          spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
+        }
+        return _ok({'reset': found.length});
+    }
+  }
+
+  /// `POST /inventory/spools/from-slot` — registers what the AMS reports in one
+  /// slot and pins it there, in one call, like the server does.
+  ///
+  /// The two refusals are copied from it deliberately: they are what the app's
+  /// wording for this action is built on, and a demo that always succeeded
+  /// would leave both untested by hand.
+  DemoResult _createSpoolFromSlot(Map<String, dynamic> body) {
+    final printerId = (body['printer_id'] as num?)?.toInt();
+    final amsId = (body['ams_id'] as num?)?.toInt();
+    final trayId = (body['tray_id'] as num?)?.toInt();
+    if (printerId == null || amsId == null || trayId == null) {
+      return (status: 400, body: {'detail': 'Provide printer_id, ams_id and tray_id'});
+    }
+
+    final units = statusData(printerId)['ams'];
+    Map<String, dynamic>? tray;
+    if (units is List) {
+      for (final unit in units) {
+        if (unit is! Map || (unit['id'] as num?)?.toInt() != amsId) continue;
+        for (final t in (unit['tray'] as List? ?? const [])) {
+          if (t is Map && (t['id'] as num?)?.toInt() == trayId) {
+            tray = Map<String, dynamic>.from(t);
+            break;
+          }
+        }
+        if (tray != null) break;
+      }
+    }
+
+    final material = (tray?['tray_type'] as String?)?.trim() ?? '';
+    if (tray == null || material.isEmpty) {
+      return (
+        status: 400,
+        body: {'detail': 'Slot is empty or has no readable tray data'},
+      );
+    }
+    final tagUid = tray['tag_uid'] as String?;
+    final trayUuid = tray['tray_uuid'] as String?;
+    if ((tagUid ?? '').isEmpty && (trayUuid ?? '').isEmpty) {
+      return (status: 400, body: {'detail': 'Slot has no RFID tag'});
+    }
+
+    // "PLA Basic" → subtype "Basic", the same split the server makes.
+    final subBrands = (tray['tray_sub_brands'] as String?)?.trim() ?? '';
+    final subtype = subBrands.toUpperCase().startsWith('${material.toUpperCase()} ')
+        ? subBrands.substring(material.length + 1)
+        : null;
+
+    // The AMS reports RRGGBBAA; the colour catalogue is keyed on #RRGGBB.
+    final rgba = (tray['tray_color'] as String?) ?? 'FFFFFFFF';
+    final hex = rgba.length >= 6 ? '#${rgba.substring(0, 6)}' : null;
+
+    final spool = _createSpool({
+      'material': material,
+      'subtype': ?subtype,
+      'brand': 'Bambu Lab',
+      'color_name': _colorCatalog
+          .where((c) => c['hex_color'] == hex)
+          .firstOrNull?['color_name'],
+      'rgba': rgba,
+      'label_weight': 1000,
+      'tag_uid': tagUid,
+      'tray_uuid': trayUuid,
+    });
+
+    _assignments.removeWhere((a) =>
+        a['printer_id'] == printerId &&
+        a['ams_id'] == amsId &&
+        a['tray_id'] == trayId);
+    _assignments.add({
+      'spool_id': spool['id'],
+      'printer_id': printerId,
+      'ams_id': amsId,
+      'tray_id': trayId,
+      'printer_name':
+          _printers.where((p) => p['id'] == printerId).firstOrNull?['name'],
+    });
+    return _ok(spool);
   }
 
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {
@@ -2022,12 +2541,19 @@ class DemoBackend {
     {'id': 2, 'name': 'Household', 'parent_id': null, 'file_count': 2, 'children': <Object>[]},
   ];
 
+  /// The models are spread across the demo fleet on purpose: a variant group is
+  /// the same job sliced for *different* printers, and the server refuses two
+  /// members that target the same one — so a library sliced entirely for the
+  /// X1C could never demonstrate the feature.
   late final List<Map<String, dynamic>> _libraryFiles = [
     _libFile(1, 'Benchy.gcode.3mf', 1, 2108509, printCount: 3, timeSec: 3540, grams: 15.8),
     _libFile(2, 'Calibration cube.gcode.3mf', 1, 812340, printCount: 1, timeSec: 1620, grams: 6.1),
-    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4),
-    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2),
-    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3),
+    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4,
+        model: 'P1S'),
+    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2,
+        model: 'P1S'),
+    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
+        model: 'P2S'),
     _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf'),
   ];
 
@@ -2043,6 +2569,7 @@ class DemoBackend {
     int? timeSec,
     double? grams,
     String fileType = 'gcode.3mf',
+    String model = 'X1C',
   }) =>
       {
         'id': id,
@@ -2058,8 +2585,120 @@ class DemoBackend {
         'print_name': filename.split('.').first,
         'print_time_seconds': timeSec,
         'filament_used_grams': grams,
-        'sliced_for_model': 'X1C',
+        'sliced_for_model': model,
+        'variant_group_id': null,
+        'variant_count': 0,
       };
+
+  /// Cross-model variant groups (server #671), served because the demo now
+  /// reports 1.2.6 — the file manager's grouping button appears at that version
+  /// and a button that answers nothing is worse than one that is absent.
+  ///
+  /// Refuses what the real route refuses: fewer than two members, a file that
+  /// is already grouped, a file that is not sliced output, and two members
+  /// sliced for the same printer — the last one being the whole point, since a
+  /// group of two X1C files expresses no choice for the scheduler.
+  final List<Map<String, dynamic>> _variantGroups = [];
+  int _nextVariantGroupId = 1;
+
+  DemoResult _variantGroupRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2 && m == 'POST') {
+      final members = (body['members'] as List?) ?? const [];
+      final ids = [
+        for (final member in members.whereType<Map>())
+          member['library_file_id'] as int?,
+      ].nonNulls.toList();
+      if (ids.length < 2) {
+        return (status: 400, body: {'detail': 'A variant group needs at least 2 members'});
+      }
+      final files = [
+        for (final id in ids)
+          ..._libraryFiles.where((f) => f['id'] == id),
+      ];
+      if (files.length != ids.length) {
+        return (status: 404, body: {'detail': 'Library file not found'});
+      }
+      final models = <String, String>{};
+      for (final f in files) {
+        if (f['file_type'] != 'gcode.3mf' && f['file_type'] != 'gcode') {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} is not a sliced file — only sliced '
+                  'output can be a print variant',
+            },
+          );
+        }
+        if (f['variant_group_id'] != null) {
+          return (
+            status: 409,
+            body: {'detail': '${f['filename']} already belongs to a variant group'},
+          );
+        }
+        final model = '${f['sliced_for_model']}';
+        final clash = models[model];
+        if (clash != null) {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} and $clash are both sliced for '
+                  '$model — variants must target different printers',
+            },
+          );
+        }
+        models[model] = '${f['filename']}';
+      }
+
+      final group = {
+        'id': _nextVariantGroupId++,
+        'name': body['name'] ?? files.first['filename'],
+        'members': [
+          for (final (position, f) in files.indexed)
+            {
+              'library_file_id': f['id'],
+              'filename': f['filename'],
+              'target_model': f['sliced_for_model'],
+              'position': position,
+            },
+        ],
+      };
+      _variantGroups.add(group);
+      for (final f in files) {
+        f['variant_group_id'] = group['id'];
+        f['variant_count'] = files.length;
+      }
+      return _ok(group);
+    }
+
+    if (s.length == 4 && s[2] == 'by-file' && m == 'GET') {
+      final fileId = int.tryParse(s[3]);
+      final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+      final groupId = file?['variant_group_id'];
+      final group =
+          _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+      // 404 is the ordinary answer for an ungrouped file, not an error.
+      return group == null ? _notFound() : _ok(group);
+    }
+
+    final groupId = int.tryParse(s.length > 2 ? s[2] : '');
+    final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+    if (group == null) return _notFound();
+    if (s.length == 3 && m == 'GET') return _ok(group);
+    if (s.length == 3 && m == 'DELETE') {
+      _variantGroups.remove(group);
+      for (final f in _libraryFiles) {
+        if (f['variant_group_id'] != groupId) continue;
+        f['variant_group_id'] = null;
+        f['variant_count'] = 0;
+      }
+      return _ok(const {'ok': true});
+    }
+    return _fallback(m);
+  }
 
   DemoResult? _libraryRoute(
     String m,
@@ -2138,6 +2777,9 @@ class DemoBackend {
           return _ok(const {'ok': true});
         }
         return _fallback(m);
+
+      case 'variant-groups':
+        return _variantGroupRoute(m, s, body);
 
       case 'folders':
         if (s.length == 2 && m == 'GET') return _ok(_libraryFolders);

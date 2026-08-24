@@ -6,16 +6,22 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/filter_controls.dart';
+import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/format_bytes.dart';
 import '../common/print_thumbnail.dart';
@@ -81,11 +87,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
 
   void _openFilters() {
     final all = ref.read(archiveProvider).valueOrNull ?? const [];
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _ArchiveFilterSheet(archives: all),
     );
   }
@@ -147,10 +150,18 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                     PopupMenuButton<String>(
                       onSelected: (v) {
                         if (v == 'purge') _purgeOlder();
+                        if (v == 'print_log') context.push('/print-log');
                       },
                       // Tag on the child: a wrapped `PopupMenuItem` is no
                       // longer a `PopupMenuEntry`.
                       itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'print_log',
+                          child: logTag(
+                            'archive.menu.print_log',
+                            Text(l10n.printLogTitle),
+                          ),
+                        ),
                         PopupMenuItem(
                           value: 'purge',
                           child: logTag(
@@ -163,17 +174,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                   ),
                 ],
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(archiveProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(archiveProvider.notifier).refresh(),
           data: (all) {
             final items = applyArchiveFilters(all, filters);
             return RefreshIndicator(
@@ -194,8 +198,10 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _FilterButton(
+                          FilterButton(
                             count: filters.activeCount,
+                            tooltip: l10n.archiveFilters,
+                            id: 'archive.filters',
                             onTap: _openFilters,
                           ),
                         ],
@@ -255,12 +261,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   void _openSheet(Archive archive) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      // Content height varies (wrapped labels, stacked actions, text scale), so
-      // let the sheet grow past the default 9/16 cap instead of overflowing.
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => _ArchiveSheet(
         archive: archive,
         onReprint: () => _reprint(archive),
@@ -283,9 +285,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .read(archiveProvider.notifier)
         .toggleFavorite(archive.id);
     if (!ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.archiveFavoriteFailed)),
-      );
+      messenger.snack(l10n.archiveFavoriteFailed);
     }
   }
 
@@ -355,11 +355,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     final ok = await ref
         .read(archiveProvider.notifier)
         .delete(archive.id, purgeStats: purgeStats);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed),
-      ),
-    );
+    messenger.snack(ok ? l10n.archiveDeleted : l10n.archiveDeleteFailed);
   }
 
   /// Delete all selected prints after one confirmation (with purge-stats
@@ -383,15 +379,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         .deleteMany(ids, purgeStats: purge);
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          res.failed == 0
+    messenger.snack(res.failed == 0
               ? l10n.archiveDeletedCount(res.ok)
-              : l10n.archiveDeleteSomeFailed(res.ok, res.failed),
-        ),
-      ),
-    );
+              : l10n.archiveDeleteSomeFailed(res.ok, res.failed));
   }
 
   /// Add the selected prints to a project: pick a project from a sheet, then
@@ -408,13 +398,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
     }
     if (!mounted) return;
     if (projects.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectsEmpty)));
+      messenger.snack(l10n.projectsEmpty);
       return;
     }
 
-    final projectId = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final projectId = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -451,9 +441,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       await ref.read(projectsRepositoryProvider).addArchives(projectId, ids);
       if (!mounted) return;
       _clearSelection();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.projectArchivesAdded)),
-      );
+      messenger.snack(l10n.projectArchivesAdded);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'archive.add_to_project');
     }
@@ -475,9 +463,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           .read(archiveRepositoryProvider)
           .purge(olderThanDays: result.days, purgeStats: result.purgeStats);
       await ref.read(archiveProvider.notifier).refresh();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.archivePurgeResult(deleted))),
-      );
+      messenger.snack(l10n.archivePurgeResult(deleted));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'archive.menu.purge');
     }
@@ -572,7 +558,8 @@ class _ArchiveCard extends StatelessWidget {
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',
-      if (archive.createdAt != null) _date(archive.createdAt!),
+      if (archive.createdAt != null)
+        DateTimeFormats.of(context).date(archive.createdAt!),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -630,12 +617,7 @@ class _ArchiveCard extends StatelessWidget {
                           archive.displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleSm,
                         ),
                         if (meta.isNotEmpty) ...[
                           const SizedBox(height: 4),
@@ -643,12 +625,7 @@ class _ArchiveCard extends StatelessWidget {
                             meta.join(' · '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: t.textTertiary,
-                            ),
+                            style: t.monoLabel,
                           ),
                         ],
                       ],
@@ -685,8 +662,6 @@ class _ArchiveCard extends StatelessWidget {
     );
   }
 
-  String _date(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// Corner markers on a card's thumbnail for the media a print carries beyond
@@ -1208,120 +1183,6 @@ class _PurgeOlderDialogState extends ConsumerState<_PurgeOlderDialog> {
   }
 }
 
-/// Ink color for text/icons sitting on an [DashTokens.accentGreen] fill.
-const Color _onAccentGreen = Color(0xFF08150D);
-
-/// Darker scrim for the filter sheet so the screen behind reads as a dimmed
-/// backdrop, not a half-rendered glitch bleeding through the rounded top.
-/// Matches the Filaments sheets.
-const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
-
-/// Opaque rounded-top surface with its own grab handle, used inside the
-/// [DraggableScrollableSheet] builder (not the framework `showDragHandle`,
-/// which detaches from a partial-height draggable sheet). Mirrors the
-/// Filaments sheet surface so bottom sheets look the same across the app.
-class _SheetSurface extends StatelessWidget {
-  const _SheetSurface({required this.child});
-
-  /// The scroll view (a `ListView` bound to the drag controller).
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: t.isDark ? const Color(0xFF0E1310) : const Color(0xFFF6F8F4),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(
-            color: t.isDark ? const Color(0x24FFFFFF) : const Color(0x14000000),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: t.isDark ? 0.5 : 0.22),
-            blurRadius: 40,
-            offset: const Offset(0, -12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: t.isDark
-                  ? const Color(0x40FFFFFF)
-                  : const Color(0x33000000),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-/// Square button opening the archive filter sheet; badge shows the count of
-/// active filters. Size matches the search field (48×48). Mirrors the
-/// inventory screen's filter button for a consistent feel across list screens.
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final active = count > 0;
-    return Tooltip(
-      message: AppLocalizations.of(context).archiveFilters,
-      child: Badge(
-        isLabelVisible: active,
-        label: Text('$count'),
-        backgroundColor: t.accentGreen,
-        textColor: _onAccentGreen,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Material(
-            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            child: logTag(
-              'archive.filters',
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: onTap,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: active
-                          ? t.accentGreen.withValues(alpha: 0.4)
-                          : t.subCardBorder,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.tune,
-                    color: active ? t.accentGreenInk : t.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Archive filter/sort sheet. All choices write straight to
 /// [archiveFiltersProvider]; the list behind the sheet re-filters live.
 /// Option sets (materials, colors) are derived from the loaded [archives] so
@@ -1361,7 +1222,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         initialChildSize: 0.6,
         maxChildSize: 0.9,
         minChildSize: 0.35,
-        builder: (context, controller) => _SheetSurface(
+        builder: (context, controller) => SheetSurface(
           child: ListView(
             controller: controller,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -1394,7 +1255,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              _FilterGroup(label: l10n.archiveSortLabel),
+              FilterGroupLabel(label: l10n.archiveSortLabel),
               _ChipWrap(
                 children: [
                   for (final s in ArchiveSort.values)
@@ -1408,7 +1269,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              _FilterGroup(label: l10n.archiveFilterFileType),
+              FilterGroupLabel(label: l10n.archiveFilterFileType),
               _ChipWrap(
                 children: [
                   for (final f in ArchiveFileType.values)
@@ -1422,7 +1283,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              _FilterGroup(label: l10n.archiveFilterFlags),
+              FilterGroupLabel(label: l10n.archiveFilterFlags),
               _ChipWrap(
                 children: [
                   FilterChip(
@@ -1452,7 +1313,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
               if (usedPrinterIds.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _FilterGroup(label: l10n.archiveFilterPrinter),
+                FilterGroupLabel(label: l10n.archiveFilterPrinter),
                 _ChipWrap(
                   children: [
                     for (final p in printers)
@@ -1470,7 +1331,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
               if (sortedMaterials.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _FilterGroup(label: l10n.archiveFilterMaterial),
+                FilterGroupLabel(label: l10n.archiveFilterMaterial),
                 _ChipWrap(
                   children: [
                     for (final m in sortedMaterials)
@@ -1489,7 +1350,7 @@ class _ArchiveFilterSheet extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    _FilterGroup(label: l10n.archiveFilterColors),
+                    FilterGroupLabel(label: l10n.archiveFilterColors),
                     const Spacer(),
                     if (filters.colors.length > 1)
                       // OR/AND only matters once several colors are picked.
@@ -1546,30 +1407,6 @@ class _ArchiveFilterSheet extends ConsumerWidget {
         ArchiveFileType.gcode => l10n.archiveFileTypeGcode,
         ArchiveFileType.source => l10n.archiveFileTypeSource,
       };
-}
-
-/// Section label inside the filter sheet.
-class _FilterGroup extends StatelessWidget {
-  const _FilterGroup({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
-      ),
-    );
-  }
 }
 
 class _ChipWrap extends StatelessWidget {

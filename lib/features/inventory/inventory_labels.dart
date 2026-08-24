@@ -85,7 +85,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       initialChildSize: 0.85,
       maxChildSize: 0.95,
       minChildSize: 0.5,
-      builder: (context, controller) => _SheetSurface(
+      builder: (context, controller) => SheetSurface(
         child: Column(
           children: [
             Padding(
@@ -104,22 +104,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                       Expanded(
                         child: Text(
                           l10n.inventoryLabelsTitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
+                          style: t.display,
                         ),
                       ),
                       Text(
                         l10n.inventorySelectedCount(_selected.length),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoLabel,
                       ),
                     ],
                   ),
@@ -157,11 +147,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                       Expanded(
                         child: Text(
                           l10n.inventoryLabelsPickSpools,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12.5,
-                            color: t.textSecondary,
-                          ),
+                          style: t.labelSoft.copyWith(color: t.textSecondary),
                         ),
                       ),
                       _TextAction(
@@ -201,11 +187,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
                         child: Text(
                           l10n.inventoryLabelsNoMatches,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            color: t.textTertiary,
-                          ),
+                          style: t.bodyPlain.copyWith(color: t.textTertiary),
                         ),
                       ),
                     )
@@ -249,21 +231,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final messenger = ScaffoldMessenger.of(context);
 
     if (_selected.length > maxSpoolLabelsPerRequest) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest),
-          ),
-        ),
-      );
+      messenger.snack(l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest));
       return;
     }
 
-    final template = await showModalBottomSheet<SpoolLabelTemplate>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final template = await dashSurfaceSheet<SpoolLabelTemplate>(
+      context,
       builder: (_) => const _TemplateSheet(),
     );
     if (template == null || !mounted) return;
@@ -301,9 +274,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryLabelsFailed)),
-      );
+      messenger.snack(l10n.inventoryLabelsFailed);
     }
   }
 }
@@ -358,22 +329,13 @@ class _LabelSpoolRow extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.body,
               ),
             ),
             const SizedBox(width: 8),
             Text(
               '#${spool.id}',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.monoMicro,
             ),
           ],
         ),
@@ -407,12 +369,7 @@ class _LabelFooter extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        16 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),
@@ -444,14 +401,7 @@ class _LabelFooter extends StatelessWidget {
               ),
               onPressed: onPrint,
               icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _onAccentGreen,
-                      ),
-                    )
+                  ? DashSpinner(color: _onAccentGreen)
                   : Icon(share ? Icons.ios_share : Icons.print_outlined,
                       size: 18),
               label: Text(
@@ -515,19 +465,14 @@ class _TemplateSheet extends StatelessWidget {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(
+      builder: (context, controller) => SheetSurface(
         child: ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
             Text(
               l10n.inventoryLabelsPickTemplate,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: t.textPrimary,
-              ),
+              style: t.titleLg,
             ),
             const SizedBox(height: 12),
             for (final (template, label, hint) in options)
@@ -550,21 +495,12 @@ class _TemplateSheet extends StatelessWidget {
                         children: [
                           Text(
                             label,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: t.textPrimary,
-                            ),
+                            style: t.titleSm,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             hint,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 12,
-                              color: t.textTertiary,
-                            ),
+                            style: t.labelSoft,
                           ),
                         ],
                       ),
@@ -600,11 +536,7 @@ class _ChipRow<T> extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            color: t.textTertiary,
-          ),
+          style: t.microSoft,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -662,12 +594,7 @@ class _MiniChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: selected ? t.accentGreenInk : t.textSecondary,
-            ),
+            style: t.micro.copyWith(color: selected ? t.accentGreenInk : t.textSecondary),
           ),
         ),
       ).tagged('labels.chip'),
@@ -698,12 +625,7 @@ class _TextAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            color: onPressed == null ? color.withValues(alpha: 0.4) : color,
-          ),
+          style: t.micro.copyWith(color: onPressed == null ? color.withValues(alpha: 0.4) : color),
         ),
       ),
     ).tagged('labels.text_action');
@@ -747,21 +669,12 @@ class _CheckRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
+                    style: t.body,
                   ),
                   if (hint != null)
                     Text(
                       hint!,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11.5,
-                        color: t.textTertiary,
-                      ),
+                      style: t.microSoft,
                     ),
                 ],
               ),

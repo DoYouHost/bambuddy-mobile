@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
+import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
 import 'wear_printer_list_screen.dart';
 
@@ -35,7 +36,10 @@ class WearHome extends ConsumerWidget {
             }
             // Single printer → no picker, land directly on its controls.
             if (printers.length == 1) {
-              return WearPrinterControlBody(printerId: printers.first.printer.id);
+              return WearPrinterControlBody(
+                printerId: printers.first.printer.id,
+                showSettings: true,
+              );
             }
             return const WearPrinterListBody();
           },
@@ -61,6 +65,10 @@ class _CenterMessage extends StatelessWidget {
             FilledButton(
                 onPressed: action,
                 child: Text(AppLocalizations.of(context).retry)),
+            // The reachable way out of a wrong server: a failed connection is
+            // exactly when someone wants to change it, and retrying forever is
+            // the only other thing this screen offers.
+            const WearSettingsEntry(),
           ],
         ),
       );

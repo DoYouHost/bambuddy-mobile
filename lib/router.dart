@@ -25,6 +25,7 @@ import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/print_log/print_log_screen.dart';
 import 'features/projects/projects_screen.dart';
 import 'features/projects/project_detail_screen.dart';
 import 'features/settings/cloud_account_screen.dart';
@@ -105,6 +106,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/stats',
         builder: (_, _) => const StatisticsScreen(),
+      ),
+
+      // Print log — per-run history, full screen outside shell (opened from the
+      // archive's menu and from the Stats failure card).
+      GoRoute(
+        path: '/print-log',
+        builder: (_, _) => const PrintLogScreen(),
       ),
 
       // File manager (library) — full screen outside shell (pushed from drawer).

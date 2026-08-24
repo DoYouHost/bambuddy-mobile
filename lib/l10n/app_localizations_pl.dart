@@ -1407,12 +1407,22 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String durationMinutes(int minutes) {
-    return '$minutes min';
+    return '${minutes}min';
   }
 
   @override
   String durationHoursMinutes(int hours, int minutes) {
-    return '$hours h $minutes min';
+    return '${hours}h ${minutes}min';
+  }
+
+  @override
+  String durationHours(int hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String durationSeconds(int seconds) {
+    return '${seconds}s';
   }
 
   @override
@@ -2080,6 +2090,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String inventoryTotalConsumed(String weight) {
+    return 'zużyto $weight';
+  }
+
+  @override
+  String inventoryConsumedSinceReset(String weight) {
+    return 'Zużyte od resetu: $weight';
+  }
+
+  @override
   String inventoryOfTotal(int total) {
     return 'z $total g';
   }
@@ -2240,6 +2260,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventoryFieldInvalidNumber => 'Podaj liczbę';
 
   @override
+  String inventoryFieldRange(int min, int max) {
+    return 'Podaj wartość od $min do $max';
+  }
+
+  @override
   String get inventorySectionBasics => 'Podstawy';
 
   @override
@@ -2320,7 +2345,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventoryResetUsageConfirm =>
-      'Wyzerować zużycie? Szpula znów będzie liczona jako pełna.';
+      'Wyzerować licznik zużytego filamentu? Kolejne wydruki znów będą liczone od zera — pozostała waga zostaje bez zmian.';
 
   @override
   String get inventorySpoolCreated => 'Dodano szpulę';
@@ -2351,7 +2376,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get inventorySpoolRestored => 'Przywrócono szpulę';
 
   @override
-  String get inventoryUsageReset => 'Wyzerowano zużycie';
+  String get inventoryUsageReset => 'Wyzerowano licznik';
 
   @override
   String get inventorySaveFailed => 'Nie udało się zapisać szpuli';
@@ -2415,6 +2440,28 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get inventorySpoolUnassigned => 'Szpula odpięta';
+
+  @override
+  String get inventoryFromSlot => 'Dodaj do magazynu';
+
+  @override
+  String get inventoryFromSlotHint =>
+      'Zapisz szpulę z czipem, którą drukarka widzi w tym slocie';
+
+  @override
+  String get inventoryFromSlotDone => 'Szpula dodana i przypisana do slotu';
+
+  @override
+  String get inventoryFromSlotNoTag =>
+      'Drukarka nie widzi już w tym slocie szpuli z czipem';
+
+  @override
+  String get inventoryFromSlotOffline =>
+      'Drukarka nie jest połączona, więc nie powie, co jest w slocie';
+
+  @override
+  String get inventoryFromSlotUnsupported =>
+      'Ta wersja serwera nie potrafi dodać szpuli prosto ze slotu';
 
   @override
   String get inventoryScanSpool => 'Skanuj QR';
@@ -2510,7 +2557,8 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get inventoryBulkResetBody => 'Będą liczone jako pełne.';
+  String get inventoryBulkResetBody =>
+      'Ich liczniki zużytego filamentu wrócą do zera. Pozostałe wagi zostają bez zmian.';
 
   @override
   String inventoryBulkDone(int count) {
@@ -2521,6 +2569,79 @@ class AppLocalizationsPl extends AppLocalizations {
   String inventoryBulkPartial(int ok, int failed) {
     return 'Udało się: $ok, błędów: $failed';
   }
+
+  @override
+  String inventoryBulkSkipped(int ok, int skipped) {
+    return 'Udało się: $ok, już tak było: $skipped';
+  }
+
+  @override
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed) {
+    return 'Udało się: $ok, już tak było: $skipped, błędów: $failed';
+  }
+
+  @override
+  String get inventoryBulkEdit => 'Edytuj pola';
+
+  @override
+  String inventoryBulkEditTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Edycja $_temp0';
+  }
+
+  @override
+  String get inventoryBulkEditHint =>
+      'Zmieniają się tylko pola, które wypełnisz. Reszta zostaje bez zmian.';
+
+  @override
+  String get inventoryBulkEditUnchanged => 'Bez zmian';
+
+  @override
+  String inventoryBulkEditApply(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count szpul',
+      one: 'szpuli',
+    );
+    return 'Zastosuj do $_temp0';
+  }
+
+  @override
+  String inventoryBulkEditConfirmTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'szpul',
+      few: 'szpule',
+      one: 'szpulę',
+    );
+    return 'Zmienić $_temp0?';
+  }
+
+  @override
+  String inventoryBulkEditConfirmBody(int fields) {
+    String _temp0 = intl.Intl.pluralLogic(
+      fields,
+      locale: localeName,
+      other: '$fields pól',
+      few: '$fields pola',
+      one: 'Jedno pole',
+    );
+    return '$_temp0 zostanie nadpisane w każdej wybranej szpuli.';
+  }
+
+  @override
+  String get inventoryBulkEditUnsupported =>
+      'Ten serwer jest za stary na edycję masową. Zaktualizuj bambuddy albo edytuj szpule pojedynczo.';
+
+  @override
+  String get inventoryApply => 'Zastosuj';
 
   @override
   String get inventoryLabelsTitle => 'Drukuj etykiety szpul';
@@ -4550,6 +4671,46 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearUsername => 'Użytkownik';
 
   @override
+  String get wearSetupPhoneTitle => 'Ustaw z telefonu';
+
+  @override
+  String get wearSetupPhoneBody =>
+      'Otwórz Bambuddy na sparowanym telefonie — zegarek sam pobierze z niego serwer i logowanie.';
+
+  @override
+  String get wearSetupPhoneCheck => 'Sprawdź ponownie';
+
+  @override
+  String get wearSetupPhoneEmpty => 'Telefon jeszcze nic nie przysłał.';
+
+  @override
+  String get wearSetupManual => 'Wpisz ręcznie';
+
+  @override
+  String get wearSetupTapToType => 'Dotknij, aby wpisać';
+
+  @override
+  String get wearSettingsTitle => 'Ustawienia';
+
+  @override
+  String get wearFromPhone => 'Z telefonu';
+
+  @override
+  String get wearFromPhoneUse => 'Użyj tego serwera';
+
+  @override
+  String get wearFromPhoneLater => 'Nie teraz';
+
+  @override
+  String get wearAuthNone => 'Bez logowania';
+
+  @override
+  String get wearFromPhoneWaiting => 'Telefon proponuje inny serwer.';
+
+  @override
+  String get wearCurrentServer => 'Obecny serwer';
+
+  @override
   String get commonOn => 'Wł.';
 
   @override
@@ -5694,4 +5855,252 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get apiKeyScopeEnergyHint =>
       'Jedyne ustawienie, które klucz może zapisać — do taryfy dynamicznej.';
+
+  @override
+  String get printLogTitle => 'Log wydruków';
+
+  @override
+  String get printLogSearchHint => 'Szukaj przebiegów';
+
+  @override
+  String get printLogEmpty => 'Brak zapisanych przebiegów';
+
+  @override
+  String get printLogNoMatches => 'Żaden przebieg nie pasuje do filtrów';
+
+  @override
+  String get printLogLoadFailed => 'Nie udało się wczytać logu wydruków';
+
+  @override
+  String get printLogFilters => 'Filtry';
+
+  @override
+  String get printLogFilterPrinter => 'Drukarka';
+
+  @override
+  String get printLogFilterUser => 'Użytkownik';
+
+  @override
+  String get printLogFilterStatus => 'Status';
+
+  @override
+  String get printLogFilterDates => 'Zakres dat';
+
+  @override
+  String get printLogAnyPrinter => 'Dowolna drukarka';
+
+  @override
+  String get printLogAnyUser => 'Dowolny';
+
+  @override
+  String get printLogAnyStatus => 'Dowolny status';
+
+  @override
+  String get printLogNoUser => 'Bez użytkownika';
+
+  @override
+  String get printLogOrphan => 'Archiwum usunięte';
+
+  @override
+  String printLogShowing(int loaded, int total) {
+    return '$loaded z $total';
+  }
+
+  @override
+  String get printLogLoadMore => 'Wczytaj więcej';
+
+  @override
+  String get printLogSort => 'Sortuj według';
+
+  @override
+  String get printLogSortDate => 'Data';
+
+  @override
+  String get printLogSortName => 'Nazwa';
+
+  @override
+  String get printLogSortPrinter => 'Drukarka';
+
+  @override
+  String get printLogSortUser => 'Użytkownik';
+
+  @override
+  String get printLogSortStatus => 'Status';
+
+  @override
+  String get printLogSortDuration => 'Czas trwania';
+
+  @override
+  String get printLogSortFilament => 'Zużycie filamentu';
+
+  @override
+  String get printLogSortCost => 'Koszt';
+
+  @override
+  String get printLogSortEnergy => 'Energia';
+
+  @override
+  String get printLogSortDirection => 'Kierunek';
+
+  @override
+  String get printLogSortDescending => 'Malejąco';
+
+  @override
+  String get printLogSortAscending => 'Rosnąco';
+
+  @override
+  String get printLogStatusCompleted => 'Ukończony';
+
+  @override
+  String get printLogStatusFailed => 'Nieudany';
+
+  @override
+  String get printLogStatusStopped => 'Zatrzymany';
+
+  @override
+  String get printLogStatusCancelled => 'Anulowany';
+
+  @override
+  String get printLogStatusSkipped => 'Pominięty';
+
+  @override
+  String get printLogStatusAborted => 'Przerwany';
+
+  @override
+  String printLogEnergy(String value) {
+    return '$value kWh';
+  }
+
+  @override
+  String get printLogClassifyTitle => 'Sklasyfikuj przebieg';
+
+  @override
+  String get printLogDetailStarted => 'Rozpoczęto';
+
+  @override
+  String get printLogDetailFinished => 'Zakończono';
+
+  @override
+  String get printLogDetailDuration => 'Czas trwania';
+
+  @override
+  String get printLogDetailFilament => 'Filament';
+
+  @override
+  String get printLogDetailCost => 'Koszt';
+
+  @override
+  String get printLogDetailEnergy => 'Energia';
+
+  @override
+  String get printLogFailureCause => 'Przyczyna niepowodzenia';
+
+  @override
+  String get printLogNoClassification => 'Bez klasyfikacji';
+
+  @override
+  String get printLogStatusLabel => 'Status';
+
+  @override
+  String get printLogCountsAsFailure =>
+      'Liczy się jako niepowodzenie — ten przebieg i jego przyczyna trafiają do analizy awarii.';
+
+  @override
+  String get printLogNotCountedAsFailure =>
+      'Nie liczy się jako niepowodzenie, więc przyczyna nie trafi do analizy awarii.';
+
+  @override
+  String printLogStatusOneWay(String status) {
+    return 'Ten serwer nie potrafi zapisać z powrotem „$status”. Po zmianie nie da się tam wrócić.';
+  }
+
+  @override
+  String get printLogSave => 'Zapisz';
+
+  @override
+  String get printLogSaveFailed => 'Nie udało się zapisać klasyfikacji';
+
+  @override
+  String get printLogDelete => 'Usuń przebieg';
+
+  @override
+  String get printLogDeleteTitle => 'Usunąć ten przebieg?';
+
+  @override
+  String get printLogDeleteBody =>
+      'Zniknie z logu, a jego filament, koszt i czas znikną ze statystyk. Archiwum, do którego wskazuje, zostaje.';
+
+  @override
+  String get printLogDeleteFailed => 'Nie udało się usunąć przebiegu';
+
+  @override
+  String get printLogClear => 'Wyczyść log wydruków';
+
+  @override
+  String get printLogClearTitle => 'Wyczyścić cały log wydruków?';
+
+  @override
+  String printLogClearBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zniknie wszystkie $count przebiegów',
+      many: 'Zniknie wszystkie $count przebiegów',
+      few: 'Znikną wszystkie $count przebiegi',
+      one: 'Zniknie jedyny przebieg w logu',
+    );
+    return '$_temp0 — wszystkich użytkowników, nie tylko Twoje — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
+  }
+
+  @override
+  String printLogCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usunięto $count przebiegów',
+      many: 'Usunięto $count przebiegów',
+      few: 'Usunięto $count przebiegi',
+      one: 'Usunięto $count przebieg',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get printLogClearFailed => 'Nie udało się wyczyścić logu wydruków';
+
+  @override
+  String get failureReasonAdhesion => 'Brak przyczepności do stołu';
+
+  @override
+  String get failureReasonSpaghetti => 'Spaghetti / oderwany wydruk';
+
+  @override
+  String get failureReasonLayerShift => 'Przesunięcie warstw';
+
+  @override
+  String get failureReasonCloggedNozzle => 'Zapchana dysza';
+
+  @override
+  String get failureReasonFilamentRunout => 'Koniec filamentu';
+
+  @override
+  String get failureReasonWarping => 'Odkształcenie (warping)';
+
+  @override
+  String get failureReasonStringing => 'Nitkowanie';
+
+  @override
+  String get failureReasonUnderExtrusion => 'Niedomiar ekstruzji';
+
+  @override
+  String get failureReasonPowerFailure => 'Zanik zasilania';
+
+  @override
+  String get failureReasonUserCancelled => 'Anulowany przez użytkownika';
+
+  @override
+  String get failureReasonOther => 'Inna';
+
+  @override
+  String get failureReasonUnknown => 'Nieznana';
 }

@@ -5,13 +5,18 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
@@ -30,7 +35,6 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final t = DashTokens.of(context);
     final async = ref.watch(projectDetailProvider(projectId));
 
     return DashBackground(
@@ -50,39 +54,12 @@ class ProjectDetailScreen extends ConsumerWidget {
             ],
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.cloud_off, size: 48, color: t.textTertiary),
-                  const SizedBox(height: 12),
-                  Text(
-                    err is AppApiException
-                        ? err.localized(l10n)
-                        : l10n.connectFailed,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      color: t.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    style: dashPrimaryButtonStyle(t),
-                    onPressed: () => ref
-                        .read(projectDetailProvider(projectId).notifier)
-                        .refresh(),
-                    child: Text(l10n.retry),
-                  ).tagged('project.retry'),
-                ],
-              ),
-            ),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () =>
+              ref.read(projectDetailProvider(projectId).notifier).refresh(),
+          skipLoadingOnRefresh: false,
           data: (project) => RefreshIndicator(
             onRefresh: () async {
               // The per-file counts move whenever a print finishes, and they
@@ -92,7 +69,10 @@ class ProjectDetailScreen extends ConsumerWidget {
               await ref.read(projectDetailProvider(projectId).notifier).refresh();
             },
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.only(bottom: 32),
+              ),
               children: [
                 _Header(project: project),
                 if (project.stats != null)
@@ -152,12 +132,7 @@ class _Header extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             project.name,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: t.textPrimary,
-                            ),
+                            style: t.display,
                           ),
                         ),
                       ],
@@ -172,12 +147,9 @@ class _Header extends ConsumerWidget {
                         _DashTag(label: projectPriorityLabel(l10n, project.priority)),
                         if (project.dueDateParsed != null)
                           Text(
-                            l10n.projectDueOn(_fmtDate(project.dueDateParsed!)),
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontMono,
-                              fontSize: 11.5,
-                              color: t.textTertiary,
-                            ),
+                            l10n.projectDueOn(DateTimeFormats.of(context)
+                                .date(project.dueDateParsed!)),
+                            style: t.monoMicro,
                           ),
                       ],
                     ),
@@ -190,12 +162,7 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               project.description!,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w500,
-                color: t.textSecondary,
-              ),
+              style: t.bodySoft,
             ),
           ],
           if (project.url != null && project.url!.isNotEmpty) ...[
@@ -212,12 +179,7 @@ class _Header extends ConsumerWidget {
                       project.url!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.accentGreenInk,
-                      ),
+                      style: t.body.copyWith(color: t.accentGreenInk),
                     ),
                   ),
                 ],
@@ -242,12 +204,7 @@ class _Header extends ConsumerWidget {
                 leading: Icon(Icons.subdirectory_arrow_right, color: t.textSecondary),
                 title: Text(
                   project.parentName ?? '#${project.parentId}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
                 onTap: () => context.push('/projects/${project.parentId}'),
               ).tagged('project.parent'),
@@ -256,12 +213,7 @@ class _Header extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               l10n.projectChildren,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -275,12 +227,7 @@ class _Header extends ConsumerWidget {
                     avatar: ProjectColorDot(color: child.color),
                     label: Text(
                       child.name,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.label.copyWith(color: t.textPrimary),
                     ),
                     onPressed: () => context.push('/projects/${child.id}'),
                   ).tagged('project.child'),
@@ -292,8 +239,6 @@ class _Header extends ConsumerWidget {
     );
   }
 
-  String _fmtDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// Neutral pill tag (priority, free-form tags) — same shape family as
@@ -315,12 +260,7 @@ class _DashTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: t.textSecondary,
-        ),
+        style: t.micro.copyWith(color: t.textSecondary),
       ),
     );
   }
@@ -407,23 +347,13 @@ class _ProgressRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
             Text(
               trailing == null
                   ? '${percent.toStringAsFixed(0)}%'
                   : '${percent.toStringAsFixed(0)}% · $trailing',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -529,23 +459,13 @@ class _StatTile extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleMd,
                 ),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: t.textTertiary,
-                  ),
+                  style: t.micro,
                 ),
               ],
             ),
@@ -581,12 +501,7 @@ class _NotesSection extends ConsumerWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Text(
           hasNotes ? notes : l10n.projectNotesEmpty,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            color: hasNotes ? t.textPrimary : t.textTertiary,
-          ),
+          style: t.bodySoft.copyWith(color: hasNotes ? t.textPrimary : t.textTertiary),
         ),
       ),
     );
@@ -603,9 +518,7 @@ class _NotesSection extends ConsumerWidget {
     final result = await ref
         .read(projectDetailProvider(project.id).notifier)
         .save(ProjectUpdate(notes: saved));
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
   }
 }
 
@@ -730,7 +643,7 @@ class _OverflowMenu extends ConsumerWidget {
       PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverUpdated)));
+      messenger.snack(l10n.projectCoverUpdated);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.cover_upload');
     }
@@ -744,7 +657,7 @@ class _OverflowMenu extends ConsumerWidget {
       PaintingBinding.instance.imageCache.clear();
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
       ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectCoverRemoved)));
+      messenger.snack(l10n.projectCoverRemoved);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.cover_delete');
     }
@@ -762,10 +675,10 @@ class _OverflowMenu extends ConsumerWidget {
         dialogTitle: l10n.projectMenuExport,
       );
       if (path == null) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.projectSaveCancelled)));
+        messenger.snack(l10n.projectSaveCancelled);
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectExported(path))));
+      messenger.snack(l10n.projectExported(path));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.export');
     }
@@ -777,7 +690,7 @@ class _OverflowMenu extends ConsumerWidget {
     try {
       await ref.read(projectsRepositoryProvider).createTemplate(project.id);
       ref.invalidate(projectTemplatesProvider);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectTemplateCreated)));
+      messenger.snack(l10n.projectTemplateCreated);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.create_template');
     }
@@ -797,9 +710,7 @@ class _OverflowMenu extends ConsumerWidget {
     );
     if (!confirmed) return;
     final result = await ref.read(projectsListProvider.notifier).delete(project.id);
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectDeleted),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectDeleted);
     if (result.isOk) navigator.pop();
   }
 }

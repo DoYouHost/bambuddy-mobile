@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
-import '../common/state_views.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
+import '../common/system_insets.dart';
 import 'stats_common.dart';
 import 'stats_providers.dart';
 import 'stats_sections.dart';
@@ -41,16 +43,14 @@ class StatisticsScreen extends ConsumerWidget {
             ref.invalidate(failureAnalysisProvider);
             await ref.read(statsProvider.notifier).refresh();
           },
-          child: stats.when(
-            loading: () => const _Centered(child: CircularProgressIndicator()),
-            error: (e, _) => AsyncErrorView(
-              message: e is AppApiException
-                  ? e.localized(l10n)
-                  : l10n.statsLoadFailed,
-              onRetry: () => ref.read(statsProvider.notifier).refresh(),
-              retryLabel: l10n.retry,
-              scrollable: true,
-            ),
+          child: dashAsync(
+            context,
+            stats,
+            onRetry: () => ref.read(statsProvider.notifier).refresh(),
+            fallbackMessage: l10n.statsLoadFailed,
+            scrollableError: true,
+            skipLoadingOnReload: false,
+            skipLoadingOnRefresh: false,
             data: (data) => _StatsBody(data: data),
           ),
         ),
@@ -209,11 +209,14 @@ class _StatsBody extends ConsumerWidget {
       );
     }
 
-    final locale = Localizations.localeOf(context).languageCode;
+    final fmt = DateTimeFormats.of(context);
     final computed = ref.watch(statsComputedProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      padding: withSystemNavInset(
+        context,
+        const EdgeInsets.fromLTRB(12, 12, 12, 24),
+      ),
       children: [
         _OverviewCard(data: data),
         const SizedBox(height: 12),
@@ -233,27 +236,27 @@ class _StatsBody extends ConsumerWidget {
         ...computed.when(
           loading: () => const [
             SizedBox(height: 12),
-            SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+            SizedBox(height: 80, child: DashLoading()),
           ],
           error: (_, _) => const [],
           data: (c) => c.isEmpty
               ? const <Widget>[]
               : [
                   const SizedBox(height: 12),
-                  PrintActivityCard(data: c, locale: locale),
+                  PrintActivityCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
-                  RecordsCard(data: c, locale: locale),
+                  RecordsCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
                   PrinterStatsCard(data: c),
                   const SizedBox(height: 12),
                   FilamentTrendsHeader(stats: data),
                   const SizedBox(height: 12),
-                  UsageOverTimeCard(data: c, locale: locale),
+                  UsageOverTimeCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
                   // Per-print energy only reaches us from a 1.2.5.2 server, and
                   // only once energy tracking has recorded something.
                   if (c.hasEnergyData) ...[
-                    EnergyOverTimeCard(data: c, locale: locale),
+                    EnergyOverTimeCard(data: c, fmt: fmt),
                     const SizedBox(height: 12),
                   ],
                   ByMaterialCard(data: c),
@@ -264,9 +267,9 @@ class _StatsBody extends ConsumerWidget {
                   const SizedBox(height: 12),
                   DurationHistogramCard(data: c),
                   const SizedBox(height: 12),
-                  HabitsCard(data: c, locale: locale),
+                  HabitsCard(data: c, fmt: fmt),
                   const SizedBox(height: 12),
-                  TimeOfDayCard(data: c),
+                  TimeOfDayCard(data: c, fmt: fmt),
                 ],
         ),
       ],
@@ -354,11 +357,7 @@ class _OverviewCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     l10n.statsEnergyWarmingUp,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 11.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.microSoft,
                   ),
                 ),
               ],
@@ -372,22 +371,12 @@ class _OverviewCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.statsTotalCost,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
               ),
               Text(
                 fmtNum(data.totalCost + data.totalEnergyCost),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ],
           ),
@@ -419,23 +408,13 @@ class _StatTile extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: t.textTertiary,
-                ),
+                style: t.micro,
               ),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ],
           ),
@@ -523,12 +502,7 @@ class _TimeAccuracyCard extends StatelessWidget {
             Text(
               l10n.statsTimeAccuracyHint,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: t.textTertiary,
-              ),
+              style: t.label,
             ),
           ],
         ),

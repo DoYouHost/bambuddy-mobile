@@ -1,20 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../core/models/slicer_preset.dart';
 import '../../core/models/spool_label.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../../data/inventory_source.dart' show InventoryBackend;
 import '../../providers.dart';
+import '../../router.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/dashed_line.dart';
+import '../common/filter_controls.dart';
+import '../common/sheet_surface.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/confirm_dialog.dart';
 import '../common/state_views.dart';
@@ -22,6 +34,7 @@ import '../common/dash_input.dart';
 import '../dashboard/providers.dart';
 import '../dashboard/ws_providers.dart';
 import '../slicer/slice_providers.dart';
+import '../stats/stats_common.dart' show fmtGrams;
 import 'inventory_providers.dart';
 import 'spool_scanner_screen.dart';
 
@@ -30,6 +43,7 @@ part 'inventory_tiles.dart';
 part 'inventory_sheets.dart';
 part 'inventory_form.dart';
 part 'inventory_labels.dart';
+part 'inventory_bulk_edit.dart';
 
 /// Ink for text/icons painted directly on a solid [DashTokens.accentGreen]
 /// fill (e.g. the primary FAB, the save button). Unlike the token pairs above,
@@ -38,82 +52,52 @@ part 'inventory_labels.dart';
 /// either way.
 const Color _onAccentGreen = Color(0xFF08150D);
 
-/// Opaque rounded-top surface for every Filaments bottom sheet. Pairs with
-/// `backgroundColor: Colors.transparent` on the enclosing
-/// `showModalBottomSheet` — that keeps the framework's drag handle, while
-/// this paints the actual dark (or light) sheet fill instead of the default
-/// Material `colorScheme.surface`, which doesn't match the "2a" backdrop.
-/// Rounded-top surface for a Filaments bottom sheet, with its own grab handle
-/// pinned at the top. Used INSIDE each `DraggableScrollableSheet` builder,
-/// wrapping the scroll view ([child]) — NOT the framework `showDragHandle`,
-/// which detaches from a partial-height draggable sheet and floats in the dim
-/// area above it. Gives a distinct top edge (hairline + lift shadow) so the
-/// sheet reads as its own surface above the dimmed backdrop.
-class _SheetSurface extends StatelessWidget {
-  const _SheetSurface({required this.child});
-
-  /// The scroll view (typically a `ListView` bound to the drag controller).
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: t.isDark ? const Color(0xFF0E1310) : const Color(0xFFF6F8F4),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(
-            color: t.isDark ? const Color(0x24FFFFFF) : const Color(0x14000000),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: t.isDark ? 0.5 : 0.22),
-            blurRadius: 40,
-            offset: const Offset(0, -12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: t.isDark
-                  ? const Color(0x40FFFFFF)
-                  : const Color(0x33000000),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-/// Darker scrim for Filaments sheets so the screen behind reads as "dimmed
-/// backdrop", not a half-rendered glitch bleeding through the top.
-const Color _sheetBarrier = Color(0xB3000000); // black @ 70%
-
-/// Scans a spool QR code and opens its detail card (NOT edit mode).
-/// Scanner returns id (parsed from URL `?spool=`); we find the spool in the loaded
-/// list (includes archived, so it should be there). Newly added on server is fetched
-/// with one refresh; if still missing, we report it. Shared by Filaments FAB and
-/// home screen widget (scanner button), hence top-level function (not screen method).
+/// Scans a spool QR code and opens its detail card (NOT edit mode). The
+/// scanner returns the id parsed from the URL's `?spool=`; [showSpoolDetail]
+/// turns it into a card. Shared by the Filaments FAB and the home-screen
+/// widget's scanner button, hence a top-level function and not a screen
+/// method.
 Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
-  final l10n = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
   final id = await Navigator.of(
     context,
     rootNavigator: true,
   ).push<int>(MaterialPageRoute(builder: (_) => const SpoolScannerScreen()));
   if (id == null || !context.mounted) return;
+  await showSpoolDetail(context, ref, id);
+}
+
+/// Lands on Filaments and opens the spool's card there.
+///
+/// For the places outside the tab that name a spool — today the AMS slot sheet
+/// on the dashboard. The tab switch is the point of it: everything the card
+/// leads on to (usage history, editing, unassigning) lives in Filaments, and
+/// opening it over the printer card would hide where the user just went.
+Future<void> openSpoolInInventory(
+  BuildContext context,
+  WidgetRef ref,
+  int spoolId,
+) async {
+  context.go('/inventory');
+  // The sheet goes on the root navigator, above the shell that has just
+  // switched tabs — the branch's own context is the one being replaced.
+  final root = rootNavigatorKey.currentContext;
+  if (root == null) return;
+  await showSpoolDetail(root, ref, spoolId);
+}
+
+/// Opens one spool's detail card, the same the Filaments list opens.
+///
+/// [id] is resolved against the loaded shelf, and a miss is worth one refresh:
+/// a spool created since the list was fetched is the normal case for both
+/// callers — a freshly printed QR label, and a slot just registered from its
+/// chip.
+Future<void> showSpoolDetail(
+  BuildContext context,
+  WidgetRef ref,
+  int id,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
 
   Spool? findSpool() {
     final spools = ref.read(inventoryProvider).valueOrNull?.spools ?? const [];
@@ -130,20 +114,15 @@ Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
   }
   if (!context.mounted) return;
   if (spool == null) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-    );
+    messenger.snack(l10n.inventoryScanNotFound(id));
     return;
   }
   final assignment = ref
       .read(inventoryProvider)
       .valueOrNull
       ?.assignmentFor(spool.id);
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: _sheetBarrier,
+  dashSurfaceSheet<void>(
+    context,
     builder: (_) => _SpoolDetailSheet(spool: spool!, assignment: assignment),
   );
 }
@@ -152,8 +131,9 @@ Future<void> scanSpoolFlow(BuildContext context, WidgetRef ref) async {
 /// history, AMS slot, calibration) and management (CRUD, assignments). Data from
 /// [inventoryProvider] via the selected backend (native/Spoolman).
 ///
-/// Long-pressing a spool enters multi-select mode for bulk reset-usage /
-/// archive / restore / delete / label printing, mirroring the Archive tab.
+/// Long-pressing a spool enters multi-select mode for a mass edit of fields
+/// plus bulk reset-usage / archive / restore / delete / label printing,
+/// mirroring the Archive tab.
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
@@ -187,6 +167,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final async = ref.watch(inventoryProvider);
     final query = ref.watch(inventoryQueryProvider);
     final filters = ref.watch(inventoryFiltersProvider);
+    final consumedTotal = ref.watch(inventoryConsumedTotalProvider);
     final visible = _filter(
       async.valueOrNull?.spools ?? const [],
       query,
@@ -265,19 +246,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ],
               ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
-            retryLabel: l10n.retry,
-            icon: null,
-            tonal: true,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(inventoryProvider.notifier).refresh(),
+          tonalRetry: true,
+          errorIcon: null,
           data: (inv) {
             final spools = visible;
             return RefreshIndicator(
@@ -312,17 +286,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         itemCount: spools.length + 1,
                         itemBuilder: (context, i) {
                           if (i == 0) {
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                              child: Text(
-                                l10n.inventorySpoolCount(spools.length),
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontMono,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.textTertiary,
-                                ),
-                              ),
+                            return _ListHeader(
+                              visibleCount: spools.length,
+                              consumed: consumedTotal,
                             );
                           }
                           final spool = spools[i - 1];
@@ -353,6 +319,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Contextual app bar shown while spools are selected. Print and "select all"
   /// stay as icons (the two non-destructive, most-used actions); the rest live
   /// in an overflow menu so Delete can't be hit by a stray tap.
+  ///
   ///
   /// The list filter is exclusive (active XOR archived), so the whole selection
   /// is homogeneous and one archive/restore entry is always the right one.
@@ -393,12 +360,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
         PopupMenuButton<String>(
           onSelected: (v) => switch (v) {
+            'edit' => _bulkEdit(ids),
             'reset' => _bulkResetUsage(ids),
             'archive' => _bulkArchive(ids),
             'restore' => _bulkRestore(ids),
             _ => _bulkDelete(ids),
           },
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: logTag('inventory.bulk_edit',
+                  Text(l10n.inventoryBulkEdit)),
+            ),
             PopupMenuItem(
               value: 'reset',
               child: logTag('inventory.bulk_reset_usage',
@@ -431,17 +404,30 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// from selection mode (the picked spools) and from the app bar's print
   /// action outside it (every visible spool — "print labels for all").
   void _printLabels(List<Spool> pool, Set<int> preselected) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _LabelSheet(spools: pool, initialSelected: preselected),
     );
   }
 
+  /// Opens the mass-edit sheet. It reports its own refusals — the sheet stays
+  /// open so the typed values survive one — and pops with the tally only when
+  /// the edit actually went through.
+  Future<void> _bulkEdit(Set<int> ids) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome = await dashSurfaceSheet<BulkOutcome>(
+      context,
+      builder: (_) => _BulkEditSheet(spoolIds: ids),
+    );
+    if (outcome == null || !mounted) return;
+    _clearSelection();
+    messenger.snack(_bulkTally(l10n, outcome));
+  }
+
   Future<void> _bulkResetUsage(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_reset_usage',
     title: AppLocalizations.of(context).inventoryBulkResetTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkResetBody,
     confirmLabel: AppLocalizations.of(context).inventoryResetUsage,
@@ -450,6 +436,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkArchive(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_archive',
     title: AppLocalizations.of(context).inventoryBulkArchiveTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkArchiveBody,
     confirmLabel: AppLocalizations.of(context).inventoryArchive,
@@ -458,6 +445,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkRestore(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_restore',
     title: AppLocalizations.of(context).inventoryBulkRestoreTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkRestoreBody,
     confirmLabel: AppLocalizations.of(context).inventoryRestore,
@@ -466,6 +454,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   Future<void> _bulkDelete(Set<int> ids) => _runBulk(
     ids,
+    logId: 'inventory.bulk_delete',
     title: AppLocalizations.of(context).inventoryBulkDeleteTitle(ids.length),
     message: AppLocalizations.of(context).inventoryBulkDeleteBody,
     confirmLabel: AppLocalizations.of(context).inventoryDelete,
@@ -476,12 +465,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Confirm → run a bulk mutation → report the tally. Selection is cleared
   /// either way: the notifier has reloaded, so keeping stale ids around would
   /// only invite a second action on rows that may no longer exist.
+  ///
+  /// A refusal reaches here as an exception now that one request stands for the
+  /// whole selection — a key without `filaments:update` fails the batch outright
+  /// instead of failing every id in turn, and the tally has nothing to say
+  /// about why.
   Future<void> _runBulk(
     Set<int> ids, {
+    required String logId,
     required String title,
     required String message,
     required String confirmLabel,
-    required Future<({int ok, int failed})> Function(InventoryNotifier) action,
+    required Future<BulkOutcome> Function(InventoryNotifier) action,
     bool destructive = false,
   }) async {
     final l10n = AppLocalizations.of(context);
@@ -496,18 +491,41 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     if (!ok || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final res = await action(ref.read(inventoryProvider.notifier));
+    final BulkOutcome res;
+    try {
+      res = await action(ref.read(inventoryProvider.notifier));
+    } on AppApiException catch (e) {
+      if (mounted) _clearSelection();
+      showApiFailure(mounted ? messenger : null, e, l10n, action: logId);
+      return;
+    }
     if (!mounted) return;
     _clearSelection();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          res.failed == 0
-              ? l10n.inventoryBulkDone(res.ok)
-              : l10n.inventoryBulkPartial(res.ok, res.failed),
-        ),
-      ),
-    );
+    messenger.snack(_bulkTally(l10n, res));
+  }
+
+  /// One line for what a bulk call did. A spool that was already in the state
+  /// the user asked for is called out separately: it is not a failure — the
+  /// shelf ends up as intended — but "5 updated" would be a lie when two of
+  /// them were archived already.
+  ///
+  /// All three counts can be non-zero at once on a chunked selection, so they
+  /// are reported together rather than one winning over the others.
+  String _bulkTally(AppLocalizations l10n, BulkOutcome outcome) {
+    if (outcome.failed > 0 && outcome.skipped > 0) {
+      return l10n.inventoryBulkPartialSkipped(
+        outcome.ok,
+        outcome.skipped,
+        outcome.failed,
+      );
+    }
+    if (outcome.failed > 0) {
+      return l10n.inventoryBulkPartial(outcome.ok, outcome.failed);
+    }
+    if (outcome.skipped > 0) {
+      return l10n.inventoryBulkSkipped(outcome.ok, outcome.skipped);
+    }
+    return l10n.inventoryBulkDone(outcome.ok);
   }
 
   /// Client-side filter: status (active/archived), stock, material, brand, location,
@@ -541,11 +559,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   /// Opens the filter sheet. Options (materials/brands/locations) counted from the
   /// full spool list to show only actually occurring values.
   void _openFilters(BuildContext context, List<Spool> all) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _FilterSheet(
         materials: _distinct(all.map((s) => s.material)),
         brands: _distinct(all.map((s) => s.brand)),

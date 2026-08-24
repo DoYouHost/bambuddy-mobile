@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'users_providers.dart';
@@ -58,12 +59,7 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
             const SizedBox(height: 16),
             Text(
               l10n.usersDeleteOwnsCount(total),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
             const SizedBox(height: 4),
             SwitchListTile(
@@ -72,22 +68,13 @@ class _UserDeleteDialogState extends ConsumerState<_UserDeleteDialog> {
               contentPadding: EdgeInsets.zero,
               title: Text(
                 l10n.usersDeleteItemsToo,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.body,
               ),
               subtitle: Text(
                 _deleteItems
                     ? l10n.usersDeleteItemsTooHint
                     : l10n.usersDeleteItemsKeepHint,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textSecondary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textSecondary),
               ),
             ).tagged('user_delete.items'),
           ],

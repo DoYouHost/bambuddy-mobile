@@ -3,12 +3,14 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/format/datetime_format.dart';
 import '../../../core/models/heater_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_async.dart';
+import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// One selectable sensor: the server's key plus the label the card already
@@ -49,10 +51,8 @@ Future<void> showHeaterHistorySheet(
   required List<HeaterKindOption> kinds,
   required String initialKind,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<void>(
+    context,
     builder: (_) => HeaterHistorySheet(
       printerId: printerId,
       kinds: kinds,
@@ -126,19 +126,15 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
               HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
-                labelOf: (h) => _rangeLabel(l10n, h),
+                labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
               const SizedBox(height: 16),
-              async.when(
-                loading: () => const SizedBox(
-                  height: 260,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => SizedBox(
-                  height: 260,
-                  child: Center(child: Text(l10n.sensorHistoryError)),
-                ),
+              dashAsyncStrip(
+                context,
+                async,
+                height: 260,
+                failureMessage: l10n.sensorHistoryError,
                 data: (history) => _Content(
                   series: history.seriesFor(_kind),
                   color: _kindColor(_kind),
@@ -158,13 +154,6 @@ class _HeaterHistorySheetState extends ConsumerState<HeaterHistorySheet> {
       ),
     );
   }
-
-  String _rangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-        6 => l10n.sensorHistoryRange6h,
-        48 => l10n.sensorHistoryRange48h,
-        168 => l10n.sensorHistoryRange7d,
-        _ => l10n.sensorHistoryRange24h,
-      };
 
   /// Same hue per sensor as the live tile reads: hot end orange, bed blue,
   /// chamber green.
@@ -256,7 +245,8 @@ class _Content extends StatelessWidget {
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
-    final timeFmt = hours > 24 ? DateFormat.Md() : DateFormat.Hm();
+    final fmt = DateTimeFormats.of(context);
+    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
 
     // Auto-scale to the readings AND the setpoints — a cold nozzle under a 250°
     // target would otherwise push the dashed line off the top of the chart.
@@ -293,7 +283,7 @@ class _Content extends StatelessWidget {
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                timeFmt.format(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
+                axisLabel(DateTime.fromMillisecondsSinceEpoch(v.toInt())),
                 style: axis,
               ),
             ),

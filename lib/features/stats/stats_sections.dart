@@ -3,11 +3,18 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/archive_stats.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../common/dash_async.dart';
+import '../common/hex_color.dart';
+import '../common/print_run_labels.dart';
 import 'stats_common.dart';
 import 'stats_computed.dart';
 import 'stats_providers.dart';
@@ -26,18 +33,23 @@ class FailureAnalysisCard extends ConsumerWidget {
     final async = ref.watch(failureAnalysisProvider);
     return SectionCard(
       title: l10n.statsFailureAnalysis,
-      child: async.when(
-        loading: () => const SizedBox(
-          height: 80,
-          child: Center(child: CircularProgressIndicator()),
+      // The causes this card groups by are set per run in the print log, and
+      // that is the only place they can be set — so the widget that shows a
+      // pile of "Unknown" is also the way to go and name them.
+      trailing: logTag(
+        'stats.open_print_log',
+        IconButton(
+          icon: const Icon(Icons.receipt_long_outlined, size: 20),
+          tooltip: l10n.printLogTitle,
+          visualDensity: VisualDensity.compact,
+          onPressed: () => context.push('/print-log'),
         ),
-        error: (_, _) => SizedBox(
-          height: 60,
-          child: Center(
-            child: Text(l10n.statsLoadFailed,
-                style: TextStyle(fontFamily: DashTokens.fontUi, color: t.textSecondary)),
-          ),
-        ),
+      ),
+      child: dashAsyncStrip(
+        context,
+        async,
+        height: 80,
+        failureMessage: l10n.statsLoadFailed,
         data: (f) {
           final rateColor = f.failureRate <= 5
               ? t.accentGreen
@@ -52,23 +64,14 @@ class FailureAnalysisCard extends ConsumerWidget {
                 children: [
                   Text(
                     '${fmtNum(f.failureRate)}%',
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: rateColor,
-                    ),
+                    style: t.monoDisplay.copyWith(color: rateColor),
                   ),
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       rangeLabel,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        color: t.textTertiary,
-                      ),
+                      style: t.labelSoft,
                     ),
                   ),
                 ],
@@ -76,12 +79,7 @@ class FailureAnalysisCard extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 l10n.statsFailedOfTotal(f.failedPrints, f.totalPrints),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: t.textTertiary,
-                ),
+                style: t.label,
               ),
               if (reasons.isEmpty)
                 Padding(
@@ -95,12 +93,7 @@ class FailureAnalysisCard extends ConsumerWidget {
                 const SizedBox(height: 14),
                 Text(
                   l10n.statsTopFailureReasons,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: t.accentGreenInk,
-                  ),
+                  style: t.micro.copyWith(color: t.accentGreenInk),
                 ),
                 const SizedBox(height: 6),
                 for (final e in reasons.take(5))
@@ -110,24 +103,16 @@ class FailureAnalysisCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            e.key,
+                            // The server groups by its own i18n key, so the
+                            // raw map key reads `filamentRunout` on screen.
+                            failureReasonLabel(l10n, e.key),
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: t.textSecondary,
-                            ),
+                            style: t.bodySoft,
                           ),
                         ),
                         Text(
                           '${e.value}',
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.monoValue,
                         ),
                       ],
                     ),
@@ -144,10 +129,10 @@ class FailureAnalysisCard extends ConsumerWidget {
 // ── Print Activity (heatmapa) ───────────────────────────────────────────────
 
 class PrintActivityCard extends StatelessWidget {
-  const PrintActivityCard({super.key, required this.data, required this.locale});
+  const PrintActivityCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   static const _margin = 3.0;
   static const _labelW = 30.0;
@@ -178,11 +163,7 @@ class PrintActivityCard extends StatelessWidget {
         : fullStartMonday;
 
     final track = t.gaugeTrack;
-    final labelStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 10,
-      color: t.textTertiary,
-    );
+    final labelStyle = t.microSoft;
 
     Color cellColor(DateTime day) {
       final n = days[day] ?? 0;
@@ -192,10 +173,8 @@ class PrintActivityCard extends StatelessWidget {
 
     DateTime dayAt(int w, int d) => startMonday.add(Duration(days: w * 7 + d));
 
-    // Short weekday names in locale.
-    final wd = DateFormat.E(locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    String weekdayLabel(int d) => d.isEven ? wd[(d + 1) % 7] : '';
-    final monthFmt = DateFormat.MMM(locale);
+    final wd = fmt.shortWeekdaysMondayFirst;
+    String weekdayLabel(int d) => d.isEven ? wd[d] : '';
 
     return SectionCard(
       title: l10n.statsPrintActivity,
@@ -221,7 +200,7 @@ class PrintActivityCard extends StatelessWidget {
                       width: colW,
                       child: (w == 0 ||
                               dayAt(w, 0).month != dayAt(w - 1, 0).month)
-                          ? Text(monthFmt.format(dayAt(w, 0)),
+                          ? Text(fmt.monthAbbr(dayAt(w, 0)),
                               style: labelStyle, overflow: TextOverflow.visible)
                           : null,
                     ),
@@ -305,10 +284,10 @@ class PrintActivityCard extends StatelessWidget {
 // ── Records ─────────────────────────────────────────────────────────────────
 
 class RecordsCard extends StatelessWidget {
-  const RecordsCard({super.key, required this.data, required this.locale});
+  const RecordsCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) {
@@ -322,7 +301,7 @@ class RecordsCard extends StatelessWidget {
     final longest = data.longest;
     if (longest?.effectiveSeconds != null) {
       add(Icons.schedule, l10n.statsLongestPrint,
-          fmtDuration(longest!.effectiveSeconds!), longest.printName);
+          formatSeconds(l10n, longest!.effectiveSeconds!), longest.printName);
     }
     final heaviest = data.heaviest;
     if (heaviest?.filamentUsedGrams != null) {
@@ -344,7 +323,7 @@ class RecordsCard extends StatelessWidget {
     if (data.busiestDay != null) {
       add(Icons.calendar_today, l10n.statsBusiestDay,
           l10n.statsPrintsCount(data.busiestDayCount),
-          DateFormat.yMMMd(locale).format(data.busiestDay!));
+          fmt.dateNamedMonth(data.busiestDay!));
     }
     if (data.bestSuccessStreak > 0) {
       add(Icons.bolt, l10n.statsSuccessStreak,
@@ -387,23 +366,14 @@ class _RecordRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: t.textSecondary,
-                  ),
+                  style: t.label.copyWith(color: t.textSecondary),
                 ),
                 if (sub != null)
                   Text(
                     sub!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 11.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.microSoft,
                   ),
               ],
             ),
@@ -411,12 +381,7 @@ class _RecordRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: t.textPrimary,
-            ),
+            style: t.monoTitle,
           ),
         ],
       ),
@@ -448,23 +413,13 @@ class BarList extends StatelessWidget {
                       rows[i].label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     rows[i].value,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: t.textTertiary,
-                    ),
+                    style: t.monoLabel,
                   ),
                 ],
               ),
@@ -521,7 +476,7 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
           for (final e in entries)
             (
               label: names[e.key] ?? l10n.statsPrinterFallback('${e.key}'),
-              value: _metric.format(_metric.of(e.value)),
+              value: _metric.format(l10n, _metric.of(e.value)),
               fraction: _metric.of(e.value) / maxVal,
               color: null,
             ),
@@ -581,21 +536,11 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w500,
-            color: t.textTertiary,
-          ),
+          style: t.micro,
         ),
         Text(
           value,
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: t.textPrimary,
-          ),
+          style: t.monoTitle,
         ),
       ],
     );
@@ -605,16 +550,16 @@ class _Metric extends StatelessWidget {
 // ── Usage / energy over time (line charts) ──────────────────────────────
 
 class UsageOverTimeCard extends StatelessWidget {
-  const UsageOverTimeCard({super.key, required this.data, required this.locale});
+  const UsageOverTimeCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
         title: AppLocalizations.of(context).statsUsageOverTime,
         points: data.usageOverTime,
-        locale: locale,
+        fmt: fmt,
         color: DashTokens.of(context).accentGreen,
         formatY: (v) =>
             v >= 1000 ? '${(v / 1000).toStringAsFixed(1)}k' : v.toInt().toString(),
@@ -626,16 +571,16 @@ class UsageOverTimeCard extends StatelessWidget {
 /// and an older one (or an install that never had energy tracking on) would
 /// otherwise get a flat zero line reading as "you used no power".
 class EnergyOverTimeCard extends StatelessWidget {
-  const EnergyOverTimeCard({super.key, required this.data, required this.locale});
+  const EnergyOverTimeCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) => _OverTimeChart(
         title: AppLocalizations.of(context).statsEnergyOverTime,
         points: data.energyOverTime,
-        locale: locale,
+        fmt: fmt,
         color: DashTokens.of(context).accentBlue,
         // kWh per day lands in single digits, where the filament chart's
         // integer axis would collapse every day into "0" or "1".
@@ -647,14 +592,14 @@ class _OverTimeChart extends StatelessWidget {
   const _OverTimeChart({
     required this.title,
     required this.points,
-    required this.locale,
+    required this.fmt,
     required this.color,
     required this.formatY,
   });
 
   final String title;
   final List<MapEntry<DateTime, double>> points;
-  final String locale;
+  final DateTimeFormats fmt;
   final Color color;
   final String Function(double) formatY;
 
@@ -662,11 +607,7 @@ class _OverTimeChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final axisStyle = TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 10.5,
-      color: t.textTertiary,
-    );
+    final axisStyle = t.monoMicro;
     if (points.length < 2) {
       return SectionCard(
         title: title,
@@ -684,7 +625,6 @@ class _OverTimeChart extends StatelessWidget {
         FlSpot(i.toDouble(), points[i].value),
     ];
     final maxY = points.fold<double>(1, (m, e) => math.max(m, e.value));
-    final df = DateFormat.MMMd(locale);
 
     return SectionCard(
       title: title,
@@ -717,7 +657,7 @@ class _OverTimeChart extends StatelessWidget {
                     if (i < 0 || i >= points.length) return const SizedBox.shrink();
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(df.format(points[i].key), style: axisStyle),
+                      child: Text(fmt.dayNamedMonth(points[i].key), style: axisStyle),
                     );
                   },
                 ),
@@ -846,13 +786,8 @@ class _ByMaterialCardState extends State<ByMaterialCard> {
                           ),
                         ),
                         Text(
-                          '${_metric.format(_metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          '${_metric.format(l10n, _metric.of(entries[i].value))} · ${total == 0 ? 0 : (_metric.of(entries[i].value) / total * 100).round()}%',
+                          style: t.monoLabel,
                         ),
                       ],
                     ),
@@ -949,11 +884,7 @@ class ColorDistributionCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               l10n.statsColorShareHint,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.microSoft,
             ),
           ),
           Row(
@@ -1002,20 +933,11 @@ class ColorDistributionCard extends StatelessWidget {
                           children: [
                             Text(
                               fmtGrams(total),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: t.textPrimary,
-                              ),
+                              style: t.monoValue,
                             ),
                             Text(
                               l10n.statsColorsCount(entries.length),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 11,
-                                color: t.textTertiary,
-                              ),
+                              style: t.microSoft,
                             ),
                           ],
                         ),
@@ -1045,11 +967,7 @@ class ColorDistributionCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 10),
               child: Text(
                 l10n.statsMoreCount(moreCount),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 11.5,
-                  color: t.textTertiary,
-                ),
+                style: t.microSoft,
               ),
             ),
         ],
@@ -1090,12 +1008,7 @@ class _ColorChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.monoLabel.copyWith(color: t.textPrimary),
           ),
         ],
       ),
@@ -1118,11 +1031,7 @@ class _BarHistogram extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
-    final axisStyle = TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 10.5,
-      color: t.textTertiary,
-    );
+    final axisStyle = t.monoMicro;
     final maxY = values.fold<double>(1, math.max);
     return SizedBox(
       height: 170,
@@ -1197,10 +1106,10 @@ class DurationHistogramCard extends StatelessWidget {
 }
 
 class HabitsCard extends StatefulWidget {
-  const HabitsCard({super.key, required this.data, required this.locale});
+  const HabitsCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
-  final String locale;
+  final DateTimeFormats fmt;
 
   @override
   State<HabitsCard> createState() => _HabitsCardState();
@@ -1212,9 +1121,7 @@ class _HabitsCardState extends State<HabitsCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Short weekday names in user's locale.
-    final symbols = DateFormat.E(widget.locale).dateSymbols.STANDALONESHORTWEEKDAYS;
-    final labels = [for (var i = 1; i <= 7; i++) symbols[i % 7]];
+    final labels = widget.fmt.shortWeekdaysMondayFirst;
     return SectionCard(
       title: l10n.statsPrintHabits,
       trailing: MetricToggle(
@@ -1230,9 +1137,10 @@ class _HabitsCardState extends State<HabitsCard> {
 }
 
 class TimeOfDayCard extends StatelessWidget {
-  const TimeOfDayCard({super.key, required this.data});
+  const TimeOfDayCard({super.key, required this.data, required this.fmt});
 
   final StatsComputed data;
+  final DateTimeFormats fmt;
 
   @override
   Widget build(BuildContext context) {
@@ -1242,8 +1150,7 @@ class TimeOfDayCard extends StatelessWidget {
       child: _BarHistogram(
         values: data.byHour.map((e) => e.toDouble()).toList(),
         labels: [
-          for (var h = 0; h < 24; h++)
-            h % 6 == 0 ? '${h.toString().padLeft(2, '0')}:00' : '',
+          for (var h = 0; h < 24; h++) h % 6 == 0 ? fmt.hourOfDay(h) : '',
         ],
         everyLabel: 6,
       ),

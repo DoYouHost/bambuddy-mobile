@@ -3,12 +3,14 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_async.dart';
+import '../../common/dash_sheet.dart';
 import 'history_chart_parts.dart';
 
 /// Which metric the AMS history chart is showing.
@@ -74,10 +76,8 @@ Future<void> showAmsHistorySheet(
   required String amsLabel,
   AmsHistoryMetric initialMetric = AmsHistoryMetric.humidity,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<void>(
+    context,
     builder: (_) => AmsHistorySheet(
       printerId: printerId,
       amsId: amsId,
@@ -168,19 +168,15 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
               HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
-                labelOf: (h) => _rangeLabel(l10n, h),
+                labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
               const SizedBox(height: 16),
-              async.when(
-                loading: () => const SizedBox(
-                  height: 260,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => SizedBox(
-                  height: 260,
-                  child: Center(child: Text(l10n.sensorHistoryError)),
-                ),
+              dashAsyncStrip(
+                context,
+                async,
+                height: 260,
+                failureMessage: l10n.sensorHistoryError,
                 data: (history) => _Content(
                   history: history,
                   isHumidity: isHumidity,
@@ -203,12 +199,6 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     );
   }
 
-  String _rangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-        6 => l10n.sensorHistoryRange6h,
-        48 => l10n.sensorHistoryRange48h,
-        168 => l10n.sensorHistoryRange7d,
-        _ => l10n.sensorHistoryRange24h,
-      };
 }
 
 class _Content extends StatelessWidget {
@@ -288,7 +278,8 @@ class _Content extends StatelessWidget {
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
-    final timeFmt = hours > 24 ? DateFormat.Md() : DateFormat.Hm();
+    final fmt = DateTimeFormats.of(context);
+    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
 
     // Humidity has a natural 0..100 scale; temperature auto-scales but must keep
     // the Good/Fair lines in view, so widen the range to include them.
@@ -343,7 +334,7 @@ class _Content extends StatelessWidget {
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                timeFmt.format(
+                axisLabel(
                   DateTime.fromMillisecondsSinceEpoch(v.toInt()),
                 ),
                 style: axis,

@@ -14,12 +14,15 @@ import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/models/ams_filament_preset.dart';
 import '../../../core/models/inventory_reference.dart';
 import '../../../core/models/k_profile.dart';
+import '../../../core/theme/dash_text.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../../common/confirm_dialog.dart';
 import '../../common/dash_input.dart';
 import '../../../l10n/error_messages.dart';
+import '../../common/dash_progress.dart';
+import '../../common/dash_snack.dart';
 import '../../inventory/inventory_providers.dart' show colorCatalogProvider;
 import '../../inventory/inventory_screen.dart' show SpoolSwatch, parseSpoolColor;
 import '../ams_slot_config_providers.dart';
@@ -216,11 +219,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                   TextField(
                     controller: _search,
                     onChanged: (_) => setState(() {}),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      color: t.textPrimary,
-                    ),
+                    style: t.bodyPlain.copyWith(color: t.textPrimary),
                     decoration: dashDecoration(
                       t,
                       hintText: l10n.amsSlotConfigSearch,
@@ -238,7 +237,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             Expanded(
               child: switch (sources) {
                 AsyncLoading() =>
-                  const Center(child: CircularProgressIndicator()),
+                  const DashLoading(),
                 AsyncError() => _scrollableMessage(t, l10n.amsSlotConfigEmpty),
                 _ => _presetList(l10n, t, view!),
               },
@@ -356,12 +355,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
               const SizedBox(width: 8),
               Text(
                 (_colour ?? 'FFFFFF').toUpperCase(),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.monoValue,
               ),
             ],
           ),
@@ -452,7 +446,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     final matching = choices?.matching ?? const <KProfile>[];
     final other = choices?.other ?? const <KProfile>[];
 
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'ams_slot_config.k_profile',
       initialSelection: _kProfile?.optionId ?? '',
       label: Text(l10n.amsSlotConfigKProfile),
       // Says why there is nothing to pick, which the field alone cannot: an
@@ -470,23 +466,12 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
         (false, false) => null,
       },
       enabled: matching.isNotEmpty || other.isNotEmpty,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      // A select, not a combo: focusing it would raise the keyboard over the
-      // list the user is about to scroll.
-      requestFocusOnTap: false,
-      textStyle: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: t.textPrimary,
-      ),
-      inputDecorationTheme: dashInputTheme(t),
+      textStyle: t.body,
       onSelected: (value) => setState(() {
         _kProfile = choices?.byOptionId(value);
         _kProfileAnswered = true;
       }),
-      dropdownMenuEntries: [
+      entries: [
         entry('', l10n.amsSlotConfigKProfileDefault(k.format(_defaultK))),
         for (final p in matching) entry(p.optionId, labelFor(p)),
         if (other.isNotEmpty) ...[
@@ -496,7 +481,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
           for (final p in other) entry(p.optionId, labelFor(p)),
         ],
       ],
-    ).tagged('ams_slot_config.k_profile');
+    );
   }
 
   /// What the picker shows for the current search and filter state, plus what
@@ -662,12 +647,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                       preset.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -677,13 +657,9 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
                           ? '${l10n.amsSlotConfigCurrent} · '
                               '${_tierLabel(l10n, preset.source)}'
                           : _tierLabel(l10n, preset.source),
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11,
-                        color: preset.pickerId == _currentPresetId
+                      style: t.microSoft.copyWith(color: preset.pickerId == _currentPresetId
                             ? t.accentGreenInk
-                            : t.textTertiary,
-                      ),
+                            : t.textTertiary),
                     ),
                   ],
                 ),
@@ -710,11 +686,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             Expanded(
               child: Text(
                 l10n.amsSlotConfigCloudHint,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textPrimary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textPrimary),
               ),
             ),
             TextButton(
@@ -766,11 +738,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
             FilledButton(
               onPressed: busy || _picked == null ? null : () => _apply(l10n),
               child: busy
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner()
                   : Text(l10n.amsSlotConfigApply),
             ).tagged('ams_slot_config.apply'),
             const SizedBox(height: 4),
@@ -891,9 +859,7 @@ class _AmsSlotConfigSheetState extends ConsumerState<AmsSlotConfigSheet> {
     ref.invalidate(slotPresetProvider(widget.target.key));
     if (!mounted) return;
     navigator.pop();
-    messenger.showSnackBar(
-      SnackBar(content: Text(outcome.messageFor(l10n) ?? succeeded())),
-    );
+    messenger.snack(outcome.messageFor(l10n) ?? succeeded());
   }
 
   String _tierLabel(AppLocalizations l10n, AmsPresetSource source) =>
@@ -1025,12 +991,7 @@ class _ColourDialogState extends ConsumerState<_ColourDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text(
           text,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.micro,
         ),
       );
 }

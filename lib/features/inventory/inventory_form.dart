@@ -86,17 +86,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     super.dispose();
   }
 
-  String? _trim(String key) {
-    final v = _c[key]!.text.trim();
-    return v.isEmpty ? null : v;
-  }
+  String? _trim(String key) => _trimmedField(_c, key);
 
-  /// Parses an integer-typed weight field with the same tolerance as its
-  /// validator (`double.tryParse`) — a plain `int.tryParse` would silently
-  /// drop a value like "1000.5" (passes validation as a valid number, but
-  /// isn't a valid int), sending `null` instead of a rounded weight.
-  int? _parseIntField(String key) =>
-      double.tryParse(_c[key]!.text.trim())?.round();
+  int? _parseIntField(String key) => _intField(_c, key);
 
   /// Measured weight is gross (filament + empty spool/core). After entering scale
   /// reading, calculate remaining filament: remaining = measured − empty spool weight.
@@ -180,7 +172,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       }
       if (!mounted) return;
       Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       showApiFailure(mounted ? messenger : null, e, l10n,
@@ -188,7 +180,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.inventorySaveFailed)));
+      messenger.snack(l10n.inventorySaveFailed);
     }
   }
 
@@ -208,7 +200,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       initialChildSize: 0.9,
       maxChildSize: 0.95,
       minChildSize: 0.5,
-      builder: (context, controller) => _SheetSurface(child: Form(
+      builder: (context, controller) => SheetSurface(child: Form(
         key: _formKey,
         child: ListView(
           controller: controller,
@@ -225,12 +217,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 Expanded(
                   child: Text(
                     _isEdit ? l10n.inventoryEditSpool : l10n.inventoryNewSpool,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: t.textPrimary,
-                    ),
+                    style: t.display,
                   ),
                 ),
                 // Bulk "restock": how many identical spools to create. Header
@@ -341,14 +328,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 ),
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _onAccentGreen,
-                        ),
-                      )
+                    ? DashSpinner(size: 20, color: _onAccentGreen)
                     : Text(
                         !_isEdit && _quantity > 1
                             ? l10n.inventoryAddSpools(_quantity)
@@ -377,47 +357,37 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     String? errorText,
   }) {
     final t = DashTokens.of(context);
-    return logTag(
-      _fieldTag(key),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: DropdownMenu<String>(
-          controller: _c[key],
-          label: Text(required ? '$label *' : label),
-          expandedInsets: EdgeInsets.zero,
-          enableFilter: true,
-          requestFocusOnTap: true,
-          menuHeight: 320,
-          errorText: errorText,
-          textStyle: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
-          inputDecorationTheme: dashInputTheme(t),
-          onSelected: (v) {
-            if (required && v != null && v.isNotEmpty) {
-              setState(() => _materialMissing = false);
-            }
-          },
-          dropdownMenuEntries: [
-            // The menu opens in a route of its own, so the field's tag stays
-            // behind. `logTagMaterial` keeps the pick out of the identifier:
-            // on the material combo it rides in `mat`, and a brand or variant
-            // is not a known material, so it falls back to the bare id.
-            for (final o in options)
-              DropdownMenuEntry(
-                value: o,
-                label: o,
-                labelWidget:
-                    logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
-              ),
-          ],
-        ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: dashCombo<String>(
+        context,
+        id: _fieldTag(key),
+        controller: _c[key],
+        label: Text(required ? '$label *' : label),
+        errorText: errorText,
+        filterable: true,
+        textStyle: t.body,
+        onSelected: (v) {
+          if (required && v != null && v.isNotEmpty) {
+            setState(() => _materialMissing = false);
+          }
+        },
+        entries: [
+          // `logTagMaterial` keeps the pick out of the identifier: on the
+          // material combo it rides in `mat`, and a brand or variant is not a
+          // known material, so it falls back to the bare id.
+          for (final o in options)
+            DropdownMenuEntry(
+              value: o,
+              label: o,
+              labelWidget:
+                  logTagMaterial('${_fieldTag(key)}.option', o, Text(o)),
+            ),
+        ],
+      ),
     );
   }
+
 
   /// Empty Spool Weight field: a searchable picker from the core catalog (sets
   /// weight + id) beside an editable weight in grams. If catalog empty — weight
@@ -428,12 +398,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       width: cores.isEmpty ? null : 110,
       child: TextFormField(
         controller: _c['coreWeight'],
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        ),
+        style: t.body,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: dashDecoration(t, labelText: 'g'),
         onChanged: (_) => setState(() => _coreWeightCatalogId = null),
@@ -478,12 +443,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
                 ),
                 child: Text(
                   selected?.name ?? l10n.inventoryCoreWeightSelect,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: selected == null ? t.textTertiary : t.textPrimary,
-                  ),
+                  style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -499,11 +459,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Opens the searchable empty-spool (core weight) picker; on selection stores
   /// the catalog id and fills the weight box from the chosen entry.
   Future<void> _openCoreWeightPicker(AppLocalizations l10n) async {
-    final picked = await showModalBottomSheet<CoreWeightEntry>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final picked = await dashSurfaceSheet<CoreWeightEntry>(
+      context,
       builder: (_) => const _CoreWeightPicker(),
     );
     if (picked == null || !mounted) return;
@@ -521,12 +478,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       child: DropdownButtonFormField<String?>(
         initialValue: _effectType,
         isExpanded: true,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textPrimary,
-        ),
+        style: t.body,
         dropdownColor: t.isDark ? const Color(0xFF141A13) : Colors.white,
         decoration: dashDecoration(t, labelText: l10n.inventoryFieldEffect),
         items: [
@@ -577,12 +529,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
               child: Text(
                 '$_quantity',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.monoTitle,
               ),
             ),
             btn(
@@ -625,12 +572,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           ),
           child: Text(
             selected ?? l10n.inventorySlicerPresetNone,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected == null ? t.textTertiary : t.textPrimary,
-            ),
+            style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -641,11 +583,8 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// Opens the preset picker; on selection stores id+name and, when material is
   /// still blank, seeds it from the preset's filament type (cheap auto-fill).
   Future<void> _openSlicerPresetPicker(AppLocalizations l10n) async {
-    final picked = await showModalBottomSheet<SlicerPreset>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final picked = await dashSurfaceSheet<SlicerPreset>(
+      context,
       builder: (_) => const _SlicerPresetPicker(),
     );
     if (picked == null || !mounted) return;
@@ -683,12 +622,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             Expanded(
               child: Text(
                 hex.isEmpty ? l10n.inventoryColorNone : hex.toUpperCase(),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontMono,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: color == null ? t.textTertiary : t.textPrimary,
-                ),
+                style: t.monoValue.copyWith(color: color == null ? t.textTertiary : t.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -765,12 +699,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: TextFormField(
           controller: _c[key],
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
+          style: t.body,
           keyboardType: number
               ? const TextInputType.numberWithOptions(decimal: true)
               : (maxLines > 1 ? TextInputType.multiline : TextInputType.text),
@@ -799,10 +728,28 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
 }
 
 /// `coreWeight` → `core_weight`: log identifiers are lowercase with
-/// underscores, while the form's controller keys are camelCase. The replacement
+/// underscores, while the controller keys are camelCase. The replacement
 /// callback lowercases each capital and puts an underscore in front of it.
-String _fieldTag(String key) =>
-    'spool_form.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+///
+/// [area] is the sheet the control lives on — the per-spool form or the
+/// mass-edit sheet, which name their fields identically.
+String _fieldTag(String key, {String area = 'spool_form'}) =>
+    '$area.${key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}')}';
+
+/// A trimmed field value, or null when the user left it blank. Blank means
+/// "unset" on both sheets: the form sends no key rather than an empty string,
+/// and the mass-edit patch leaves the field alone.
+String? _trimmedField(Map<String, TextEditingController> c, String key) {
+  final v = c[key]!.text.trim();
+  return v.isEmpty ? null : v;
+}
+
+/// An integer-typed field parsed with the same tolerance as its validator
+/// (`double.tryParse`) — a plain `int.tryParse` would silently drop a value
+/// like "1000.5" (passes validation as a valid number, but is not a valid
+/// int), sending `null` instead of a rounded weight.
+int? _intField(Map<String, TextEditingController> c, String key) =>
+    double.tryParse(c[key]!.text.trim())?.round();
 
 
 /// Color picker: large preview + popular swatches from database + search.
@@ -866,11 +813,7 @@ class _ColorPicker extends ConsumerWidget {
           if (q.isEmpty)
             Text(
               l10n.inventoryColorCommon,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.microSoft,
             ),
           const SizedBox(height: 4),
           Wrap(
@@ -962,7 +905,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(child: Column(
+      builder: (context, controller) => SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -971,12 +914,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldSlicerPreset,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
@@ -991,7 +929,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
           Expanded(
             child: async.when(
               loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+                  const DashLoading(),
               error: (_, _) => _message(
                 context,
                 controller,
@@ -1104,7 +1042,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
       initialChildSize: 0.7,
       maxChildSize: 0.95,
       minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(child: Column(
+      builder: (context, controller) => SheetSurface(child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1113,12 +1051,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
               children: [
                 Text(
                   l10n.inventoryFieldEmptySpoolWeight,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 8),
                 DashSearchField(
@@ -1141,11 +1074,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                           child: Text(
                             l10n.inventoryNoMatches,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 13,
-                              color: t.textTertiary,
-                            ),
+                            style: t.bodyPlain.copyWith(color: t.textTertiary),
                           ),
                         ),
                       ),
@@ -1188,13 +1117,7 @@ class _FormSection extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: t.accentGreenInk,
-        ),
+        style: t.micro.copyWith(color: t.accentGreenInk, letterSpacing: 1.2),
       ),
     );
   }

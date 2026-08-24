@@ -460,6 +460,33 @@ abstract final class Endpoints {
   static String archivePlates(int archiveId) =>
       '$apiPrefix/archives/$archiveId/plates';
 
+  // --- Print log (one row per run, in its own table) ---
+
+  /// Print log list (`GET`) → `{items: PrintLogEntry[], total}`. Query:
+  /// `search` (print name), `printer_id`, `status`, `created_by_username`,
+  /// `date_from`/`date_to` (instants, matched against `created_at`), `limit`
+  /// (**capped at 500**), `offset`, plus `sort_by`/`sort_dir` on 1.2.6+.
+  ///
+  /// Trailing slash required, like [archives].
+  ///
+  /// There is no `archive_id` filter — the runs of one archive cannot be
+  /// fetched here (`print_log.py::get_print_log`).
+  ///
+  /// `DELETE` on the same path clears the **whole** log, every user's rows,
+  /// and answers `{deleted}`. It ignores every filter above.
+  static const printLog = '$apiPrefix/print-log/';
+
+  /// One log entry. `PATCH` re-classifies it (`{failure_reason, status}` →
+  /// updated entry), `DELETE` removes that row alone and leaves the archive it
+  /// points at untouched. Both arrived in server 0.2.4.6; older servers 405.
+  static String printLogEntry(int entryId) => '$apiPrefix/print-log/$entryId';
+
+  /// Thumbnail authenticated via `?token=` (camera token), NOT via header —
+  /// same as [archiveThumbnail]. 404 once the file behind it is gone, which
+  /// also clears `thumbnail_path` on the entry server-side.
+  static String printLogThumbnail(int entryId) =>
+      '$apiPrefix/print-log/$entryId/thumbnail';
+
   // --- Slicer (server-side slicing via sidecar; gated by use_slicer_api) ---
 
   /// Enqueue a slice job for a library file (`POST`, body `SliceRequest`).
@@ -582,6 +609,36 @@ abstract final class Endpoints {
   /// `SpoolResponse[]`.
   static const inventorySpoolsBulk = '$apiPrefix/inventory/spools/bulk';
 
+  // --- Bulk operations on a selection (server 0.2.5b1 and newer) ---
+  //
+  // All `POST`, all take `{ids: [int]}` — capped at 500 server-side, so the
+  // client chunks — except [inventorySpoolsResetConsumedCounterBulk], whose key
+  // is `spool_ids`. An unknown id is reported in the response body, never as a
+  // 404, so a 404 here means one thing only: the server predates the routes.
+  // Response shapes differ per backend and are normalized in `BulkOutcome`.
+
+  /// Apply one partial `SpoolUpdate` to every listed spool. Body
+  /// `{ids: [int], update: {…}}`, response `{updated, not_found}`.
+  static const inventorySpoolsBulkUpdate =
+      '$apiPrefix/inventory/spools/bulk-update';
+
+  /// Response `{deleted, not_found}`.
+  static const inventorySpoolsBulkDelete =
+      '$apiPrefix/inventory/spools/bulk-delete';
+
+  /// Response `{archived, already_archived, not_found}`.
+  static const inventorySpoolsBulkArchive =
+      '$apiPrefix/inventory/spools/bulk-archive';
+
+  /// Response `{restored, already_active, not_found}`.
+  static const inventorySpoolsBulkRestore =
+      '$apiPrefix/inventory/spools/bulk-restore';
+
+  /// Body `{spool_ids: [int]}` (not `ids`), response `{reset}` — the count of
+  /// spools the server found, so it cannot report a partial failure.
+  static const inventorySpoolsResetConsumedCounterBulk =
+      '$apiPrefix/inventory/spools/reset-consumed-counter-bulk';
+
   /// Single spool: `GET` (details), `PATCH` (edit, body `SpoolUpdate`),
   /// `DELETE` (permanent deletion). Writes require permission on key (→ 403).
   static String inventorySpool(int spoolId) =>
@@ -595,7 +652,15 @@ abstract final class Endpoints {
   static String inventorySpoolRestore(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/restore';
 
-  /// Reset spool usage to zero (`POST`, no body).
+  /// Reset the "Total Consumed" counter (`POST`, no body). Stamps
+  /// `weight_used_baseline = weight_used`, so remaining is preserved and
+  /// `weight_locked` is left alone — the spool keeps taking AMS auto-sync.
+  static String inventorySpoolResetConsumedCounter(int spoolId) =>
+      '$apiPrefix/inventory/spools/$spoolId/reset-consumed-counter';
+
+  /// The pre-0.2.5 name of [inventorySpoolResetConsumedCounter], kept for
+  /// servers older than the rename (issue #1644). Try the current path first
+  /// and fall back here on 404 — the two never coexist.
   static String inventorySpoolResetUsage(int spoolId) =>
       '$apiPrefix/inventory/spools/$spoolId/reset-usage';
 
@@ -611,6 +676,14 @@ abstract final class Endpoints {
   /// tray). External spool: `amsId=255`, `trayId` 0=left/1=right.
   static String inventoryAssignment(int printerId, int amsId, int trayId) =>
       '$apiPrefix/inventory/assignments/$printerId/$amsId/$trayId';
+
+  /// Create a spool from what an AMS slot currently holds and assign it there
+  /// in the same call (`POST`, body `{printer_id, ams_id, tray_id}`, response
+  /// `SpoolResponse`). Server-side the slot must hold a readable RFID tag —
+  /// without one there is no stable identity and every confirm would make a
+  /// duplicate, so it answers 400.
+  static const inventorySpoolFromSlot =
+      '$apiPrefix/inventory/spools/from-slot';
 
   // --- Spool form reference data (Phase 2) ---
 
@@ -650,10 +723,37 @@ abstract final class Endpoints {
       '$apiPrefix/spoolman/inventory/spools/$spoolId/archive';
   static String spoolmanSpoolRestore(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/restore';
+  static String spoolmanSpoolResetConsumedCounter(int spoolId) =>
+      '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-consumed-counter';
+
+  /// Pre-rename twin of [spoolmanSpoolResetConsumedCounter] — see
+  /// [inventorySpoolResetUsage].
   static String spoolmanSpoolResetUsage(int spoolId) =>
       '$apiPrefix/spoolman/inventory/spools/$spoolId/reset-usage';
+
+  /// Spoolman twins of the native bulk routes. Same request bodies; the
+  /// responses report per-spool failures as `{errors: [{id, status, detail}]}`
+  /// instead of native's `not_found` / `already_*` lists, because the backend
+  /// loops the per-spool proxy calls rather than one SQL statement.
+  static const spoolmanSpoolsBulkUpdate =
+      '$apiPrefix/spoolman/inventory/spools/bulk-update';
+  static const spoolmanSpoolsBulkDelete =
+      '$apiPrefix/spoolman/inventory/spools/bulk-delete';
+  static const spoolmanSpoolsBulkArchive =
+      '$apiPrefix/spoolman/inventory/spools/bulk-archive';
+  static const spoolmanSpoolsBulkRestore =
+      '$apiPrefix/spoolman/inventory/spools/bulk-restore';
+  static const spoolmanSpoolsResetConsumedCounterBulk =
+      '$apiPrefix/spoolman/inventory/spools/reset-consumed-counter-bulk';
   static const spoolmanAssignments =
       '$apiPrefix/spoolman/inventory/slot-assignments/all';
+
+  /// Spoolman counterpart of [inventorySpoolFromSlot]. Like [spoolmanLabels]
+  /// it does NOT live under `/spoolman/inventory/`, and unlike every other
+  /// inventory write it is gated on `filaments:update`, which no API key may
+  /// hold — a key-authenticated session gets 403 here whatever its scopes.
+  static const spoolmanSpoolFromSlot =
+      '$apiPrefix/spoolman/spools/from-slot';
 
   /// Spoolman counterpart of [inventoryLabels]. Note the path is NOT under
   /// `/spoolman/inventory/` — the label routes live at `/spoolman/labels`.
@@ -987,8 +1087,9 @@ abstract final class Endpoints {
   /// Reachable where [users] is not: gated on `users:read_slim` *or*
   /// `users:read` (any-of), and the slim permission is mapped to the API-key
   /// `can_read_status` scope
-  /// (`backend/app/core/auth.py::_resolve_apikey_scope`) — so a key reads this
-  /// and not the full listing, which is the whole point of server issue #1894.
+  /// (`backend/app/core/auth.py::_APIKEY_SCOPE_BY_PERMISSION`) — so a key
+  /// reads this and not the full listing, which is the whole point of server
+  /// issue #1894.
   ///
   /// **An older server cannot answer this successfully**, so support is probed
   /// rather than derived from a version number (that numbering is a trap —

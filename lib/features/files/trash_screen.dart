@@ -4,14 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/trash_file.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'file_manager_providers.dart';
 
 /// Library trash: list of deleted files with restore, permanent delete, and empty trash.
@@ -43,15 +46,11 @@ class TrashScreen extends ConsumerWidget {
             ),
           ],
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            onRetry: () => ref.invalidate(libraryTrashProvider),
-            retryLabel: l10n.retry,
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.invalidate(libraryTrashProvider),
+          skipLoadingOnRefresh: false,
           data: (items) => RefreshIndicator(
             onRefresh: () => ref.refresh(libraryTrashProvider.future),
             child: items.isEmpty
@@ -60,7 +59,10 @@ class TrashScreen extends ConsumerWidget {
                     icon: Icons.delete_outline,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.symmetric(vertical: 6),
+                    ),
                     itemCount: items.length,
                     itemBuilder: (context, i) => _TrashTile(
                       file: items[i],
@@ -74,9 +76,6 @@ class TrashScreen extends ConsumerWidget {
     );
   }
 
-  void _snack(BuildContext context, String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
   Future<void> _restore(
     BuildContext context,
     WidgetRef ref,
@@ -87,7 +86,7 @@ class TrashScreen extends ConsumerWidget {
       await ref.read(libraryRepositoryProvider).restoreFromTrash(file.id);
       ref.invalidate(libraryTrashProvider);
       ref.invalidate(fileManagerProvider);
-      if (context.mounted) _snack(context, l10n.fmRestored);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmRestored);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -116,7 +115,7 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).hardDelete(file.id);
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) _snack(context, l10n.fmDeletedForever);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -144,7 +143,7 @@ class TrashScreen extends ConsumerWidget {
     try {
       await ref.read(libraryRepositoryProvider).emptyTrash();
       ref.invalidate(libraryTrashProvider);
-      if (context.mounted) _snack(context, l10n.fmDeletedForever);
+      if (context.mounted) ScaffoldMessenger.of(context).snack(l10n.fmDeletedForever);
     } on AppApiException catch (e) {
       showApiFailure(
         context.mounted ? ScaffoldMessenger.of(context) : null,
@@ -191,21 +190,11 @@ class _TrashTile extends StatelessWidget {
             file.filename,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.titleSm,
           ),
           subtitle: Text(
             meta.join(' · '),
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.monoLabel,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

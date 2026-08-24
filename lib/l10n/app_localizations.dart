@@ -2447,14 +2447,26 @@ abstract class AppLocalizations {
   /// No description provided for @durationMinutes.
   ///
   /// In en, this message translates to:
-  /// **'{minutes} min'**
+  /// **'{minutes}min'**
   String durationMinutes(int minutes);
 
   /// No description provided for @durationHoursMinutes.
   ///
   /// In en, this message translates to:
-  /// **'{hours} h {minutes} min'**
+  /// **'{hours}h {minutes}min'**
   String durationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @durationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String durationHours(int hours);
+
+  /// No description provided for @durationSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String durationSeconds(int seconds);
 
   /// No description provided for @connectToServer.
   ///
@@ -3602,6 +3614,18 @@ abstract class AppLocalizations {
   /// **'{grams} g left'**
   String inventoryRemaining(String grams);
 
+  /// No description provided for @inventoryTotalConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} consumed'**
+  String inventoryTotalConsumed(String weight);
+
+  /// No description provided for @inventoryConsumedSinceReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Consumed since reset: {weight}'**
+  String inventoryConsumedSinceReset(String weight);
+
   /// No description provided for @inventoryOfTotal.
   ///
   /// In en, this message translates to:
@@ -3878,6 +3902,12 @@ abstract class AppLocalizations {
   /// **'Enter a number'**
   String get inventoryFieldInvalidNumber;
 
+  /// No description provided for @inventoryFieldRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {min} to {max}'**
+  String inventoryFieldRange(int min, int max);
+
   /// No description provided for @inventorySectionBasics.
   ///
   /// In en, this message translates to:
@@ -4031,7 +4061,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryResetUsageConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Reset usage to zero? The spool will count as full again.'**
+  /// **'Reset the consumed-filament counter to zero? Future prints count from zero again — the remaining weight is not changed.'**
   String get inventoryResetUsageConfirm;
 
   /// No description provided for @inventorySpoolCreated.
@@ -4073,7 +4103,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryUsageReset.
   ///
   /// In en, this message translates to:
-  /// **'Usage reset'**
+  /// **'Counter reset'**
   String get inventoryUsageReset;
 
   /// No description provided for @inventorySaveFailed.
@@ -4196,6 +4226,42 @@ abstract class AppLocalizations {
   /// **'Spool unassigned'**
   String get inventorySpoolUnassigned;
 
+  /// No description provided for @inventoryFromSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to inventory'**
+  String get inventoryFromSlot;
+
+  /// No description provided for @inventoryFromSlotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Register the tagged spool the printer reports in this slot'**
+  String get inventoryFromSlotHint;
+
+  /// No description provided for @inventoryFromSlotDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Spool added and assigned to the slot'**
+  String get inventoryFromSlotDone;
+
+  /// No description provided for @inventoryFromSlotNoTag.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer no longer reports a tagged spool in this slot'**
+  String get inventoryFromSlotNoTag;
+
+  /// No description provided for @inventoryFromSlotOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer is not connected, so it cannot say what is in the slot'**
+  String get inventoryFromSlotOffline;
+
+  /// No description provided for @inventoryFromSlotUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server version cannot add a spool straight from a slot'**
+  String get inventoryFromSlotUnsupported;
+
   /// No description provided for @inventoryScanSpool.
   ///
   /// In en, this message translates to:
@@ -4301,7 +4367,7 @@ abstract class AppLocalizations {
   /// No description provided for @inventoryBulkResetBody.
   ///
   /// In en, this message translates to:
-  /// **'They will count as full again.'**
+  /// **'Their consumed-filament counters go back to zero. Remaining weights are not changed.'**
   String get inventoryBulkResetBody;
 
   /// No description provided for @inventoryBulkDone.
@@ -4315,6 +4381,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{ok} done, {failed} failed'**
   String inventoryBulkPartial(int ok, int failed);
+
+  /// No description provided for @inventoryBulkSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there'**
+  String inventoryBulkSkipped(int ok, int skipped);
+
+  /// No description provided for @inventoryBulkPartialSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} done, {skipped} already there, {failed} failed'**
+  String inventoryBulkPartialSkipped(int ok, int skipped, int failed);
+
+  /// No description provided for @inventoryBulkEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit fields'**
+  String get inventoryBulkEdit;
+
+  /// No description provided for @inventoryBulkEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditTitle(int count);
+
+  /// No description provided for @inventoryBulkEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the fields you fill in change. Leave the rest blank.'**
+  String get inventoryBulkEditHint;
+
+  /// No description provided for @inventoryBulkEditUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchanged'**
+  String get inventoryBulkEditUnchanged;
+
+  /// No description provided for @inventoryBulkEditApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to {count} {count, plural, one{spool} other{spools}}'**
+  String inventoryBulkEditApply(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {count} {count, plural, one{spool} other{spools}}?'**
+  String inventoryBulkEditConfirmTitle(int count);
+
+  /// No description provided for @inventoryBulkEditConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{fields} {fields, plural, one{field} other{fields}} will be overwritten on every selected spool.'**
+  String inventoryBulkEditConfirmBody(int fields);
+
+  /// No description provided for @inventoryBulkEditUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old for mass edit. Update bambuddy, or edit the spools one at a time.'**
+  String get inventoryBulkEditUnsupported;
+
+  /// No description provided for @inventoryApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get inventoryApply;
 
   /// No description provided for @inventoryLabelsTitle.
   ///
@@ -7742,6 +7874,84 @@ abstract class AppLocalizations {
   /// **'Username'**
   String get wearUsername;
 
+  /// No description provided for @wearSetupPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up from your phone'**
+  String get wearSetupPhoneTitle;
+
+  /// No description provided for @wearSetupPhoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.'**
+  String get wearSetupPhoneBody;
+
+  /// No description provided for @wearSetupPhoneCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get wearSetupPhoneCheck;
+
+  /// No description provided for @wearSetupPhoneEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing from the phone yet.'**
+  String get wearSetupPhoneEmpty;
+
+  /// No description provided for @wearSetupManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get wearSetupManual;
+
+  /// No description provided for @wearSetupTapToType.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to type'**
+  String get wearSetupTapToType;
+
+  /// No description provided for @wearSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get wearSettingsTitle;
+
+  /// No description provided for @wearFromPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'From your phone'**
+  String get wearFromPhone;
+
+  /// No description provided for @wearFromPhoneUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this server'**
+  String get wearFromPhoneUse;
+
+  /// No description provided for @wearFromPhoneLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get wearFromPhoneLater;
+
+  /// No description provided for @wearAuthNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No sign-in'**
+  String get wearAuthNone;
+
+  /// No description provided for @wearFromPhoneWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone offers a different server.'**
+  String get wearFromPhoneWaiting;
+
+  /// No description provided for @wearCurrentServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Current server'**
+  String get wearCurrentServer;
+
   /// No description provided for @commonOn.
   ///
   /// In en, this message translates to:
@@ -9637,6 +9847,444 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The one settings value a key may write — for a dynamic tariff.'**
   String get apiKeyScopeEnergyHint;
+
+  /// No description provided for @printLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print log'**
+  String get printLogTitle;
+
+  /// No description provided for @printLogSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search runs'**
+  String get printLogSearchHint;
+
+  /// No description provided for @printLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs recorded yet'**
+  String get printLogEmpty;
+
+  /// No description provided for @printLogNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No runs match your filters'**
+  String get printLogNoMatches;
+
+  /// No description provided for @printLogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the print log'**
+  String get printLogLoadFailed;
+
+  /// No description provided for @printLogFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get printLogFilters;
+
+  /// No description provided for @printLogFilterPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printLogFilterPrinter;
+
+  /// No description provided for @printLogFilterUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get printLogFilterUser;
+
+  /// No description provided for @printLogFilterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogFilterStatus;
+
+  /// No description provided for @printLogFilterDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get printLogFilterDates;
+
+  /// No description provided for @printLogAnyPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Any printer'**
+  String get printLogAnyPrinter;
+
+  /// No description provided for @printLogAnyUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone'**
+  String get printLogAnyUser;
+
+  /// No description provided for @printLogAnyStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Any status'**
+  String get printLogAnyStatus;
+
+  /// No description provided for @printLogNoUser.
+  ///
+  /// In en, this message translates to:
+  /// **'No user'**
+  String get printLogNoUser;
+
+  /// No description provided for @printLogOrphan.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive deleted'**
+  String get printLogOrphan;
+
+  /// No description provided for @printLogShowing.
+  ///
+  /// In en, this message translates to:
+  /// **'{loaded} of {total}'**
+  String printLogShowing(int loaded, int total);
+
+  /// No description provided for @printLogLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get printLogLoadMore;
+
+  /// No description provided for @printLogSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get printLogSort;
+
+  /// No description provided for @printLogSortDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get printLogSortDate;
+
+  /// No description provided for @printLogSortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get printLogSortName;
+
+  /// No description provided for @printLogSortPrinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printLogSortPrinter;
+
+  /// No description provided for @printLogSortUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get printLogSortUser;
+
+  /// No description provided for @printLogSortStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogSortStatus;
+
+  /// No description provided for @printLogSortDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get printLogSortDuration;
+
+  /// No description provided for @printLogSortFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get printLogSortFilament;
+
+  /// No description provided for @printLogSortCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get printLogSortCost;
+
+  /// No description provided for @printLogSortEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get printLogSortEnergy;
+
+  /// No description provided for @printLogSortDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Direction'**
+  String get printLogSortDirection;
+
+  /// No description provided for @printLogSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get printLogSortDescending;
+
+  /// No description provided for @printLogSortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get printLogSortAscending;
+
+  /// No description provided for @printLogStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get printLogStatusCompleted;
+
+  /// No description provided for @printLogStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get printLogStatusFailed;
+
+  /// No description provided for @printLogStatusStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get printLogStatusStopped;
+
+  /// No description provided for @printLogStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get printLogStatusCancelled;
+
+  /// No description provided for @printLogStatusSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get printLogStatusSkipped;
+
+  /// No description provided for @printLogStatusAborted.
+  ///
+  /// In en, this message translates to:
+  /// **'Aborted'**
+  String get printLogStatusAborted;
+
+  /// No description provided for @printLogEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kWh'**
+  String printLogEnergy(String value);
+
+  /// No description provided for @printLogClassifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Classify this run'**
+  String get printLogClassifyTitle;
+
+  /// No description provided for @printLogDetailStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get printLogDetailStarted;
+
+  /// No description provided for @printLogDetailFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get printLogDetailFinished;
+
+  /// No description provided for @printLogDetailDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get printLogDetailDuration;
+
+  /// No description provided for @printLogDetailFilament.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament'**
+  String get printLogDetailFilament;
+
+  /// No description provided for @printLogDetailCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get printLogDetailCost;
+
+  /// No description provided for @printLogDetailEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get printLogDetailEnergy;
+
+  /// No description provided for @printLogFailureCause.
+  ///
+  /// In en, this message translates to:
+  /// **'Failure cause'**
+  String get printLogFailureCause;
+
+  /// No description provided for @printLogNoClassification.
+  ///
+  /// In en, this message translates to:
+  /// **'Not classified'**
+  String get printLogNoClassification;
+
+  /// No description provided for @printLogStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get printLogStatusLabel;
+
+  /// No description provided for @printLogCountsAsFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted as a failure — this run and its cause show up in failure analysis.'**
+  String get printLogCountsAsFailure;
+
+  /// No description provided for @printLogNotCountedAsFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted as a failure, so the cause stays out of failure analysis.'**
+  String get printLogNotCountedAsFailure;
+
+  /// No description provided for @printLogStatusOneWay.
+  ///
+  /// In en, this message translates to:
+  /// **'This server cannot write “{status}” back. Change it and it is gone for good.'**
+  String printLogStatusOneWay(String status);
+
+  /// No description provided for @printLogSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get printLogSave;
+
+  /// No description provided for @printLogSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the classification'**
+  String get printLogSaveFailed;
+
+  /// No description provided for @printLogDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete run'**
+  String get printLogDelete;
+
+  /// No description provided for @printLogDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this run?'**
+  String get printLogDeleteTitle;
+
+  /// No description provided for @printLogDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It leaves the log, and its filament, cost and time leave the statistics. The archive it points at stays.'**
+  String get printLogDeleteBody;
+
+  /// No description provided for @printLogDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the run'**
+  String get printLogDeleteFailed;
+
+  /// No description provided for @printLogClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear print log'**
+  String get printLogClear;
+
+  /// No description provided for @printLogClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the whole print log?'**
+  String get printLogClearTitle;
+
+  /// No description provided for @printLogClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
+  String printLogClearBody(int count);
+
+  /// No description provided for @printLogCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} run deleted} other{{count} runs deleted}}'**
+  String printLogCleared(int count);
+
+  /// No description provided for @printLogClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear the print log'**
+  String get printLogClearFailed;
+
+  /// No description provided for @failureReasonAdhesion.
+  ///
+  /// In en, this message translates to:
+  /// **'Adhesion failure'**
+  String get failureReasonAdhesion;
+
+  /// No description provided for @failureReasonSpaghetti.
+  ///
+  /// In en, this message translates to:
+  /// **'Spaghetti / detached print'**
+  String get failureReasonSpaghetti;
+
+  /// No description provided for @failureReasonLayerShift.
+  ///
+  /// In en, this message translates to:
+  /// **'Layer shift'**
+  String get failureReasonLayerShift;
+
+  /// No description provided for @failureReasonCloggedNozzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clogged nozzle'**
+  String get failureReasonCloggedNozzle;
+
+  /// No description provided for @failureReasonFilamentRunout.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament runout'**
+  String get failureReasonFilamentRunout;
+
+  /// No description provided for @failureReasonWarping.
+  ///
+  /// In en, this message translates to:
+  /// **'Warping'**
+  String get failureReasonWarping;
+
+  /// No description provided for @failureReasonStringing.
+  ///
+  /// In en, this message translates to:
+  /// **'Stringing'**
+  String get failureReasonStringing;
+
+  /// No description provided for @failureReasonUnderExtrusion.
+  ///
+  /// In en, this message translates to:
+  /// **'Under-extrusion'**
+  String get failureReasonUnderExtrusion;
+
+  /// No description provided for @failureReasonPowerFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Power failure'**
+  String get failureReasonPowerFailure;
+
+  /// No description provided for @failureReasonUserCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled by the user'**
+  String get failureReasonUserCancelled;
+
+  /// No description provided for @failureReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get failureReasonOther;
+
+  /// No description provided for @failureReasonUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get failureReasonUnknown;
 }
 
 class _AppLocalizationsDelegate

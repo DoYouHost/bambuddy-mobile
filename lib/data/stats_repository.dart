@@ -177,11 +177,6 @@ class StatsRepository {
         ..sort((a, b) =>
             a.username.toLowerCase().compareTo(b.username.toLowerCase()));
 
-  /// Format date as `YYYY-MM-DD` (no timezone/time) — server contract.
-  static String? _ymd(DateTime? d) {
-    if (d == null) return null;
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$m-$day';
-  }
+  static String? _ymd(DateTime? d) =>
+      d == null ? null : calendarDateToJson(d);
 }

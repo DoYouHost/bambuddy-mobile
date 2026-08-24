@@ -29,11 +29,7 @@ class _ControlsActions extends ConsumerWidget {
             Flexible(
               child: Text(
                 l10n.ctrlForbidden,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  color: t.textSecondary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textSecondary),
               ),
             ),
           ],
@@ -121,9 +117,7 @@ class _ControlsActions extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final msg = result.messageFor(l10n);
     if (msg == null) return;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
   }
 }
 
@@ -178,21 +172,12 @@ class _LightSwitchRow extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         l10n.ctrlLight,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.accentGreenInk,
-                        ),
+                        style: t.titleSm.copyWith(color: t.accentGreenInk),
                       ),
                     ],
                   ),
                   busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const DashSpinner(size: 20)
                       : _PillSwitch(on: on, tokens: t),
                 ],
               ),
@@ -214,9 +199,7 @@ class _LightSwitchRow extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }
@@ -339,9 +322,7 @@ class _SmartPlugButton extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }
@@ -396,11 +377,7 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-const _btnSpinner = SizedBox(
-  width: 16,
-  height: 16,
-  child: CircularProgressIndicator(strokeWidth: 2),
-);
+const _btnSpinner = DashSpinner(size: 16);
 
 /// Arranges control buttons in a 2-column grid; solo button takes full width.
 class _ControlsGrid extends StatelessWidget {
@@ -486,12 +463,7 @@ class _LifecycleButton extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                  ),
+                  style: t.bodyBold.copyWith(color: fg),
                 ),
               ],
             ),
@@ -534,12 +506,7 @@ class _SpeedControlTile extends ConsumerWidget {
           const SizedBox(width: 8),
           Text(
             l10n.ctrlSpeed,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.body.copyWith(color: t.textSecondary),
           ),
           const Spacer(),
           _SpeedControl(
@@ -559,9 +526,7 @@ class _SpeedControlTile extends ConsumerWidget {
     if (!context.mounted) return;
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).snack(msg, clearQueue: true);
     }
   }
 }
@@ -612,12 +577,7 @@ class _SpeedControl extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary),
             ),
             Icon(Icons.arrow_drop_down, size: 18, color: t.textSecondary),
           ],

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_exceptions.dart';
 import '../../core/models/inventory.dart';
+import '../../core/models/inventory_bulk.dart';
 import '../../core/models/inventory_reference.dart';
 import '../../data/inventory_repository.dart';
 import '../../providers.dart';
@@ -21,6 +23,29 @@ class InventoryState {
   final Map<int, SpoolAssignment> assignmentBySpool;
 
   SpoolAssignment? assignmentFor(int spoolId) => assignmentBySpool[spoolId];
+
+  /// The spool already registered for an RFID tag, or null when the tag is new
+  /// to the inventory.
+  ///
+  /// One field at a time rather than one spool at a time, which is the server's
+  /// own order: a `tray_uuid` hit anywhere beats a `tag_uid` hit, because only
+  /// the UUID survives the filament being re-spooled onto another core
+  /// (`GET /inventory/spools/by-tag`, `backend/app/api/routes/inventory.py`).
+  Spool? spoolForTag({String? tagUid, String? trayUuid}) {
+    final uuid = normalizeTrayUuid(trayUuid);
+    if (uuid.isNotEmpty) {
+      for (final s in spools) {
+        if (normalizeTrayUuid(s.trayUuid) == uuid) return s;
+      }
+    }
+    final uid = normalizeTagUid(tagUid);
+    if (uid.isNotEmpty) {
+      for (final s in spools) {
+        if (normalizeTagUid(s.tagUid) == uid) return s;
+      }
+    }
+    return null;
+  }
 }
 
 final inventoryProvider =
@@ -145,6 +170,25 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
     }),
   );
 
+  /// Registers what the slot holds as a new spool and pins it there. The
+  /// server does both halves in one call, so the invariant "one spool, one
+  /// slot" needs no unpin step here — the slot was empty of a spool to begin
+  /// with, which is the only state the UI offers this from.
+  Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    try {
+      final id = await repo.createSpoolFromSlot(
+        printerId: printerId,
+        amsId: amsId,
+        trayId: trayId,
+      );
+      _nudgeRepublish(printerId);
+      return id;
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+  }
+
   /// Assigning a spool makes the server push an `ams_filament_setting` to the
   /// printer, but the firmware does not reliably echo the new tray back —
   /// notably for non-RFID slots and A1 mini externals. Without a nudge the card
@@ -154,43 +198,94 @@ class InventoryNotifier extends AutoDisposeAsyncNotifier<InventoryState> {
       .read(printerCommandsRepositoryProvider)
       .nudgeRepublish([printerId]);
 
-  /// Applies [action] to every id in [spoolIds] for multi-select bulk
-  /// operations. Unlike [_mutate] this reloads ONCE at the end rather than per
-  /// id — a 20-spool archive would otherwise refetch the whole inventory 20
-  /// times. One failure doesn't abort the rest; the caller reports the tally.
-  Future<({int ok, int failed})> bulkApply(
+  /// Runs a multi-select operation as one bulk call, and reloads ONCE at the
+  /// end — a 20-spool archive would otherwise refetch the whole inventory 20
+  /// times.
+  ///
+  /// [perSpool] is the same operation one spool at a time, used when the server
+  /// answers 404: the bulk routes arrived in 0.2.5b1 and report an unknown id in
+  /// the body rather than as a status, so that 404 means the routes are not
+  /// there. Everything else (a 403 from a key without `filaments:update`, a
+  /// dead server) propagates — the caller words it.
+  Future<BulkOutcome> _bulk(
     Iterable<int> spoolIds,
-    Future<void> Function(InventoryRepository, int) action,
+    Future<BulkOutcome> Function(InventoryRepository, List<int>) bulk,
+    Future<void> Function(InventoryRepository, int) perSpool,
   ) async {
     final repo = ref.read(inventoryRepositoryProvider);
-    var ok = 0;
-    var failed = 0;
+    final ids = spoolIds.toList();
     try {
-      for (final id in spoolIds) {
-        try {
-          await action(repo, id);
-          ok++;
-        } on Object {
-          failed++;
-        }
+      try {
+        return await bulk(repo, ids);
+      } on AppApiException catch (e) {
+        if (e.statusCode != 404) rethrow;
+        return await _perSpoolFallback(repo, ids, perSpool);
       }
     } finally {
       state = await AsyncValue.guard(_load);
     }
-    return (ok: ok, failed: failed);
   }
 
-  Future<({int ok, int failed})> archiveSpools(Iterable<int> ids) =>
-      bulkApply(ids, (repo, id) => repo.archiveSpool(id));
+  /// One call per spool, for a server without the bulk routes. One failure
+  /// doesn't abort the rest — the tally it builds is the same shape the bulk
+  /// routes answer with, minus the detail they carry.
+  Future<BulkOutcome> _perSpoolFallback(
+    InventoryRepository repo,
+    List<int> ids,
+    Future<void> Function(InventoryRepository, int) action,
+  ) async {
+    var ok = 0;
+    var failed = 0;
+    for (final id in ids) {
+      try {
+        await action(repo, id);
+        ok++;
+      } on Object {
+        failed++;
+      }
+    }
+    return BulkOutcome(ok: ok, failed: failed);
+  }
 
-  Future<({int ok, int failed})> restoreSpools(Iterable<int> ids) =>
-      bulkApply(ids, (repo, id) => repo.restoreSpool(id));
+  /// Applies one partial edit to every selected spool. There is no per-spool
+  /// fallback worth having here: replaying a 14-field patch as N PATCHes on a
+  /// server that never offered mass edit would be a different feature, so an
+  /// older server surfaces the 404 and the UI says the server cannot do it.
+  Future<BulkOutcome> bulkUpdateSpools(
+    Iterable<int> ids,
+    SpoolBulkPatch patch,
+  ) async {
+    final repo = ref.read(inventoryRepositoryProvider);
+    try {
+      return await repo.bulkUpdate(ids.toList(), patch);
+    } finally {
+      state = await AsyncValue.guard(_load);
+    }
+  }
 
-  Future<({int ok, int failed})> deleteSpools(Iterable<int> ids) =>
-      bulkApply(ids, (repo, id) => repo.deleteSpool(id));
+  Future<BulkOutcome> archiveSpools(Iterable<int> ids) => _bulk(
+        ids,
+        (repo, ids) => repo.bulkArchive(ids),
+        (repo, id) => repo.archiveSpool(id),
+      );
 
-  Future<({int ok, int failed})> resetUsageMany(Iterable<int> ids) =>
-      bulkApply(ids, (repo, id) => repo.resetUsage(id));
+  Future<BulkOutcome> restoreSpools(Iterable<int> ids) => _bulk(
+        ids,
+        (repo, ids) => repo.bulkRestore(ids),
+        (repo, id) => repo.restoreSpool(id),
+      );
+
+  Future<BulkOutcome> deleteSpools(Iterable<int> ids) => _bulk(
+        ids,
+        (repo, ids) => repo.bulkDelete(ids),
+        (repo, id) => repo.deleteSpool(id),
+      );
+
+  Future<BulkOutcome> resetUsageMany(Iterable<int> ids) => _bulk(
+        ids,
+        (repo, ids) => repo.bulkResetUsage(ids),
+        (repo, id) => repo.resetUsage(id),
+      );
 }
 
 /// Resolves which spool from inventory sits in a given slot of a specific printer —
@@ -246,6 +341,25 @@ final assignedSpoolsProvider = Provider.autoDispose.family<AssignedSpools, int>(
     return AssignedSpools(printerId, byKey, byExtruder);
   },
 );
+
+/// Filament consumed since the counters were last reset, over the whole shelf.
+///
+/// Archived spools are counted in: it is a running total, and what a spool
+/// consumed before being archived is real history — dropping it would make the
+/// number fall for no visible reason (the bug bambuddy's own tile was fixed for,
+/// server issue #1390).
+///
+/// A provider rather than a sum inside the list header: the header rebuilds on
+/// every search keystroke, and this way the shelf is only walked again when the
+/// shelf itself changes.
+final inventoryConsumedTotalProvider = Provider.autoDispose<double>((ref) {
+  final spools = ref.watch(inventoryProvider).valueOrNull?.spools ?? const [];
+  var total = 0.0;
+  for (final spool in spools) {
+    total += spool.consumedWeight;
+  }
+  return total;
+});
 
 /// Search text (material/brand/color/location). Filtered client-side in the view.
 final inventoryQueryProvider = StateProvider.autoDispose<String>((_) => '');

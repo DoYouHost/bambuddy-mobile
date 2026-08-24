@@ -243,8 +243,9 @@ void main() {
         () async {
       // The server hands a key the synthetic admin with every permission
       // (`routes/auth.py::_api_key_to_user_response`) and then refuses it every
-      // administrative route (`core/auth.py::_resolve_apikey_scope`). Believing
-      // the first is how the account list ended up 403-ing on a key session.
+      // administrative route (`core/auth.py::_check_apikey_permissions`).
+      // Believing the first is how the account list ended up 403-ing on a key
+      // session.
       final container = containerFor(
         const CurrentUser(
           id: 0,

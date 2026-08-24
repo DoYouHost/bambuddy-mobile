@@ -5,11 +5,15 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/prompt_name_dialog.dart';
 import 'file_manager_providers.dart';
 
@@ -43,12 +47,7 @@ class TagChip extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: t.accentGreenInk,
-        ),
+        style: t.micro.copyWith(color: t.accentGreenInk),
       ),
     );
   }
@@ -56,20 +55,16 @@ class TagChip extends StatelessWidget {
 
 /// Tag filter — multi-select with AND semantics, applied library-wide.
 Future<void> showTagFilterSheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => const _TagFilterSheet(),
     );
 
 /// Tags of a single file. Returns `true` when the assignment changed, so the
 /// caller knows whether to refresh the listing.
 Future<bool> showFileTagsSheet(BuildContext context, LibraryFile file) async =>
-    await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await dashSheet<bool>(
+      context,
       builder: (_) => _FileTagsSheet(file: file),
     ) ??
     false;
@@ -80,10 +75,8 @@ Future<bool> showBulkTagsSheet(
   BuildContext context,
   List<int> fileIds,
 ) async =>
-    await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await dashSheet<bool>(
+      context,
       builder: (_) => _BulkTagsSheet(fileIds: fileIds),
     ) ??
     false;
@@ -93,10 +86,8 @@ Future<bool> showBulkTagsSheet(
 /// — that surfaces as the usual "not allowed" snack rather than a hidden button,
 /// because the app cannot see the caller's permissions.
 Future<void> showTagManageSheet(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    dashSheet<void>(
+      context,
       builder: (_) => const _TagManageSheet(),
     );
 
@@ -105,7 +96,7 @@ mixin _TagSheetActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   AppLocalizations get l10n => AppLocalizations.of(context);
 
   void snack(String message) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(message)));
+      .snack(message);
 
   /// Both halves of a failed action: the sentence and the record that somebody
   /// was stopped. Unmounted there is neither a messenger nor an `l10n` to
@@ -178,7 +169,7 @@ class _TagList extends ConsumerWidget {
     if (async.isLoading && tags == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
-        child: Center(child: CircularProgressIndicator()),
+        child: DashLoading(),
       );
     }
     if (async.hasError) {
@@ -244,11 +235,7 @@ class _SheetHeader extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 11.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.microSoft,
                   ),
                 ],
               ],
@@ -470,7 +457,7 @@ class _BulkTagsSheetState extends ConsumerState<_BulkTagsSheet>
       // walking a tree this sheet is already leaving.
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context, true);
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.snack(message);
     } on AppApiException catch (e) {
       if (mounted) setState(() => _saving = false);
       failed(e, 'bulk_tags.${action.name}');
@@ -610,7 +597,7 @@ class _TagManageSheetState extends ConsumerState<_TagManageSheet>
           if (async.isLoading && async.valueOrNull == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator()),
+              child: DashLoading(),
             )
           else
             Flexible(

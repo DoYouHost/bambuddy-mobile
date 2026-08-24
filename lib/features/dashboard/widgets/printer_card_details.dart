@@ -24,7 +24,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
       await ref
           .read(printerCommandsRepositoryProvider)
           .clearPlate(widget.printerId);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.plateClearedSnack)));
+      messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
     } finally {
@@ -58,11 +58,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
             Expanded(
               child: Text(
                 l10n.plateClearBadge,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  color: t.textPrimary,
-                ),
+                style: t.bodyPlain.copyWith(color: t.textPrimary),
               ),
             ),
             logTag(
@@ -70,11 +66,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
               TextButton(
               onPressed: _busy ? null : _clear,
               child: _busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 16)
                   : Text(l10n.plateClearAction),
               ),
             ),
@@ -115,11 +107,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
         .read(controlsProvider.notifier)
         .clearHmsErrors(widget.printerId);
     if (!mounted) return;
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ?? l10n.hmsDismissed),
-      ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.hmsDismissed, clearQueue: true);
   }
 
   @override
@@ -151,12 +139,7 @@ class _HmsErrorsPanelState extends ConsumerState<_HmsErrorsPanel> {
                 Expanded(
                   child: Text(
                     l10n.hmsErrorsCount(widget.errors.length),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.error,
-                    ),
+                    style: DashTokens.of(context).bodyBold.copyWith(color: scheme.error),
                   ),
                 ),
                 Icon(
@@ -260,9 +243,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
     // Told through the messenger captured before the await, not through this
     // widget: the card is gone precisely when the command worked and the fault
     // cleared, and that is the outcome most worth reporting.
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(_resultText(result, l10n))));
+    messenger.snack(_resultText(result, l10n), clearQueue: true);
   }
 
   /// A 502 here is not a broken server: the command went out and the printer
@@ -311,12 +292,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                 label,
                 maxLines: _fullText ? null : 2,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  height: 1.25,
-                  color: t.textPrimary,
-                ),
+                style: t.bodyPlain.copyWith(color: t.textPrimary, height: 1.25),
               ),
             ).tagged('printer.hms_description'),
             const SizedBox(height: 4),
@@ -326,11 +302,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
               Expanded(
                 child: Text(
                   error.displayCode,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 11.5,
-                    color: t.textTertiary,
-                  ),
+                  style: t.monoMicro,
                 ),
               ),
               if (url != null)
@@ -346,11 +318,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                     children: [
                       Text(
                         l10n.hmsViewInWiki,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 11.5,
-                          color: scheme.primary,
-                        ),
+                        style: t.microSoft.copyWith(color: scheme.primary),
                       ),
                       const SizedBox(width: 2),
                       Icon(Icons.open_in_new, size: 14, color: scheme.primary),
@@ -396,11 +364,7 @@ class _HmsErrorCardState extends ConsumerState<_HmsErrorCard> {
                             : null,
                       ),
                       child: _pending == action
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const DashSpinner(size: 14)
                           : Text(hmsActionLabel(l10n, action)),
                     ),
                   ),
@@ -453,12 +417,7 @@ class _DetailsToggle extends StatelessWidget {
                 children: [
                   Text(
                     expanded ? l10n.detailsHide : l10n.detailsShow,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: t.textSecondary,
-                    ),
+                    style: t.label.copyWith(color: t.textSecondary),
                   ),
                   const SizedBox(width: 6),
                   AnimatedRotation(
@@ -649,13 +608,7 @@ class _AmsSection extends ConsumerWidget {
           children: [
             Text(
               l10n.amsUnit(unitIndex + 1).toUpperCase(),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: t.textPrimary,
-              ),
+              style: t.bodyBold.copyWith(color: t.textPrimary, letterSpacing: 0.4),
             ),
             if (extruder != null) ...[
               const SizedBox(width: 8),
@@ -707,6 +660,8 @@ class _AmsSection extends ConsumerWidget {
                   trayId: trays[i].id ?? 0,
                 ),
                 canRereadRfid: true,
+                tagUid: trays[i].tagUid,
+                trayUuid: trays[i].trayUuid,
                 trayInfoIdx: trays[i].trayInfoIdx,
                 trayColour: trays[i].trayColor,
                 caliIdx: trays[i].caliIdx,
@@ -756,13 +711,7 @@ class _SpoolSection extends StatelessWidget {
       children: [
         Text(
           l10n.externalSpool.toUpperCase(),
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: t.textPrimary,
-          ),
+          style: t.label.copyWith(color: t.textPrimary, letterSpacing: 0.4),
         ),
         const SizedBox(height: 10),
         for (var i = 0; i < trays.length; i++)
@@ -893,7 +842,7 @@ class _FilamentRow extends StatelessWidget {
         if (!last)
           active
               ? Container(height: 1, color: t.accentGreen)
-              : _DashedLine(color: t.dottedRule)
+              : DashedLine(color: t.dottedRule)
         else if (active)
           Container(height: 1, color: t.accentGreen),
         if (!last) const SizedBox(height: 7),
@@ -908,10 +857,8 @@ class _FilamentRow extends StatelessWidget {
             tray.trayType,
             InkWell(
               borderRadius: BorderRadius.circular(8),
-              onTap: () => showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                showDragHandle: true,
+              onTap: () => dashSheet<void>(
+                context,
                 builder: (_) => _AssignSlotSheet(slot: slot),
               ),
               child: content,
@@ -949,12 +896,7 @@ class _AmsMeta extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -991,13 +933,11 @@ class _AmsDryControl extends ConsumerWidget {
     final remain = unit.dryTime ?? 0;
     final color = drying ? t.accentOrange : t.textTertiary;
     final label =
-        drying && remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDry;
+        drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
 
     return InkWell(
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
+      onTap: () => dashSurfaceSheet<void>(
+        context,
         builder: (_) => _DryingSheet(
           printerId: printerId,
           amsId: amsId,
@@ -1019,12 +959,7 @@ class _AmsDryControl extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: t.monoLabel.copyWith(color: color),
             ),
           ],
         ),
@@ -1111,9 +1046,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -1156,22 +1089,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                       children: [
                         Text(
                           l10n.ctrlDry,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleLg,
                         ),
                         const Spacer(),
                         Text(
                           widget.amsLabel,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: t.textSecondary,
-                          ),
+                          style: t.body.copyWith(color: t.textSecondary),
                         ),
                       ],
                     ),
@@ -1199,7 +1122,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             Icon(Icons.local_fire_department, size: 32, color: t.accentOrange),
             const SizedBox(height: 8),
             Text(
-              remain > 0 ? _durationText(l10n, remain) : l10n.ctrlDrying,
+              remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDrying,
               style: TextStyle(
                 fontFamily: DashTokens.fontMono,
                 fontSize: 32,
@@ -1225,19 +1148,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   }
 
   List<Widget> _setupBody(DashTokens t, AppLocalizations l10n) => [
-        DropdownMenu<String>(
+        dashCombo<String>(
+          context,
+          id: 'drying.filament',
           initialSelection: _filament,
-          expandedInsets: EdgeInsets.zero,
           menuHeight: 280,
-          requestFocusOnTap: false,
           label: Text(l10n.ctrlDryFilament),
-          textStyle: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: t.textPrimary,
-          ),
-          inputDecorationTheme: InputDecorationTheme(
+          textStyle: t.bodyStrong,
+          // Tighter than the form chrome: this one sits inside a card, where
+          // the 14 px radius and the taller field read as a second card.
+          decorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: t.subCard,
             contentPadding:
@@ -1258,7 +1178,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           onSelected: (v) {
             if (v != null) _applyFilament(v);
           },
-          dropdownMenuEntries: [
+          entries: [
             // Preset keys are Bambu material names, so the pick rides in the
             // `mat` field instead of turning the identifier into content.
             for (final f in _dryingPresets.keys)
@@ -1269,7 +1189,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                     logTagMaterial('drying.filament_option', f, Text(f)),
               ),
           ],
-        ).tagged('drying.filament'),
+        ),
         const SizedBox(height: 16),
         _DrySlider(
           id: 'drying.temp',
@@ -1355,22 +1275,12 @@ class _DrySlider extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.body.copyWith(color: t.textSecondary),
             ),
             const Spacer(),
             Text(
               valueText,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: t.textPrimary,
-              ),
+              style: t.monoTitle,
             ),
           ],
         ),
@@ -1417,40 +1327,6 @@ class _DrySlider extends StatelessWidget {
   }
 }
 
-/// Thin dotted horizontal rule between filament rows.
-class _DashedLine extends StatelessWidget {
-  const _DashedLine({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: const Size(double.infinity, 1), painter: _DashedPainter(color));
-}
-
-class _DashedPainter extends CustomPainter {
-  _DashedPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dash = 2.0;
-    const gap = 3.0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    var x = 0.0;
-    while (x < size.width) {
-      canvas.drawLine(Offset(x, 0), Offset(x + dash, 0), paint);
-      x += dash + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedPainter old) => old.color != color;
-}
-
 /// Physical slot identification for spool assignment from a row.
 class _SlotRef {
   const _SlotRef({
@@ -1462,6 +1338,8 @@ class _SlotRef {
     required this.printing,
     this.loadTrayId,
     this.canRereadRfid = false,
+    this.tagUid,
+    this.trayUuid,
     this.trayInfoIdx,
     this.trayColour,
     this.caliIdx,
@@ -1492,6 +1370,24 @@ class _SlotRef {
   /// Whether the slot has a tag to re-read. False for external spools: they
   /// have no RFID reader, and the web hides the action there too.
   final bool canRereadRfid;
+
+  /// RFID identity of the spool sitting in the slot, for matching it against
+  /// the inventory and for [canRegisterSpool].
+  ///
+  /// Left null for external spools even when the firmware reports a tag: the
+  /// route that registers a slot looks it up in the printer's `ams` array, and
+  /// an external spool is reported outside it, so it could only ever answer
+  /// "slot is empty"
+  /// (`backend/app/api/routes/inventory.py::create_spool_from_slot`).
+  final String? tagUid;
+  final String? trayUuid;
+
+  /// Whether a spool can be created out of what this slot holds. Needs a
+  /// readable tag — a tagless slot has no identity to re-link to, so the
+  /// server refuses one rather than mint a fresh row per confirm.
+  bool get canRegisterSpool =>
+      normalizeTrayUuid(trayUuid).isNotEmpty ||
+      normalizeTagUid(tagUid).isNotEmpty;
 
   /// What the printer currently holds in this slot, for the configuration
   /// sheet: the filament id identifies the preset in force, the colour is what
@@ -1658,10 +1554,8 @@ class _SlotActions extends ConsumerWidget {
   /// user is done with.
   void _openConfig(BuildContext context) {
     Navigator.of(context).pop();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
       builder: (_) => AmsSlotConfigSheet(target: slot.configTarget),
     );
   }
@@ -1677,11 +1571,7 @@ class _SlotActions extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     final outcome = await action();
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(outcome.messageFor(l10n) ?? startedMessage),
-      ));
+    messenger.snack(outcome.messageFor(l10n) ?? startedMessage, clearQueue: true);
   }
 }
 
@@ -1757,6 +1647,21 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             ),
             const SizedBox(height: 16),
             _SlotActions(slot: slot),
+            if (_offersRegister(inv, current)) ...[
+              FilledButton.tonalIcon(
+                onPressed: () => _registerFromSlot(context, ref, l10n),
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: Text(l10n.inventoryFromSlot),
+              ).tagged('assign_spool.add_to_inventory'),
+              const SizedBox(height: 6),
+              Text(
+                l10n.inventoryFromSlotHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Divider(height: 24),
+            ],
             if (current != null) ...[
               Text(l10n.inventoryAssignCurrent, style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
@@ -1771,12 +1676,13 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
                         ),
                       )
                     : null,
+                onTap: () => _openInInventory(context, current!.id),
                 trailing: TextButton.icon(
                   onPressed: () => _unassign(context, ref, l10n),
                   icon: const Icon(Icons.link_off, size: 18),
                   label: Text(l10n.inventoryUnassign),
                 ).taggedMaterial('assign_spool.unassign', current.material),
-              ),
+              ).taggedMaterial('assign_spool.current', current.material),
               const Divider(height: 24),
             ],
             Text(l10n.inventoryAssignPick, style: theme.textTheme.labelLarge),
@@ -1828,6 +1734,91 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
         ),
       )
     );
+  }
+
+  /// Leaves the printer for the spool's own card on Filaments.
+  ///
+  /// The row names a spool and until now did nothing when pressed, while the
+  /// identical row in the list below assigns — so the one that cannot assign
+  /// (it is already here) leads to where the rest of its story is: usage
+  /// history, cost, editing.
+  void _openInInventory(BuildContext context, int spoolId) {
+    Navigator.of(context).pop();
+    unawaited(openSpoolInInventory(context, ref, spoolId));
+  }
+
+  /// Whether to offer registering what the slot holds as a new spool.
+  ///
+  /// Four things have to line up, and each one is a request the server would
+  /// otherwise refuse or a row it would duplicate:
+  ///
+  /// * the slot reports a readable RFID tag — see [_SlotRef.canRegisterSpool];
+  /// * no spool is pinned here yet;
+  /// * the inventory is loaded and does not already know that tag. The route
+  ///   creates unconditionally, so offering it for a tag that is already on a
+  ///   spool would mint a second one; that spool is in the list below, which
+  ///   is where the user should pick it up from;
+  /// * the session is not an API key against a Spoolman inventory. Spoolman's
+  ///   own from-slot route is gated on `filaments:update`, which sits outside
+  ///   the API-key scope allowlist entirely, so it answers 403 to every key
+  ///   whatever its scopes (`backend/app/core/auth.py`). Under a JWT it works,
+  ///   so only the pair is refused.
+  bool _offersRegister(InventoryState? inv, Spool? current) {
+    if (current != null || !slot.canRegisterSpool || inv == null) return false;
+    if (inv.spoolForTag(tagUid: slot.tagUid, trayUuid: slot.trayUuid) != null) {
+      return false;
+    }
+    final onSpoolman =
+        ref.watch(inventoryBackendProvider) == InventoryBackend.spoolman;
+    final keyed = ref.watch(serverProfileProvider)?.authMode == AuthMode.apiKey;
+    return !(onSpoolman && keyed);
+  }
+
+  /// Registers the slot's spool and pins it there, in the server's one call.
+  ///
+  /// The sheet closes first, like every other action here. The refusals worth
+  /// their own words are the ones the user can act on: a 404 that is the route
+  /// missing rather than the printer being away tells them their server is too
+  /// old, and both 400s mean the slot stopped reporting a tag since the sheet
+  /// was drawn. Everything else — 403 above all, where the server names the
+  /// permission — goes through the shared wording.
+  Future<void> _registerFromSlot(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    try {
+      await ref
+          .read(inventoryProvider.notifier)
+          .createSpoolFromSlot(slot.printerId, slot.amsId, slot.trayId);
+      messenger.snack(l10n.inventoryFromSlotDone);
+    } on AppApiException catch (e) {
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'assign_spool.add_to_inventory',
+        message: _registerFailure(e, l10n),
+      );
+    } on Object {
+      messenger.snack(l10n.inventoryActionFailed);
+    }
+  }
+
+  /// The wording for a refusal this screen says better than the shared one,
+  /// or null to fall through to it.
+  String? _registerFailure(AppApiException e, AppLocalizations l10n) {
+    final detail = e.detail?.toLowerCase() ?? '';
+    return switch (e.statusCode) {
+      // FastAPI's own "Not Found" for a route that does not exist on this
+      // server; the route's own 404 says the printer is not connected.
+      404 when detail.contains('not found') => l10n.inventoryFromSlotUnsupported,
+      404 => l10n.inventoryFromSlotOffline,
+      400 => l10n.inventoryFromSlotNoTag,
+      _ => null,
+    };
   }
 
   /// Narrow the list, or skip it entirely by scanning the spool's label.
@@ -1903,9 +1894,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       spool = scanned();
     }
     if (spool == null) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryScanNotFound(id))),
-      );
+      messenger.snack(l10n.inventoryScanNotFound(id));
       return;
     }
 
@@ -1919,9 +1908,7 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       // Already where it is being put. Nothing to send, and asking to move it
       // off itself would be nonsense.
       Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
       return;
     }
     await _assign(context, ref, l10n, spool, from: from);
@@ -1961,15 +1948,11 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
             ),
             from: from,
           );
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolAssigned)),
-      );
+      messenger.snack(l10n.inventorySpoolAssigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'sheet.assign_spool');
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 
@@ -1984,15 +1967,11 @@ class _AssignSlotSheetState extends ConsumerState<_AssignSlotSheet> {
       await ref
           .read(inventoryProvider.notifier)
           .unassignSpool(slot.printerId, slot.amsId, slot.trayId);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventorySpoolUnassigned)),
-      );
+      messenger.snack(l10n.inventorySpoolUnassigned);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'printer.ams_slot');
     } on Object {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryActionFailed)),
-      );
+      messenger.snack(l10n.inventoryActionFailed);
     }
   }
 }
@@ -2022,12 +2001,7 @@ class _ExtruderBadge extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             short,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: t.monoLabel.copyWith(color: color),
           ),
         ],
       ),

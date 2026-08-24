@@ -4,10 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/maintenance.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'maintenance_icons.dart';
 import 'maintenance_providers.dart';
 
@@ -18,9 +24,7 @@ void showMaintenanceResult(
   AppLocalizations l10n,
   ActionOutcome result,
 ) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(result.messageFor(l10n) ?? l10n.maintenanceSaved)),
-  );
+  ScaffoldMessenger.of(context).snack(result.messageFor(l10n) ?? l10n.maintenanceSaved);
 }
 
 /// Maintenance settings screen (pushed from the Status screen's gear action).
@@ -48,7 +52,10 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
             await ref.read(maintenanceOverviewProvider.notifier).refresh();
           },
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: withSystemNavInset(
+              context,
+              const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            ),
             children: [
               // --- Maintenance types ---
               _SectionHeader(
@@ -76,17 +83,9 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              typesAsync.when(
-                skipLoadingOnReload: true,
-                skipLoadingOnRefresh: true,
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(l10n.connectFailed),
-                ),
+              dashAsyncStrip(
+                context,
+                typesAsync,
                 data: (types) => _DashCard(
                   children: [for (final ty in types) _TypeTile(type: ty)],
                 ),
@@ -105,12 +104,7 @@ class MaintenanceSettingsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
                     child: Text(
                       printer.printerName,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: t.accentGreenInk,
-                      ),
+                      style: t.bodyBold.copyWith(color: t.accentGreenInk),
                     ),
                   ),
                   _DashCard(
@@ -167,22 +161,12 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: t.textPrimary,
-          ),
+          style: t.titleMd,
         ),
         const SizedBox(height: 3),
         Text(
           subtitle,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            color: t.textTertiary,
-          ),
+          style: t.label,
         ),
         if (trailing != null) ...[const SizedBox(height: 10), trailing!],
       ],
@@ -243,12 +227,7 @@ class _TypeTile extends ConsumerWidget {
       ),
       title: Text(
         type.name,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 14.5,
-          fontWeight: FontWeight.w700,
-          color: t.textPrimary,
-        ),
+        style: t.titleSm,
       ),
       subtitle: Text(
         [
@@ -257,12 +236,7 @@ class _TypeTile extends ConsumerWidget {
               : l10n.maintenanceEveryHours(type.defaultIntervalHours.round()),
           if (type.isSystem) l10n.maintenanceSystemType,
         ].join(' · '),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: t.textTertiary,
-        ),
+        style: t.label,
       ),
       onTap: () => openTypeForm(context, existing: type),
       trailing: IconButton(
@@ -318,21 +292,11 @@ class _OverrideTile extends ConsumerWidget {
             color: t.textSecondary),
         title: Text(
           item.maintenanceTypeName,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           unit,
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textTertiary,
-          ),
+          style: t.monoLabel,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -368,9 +332,8 @@ class _OverrideTile extends ConsumerWidget {
         .read(maintenanceOverviewProvider.notifier)
         .setEnabled(item.id, !item.enabled);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-        content: Text(result.messageFor(l10n) ??
-            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted))));
+    messenger.snack(result.messageFor(l10n) ??
+            (item.enabled ? l10n.maintenanceMuted : l10n.maintenanceUnmuted));
   }
 
   Future<void> _editInterval(
@@ -393,10 +356,8 @@ class _OverrideTile extends ConsumerWidget {
 
 /// Opens the create/edit type sheet. [existing] != null → edit mode.
 void openTypeForm(BuildContext context, {MaintenanceType? existing}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  dashSheet<void>(
+    context,
     builder: (_) => _TypeFormSheet(existing: existing),
   );
 }
@@ -448,9 +409,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
     final l10n = AppLocalizations.of(context);
     // Custom types only appear on printers they're assigned to (create only).
     if (!_isEdit && _availablePrinters().isNotEmpty && _printers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.maintenanceSelectPrinter)),
-      );
+      ScaffoldMessenger.of(context).snack(l10n.maintenanceSelectPrinter);
       return;
     }
     final draft = MaintenanceTypeDraft(
@@ -626,11 +585,7 @@ class _TypeFormSheetState extends ConsumerState<_TypeFormSheet> {
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const DashSpinner(size: 20)
                   : Text(l10n.inventorySave),
             ).tagged('maintenance_type_form.save'),
           ],

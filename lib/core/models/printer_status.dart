@@ -659,6 +659,8 @@ class AmsTray {
     this.remain,
     this.trayInfoIdx,
     this.caliIdx,
+    this.tagUid,
+    this.trayUuid,
   });
 
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
@@ -691,6 +693,12 @@ class AmsTray {
   @JsonKey(fromJson: _toIntOrNull)
   final int? caliIdx;
 
+  /// RFID identifiers of the physical spool in the slot. The server sends both
+  /// as null when the firmware reports an unwritten tag (empty or all-zero
+  /// string), so a non-null value here means a real, readable tag.
+  final String? tagUid;
+  final String? trayUuid;
+
   /// Empty slot: no material or fully transparent color (alpha 00).
   bool get isEmpty {
     final type = trayType?.trim();
@@ -717,11 +725,13 @@ class AmsTray {
           other.traySubBrands == traySubBrands &&
           other.remain == remain &&
           other.trayInfoIdx == trayInfoIdx &&
-          other.caliIdx == caliIdx;
+          other.caliIdx == caliIdx &&
+          other.tagUid == tagUid &&
+          other.trayUuid == trayUuid;
 
   @override
-  int get hashCode => Object.hash(
-      id, trayColor, trayType, traySubBrands, remain, trayInfoIdx, caliIdx);
+  int get hashCode => Object.hash(id, trayColor, trayType, traySubBrands,
+      remain, trayInfoIdx, caliIdx, tagUid, trayUuid);
 }
 
 /// One fitted nozzle, from the status response's `nozzles` (index 0 =

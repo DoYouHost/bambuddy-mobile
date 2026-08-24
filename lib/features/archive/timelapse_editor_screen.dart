@@ -8,11 +8,12 @@ import '../../core/models/timelapse.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/api/api_exceptions.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/confirm_dialog.dart';
-import '../common/state_views.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'timelapse_format.dart';
 import 'timelapse_providers.dart';
 import 'timelapse_trim.dart';
@@ -195,13 +196,12 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
             ),
         ],
       ),
-      body: info.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => AsyncErrorView(
-          message: e is AppApiException ? e.localized(l10n) : l10n.connectFailed,
-          onRetry: () => ref.invalidate(timelapseInfoProvider(widget.archiveId)),
-          retryLabel: l10n.retry,
-        ),
+      body: dashAsync(
+        context,
+        info,
+        onRetry: () => ref.invalidate(timelapseInfoProvider(widget.archiveId)),
+        skipLoadingOnReload: false,
+        skipLoadingOnRefresh: false,
         data: (data) => _saving ? _savingView(l10n) : _editor(l10n, data),
       ),
     );
@@ -229,7 +229,10 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
     final output = (trim.end - trim.start) / _speed;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: withSystemNavInset(
+        context,
+        const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      ),
       children: [
         if (_preview case final preview?) ...[
           _Preview(
@@ -328,7 +331,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       if (!mounted) return;
       if (!result.ok) {
         setState(() => _saving = false);
-        messenger.showSnackBar(SnackBar(content: Text(result.message)));
+        messenger.snack(result.message);
         return;
       }
       // The player reloads on a true result — the file behind its URL changed.
@@ -342,7 +345,7 @@ class _TimelapseEditorScreenState extends ConsumerState<TimelapseEditorScreen> {
       if (e is AppApiException) {
         showApiFailure(messenger, e, l10n, action: 'timelapse_edit.save');
       } else {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.connectFailed)));
+        messenger.snack(l10n.connectFailed);
       }
     }
   }
