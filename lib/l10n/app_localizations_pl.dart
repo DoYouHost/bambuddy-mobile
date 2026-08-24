@@ -4671,6 +4671,46 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearUsername => 'Użytkownik';
 
   @override
+  String get wearSetupPhoneTitle => 'Ustaw z telefonu';
+
+  @override
+  String get wearSetupPhoneBody =>
+      'Otwórz Bambuddy na sparowanym telefonie — zegarek sam pobierze z niego serwer i logowanie.';
+
+  @override
+  String get wearSetupPhoneCheck => 'Sprawdź ponownie';
+
+  @override
+  String get wearSetupPhoneEmpty => 'Telefon jeszcze nic nie przysłał.';
+
+  @override
+  String get wearSetupManual => 'Wpisz ręcznie';
+
+  @override
+  String get wearSetupTapToType => 'Dotknij, aby wpisać';
+
+  @override
+  String get wearSettingsTitle => 'Ustawienia';
+
+  @override
+  String get wearFromPhone => 'Z telefonu';
+
+  @override
+  String get wearFromPhoneUse => 'Użyj tego serwera';
+
+  @override
+  String get wearFromPhoneLater => 'Nie teraz';
+
+  @override
+  String get wearAuthNone => 'Bez logowania';
+
+  @override
+  String get wearFromPhoneWaiting => 'Telefon proponuje inny serwer.';
+
+  @override
+  String get wearCurrentServer => 'Obecny serwer';
+
+  @override
   String get commonOn => 'Wł.';
 
   @override

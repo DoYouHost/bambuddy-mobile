@@ -33,6 +33,11 @@ emulator_bin := "$HOME/Android/Sdk/emulator/emulator"
 # depends on boot order.
 avd := "pixel35"
 
+# Default watch AVD. The wear flavor needs its own recipe rather than an `avd=`
+# on `run`: it is a different flavor AND a different entry point, and pointing
+# the phone build at a watch installs an app whose UI does not fit the screen.
+wear_avd := "wear_round"
+
 [doc('show available commands')]
 default:
     @just --list --unsorted
@@ -53,6 +58,15 @@ run avd=avd: (emu-boot avd)
     #!/usr/bin/env bash
     set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor mobile
+
+# Same loop as `run`, for the watch: wear flavor, wear entry point.
+# usage: just run-wear [AVD]
+[doc('run the watch app on a local Wear AVD, booting it first')]
+[group('1-develop')]
+run-wear avd=wear_avd: (emu-boot avd)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flutter run -d "$(just _emu-serial {{avd}})" --flavor wear --target lib/wear/main_wear.dart
 
 [doc('run the app on the shared LAN emulator')]
 [group('1-develop')]

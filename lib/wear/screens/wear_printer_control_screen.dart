@@ -10,10 +10,13 @@ import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_settings_entry.dart';
 import '../widgets/wear_status_chip.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
@@ -32,7 +35,16 @@ class WearPrinterControlScreen extends StatelessWidget {
 /// Status readout + the four watch actions for one printer. Reads live data
 /// from the polled [wearFleetProvider]; actions go through [wearActionsProvider].
 class WearPrinterControlBody extends ConsumerStatefulWidget {
-  const WearPrinterControlBody({super.key, required this.printerId});
+  const WearPrinterControlBody({
+    super.key,
+    required this.printerId,
+    this.showSettings = false,
+  });
+
+  /// Whether to park the settings entry at the end of the scroll. True only
+  /// where this body *is* the home screen (a single printer, no picker to hang
+  /// it off); pushed from the list it would be a second door to the same place.
+  final bool showSettings;
 
   final int printerId;
 
@@ -42,8 +54,7 @@ class WearPrinterControlBody extends ConsumerStatefulWidget {
 }
 
 class _WearPrinterControlBodyState
-    extends ConsumerState<WearPrinterControlBody> {
-  bool _busy = false;
+    extends ConsumerState<WearPrinterControlBody> with WearAction {
 
   PrinterWithStatus? _find(List<PrinterWithStatus> printers) =>
       printers.firstWhereOrNull((p) => p.printer.id == widget.printerId);
@@ -78,8 +89,7 @@ class _WearPrinterControlBodyState
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold),
+                  style: WearText.title,
                 ),
               ),
               const SizedBox(height: 6),
@@ -90,10 +100,14 @@ class _WearPrinterControlBodyState
               const SizedBox(height: 10),
               ..._faults(item),
               ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+              if (widget.showSettings) ...[
+                const SizedBox(height: 4),
+                const WearSettingsEntry(),
+              ],
             ],
           ),
         ),
-        if (_busy)
+        if (busy)
           const Positioned.fill(
             child: ColoredBox(
               color: Color(0x99000000),
@@ -128,7 +142,7 @@ class _WearPrinterControlBodyState
           ),
         ),
         const SizedBox(height: 6),
-        Text(line, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+        Text(line, textAlign: TextAlign.center, style: WearText.body),
       ],
     );
   }
@@ -173,7 +187,7 @@ class _WearPrinterControlBodyState
           padding: const EdgeInsets.only(bottom: 8),
           child: _WearFault(
             fault: fault,
-            busy: _busy,
+            busy: busy,
             onAction: (action) => action == hmsStopAction
                 ? _confirmHmsStop(actions, id, fault, item.printer.name)
                 : _run(() => actions.executeHmsAction(id,
@@ -196,16 +210,13 @@ class _WearPrinterControlBodyState
 
   Future<void> _confirmHmsStop(
       WearActions actions, int id, HmsError fault, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.stop_rounded,
-        title: AppLocalizations.of(ctx).hmsStopConfirmTitle,
-        subtitle: name,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).hmsStopConfirmTitle,
+      subtitle: name,
     );
-    if (ok != true) return;
+    if (!ok) return;
     await _run(() => actions.executeHmsAction(id,
         printError: fault.fullCode!,
         action: hmsStopAction,
@@ -258,7 +269,7 @@ class _WearPrinterControlBodyState
         !offeredByFaults.contains(hmsStopAction)) {
       buttons.add(_btn(l10n.ctrlStop, Icons.stop,
           () => _confirmStop(actions, id, item.printer.name),
-          color: const Color(0xFFB3261E)));
+          color: wearDestructive));
     }
 
     if (buttons.isEmpty) {
@@ -273,7 +284,7 @@ class _WearPrinterControlBodyState
   Widget _btn(String label, IconData icon, Future<void> Function() action,
           {String? okMsg, Color? color}) =>
       FilledButton.icon(
-        onPressed: _busy ? null : () => _run(action, okMsg: okMsg),
+        onPressed: busy ? null : () => _run(action, okMsg: okMsg),
         icon: Icon(icon, size: 18),
         label: Text(label),
         style: color != null
@@ -283,8 +294,8 @@ class _WearPrinterControlBodyState
 
   /// Non-actionable placeholder (empty queue / no actions). Shares the button
   /// row's height and shape so the layout doesn't jump, but reads as inert:
-  /// a muted fill instead of the accent, with an icon + brighter-than-white54
-  /// label so it's actually legible on the OLED black.
+  /// a muted fill instead of the accent, with an icon + a label brighter than
+  /// [wearMuted] so it's actually legible on the OLED black.
   Widget _hint(IconData icon, String label) => Container(
         height: 44,
         alignment: Alignment.center,
@@ -303,47 +314,45 @@ class _WearPrinterControlBodyState
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500)),
+                  // Same role as the button labels it stands in for.
+                  style: WearText.strong.copyWith(color: Colors.white70)),
             ),
           ],
         ),
       );
 
   Future<void> _confirmStop(WearActions actions, int id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.stop_rounded,
-        title: AppLocalizations.of(ctx).ctrlStopConfirmTitle,
-        subtitle: name,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).ctrlStopConfirmTitle,
+      subtitle: name,
     );
-    if (ok == true) await actions.stop(id);
+    if (ok) await actions.stop(id);
   }
 
-  /// Runs an action with a full-screen busy veil, then refreshes the poll.
-  /// Errors surface as a short SnackBar; the screen never crashes on failure.
-  Future<void> _run(Future<void> Function() action, {String? okMsg}) async {
-    setState(() => _busy = true);
-    try {
-      await action();
-      await ref.read(wearFleetProvider.notifier).refresh();
-      if (okMsg != null && mounted) _toast(okMsg);
-    } catch (e) {
-      if (mounted) _toast(_shortError(AppLocalizations.of(context), e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  /// Runs an action behind the full-screen busy veil, then refreshes the poll.
+  ///
+  /// Failures go to a SnackBar, not to text on the screen: these are commands on
+  /// live printer state, repeatable by tapping again, and a red line under one of
+  /// eight buttons in a scrolling list is missed. The refresh is why this wrapper
+  /// still exists on top of [run] — nothing else on the watch has a poll to pull.
+  Future<void> _run(Future<void> Function() action, {String? okMsg}) => run(
+        () async {
+          await action();
+          await ref.read(wearFleetProvider.notifier).refresh();
+        },
+        onDone: () {
+          if (okMsg != null) _toast(okMsg);
+        },
+        onError: (error) =>
+            _toast(_shortError(AppLocalizations.of(context), error)),
+      );
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(fontSize: 12)),
+        content: Text(msg),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -403,9 +412,8 @@ class _WearFaultState extends State<_WearFault> {
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFFE57373),
+                  style: WearText.small.copyWith(
+                      color: const Color(0xFFE57373),
                       fontWeight: FontWeight.w600),
                 ),
               ),
@@ -419,7 +427,9 @@ class _WearFaultState extends State<_WearFault> {
                 description,
                 maxLines: _fullText ? null : 3,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, height: 1.25),
+                // Looser lines: this runs to three of them and is the only
+                // paragraph on the watch anyone has to actually read.
+                style: WearText.body.copyWith(height: 1.25),
               ),
             ),
           ],
@@ -433,10 +443,12 @@ class _WearFaultState extends State<_WearFault> {
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  textStyle: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600),
+                  // A step down from the theme's button text: these stack one
+                  // per action inside an already-boxed fault.
+                  textStyle:
+                      WearText.body.copyWith(fontWeight: FontWeight.w600),
                   backgroundColor:
-                      action == hmsStopAction ? const Color(0xFFB3261E) : null,
+                      action == hmsStopAction ? wearDestructive : null,
                 ),
                 child: Text(
                   hmsActionLabel(l10n, action),

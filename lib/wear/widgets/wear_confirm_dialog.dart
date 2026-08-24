@@ -1,12 +1,38 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../wear_theme.dart';
+
+/// Ask [title] and come back with a plain yes/no.
+///
+/// The `?? false` is the reason this wrapper exists: back-swipe is *the* way off
+/// a Wear OS screen and it dismisses the dialog with `null`, so any call site
+/// reading the raw result as a bool turns an accidental swipe into a yes. One
+/// place to get that right instead of three.
+Future<bool> wearConfirm(
+  BuildContext context, {
+  required IconData icon,
+  required String title,
+  String? subtitle,
+  Color confirmColor = wearDestructive,
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (ctx) => WearConfirmDialog(
+        icon: icon,
+        title: title,
+        subtitle: subtitle,
+        confirmColor: confirmColor,
+      ),
+    ) ??
+    false;
 
 /// Full-screen confirmation in the Wear OS idiom: an icon, the question and
 /// two round ✕/✓ buttons. A phone-style [AlertDialog] gets clipped by round
 /// watch faces and its text buttons are poor tap targets there.
 ///
-/// Pops `true` on confirm, `false` on cancel (back-swipe pops `null`).
+/// Pops `true` on confirm, `false` on cancel (back-swipe pops `null`). Prefer
+/// [wearConfirm] over showing this by hand.
 class WearConfirmDialog extends StatelessWidget {
   const WearConfirmDialog({
     super.key,
@@ -40,8 +66,7 @@ class WearConfirmDialog extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: WearText.hero,
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 3),
@@ -50,7 +75,7 @@ class WearConfirmDialog extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                  style: WearText.body.copyWith(color: wearMuted),
                 ),
               ],
               const SizedBox(height: 20),

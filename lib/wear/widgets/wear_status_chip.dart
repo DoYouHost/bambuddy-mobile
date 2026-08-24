@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 
 /// Printer state as a pill, using the same per-state palette as the phone app
 /// ([WearState.color]). Tinted fill + matching border/text so the state reads
@@ -32,8 +33,7 @@ class WearStatusChip extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             state.label(AppLocalizations.of(context)),
-            style: TextStyle(
-                color: color, fontWeight: FontWeight.w600, fontSize: 13),
+            style: WearText.strong.copyWith(color: color),
           ),
         ],
       ),

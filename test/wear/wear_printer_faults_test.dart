@@ -8,7 +8,6 @@ import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
 import 'package:bambuddy_mobile/wear/wear_providers.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -87,7 +86,9 @@ Future<_FakeTransport> _pumpControl(
 }) async {
   final transport =
       _FakeTransport(_fleetWith(errors, connected: connected));
-  await tester.pumpWidget(ProviderScope(
+  await pumpWear(
+    tester,
+    const WearPrinterControlScreen(printerId: 7),
     overrides: [
       serverProfileProvider.overrideWith(_NoProfileNotifier.new),
       wearTransportProvider.overrideWith(
@@ -95,9 +96,7 @@ Future<_FakeTransport> _pumpControl(
       ),
       requirePlateClearProvider.overrideWith((ref) async => false),
     ],
-    child: plApp(const WearPrinterControlScreen(printerId: 7)),
-  ));
-  await tester.pumpAndSettle();
+  );
   return transport;
 }
 

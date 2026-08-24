@@ -7874,6 +7874,84 @@ abstract class AppLocalizations {
   /// **'Username'**
   String get wearUsername;
 
+  /// No description provided for @wearSetupPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up from your phone'**
+  String get wearSetupPhoneTitle;
+
+  /// No description provided for @wearSetupPhoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Bambuddy on your paired phone — the watch takes the server and sign-in from it.'**
+  String get wearSetupPhoneBody;
+
+  /// No description provided for @wearSetupPhoneCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get wearSetupPhoneCheck;
+
+  /// No description provided for @wearSetupPhoneEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing from the phone yet.'**
+  String get wearSetupPhoneEmpty;
+
+  /// No description provided for @wearSetupManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get wearSetupManual;
+
+  /// No description provided for @wearSetupTapToType.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to type'**
+  String get wearSetupTapToType;
+
+  /// No description provided for @wearSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get wearSettingsTitle;
+
+  /// No description provided for @wearFromPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'From your phone'**
+  String get wearFromPhone;
+
+  /// No description provided for @wearFromPhoneUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this server'**
+  String get wearFromPhoneUse;
+
+  /// No description provided for @wearFromPhoneLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get wearFromPhoneLater;
+
+  /// No description provided for @wearAuthNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No sign-in'**
+  String get wearAuthNone;
+
+  /// No description provided for @wearFromPhoneWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone offers a different server.'**
+  String get wearFromPhoneWaiting;
+
+  /// No description provided for @wearCurrentServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Current server'**
+  String get wearCurrentServer;
+
   /// No description provided for @commonOn.
   ///
   /// In en, this message translates to:
