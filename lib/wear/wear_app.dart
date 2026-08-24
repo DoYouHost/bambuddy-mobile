@@ -9,10 +9,11 @@ import '../providers.dart';
 import 'screens/wear_home.dart';
 import 'screens/wear_setup_screen.dart';
 import 'wear_providers.dart';
+import 'wear_theme.dart';
 
-/// Root of the Wear app. Dark, black-background theme (OLED-friendly) with
-/// larger tap targets. Routes purely on whether a server profile exists —
-/// no bottom nav, no drawer; drill-down uses a plain [Navigator].
+/// Root of the Wear app. Routes purely on whether a server profile exists —
+/// no bottom nav, no drawer; drill-down uses a plain [Navigator]. The look lives
+/// in [wearTheme].
 ///
 /// Also the receiver end of the phone→watch config handoff: on launch it reads
 /// any latched config and listens for live pushes, so the user never has to type
@@ -100,30 +101,11 @@ class _WearAppState extends ConsumerState<WearApp>
     return MaterialApp(
       title: 'Bambuddy Watch',
       debugShowCheckedModeBanner: false,
-      theme: _wearTheme(),
+      theme: wearTheme(),
       // Follow the watch's system language (same l10n set as the phone app).
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: hasProfile ? const WearHome() : const WearSetupScreen(),
     );
   }
-}
-
-ThemeData _wearTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Colors.green,
-    brightness: Brightness.dark,
-  ).copyWith(surface: Colors.black);
-  return ThemeData(
-    colorScheme: scheme,
-    scaffoldBackgroundColor: Colors.black,
-    useMaterial3: true,
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
 }

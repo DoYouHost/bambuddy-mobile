@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
 
@@ -28,7 +29,7 @@ class WearPrinterListBody extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(AppLocalizations.of(context).printersTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: WearText.title),
             ),
           ),
           for (final p in printers)
@@ -95,10 +96,9 @@ class _PrinterRow extends StatelessWidget {
                       Text(name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: WearText.strong),
                       Text(stateLabel,
-                          style: TextStyle(fontSize: 11, color: stateColor)),
+                          style: WearText.small.copyWith(color: stateColor)),
                     ],
                   ),
                 ),

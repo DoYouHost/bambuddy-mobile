@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_providers.dart';
+import '../wear_theme.dart';
 import '../widgets/wear_spinner.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
@@ -87,8 +88,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
           children: [
             const Center(
-              child: Text('Bambuddy',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text('Bambuddy', style: WearText.title),
             ),
             const SizedBox(height: 12),
             if (ref.watch(pendingWatchConfigProvider) case final offer?
@@ -113,7 +113,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         Text(
           l10n.wearFromPhone,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 12),
+          style: WearText.body,
         ),
         const SizedBox(height: 4),
         Text(
@@ -121,7 +121,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          style: WearText.section,
         ),
         const SizedBox(height: 2),
         Text(
@@ -131,15 +131,14 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
             AuthMode.none => l10n.wearAuthNone,
           },
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, color: Colors.white54),
+          style: WearText.fine,
         ),
         if (_phoneError != null) ...[
           const SizedBox(height: 6),
           Text(
             _errorText(l10n, _phoneError!),
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 11, color: Theme.of(context).colorScheme.error),
+            style: _errorStyle(context),
           ),
         ],
         const SizedBox(height: 10),
@@ -153,8 +152,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         TextButton(
           onPressed: () =>
               ref.read(pendingWatchConfigProvider.notifier).dismiss(),
-          child: Text(l10n.wearFromPhoneLater,
-              style: const TextStyle(fontSize: 12)),
+          child: Text(l10n.wearFromPhoneLater),
         ),
       ];
 
@@ -175,13 +173,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         Text(
           l10n.wearSetupPhoneTitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          style: WearText.section,
         ),
         const SizedBox(height: 6),
         Text(
           l10n.wearSetupPhoneBody,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 11),
+          style: WearText.small,
         ),
         if (_phoneEmpty || _phoneError != null) ...[
           const SizedBox(height: 6),
@@ -191,8 +189,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
               null => l10n.wearSetupPhoneEmpty,
             },
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 11, color: Theme.of(context).colorScheme.error),
+            style: _errorStyle(context),
           ),
         ],
         const SizedBox(height: 10),
@@ -205,8 +202,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           ),
         TextButton(
           onPressed: () => setState(() => _manual = true),
-          child:
-              Text(l10n.wearSetupManual, style: const TextStyle(fontSize: 12)),
+          child: Text(l10n.wearSetupManual),
         ),
       ];
 
@@ -263,8 +259,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
             child: Text(
               _errorText(l10n, state.error!),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.error, fontSize: 12),
+              style: _errorStyle(context),
             ),
           ),
         if (state.twoFactor case final challenge?)
@@ -276,8 +271,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           // dropping back to the handoff would throw that progress away.
           TextButton(
             onPressed: () => setState(() => _manual = false),
-            child: Text(l10n.wearSetupPhoneTitle,
-                style: const TextStyle(fontSize: 12)),
+            child: Text(l10n.wearSetupPhoneTitle),
           ),
       ];
 
@@ -335,7 +329,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       Text(
         l10n.twoFactorTitle,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        style: WearText.section,
       ),
       const SizedBox(height: 8),
       _compactField(_code, l10n.twoFactorCodeLabel,
@@ -351,7 +345,6 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
             state.emailCodeSent
                 ? l10n.twoFactorResendEmail
                 : l10n.twoFactorSendEmail,
-            style: const TextStyle(fontSize: 12),
           ),
         ),
       FilledButton(
@@ -368,7 +361,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
                 _code.clear();
                 controller.cancelTwoFactor();
               },
-        child: Text(l10n.twoFactorBack, style: const TextStyle(fontSize: 12)),
+        child: Text(l10n.twoFactorBack),
       ),
     ];
   }
@@ -385,7 +378,6 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       labelText: label,
       isDense: true,
       border: const OutlineInputBorder(),
-      labelStyle: const TextStyle(fontSize: 12),
     );
     if (!_viaWatchInput) {
       return TextField(
@@ -394,7 +386,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
         obscureText: obscure,
         keyboardType: keyboard,
         autocorrect: false,
-        style: const TextStyle(fontSize: 13),
+        style: WearText.value,
         decoration: decoration,
       );
     }
@@ -406,14 +398,13 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
       readOnly: true,
       canRequestFocus: false,
       obscureText: obscure,
-      style: const TextStyle(fontSize: 13),
+      style: WearText.value,
       onTap: enabled ? () => _editOnWatch(controller, label) : null,
       decoration: decoration.copyWith(
         suffixIcon: const Icon(Icons.keyboard_alt_outlined, size: 16),
         // Drops away once the field has a value, so the hint teaches the gesture
         // without permanently eating a line on a 450 px screen.
         helperText: controller.text.isEmpty ? l10n.wearSetupTapToType : null,
-        helperStyle: const TextStyle(fontSize: 9),
       ),
     );
   }
@@ -430,6 +421,11 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     }
   }
 }
+
+/// Every failure on this screen is a line of small red text under the button
+/// that caused it — the setup flow has no other place to put one.
+TextStyle _errorStyle(BuildContext context) =>
+    WearText.small.copyWith(color: Theme.of(context).colorScheme.error);
 
 /// Localized via the shared setup mapper; anything unexpected stays short.
 String _errorText(AppLocalizations l10n, Object error) {

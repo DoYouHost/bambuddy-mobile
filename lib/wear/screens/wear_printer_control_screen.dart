@@ -13,6 +13,7 @@ import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
 import '../widgets/wear_settings_entry.dart';
@@ -88,8 +89,7 @@ class _WearPrinterControlBodyState
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold),
+                  style: WearText.title,
                 ),
               ),
               const SizedBox(height: 6),
@@ -142,7 +142,7 @@ class _WearPrinterControlBodyState
           ),
         ),
         const SizedBox(height: 6),
-        Text(line, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+        Text(line, textAlign: TextAlign.center, style: WearText.body),
       ],
     );
   }
@@ -294,8 +294,8 @@ class _WearPrinterControlBodyState
 
   /// Non-actionable placeholder (empty queue / no actions). Shares the button
   /// row's height and shape so the layout doesn't jump, but reads as inert:
-  /// a muted fill instead of the accent, with an icon + brighter-than-white54
-  /// label so it's actually legible on the OLED black.
+  /// a muted fill instead of the accent, with an icon + a label brighter than
+  /// [wearMuted] so it's actually legible on the OLED black.
   Widget _hint(IconData icon, String label) => Container(
         height: 44,
         alignment: Alignment.center,
@@ -314,10 +314,8 @@ class _WearPrinterControlBodyState
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500)),
+                  // Same role as the button labels it stands in for.
+                  style: WearText.strong.copyWith(color: Colors.white70)),
             ),
           ],
         ),
@@ -354,7 +352,7 @@ class _WearPrinterControlBodyState
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(fontSize: 12)),
+        content: Text(msg),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -414,9 +412,8 @@ class _WearFaultState extends State<_WearFault> {
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFFE57373),
+                  style: WearText.small.copyWith(
+                      color: const Color(0xFFE57373),
                       fontWeight: FontWeight.w600),
                 ),
               ),
@@ -430,7 +427,9 @@ class _WearFaultState extends State<_WearFault> {
                 description,
                 maxLines: _fullText ? null : 3,
                 overflow: _fullText ? null : TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, height: 1.25),
+                // Looser lines: this runs to three of them and is the only
+                // paragraph on the watch anyone has to actually read.
+                style: WearText.body.copyWith(height: 1.25),
               ),
             ),
           ],
@@ -444,8 +443,10 @@ class _WearFaultState extends State<_WearFault> {
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  textStyle: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600),
+                  // A step down from the theme's button text: these stack one
+                  // per action inside an already-boxed fault.
+                  textStyle:
+                      WearText.body.copyWith(fontWeight: FontWeight.w600),
                   backgroundColor:
                       action == hmsStopAction ? wearDestructive : null,
                 ),

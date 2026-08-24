@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_providers.dart';
+import '../wear_theme.dart';
 import '../widgets/wear_confirm_dialog.dart';
 import '../widgets/wear_spinner.dart';
 
@@ -46,21 +47,18 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
           children: [
             Center(
-              child: Text(l10n.wearSettingsTitle,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold)),
+              child: Text(l10n.wearSettingsTitle, style: WearText.title),
             ),
             const SizedBox(height: 12),
             if (profile != null) ...[
               Text(l10n.wearCurrentServer,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10)),
+                  textAlign: TextAlign.center, style: WearText.fine),
               Text(
                 profile.displayName,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
+                style: WearText.body,
               ),
               const SizedBox(height: 12),
             ],
@@ -71,8 +69,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               // running is adopted by `WearApp` without ever reaching a screen.
               if (offered != null && !offered.isSameServerAs(profile)) ...[
                 Text(l10n.wearFromPhoneWaiting,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 11)),
+                    textAlign: TextAlign.center, style: WearText.small),
                 const SizedBox(height: 6),
                 FilledButton(
                   onPressed: () => _switchTo(offered),
@@ -91,7 +88,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
               Text(
                 l10n.changeServerWarning,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 9, color: Colors.white54),
+                style: WearText.fine,
               ),
             ],
           ],

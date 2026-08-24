@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-
-/// Accent for a confirm that destroys something — stopping a print, dropping a
-/// server. Every confirmation on the watch is one of those so far, hence the
-/// default in [wearConfirm].
-const wearDestructive = Color(0xFFB3261E);
+import '../wear_theme.dart';
 
 /// Ask [title] and come back with a plain yes/no.
 ///
@@ -70,8 +66,7 @@ class WearConfirmDialog extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: WearText.hero,
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 3),
@@ -80,7 +75,7 @@ class WearConfirmDialog extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                  style: WearText.body.copyWith(color: wearMuted),
                 ),
               ],
               const SizedBox(height: 20),

@@ -19,8 +19,7 @@ class WearSettingsEntry extends StatelessWidget {
             ),
           ),
           icon: const Icon(Icons.settings_outlined, size: 14),
-          label: Text(AppLocalizations.of(context).wearSettingsTitle,
-              style: const TextStyle(fontSize: 11)),
+          label: Text(AppLocalizations.of(context).wearSettingsTitle),
         ),
       );
 }
