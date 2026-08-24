@@ -1,15 +1,13 @@
 import 'json_utils.dart';
 
 /// What an API key is allowed to do. The server gates a key on these flags
-/// rather than on permissions (`_APIKEY_SCOPE_BY_PERMISSION`,
-/// `backend/app/core/auth.py::_required_apikey_scopes`): each maps to a slice of
-/// the permission catalog, and everything administrative is outside all of them
-/// — a key can never manage users, groups, keys or settings.
-///
-/// One permission may demand several of these flags at once — running a slicer
-/// pipeline slices into the library *and* queues prints, so it needs
-/// `can_queue` and `can_manage_library` together. A key holding one of them is
-/// refused, and the 403 names every flag it is short of.
+/// rather than on permissions
+/// (`backend/app/core/auth.py::_APIKEY_SCOPE_BY_PERMISSION`, read through
+/// `_required_apikey_scopes`): each maps to a slice of the permission catalog,
+/// and everything administrative is outside all of them — a key can never
+/// manage users, groups, keys or settings. The slices are not disjoint: a few
+/// permissions demand several flags at once, so a key short of one of them is
+/// refused even though the others are ticked.
 enum ApiKeyScope {
   readStatus('can_read_status'),
   queue('can_queue'),
