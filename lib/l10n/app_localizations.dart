@@ -7604,13 +7604,13 @@ abstract class AppLocalizations {
   /// **'Plate is clear'**
   String get plateClearConfirm;
 
-  /// No description provided for @plateClearAction.
+  /// Tooltip of the checkmark button in the printer card's plate-clear banner — not a visible label, so it may be a full sentence. The watch says the same thing in wearClearPlate and has to be shorter; do not align the two.
   ///
   /// In en, this message translates to:
   /// **'Mark plate as cleared'**
   String get plateClearAction;
 
-  /// No description provided for @plateClearBadge.
+  /// Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about.
   ///
   /// In en, this message translates to:
   /// **'Plate not cleared'**
@@ -7838,13 +7838,13 @@ abstract class AppLocalizations {
   /// **'No actions available'**
   String get wearNoActions;
 
-  /// No description provided for @wearClearPlate.
+  /// Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all.
   ///
   /// In en, this message translates to:
   /// **'Clear plate'**
   String get wearClearPlate;
 
-  /// No description provided for @wearPlateCleared.
+  /// Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit.
   ///
   /// In en, this message translates to:
   /// **'Plate cleared'**
