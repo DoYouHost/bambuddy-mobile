@@ -1,15 +1,15 @@
 ---
 name: reference-update
-description: Triage what changed in the bambuddy server reference since the last review and turn it into work items for this app — regressions first, then half-done, then missing. Use when catching up with the server's dev branch, when the weekly server-drift job needs its report, or when asking "what did maziggy change that we have to follow".
+description: Triage what changed in the bambuddy server reference since the last review into a one-line-per-change checklist — regressions first, then half-done, then missing. Use when catching up with the server's dev branch, when the weekly server-drift job needs its report, or when asking "what did maziggy change that we have to follow".
 ---
 
 # Server reference triage
 
 The server moves faster than the app: 102 commits in the range this was first
 built for, of which 20 files could move the API contract. This skill turns that
-range into a list a person can work from, and — as much as it turns anything
-into work — keeps the app from silently breaking against a server that has
-already shipped.
+range into a checklist: one line per change, sorted into the category that says
+how urgent it is. It is an index of what moved, not an analysis of it — the
+analysis happens when someone picks a line up and reads the code.
 
 Paths are relative to the repo root.
 
@@ -43,82 +43,102 @@ named `description`, `id` or `status` is read in a dozen unrelated models, which
 is why the facts name the files rather than saying yes: read them before
 believing a hit.
 
-## Step 3 — two files, and the difference between them
+## Step 3 — two files
 
-**`.server-drift/report.md` — what this range changed.** Posted as a comment and
-never edited again. The record: the range examined, the items found, and every
-item struck off the standing list along with the evidence that struck it.
+**`.server-drift/open-items.md` — the checklist.** It replaces the issue body
+wholesale. The version standing before this run is at
+`.server-drift/open-items-current.md`: start from it, strike off what is now
+done, append what this range added, and copy every surviving line
+**byte-for-byte**.
 
-**`.server-drift/open-items.md` — what is still owed.** It replaces the issue
-body wholesale. The version standing before this run is at
-`.server-drift/open-items-current.md`: start from it, remove what is now done,
-append what this range added, leave the rest alone.
+**`.server-drift/report.md` — what this range did to the checklist.** Posted as
+a comment and never edited again. It is a delta, never a copy: the items it adds
+are already above it in the body, so it counts them instead of repeating them.
 
-An item therefore leaves the list in the run it gets finished. A to-do list that
-only grows is not a to-do list, and after half a year of appending nobody could
-tell from the issue what is actually left. Nothing is lost by the removal: the
-comment from that week says which item went and why, with the `file:line` that
-proved it. The record is append-only; the list is not.
+So the checklist shrinks as work gets done, and nothing is lost by the
+shrinking — the comment from that week says what went and why. The record is
+append-only; the checklist is not.
 
 Change nothing else — no source files, no `app_en.arb`, no branch. Those two
 files are the whole output.
 
-Four sections in the report, in this order, because the order is the priority:
-
-**1. Regressions.** A route or field that vanished server-side and that our code
-still depends on. This is the only category that breaks the app for someone who
-has already updated their server, and it is the easiest to miss, because a diff
-invites you to read what was added. If there are none, say so in one line.
-
-**2. Half-done.** The route is in `endpoints.dart` but nothing calls it; the
-field is in the model but no screen shows it. Cheapest work in the list and
-normally invisible.
-
-**3. Missing.** Full items, in the format below.
-
-**4. Struck off.** What was on the standing list and is not any more, or what
-this range brought that we already had — each with the `file:line` that shows
-it. This section belongs to the report only. It never travels into
-`open-items.md`; that is the point of it.
-
-Sections 1–3 are what `open-items.md` carries forward, in the same order.
-
-## Item format
+## The format: one line, one checkbox
 
 ```markdown
-### <short title> — <XS|S|M|L>
+## Regressions
+- [ ] `GET /printers/{id}/foo` — route gone; called from `endpoints.dart:412`
 
-**What changed.** The server side, with the route or field named and the file
-cited: `backend/app/api/routes/x.py:NN`.
+## Half-done
+- [ ] `PrinterStatus.ams_switch_inlet` — parsed in `printer_status.g.dart:88`, shown nowhere
 
-**Why it matters to us.** Our side, with our own file and line.
-
-**Do.** The concrete steps.
-
-**Done when.** The observable result.
+## Missing
+- [ ] `hms_errors[].description` — new field; `printer_status.dart:788` still reads `message`
+- [ ] `GET /scheduled-dryings` — new route, not in `endpoints.dart`
 ```
+
+Each line names what moved on the server and where we stand, with a `file:line`
+whenever there is one. **That is the entire entry.** No "what changed", no "why
+it matters", no "do", no "done when", no size tag. Whoever picks an item up
+reads the code; a paragraph explaining the code to them takes longer to read
+than the code.
+
+One short parenthetical is the budget for a line that genuinely cannot be
+understood without one. Anything longer is not an item but a question: put it
+under the list, under `## Questions`, in one sentence.
+
+The three sections mean:
+
+- **Regressions** — a route or field that vanished server-side and that our code
+  still depends on. The only category that breaks the app for someone who has
+  already updated their server, and the easiest to miss, because a diff invites
+  you to read what was added.
+- **Half-done** — the route is in `endpoints.dart` but nothing calls it; the
+  field is in the model but no screen shows it.
+- **Missing** — everything else that is still owed.
+
+An empty section keeps its heading and says `- none`.
+
+The report is short by construction — on a first run it is three lines:
+
+```markdown
+`7c117dc6` → `ed84f0f7`, 102 commits, 24 contract files.
+
+Added 7 items: 0 regressions, 1 half-done, 6 missing.
+Already covered: 3 (`endpoints.dart:412`, `queue_item.dart:257`, `archive.g.dart:88`).
+
+Struck off:
+- `POST /printers/{id}/files/download-job` — done in `printer_files_repository.dart:50`
+```
+
+**Never restate the items it added.** They are in the checklist directly above
+the comment; printing them twice is how the first version of this job produced
+one list in the body and the same list underneath it. What only the comment can
+say is what *left* — and that gets a line each, with its evidence.
 
 ## Rules that decide what goes in
 
+- **A list in the wrong shape gets converted, not preserved.** If the standing
+  list is prose rather than one line per change, rewrite every entry into a
+  checkbox line — keeping each item and its tick — and say in the report that
+  you converted it. This is the one exception to copying lines byte-for-byte.
+- **A ticked box is the maintainer speaking.** Never untick one, never remove a
+  ticked line without saying so in the report, and never reword a line you are
+  carrying forward — a rewritten line reads as a new one and loses its tick.
 - **Evidence or it stays on the list.** Never strike an item off without a
   `file:line` from our tree. A false "done" disappears and comes back as a bug
   months later; a false "to do" costs ten seconds of reading.
-- **Every removal is accounted for.** An item may leave `open-items.md` only
-  through a line in that run's section 4. An item that quietly differs between
+- **Every removal is accounted for.** A line may leave `open-items.md` only
+  through the report's *Struck off* section. A line that quietly differs between
   the old body and the new one is a bug in the triage, not tidying.
 - **`dev` is the only baseline.** Work sitting on an unmerged feature branch
   counts as not done. That is deliberate: it repeats an item you are mid-way
   through rather than hiding one that was abandoned.
-- **Every item must survive an older server.** The app talks to servers the
-  maintainer does not control, so a new field is read behind a null check and a
-  new route behind a probe — see the compatibility rules in
-  [CLAUDE.md](../../../CLAUDE.md). An item that cannot be built that way is not
-  an item: it is a question for the maintainer, and it says so.
 - **The CHANGELOG is a claim.** The server's author explains each change at
   length and is usually right, but the diff is the evidence. Check anything you
-  act on.
-- **A new ceiling is not yours to pick.** A limit, cap, timeout or threshold —
-  including one that follows obviously from what the server now does — goes into
-  the item as a question, never as a decided number.
-- **One contract change, one item.** Do not bundle unrelated changes because
+  put on the list.
+- **What is not yours to decide gets `(needs a decision)`** and nothing more: a
+  limit, cap, timeout or threshold; anything that cannot be built so an older
+  server still works (see [CLAUDE.md](../../../CLAUDE.md)); anything that is a
+  product call rather than a contract change.
+- **One contract change, one line.** Do not bundle unrelated changes because
   they landed in the same commit.
