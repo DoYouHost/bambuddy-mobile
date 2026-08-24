@@ -25,20 +25,22 @@ gh issue list --label server-drift --state all --limit 1 --json number,state,bod
 No issue means nothing has been triaged yet, and the baseline is a decision, not
 a guess — ask for the commit to start from rather than picking one.
 
-## Step 2 — the briefing
+## Step 2 — the facts
 
 ```sh
 tool/server-ref-diff.sh --from <baseline-sha>
 ```
 
-It writes `.server-drift/briefing.md`: the diff filtered to the paths that can
-carry a contract, the routes and schema fields that appeared or vanished, and —
-for each of them — whether `lib/core/api/endpoints.dart` names that route and
-whether anything under `lib/` reads that JSON key.
+It writes two files. **`.server-drift/facts.md`** is the one to read whole: the
+routes and schema fields that appeared or vanished and, for each of them,
+whether `lib/core/api/endpoints.dart` names that route and whether anything
+under `lib/` reads that JSON key. **`.server-drift/diff.md`** is the filtered
+diff those facts were read from — thousands of lines, so open the parts an item
+actually depends on.
 
 Those greps answer *exists*, never *is wired to anything a user can see*. A key
 named `description`, `id` or `status` is read in a dozen unrelated models, which
-is why the briefing names the files rather than saying yes: read them before
+is why the facts name the files rather than saying yes: read them before
 believing a hit.
 
 ## Step 3 — two files, and the difference between them

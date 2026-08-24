@@ -142,9 +142,7 @@ jobs:
             --no-fetch \
             --out "$GITHUB_WORKSPACE/.server-drift"
           echo "drift=$(cat .server-drift/drift)" >> "$GITHUB_OUTPUT"
-          # The facts, not the filtered diff — the diff alone runs to hundreds
-          # of kilobytes and a job summary is capped at a megabyte.
-          sed -n '1,/^## Filtered diff/p' .server-drift/briefing.md >> "$GITHUB_STEP_SUMMARY"
+          cat .server-drift/facts.md >> "$GITHUB_STEP_SUMMARY"
 
       # The tool list is read-only on purpose. `sed -n` rather than `sed`, because
       # -i writes; no `find`, whose -delete and -exec are a shell in disguise and
@@ -158,15 +156,22 @@ jobs:
           prompt: |
             Read .claude/skills/reference-update/SKILL.md and follow it.
 
-            The baseline is already resolved and the briefing is already written:
-            skip step 1 and step 2, start from step 3. The briefing is at
-            .server-drift/briefing.md and the server reference clone is at
-            ${{ env.REF_DIR }}.
+            The baseline is already resolved and the input is already written:
+            skip step 1 and step 2, start from step 3. Read
+            .server-drift/facts.md first — it is short and it is the whole
+            mechanical picture. .server-drift/diff.md holds the filtered diff
+            those facts came from; it runs to thousands of lines, so read the
+            parts an item depends on rather than the whole file. The server
+            reference clone is at ${{ env.REF_DIR }}.
 
-            Write both files the skill asks for — .server-drift/report.md and
-            .server-drift/open-items.md — and change nothing else in the working
-            tree. The list standing before this run is at
+            The list standing before this run is at
             .server-drift/open-items-current.md; it is empty on the first run.
+
+            You are done only once both .server-drift/report.md and
+            .server-drift/open-items.md exist and are non-empty. Write them
+            before you finish, whatever else you did or did not manage to
+            check — the job fails without them, and a partial report is worth
+            more than none. Change nothing else in the working tree.
           claude_args: |
             --model claude-sonnet-5
             --effort medium
@@ -184,6 +189,9 @@ jobs:
           name: server-drift-${{ github.run_id }}
           path: .server-drift/
           retention-days: 30
+          # .server-drift is a dot directory, and v4 skips hidden paths by
+          # default — without this the artifact uploads nothing at all.
+          include-hidden-files: true
 
       - name: File the report
         if: steps.filter.outputs.drift == 'yes'
