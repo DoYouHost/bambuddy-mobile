@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
+import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/theme/dash_text.dart';
@@ -209,6 +211,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                       ),
                     ),
                   ),
+                  // Above the list, below the search bar — and never while
+                  // multi-selecting, where the screen is a picker and every row
+                  // pushed down is a row the user has to hunt for again.
+                  if (!_selectionMode)
+                    const SliverToBoxAdapter(child: _No3mfBanner()),
                   if (all.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
@@ -471,10 +478,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   }
 
   /// G-code preview: closes sheet and opens full-screen 3D viewer.
+  /// Opens the preview on the plate this print ran, not on whichever plate the
+  /// server would pick for a multi-plate file.
   void _previewGcode(Archive archive) {
     Navigator.pop(context);
     final name = Uri.encodeQueryComponent(archive.displayName);
-    context.push('/gcode-viewer?archive=${archive.id}&name=$name');
+    final plate = archive.plateId == null ? '' : '&plate=${archive.plateId}';
+    context.push('/gcode-viewer?archive=${archive.id}$plate&name=$name');
   }
 
   /// Timelapse: closes the sheet and opens the full-screen player.
@@ -529,8 +539,130 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
         filamentType: archive.filamentType,
         filamentColor: archive.filamentColor,
         slicedForModel: archive.slicedForModel,
+        // The plate this print ran on, so a reprint runs the same one. Null on
+        // a single-plate file and on servers that do not report it, which is
+        // what the form and the server both read as plate 1.
+        plateId: archive.plateId,
         manualStart: manualStart,
       );
+}
+
+/// "These prints archived without their 3MF" — and, since #2780, *why*.
+///
+/// Three causes with three different fixes, and the original single wording was
+/// wrong for two of them: it sent H2-series and P2S owners to switch on a slicer
+/// setting that was already on, and blamed the slicer when the real answer was
+/// an empty card slot. An older server sends no reason at all, which is the
+/// original case and keeps the original text.
+///
+/// Absent unless the server says there is something to say. Dismissal is
+/// one-shot and permanent, as on the web: fixing the cause stops new fallbacks,
+/// so there is nothing to come back to.
+class _No3mfBanner extends ConsumerWidget {
+  const _No3mfBanner();
+
+  /// Where the wiki explains this cause, or null when there is nothing to link —
+  /// "put a card in" is the whole fix for an empty slot.
+  static String? _docsUrl(No3mfReason reason) => switch (reason) {
+        No3mfReason.internalStorage =>
+          'https://wiki.bambuddy.cool/reference/troubleshooting/#archive-card-has-only-a-name',
+        No3mfReason.noExternalStorage => null,
+        No3mfReason.slicerSetting =>
+          'https://wiki.bambuddy.cool/getting-started/#step-4-enable-store-sent-files-on-external-storage',
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Dismissal is read here as well as in the provider: the provider skips the
+    // request on later app runs, but within this one it would keep serving the
+    // answer it already has while it recomputes, and the banner has to go the
+    // moment the X is tapped.
+    if (ref.watch(no3mfDismissedProvider)) return const SizedBox.shrink();
+    final warning = ref.watch(no3mfWarningProvider).valueOrNull;
+    if (warning == null || !warning.hasFallback) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
+    final t = DashTokens.of(context);
+    final reason = warning.reason;
+    final (title, body) = switch (reason) {
+      No3mfReason.internalStorage => (
+          l10n.archiveNo3mfTitleInternal,
+          l10n.archiveNo3mfBodyInternal,
+        ),
+      No3mfReason.noExternalStorage => (
+          l10n.archiveNo3mfTitleNoStorage,
+          l10n.archiveNo3mfBodyNoStorage,
+        ),
+      No3mfReason.slicerSetting => (
+          l10n.archiveNo3mfTitle,
+          l10n.archiveNo3mfBody,
+        ),
+    };
+    final docs = _docsUrl(reason);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+        decoration: BoxDecoration(
+          color: t.accentOrange.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: t.accentOrange.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 20, color: t.accentOrange),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: t.bodyStrong),
+                  const SizedBox(height: 4),
+                  Text(body, style: t.labelSoft),
+                  if (docs != null) ...[
+                    const SizedBox(height: 6),
+                    logTag(
+                      'archive.no3mf_docs',
+                      TextButton.icon(
+                        onPressed: () => launchUrl(
+                          Uri.parse(docs),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(Icons.open_in_new, size: 14),
+                        label: Text(
+                          reason == No3mfReason.internalStorage
+                              ? l10n.archiveNo3mfDocsWhy
+                              : l10n.archiveNo3mfDocs,
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: t.accentOrange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            logTag(
+              'archive.no3mf_dismiss',
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: l10n.archiveNo3mfDismiss,
+                color: t.textTertiary,
+                visualDensity: VisualDensity.compact,
+                onPressed: () =>
+                    ref.read(no3mfDismissedProvider.notifier).dismiss(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ArchiveCard extends StatelessWidget {
@@ -761,6 +893,17 @@ class _ArchiveSheet extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
                                 archive.designer!,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                          // Which plate ran. Only for a file that had a choice:
+                          // on a single-plate print the server sends nothing,
+                          // and "plate 1" would be noise on every card.
+                          if (archive.plateId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                l10n.archivePlate(archive.plateId!),
                                 style: theme.textTheme.bodySmall,
                               ),
                             ),

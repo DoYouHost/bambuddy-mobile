@@ -385,6 +385,16 @@ abstract final class Endpoints {
   /// (required), `purge_stats` → `ArchivePurgePreviewResponse`.
   static const archivesPurgePreview = '$apiPrefix/archives/purge/preview';
 
+  /// Whether any print in the last 30 days archived without its 3MF, and why
+  /// (`{has_fallback, reason}`). Stateless — dismissal is the client's business.
+  ///
+  /// `reason` is `internal_storage`, `no_external_storage`, or absent; the
+  /// slugs are contract (`print_storage.py`), and an older server answers the
+  /// same route with `has_fallback` alone. Absent means the original cause,
+  /// the slicer's "Store sent files on external storage" being off, which is
+  /// what the single-cause wording used to claim unconditionally.
+  static const archivesNo3mfWarning = '$apiPrefix/archives/no-3mf-warning';
+
   /// Thumbnail authenticated via `?token=` (camera token), NOT via header
   /// — see cover in printer_card.
   static String archiveThumbnail(int archiveId) =>
@@ -432,8 +442,14 @@ abstract final class Endpoints {
       '$apiPrefix/archives/$archiveId/timelapse/process';
 
   /// The archive's G-code as `text/plain`, unzipped from its 3MF
-  /// (`archives.py::get_gcode`). Query `plate=N` picks
-  /// `Metadata/plate_N.gcode`; without it the server takes the first plate.
+  /// (`archives.py::get_gcode`). Query `plate=N` picks `Metadata/plate_N.gcode`.
+  ///
+  /// **Always send the plate for a multi-plate file.** Without it the answer
+  /// depends on the server: newer ones pick the lowest-numbered plate, older
+  /// ones the zip's first member — which is whatever order the slicer happened
+  /// to write, so the same file could preview as a different plate on two
+  /// servers. `Archive.plateId` / `QueueItem.plateId` is the plate the run
+  /// belongs to and the one to ask for.
   ///
   /// Older than either embedded viewer the server has had, and untouched by the
   /// one it deleted — which is what makes it safe to draw the preview from.
@@ -456,9 +472,18 @@ abstract final class Endpoints {
   static String archiveFilamentRequirements(int archiveId) =>
       '$apiPrefix/archives/$archiveId/filament-requirements';
 
-  /// See [libraryFilePlates].
+  /// See [libraryFilePlates]. The archive twin answers two keys the library one
+  /// does not: `has_gcode` and a per-plate `bed_type`.
+  ///
+  /// Each plate row carries its own `thumbnail_url` for
+  /// `…/plate-thumbnail/{index}`, authenticated via `?token=` (camera token)
+  /// like [archiveThumbnail], and null when the 3MF has no render for that
+  /// plate. That path is read from the row rather than rebuilt here: the archive
+  /// and library routes spell it differently and the row knows which one it came
+  /// from.
   static String archivePlates(int archiveId) =>
       '$apiPrefix/archives/$archiveId/plates';
+
 
   // --- Print log (one row per run, in its own table) ---
 

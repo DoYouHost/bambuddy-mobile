@@ -917,6 +917,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gcodeFeaturePrimeTower => 'Prime tower';
 
   @override
+  String get archiveNo3mfTitle =>
+      'Some recent prints archived without their thumbnails';
+
+  @override
+  String get archiveNo3mfBody =>
+      'The slicer didn\'t leave the .gcode.3mf on the printer\'s card, so Bambuddy couldn\'t pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer\'s Device tab.';
+
+  @override
+  String get archiveNo3mfTitleInternal =>
+      'Some recent prints stayed on the printer\'s internal storage';
+
+  @override
+  String get archiveNo3mfBodyInternal =>
+      'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.';
+
+  @override
+  String get archiveNo3mfTitleNoStorage =>
+      'Some recent prints couldn\'t be archived — no storage in the printer';
+
+  @override
+  String get archiveNo3mfBodyNoStorage =>
+      'The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.';
+
+  @override
+  String get archiveNo3mfDocs => 'See install step 4';
+
+  @override
+  String get archiveNo3mfDocsWhy => 'Why this happens';
+
+  @override
+  String get archiveNo3mfDismiss => 'Dismiss this notice';
+
+  @override
   String get archiveDelete => 'Delete';
 
   @override
@@ -4736,6 +4769,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditMappingAuto => 'Auto (no manual mapping)';
+
+  @override
+  String get queueEditPlate => 'Plate';
+
+  @override
+  String queueEditPlateSelected(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String queueEditPlateNamed(int plate, String name) {
+    return 'Plate $plate · $name';
+  }
+
+  @override
+  String queueEditPlateFixed(int plate) {
+    return 'This job prints plate $plate';
+  }
+
+  @override
+  String get queuePlatePickTitle => 'Which plate?';
+
+  @override
+  String queuePlateObjects(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count objects',
+      one: '1 object',
+      zero: 'No objects',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archivePlate(int plate) {
+    return 'Plate $plate of a multi-plate file';
+  }
 
   @override
   String get queueEditPrintOptions => 'Print Options';

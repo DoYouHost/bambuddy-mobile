@@ -119,6 +119,29 @@ void main() {
       expect(preview.count, greaterThan(0));
     });
 
+    test('plates: one demo print is multi-plate, the rest are not', () async {
+      final repo = ArchiveRepository(dio);
+      final list = await repo.list();
+      final multi = list.where((a) => a.plateId != null).toList();
+      final single = list.where((a) => a.plateId == null).first;
+
+      expect(multi, hasLength(1),
+          reason: 'the demo needs one, to have a plate picker to show');
+      final plates = await repo.plates(multi.single.id);
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.plates.map((p) => p.index), [1, 2, 3]);
+      expect(plates.byIndex(multi.single.plateId), isNotNull,
+          reason: 'the plate the print ran on has to be one of the choices');
+
+      expect((await repo.plates(single.id)).isMultiPlate, isFalse);
+    });
+
+    test('no-3mf nudge: the demo has nothing to complain about', () async {
+      // Unrouted in the demo backend, which answers 404 — the same answer an
+      // older server gives, and the same "no banner" for both.
+      expect((await ArchiveRepository(dio).no3mfWarning()).hasFallback, isFalse);
+    });
+
     test('stats, slim, failures, users', () async {
       final repo = StatsRepository(dio);
       final stats = await repo.fetch();

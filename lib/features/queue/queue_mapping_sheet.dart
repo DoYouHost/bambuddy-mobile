@@ -110,12 +110,16 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
 /// caller knows the printer currently selected in the form — the item's own
 /// `printer_name` is the one it was filed under, which is stale after a switch
 /// and absent entirely on a draft.
+/// [plateId] overrides the plate the slots are read for — pass it when the
+/// caller holds a newer plate than the item does, which is the queue-create
+/// form after the user picked one. Null falls back to the item's own plate.
 Future<List<int>?> showQueueMappingSheet(
   BuildContext context, {
   required QueueItem item,
   required int printerId,
   required String confirmLabel,
   String? printerName,
+  int? plateId,
 }) {
   return dashSheet<List<int>>(
     context,
@@ -124,6 +128,7 @@ Future<List<int>?> showQueueMappingSheet(
       printerId: printerId,
       confirmLabel: confirmLabel,
       printerName: printerName,
+      plateId: plateId,
     ),
   );
 }
@@ -134,11 +139,13 @@ class _MappingSheet extends ConsumerStatefulWidget {
     required this.printerId,
     required this.confirmLabel,
     this.printerName,
+    this.plateId,
   });
   final QueueItem item;
   final int printerId;
   final String confirmLabel;
   final String? printerName;
+  final int? plateId;
 
   @override
   ConsumerState<_MappingSheet> createState() => _MappingSheetState();
@@ -158,6 +165,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
   AppLocalizations get _l10n => AppLocalizations.of(context);
   bool get _isArchive => widget.item.archiveId != null;
   int? get _sourceId => widget.item.archiveId ?? widget.item.libraryFileId;
+
+  /// Which plate's slots to show. The caller's plate wins over the item's — see
+  /// [showQueueMappingSheet] — and 1 is the plate the print starts on when
+  /// neither names one (`item.plate_id or 1`, `print_scheduler.py`).
+  int get _plateId => widget.plateId ?? widget.item.plateId ?? 1;
 
   @override
   Widget build(BuildContext context) {
@@ -183,8 +195,8 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       );
     }
 
-    final reqsAsync =
-        ref.watch(filamentRequirementsProvider((_isArchive, sourceId)));
+    final reqsAsync = ref.watch(filamentRequirementsProvider(
+        (isArchive: _isArchive, id: sourceId, plate: _plateId)));
     final traysAsync = ref.watch(printerTraysProvider(widget.printerId));
 
     return wrap(

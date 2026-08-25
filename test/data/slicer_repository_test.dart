@@ -190,6 +190,26 @@ void main() {
           isTrue);
     });
 
+    // A multi-plate file consumes a different set of slots per plate, so the
+    // request has to name the plate the caller is really going to print — the
+    // queue form's selection, not the slice form's constant 1.
+    test('the caller chooses the plate the slots are read for', () async {
+      adapter.onGet(
+        path,
+        (s) => s.reply(200, {
+          'filaments': [
+            {'slot_id': 4, 'type': 'PLA', 'used_in_plate': true},
+          ],
+        }),
+        queryParameters: {'full_slots': true, 'plate_id': 3},
+      );
+
+      final reqs =
+          await repo.filamentRequirements(id: 9, isArchive: false, plateId: 3);
+
+      expect(reqs.single.slotId, 4);
+    });
+
     test('asks for every project slot, not only the used ones', () async {
       // `filament_presets` is positional, so a used-only list binds the user's
       // pick to the wrong slot (server #2712). full_slots is what the server

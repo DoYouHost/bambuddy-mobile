@@ -3,7 +3,9 @@ import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
@@ -16,9 +18,14 @@ class _FakeArchiveNotifier extends ArchiveNotifier {
   Future<List<Archive>> build() async => _items;
 }
 
+/// The archive screen reads one stored flag (the no-3MF nudge's one-shot
+/// dismissal), so every test that builds it needs prefs in the scope.
+late SharedPreferences _prefs;
+
 Widget _screen(List<Archive> items) => ProviderScope(
   overrides: [
     archiveProvider.overrideWith(() => _FakeArchiveNotifier(items)),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
     noServerProfileOverride,
   ],
   child: plApp(const ArchiveScreen()),
@@ -38,6 +45,11 @@ Archive _archive({
 );
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   testWidgets('wydruk bez nagrania i zdjęć nie ma znaczników', (tester) async {
     await tester.pumpWidget(_screen([_archive()]));
     await tester.pumpAndSettle();

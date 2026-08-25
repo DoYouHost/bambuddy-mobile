@@ -1381,6 +1381,7 @@ class DemoBackend {
       double? cost,
       double? energyKwh,
       int quantity = 1,
+      int? plateId,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -1400,6 +1401,7 @@ class DemoBackend {
         'duplicate_sequence': 0,
         'object_count': quantity,
         'print_name': name,
+        'plate_id': plateId,
         'print_time_seconds': estSec,
         'actual_time_seconds': actualSec,
         'time_accuracy':
@@ -1436,7 +1438,11 @@ class DemoBackend {
     }
 
     return [
-      a('Drawer organizer x4', 1, 1, estSec: 5400, grams: 96.2, color: '#000000'),
+      // The one multi-plate print in the demo: without it the plate line on the
+      // detail sheet and the plate picker in the print form have nothing to
+      // stand on, and both are part of what the demo is showing off.
+      a('Drawer organizer x4', 1, 1,
+          estSec: 5400, grams: 96.2, color: '#000000', plateId: 2),
       a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
       a('Raspberry Pi 5 case', 2, 3,
           estSec: 7920, grams: 48.4, type: 'PETG', color: '#FFFFFF'),
@@ -1782,10 +1788,47 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'filament-requirements') {
           return _ok(const {'filaments': <Object>[]});
         }
+        if (s.length >= 3 && s[2] == 'plates') {
+          return _ok(_demoPlates(archive));
+        }
         if (s.length == 2 && m == 'GET') return _ok(archive);
       }
     }
     return _fallback(m);
+  }
+
+  /// Plates of a demo archive. Three for the one print that carries a
+  /// `plate_id`, one for everything else — a single-plate answer is what the
+  /// picker reads as "nothing to choose", which is the state most prints are in.
+  Map<String, dynamic> _demoPlates(Map<String, dynamic> archive) {
+    final multi = archive['plate_id'] != null;
+    final grams = (archive['filament_used_grams'] as num).toDouble();
+    final seconds = archive['print_time_seconds'] as int;
+    final count = multi ? 3 : 1;
+    return {
+      'archive_id': archive['id'],
+      'filename': archive['filename'],
+      'plates': [
+        for (var i = 1; i <= count; i++)
+          {
+            'index': i,
+            'name': null,
+            'objects': <String>[],
+            'object_count': i,
+            'has_thumbnail': false,
+            'thumbnail_url': null,
+            'print_time_seconds': (seconds / count).round(),
+            'filament_used_grams': _r1(grams / count),
+            'filaments': <Object>[],
+            'bed_type': archive['bed_type'],
+          },
+      ],
+      'is_multi_plate': multi,
+      'has_gcode': true,
+      'embedded_printer': null,
+      'embedded_process': null,
+      'design_overrides': <Object>[],
+    };
   }
 
   List<Map<String, dynamic>> _pageArchives(Map<String, String> q) {

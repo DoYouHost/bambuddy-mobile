@@ -36,6 +36,45 @@ void main() {
       expect(withoutName.displayName, 'plik.gcode.3mf');
     });
 
+    // The plate is what a reprint has to send back, so a payload that carries
+    // one must not lose it, and one that does not must not invent plate 1.
+    test('plate_id: parsed when present, null on an older server', () {
+      final multi = Archive.fromJson(const {
+        'id': 7,
+        'filename': 'multi.gcode.3mf',
+        'status': 'completed',
+        'plate_id': 4,
+      });
+      final older = Archive.fromJson(const {
+        'id': 8,
+        'filename': 'single.gcode.3mf',
+        'status': 'completed',
+      });
+
+      expect(multi.plateId, 4);
+      expect(older.plateId, isNull);
+      expect(
+        Archive.fromJson(const {
+          'id': 9,
+          'filename': 'x.3mf',
+          'status': 'completed',
+          'plate_id': null,
+        }).plateId,
+        isNull,
+      );
+    });
+
+    test('plate_id survives a favorite toggle', () {
+      const archive = Archive(
+        id: 7,
+        filename: 'multi.gcode.3mf',
+        status: 'completed',
+        plateId: 4,
+      );
+
+      expect(archive.withFavorite(true).plateId, 4);
+    });
+
     test('nieznane klucze nie wywołują wyjątku', () {
       expect(
         () => Archive.fromJson(const {

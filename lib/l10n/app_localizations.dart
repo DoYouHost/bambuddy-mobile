@@ -1706,6 +1706,60 @@ abstract class AppLocalizations {
   /// **'Prime tower'**
   String get gcodeFeaturePrimeTower;
 
+  /// No description provided for @archiveNo3mfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints archived without their thumbnails'**
+  String get archiveNo3mfTitle;
+
+  /// Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer didn\'t leave the .gcode.3mf on the printer\'s card, so Bambuddy couldn\'t pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer\'s Device tab.'**
+  String get archiveNo3mfBody;
+
+  /// No description provided for @archiveNo3mfTitleInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints stayed on the printer\'s internal storage'**
+  String get archiveNo3mfTitleInternal;
+
+  /// Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.'**
+  String get archiveNo3mfBodyInternal;
+
+  /// No description provided for @archiveNo3mfTitleNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints couldn\'t be archived — no storage in the printer'**
+  String get archiveNo3mfTitleNoStorage;
+
+  /// No description provided for @archiveNo3mfBodyNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.'**
+  String get archiveNo3mfBodyNoStorage;
+
+  /// No description provided for @archiveNo3mfDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'See install step 4'**
+  String get archiveNo3mfDocs;
+
+  /// No description provided for @archiveNo3mfDocsWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this happens'**
+  String get archiveNo3mfDocsWhy;
+
+  /// Tooltip and accessible name of the banner's close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss this notice'**
+  String get archiveNo3mfDismiss;
+
   /// No description provided for @archiveDelete.
   ///
   /// In en, this message translates to:
@@ -8119,6 +8173,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto (no manual mapping)'**
   String get queueEditMappingAuto;
+
+  /// No description provided for @queueEditPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get queueEditPlate;
+
+  /// No description provided for @queueEditPlateSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String queueEditPlateSelected(int plate);
+
+  /// Plate number plus the plate's own name from the 3MF, when it has one
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate} · {name}'**
+  String queueEditPlateNamed(int plate, String name);
+
+  /// No description provided for @queueEditPlateFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'This job prints plate {plate}'**
+  String queueEditPlateFixed(int plate);
+
+  /// No description provided for @queuePlatePickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which plate?'**
+  String get queuePlatePickTitle;
+
+  /// No description provided for @queuePlateObjects.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No objects} =1{1 object} other{{count} objects}}'**
+  String queuePlateObjects(int count);
+
+  /// Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate} of a multi-plate file'**
+  String archivePlate(int plate);
 
   /// No description provided for @queueEditPrintOptions.
   ///

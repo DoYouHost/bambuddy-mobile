@@ -15,6 +15,7 @@ class Archive {
     required this.status,
     this.printerId,
     this.printName,
+    this.plateId,
     this.completedAt,
     this.thumbnailPath,
     this.timelapsePath,
@@ -53,6 +54,16 @@ class Archive {
 
   /// Human-readable print name from user or slicer.
   final String? printName;
+
+  /// Which plate of a multi-plate 3MF this run printed (1-indexed), or null for
+  /// a single-plate file — and on every server older than #2603, which does not
+  /// send the field at all.
+  ///
+  /// Load-bearing rather than decorative: the print starts on
+  /// `item.plate_id or 1` (`print_scheduler.py`), so a reprint that drops this
+  /// prints plate 1 instead of the plate the archive is a record of.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? plateId;
 
   /// Thumbnail path for the print.
   final String? thumbnailPath;
@@ -149,6 +160,7 @@ class Archive {
     status: status,
     printerId: printerId,
     printName: printName,
+    plateId: plateId,
     completedAt: completedAt,
     thumbnailPath: thumbnailPath,
     timelapsePath: timelapsePath,

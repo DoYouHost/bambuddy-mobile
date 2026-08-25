@@ -159,6 +159,29 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
   }
 }
 
+/// [guardOrNull] for a read that only decorates a screen — an optional badge, a
+/// nudge, a picker that is hidden when there is nothing to pick.
+///
+/// Same as [guardOrNull] except that a **403 also degrades to `null`**. A 401
+/// still bubbles up: the session really is over and the app has to redirect. A
+/// 403 is a permanent per-permission answer about one route, and throwing it out
+/// of a decorative read would put a session dialog in front of a user over a
+/// control they simply cannot have (`slicer_repository.presetValues` learned
+/// this the hard way and handles the two apart for the same reason).
+Future<T?> guardOrNullAllowingForbidden<T>(Future<T?> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    final mapped = mapDioException(e);
+    if (mapped is AuthException && mapped.code != AppErrorCode.forbidden) {
+      throw mapped;
+    }
+    return null;
+  } on Object {
+    return null;
+  }
+}
+
 /// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
 /// enforcing rules the app deliberately does not re-implement — "Cannot delete
 /// the last admin user", "Cannot rename system groups" — the reason exists only

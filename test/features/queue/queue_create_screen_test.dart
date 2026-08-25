@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
+import 'package:bambuddy_mobile/core/models/plate_list.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:bambuddy_mobile/core/settings/print_options.dart';
@@ -7,6 +8,7 @@ import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
 import 'package:bambuddy_mobile/features/queue/queue_edit_screen.dart';
 import 'package:bambuddy_mobile/features/queue/queue_providers.dart';
+import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -62,12 +64,17 @@ late SharedPreferences _prefs;
 /// [snippets] stands in for `AppSettings.gcode_snippets`: the printer models the
 /// server has auto-print G-code for. Empty is the ordinary install, where the
 /// injection checkbox has nothing to offer and stays off screen.
+/// [plates] stands in for `GET /archives/{id}/plates`. The default is what
+/// every server answers for a single-plate file — and what an older server
+/// without the route answers for anything — so the plate section stays off
+/// screen unless a test asks for it.
 Widget _screen(
   QueueItem draft,
   QueueScheduleType schedule, {
   QueueEditMode mode = QueueEditMode.create,
   bool triState = false,
   Set<String> snippets = const {},
+  PlateList plates = PlateList.none,
 }) =>
     ProviderScope(
       overrides: [
@@ -77,6 +84,8 @@ Widget _screen(
         sharedPreferencesProvider.overrideWithValue(_prefs),
         triStateCalibrationProvider.overrideWith((ref) async => triState),
         gcodeSnippetModelsProvider.overrideWith((ref) async => snippets),
+        plateListProvider.overrideWith((ref, arg) async => plates),
+        filamentRequirementsProvider.overrideWith((ref, arg) async => const []),
       ],
       child: plApp(QueueEditScreen(
         item: draft,
@@ -90,13 +99,25 @@ PrintOptions _stored() =>
 
 /// Sliced for a dual-nozzle model, so the nozzle-offset toggle is on screen —
 /// on a single-nozzle job the form hides it and omits it from the body.
-QueueItem _archiveDraft({bool manualStart = false}) => QueueItem.draft(
+QueueItem _archiveDraft({bool manualStart = false, int? plateId}) =>
+    QueueItem.draft(
       archiveId: 77,
       name: 'cube.3mf',
       printerId: 1,
       slicedForModel: 'X2D',
+      plateId: plateId,
       manualStart: manualStart,
     );
+
+/// Three plates, as a 3MF sliced for a plate farm answers.
+PlateList _threePlates() => PlateList.fromJson({
+      'plates': [
+        for (var i = 1; i <= 3; i++)
+          {'index': i, 'name': 'Plate $i', 'object_count': i, 'has_thumbnail': false},
+      ],
+      'is_multi_plate': true,
+      'has_gcode': true,
+    });
 
 void main() {
   setUp(() async {
@@ -118,6 +139,108 @@ void main() {
     expect(_captured?['insert_at_top'], true);
     expect(_captured?['manual_start'], false);
     expect(_captured?.containsKey('scheduled_time'), isFalse);
+  });
+
+  // The gap this closes: the server starts a job on `plate_id or 1`, so a
+  // reprint that drops the archive's plate prints plate 1 of a multi-plate file
+  // instead of the plate the archive is a record of.
+  testWidgets('reprint of a multi-plate archive sends the plate it ran on',
+      (tester) async {
+    await tester.pumpWidget(_screen(
+      _archiveDraft(plateId: 3),
+      QueueScheduleType.asap,
+      plates: _threePlates(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Płyta 3 · Plate 3'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+    await tester.pumpAndSettle();
+
+    expect(_captured?['plate_id'], 3);
+  });
+
+  testWidgets('a single-plate file is offered no plate to choose',
+      (tester) async {
+    await tester.pumpWidget(_screen(_archiveDraft(), QueueScheduleType.asap));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Płyta'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+    await tester.pumpAndSettle();
+
+    // Absent, not null: the server's own default has to stay in charge for
+    // every install that never reported a plate.
+    expect(_captured?.containsKey('plate_id'), isFalse);
+  });
+
+  testWidgets('picking another plate sends that one and drops the mapping',
+      (tester) async {
+    // The state the form is in after the user has been through the mapping
+    // sheet: slots picked for the plate that was selected *then*.
+    const mapped = QueueItem(
+      id: 0,
+      position: 0,
+      status: 'pending',
+      archiveId: 77,
+      archiveName: 'cube.3mf',
+      printerId: 1,
+      slicedForModel: 'X2D',
+      plateId: 1,
+      amsMapping: [2, 0],
+    );
+    await tester.pumpWidget(_screen(
+      mapped,
+      QueueScheduleType.asap,
+      plates: _threePlates(),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Płyta 1 · Plate 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Płyta 2 · Plate 2').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Płyta 2 · Plate 2'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+    await tester.pumpAndSettle();
+
+    expect(_captured?['plate_id'], 2);
+    // The mapping it was pre-filled with belongs to another plate's slots, so
+    // it must not ride along — an absent mapping is the server auto-matching.
+    expect(_captured?.containsKey('ams_mapping'), isFalse);
+  });
+
+  // Guards the test above: without a plate change the same form does send the
+  // mapping, so its absence there is the reset and not just an empty form.
+  testWidgets('an untouched plate keeps the mapping it was opened with',
+      (tester) async {
+    const mapped = QueueItem(
+      id: 0,
+      position: 0,
+      status: 'pending',
+      archiveId: 77,
+      archiveName: 'cube.3mf',
+      printerId: 1,
+      slicedForModel: 'X2D',
+      plateId: 1,
+      amsMapping: [2, 0],
+    );
+    await tester.pumpWidget(_screen(
+      mapped,
+      QueueScheduleType.asap,
+      plates: _threePlates(),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Drukuj'));
+    await tester.pumpAndSettle();
+
+    expect(_captured?['ams_mapping'], [2, 0]);
+    expect(_captured?['plate_id'], 1);
   });
 
   testWidgets('dodaj do kolejki: pozycja powstaje wstrzymana, bez wyprzedzania',

@@ -9,6 +9,7 @@ import '../core/models/library_file.dart';
 import '../core/models/library_folder.dart';
 import '../core/models/library_stats.dart';
 import '../core/models/library_tag.dart';
+import '../core/models/plate_list.dart';
 import '../core/models/trash_file.dart';
 import '../core/models/variant_group.dart';
 
@@ -211,6 +212,21 @@ class LibraryRepository {
       if (e.statusCode == 404) return null;
       rethrow;
     }
+  }
+
+  /// GET /library/files/{id}/plates — the plates of a multi-plate 3MF.
+  ///
+  /// The archive twin of this lives in `ArchiveRepository.plates`; both routes
+  /// answer the same shape, so one model reads both. Best-effort for the same
+  /// reasons — see there.
+  Future<PlateList> plates(int fileId) async {
+    final data = await guardOrNullAllowingForbidden(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.libraryFilePlates(fileId),
+      );
+      return res.data;
+    });
+    return data == null ? PlateList.none : PlateList.fromJson(data);
   }
 
   /// POST /library/variant-groups — group [fileIds] as alternatives, in the

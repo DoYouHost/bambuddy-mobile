@@ -9,6 +9,7 @@ import '../../core/format/datetime_format.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
+import '../../core/models/plate_list.dart';
 import '../../core/models/queue_item.dart';
 import '../../core/settings/print_options.dart';
 import '../../core/theme/dash_text.dart';
@@ -24,6 +25,7 @@ import '../files/library_thumbnail.dart';
 import '../slicer/slice_providers.dart';
 import '../common/hex_color.dart';
 import 'queue_mapping_sheet.dart';
+import 'queue_plate_sheet.dart';
 import 'queue_providers.dart';
 
 /// Full print-job form — mirrors the web PrintModal, which serves both modes
@@ -96,6 +98,11 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   // Filament mapping (printer mode). Null = auto/unchanged.
   late List<int>? _amsMapping;
 
+  // Which plate of a multi-plate 3MF to print. Null on a single-plate file and
+  // on every server that does not report one, and null is what the print
+  // scheduler reads as plate 1.
+  late int? _plateId;
+
   // Filament overrides (model mode): slot_id → chosen filament, and per-slot
   // force-color-match flags. Prefilled from the item's stored overrides.
   final Map<int, ({String type, String color})> _overrides = {};
@@ -134,6 +141,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     _targetModel = it.targetModel;
     _targetLocation = it.targetLocation;
     _amsMapping = it.amsMapping;
+    _plateId = it.plateId;
     // Editing shows the item's own toggles. A new job has none, so it starts
     // from what the user last printed with — see [PrintOptions].
     final options = widget._isCreate
@@ -292,6 +300,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
               const SizedBox(height: 16),
               _targetSection(l10n, t),
               const SizedBox(height: 16),
+              ?_plateSection(l10n, t),
               if (!_modelMode) ...[
                 _mappingSection(l10n, t),
                 const SizedBox(height: 16),
@@ -493,6 +502,86 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   // --- Filament mapping (printer mode) ---
+  // --- Plate (multi-plate 3MF only) ---
+
+  /// Which plate to print, for a file that has more than one.
+  ///
+  /// Null — the section is absent — for everything else: a single-plate file, a
+  /// source the plates route cannot answer for, an older server without that
+  /// route, and an item with no file behind it yet. A form that looks exactly as
+  /// it did before is the correct answer to all of those.
+  ///
+  /// Read-only while editing an existing item. The plate decides which filament
+  /// slots the job needs, and those are already mapped by then — changing it
+  /// here would leave a mapping pointing at another plate's slots without
+  /// anything saying so. A reprint is a *new* item, which is where the choice
+  /// belongs.
+  Widget? _plateSection(AppLocalizations l10n, DashTokens t) {
+    final it = widget.item;
+    final source = it.archiveId != null
+        ? (true, it.archiveId!)
+        : (it.libraryFileId != null ? (false, it.libraryFileId!) : null);
+    if (source == null) return null;
+    final plates =
+        ref.watch(plateListProvider(source)).valueOrNull ?? PlateList.none;
+    if (!plates.isMultiPlate) return null;
+
+    final current = plates.byIndex(_plateId);
+    final label = current == null
+        ? l10n.queueEditPlateSelected(_plateId ?? 1)
+        : plateLabel(l10n, current);
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.layers_outlined, color: t.textSecondary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              widget._isCreate ? label : l10n.queueEditPlateFixed(_plateId ?? 1),
+              style: t.body,
+            ),
+          ),
+          if (widget._isCreate) Icon(Icons.chevron_right, color: t.textTertiary),
+        ],
+      ),
+    );
+
+    return Column(
+      children: [
+        _SectionCard(
+          title: l10n.queueEditPlate,
+          child: widget._isCreate
+              ? InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _pickPlate(plates),
+                  child: row,
+                ).tagged('queue_edit.plate')
+              : row,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Picking a plate drops the AMS mapping: it maps slot indexes of the plate it
+  /// was built for, and another plate's slots are another set. Left in place it
+  /// would send the printer to trays the new plate never asked about — better to
+  /// fall back to the server's own auto-match, which is what an untouched
+  /// mapping means.
+  Future<void> _pickPlate(PlateList plates) async {
+    final picked = await showQueuePlateSheet(
+      context,
+      plates: plates,
+      selected: _plateId,
+    );
+    if (picked == null || picked == _plateId || !mounted) return;
+    setState(() {
+      _plateId = picked;
+      _amsMapping = null;
+    });
+  }
+
   Widget _mappingSection(AppLocalizations l10n, DashTokens t) {
     final mapped = _amsMapping?.where((v) => v >= 0).length ?? 0;
     final printerId = _printerId;
@@ -509,6 +598,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
                   printerId: printerId,
                   printerName: _selectedPrinterName(printerId),
                   confirmLabel: l10n.fmSave,
+                  plateId: _plateId,
                 );
                 if (mapping != null) setState(() => _amsMapping = mapping);
               },
@@ -548,12 +638,17 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     List<FilamentRequirement> reqs = const [];
     if (it.archiveId != null) {
       reqs = ref
-              .watch(filamentRequirementsProvider((true, it.archiveId!)))
+              .watch(filamentRequirementsProvider(
+                  (isArchive: true, id: it.archiveId!, plate: _plateId ?? 1)))
               .valueOrNull ??
           const [];
     } else if (it.libraryFileId != null) {
       reqs = ref
-              .watch(filamentRequirementsProvider((false, it.libraryFileId!)))
+              .watch(filamentRequirementsProvider((
+                isArchive: false,
+                id: it.libraryFileId!,
+                plate: _plateId ?? 1,
+              )))
               .valueOrNull ??
           const [];
     }
@@ -1070,6 +1165,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   Future<void> _create(QueueRepository repo) {
     final it = widget.item;
     final options = QueueCreateOptions(
+      plateId: _plateId,
       targetModel: _modelMode ? _targetModel : null,
       targetLocation: _modelMode ? _targetLocation : null,
       filamentOverrides: _modelMode ? _buildFilamentOverrides() : null,

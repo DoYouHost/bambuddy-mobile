@@ -12,6 +12,7 @@ Archive _$ArchiveFromJson(Map<String, dynamic> json) => Archive(
   status: json['status'] as String,
   printerId: (json['printer_id'] as num?)?.toInt(),
   printName: json['print_name'] as String?,
+  plateId: toIntOrNull(json['plate_id']),
   completedAt: dateTimeFromJson(json['completed_at']),
   thumbnailPath: json['thumbnail_path'] as String?,
   timelapsePath: json['timelapse_path'] as String?,
