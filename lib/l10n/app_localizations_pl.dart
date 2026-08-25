@@ -567,6 +567,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smartPlugUnreachable => 'Niedostępne';
 
   @override
+  String get smartPlugMonitorOnly => 'Tylko podgląd';
+
+  @override
   String get smartPlugCantPowerOff =>
       'Nie można odciąć zasilania w trakcie druku';
 

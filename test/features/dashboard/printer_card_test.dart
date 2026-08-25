@@ -1232,6 +1232,51 @@ void main() {
       expect(stub.calls, isEmpty); // zasilanie NIE zmienione
     });
 
+    testWidgets('monitor-only MQTT plug: reading stays, button is dead',
+        (tester) async {
+      // The server refuses to switch an MQTT plug (400), so offering the button
+      // would only produce an error the app can predict.
+      final stub = _StubSmartPlugsNotifier(
+        SmartPlugsState(
+          plugs: const [
+            SmartPlug(
+              id: 10,
+              name: 'Licznik',
+              plugType: 'mqtt',
+              printerId: 1,
+              enabled: true,
+              mqttPowerTopic: 'tele/x1c/SENSOR',
+            ),
+          ],
+          statuses: {
+            10: SmartPlugStatus(
+              state: 'ON',
+              reachable: true,
+              energy: const SmartPlugEnergy(power: 42),
+            ),
+          },
+        ),
+      );
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
+
+      await tester.pumpWidget(_cardWithPlugs(item, stub));
+
+      expect(find.byTooltip('42 W · Tylko podgląd'), findsOneWidget);
+      final btn = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.power),
+      );
+      expect(btn.onPressed, isNull);
+
+      await tester.ensureVisible(find.byIcon(Icons.power));
+      await tester.tap(find.byIcon(Icons.power), warnIfMissed: false);
+      await tester.pump();
+
+      expect(stub.calls, isEmpty);
+    });
+
     testWidgets('poza drukiem wyłączenie wymaga potwierdzenia, potem wysyła off',
         (tester) async {
       final stub = _StubSmartPlugsNotifier(_plugState());

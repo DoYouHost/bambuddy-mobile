@@ -191,6 +191,7 @@
   "smartPlugOn": "Wł.",
   "smartPlugOff": "Wył.",
   "smartPlugUnreachable": "Niedostępne",
+  "smartPlugMonitorOnly": "Tylko podgląd",
   "smartPlugCantPowerOff": "Nie można odciąć zasilania w trakcie druku",
   "smartPlugOffConfirmTitle": "Odciąć zasilanie?",
   "smartPlugOffConfirmBody": "Drukarka natychmiast straci zasilanie.",

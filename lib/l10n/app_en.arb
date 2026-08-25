@@ -222,6 +222,8 @@
   "@smartPlugOff": { "description": "Smart plug powered off" },
   "smartPlugUnreachable": "Unreachable",
   "@smartPlugUnreachable": { "description": "Smart plug does not respond" },
+  "smartPlugMonitorOnly": "Monitoring only",
+  "@smartPlugMonitorOnly": { "description": "Why an MQTT plug cannot be switched from the card" },
   "smartPlugCantPowerOff": "Can't cut power while the printer is printing",
   "@smartPlugCantPowerOff": { "description": "Why the off switch is blocked during a print" },
   "smartPlugOffConfirmTitle": "Cut power?",

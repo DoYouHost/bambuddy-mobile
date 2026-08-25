@@ -1058,6 +1058,12 @@ abstract class AppLocalizations {
   /// **'Unreachable'**
   String get smartPlugUnreachable;
 
+  /// Why an MQTT plug cannot be switched from the card
+  ///
+  /// In en, this message translates to:
+  /// **'Monitoring only'**
+  String get smartPlugMonitorOnly;
+
   /// Why the off switch is blocked during a print
   ///
   /// In en, this message translates to:
