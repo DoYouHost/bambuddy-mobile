@@ -8,7 +8,7 @@ part of 'firmware.dart';
 
 FirmwareUpdateInfo _$FirmwareUpdateInfoFromJson(Map<String, dynamic> json) =>
     FirmwareUpdateInfo(
-      printerId: _toIntOrNull(json['printer_id']),
+      printerId: toIntOrNull(json['printer_id']),
       printerName: json['printer_name'] as String?,
       model: json['model'] as String?,
       currentVersion: json['current_version'] as String?,
@@ -39,7 +39,7 @@ FirmwareUpdatesResponse _$FirmwareUpdatesResponseFromJson(
   updates: json['updates'] == null
       ? const []
       : _toUpdateListOrEmpty(json['updates']),
-  updatesAvailable: _toIntOrNull(json['updates_available']),
+  updatesAvailable: toIntOrNull(json['updates_available']),
 );
 
 FirmwareUploadPrepare _$FirmwareUploadPrepareFromJson(
@@ -51,8 +51,8 @@ FirmwareUploadPrepare _$FirmwareUploadPrepareFromJson(
   sdCardPresent: json['sd_card_present'] == null
       ? false
       : _toBoolOrFalse(json['sd_card_present']),
-  sdCardFreeSpace: _toIntOrNull(json['sd_card_free_space']),
-  firmwareSize: _toIntOrNull(json['firmware_size']),
+  sdCardFreeSpace: toIntOrNull(json['sd_card_free_space']),
+  firmwareSize: toIntOrNull(json['firmware_size']),
   spaceSufficient: json['space_sufficient'] == null
       ? false
       : _toBoolOrFalse(json['space_sufficient']),
@@ -79,7 +79,7 @@ FirmwareUploadStatus _$FirmwareUploadStatusFromJson(
   Map<String, dynamic> json,
 ) => FirmwareUploadStatus(
   status: json['status'] as String?,
-  progress: _toIntOrNull(json['progress']),
+  progress: toIntOrNull(json['progress']),
   message: json['message'] as String?,
   error: json['error'] as String?,
   firmwareFilename: json['firmware_filename'] as String?,

@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'firmware.g.dart';
 
 /// Firmware information for a single printer from
@@ -25,7 +27,7 @@ class FirmwareUpdateInfo {
 
   /// Printer ID — for mapping to status/card. Tolerant parser; if server
   /// omits/breaks it, entry can still be skipped by provider.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? printerId;
 
   final String? printerName;
@@ -92,7 +94,7 @@ class FirmwareUpdatesResponse {
   final List<FirmwareUpdateInfo> updates;
 
   /// How many printers have updates available (for optional global badge).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? updatesAvailable;
 }
 
@@ -123,9 +125,9 @@ class FirmwareUploadPrepare {
   final bool canProceed;
   @JsonKey(fromJson: _toBoolOrFalse)
   final bool sdCardPresent;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? sdCardFreeSpace;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? firmwareSize;
   @JsonKey(fromJson: _toBoolOrFalse)
   final bool spaceSufficient;
@@ -169,19 +171,13 @@ class FirmwareUploadStatus {
 
   /// Raw status from server (e.g. idle/uploading/done/error) — not enum-backed.
   final String? status;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? progress;
   final String? message;
   final String? error;
   final String? firmwareFilename;
   final String? firmwareVersion;
 }
-
-int? _toIntOrNull(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
 
 bool _toBoolOrFalse(dynamic value) => switch (value) {
       bool b => b,

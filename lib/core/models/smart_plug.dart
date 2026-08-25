@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'smart_plug.g.dart';
 
 /// Smart plug configuration from `GET /smart-plugs/` and
@@ -37,7 +39,7 @@ class SmartPlug {
   final String? plugType;
 
   /// Printer this plug is assigned to (null = unassigned).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? printerId;
 
   final bool? enabled;
@@ -128,11 +130,7 @@ class SmartPlug {
   }
 
   /// State from config (fallback, before live status available).
-  bool? get lastIsOn => switch (lastState?.toUpperCase()) {
-        'ON' || 'TRUE' || '1' => true,
-        'OFF' || 'FALSE' || '0' => false,
-        _ => null,
-      };
+  bool? get lastIsOn => _onOffOrNull(lastState);
 }
 
 /// Live plug status from `GET /smart-plugs/{id}/status` (SmartPlugStatus):
@@ -161,11 +159,7 @@ class SmartPlugStatus {
 
   bool get isReachable => reachable ?? true;
 
-  bool? get isOn => switch (state?.toUpperCase()) {
-        'ON' || 'TRUE' || '1' => true,
-        'OFF' || 'FALSE' || '0' => false,
-        _ => null,
-      };
+  bool? get isOn => _onOffOrNull(state);
 
   /// Current active power in watts — null if plug doesn't measure or unreachable.
   double? get powerW => isReachable ? energy?.power : null;
@@ -188,38 +182,37 @@ class SmartPlugEnergy {
       _$SmartPlugEnergyFromJson(json);
 
   /// Active power [W].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? power;
 
   /// Voltage [V].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? voltage;
 
   /// Current [A].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? current;
 
   /// Energy today [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? today;
 
   /// Energy yesterday [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? yesterday;
 
   /// Total energy (meter) [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? total;
 }
 
-double? _toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
-
-int? _toIntOrNull(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
+/// The wire vocabulary for a plug's state, on both `last_state` (config) and
+/// `state` (live status): each plug type words it its own way, so a Tasmota
+/// `ON`, an MQTT `1` and a REST `true` all have to read as the same thing.
+/// Anything else — including an unreachable plug's `null` — is “unknown”, which
+/// the UI shows as off but never sends as a command.
+bool? _onOffOrNull(String? value) => switch (value?.toUpperCase()) {
+      'ON' || 'TRUE' || '1' => true,
+      'OFF' || 'FALSE' || '0' => false,
       _ => null,
     };

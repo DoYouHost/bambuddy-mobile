@@ -63,6 +63,29 @@ void main() {
     });
   });
 
+  // `last_state` (config) and `state` (live status) share one vocabulary,
+  // because each plug type words the same thing differently.
+  group('on/off state', () {
+    test('reads every spelling the plug types use', () {
+      for (final on in ['ON', 'on', 'TRUE', 'true', '1']) {
+        expect(SmartPlug(id: 1, lastState: on).lastIsOn, isTrue, reason: on);
+        expect(SmartPlugStatus(state: on).isOn, isTrue, reason: on);
+      }
+      for (final off in ['OFF', 'off', 'FALSE', 'false', '0']) {
+        expect(SmartPlug(id: 1, lastState: off).lastIsOn, isFalse, reason: off);
+        expect(SmartPlugStatus(state: off).isOn, isFalse, reason: off);
+      }
+    });
+
+    test('anything else is unknown, not off', () {
+      for (final unknown in [null, '', 'unavailable', '2']) {
+        expect(SmartPlug(id: 1, lastState: unknown).lastIsOn, isNull,
+            reason: '$unknown');
+        expect(SmartPlugStatus(state: unknown).isOn, isNull, reason: '$unknown');
+      }
+    });
+  });
+
   group('reportsPower', () {
     test('Home Assistant needs a power sensor', () {
       const blind =
