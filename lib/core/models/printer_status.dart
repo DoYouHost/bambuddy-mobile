@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../ams/fts_routing.dart';
 import 'json_utils.dart';
 
 part 'printer_status.g.dart';
@@ -12,6 +13,7 @@ const _listNozzleEquality = ListEquality<NozzleInfo>();
 const _stringListEquality = ListEquality<String>();
 const _mapStringDoubleEquality = MapEquality<String, double>();
 const _mapIntIntEquality = MapEquality<int, int>();
+const _mapIntStringEquality = MapEquality<int, String>();
 
 /// Printer status from `GET /printers/{id}/status` (and eventually from WS
 /// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
@@ -47,6 +49,7 @@ class PrinterStatus {
     this.trayNow,
     this.activeExtruder,
     this.amsExtruderMap,
+    this.amsSwitchInlet,
     this.model,
     this.wifiSignal,
     this.doorOpen,
@@ -170,6 +173,14 @@ class PrinterStatus {
   @JsonKey(fromJson: _toExtruderMapOrNull)
   final Map<int, int>? amsExtruderMap;
 
+  /// Map "AMS unit ID → Filament Track Switch inlet" (`{0: "A"}`), sent only by
+  /// servers that know the accessory and only while one is fitted. An FTS-bound
+  /// AMS reaches BOTH nozzles, so it is missing from [amsExtruderMap] and must
+  /// not be labelled left or right — the inlet says where its slots sit between
+  /// prints, which is what [extruderForSlot] answers with.
+  @JsonKey(fromJson: _toInletMapOrNull)
+  final Map<int, String>? amsSwitchInlet;
+
   /// Printer model from server (e.g. "X2D", "P1S").
   final String? model;
 
@@ -199,21 +210,38 @@ class PrinterStatus {
   @JsonKey(fromJson: _toNozzleListOrNull)
   final List<NozzleInfo>? nozzles;
 
-  /// Diameter of the nozzle an AMS unit feeds, as the string the server and the
+  /// Which extruder one AMS slot feeds, or null when the printer has not said.
+  /// See [slotExtruder] for why this refuses to guess. [trayId] only changes the
+  /// answer for the external holder (unit 255), where it names the side.
+  int? extruderForSlot(int amsId, int trayId) => slotExtruder(
+        amsId: amsId,
+        trayId: trayId,
+        amsExtruderMap: amsExtruderMap,
+        amsSwitchInlet: amsSwitchInlet,
+      );
+
+  /// Diameter of the nozzle one AMS slot feeds, as the string the server and the
   /// printer both use (`0.4`). Null when the printer has not reported its
-  /// nozzles — a caller that must send something falls back to `0.4`, but that
-  /// guess belongs at the call site, not here.
-  String? nozzleDiameterFor(int amsId) {
-    final fitted = nozzles;
-    if (fitted == null || fitted.isEmpty) return null;
-    final extruder = amsExtruderMap?[amsId] ?? 0;
-    final diameter = extruder >= 0 && extruder < fitted.length
-        ? fitted[extruder].nozzleDiameter
-        : null;
-    final value = (diameter?.isNotEmpty ?? false)
-        ? diameter
-        : fitted.first.nozzleDiameter;
-    return (value?.isEmpty ?? true) ? null : value;
+  /// nozzles, and null when it wears two different ones and nothing says which
+  /// side this slot is on — a caller that must send something falls back to
+  /// `0.4`, but that guess belongs at the call site, not here.
+  ///
+  /// [nozzles] always carries two entries; on a single-nozzle machine the second
+  /// one is an empty stub, which is why the count proves nothing and the
+  /// distinct *reported* diameters are what decide whether the side matters.
+  String? nozzleDiameterFor(int amsId, int trayId) {
+    final fitted = nozzles ?? const <NozzleInfo>[];
+    final reported = [for (final n in fitted) n.nozzleDiameter?.trim() ?? ''];
+    final distinct = reported.where((d) => d.isNotEmpty).toSet();
+    if (distinct.isEmpty) return null;
+    // One size across the machine — the side cannot change the answer.
+    if (distinct.length == 1) return distinct.first;
+    final extruder = extruderForSlot(amsId, trayId);
+    if (extruder == null || extruder < 0 || extruder >= reported.length) {
+      return null;
+    }
+    final own = reported[extruder];
+    return own.isEmpty ? null : own;
   }
 
   /// Value equality — `ingestPoll` uses this to skip publishing a merged
@@ -252,6 +280,7 @@ class PrinterStatus {
           other.trayNow == trayNow &&
           other.activeExtruder == activeExtruder &&
           _mapIntIntEquality.equals(other.amsExtruderMap, amsExtruderMap) &&
+          _mapIntStringEquality.equals(other.amsSwitchInlet, amsSwitchInlet) &&
           other.model == model &&
           other.wifiSignal == wifiSignal &&
           other.doorOpen == doorOpen &&
@@ -289,6 +318,9 @@ class PrinterStatus {
         trayNow,
         activeExtruder,
         amsExtruderMap == null ? null : _mapIntIntEquality.hash(amsExtruderMap),
+        amsSwitchInlet == null
+            ? null
+            : _mapIntStringEquality.hash(amsSwitchInlet),
         model,
         wifiSignal,
         doorOpen,
@@ -356,6 +388,7 @@ class PrinterStatus {
       trayNow: trayNow ?? previous.trayNow,
       activeExtruder: activeExtruder ?? previous.activeExtruder,
       amsExtruderMap: amsExtruderMap ?? previous.amsExtruderMap,
+      amsSwitchInlet: amsSwitchInlet ?? previous.amsSwitchInlet,
       model: model ?? previous.model,
       wifiSignal: wifiSignal ?? previous.wifiSignal,
       doorOpen: doorOpen ?? previous.doorOpen,
@@ -381,7 +414,7 @@ class PrinterStatus {
   /// for its first airduct frame (`null` there falls back to "show it").
   ///
   /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`), the physical AMS
-  /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
+  /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`amsSwitchInlet`/`trayNow`/`activeExtruder`) which
   /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
   /// outage doesn't re-alert on reconnect.
@@ -407,6 +440,7 @@ class PrinterStatus {
       ams: ams,
       vtTray: vtTray,
       amsExtruderMap: amsExtruderMap,
+      amsSwitchInlet: amsSwitchInlet,
       trayNow: trayNow,
       activeExtruder: activeExtruder,
       hmsErrors: hmsErrors,
@@ -509,7 +543,12 @@ class PrinterStatus {
   /// Dual-head machine — UI then distinguishes which material on which extruder
   /// (single-head doesn't need this).
   bool get isDualExtruder =>
-      externalSpools.length > 1 || (amsExtruderMap?.length ?? 0) > 1;
+      externalSpools.length > 1 ||
+      (amsExtruderMap?.length ?? 0) > 1 ||
+      // A Filament Track Switch exists to feed two nozzles from one AMS, and
+      // the units it binds drop out of `ams_extruder_map` — on such a machine
+      // the inlet map is the only thing left saying "dual".
+      (amsSwitchInlet?.isNotEmpty ?? false);
 
   /// Extruder number fed by external spool with given `id`.
   ///
@@ -982,6 +1021,20 @@ Map<int, int>? _toExtruderMapOrNull(dynamic value) {
   for (final entry in value.entries) {
     final k = toIntOrNull(entry.key);
     final v = toIntOrNull(entry.value);
+    if (k != null && v != null) out[k] = v;
+  }
+  return out;
+}
+
+/// `{ams_id: "A"|"B"}` with string keys — normalize the key to int and keep the
+/// inlet as the server spells it; [extruderForInlet] is what decides whether a
+/// value means anything, so an unknown letter travels rather than being dropped.
+Map<int, String>? _toInletMapOrNull(dynamic value) {
+  if (value is! Map) return null;
+  final out = <int, String>{};
+  for (final entry in value.entries) {
+    final k = toIntOrNull(entry.key);
+    final v = toStringOrNull(entry.value);
     if (k != null && v != null) out[k] = v;
   }
   return out;

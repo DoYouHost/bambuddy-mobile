@@ -462,6 +462,11 @@ class _DetailsPanel extends ConsumerWidget {
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final printerName = status.name;
+    // The 0/1 side index the external holder is addressed by, which is also
+    // what the inventory assignment is keyed on: Ext-L is tray 0, Ext-R tray 1.
+    int trayIdOf(int i) => !dual
+        ? 0
+        : (status.extruderForExternal(spools[i].id) == 1 ? 0 : 1);
 
     final blocks = <Widget>[
       for (var i = 0; i < ams.length; i++)
@@ -469,14 +474,21 @@ class _DetailsPanel extends ConsumerWidget {
           unit: ams[i],
           unitIndex: i,
           active: active,
+          // The badge names a fixed side, so only a real `ams_extruder_map`
+          // entry may fill it. A unit bound to a Filament Track Switch reaches
+          // both nozzles and has none — [PrinterStatus.extruderForSlot] still
+          // resolves it through the inlet, but that is where the slot rests
+          // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
+          slotExtruder:
+              dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
-          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i, 0),
           printerModel: status.model,
         ),
       if (spools.isNotEmpty)
@@ -488,17 +500,15 @@ class _DetailsPanel extends ConsumerWidget {
           assignedOf: (i) => assigned.forExtruder(
             dual ? status.extruderForExternal(spools[i].id) : 1,
           ),
-          trayIdOf: (i) {
-            if (!dual) return 0;
-            return status.extruderForExternal(spools[i].id) == 1 ? 0 : 1;
-          },
+          trayIdOf: trayIdOf,
           printerId: printerId,
           printerName: printerName,
           printing: status.isPrinting && !status.isPaused,
-          // External spools feed a nozzle too, and the unit they are keyed
-          // under (255) is not in `ams_extruder_map` — the primary nozzle is
-          // the only answer available here.
-          nozzleDiameter: status.nozzleDiameterFor(255),
+          // The external holder is keyed under unit 255, which no
+          // `ams_extruder_map` mentions — the tray side is the whole answer
+          // there, so it has to be asked per spool rather than per section.
+          nozzleDiameterOf: (i) =>
+              status.nozzleDiameterFor(255, trayIdOf(i)),
           printerModel: status.model,
         ),
     ];
@@ -547,6 +557,7 @@ class _AmsSection extends ConsumerWidget {
     required this.unitIndex,
     required this.active,
     required this.extruder,
+    required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
     required this.printerId,
@@ -560,7 +571,15 @@ class _AmsSection extends ConsumerWidget {
   final AmsUnit unit;
   final int unitIndex;
   final AmsTray? active;
+
+  /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
+
+  /// The nozzle this unit's slots currently rest on, which on a Filament Track
+  /// Switch machine is known even when [extruder] is not. Travels to the slot
+  /// configuration sheet, where it tells the printer's two calibration tables
+  /// apart.
+  final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
   final int printerId;
@@ -675,7 +694,7 @@ class _AmsSection extends ConsumerWidget {
                 caliIdx: trays[i].caliIdx,
                 nozzleDiameter: nozzleDiameter,
                 printerModel: printerModel,
-                extruderId: extruder,
+                extruderId: slotExtruder,
               ),
             ),
       ],
@@ -695,7 +714,7 @@ class _SpoolSection extends StatelessWidget {
     required this.printerId,
     required this.printerName,
     required this.printing,
-    required this.nozzleDiameter,
+    required this.nozzleDiameterOf,
     required this.printerModel,
   });
 
@@ -707,7 +726,7 @@ class _SpoolSection extends StatelessWidget {
   final int printerId;
   final String? printerName;
   final bool printing;
-  final String? nozzleDiameter;
+  final String? Function(int index) nozzleDiameterOf;
   final String? printerModel;
 
   @override
@@ -755,7 +774,7 @@ class _SpoolSection extends StatelessWidget {
               trayInfoIdx: trays[i].trayInfoIdx,
               trayColour: trays[i].trayColor,
               caliIdx: trays[i].caliIdx,
-              nozzleDiameter: nozzleDiameter,
+              nozzleDiameter: nozzleDiameterOf(i),
               printerModel: printerModel,
               extruderId: extruderOf(i),
             ),

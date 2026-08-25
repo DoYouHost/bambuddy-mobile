@@ -21,6 +21,7 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -793,6 +794,124 @@ void main() {
 
       // AMS unit 0, first slot → global tray 0, not the local slot id.
       expect(commands.calls, ['amsLoad:1:0']);
+    });
+
+    testWidgets('each external spool is offered its own nozzle size',
+        (tester) async {
+      // The external holder is keyed under unit 255, which no
+      // `ams_extruder_map` mentions — reading it as extruder 0 handed Ext-L
+      // the right-hand nozzle's size, and that size is what the slot
+      // configuration writes and queries the calibration table by.
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      data.remove('cover_url');
+      data['nozzles'] = const [
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ];
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(
+                printer: const Printer(id: 1, name: 'X2D-3DP'),
+                status: PrinterStatus.fromJson(data),
+              ),
+            ),
+          ),
+        ),
+        extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The TPU spool is `vt_tray` 254 — Ext-L, extruder 1.
+      final row = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '') == 'printer.ams_slot@TPU')
+          .first;
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final sheet =
+          tester.widget<AmsSlotConfigSheet>(find.byType(AmsSlotConfigSheet));
+      expect(sheet.target.amsId, 255);
+      expect(sheet.target.trayId, 0, reason: 'Ext-L is tray 0');
+      expect(sheet.target.extruderId, 1);
+      expect(sheet.target.nozzleDiameter, '0.8');
+    });
+
+    testWidgets('a switch-bound AMS is configured on the nozzle it rests on',
+        (tester) async {
+      // With a Filament Track Switch fitted every AMS reports 0xE, so
+      // `ams_extruder_map` is empty and the unit gets no left/right badge — but
+      // its inlet still says which calibration table the slot belongs to.
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      data.remove('cover_url');
+      data['ams_extruder_map'] = const <String, int>{};
+      data['ams_switch_inlet'] = const {'0': 'A'};
+      data['nozzles'] = const [
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ];
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(
+                printer: const Printer(id: 1, name: 'H2C'),
+                status: PrinterStatus.fromJson(data),
+              ),
+            ),
+          ),
+        ),
+        extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The AMS header names no side: the switch moves the unit between both.
+      expect(find.widgetWithText(Tooltip, 'L'), findsNothing);
+      expect(find.widgetWithText(Tooltip, 'P'), findsNothing);
+
+      final row = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '') == 'printer.ams_slot@PETG')
+          .first;
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final sheet =
+          tester.widget<AmsSlotConfigSheet>(find.byType(AmsSlotConfigSheet));
+      expect(sheet.target.extruderId, 1, reason: 'inlet A rests on the left');
+      expect(sheet.target.nozzleDiameter, '0.8');
     });
 
     testWidgets('a printing printer keeps the filament actions unreachable',
