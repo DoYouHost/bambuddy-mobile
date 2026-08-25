@@ -709,6 +709,67 @@ void main() {
     });
   });
 
+  group('slot addressing', () {
+    test('a single external holder feeds the only nozzle there is', () {
+      // One holder means one nozzle, and that one is extruder 0 — the inverted
+      // 254/255 pair only describes a dual-head machine.
+      final single = PrinterStatus.fromJson(const {
+        'id': 1,
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+        ],
+      });
+
+      expect(single.extruderForExternal(254), 0);
+      expect(single.extruderForExternal(255), isNull,
+          reason: 'a spool this printer does not report');
+    });
+
+    test('an AMS-HT slot is found by tray_now', () {
+      // An HT unit holds one tray and is numbered from 128, so `unit * 4 + slot`
+      // put it at 512 and `tray_now: 128` matched nothing.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 128,
+        'ams': [
+          {
+            'id': 128,
+            'tray': [
+              {'id': 0, 'tray_type': 'PA-CF'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray?.trayType, 'PA-CF');
+    });
+
+    test('a tray without an id matches nothing rather than something else', () {
+      // Reading a missing slot id as 0 made unit 1's phantom slot collide with
+      // unit 0's fourth one.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 3,
+        'ams': [
+          {
+            'id': 0,
+            'tray': [
+              {'tray_type': 'PLA'},
+            ],
+          },
+          {
+            'id': 1,
+            'tray': [
+              {'tray_type': 'PETG'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray, isNull);
+    });
+  });
+
   group('ams_switch_inlet', () {
     PrinterStatus withInlets(Object? raw) =>
         PrinterStatus.fromJson({'id': 1, 'ams_switch_inlet': raw});

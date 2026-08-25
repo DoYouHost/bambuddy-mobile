@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../ams/fts_routing.dart';
+import '../ams/slot_addressing.dart';
 import 'json_utils.dart';
 
 part 'printer_status.g.dart';
@@ -159,7 +160,8 @@ class PrinterStatus {
   @JsonKey(fromJson: _toTrayListOrNull)
   final List<AmsTray>? vtTray;
 
-  /// Global active slot number (AMS: unit*4 + slot; external 254/255).
+  /// The firmware's global tray number for the loaded slot — see
+  /// [globalTrayId] for the encodings.
   @JsonKey(fromJson: toIntOrNull)
   final int? trayNow;
 
@@ -533,7 +535,7 @@ class PrinterStatus {
         _ => false,
       };
 
-  /// External spools sorted by ID ascending (254, 255, …).
+  /// External spools sorted by global id ascending (254 = Ext-L first).
   List<AmsTray> get externalSpools {
     final list = [...?vtTray];
     list.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
@@ -550,31 +552,30 @@ class PrinterStatus {
       // the inlet map is the only thing left saying "dual".
       (amsSwitchInlet?.isNotEmpty ?? false);
 
-  /// Extruder number fed by external spool with given `id`.
+  /// Extruder fed by the external spool whose `vt_tray` id is [trayId], or null
+  /// when this printer reports no such spool.
   ///
-  /// H2D/X2D contract verified on live printer: spools map INVERSE to ID order —
-  /// 254 → extruder 1 (left), 255 → extruder 0 (right). Hence inverted index
-  /// vs [externalSpools] (ascending).
+  /// The pair is inverted against id order — [extruderForExternalSide] holds
+  /// that table and the live verification behind it. A printer with a single
+  /// holder has a single nozzle, and that one is extruder 0 however the holder
+  /// happens to be numbered.
   int? extruderForExternal(int? trayId) {
-    if (trayId == null) return null;
     final spools = externalSpools;
-    final i = spools.indexWhere((t) => t.id == trayId);
-    return i < 0 ? null : (spools.length - 1) - i;
+    if (!spools.any((t) => t.id == trayId)) return null;
+    return spools.length == 1 ? 0 : extruderForExternalSide(externalSideOf(trayId));
   }
 
   /// Currently loaded material on printer (on active extruder).
   ///
-  /// X2D/H2D contract assumption (verified live for AMS; adopted for spools per
-  /// spec): `tray_now` ≥ 254 means external spool — then count spool feeding
-  /// [activeExtruder] (254→extruder 0, 255→1). For `tray_now` < 254 it's AMS
-  /// slot with global number `unit*4 + slot`.
+  /// `tray_now` is the firmware's global tray number, so it is read through
+  /// [globalTrayId] — see that table for the three encodings behind it. An
+  /// external spool is picked by [activeExtruder] rather than by the number
+  /// alone: on a dual-head machine `tray_now` does not tell the two apart.
   AmsTray? get activeTray {
     final now = trayNow;
     if (now == null) return null;
 
-    // External spool: select by active extruder, not by ID alone
-    // (on dual-head `tray_now` doesn't distinguish both spools unambiguously).
-    if (now >= 254) {
+    if (isExternalHolder(now)) {
       final spools = externalSpools;
       if (spools.isEmpty) return null;
       final ext = activeExtruder ?? 0;
@@ -588,16 +589,18 @@ class PrinterStatus {
       );
     }
 
-    // AMS slot: global number = unit's real hardware id * 4 + slot number
-    // (falling back to list position only when the unit reports no id —
-    // `tray_now` is the firmware's own numbering, which tracks unit id, not
-    // list position; see queue_mapping_sheet.dart / print_monitor.dart for
-    // the same convention).
+    // Keyed on the unit's real hardware id, falling back to list position only
+    // when it reports none: `tray_now` tracks the id, not the position, and a
+    // machine left with one unit reporting id 1 gets that wrong either way.
     final units = ams ?? const [];
     for (var u = 0; u < units.length; u++) {
       final unitId = units[u].id ?? u;
       for (final t in units[u].trays ?? const []) {
-        if (unitId * 4 + (t.id ?? -1) == now) return t;
+        final slot = t.id;
+        // An id-less tray cannot be addressed; assuming slot 0 for it would
+        // match some other unit's slot rather than admit the gap.
+        if (slot == null) continue;
+        if (globalTrayId(amsId: unitId, trayId: slot) == now) return t;
       }
     }
     return null;

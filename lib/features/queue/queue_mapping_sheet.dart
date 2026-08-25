@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/filament_requirement.dart';
@@ -47,8 +48,7 @@ final printerTraysProvider =
   for (final a in assignments) {
     if (a.printerId != printerId) continue;
     final s = byId[a.spoolId];
-    // AMS global index = unit*4 + slot; external spools use 254/255.
-    final global = a.isExternalSpool ? 254 + a.trayId : a.amsId * 4 + a.trayId;
+    final global = globalTrayId(amsId: a.amsId, trayId: a.trayId);
     out.add((
       global: global,
       type: s?.material,
@@ -76,7 +76,7 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
     final unitId = units[u].id ?? u;
     for (final t in units[u].trays ?? const <AmsTray>[]) {
       if (t.isEmpty) continue;
-      final int global = unitId * 4 + (t.id ?? 0);
+      final int global = globalTrayId(amsId: unitId, trayId: t.id ?? 0);
       out.add((
         global: global,
         type: t.trayType,
@@ -88,7 +88,8 @@ List<_Tray> _traysFromStatus(PrinterStatus? status) {
   }
   for (final e in status.externalSpools) {
     if (e.isEmpty) continue;
-    final int global = e.id ?? 254;
+    // `vt_tray` reports the holder's global id directly.
+    final int global = e.id ?? externalTrayIdBase;
     out.add((
       global: global,
       type: e.trayType,
@@ -343,9 +344,11 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
     return trays.length == 1 ? trays.first.global : null;
   }
 
-  String _trayLabel(_Tray t) => t.external
-      ? _l10n.mappingExternalSpool
-      : _l10n.mappingAmsSlot('${t.global ~/ 4 + 1}', '${t.global % 4 + 1}');
+  String _trayLabel(_Tray t) {
+    if (t.external) return _l10n.mappingExternalSpool;
+    final slot = localSlotOf(t.global);
+    return _l10n.mappingAmsSlot('${slot.amsId + 1}', '${slot.trayId + 1}');
+  }
 
   Widget _swatch(ThemeData theme, String? hex, double size) {
     final c = colorFromHex(hex);

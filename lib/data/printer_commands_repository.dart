@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import '../core/ams/slot_addressing.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 
@@ -228,19 +229,18 @@ class PrinterCommandsRepository {
 /// The global tray number `POST /ams/load` takes for a slot, or null where the
 /// server has no encoding for it.
 ///
-/// An external spool is already global (254 = Ext-L, 255 = Ext-R), a regular
-/// AMS slot is `unit * 4 + slot`. The one hole is AMS-HT: its units are numbered
-/// from 128, so the same arithmetic lands far outside the accepted range and the
-/// server answers 400 — the caller hides the action instead of offering a button
-/// that cannot work.
+/// Ids in are **local**, like every other slot route: an AMS unit and a slot
+/// within it, or [externalHolderUnit] and a holder side. [globalTrayId] does
+/// the encoding; the only thing added here is the route's own acceptance, which
+/// AMS-HT falls outside of — its units are numbered from 128, the server
+/// answers 400, and the caller hides the action rather than offer a button that
+/// cannot work.
 int? amsLoadTrayId({required int amsId, required int trayId}) {
-  // Only the two external ids pass through unchanged. Accepting the whole
-  // loadable range here would turn an unexpected external id into a valid AMS
-  // slot number — the printer would load a different spool, and nothing on the
-  // way would flag it.
-  if (amsId == 255) return trayId == 254 || trayId == 255 ? trayId : null;
-  if (amsId >= 128) return null;
-  final global = amsId * 4 + trayId;
+  // Guarded before encoding, not after: an out-of-range holder side would
+  // otherwise land on a perfectly valid AMS slot number, and the printer would
+  // load a different spool with nothing on the way flagging it.
+  if (isExternalHolder(amsId) && trayId != 0 && trayId != 1) return null;
+  final global = globalTrayId(amsId: amsId, trayId: trayId);
   return _isLoadableTrayId(global) ? global : null;
 }
 

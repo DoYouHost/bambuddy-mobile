@@ -158,15 +158,18 @@ void main() {
       expect(amsLoadTrayId(amsId: 6, trayId: 3), 27);
     });
 
-    test('passes an external spool through — it is already global', () {
-      expect(amsLoadTrayId(amsId: 255, trayId: 254), 254);
-      expect(amsLoadTrayId(amsId: 255, trayId: 255), 255);
+    test('numbers the external holder by its side, like every other route', () {
+      // Ids in are local throughout: Ext-L is side 0 and loads as 254.
+      expect(amsLoadTrayId(amsId: 255, trayId: 0), 254);
+      expect(amsLoadTrayId(amsId: 255, trayId: 1), 255);
+      // The inventory backend has been seen calling the holder 254 too.
+      expect(amsLoadTrayId(amsId: 254, trayId: 1), 255);
     });
 
-    test('refuses an external id that is not one of the two', () {
+    test('refuses a holder side that is neither', () {
       // Passing it on would silently address AMS 1 slot 2 instead.
       expect(amsLoadTrayId(amsId: 255, trayId: 5), isNull);
-      expect(amsLoadTrayId(amsId: 255, trayId: 0), isNull);
+      expect(amsLoadTrayId(amsId: 255, trayId: -1), isNull);
     });
 
     test('answers null for AMS-HT, which has no number in this encoding', () {

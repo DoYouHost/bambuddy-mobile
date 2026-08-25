@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/widgets.dart' show Locale;
 
+import '../../core/ams/slot_addressing.dart';
 import '../../core/diagnostics/notif_probe.dart';
 import '../../core/format/datetime_format.dart';
 import '../../core/models/printer_status.dart';
@@ -960,7 +961,7 @@ class PrintMonitor {
 
   /// Maps filament trays (AMS + external spools) to remaining amount (%).
   /// Skip `remain == -1` (unknown — no RFID tag) and empty trays.
-  /// Key is global tray number (AMS: unit*4 + slot; spool: ID 254/255).
+  /// Keyed by [globalTrayId], so the latch survives an AMS being re-seated.
   Map<int, int> _trayRemains(PrinterStatus status) {
     final out = <int, int>{};
     final List<AmsUnit> units = status.ams ?? const [];
@@ -969,14 +970,15 @@ class PrintMonitor {
       for (final AmsTray t in units[u].trays ?? const []) {
         final int? remain = t.remain;
         if (remain != null && remain >= 0 && !t.isEmpty) {
-          out[unitId * 4 + (t.id ?? 0)] = remain;
+          out[globalTrayId(amsId: unitId, trayId: t.id ?? 0)] = remain;
         }
       }
     }
     for (final t in status.externalSpools) {
       final remain = t.remain;
       if (remain != null && remain >= 0 && !t.isEmpty) {
-        out[t.id ?? 254] = remain;
+        // `vt_tray` already reports the holder's global id.
+        out[t.id ?? externalTrayIdBase] = remain;
       }
     }
     return out;

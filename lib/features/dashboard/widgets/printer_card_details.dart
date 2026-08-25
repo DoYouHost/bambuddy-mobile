@@ -462,11 +462,9 @@ class _DetailsPanel extends ConsumerWidget {
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final printerName = status.name;
-    // The 0/1 side index the external holder is addressed by, which is also
-    // what the inventory assignment is keyed on: Ext-L is tray 0, Ext-R tray 1.
-    int trayIdOf(int i) => !dual
-        ? 0
-        : (status.extruderForExternal(spools[i].id) == 1 ? 0 : 1);
+    // The 0/1 side the external holder is addressed by everywhere ids are
+    // local — the slot routes, the inventory assignment and the load command.
+    int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
 
     final blocks = <Widget>[
       for (var i = 0; i < ams.length; i++)
@@ -504,11 +502,11 @@ class _DetailsPanel extends ConsumerWidget {
           printerId: printerId,
           printerName: printerName,
           printing: status.isPrinting && !status.isPaused,
-          // The external holder is keyed under unit 255, which no
-          // `ams_extruder_map` mentions — the tray side is the whole answer
-          // there, so it has to be asked per spool rather than per section.
+          // The external holder is keyed under a unit no `ams_extruder_map`
+          // mentions — the tray side is the whole answer there, so it has to be
+          // asked per spool rather than per section.
           nozzleDiameterOf: (i) =>
-              status.nozzleDiameterFor(255, trayIdOf(i)),
+              status.nozzleDiameterFor(externalHolderUnit, trayIdOf(i)),
           printerModel: status.model,
         ),
     ];
@@ -756,7 +754,7 @@ class _SpoolSection extends StatelessWidget {
             slot: _SlotRef(
               printerId: printerId,
               printerName: printerName,
-              amsId: 255,
+              amsId: externalHolderUnit,
               trayId: trayIdOf(i),
               label: switch (extruderOf(i)) {
                 1 => l10n.extruderLeft,
@@ -764,12 +762,9 @@ class _SpoolSection extends StatelessWidget {
                 _ => l10n.externalSpool,
               },
               printing: printing,
-              // The spool's own id (254/255) is already the global tray number;
-              // `trayIdOf` above is the extruder-ordered index the inventory
-              // assignment is keyed by, and means nothing to the load command.
               loadTrayId: amsLoadTrayId(
-                amsId: 255,
-                trayId: trays[i].id ?? 254,
+                amsId: externalHolderUnit,
+                trayId: trayIdOf(i),
               ),
               trayInfoIdx: trays[i].trayInfoIdx,
               trayColour: trays[i].trayColor,

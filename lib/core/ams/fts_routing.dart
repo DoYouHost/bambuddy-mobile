@@ -9,7 +9,10 @@
 /// sitting on the right.
 library;
 
-/// Extruder each switch inlet rests on: `A` → 1 (left), `B` → 0 (right).
+import 'slot_addressing.dart';
+
+/// Extruder each switch inlet rests on: `A` → 1 (left), `B` → 0 (right) — the
+/// same left/right numbering the whole app uses, see [slot_addressing].
 ///
 /// Measured on the maintainer's H2C rather than read from telemetry — the
 /// server's own note says `fila_switch.out` reports both outlets as the same
@@ -27,7 +30,7 @@ int? extruderForInlet(String? inlet) {
 /// The extruder one AMS slot feeds, or null when it cannot be known.
 ///
 /// [amsId] 255 is the external holder, where the tray id names the side
-/// directly: tray 0 is Ext-L (extruder 1), tray 1 is Ext-R (extruder 0).
+/// directly — see [extruderForExternalSide].
 ///
 /// A real entry in [amsExtruderMap] always wins. With a Filament Track Switch
 /// fitted every AMS reports 0xE instead of an extruder and so has no entry
@@ -41,7 +44,7 @@ int? slotExtruder({
   Map<int, int>? amsExtruderMap,
   Map<int, String>? amsSwitchInlet,
 }) {
-  if (amsId == 255) return (trayId == 0 || trayId == 1) ? 1 - trayId : null;
+  if (amsId == externalHolderUnit) return extruderForExternalSide(trayId);
   final mapped = amsExtruderMap?[amsId];
   if (mapped != null) return mapped;
   return extruderForInlet(amsSwitchInlet?[amsId]);
