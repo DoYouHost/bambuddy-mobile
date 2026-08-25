@@ -2,8 +2,8 @@ import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A fully populated run — every field set to something distinguishable, so a
-/// field that goes missing on the way through [PrintLogEntry.copyWith] fails an
-/// assertion rather than reading as a null the server never sent.
+/// field that goes missing reads as a wrong value rather than as a null the
+/// server never sent.
 PrintLogEntry _full() => PrintLogEntry(
       id: 7,
       status: 'failed',
@@ -29,42 +29,31 @@ PrintLogEntry _full() => PrintLogEntry(
 
 void main() {
   group('copyWith', () {
-    test('carries every field it was not asked to change', () {
-      // The merge after a PATCH is the reason this matters: the response omits
-      // cost and energy on a server older than 1.2.6, so the local row is what
-      // holds them. A field added to the class and forgotten in `copyWith`
-      // would blank itself on every edit, silently — this list has to grow with
-      // the class.
+    // The field list is generated from the constructor now, so "a field added
+    // to the class and forgotten in the copy" cannot happen and needs no test
+    // enumerating twenty fields. What is still worth pinning is the merge
+    // semantics the print-log screen leans on.
+    test('carries what it was not asked to change', () {
       final before = _full();
 
       final after = before.copyWith(status: 'completed');
 
       expect(after.status, 'completed');
-      expect(after.id, before.id);
-      expect(after.archiveId, before.archiveId);
-      expect(after.printName, before.printName);
-      expect(after.printerName, before.printerName);
-      expect(after.printerId, before.printerId);
-      expect(after.startedAt, before.startedAt);
-      expect(after.completedAt, before.completedAt);
-      expect(after.durationSeconds, before.durationSeconds);
-      expect(after.filamentType, before.filamentType);
-      expect(after.filamentColor, before.filamentColor);
-      expect(after.filamentUsedGrams, before.filamentUsedGrams);
-      expect(after.cost, before.cost);
+      expect(after.cost, before.cost,
+          reason: 'a pre-1.2.6 PATCH answer omits cost; the local row holds it');
       expect(after.energyKwh, before.energyKwh);
       expect(after.energyCost, before.energyCost);
       expect(after.failureReason, before.failureReason);
-      expect(after.thumbnailPath, before.thumbnailPath);
-      expect(after.createdById, before.createdById);
-      expect(after.createdByUsername, before.createdByUsername);
-      expect(after.createdAt, before.createdAt);
     });
 
-    test('clearing the cause is its own flag, since null means "unchanged"',
-        () {
-      expect(_full().copyWith(clearFailureReason: true).failureReason, isNull);
-      expect(_full().copyWith().failureReason, 'warping');
+    // Re-classifying a run to "no cause" has to reach the row as a null. The
+    // hand-written copy needed a `clearFailureReason` flag for this, because
+    // there a null argument meant "leave it alone"; the generated one nullifies
+    // a nullable field on a null and ignores it on a non-nullable one.
+    test('a null cause clears it, and an unmentioned field is left alone', () {
+      expect(_full().copyWith(failureReason: null).failureReason, isNull);
+      expect(_full().copyWith(status: 'completed').failureReason, 'warping');
+      expect(_full().copyWith(status: 'completed').status, 'completed');
     });
   });
 

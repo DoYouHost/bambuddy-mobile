@@ -144,6 +144,32 @@ void main() {
     });
   });
 
+  // The design presets used to arrive through a second request to the same
+  // route. They come out of this one payload now; what EmbeddedSettings makes
+  // of the individual keys is pinned in embedded_settings_test.dart.
+  group('PlateList.embedded', () {
+    test('comes out of the same payload as the plates', () {
+      final list = PlateList.fromJson({
+        'plates': [plate(1), plate(2)],
+        'embedded_printer': 'Bambu Lab X2D 0.4 nozzle',
+        'embedded_process': '0.20mm Standard @BBL X2D',
+        'design_overrides': const [],
+      });
+
+      expect(list.plates, hasLength(2));
+      expect(list.embedded.printer, 'Bambu Lab X2D 0.4 nozzle');
+      expect(list.embedded.isAvailable, isTrue,
+          reason: 'an empty override list is still a server that has the key');
+    });
+
+    test('a payload without the design keys offers nothing to slice as', () {
+      final list = PlateList.fromJson({'plates': [plate(1)]});
+
+      expect(list.embedded.isAvailable, isFalse);
+      expect(PlateList.none.embedded.isAvailable, isFalse);
+    });
+  });
+
   group('PlateList.byIndex', () {
     final list = PlateList.fromJson({'plates': [plate(1), plate(4)]});
 

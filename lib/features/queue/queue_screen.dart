@@ -20,6 +20,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -609,20 +610,16 @@ class _QueueActions extends ConsumerWidget {
   }
 
   /// Opens fullscreen G-code preview for item source (archive or library file).
-  /// App bar title = print name, if known.
   ///
   /// The item's plate goes with it, so a multi-plate job previews the plate it
-  /// will actually print. Ignored by the library route, which serves the first
-  /// `.gcode` in the file whatever is asked.
+  /// will actually print.
   void _previewGcode(BuildContext context) {
-    final title = item.archiveName ?? item.libraryFileName;
-    final name =
-        title == null ? '' : '&name=${Uri.encodeQueryComponent(title)}';
-    final source = item.archiveId != null
-        ? 'archive=${item.archiveId}'
-        : 'library_file=${item.libraryFileId}';
-    final plate = item.plateId == null ? '' : '&plate=${item.plateId}';
-    context.push('/gcode-viewer?$source$plate$name');
+    context.push(gcodeViewerRoute(
+      archiveId: item.archiveId,
+      libraryFileId: item.libraryFileId,
+      plate: item.plateId,
+      title: item.archiveName ?? item.libraryFileName,
+    ));
   }
 }
 

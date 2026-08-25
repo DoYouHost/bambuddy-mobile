@@ -19,6 +19,7 @@ import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/device_files.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
@@ -750,8 +751,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// G-code preview: opens the full-screen 3D viewer for a sliced library file.
   void _previewGcode(LibraryFile file) {
-    final name = Uri.encodeQueryComponent(file.displayName);
-    context.push('/gcode-viewer?library_file=${file.id}&name=$name');
+    context.push(gcodeViewerRoute(
+      libraryFileId: file.id,
+      title: file.displayName,
+    ));
   }
 
   Future<void> _sliceFile(LibraryFile file) async {

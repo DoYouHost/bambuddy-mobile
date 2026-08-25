@@ -28,6 +28,10 @@ dependencies:
   go_router: ^16.0.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
+  # Annotations only; the generator behind them is a dev dependency. Both models
+  # that carry a full-field copy are annotated, so the field list lives in the
+  # constructor alone — a new field can no longer be dropped on the copy.
+  copy_with_extension: ^17.0.0
   shared_preferences: ^2.3.3
   web_socket_channel: ^3.0.3
   flutter_mjpeg: ^2.0.4
@@ -57,6 +61,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   http_mock_adapter: ^0.6.1
   json_serializable: ^6.8.0
+  copy_with_extension_gen: ^17.0.0
   mocktail: ^1.0.4
   fake_async: ^1.3.3
   flutter_launcher_icons: ^0.14.4

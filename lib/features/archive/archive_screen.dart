@@ -18,6 +18,7 @@ import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/dash_async.dart';
 import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
@@ -482,9 +483,11 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
   /// server would pick for a multi-plate file.
   void _previewGcode(Archive archive) {
     Navigator.pop(context);
-    final name = Uri.encodeQueryComponent(archive.displayName);
-    final plate = archive.plateId == null ? '' : '&plate=${archive.plateId}';
-    context.push('/gcode-viewer?archive=${archive.id}$plate&name=$name');
+    context.push(gcodeViewerRoute(
+      archiveId: archive.id,
+      plate: archive.plateId,
+      title: archive.displayName,
+    ));
   }
 
   /// Timelapse: closes the sheet and opens the full-screen player.

@@ -1,3 +1,4 @@
+import 'embedded_settings.dart';
 import 'json_utils.dart';
 
 /// One plate of a 3MF, from `GET /archives/{id}/plates` or
@@ -83,16 +84,24 @@ class PlateInfo {
   final String? bedType;
 }
 
-/// The plates of one 3MF, plus the two flags the picker gates on.
+/// Everything `GET …/plates` answers: the plates of one 3MF, the two flags the
+/// picker gates on, and what the file was prepared with.
+///
+/// One model for the whole payload on purpose. It used to be read twice — the
+/// plate rows here, [EmbeddedSettings] through a second request from the slicer
+/// repository — which is two round trips for one zip parse and two places to
+/// keep in step with the same route.
 ///
 /// [PlateList.none] is what every failure degrades to — a missing route (a
 /// server older than the endpoint), a file that is not a 3MF, an unreadable
-/// zip. All of them mean the same thing to the caller: there is no plate to
-/// choose, so do not offer a choice.
+/// zip, an account without read permission. All of them mean the same thing to
+/// the caller: there is no plate to choose and no design to slice as, so offer
+/// neither.
 class PlateList {
   const PlateList({
     this.plates = const [],
     this.hasGcode = false,
+    this.embedded = EmbeddedSettings.none,
   });
 
   factory PlateList.fromJson(Map<String, dynamic> json) => PlateList(
@@ -100,6 +109,7 @@ class PlateList {
         // Absent on the library route and on a source-only 3MF. Read as "there
         // is G-code to preview", never as "this file exists".
         hasGcode: json['has_gcode'] == true,
+        embedded: EmbeddedSettings.fromJson(json),
       );
 
   static const none = PlateList();
@@ -109,6 +119,10 @@ class PlateList {
   final List<PlateInfo> plates;
 
   final bool hasGcode;
+
+  /// The presets the 3MF names in its own `project_settings.config`, and whether
+  /// this server can slice from them — the "slice as designed" gate.
+  final EmbeddedSettings embedded;
 
   /// Whether there is a plate to pick. `is_multi_plate` from the server says
   /// the same thing, but it is derived from the very list below it, so the list

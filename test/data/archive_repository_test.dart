@@ -154,6 +154,27 @@ void main() {
           '/api/v1/archives/82/plate-thumbnail/1');
     });
 
+    // One request, both answers: the slice screen's "as designed" gate used to
+    // ask the same route a second time through the slicer repository.
+    test('the same read carries what the 3MF was prepared with', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(200, {
+          'plates': [
+            {'index': 1, 'has_thumbnail': false},
+          ],
+          'embedded_printer': 'Bambu Lab X2D 0.6 nozzle',
+          'embedded_process': '0.30mm Standard @BBL X2D 0.6 nozzle',
+          'design_overrides': [],
+        }),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.embedded.printer, 'Bambu Lab X2D 0.6 nozzle');
+      expect(plates.embedded.isAvailable, isTrue);
+    });
+
     // A server older than the route, an archive whose file is gone, a plain
     // .gcode that was never a 3MF: three causes, one correct answer — there is
     // no plate to pick, so the form must look exactly as it did before.

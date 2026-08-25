@@ -106,14 +106,15 @@ final plateListProvider =
   },
 );
 
-/// What the source 3MF was prepared with, keyed by `(isArchive, id)` like
-/// [filamentRequirementsProvider]. Drives the "slice as designed" switch.
+/// What the source 3MF was prepared with — the "slice as designed" switch.
+///
+/// A view on [plateListProvider] rather than a request of its own: both answers
+/// come out of the same `…/plates` payload, and reading it twice meant two
+/// round trips and two zip parses for one question. Riverpod caches the
+/// underlying read, so a screen watching both gets one.
 final embeddedSettingsProvider =
     FutureProvider.autoDispose.family<EmbeddedSettings, (bool, int)>(
-  (ref, key) => ref.watch(slicerRepositoryProvider).embeddedSettings(
-        id: key.$2,
-        isArchive: key.$1,
-      ),
+  (ref, key) async => (await ref.watch(plateListProvider(key).future)).embedded,
 );
 
 /// A process preset reduced to what `/slicer/preset-values` takes. A record

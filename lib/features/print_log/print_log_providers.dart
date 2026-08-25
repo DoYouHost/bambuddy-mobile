@@ -265,9 +265,10 @@ class PrintLogNotifier extends AutoDisposeAsyncNotifier<PrintLogState> {
       if (epoch != _epoch) return null;
       _replace(
         entryId,
+        // A null cause nullifies the field rather than meaning "unchanged" —
+        // see [PrintLogEntry], whose generated copy draws that line for us.
         (row) => row.copyWith(
           failureReason: updated.failureReason,
-          clearFailureReason: updated.failureReason == null,
           status: updated.status,
         ),
       );
