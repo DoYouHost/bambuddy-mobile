@@ -4614,6 +4614,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearSetupManual => 'Enter manually';
 
   @override
+  String get wearSetupDemo => 'Demo';
+
+  @override
   String get wearSetupTapToType => 'Tap to type';
 
   @override

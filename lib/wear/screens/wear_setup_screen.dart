@@ -10,8 +10,11 @@ import '../../features/setup/setup_error_text.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
+import '../wear_error.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
+import '../widgets/wear_screen.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
@@ -81,25 +84,25 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     final state = ref.watch(setupControllerProvider);
     final controller = ref.read(setupControllerProvider.notifier);
     final l10n = AppLocalizations.of(context);
+    final offer = ref.watch(pendingWatchConfigProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-          children: [
-            const Center(
-              child: Text('Bambuddy', style: WearText.title),
-            ),
-            const SizedBox(height: 12),
-            if (ref.watch(pendingWatchConfigProvider) case final offer?
-                when !_manual)
-              ..._offerSection(l10n, offer)
-            else if (!_manual)
-              ..._phoneHandoffSection(l10n)
-            else
-              ..._manualSection(controller, l10n, state),
-          ],
-        ),
+    return WearScreen(
+      child: WearScrollView(
+        // Every branch below is a step of its own; naming it here is what
+        // brings the scroll back to the top when the screen swaps.
+        resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
+        children: [
+          const Center(
+            child: Text('Bambuddy', style: WearText.title),
+          ),
+          const SizedBox(height: 12),
+          if (offer case final offer? when !_manual)
+            ..._offerSection(l10n, offer)
+          else if (!_manual)
+            ..._phoneHandoffSection(l10n)
+          else
+            ..._manualSection(controller, l10n, state),
+        ],
       ),
     );
   }
@@ -138,7 +141,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           Text(
             _errorText(l10n, _phoneError!),
             textAlign: TextAlign.center,
-            style: _errorStyle(context),
+            style: wearErrorStyle(context),
           ),
         ],
         const SizedBox(height: 10),
@@ -189,7 +192,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
               null => l10n.wearSetupPhoneEmpty,
             },
             textAlign: TextAlign.center,
-            style: _errorStyle(context),
+            style: wearErrorStyle(context),
           ),
         ],
         const SizedBox(height: 10),
@@ -204,7 +207,33 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           onPressed: () => setState(() => _manual = true),
           child: Text(l10n.wearSetupManual),
         ),
+        TextButton(
+          onPressed: busy ? null : _startDemo,
+          child: Text(l10n.wearSetupDemo),
+        ),
       ];
+
+  /// Straight into demo mode, without a keyboard anywhere near it.
+  ///
+  /// The sequence itself belongs to the shared controller (`enterDemo`), so the
+  /// watch knows neither the address nor the credentials. Two ways it can go
+  /// wrong and both have to reach the screen: the controller *reports* a
+  /// rejection in its own error field, while the profile write underneath it
+  /// *throws* — the same secure-storage failure [_useOffer] already shows. On a
+  /// screen whose only other route needs the watch keyboard, a demo button that
+  /// just puts itself back is a dead end with no explanation.
+  Future<void> _startDemo() {
+    setState(() => _phoneError = null);
+    return run(
+      () async {
+        await ref.read(setupControllerProvider.notifier).enterDemo();
+        if (!mounted) return;
+        final error = ref.read(setupControllerProvider).error;
+        if (error != null) setState(() => _phoneError = error);
+      },
+      onError: (error) => setState(() => _phoneError = error),
+    );
+  }
 
   /// Look for what the phone last latched and *offer* it. A live push is picked
   /// up by `WearApp` on its own; this button is for the config that arrived
@@ -259,7 +288,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
             child: Text(
               _errorText(l10n, state.error!),
               textAlign: TextAlign.center,
-              style: _errorStyle(context),
+              style: wearErrorStyle(context),
             ),
           ),
         if (state.twoFactor case final challenge?)
@@ -422,13 +451,10 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
   }
 }
 
-/// Every failure on this screen is a line of small red text under the button
-/// that caused it — the setup flow has no other place to put one.
-TextStyle _errorStyle(BuildContext context) =>
-    WearText.small.copyWith(color: Theme.of(context).colorScheme.error);
-
 /// Localized via the shared setup mapper; anything unexpected stays short.
-String _errorText(AppLocalizations l10n, Object error) {
-  final s = setupErrorText(l10n, error);
-  return s.length > 80 ? '${s.substring(0, 80)}…' : s;
-}
+///
+/// The mapping is what differs between the two watch screens that show errors —
+/// this one speaks setup, the control screen speaks printer commands — so only
+/// the look and the budget come from [wearShortText].
+String _errorText(AppLocalizations l10n, Object error) =>
+    wearShortText(setupErrorText(l10n, error), max: wearErrorMaxChars);

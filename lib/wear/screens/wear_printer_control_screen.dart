@@ -11,12 +11,16 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
+import '../wear_error.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_screen.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
+import '../widgets/wear_spinner.dart';
 import '../widgets/wear_status_chip.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
@@ -27,9 +31,8 @@ class WearPrinterControlScreen extends StatelessWidget {
   final int printerId;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(child: WearPrinterControlBody(printerId: printerId)),
-      );
+  Widget build(BuildContext context) =>
+      WearScreen(child: WearPrinterControlBody(printerId: printerId));
 }
 
 /// Status readout + the four watch actions for one printer. Reads live data
@@ -75,47 +78,33 @@ class _WearPrinterControlBodyState
 
     return Stack(
       children: [
-        RefreshIndicator(
+        WearScrollView(
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-          child: ListView(
-            // Always scrollable so the pull gesture works even when the few
-            // action buttons don't fill the screen.
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-            children: [
-              Center(
-                child: Text(
-                  item.printer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: WearText.title,
-                ),
+          children: [
+            Center(
+              child: Text(
+                item.printer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: WearText.title,
               ),
-              const SizedBox(height: 6),
-              Center(child: WearStatusChip(state: state)),
-              const SizedBox(height: 10),
-              if (state == WearState.printing || state == WearState.paused)
-                _progress(l10n, status),
-              const SizedBox(height: 10),
-              ..._faults(item),
-              ..._actions(item, state, requirePlateClear, fleet?.queuePending),
-              if (widget.showSettings) ...[
-                const SizedBox(height: 4),
-                const WearSettingsEntry(),
-              ],
-            ],
-          ),
-        ),
-        if (busy)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Color(0x99000000),
-              child: Center(
-                  child: SizedBox(
-                      width: 30, height: 30, child: CircularProgressIndicator())),
             ),
-          ),
+            const SizedBox(height: 6),
+            Center(child: WearStatusChip(state: state)),
+            const SizedBox(height: 10),
+            if (state == WearState.printing || state == WearState.paused)
+              _progress(l10n, status),
+            const SizedBox(height: 10),
+            ..._faults(item),
+            ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+            if (widget.showSettings) ...[
+              const SizedBox(height: 4),
+              const WearSettingsEntry(),
+            ],
+          ],
+        ),
+        if (busy) wearBusyVeil,
       ],
     );
   }
@@ -142,7 +131,20 @@ class _WearPrinterControlBodyState
           ),
         ),
         const SizedBox(height: 6),
-        Text(line, textAlign: TextAlign.center, style: WearText.body),
+        // One line whatever the watch's font scale is: wrapped, its second line
+        // lands in the viewport's fade, and a half-dimmed "111/264" reads as a
+        // rendering fault rather than a readout. Only ever shrinks — at the
+        // default scale nothing is scaled at all.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            line,
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: WearText.body,
+          ),
+        ),
       ],
     );
   }
@@ -476,6 +478,7 @@ String _shortError(AppLocalizations l10n, Object e) {
     return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
-  final s = e.toString();
-  return s.length > 60 ? '${s.substring(0, 60)}…' : s;
+  // Not localizable, so it is quoted as-is — trimmed to what a snackbar can
+  // hold before it disappears.
+  return wearShortText(e.toString(), max: wearToastMaxChars);
 }

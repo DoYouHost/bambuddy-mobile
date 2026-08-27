@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/auth/two_factor.dart';
+import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/setup/providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -320,6 +321,21 @@ void main() {
       await controller().connectWithLogin(
           username: 'tester', password: 'sekret', remember: true);
       expect(settings.loadSignInRequired(), isFalse);
+    });
+  });
+
+  group('SetupController.enterDemo', () {
+    test('lands on the demo profile without a request or a keystroke', () async {
+      // No adapter route is mocked here on purpose: demo is recognized before
+      // anything is sent, so a request escaping this flow fails the test rather
+      // than quietly reaching a server.
+      await controller().enterDemo();
+
+      final profile = savedProfile();
+      expect(profile?.isDemo, isTrue);
+      expect(profile?.baseUrl, DemoConfig.baseUrl);
+      expect(profile?.authMode, AuthMode.none);
+      expect(state().error, isNull);
     });
   });
 

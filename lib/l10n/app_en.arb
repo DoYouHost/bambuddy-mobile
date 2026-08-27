@@ -1638,6 +1638,10 @@
   "wearSetupPhoneCheck": "Check again",
   "wearSetupPhoneEmpty": "Nothing from the phone yet.",
   "wearSetupManual": "Enter manually",
+  "wearSetupDemo": "Demo",
+  "@wearSetupDemo": {
+    "description": "Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch."
+  },
   "wearSetupTapToType": "Tap to type",
   "wearSettingsTitle": "Settings",
   "wearFromPhone": "From your phone",

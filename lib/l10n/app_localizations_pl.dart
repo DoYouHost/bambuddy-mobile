@@ -4687,6 +4687,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearSetupManual => 'Wpisz ręcznie';
 
   @override
+  String get wearSetupDemo => 'Demo';
+
+  @override
   String get wearSetupTapToType => 'Dotknij, aby wpisać';
 
   @override

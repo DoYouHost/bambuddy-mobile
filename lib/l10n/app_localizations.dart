@@ -7904,6 +7904,12 @@ abstract class AppLocalizations {
   /// **'Enter manually'**
   String get wearSetupManual;
 
+  /// Watch setup: one tap into demo mode, no typing. Short by necessity — the phone's 'Try the demo' does not fit a line on a watch.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get wearSetupDemo;
+
   /// No description provided for @wearSetupTapToType.
   ///
   /// In en, this message translates to:

@@ -40,7 +40,19 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="nosensor"
-            tools:node="merge" />
+            android:theme="@style/WearLaunchTheme"
+            tools:replace="android:theme"
+            tools:node="merge">
+            <!-- Branded launch (Play's Wear quality check): the app icon on
+                 black from the first pixel to Flutter's first frame. The phone's
+                 LaunchTheme/NormalTheme pair is white in the day variant and
+                 carries no icon at all, so the watch gets its own pair rather
+                 than an override of theirs — see res/values/styles.xml. -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/WearNormalTheme"
+                tools:replace="android:resource" />
+        </activity>
 
         <!-- Required by Play for Wear OS distribution: the watch app is fully
              usable without the phone app installed (direct REST fallback). -->

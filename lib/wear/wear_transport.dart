@@ -304,11 +304,26 @@ enum WearTransportMode { relay, rest }
 /// [WearRelayUnreachable]: after a timeout the phone may have already executed
 /// the command (e.g. startNext), and repeating it over REST could double it.
 class HybridWearTransport implements WearTransport {
+  /// The configured watch: relay through the phone, with [rest] behind it where
+  /// the watch has a server profile of its own.
   HybridWearTransport({required WearTransport relay, WearTransport? rest})
       : _relay = relay,
         _rest = rest;
 
-  final WearTransport _relay;
+  /// Demo mode, the one case with no relay at all: relaying would be actively
+  /// wrong there, because the phone answers from *its* server and a watch
+  /// showing the fabricated dataset would quietly start listing the user's real
+  /// printers.
+  ///
+  /// A constructor rather than a null [relay], so "at least one path" is a fact
+  /// the compiler checks at every call site. As an assert it held only in debug,
+  /// and the release build met it as a null-check crash inside a request.
+  HybridWearTransport.restOnly(WearTransport rest)
+      : _relay = null,
+        _rest = rest;
+
+  /// Null only via [HybridWearTransport.restOnly].
+  final WearTransport? _relay;
 
   /// Null when the watch has no server profile (relay is then the only path).
   final WearTransport? _rest;
@@ -321,8 +336,16 @@ class HybridWearTransport implements WearTransport {
     Future<T> Function(WearTransport t) op, {
     required bool fallbackOnTimeout,
   }) async {
+    final relay = _relay;
+    if (relay == null) {
+      // No relay is [HybridWearTransport.restOnly], which takes REST as a
+      // required argument — the constructors are what make this total.
+      final result = await op(_rest!);
+      lastMode = WearTransportMode.rest;
+      return result;
+    }
     try {
-      final result = await op(_relay);
+      final result = await op(relay);
       lastMode = WearTransportMode.relay;
       return result;
     } on Exception catch (e) {

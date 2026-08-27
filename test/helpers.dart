@@ -10,21 +10,23 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
-/// Inertny firmware dla testów widgetów: karta drukarki czyta firmware przy
-/// renderze, a testy go nie sprawdzają — zwracamy null, by nie bić po sieci
-/// (inaczej fetch zostawia wiszący timer Dio i wywraca test).
+/// Inert firmware for widget tests: the printer card reads firmware while it
+/// renders and the tests do not assert on it — null keeps the fetch off the
+/// network, which otherwise leaves a hanging Dio timer and fails the test.
 final inertFirmwareOverride =
     printerFirmwareProvider.overrideWith((ref, id) => null);
 
-/// Inertny łączny czas druku dla testów widgetów: karta drukarki czyta go z
-/// przeglądu konserwacji przy renderze. Zwracamy null, by nie odpytywać sieci
-/// (analogicznie do [inertFirmwareOverride]).
+/// Inert total print time for widget tests: the printer card reads it from the
+/// maintenance overview while it renders. Null keeps that off the network, the
+/// same trap as [inertFirmwareOverride].
 final inertTotalPrintHoursOverride =
     printerTotalPrintHoursProvider.overrideWith((ref, id) => null);
 
@@ -46,12 +48,17 @@ final inertHistorySupportOverrides = [
   amsHistorySupportedProvider.overrideWith((ref) async => true),
 ];
 
-/// Owija widżet w MaterialApp z polską lokalizacją — testy asertują
-/// polskie stringi, więc wymuszamy locale `pl`.
-Widget plApp(Widget child) => MaterialApp(
+/// Wraps a widget in a MaterialApp with Polish localization — the tests assert
+/// Polish strings, so the locale is forced to `pl`.
+///
+/// [builder] goes to `MaterialApp.builder`, which is above the navigator: that is
+/// the only place an inherited widget reaches a pushed route or a dialog as well
+/// as `home`.
+Widget plApp(Widget child, {TransitionBuilder? builder}) => MaterialApp(
       locale: const Locale('pl'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: builder,
       home: child,
     );
 
@@ -73,7 +80,10 @@ Future<ProviderContainer> pumpWear(
   Widget child, {
   List<Override> overrides = const [],
   bool wrapInApp = true,
+  WearShape shape = WearShape.round,
+  Size face = wearFaceSmall,
 }) async {
+  useWatchFace(tester, shape, face);
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   late ProviderContainer container;
@@ -85,18 +95,92 @@ Future<ProviderContainer> pumpWear(
     ],
     child: Builder(builder: (context) {
       container = ProviderScope.containerOf(context, listen: false);
-      return wrapInApp ? plApp(child) : child;
+      return wrapInApp
+          ? plApp(child, builder: wearShapeBuilder)
+          : child;
     }),
   ));
   await tester.pumpAndSettle();
   return container;
 }
 
-/// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —
-/// tak uruchamia testy `flutter test`).
+/// [WearShapeScope] where `WearApp` puts it — above the navigator, so a dialog
+/// or a pushed route reads the same shape as the screen that opened it.
+///
+/// Wrapping the *child* instead leaves the scope under `home`, and a route is
+/// `home`'s sibling rather than its descendant: every dialog then silently fell
+/// back to round, which is the one shape a test asking for a square face is not
+/// looking for.
+Widget wearShapeBuilder(BuildContext context, Widget? child) =>
+    WearShapeScope(child: child!);
+
+/// The two round faces worth testing against, in physical pixels at density 2.
+///
+/// The small one is the default here on purpose: it is what Wear emulators boot
+/// with and what the smaller watches ship, and it is where a size written as a
+/// number instead of a fraction of the display breaks — the confirm dialog's
+/// button row fit 225 dp and overflowed 192 dp by 11 px, with every test green.
+const wearFaceSmall = Size(384, 384);
+const wearFaceLarge = Size(450, 450);
+
+/// A real watch instead of the 800x600 phone surface every widget test defaults
+/// to: the round-safe layout only means anything against a face this small.
+///
+/// The shape is answered on `MainActivity`'s `wear_shape` channel, the way the
+/// platform answers it on a device.
+void useWatchFace(WidgetTester tester, WearShape shape, Size face) {
+  tester.view.physicalSize = face;
+  tester.view.devicePixelRatio = 2.0;
+  addTearDown(tester.view.reset);
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    wearShapeChannel,
+    (call) async =>
+        call.method == 'isScreenRound' ? shape == WearShape.round : null,
+  );
+  addTearDown(() => messenger.setMockMethodCallHandler(wearShapeChannel, null));
+}
+
+/// The channel [WearShapeQuery] talks to, so tests answer the same one the app
+/// asks.
+const wearShapeChannel =
+    MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_shape');
+
+/// Brings [finder] onto the watch face, scrolling the screen if it has to.
+///
+/// On a 225 dp face most of a wear screen starts below the fold, and a
+/// `ListView` does not build what is off-screen at all — so a finder that used
+/// to match on the 800x600 default test surface now matches nothing until the
+/// screen is scrolled. Reaching for a control the way a user does is the point:
+/// it is the same scroll Google Play's reviewer had to make.
+Future<void> revealOnWatch(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(finder, 40,
+        scrollable: find.byType(Scrollable).first);
+  } else {
+    await tester.ensureVisible(finder);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// [revealOnWatch] and then tap, for the controls a test drives rather than
+/// asserts on.
+///
+/// Settles the scroll before the tap but only pumps one frame after it: what a
+/// tap starts is the test's business, and a watch action that puts a spinner up
+/// would hang `pumpAndSettle` forever.
+Future<void> tapOnWatch(WidgetTester tester, Finder finder) async {
+  await revealOnWatch(tester, finder);
+  await tester.tap(finder);
+  await tester.pump();
+}
+
+/// Loads a fixture from test/fixtures/ — the path is relative to the package
+/// root, which is where `flutter test` runs from.
 dynamic readFixture(String name) => jsonDecode(readFixtureString(name));
 
-/// Surowa zawartość fixture'a (do parserów przyjmujących tekst, np. ramki WS).
+/// A fixture's raw contents, for the parsers that take text (WS frames, say).
 String readFixtureString(String name) =>
     File('test/fixtures/$name').readAsStringSync();
 
@@ -149,7 +233,7 @@ class FakeWatchConfigSync extends WatchConfigSync {
   }
 }
 
-/// CredentialsStore w pamięci — testy rdzenia nie dotykają pluginu.
+/// An in-memory CredentialsStore, so the core tests never touch the plugin.
 class InMemoryCredentialsStore implements CredentialsStore {
   String? jwt;
   String? apiKey;
