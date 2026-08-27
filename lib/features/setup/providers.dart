@@ -326,6 +326,26 @@ class SetupController extends AutoDisposeNotifier<SetupState> {
 
   /// Demo profile uses [AuthMode.none]: the fake backend needs no credentials,
   /// and this keeps token refresh / silent re-login machinery fully off.
+  /// Demo mode in one call: the magic address, then its credentials.
+  ///
+  /// Here rather than in a screen because two of them want it and they want
+  /// different amounts: the watch goes all the way, since typing
+  /// `demo`/`demo1234` there means three trips through the system input
+  /// activity, while the phone fills its fields first and leaves the last tap
+  /// to a reviewer who is following written steps — so what the phone shows on
+  /// screen still matches what Play Console told them to type.
+  ///
+  /// Failures land in [state] like any other sign-in; nothing here can reach
+  /// the network, since [DemoConfig] is recognized before any request is made.
+  Future<void> enterDemo() async {
+    await probe(DemoConfig.baseUrl);
+    await connectWithLogin(
+      username: DemoConfig.username,
+      password: DemoConfig.password,
+      remember: true,
+    );
+  }
+
   Future<void> _saveDemoProfile() =>
       ref.read(serverProfileProvider.notifier).save(
             const ServerProfile(

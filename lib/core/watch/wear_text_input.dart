@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../platform/platform_query.dart';
+
 /// Raised when the watch has no input activity to hand a request to. The caller
 /// should fall back to an editable field: a tap that does nothing at all is the
 /// bug this whole path exists to fix.
@@ -21,23 +23,22 @@ class WearTextInput {
   static const MethodChannel _channel =
       MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_input');
 
+  static const _platform = PlatformQuery(_channel);
+
   /// Whether this device is a watch, i.e. whether text has to go through the
   /// input activity. False on phones, and on anything without the channel.
-  Future<bool> isSupported() async {
-    try {
-      return await _channel.invokeMethod<bool>('isSupported') ?? false;
-    } on MissingPluginException {
-      return false;
-    } on PlatformException {
-      return false;
-    }
-  }
+  Future<bool> isSupported() => _platform.ask('isSupported', fallback: false);
 
   /// Opens the input activity titled [label] and resolves to what was entered.
   ///
   /// Null means "keep the current value": the user backed out, confirmed an
   /// empty screen, or a request was already open. Throws
   /// [WearTextInputUnavailable] when there is no input activity to open.
+  ///
+  /// The one caller that talks to the channel itself rather than through
+  /// [PlatformQuery]: "nobody to ask" is not a fallback value here, it is a
+  /// different screen — the field has to become editable instead of eating the
+  /// tap.
   Future<String?> request({required String label}) async {
     try {
       return await _channel

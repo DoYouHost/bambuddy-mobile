@@ -9,6 +9,7 @@ import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
 
@@ -42,57 +43,55 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     final profile = ref.watch(serverProfileProvider);
     final offered = ref.watch(pendingWatchConfigProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: WearScrollView(
-          children: [
-            Center(
-              child: Text(l10n.wearSettingsTitle, style: WearText.title),
+    return WearScreen(
+      child: WearScrollView(
+        children: [
+          Center(
+            child: Text(l10n.wearSettingsTitle, style: WearText.title),
+          ),
+          const SizedBox(height: 12),
+          if (profile != null) ...[
+            Text(l10n.wearCurrentServer,
+                textAlign: TextAlign.center, style: WearText.fine),
+            Text(
+              profile.displayName,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: WearText.body,
             ),
             const SizedBox(height: 12),
-            if (profile != null) ...[
-              Text(l10n.wearCurrentServer,
-                  textAlign: TextAlign.center, style: WearText.fine),
-              Text(
-                profile.displayName,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: WearText.body,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (busy)
-              wearSpinner
-            else ...[
-              // Only when it is a different server: an offer for the one already
-              // running is adopted by `WearApp` without ever reaching a screen.
-              if (offered != null && !offered.isSameServerAs(profile)) ...[
-                Text(l10n.wearFromPhoneWaiting,
-                    textAlign: TextAlign.center, style: WearText.small),
-                const SizedBox(height: 6),
-                FilledButton(
-                  onPressed: () => _switchTo(offered),
-                  child: Text(l10n.wearFromPhoneUse),
-                ),
-                const SizedBox(height: 8),
-              ],
-              FilledButton(
-                onPressed: () => _forgetServer(l10n, profile),
-                child: Text(l10n.changeServer),
-              ),
-              const SizedBox(height: 6),
-              // Said here rather than in the dialog: the shared wear dialog
-              // clips its subtitle to one line, and this is the consequence
-              // worth reading before the tap, not after it.
-              Text(
-                l10n.changeServerWarning,
-                textAlign: TextAlign.center,
-                style: WearText.fine,
-              ),
-            ],
           ],
-        ),
+          if (busy)
+            wearSpinner
+          else ...[
+            // Only when it is a different server: an offer for the one already
+            // running is adopted by `WearApp` without ever reaching a screen.
+            if (offered != null && !offered.isSameServerAs(profile)) ...[
+              Text(l10n.wearFromPhoneWaiting,
+                  textAlign: TextAlign.center, style: WearText.small),
+              const SizedBox(height: 6),
+              FilledButton(
+                onPressed: () => _switchTo(offered),
+                child: Text(l10n.wearFromPhoneUse),
+              ),
+              const SizedBox(height: 8),
+            ],
+            FilledButton(
+              onPressed: () => _forgetServer(l10n, profile),
+              child: Text(l10n.changeServer),
+            ),
+            const SizedBox(height: 6),
+            // Said here rather than in the dialog: the shared wear dialog
+            // clips its subtitle to one line, and this is the consequence
+            // worth reading before the tap, not after it.
+            Text(
+              l10n.changeServerWarning,
+              textAlign: TextAlign.center,
+              style: WearText.fine,
+            ),
+          ],
+        ],
       ),
     );
   }

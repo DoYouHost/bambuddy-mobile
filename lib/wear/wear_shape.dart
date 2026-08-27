@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../core/platform/platform_query.dart';
+
 /// The physical shape of a watch display.
 enum WearShape {
   /// The usual Wear OS face, and the one the layout has to dodge:
@@ -22,24 +24,19 @@ enum WearShape {
 /// factor and the stricter geometry, so a phone, a test without the channel or a
 /// platform that answers nothing all err on the safe side.
 class WearShapeQuery {
-  const WearShapeQuery({this.channel = _channel});
+  const WearShapeQuery({this.platform = _platform});
 
-  static const MethodChannel _channel =
-      MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_shape');
+  static const _platform = PlatformQuery(
+    MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_shape'),
+  );
 
-  /// The channel to ask. Injectable so a test can answer for a square face.
-  final MethodChannel channel;
+  /// Who to ask. Injectable so a test can answer for a square face.
+  final PlatformQuery platform;
 
-  Future<WearShape> read() async {
-    try {
-      final round = await channel.invokeMethod<bool>('isScreenRound');
-      return round == false ? WearShape.square : WearShape.round;
-    } on MissingPluginException {
-      return WearShape.round;
-    } on PlatformException {
-      return WearShape.round;
-    }
-  }
+  Future<WearShape> read() async =>
+      await platform.ask('isScreenRound', fallback: true)
+          ? WearShape.round
+          : WearShape.square;
 }
 
 /// Reads the watch's shape once and hands it to everything below.
