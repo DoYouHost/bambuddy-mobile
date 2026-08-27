@@ -76,8 +76,9 @@ Future<ProviderContainer> pumpWear(
   List<Override> overrides = const [],
   bool wrapInApp = true,
   WearShape shape = WearShape.round,
+  Size face = wearFaceSmall,
 }) async {
-  _useWatchFace(tester, shape);
+  _useWatchFace(tester, shape, face);
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   late ProviderContainer container;
@@ -96,14 +97,22 @@ Future<ProviderContainer> pumpWear(
   return container;
 }
 
+/// The two round faces worth testing against, in physical pixels at density 2.
+///
+/// The small one is the default here on purpose: it is what Wear emulators boot
+/// with and what the smaller watches ship, and it is where a size written as a
+/// number instead of a fraction of the display breaks — the confirm dialog's
+/// button row fit 225 dp and overflowed 192 dp by 11 px, with every test green.
+const wearFaceSmall = Size(384, 384);
+const wearFaceLarge = Size(450, 450);
+
 /// A real watch instead of the 800x600 phone surface every widget test defaults
-/// to: 450x450 at density 2 is the common Wear OS face, and the round-safe
-/// layout only means anything against a face that small.
+/// to: the round-safe layout only means anything against a face this small.
 ///
 /// The shape is answered on `MainActivity`'s `wear_shape` channel, the way the
 /// platform answers it on a device.
-void _useWatchFace(WidgetTester tester, WearShape shape) {
-  tester.view.physicalSize = const Size(450, 450);
+void _useWatchFace(WidgetTester tester, WearShape shape, Size face) {
+  tester.view.physicalSize = face;
   tester.view.devicePixelRatio = 2.0;
   addTearDown(tester.view.reset);
   final messenger =
