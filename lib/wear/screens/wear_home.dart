@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
+import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
@@ -17,34 +18,32 @@ class WearHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fleet = ref.watch(wearFleetProvider);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: fleet.when(
-          loading: () => const Center(
-              child: SizedBox(
-                  width: 26, height: 26, child: CircularProgressIndicator())),
-          error: (e, _) => _CenterMessage(
-            text: l10n.wearConnectionFailed,
-            action: () => ref.invalidate(wearFleetProvider),
-          ),
-          data: (fleet) {
-            final printers = fleet.printers;
-            if (printers.isEmpty) {
-              return _CenterMessage(
-                text: l10n.wearNoPrinters,
-                action: () => ref.invalidate(wearFleetProvider),
-              );
-            }
-            // Single printer → no picker, land directly on its controls.
-            if (printers.length == 1) {
-              return WearPrinterControlBody(
-                printerId: printers.first.printer.id,
-                showSettings: true,
-              );
-            }
-            return const WearPrinterListBody();
-          },
+    return WearScreen(
+      child: fleet.when(
+        loading: () => const Center(
+            child: SizedBox(
+                width: 26, height: 26, child: CircularProgressIndicator())),
+        error: (e, _) => _CenterMessage(
+          text: l10n.wearConnectionFailed,
+          action: () => ref.invalidate(wearFleetProvider),
         ),
+        data: (fleet) {
+          final printers = fleet.printers;
+          if (printers.isEmpty) {
+            return _CenterMessage(
+              text: l10n.wearNoPrinters,
+              action: () => ref.invalidate(wearFleetProvider),
+            );
+          }
+          // Single printer → no picker, land directly on its controls.
+          if (printers.length == 1) {
+            return WearPrinterControlBody(
+              printerId: printers.first.printer.id,
+              showSettings: true,
+            );
+          }
+          return const WearPrinterListBody();
+        },
       ),
     );
   }
