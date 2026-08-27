@@ -101,10 +101,95 @@ void main() {
       expect(padding.left, closeTo(400 * roundSideInsetFraction(), 0.001));
     });
 
+    test('and both axes are read off that same shorter side', () {
+      // The other way round: 400 wide, 450 tall still holds a 400 circle, so
+      // top and bottom follow 400 too. Measuring the margin off the height
+      // insets from a circle that is not there and loses rows the glass shows.
+      final padding = wearFaceInsets(WearShape.round, const Size(400, 450));
+
+      expect(padding.top, closeTo(400 * roundEdgeFraction, 0.001));
+      expect(padding.left, closeTo(400 * roundSideInsetFraction(), 0.001));
+    });
+
     test('degenerate sizes stay finite', () {
       final padding = wearFaceInsets(WearShape.round, Size.zero);
 
       expect(padding, EdgeInsets.zero);
+    });
+  });
+
+  /// The branch only the confirmation dialog takes: it says how much width it
+  /// needs and is given the height the circle owes it at that width.
+  group('wearFaceInsets for narrow content', () {
+    const face = Size(450, 450);
+
+    test('trades the width it does not use for height', () {
+      final full = wearFaceInsets(WearShape.round, face);
+      final narrow = wearFaceInsets(WearShape.round, face,
+          widthFraction: wearNarrowWidthFraction);
+
+      expect(narrow.left, greaterThan(full.left));
+      expect(narrow.top, lessThan(full.top),
+          reason: 'the whole point: a taller band for the confirm buttons');
+    });
+
+    test('leaves the content exactly as wide as it asked for, less the slack',
+        () {
+      const fraction = wearNarrowWidthFraction;
+      final padding =
+          wearFaceInsets(WearShape.round, face, widthFraction: fraction);
+
+      expect(face.width - padding.horizontal,
+          closeTo(face.width * (fraction - 2 * roundSideSlack), 0.001));
+    });
+
+    test('and keeps that rectangle inside the glass on the smallest face', () {
+      // 192 dp: the face the fixed-width button row overflowed by 11 px.
+      const diameter = 384.0;
+      final padding = wearFaceInsets(
+          WearShape.round, const Size(diameter, diameter),
+          widthFraction: wearNarrowWidthFraction);
+
+      expect(
+        rowFitsRoundFace(
+          diameter: diameter,
+          rowWidth: diameter - padding.horizontal,
+          dyFromCenter: diameter / 2 - padding.top,
+        ),
+        isTrue,
+      );
+    });
+
+    test('and the height it gets back is the chord at that width', () {
+      const fraction = 0.6;
+      final padding =
+          wearFaceInsets(WearShape.round, face, widthFraction: fraction);
+
+      // The circle does not care which axis it is asked about: the half-chord
+      // at a horizontal offset of 0.3 is the half-height the rectangle may
+      // have. Anything else here is a number somebody picked.
+      expect(
+        face.height - padding.vertical,
+        closeTo(
+          face.height * (2 * roundHalfChord(1, fraction / 2) - 2 * roundSideSlack),
+          0.001,
+        ),
+      );
+    });
+
+    test('a fraction outside 0..1 is clamped, not extrapolated into a NaN', () {
+      expect(wearFaceInsets(WearShape.round, face, widthFraction: 1.5),
+          wearFaceInsets(WearShape.round, face, widthFraction: 1));
+      expect(wearFaceInsets(WearShape.round, face, widthFraction: -1),
+          wearFaceInsets(WearShape.round, face, widthFraction: 0));
+    });
+
+    test('a square face ignores it — there is no circle to trade against', () {
+      expect(
+        wearFaceInsets(WearShape.square, face,
+            widthFraction: wearNarrowWidthFraction),
+        wearFaceInsets(WearShape.square, face),
+      );
     });
   });
 }

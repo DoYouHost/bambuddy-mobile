@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
+import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,14 +14,17 @@ void main() {
   /// Opens the dialog on a real watch face — the small one by default, since a
   /// confirmation is the screen with the least room to spare.
   Future<void> pumpAndOpen(WidgetTester tester,
-      {Size face = wearFaceSmall, String title = 'Stop print?'}) async {
+      {Size face = wearFaceSmall,
+      WearShape shape = WearShape.round,
+      String title = 'Stop print?'}) async {
     result = null;
-    tester.view.physicalSize = face;
-    tester.view.devicePixelRatio = 2.0;
-    addTearDown(tester.view.reset);
+    useWatchFace(tester, shape, face);
     await tester.pumpWidget(MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // The dialog is a route, so the shape has to come from above the navigator
+      // — see [wearShapeBuilder].
+      builder: wearShapeBuilder,
       home: Builder(
         builder: (context) => TextButton(
           onPressed: () async {
@@ -98,5 +102,16 @@ void main() {
     final width = confirmButton(tester).width;
     expect(width, lessThan(52.0));
     expect(width, greaterThanOrEqualTo(48.0));
+  });
+
+  testWidgets('a square face of the same size keeps them full size',
+      (tester) async {
+    // The dialog is a route, so this passes only while the shape is injected
+    // above the navigator: wrapped around `home` instead, the scope is a
+    // sibling of the dialog and it falls back to round — which reads as a
+    // perfectly plausible pass here, on the one screen with no room to spare.
+    await pumpAndOpen(tester, shape: WearShape.square);
+
+    expect(confirmButton(tester).width, 52.0);
   });
 }

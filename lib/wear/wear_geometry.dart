@@ -111,7 +111,7 @@ EdgeInsets wearFaceInsets(WearShape shape, Size size, {double? widthFraction}) {
   if (widthFraction == null) {
     return EdgeInsets.symmetric(
       horizontal: diameter * roundSideInsetFraction(),
-      vertical: size.height * roundEdgeFraction,
+      vertical: diameter * roundEdgeFraction,
     );
   }
   final halfWidth = widthFraction.clamp(0.0, 1.0) / 2;

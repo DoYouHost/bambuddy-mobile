@@ -9,7 +9,15 @@ import android.os.PowerManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+
+/**
+ * What one channel method does. It answers [MethodChannel.Result] itself rather than
+ * returning a value, because one of them (`requestText`) only answers once an activity
+ * comes back.
+ */
+private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
  * Native side of three platform channels.
@@ -32,41 +40,60 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BATTERY_CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "isIgnoringBatteryOptimizations" ->
-                        result.success(isIgnoringBatteryOptimizations())
-                    "requestIgnoreBatteryOptimizations" -> {
-                        requestIgnoreBatteryOptimizations()
-                        result.success(null)
-                    }
-                    else -> result.notImplemented()
+        flutterEngine.serve(
+            BATTERY_CHANNEL,
+            mapOf<String, MethodHandler>(
+                "isIgnoringBatteryOptimizations" to { _, result ->
+                    result.success(isIgnoringBatteryOptimizations())
+                },
+                "requestIgnoreBatteryOptimizations" to { _, result ->
+                    requestIgnoreBatteryOptimizations()
+                    result.success(null)
                 }
-            }
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WEAR_INPUT_CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    // Answered from the device feature, not by resolving the intent:
-                    // Android 11 package visibility filters a query for an activity we
-                    // are still allowed to launch, so resolveActivity would report a
-                    // false negative here.
-                    "isSupported" ->
-                        result.success(packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH))
-                    "requestText" -> requestWearText(call.argument<String>("label"), result)
-                    else -> result.notImplemented()
+            )
+        )
+        flutterEngine.serve(
+            WEAR_INPUT_CHANNEL,
+            mapOf<String, MethodHandler>(
+                // Answered from the device feature, not by resolving the intent:
+                // Android 11 package visibility filters a query for an activity we
+                // are still allowed to launch, so resolveActivity would report a
+                // false negative here.
+                "isSupported" to { _, result ->
+                    result.success(packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH))
+                },
+                "requestText" to { call, result ->
+                    requestWearText(call.argument<String>("label"), result)
                 }
-            }
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WEAR_SHAPE_CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    // Read per call rather than cached: the value comes from the current
-                    // Configuration, and an activity that is recreated for a configuration
-                    // change asks again anyway.
-                    "isScreenRound" -> result.success(resources.configuration.isScreenRound)
-                    else -> result.notImplemented()
+            )
+        )
+        flutterEngine.serve(
+            WEAR_SHAPE_CHANNEL,
+            mapOf<String, MethodHandler>(
+                // Read per call rather than cached: the value comes from the current
+                // Configuration, and an activity that is recreated for a configuration
+                // change asks again anyway.
+                "isScreenRound" to { _, result ->
+                    result.success(resources.configuration.isScreenRound)
                 }
-            }
+            )
+        )
+    }
+
+    /**
+     * Register [channel] with one handler per method, and one answer for a method that has
+     * none.
+     *
+     * That fallback is the native half of the policy `PlatformQuery` states on the Dart
+     * side: a host that does not implement something says so, so the caller falls back to
+     * what a device without the feature would give instead of waiting for an answer that
+     * is not coming.
+     */
+    private fun FlutterEngine.serve(channel: String, methods: Map<String, MethodHandler>) {
+        MethodChannel(dartExecutor.binaryMessenger, channel).setMethodCallHandler { call, result ->
+            val handler = methods[call.method]
+            if (handler == null) result.notImplemented() else handler(call, result)
+        }
     }
 
     /**

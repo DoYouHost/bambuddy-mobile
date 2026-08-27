@@ -137,13 +137,23 @@ class _WearScrollViewState extends State<WearScrollView>
   /// How much there was to scroll last time the metrics were announced.
   double _scrollableExtent = 0;
 
+  /// Whether the content can move at all — what the edge fade is for, and false
+  /// until the first metrics land (the notification always fires once, since the
+  /// position has no previous metrics to compare the first layout against).
+  bool _scrolls = false;
+
   /// Content grew or shrank without anyone scrolling — a list that has just
   /// become scrollable (the fleet landed, a fault appeared) is worth saying so.
   /// Only on a real change: this fires on frames where nothing moved.
+  ///
+  /// Dispatched from a microtask after layout, never during it, so the rebuild
+  /// below is a legal `setState` rather than a mid-layout one.
   bool _onMetrics(ScrollMetricsNotification notification) {
     final extent = notification.metrics.maxScrollExtent;
     if (extent > 0 && extent != _scrollableExtent) _reveal();
     _scrollableExtent = extent;
+    final scrolls = extent > 0;
+    if (scrolls != _scrolls) setState(() => _scrolls = scrolls);
     return false;
   }
 
@@ -218,10 +228,18 @@ class _WearScrollViewState extends State<WearScrollView>
 
   /// Softens the viewport's own edge, where a row scrolling out would otherwise
   /// be cut across in the middle of the black face.
+  ///
+  /// Only where something can actually cross that edge. Content that fits never
+  /// reaches it — at rest the first and last rows sit exactly where the gradient
+  /// is already opaque ([_leadIn]) — so on a screen that does not scroll the
+  /// mask buys an offscreen compositing pass per frame for a gradient nobody
+  /// can see, on the flavour that exists because of the battery.
   Widget _faded(Widget child) => LayoutBuilder(
         builder: (context, constraints) {
           final height = constraints.maxHeight;
-          if (!height.isFinite || height <= _leadIn * 3) return child;
+          if (!_scrolls || !height.isFinite || height <= _leadIn * 3) {
+            return child;
+          }
           final fade = _leadIn / height;
           return ShaderMask(
             blendMode: BlendMode.dstIn,

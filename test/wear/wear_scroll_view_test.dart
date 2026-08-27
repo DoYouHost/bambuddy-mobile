@@ -17,26 +17,19 @@ Matcher insideFace(double logical) => predicate<Rect>((rect) {
           .every((corner) => (corner - centre).distance <= radius);
     }, 'inside a ${logical.round()} dp round face');
 
-/// Pumps [child] on a watch face. [shape] is answered on the `wear_shape`
-/// channel, the way the platform answers it on a device.
+/// Pumps [child] on a watch face, without the localizations and provider scope
+/// [pumpWear] carries — this widget needs neither, and the tests below pump the
+/// same tree twice with two different shapes.
 Future<void> _pumpFace(WidgetTester tester, Widget child,
     {WearShape shape = WearShape.round, Size face = wearFaceLarge}) async {
-  tester.view.physicalSize = face;
-  tester.view.devicePixelRatio = 2.0;
-  addTearDown(tester.view.reset);
-  final messenger =
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  messenger.setMockMethodCallHandler(
-    wearShapeChannel,
-    (call) async =>
-        call.method == 'isScreenRound' ? shape == WearShape.round : null,
-  );
-  addTearDown(() => messenger.setMockMethodCallHandler(wearShapeChannel, null));
+  useWatchFace(tester, shape, face);
   await tester.pumpWidget(MaterialApp(
     // Keyed by shape: pumping a second face into the same tree would otherwise
     // update the existing scope instead of rebuilding it, and the shape is read
     // once, in initState.
-    home: Scaffold(body: WearShapeScope(key: ValueKey(shape), child: child)),
+    builder: (context, inner) =>
+        WearShapeScope(key: ValueKey(shape), child: inner!),
+    home: Scaffold(body: child),
   ));
   await tester.pumpAndSettle();
 }
@@ -159,6 +152,39 @@ void main() {
       await tester.pumpAndSettle();
       expect(_indicator, findsNothing,
           reason: 'permanent chrome on a 1.4" face is a waste of it');
+    });
+  });
+
+  group('the edge fade', () {
+    testWidgets('stays out of it while everything fits', (tester) async {
+      // Nothing can reach the viewport's edge, so the gradient would be
+      // invisible — and a ShaderMask is an offscreen compositing pass a frame.
+      await _pumpFace(tester, WearScrollView(children: [_row(0)]));
+
+      expect(find.byType(ShaderMask), findsNothing);
+    });
+
+    testWidgets('softens it once the content can cross it', (tester) async {
+      await _pumpFace(
+        tester,
+        WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+      );
+
+      expect(find.byType(ShaderMask), findsOneWidget);
+    });
+
+    testWidgets('and arrives when a list grows into one that scrolls',
+        (tester) async {
+      // The fleet landing turns a one-row screen into a list, without anyone
+      // touching the glass: the fade has to follow the content, not the pump.
+      Widget listOf(int rows) =>
+          WearScrollView(children: [for (var i = 0; i < rows; i++) _row(i)]);
+      await _pumpFace(tester, listOf(1));
+      expect(find.byType(ShaderMask), findsNothing);
+
+      await _pumpFace(tester, listOf(12));
+
+      expect(find.byType(ShaderMask), findsOneWidget);
     });
   });
 

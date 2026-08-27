@@ -15,16 +15,20 @@ class BatteryOptimization {
 
   /// Whether the app is already exempt from battery optimization.
   ///
-  /// True where there is nothing to ask — another platform, a test — because
-  /// the only thing this answer drives is whether to offer the user a prompt,
-  /// and a host with no such setting has no prompt to offer.
+  /// The two "don't know" answers here are not the same answer, and the one
+  /// fallback [PlatformQuery] takes cannot serve both — so the host check stays
+  /// out here rather than folding into it.
+  ///
+  /// A host with no such setting (another platform, a test) is exempt: the only
+  /// thing this drives is whether to offer the user a prompt, and there is no
+  /// prompt to offer. An Android host that fails to answer is *not*: the setting
+  /// exists there, and the two errors cost different things. Offering the prompt
+  /// again costs a dialog the user can dismiss — the system screen shows the
+  /// real state anyway. Skipping it leaves background monitoring to the OEM
+  /// killer with nothing on screen to say why the printer alerts stopped.
   Future<bool> isIgnoring() async {
-    // A capability guard, not an error policy — the failure handling lives in
-    // [PlatformQuery]. Asking at all is Android-only: elsewhere the answer is
-    // fixed, and the round trip would be an extra turn of the event loop that
-    // callers awaiting this on a test host do not expect.
     if (!Platform.isAndroid) return true;
-    return _platform.ask('isIgnoringBatteryOptimizations', fallback: true);
+    return _platform.ask('isIgnoringBatteryOptimizations', fallback: false);
   }
 
   /// Opens the system request dialog for battery optimization exemption.

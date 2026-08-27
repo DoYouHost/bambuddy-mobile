@@ -52,25 +52,26 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
 /// keep [HybridWearTransport.lastMode] across polls for the adaptive cadence.
 final wearTransportProvider = Provider<HybridWearTransport>((ref) {
   final profile = ref.watch(serverProfileProvider);
+  // REST needs a configured profile; without one (a relay-only watch) the
+  // repositories can't even be constructed (apiClientProvider throws) — so this
+  // is only ever called on a branch that has one.
+  RestTransport rest() => RestTransport(
+        printers: ref.watch(printersRepositoryProvider),
+        commands: ref.watch(printerCommandsRepositoryProvider),
+        queue: ref.watch(queueRepositoryProvider),
+      );
   // Demo runs entirely in this process (the API client swaps in the fake
   // backend), so there is nothing for the phone to answer — and asking it would
-  // hand back the real fleet from the real server it is configured for.
-  final relay = profile?.isDemo ?? false
-      ? null
-      : RelayTransport(ref.watch(watchConnectivityProvider));
-  if (relay != null) ref.onDispose(relay.dispose);
-  // REST needs a configured profile; without one (relay-only watch) the
-  // repositories can't even be constructed (apiClientProvider throws).
-  final hasProfile = profile != null;
+  // hand back the real fleet from the real server it is configured for. Demo is
+  // itself a profile, which is how REST is there to take the relay's place.
+  if (profile != null && profile.isDemo) {
+    return HybridWearTransport.restOnly(rest());
+  }
+  final relay = RelayTransport(ref.watch(watchConnectivityProvider));
+  ref.onDispose(relay.dispose);
   return HybridWearTransport(
     relay: relay,
-    rest: hasProfile
-        ? RestTransport(
-            printers: ref.watch(printersRepositoryProvider),
-            commands: ref.watch(printerCommandsRepositoryProvider),
-            queue: ref.watch(queueRepositoryProvider),
-          )
-        : null,
+    rest: profile == null ? null : rest(),
   );
 });
 
