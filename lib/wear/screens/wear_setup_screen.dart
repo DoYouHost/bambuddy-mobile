@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/two_factor.dart';
+import '../../core/demo/demo_config.dart';
 import '../../core/settings/server_profile.dart';
 import '../../core/watch/watch_config_sync.dart';
 import '../../core/watch/wear_text_input.dart';
@@ -207,7 +208,31 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
           onPressed: () => setState(() => _manual = true),
           child: Text(l10n.wearSetupManual),
         ),
+        TextButton(
+          onPressed: busy ? null : _startDemo,
+          child: Text(l10n.wearSetupDemo),
+        ),
       ];
+
+  /// Straight into demo mode, without a keyboard anywhere near it.
+  ///
+  /// Runs the shared controller rather than writing a profile here: demo is
+  /// entered exactly one way in both apps, and the watch only skips the typing
+  /// the phone still asks a reviewer for. The address and credentials are
+  /// constants and the backend is in-process, so there is no network step to
+  /// fail — the error check is for the day the shared flow changes under us.
+  Future<void> _startDemo() => run(() async {
+        final controller = ref.read(setupControllerProvider.notifier);
+        await controller.probe(DemoConfig.baseUrl);
+        await controller.connectWithLogin(
+          username: DemoConfig.username,
+          password: DemoConfig.password,
+          remember: true,
+        );
+        if (!mounted) return;
+        final error = ref.read(setupControllerProvider).error;
+        if (error != null) setState(() => _phoneError = error);
+      });
 
   /// Look for what the phone last latched and *offer* it. A live push is picked
   /// up by `WearApp` on its own; this button is for the config that arrived

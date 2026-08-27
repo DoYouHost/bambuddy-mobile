@@ -161,6 +161,20 @@ void main() {
       expect(hybrid.lastMode, WearTransportMode.relay);
     });
 
+    test('no relay (demo) goes straight to REST, and never asks the phone',
+        () async {
+      // Demo lives in this process. A phone answering the relay would answer
+      // from its own server, so a demo watch would list the real fleet.
+      final rest = FakeTransport();
+      final hybrid = HybridWearTransport(rest: rest);
+
+      await hybrid.getFleet();
+      await hybrid.pause(1);
+
+      expect(rest.calls, ['getFleet', 'pause']);
+      expect(hybrid.lastMode, WearTransportMode.rest);
+    });
+
     test('read falls back to REST on unreachable AND on timeout', () async {
       for (final error in [WearRelayUnreachable(), WearRelayTimeout()]) {
         final rest = FakeTransport();
