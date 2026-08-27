@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_setup_screen.dart';
@@ -156,6 +157,30 @@ void main() {
     expect(profile?.label, 'Demo');
   });
 
+  testWidgets('a demo that cannot be saved says so instead of going quiet',
+      (tester) async {
+    // Demo runs in-process, so nothing here is a network step — but writing the
+    // profile is still a disk write, and it throws rather than reporting itself
+    // through the controller's error field. On a screen whose only other route
+    // needs the watch keyboard, a button that just comes back is a dead end.
+    await pumpSetup(tester, overrides: [
+      settingsRepositoryProvider.overrideWith(
+          (ref) => _UnwritableSettings(ref.watch(sharedPreferencesProvider))),
+    ]);
+
+    await tapOnWatch(tester, find.text('Demo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Demo'), findsOneWidget);
+    // Upwards, unlike [revealOnWatch]: reaching the button left the list at the
+    // bottom, and the message belongs with the explanation at the top.
+    await tester.scrollUntilVisible(
+        find.textContaining('prefs are gone'), -40,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('prefs are gone'), findsOneWidget);
+  });
+
   testWidgets('manual entry reveals the URL field', (tester) async {
     await pumpSetup(tester);
 
@@ -215,4 +240,14 @@ void main() {
     expect(field.readOnly, isFalse);
     expect(calls.map((c) => c.method), isNot(contains('requestText')));
   });
+}
+
+/// Preferences that refuse the one write demo mode makes, the way a disk with
+/// no room left does.
+class _UnwritableSettings extends SettingsRepository {
+  _UnwritableSettings(super.prefs);
+
+  @override
+  Future<void> saveProfile(ServerProfile profile) async =>
+      throw Exception('prefs are gone');
 }

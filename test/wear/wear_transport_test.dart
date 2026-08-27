@@ -166,7 +166,7 @@ void main() {
       // Demo lives in this process. A phone answering the relay would answer
       // from its own server, so a demo watch would list the real fleet.
       final rest = FakeTransport();
-      final hybrid = HybridWearTransport(rest: rest);
+      final hybrid = HybridWearTransport.restOnly(rest);
 
       await hybrid.getFleet();
       await hybrid.pause(1);
