@@ -87,7 +87,7 @@ void main() {
       (tester) async {
     await pumpSettings(tester);
 
-    await tester.tap(find.text('Zmień serwer'));
+    await tapOnWatch(tester, find.text('Zmień serwer'));
     await tester.pumpAndSettle();
     expect(find.byType(WearConfirmDialog), findsOneWidget);
     // Named inside the question, so it is clear which server is being dropped —
@@ -109,7 +109,7 @@ void main() {
   testWidgets('confirming drops the profile and every secret', (tester) async {
     await pumpSettings(tester);
 
-    await tester.tap(find.text('Zmień serwer'));
+    await tapOnWatch(tester, find.text('Zmień serwer'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
@@ -123,7 +123,7 @@ void main() {
 
     expect(find.text('Telefon proponuje inny serwer.'), findsOneWidget);
 
-    await tester.tap(find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text('Użyj tego serwera'));
     await tester.pumpAndSettle();
 
     expect(sync.applied.single.profile.label, 'Garage');
@@ -135,7 +135,7 @@ void main() {
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
-    await tester.tap(find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text('Użyj tego serwera'));
     await tester.pump();
     // The button is gone while the write runs, so the second tap has nothing to
     // hit — two concurrent writes of the same secrets is not a race worth having.
@@ -153,7 +153,7 @@ void main() {
     sync = FakeWatchConfigSync(applyGate: gate);
     await pumpSettings(tester, offered: _configFor('garage', label: 'Garage'));
 
-    await tester.tap(find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text('Użyj tego serwera'));
     await tester.pump();
 
     // Swipe-to-dismiss is a sideways swipe on Wear OS, so leaving mid-write is

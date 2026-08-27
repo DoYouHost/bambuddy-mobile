@@ -16,6 +16,7 @@ import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import '../widgets/wear_status_chip.dart';
 
@@ -75,37 +76,31 @@ class _WearPrinterControlBodyState
 
     return Stack(
       children: [
-        RefreshIndicator(
+        WearScrollView(
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-          child: ListView(
-            // Always scrollable so the pull gesture works even when the few
-            // action buttons don't fill the screen.
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-            children: [
-              Center(
-                child: Text(
-                  item.printer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: WearText.title,
-                ),
+          children: [
+            Center(
+              child: Text(
+                item.printer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: WearText.title,
               ),
-              const SizedBox(height: 6),
-              Center(child: WearStatusChip(state: state)),
-              const SizedBox(height: 10),
-              if (state == WearState.printing || state == WearState.paused)
-                _progress(l10n, status),
-              const SizedBox(height: 10),
-              ..._faults(item),
-              ..._actions(item, state, requirePlateClear, fleet?.queuePending),
-              if (widget.showSettings) ...[
-                const SizedBox(height: 4),
-                const WearSettingsEntry(),
-              ],
+            ),
+            const SizedBox(height: 6),
+            Center(child: WearStatusChip(state: state)),
+            const SizedBox(height: 10),
+            if (state == WearState.printing || state == WearState.paused)
+              _progress(l10n, status),
+            const SizedBox(height: 10),
+            ..._faults(item),
+            ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+            if (widget.showSettings) ...[
+              const SizedBox(height: 4),
+              const WearSettingsEntry(),
             ],
-          ),
+          ],
         ),
         if (busy)
           const Positioned.fill(

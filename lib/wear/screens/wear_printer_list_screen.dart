@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
 
@@ -17,43 +18,37 @@ class WearPrinterListBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fleet = ref.watch(wearFleetProvider);
     final printers = fleet.valueOrNull?.printers ?? const [];
-    return RefreshIndicator(
+    return WearScrollView(
       onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-      child: ListView(
-        // Always scrollable so the pull gesture works even when the short
-        // printer list doesn't fill the screen.
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(8, 20, 8, 28),
-        children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(AppLocalizations.of(context).printersTitle,
-                  style: WearText.title),
-            ),
+      children: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(AppLocalizations.of(context).printersTitle,
+                style: WearText.title),
           ),
-          for (final p in printers)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: _PrinterRow(
-                name: p.printer.name,
-                stateLabel: wearStateOf(p.status).label(
-                  AppLocalizations.of(context),
-                ),
-                stateColor: wearStateOf(p.status).color,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => WearPrinterControlScreen(
-                      printerId: p.printer.id,
-                    ),
+        ),
+        for (final p in printers)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: _PrinterRow(
+              name: p.printer.name,
+              stateLabel: wearStateOf(p.status).label(
+                AppLocalizations.of(context),
+              ),
+              stateColor: wearStateOf(p.status).color,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => WearPrinterControlScreen(
+                    printerId: p.printer.id,
                   ),
                 ),
               ),
             ),
-          const SizedBox(height: 4),
-          const WearSettingsEntry(),
-        ],
-      ),
+          ),
+        const SizedBox(height: 4),
+        const WearSettingsEntry(),
+      ],
     );
   }
 }

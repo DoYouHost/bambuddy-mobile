@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../wear_geometry.dart';
 import '../wear_theme.dart';
+import 'wear_scroll_view.dart';
 
 /// Ask [title] and come back with a plain yes/no.
 ///
@@ -56,49 +58,58 @@ class WearConfirmDialog extends StatelessWidget {
     return Dialog.fullscreen(
       backgroundColor: Colors.black,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: confirmColor, size: 30),
-              const SizedBox(height: 8),
+        // Centred while it fits, scrolling when it doesn't: a long question with
+        // a printer name under it is taller than the round-safe band on a small
+        // face, and a confirmation nobody can reach the buttons of is worse than
+        // an ugly one.
+        child: WearScrollView(
+          centerWhenShort: true,
+          // An icon, a question and two round buttons: narrow, and taller than
+          // the rectangle a full-width screen is allowed. Trading the width it
+          // does not use for the height it does is what keeps both buttons on
+          // the face without a scroll.
+          contentWidthFraction: wearNarrowWidthFraction,
+          children: [
+            // Sized against the height budget, not by eye: icon, question,
+            // context line and a 52 dp button row have to clear the viewport a
+            // narrow layout gets, or the buttons need a scroll to reach.
+            Icon(icon, color: confirmColor, size: 28),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: WearText.hero,
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 3),
               Text(
-                title,
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: WearText.hero,
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 3),
-                Text(
-                  subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: WearText.body.copyWith(color: wearMuted),
-                ),
-              ],
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _CircleButton(
-                    icon: Icons.close_rounded,
-                    background: const Color(0xFF2A2A2C),
-                    tooltip: AppLocalizations.of(context).cancel,
-                    onTap: () => Navigator.pop(context, false),
-                  ),
-                  const SizedBox(width: 20),
-                  _CircleButton(
-                    icon: Icons.check_rounded,
-                    background: confirmColor,
-                    tooltip: AppLocalizations.of(context).wearConfirm,
-                    onTap: () => Navigator.pop(context, true),
-                  ),
-                ],
+                style: WearText.body.copyWith(color: wearMuted),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _CircleButton(
+                  icon: Icons.close_rounded,
+                  background: const Color(0xFF2A2A2C),
+                  tooltip: AppLocalizations.of(context).cancel,
+                  onTap: () => Navigator.pop(context, false),
+                ),
+                const SizedBox(width: 20),
+                _CircleButton(
+                  icon: Icons.check_rounded,
+                  background: confirmColor,
+                  tooltip: AppLocalizations.of(context).wearConfirm,
+                  onTap: () => Navigator.pop(context, true),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

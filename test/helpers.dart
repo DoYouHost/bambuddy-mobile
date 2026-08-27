@@ -10,7 +10,9 @@ import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.
 import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
+import 'package:bambuddy_mobile/wear/wear_shape.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,7 +75,9 @@ Future<ProviderContainer> pumpWear(
   Widget child, {
   List<Override> overrides = const [],
   bool wrapInApp = true,
+  WearShape shape = WearShape.round,
 }) async {
+  _useWatchFace(tester, shape);
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   late ProviderContainer container;
@@ -85,11 +89,65 @@ Future<ProviderContainer> pumpWear(
     ],
     child: Builder(builder: (context) {
       container = ProviderScope.containerOf(context, listen: false);
-      return wrapInApp ? plApp(child) : child;
+      return wrapInApp ? plApp(WearShapeScope(child: child)) : child;
     }),
   ));
   await tester.pumpAndSettle();
   return container;
+}
+
+/// A real watch instead of the 800x600 phone surface every widget test defaults
+/// to: 450x450 at density 2 is the common Wear OS face, and the round-safe
+/// layout only means anything against a face that small.
+///
+/// The shape is answered on `MainActivity`'s `wear_shape` channel, the way the
+/// platform answers it on a device.
+void _useWatchFace(WidgetTester tester, WearShape shape) {
+  tester.view.physicalSize = const Size(450, 450);
+  tester.view.devicePixelRatio = 2.0;
+  addTearDown(tester.view.reset);
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    wearShapeChannel,
+    (call) async =>
+        call.method == 'isScreenRound' ? shape == WearShape.round : null,
+  );
+  addTearDown(() => messenger.setMockMethodCallHandler(wearShapeChannel, null));
+}
+
+/// The channel [WearShapeQuery] talks to, so tests answer the same one the app
+/// asks.
+const wearShapeChannel =
+    MethodChannel('page.codeberg.morganmlgman.bambuddy/wear_shape');
+
+/// Brings [finder] onto the watch face, scrolling the screen if it has to.
+///
+/// On a 225 dp face most of a wear screen starts below the fold, and a
+/// `ListView` does not build what is off-screen at all — so a finder that used
+/// to match on the 800x600 default test surface now matches nothing until the
+/// screen is scrolled. Reaching for a control the way a user does is the point:
+/// it is the same scroll Google Play's reviewer had to make.
+Future<void> revealOnWatch(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(finder, 40,
+        scrollable: find.byType(Scrollable).first);
+  } else {
+    await tester.ensureVisible(finder);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// [revealOnWatch] and then tap, for the controls a test drives rather than
+/// asserts on.
+///
+/// Settles the scroll before the tap but only pumps one frame after it: what a
+/// tap starts is the test's business, and a watch action that puts a spinner up
+/// would hang `pumpAndSettle` forever.
+Future<void> tapOnWatch(WidgetTester tester, Finder finder) async {
+  await revealOnWatch(tester, finder);
+  await tester.tap(finder);
+  await tester.pump();
 }
 
 /// Wczytuje fixture z test/fixtures/ (ścieżka względem korzenia pakietu —

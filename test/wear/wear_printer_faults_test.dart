@@ -114,6 +114,8 @@ void main() {
     expect(find.text('0300-8004'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Wznów'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Zatrzymaj'), findsWidgets);
+    // Last row of a fault card that already fills the face: a scroll away.
+    await revealOnWatch(tester, find.text('Odrzuć wszystkie'));
     expect(find.text('Odrzuć wszystkie'), findsOneWidget);
   });
 
@@ -143,7 +145,7 @@ void main() {
       (tester) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Wznów'));
+    await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Wznów'));
     await tester.pumpAndSettle();
 
     expect(transport.calls, ['action:7:03008004:RESUME_PRINTING:746795586']);
@@ -153,11 +155,11 @@ void main() {
     final transport = await _pumpControl(tester, const [_runout]);
 
     // The fault's own stop button, not the lifecycle bar's below it.
-    await tester.tap(find.widgetWithText(FilledButton, 'Zatrzymaj').first);
+    await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Zatrzymaj').first);
     await tester.pumpAndSettle();
     expect(transport.calls, isEmpty, reason: 'nothing before the confirmation');
 
-    await tester.tap(find.byIcon(Icons.check_rounded));
+    await tapOnWatch(tester, find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
     expect(transport.calls, ['action:7:03008004:STOP_PRINTING:746795586']);
   });
@@ -165,7 +167,7 @@ void main() {
   testWidgets('dismiss-all clears the printer', (tester) async {
     final transport = await _pumpControl(tester, const [_runout]);
 
-    await tester.tap(find.text('Odrzuć wszystkie'));
+    await tapOnWatch(tester, find.text('Odrzuć wszystkie'));
     await tester.pumpAndSettle();
 
     expect(transport.calls, ['clear:7']);

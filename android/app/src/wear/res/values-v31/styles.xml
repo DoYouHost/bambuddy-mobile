@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ draws the splash itself and takes its background from
+         `windowSplashScreenBackground`, falling back to `windowBackground` only
+         when that is a plain colour. Ours is a layer-list (it carries the icon),
+         so without this the system picks its own light background and the icon
+         lands on white — which is the state Play rejected. The icon slot is left
+         alone: its default is already the launcher icon. -->
+    <style name="WearLaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/wear_launch_background</item>
+        <item name="android:windowSplashScreenBackground">@android:color/black</item>
+    </style>
+</resources>
