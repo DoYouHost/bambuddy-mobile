@@ -9,23 +9,19 @@ import '../helpers.dart';
 /// Both layout rejections Google Play sent back live in this widget: content cut
 /// off by the round bezel, and a scrollable screen with no scroll indicator.
 
-/// A common Wear OS face: 450 px at density 2.
-const _facePixels = Size(450, 450);
-const _faceLogical = 225.0;
-
-/// Every corner of [rect] inside the glass of a round face.
-Matcher get _insideTheFace => predicate<Rect>((rect) {
-      const radius = _faceLogical / 2;
-      const centre = Offset(radius, radius);
+/// Every corner of [rect] inside the glass of a round face [logical] dp across.
+Matcher insideFace(double logical) => predicate<Rect>((rect) {
+      final radius = logical / 2;
+      final centre = Offset(radius, radius);
       return [rect.topLeft, rect.topRight, rect.bottomLeft, rect.bottomRight]
           .every((corner) => (corner - centre).distance <= radius);
-    }, 'inside the round face');
+    }, 'inside a ${logical.round()} dp round face');
 
 /// Pumps [child] on a watch face. [shape] is answered on the `wear_shape`
 /// channel, the way the platform answers it on a device.
 Future<void> _pumpFace(WidgetTester tester, Widget child,
-    {WearShape shape = WearShape.round}) async {
-  tester.view.physicalSize = _facePixels;
+    {WearShape shape = WearShape.round, Size face = wearFaceLarge}) async {
+  tester.view.physicalSize = face;
   tester.view.devicePixelRatio = 2.0;
   addTearDown(tester.view.reset);
   final messenger =
@@ -58,23 +54,30 @@ Finder get _indicator => find.descendant(
     );
 
 void main() {
-  group('round-safe insets', () {
-    testWidgets('the viewport itself never reaches the bezel', (tester) async {
-      await _pumpFace(
-        tester,
-        WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
-      );
+  for (final (face, logical) in [
+    (wearFaceSmall, 192.0),
+    (wearFaceLarge, 225.0),
+  ]) {
+    group('round-safe insets on a ${logical.round()} dp face', () {
+      final inside = insideFace(logical);
 
-      // The invariant the layout rests on, and the one a per-row rect cannot
-      // express: a row on its way out legitimately hangs past the viewport and
-      // is clipped by it. What must hold is that the viewport — everything that
-      // can be painted, at any scroll offset — is inside the glass.
-      expect(tester.getRect(find.byType(Scrollable)), _insideTheFace);
+      testWidgets('the viewport itself never reaches the bezel', (tester) async {
+        await _pumpFace(
+          tester,
+          WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+          face: face,
+        );
 
-      await tester.drag(find.byType(WearScrollView), const Offset(0, -70));
-      await tester.pumpAndSettle();
+        // The invariant the layout rests on, and the one a per-row rect cannot
+        // express: a row on its way out legitimately hangs past the viewport and
+        // is clipped by it. What must hold is that the viewport — everything that
+        // can be painted, at any scroll offset — is inside the glass.
+        expect(tester.getRect(find.byType(Scrollable)), inside);
 
-      expect(tester.getRect(find.byType(Scrollable)), _insideTheFace);
+        await tester.drag(find.byType(WearScrollView), const Offset(0, -70));
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.byType(Scrollable)), inside);
     });
 
     testWidgets('the first row is inside the glass at the top of the scroll',
@@ -82,35 +85,38 @@ void main() {
       await _pumpFace(
         tester,
         WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+        face: face,
       );
 
-      expect(tester.getRect(find.byKey(const ValueKey('row-0'))), _insideTheFace);
+      expect(tester.getRect(find.byKey(const ValueKey('row-0'))), inside);
     });
 
     testWidgets('and the last one is, at the bottom of it', (tester) async {
       await _pumpFace(
         tester,
         WearScrollView(children: [for (var i = 0; i < 12; i++) _row(i)]),
+        face: face,
       );
 
       await tester.scrollUntilVisible(find.byKey(const ValueKey('row-11')), 60);
       await tester.pumpAndSettle();
 
-      expect(tester.getRect(find.byKey(const ValueKey('row-11'))), _insideTheFace);
+      expect(tester.getRect(find.byKey(const ValueKey('row-11'))), inside);
     });
 
     testWidgets('short content sits in the middle when asked to', (tester) async {
       await _pumpFace(
         tester,
         WearScrollView(centerWhenShort: true, children: [_row(0)]),
+        face: face,
       );
 
       final row = tester.getRect(find.byKey(const ValueKey('row-0')));
-      // 225 logical px tall face, so its middle is 112.5.
-      expect(row.center.dy, closeTo(112.5, 1));
-      expect(row, _insideTheFace);
+      expect(row.center.dy, closeTo(logical / 2, 1));
+      expect(row, inside);
     });
-  });
+    });
+  }
 
   group('scroll indicator', () {
     testWidgets('stays away while everything fits on the face', (tester) async {

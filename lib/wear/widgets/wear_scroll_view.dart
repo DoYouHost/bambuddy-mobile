@@ -30,6 +30,7 @@ class WearScrollView extends StatefulWidget {
     this.centerWhenShort = false,
     this.contentWidthFraction,
     this.resetKey,
+    this.footer,
   });
 
   final List<Widget> children;
@@ -48,6 +49,12 @@ class WearScrollView extends StatefulWidget {
   /// of it — see [wearNarrowWidthFraction]. Narrower content is allowed a taller
   /// viewport, because the circle takes its width back nearer the edges.
   final double? contentWidthFraction;
+
+  /// Held at the bottom of the viewport, inside the same insets, while
+  /// [children] scroll above it. For the one thing a screen cannot afford to
+  /// put below the fold: a confirmation's two buttons, which on a 192 dp face
+  /// needed a scroll before they were pinned here.
+  final Widget? footer;
 
   /// Changing this scrolls back to the top. For a screen that swaps its content
   /// under the user — the setup flow moves between handoff, offer and manual
@@ -157,6 +164,11 @@ class _WearScrollViewState extends State<WearScrollView>
     );
     if (widget.onRefresh != null) {
       content = RefreshIndicator(onRefresh: widget.onRefresh!, child: content);
+    }
+    if (widget.footer case final footer?) {
+      content = Column(
+        children: [Expanded(child: content), footer],
+      );
     }
 
     return Stack(

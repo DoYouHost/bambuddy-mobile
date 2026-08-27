@@ -78,7 +78,10 @@ void main() {
     expect(find.text('Workshop'), findsOneWidget);
     expect(find.text('Zmień serwer'), findsOneWidget);
     // The consequence is on the screen, not hidden in the dialog: the shared
-    // wear dialog clips its subtitle to one line.
+    // wear dialog clips its subtitle to one line. Under the button, so on a
+    // small face it is a scroll away.
+    await revealOnWatch(
+        tester, find.text('Zapisany profil i poświadczenia zostaną usunięte.'));
     expect(find.text('Zapisany profil i poświadczenia zostaną usunięte.'),
         findsOneWidget);
   });

@@ -109,6 +109,7 @@ void main() {
     // And the setup screen is what shows it. English here, not Polish: this
     // pumps `WearApp`, which builds its own MaterialApp on the system locale,
     // rather than the `plApp` harness the other wear tests wrap widgets in.
+    await revealOnWatch(tester, find.text('Use this server'));
     expect(find.text('Use this server'), findsOneWidget);
   });
 }
