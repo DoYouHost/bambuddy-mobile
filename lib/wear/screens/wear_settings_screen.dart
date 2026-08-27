@@ -9,6 +9,7 @@ import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
 
 /// The watch's only settings screen, and the only way off a server once it is
@@ -43,8 +44,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        child: WearScrollView(
           children: [
             Center(
               child: Text(l10n.wearSettingsTitle, style: WearText.title),

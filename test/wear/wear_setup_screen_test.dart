@@ -66,6 +66,9 @@ void main() {
     await pumpSetup(tester);
 
     expect(find.text('Ustaw z telefonu'), findsOneWidget);
+    // Below the fold on a watch face — the check button lives under the
+    // explanation, so reaching it is a scroll, not a missing button.
+    await revealOnWatch(tester, find.text('Sprawdź ponownie'));
     expect(find.text('Sprawdź ponownie'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
   });
@@ -75,7 +78,7 @@ void main() {
 
     // No Data Layer under a test binding, so the check comes back empty — the
     // same answer a watch gets when the phone app was never set up.
-    await tester.tap(find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
     expect(find.text('Telefon jeszcze nic nie przysłał.'), findsOneWidget);
@@ -86,7 +89,7 @@ void main() {
       watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
     ]);
 
-    await tester.tap(find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
     // The name and the auth mode, so the user can tell this is the server they
@@ -96,6 +99,9 @@ void main() {
     expect(find.text('Workshop'), findsOneWidget);
     expect(find.text('Klucz'), findsOneWidget);
     expect(find.text('Użyj tego serwera'), findsOneWidget);
+    // The way out of the offer sits under the button that takes it — a scroll
+    // away on a face this size.
+    await revealOnWatch(tester, find.text('Nie teraz'));
     expect(find.text('Nie teraz'), findsOneWidget);
   });
 
@@ -104,14 +110,15 @@ void main() {
     await pumpSetup(tester, overrides: [
       watchConfigSyncProvider.overrideWithValue(FakeWatchConfigSync(pending: _offered)),
     ]);
-    await tester.tap(find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Nie teraz'));
+    await tapOnWatch(tester, find.text('Nie teraz'));
     await tester.pumpAndSettle();
 
     expect(find.text('Użyj tego serwera'), findsNothing);
     expect(find.text('Ustaw z telefonu'), findsOneWidget);
+    await revealOnWatch(tester, find.text('Wpisz ręcznie'));
     expect(find.text('Wpisz ręcznie'), findsOneWidget);
   });
 
@@ -121,10 +128,10 @@ void main() {
       watchConfigSyncProvider.overrideWithValue(
           FakeWatchConfigSync(pending: _offered, failsToApply: true)),
     ]);
-    await tester.tap(find.text('Sprawdź ponownie'));
+    await tapOnWatch(tester, find.text('Sprawdź ponownie'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Użyj tego serwera'));
+    await tapOnWatch(tester, find.text('Użyj tego serwera'));
     await tester.pumpAndSettle();
 
     // Persisting is a secure-storage write, and that throws outright rather
@@ -137,7 +144,7 @@ void main() {
   testWidgets('manual entry reveals the URL field', (tester) async {
     await pumpSetup(tester);
 
-    await tester.tap(find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(TextField, 'Adres serwera'), findsOneWidget);
@@ -148,7 +155,7 @@ void main() {
       (tester) async {
     entered = 'http://printer.local:8000';
     await pumpSetup(tester);
-    await tester.tap(find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
@@ -156,7 +163,7 @@ void main() {
     expect(field.readOnly, isTrue);
     expect(field.canRequestFocus, isFalse);
 
-    await tester.tap(find.widgetWithText(TextField, 'Adres serwera'));
+    await tapOnWatch(tester, find.widgetWithText(TextField, 'Adres serwera'));
     await tester.pumpAndSettle();
 
     expect(
@@ -171,9 +178,9 @@ void main() {
       (tester) async {
     entered = null;
     await pumpSetup(tester);
-    await tester.tap(find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextField, 'Adres serwera'));
+    await tapOnWatch(tester, find.widgetWithText(TextField, 'Adres serwera'));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(
@@ -185,7 +192,7 @@ void main() {
       (tester) async {
     isWatch = false;
     await pumpSetup(tester);
-    await tester.tap(find.text('Wpisz ręcznie'));
+    await tapOnWatch(tester, find.text('Wpisz ręcznie'));
     await tester.pumpAndSettle();
 
     final field = tester.widget<TextField>(

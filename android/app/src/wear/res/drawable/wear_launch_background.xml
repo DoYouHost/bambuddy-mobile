@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wear OS 3 (API 30) has no system splash screen, so this window background
+     *is* the branded launch there; on API 31+ it covers the handover between the
+     system splash and Flutter's first frame. Its own name, not an override of
+     `launch_background`: the phone keeps a `drawable-v21` copy of that one,
+     which is the more specific match on every watch and would win. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/black" />
+    <!-- 48 dp is the size the Wear branded-launch guideline names. -->
+    <item
+        android:width="48dp"
+        android:height="48dp"
+        android:gravity="center"
+        android:drawable="@mipmap/ic_launcher" />
+</layer-list>

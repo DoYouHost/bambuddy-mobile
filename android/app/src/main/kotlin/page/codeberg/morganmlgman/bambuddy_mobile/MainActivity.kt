@@ -12,7 +12,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Native side of two platform channels.
+ * Native side of three platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, fires the system prompt — that exemption is what
@@ -20,6 +20,10 @@ import io.flutter.plugin.common.MethodChannel
  * process from an OEM killer (critical on Samsung).
  *
  * `wear_input` is text entry on the watch — see [requestWearText].
+ *
+ * `wear_shape` answers whether the display is round. Flutter never surfaces that: a round
+ * watch face is not reported as a view inset, so `SafeArea` resolves to zero on it and the
+ * layout has to inset itself (`lib/wear/wear_geometry.dart`).
  */
 class MainActivity : FlutterActivity() {
 
@@ -50,6 +54,16 @@ class MainActivity : FlutterActivity() {
                     "isSupported" ->
                         result.success(packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH))
                     "requestText" -> requestWearText(call.argument<String>("label"), result)
+                    else -> result.notImplemented()
+                }
+            }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WEAR_SHAPE_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Read per call rather than cached: the value comes from the current
+                    // Configuration, and an activity that is recreated for a configuration
+                    // change asks again anyway.
+                    "isScreenRound" -> result.success(resources.configuration.isScreenRound)
                     else -> result.notImplemented()
                 }
             }
@@ -127,6 +141,7 @@ class MainActivity : FlutterActivity() {
     private companion object {
         const val BATTERY_CHANNEL = "page.codeberg.morganmlgman.bambuddy/battery"
         const val WEAR_INPUT_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_input"
+        const val WEAR_SHAPE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_shape"
 
         const val WEAR_TEXT_KEY = "bambuddy_wear_text"
         const val REQUEST_WEAR_TEXT = 0x7EA1

@@ -181,6 +181,24 @@ do not stay silent because it was not part of the task.
   (`font_scale 0.85`) on a 360 dp screen. Add ~10 px of slack — collapsing early
   looks fine, a wrapped label does not. Related: `showModalBottomSheet` without
   `isScrollControlled` is capped at 9/16 of the screen height.
+- **Every scrolling watch screen goes through `WearScrollView`**
+  ([lib/wear/widgets/wear_scroll_view.dart](lib/wear/widgets/wear_scroll_view.dart)):
+  it owns both things Google Play checks on Wear OS — the round-safe geometry
+  ([lib/wear/wear_geometry.dart](lib/wear/wear_geometry.dart), never a padding
+  literal) and the curved scroll indicator. `SafeArea` is blind on a watch: the
+  round display is not reported as a view inset, so it resolves to zero.
+  **The insets go on the viewport, not on the content** — padding the content
+  only settles where the first and last item rest, while everything between them
+  still crosses the top and bottom of the circle as the screen scrolls, which is
+  how a paragraph got sliced mid-word and a Pause button lost its ends. A
+  viewport that is the inscribed rectangle cannot paint outside the glass at any
+  offset; its own edge is softened by a fade the length of the content's lead-in.
+  Content that does not need the full width (the confirm dialog) says so with
+  `contentWidthFraction` and is given a taller viewport in exchange. A watch row
+  also needs a corner radius of ~16 or more and a label that can ellipsize; wear
+  widget tests run on a 450x450 face (`pumpWear`), which is what makes an
+  overflow show up at all.
+
 - **Every function that parses user input** (URLs, paths, formats) gets tests for
   the basic path, missing input and odd input, written with it. A mocked
   transport does not exercise network behaviour: the http/https/WS bug passed a

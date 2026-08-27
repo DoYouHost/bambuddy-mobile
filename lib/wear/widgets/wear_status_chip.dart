@@ -31,9 +31,17 @@ class WearStatusChip extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 7),
-          Text(
-            state.label(AppLocalizations.of(context)),
-            style: WearText.strong.copyWith(color: color),
+          // Flexible, not bare: the round-safe content width on a 225 dp face is
+          // 166 dp, and "Zatrzymywanie"/"Oczekiwanie na płytę" in Polish
+          // overflow it — the chip drew its own striped overflow bar right where
+          // Play looks for text cut off by the edge.
+          Flexible(
+            child: Text(
+              state.label(AppLocalizations.of(context)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: WearText.strong.copyWith(color: color),
+            ),
           ),
         ],
       ),

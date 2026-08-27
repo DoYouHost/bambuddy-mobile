@@ -12,6 +12,7 @@ import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
+import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
 
 /// Compact, watch-sized server setup. Reuses the phone app's [setupControllerProvider]
@@ -82,17 +83,19 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
     final controller = ref.read(setupControllerProvider.notifier);
     final l10n = AppLocalizations.of(context);
 
+    final offer = ref.watch(pendingWatchConfigProvider);
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+        child: WearScrollView(
+          // Every branch below is a step of its own; naming it here is what
+          // brings the scroll back to the top when the screen swaps.
+          resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
           children: [
             const Center(
               child: Text('Bambuddy', style: WearText.title),
             ),
             const SizedBox(height: 12),
-            if (ref.watch(pendingWatchConfigProvider) case final offer?
-                when !_manual)
+            if (offer case final offer? when !_manual)
               ..._offerSection(l10n, offer)
             else if (!_manual)
               ..._phoneHandoffSection(l10n)

@@ -9,6 +9,7 @@ import '../providers.dart';
 import 'screens/wear_home.dart';
 import 'screens/wear_setup_screen.dart';
 import 'wear_providers.dart';
+import 'wear_shape.dart';
 import 'wear_theme.dart';
 
 /// Root of the Wear app. Routes purely on whether a server profile exists —
@@ -105,6 +106,9 @@ class _WearAppState extends ConsumerState<WearApp>
       // Follow the watch's system language (same l10n set as the phone app).
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Above the navigator, so routes *and* dialogs read the same shape: the
+      // round face is what every layout under here insets itself against.
+      builder: (context, child) => WearShapeScope(child: child!),
       home: hasProfile ? const WearHome() : const WearSetupScreen(),
     );
   }
