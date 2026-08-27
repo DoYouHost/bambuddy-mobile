@@ -57,7 +57,7 @@ void main() {
         .setMockMethodCallHandler(inputChannel, null);
   });
 
-  Future<void> pumpSetup(WidgetTester tester,
+  Future<ProviderContainer> pumpSetup(WidgetTester tester,
           {List<Override> overrides = const []}) =>
       pumpWear(tester, const WearSetupScreen(), overrides: overrides);
 
@@ -139,6 +139,21 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.textContaining('keystore'), findsOneWidget);
     expect(find.text('Użyj tego serwera'), findsOneWidget);
+  });
+
+  testWidgets('demo needs one tap and no keyboard at all', (tester) async {
+    // The watch has no usable keyboard of its own (see WearTextInput), so the
+    // reviewer's "type demo / demo / demo1234" is three trips through the input
+    // activity. This button is the whole flow, and it goes through the shared
+    // setup controller rather than writing a profile of its own.
+    final container = await pumpSetup(tester);
+
+    await tapOnWatch(tester, find.text('Demo'));
+    await tester.pumpAndSettle();
+
+    final profile = container.read(serverProfileProvider);
+    expect(profile?.isDemo, isTrue);
+    expect(profile?.label, 'Demo');
   });
 
   testWidgets('manual entry reveals the URL field', (tester) async {

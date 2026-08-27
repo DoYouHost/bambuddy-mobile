@@ -304,11 +304,15 @@ enum WearTransportMode { relay, rest }
 /// [WearRelayUnreachable]: after a timeout the phone may have already executed
 /// the command (e.g. startNext), and repeating it over REST could double it.
 class HybridWearTransport implements WearTransport {
-  HybridWearTransport({required WearTransport relay, WearTransport? rest})
-      : _relay = relay,
+  HybridWearTransport({WearTransport? relay, WearTransport? rest})
+      : assert(relay != null || rest != null, 'a transport with no path at all'),
+        _relay = relay,
         _rest = rest;
 
-  final WearTransport _relay;
+  /// Null in demo mode, where relaying would be actively wrong: the phone would
+  /// answer from *its* server, so a watch showing the fabricated dataset would
+  /// quietly start listing the user's real printers.
+  final WearTransport? _relay;
 
   /// Null when the watch has no server profile (relay is then the only path).
   final WearTransport? _rest;
@@ -321,8 +325,14 @@ class HybridWearTransport implements WearTransport {
     Future<T> Function(WearTransport t) op, {
     required bool fallbackOnTimeout,
   }) async {
+    final relay = _relay;
+    if (relay == null) {
+      final result = await op(_rest!);
+      lastMode = WearTransportMode.rest;
+      return result;
+    }
     try {
-      final result = await op(_relay);
+      final result = await op(relay);
       lastMode = WearTransportMode.relay;
       return result;
     } on Exception catch (e) {

@@ -51,11 +51,17 @@ class PendingWatchConfig extends Notifier<WatchConfig?> {
 /// (command executed on the phone, watch reported a timeout). It also has to
 /// keep [HybridWearTransport.lastMode] across polls for the adaptive cadence.
 final wearTransportProvider = Provider<HybridWearTransport>((ref) {
-  final relay = RelayTransport(ref.watch(watchConnectivityProvider));
-  ref.onDispose(relay.dispose);
+  final profile = ref.watch(serverProfileProvider);
+  // Demo runs entirely in this process (the API client swaps in the fake
+  // backend), so there is nothing for the phone to answer — and asking it would
+  // hand back the real fleet from the real server it is configured for.
+  final relay = profile?.isDemo ?? false
+      ? null
+      : RelayTransport(ref.watch(watchConnectivityProvider));
+  if (relay != null) ref.onDispose(relay.dispose);
   // REST needs a configured profile; without one (relay-only watch) the
   // repositories can't even be constructed (apiClientProvider throws).
-  final hasProfile = ref.watch(serverProfileProvider) != null;
+  final hasProfile = profile != null;
   return HybridWearTransport(
     relay: relay,
     rest: hasProfile

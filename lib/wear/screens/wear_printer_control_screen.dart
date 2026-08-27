@@ -137,7 +137,20 @@ class _WearPrinterControlBodyState
           ),
         ),
         const SizedBox(height: 6),
-        Text(line, textAlign: TextAlign.center, style: WearText.body),
+        // One line whatever the watch's font scale is: wrapped, its second line
+        // lands in the viewport's fade, and a half-dimmed "111/264" reads as a
+        // rendering fault rather than a readout. Only ever shrinks — at the
+        // default scale nothing is scaled at all.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            line,
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: WearText.body,
+          ),
+        ),
       ],
     );
   }
