@@ -46,6 +46,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
 
     return WearScreen(
       child: WearScrollView(
+        curved: true,
         children: [
           WearHeader(l10n.wearSettingsTitle),
           const SizedBox(height: 12),

@@ -89,6 +89,11 @@ class _WearPrinterControlBodyState
     return Stack(
       children: [
         WearScrollView(
+          // Short items all the way down — a title, a chip, a readout, buttons
+          // — which is what the curve is for. The one exception carries itself:
+          // a fault card is taller than the radius, so `WearFaceCurve` clips it
+          // to the round-safe band exactly as the rectangle viewport used to.
+          curved: true,
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
           children: [
             WearHeader(item.printer.name),

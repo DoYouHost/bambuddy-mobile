@@ -20,6 +20,9 @@ class WearPrinterListBody extends ConsumerWidget {
     final fleet = ref.watch(wearFleetProvider);
     final printers = fleet.valueOrNull?.printers ?? const [];
     return WearScrollView(
+      // Uniform short rows, which is exactly what curving is for: the picker
+      // was handing 36% of the face to a margin nothing could ever enter.
+      curved: true,
       onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
       children: [
         Padding(
@@ -94,7 +97,14 @@ class _PrinterRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: WearText.strong),
+                      // One line, like the name above it. Without this the
+                      // row grows a second line for any state whose label does
+                      // not fit — "Oczekiwanie na płytę" is 20 characters in a
+                      // ~100 dp column — and 16 dp of a 75 dp row is a lot to
+                      // spend on a wrapped word nobody needs to read twice.
                       Text(stateLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: WearText.small.copyWith(color: stateColor)),
                     ],
                   ),

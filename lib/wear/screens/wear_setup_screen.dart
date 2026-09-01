@@ -89,6 +89,7 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
 
     return WearScreen(
       child: WearScrollView(
+        curved: true,
         // Every branch below is a step of its own; naming it here is what
         // brings the scroll back to the top when the screen swaps.
         resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
