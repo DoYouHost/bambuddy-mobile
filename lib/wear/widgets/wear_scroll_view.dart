@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../wear_geometry.dart';
 import '../wear_shape.dart';
+import 'wear_face.dart';
 import 'wear_scroll_indicator.dart';
 
 /// The one scrolling surface on the watch: a viewport cut down to the rectangle
@@ -160,8 +161,6 @@ class _WearScrollViewState extends State<WearScrollView>
   @override
   Widget build(BuildContext context) {
     final shape = wearShapeOf(context);
-    final insets = wearFaceInsets(shape, MediaQuery.sizeOf(context),
-        widthFraction: widget.contentWidthFraction);
 
     Widget content = NotificationListener<ScrollMetricsNotification>(
       onNotification: _onMetrics,
@@ -183,7 +182,7 @@ class _WearScrollViewState extends State<WearScrollView>
 
     return Stack(
       children: [
-        Padding(padding: insets, child: content),
+        WearFace(widthFraction: widget.contentWidthFraction, child: content),
         // Outside the insets: the indicator belongs on the glass the content
         // just gave up, hugging the bezel where nothing else may go.
         Positioned.fill(
@@ -246,11 +245,13 @@ class _WearScrollViewState extends State<WearScrollView>
             shaderCallback: (bounds) => LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
+              // Alpha is all a `dstIn` mask reads; the colours are named
+              // rather than spelled in hex so they say "keep" and "drop".
               colors: const [
-                Color(0x00FFFFFF),
-                Color(0xFFFFFFFF),
-                Color(0xFFFFFFFF),
-                Color(0x00FFFFFF),
+                Colors.transparent,
+                Colors.white,
+                Colors.white,
+                Colors.transparent,
               ],
               stops: [0, fade, 1 - fade, 1],
             ).createShader(bounds),

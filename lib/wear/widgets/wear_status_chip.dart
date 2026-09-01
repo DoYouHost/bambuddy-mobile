@@ -17,11 +17,7 @@ class WearStatusChip extends StatelessWidget {
     final color = state.color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
+      decoration: wearTintedBox(color),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

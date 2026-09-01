@@ -9,6 +9,7 @@ import '../wear_action.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
@@ -46,9 +47,7 @@ class _WearSettingsScreenState extends ConsumerState<WearSettingsScreen>
     return WearScreen(
       child: WearScrollView(
         children: [
-          Center(
-            child: Text(l10n.wearSettingsTitle, style: WearText.title),
-          ),
+          WearHeader(l10n.wearSettingsTitle),
           const SizedBox(height: 12),
           if (profile != null) ...[
             Text(l10n.wearCurrentServer,
