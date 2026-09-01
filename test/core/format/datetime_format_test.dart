@@ -36,6 +36,26 @@ void main() {
       expect(_fmt(locale: 'en_CA').time(_at), '9:20 p.m.');
     });
 
+    test('an unreadable switch follows the locale, not a 12-hour default', () {
+      // The foreground service's engine is never told what the switch says, and
+      // its Dart-side default is "12-hour" — which is how a phone set to 24 got
+      // `ETA 8:29 PM` in its print notification.
+      expect(DateTimeFormats.forTest(locale: 'pl').time(_at), '21:20');
+      expect(DateTimeFormats.forTest(locale: 'en_GB').time(_at), '21:20');
+      expect(DateTimeFormats.forTest(locale: 'de_DE').time(_at), '21:20');
+      // A 12-hour locale still gets a 12-hour clock, marker and all.
+      expect(DateTimeFormats.forTest(locale: 'en_US').time(_at), '9:20 PM');
+      expect(DateTimeFormats.forTest(locale: 'en_CA').time(_at), '9:20 p.m.');
+    });
+
+    test('the hour cycle comes off the region, the markers off the language',
+        () {
+      // A Polish app on a US phone: the device's convention decides the clock,
+      // and the marker is borrowed from English because intl gives pl `a`/`p`.
+      final f = DateTimeFormats.forTest(locale: 'en_US', wordLocale: 'pl');
+      expect(f.time(_at), '9:20 PM');
+    });
+
     test('midnight and noon do not collapse onto 0 or 24', () {
       final f = _fmt();
       expect(f.time(DateTime(2026, 8, 22, 0, 5)), '12:05 AM');

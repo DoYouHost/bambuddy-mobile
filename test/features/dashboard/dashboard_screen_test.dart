@@ -115,6 +115,8 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   Future<bool> isRunning() async => running;
   @override
   void syncDiagnostics() {}
+  @override
+  void syncClockFormat() {}
 }
 
 /// Watch relay stubbed only so it does not reach for the platform channel.

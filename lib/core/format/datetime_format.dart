@@ -18,7 +18,7 @@ final Set<String> _translatedLanguages = {
 /// outside it (background isolate, home widget publisher).
 @immutable
 class DateTimeFormats {
-  const DateTimeFormats._(this._locale, this._wordLocale, this.use24Hour);
+  const DateTimeFormats._(this._locale, this._wordLocale, this._use24Hour);
 
   /// `alwaysUse24HourFormatOf`, not `MediaQuery.of`, which would subscribe the
   /// caller to every metric and rebuild the dashboard card on each frame of a
@@ -37,14 +37,32 @@ class DateTimeFormats {
 
   /// No app locale is knowable outside the tree, so an untranslated system
   /// language falls back to `en` — the same fallback `lib/app.dart` declares.
+  ///
+  /// The clock cannot come off the dispatcher here. Only an engine that hosts a
+  /// view is ever sent the user settings, and the foreground service runs a bare
+  /// `FlutterEngine`: `alwaysUse24HourFormat` keeps its Dart-side default of
+  /// false there, which is how every notification ETA came out as `8:29 PM` on a
+  /// phone set to 24 hours. So the value is published from the widget tree
+  /// ([rememberSystemClock], via `SystemClockSync`) and read back from
+  /// preferences by the service. A `true` from the dispatcher is still worth
+  /// taking — nothing but the real setting produces one — and with neither,
+  /// [use24Hour] asks the locale.
   factory DateTimeFormats.system() {
     final dispatcher = PlatformDispatcher.instance;
     return DateTimeFormats._resolve(
       dispatcher.locale,
       const Locale('en'),
-      dispatcher.alwaysUse24HourFormat,
+      _rememberedClock ?? (dispatcher.alwaysUse24HourFormat ? true : null),
     );
   }
+
+  /// What the platform's 12/24-hour switch says, for the isolates that cannot
+  /// ask it themselves. Null means nobody has said — [use24Hour] then falls back
+  /// to the locale rather than to a silent "12-hour".
+  static bool? _rememberedClock;
+
+  static void rememberSystemClock(bool? use24Hour) =>
+      _rememberedClock = use24Hour;
 
   /// Digits and words resolve differently. Field order is the device's business
   /// whatever language it is set to, so numbers keep the system locale — a
@@ -54,7 +72,7 @@ class DateTimeFormats {
   factory DateTimeFormats._resolve(
     Locale systemLocale,
     Locale appLocale,
-    bool use24Hour,
+    bool? use24Hour,
   ) {
     _ensureLocaleData();
     final translated = _translatedLanguages.contains(systemLocale.languageCode);
@@ -69,7 +87,7 @@ class DateTimeFormats {
   @visibleForTesting
   factory DateTimeFormats.forTest({
     required String locale,
-    required bool use24Hour,
+    bool? use24Hour,
     String? wordLocale,
   }) {
     _ensureLocaleData();
@@ -86,8 +104,14 @@ class DateTimeFormats {
   /// chosen it already answers the locale's own convention. So false is a real
   /// "12-hour" and is forced as one — deferring to the locale (which is what
   /// `TimeOfDay.format` does) would ignore a `pl` user who went and picked
-  /// 12-hour by hand.
-  final bool use24Hour;
+  /// 12-hour by hand. Null is the other thing entirely: not a setting, but an
+  /// isolate that has no way to read one.
+  final bool? _use24Hour;
+
+  /// The switch where it could be read, the locale's own convention where it
+  /// could not — never a hardcoded 12-hour clock, which is what a `pl` phone was
+  /// getting in its notifications.
+  bool get use24Hour => _use24Hour ?? _localeUses24Hour(_locale);
 
   // What each of these actually renders, per locale and clock setting, is
   // pinned in test/core/format/datetime_format_test.dart. The `named` variants
@@ -145,6 +169,18 @@ class DateTimeFormats {
     return _formatCache.putIfAbsent(
         'h:mm a/$locale', () => DateFormat('h:mm a', locale));
   }
+
+  static final Map<String, bool> _localeClockCache = {};
+
+  /// The locale's own hour cycle, read off its `jm` pattern: `H` (0-23) and `k`
+  /// (1-24) are the 24-hour hour fields, `h` and `K` the 12-hour ones. Quoted
+  /// runs are dropped first — a letter inside one is literal text, not a field.
+  static bool _localeUses24Hour(String locale) =>
+      _localeClockCache.putIfAbsent(locale, () {
+        final pattern = (DateFormat.jm(locale).pattern ?? '')
+            .replaceAll(RegExp(r"'[^']*'"), '');
+        return pattern.contains('H') || pattern.contains('k');
+      });
 
   static final Map<String, String> _clockLocaleCache = {};
 

@@ -30,6 +30,7 @@ import '../diagnostics/log_event.dart';
 import '../diagnostics/notif_probe.dart';
 import '../diagnostics/session_facts.dart';
 import '../demo/demo_ws.dart';
+import '../format/datetime_format.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
@@ -98,6 +99,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
       return;
     }
 
+    // This engine hosts no view, so nobody ever told it what the 12/24-hour
+    // switch says and `DateTimeFormats.system()` would spell every ETA in AM/PM.
+    // The UI writes the switch down for exactly this read.
+    DateTimeFormats.rememberSystemClock(settings.loadUse24HourClock());
+
     // Before `_startMonitoring`, so the token mint and the WebSocket handshake —
     // the two things a report about background notifications most often turns out
     // to be — are inside the recording. Cannot throw and cannot block for long by
@@ -121,6 +127,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
         // argument was unused, and it is the only thing that tells the two apart.
         'starter': starter.name,
         'bg_enabled': settings.loadBgMonitoringEnabled(),
+        // Which clock the ETAs in this run are spelled on, resolved the same way
+        // they are — a report about a time reading otherwise cannot say whether
+        // the setting or the formatting was at fault.
+        'clock_24h': DateTimeFormats.system().use24Hour,
       },
     );
 
@@ -469,8 +479,26 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// half of the log was simply missing, which reads as "the service did nothing".
   @override
   void onReceiveData(Object data) {
-    if (data is Map && data['diagnostics'] == 'sync') {
-      unawaited(_syncDiagnostics());
+    if (data is! Map) return;
+    if (data['diagnostics'] == 'sync') unawaited(_syncDiagnostics());
+    if (data['clock'] == 'sync') unawaited(_syncClockFormat());
+  }
+
+  /// The 24-hour switch as the app last saw it. Same reason as above: a service
+  /// that was already running when the setting changed read the old value at its
+  /// own start-up and would keep spelling ETAs that way for as long as it lives —
+  /// which, after a swipe, is across every later launch.
+  Future<void> _syncClockFormat() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Written by the UI isolate, so this handle's snapshot predates it.
+      await prefs.reload();
+      DateTimeFormats.rememberSystemClock(
+        SettingsRepository(prefs).loadUse24HourClock(),
+      );
+    } on Object {
+      // Keep whatever this isolate started with; a stale clock is not worth
+      // taking the service down for.
     }
   }
 

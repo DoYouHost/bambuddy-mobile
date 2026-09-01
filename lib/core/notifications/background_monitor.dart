@@ -43,6 +43,13 @@ abstract class BackgroundMonitor {
   /// background half of their report is simply absent, and absent looks exactly
   /// like "the service did nothing".
   void syncDiagnostics();
+
+  /// Tells a monitor that is already running to re-read the 12/24-hour switch.
+  ///
+  /// Same shape as [syncDiagnostics] and for the same reason: the value travels
+  /// through `SharedPreferences`, and a service that outlived the launch which
+  /// wrote it never reads that file again on its own.
+  void syncClockFormat();
 }
 
 /// Implementation using `flutter_foreground_task`: hosts [PrintMonitorTaskHandler]
@@ -67,6 +74,10 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
   @override
   void syncDiagnostics() =>
       FlutterForegroundTask.sendDataToTask(const {'diagnostics': 'sync'});
+
+  @override
+  void syncClockFormat() =>
+      FlutterForegroundTask.sendDataToTask(const {'clock': 'sync'});
 
   @override
   Future<void> stop() async {

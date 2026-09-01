@@ -24,6 +24,7 @@ class SettingsRepository {
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
   static const _diagnosticsSessionKey = 'diagnostics_session';
+  static const _clock24hKey = 'clock_24h';
 
   final SharedPreferences _prefs;
 
@@ -78,6 +79,19 @@ class SettingsRepository {
 
   Future<void> saveBgMonitoringEnabled(bool enabled) =>
       _prefs.setBool(_bgMonitoringKey, enabled);
+
+  /// The platform's 12/24-hour switch, as the UI last saw it. It travels through
+  /// preferences because the only isolate that can read the switch is the one
+  /// with a view attached: the foreground service gets a bare engine, where the
+  /// setting is not missing but *wrong* — a default `false` that spelled every
+  /// notification ETA in AM/PM on a 24-hour phone.
+  ///
+  /// Null until an install has run a version that writes it, and null is not
+  /// "12-hour": `DateTimeFormats` then follows the locale's own convention.
+  bool? loadUse24HourClock() => _prefs.getBool(_clock24hKey);
+
+  Future<void> saveUse24HourClock(bool use24Hour) =>
+      _prefs.setBool(_clock24hKey, use24Hour);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.

@@ -188,6 +188,26 @@ void main() {
     expect(fake.lastBody, contains('ETA 9:20 PM'));
   });
 
+  test('the service isolate spells the ETA on the clock the app published', () {
+    // The regression, on the path that had it: built without a formatter, the
+    // way the foreground service builds it. That isolate's engine is never told
+    // what the 12/24-hour switch says, so it used to fall back to a 12-hour
+    // clock and put `ETA 8:29 PM` on a phone that is set to 24 hours.
+    DateTimeFormats.rememberSystemClock(true);
+    addTearDown(() => DateTimeFormats.rememberSystemClock(null));
+
+    final fake = _FakeNotifications();
+    PrintMonitor(
+      fake,
+      l10n: () => lookupAppLocalizations(const Locale('en')),
+      clock: () => DateTime(2026, 6, 12, 20, 0),
+    ).update({
+      1: _status(state: 'RUNNING', progress: 42, remaining: 80, job: 'cube.3mf'),
+    });
+
+    expect(fake.lastBody, contains('ETA 21:20'));
+  });
+
   test('a progress change updates the notification', () {
     final fake = _FakeNotifications();
     final m = monitor(fake);
