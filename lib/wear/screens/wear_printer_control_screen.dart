@@ -337,6 +337,12 @@ class _WearPrinterControlBodyState
       title: AppLocalizations.of(context).ctrlStopConfirmTitle,
       subtitle: name,
     );
+    // Called directly, and correctly so: this whole method already runs inside
+    // `_run`, because `_btn` wraps whatever it is given. Wrapping again is not
+    // belt and braces — `WearAction.run` opens with `if (_busy) return`, so the
+    // inner call is a silent no-op and the button stops working. The fault
+    // card's own stop looks different for the same reason: it reaches
+    // `_confirmHmsStop` without passing through `_btn`, so it wraps itself.
     if (ok) await actions.stop(id);
   }
 

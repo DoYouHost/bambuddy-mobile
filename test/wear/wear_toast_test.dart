@@ -38,6 +38,37 @@ class _TimeoutTransport implements WearTransport {
   Future<void> clearPlate(int printerId) async => throw WearRelayTimeout();
 
   @override
+  Future<void> stop(int printerId) async => throw WearRelayTimeout();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not this test\'s');
+}
+
+/// A printer mid-print, so the stop button is on offer, with a phone that never
+/// answers.
+class _PrintingTransport implements WearTransport {
+  @override
+  Future<WearFleet> getFleet() async => const WearFleet(
+        printers: [
+          PrinterWithStatus(
+            printer: Printer(id: 7, name: 'X1C'),
+            status: PrinterStatus(
+                id: 7, connected: true, state: 'RUNNING', progress: 40),
+          ),
+        ],
+        queuePending: 0,
+      );
+
+  int stops = 0;
+
+  @override
+  Future<void> stop(int printerId) async {
+    stops++;
+    throw WearRelayTimeout();
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not this test\'s');
 }
@@ -200,6 +231,45 @@ void main() {
     expectOnGlass(tester, find.text('Zwolnij płytę. ' * 20));
     expectOnGlass(tester, find.text('OK'),
         reason: 'the way out must not be pushed off the glass by the message');
+  });
+
+  testWidgets('a stop that never reached the phone says so', (tester) async {
+    // Every other button on this screen went through the wrapper that reports a
+    // failure; this one called the transport directly and swallowed it, on the
+    // single command whose outcome cannot be read off the screen.
+    final transport = _PrintingTransport();
+    await pumpWear(
+      tester,
+      const WearPrinterControlScreen(printerId: 7),
+      face: wearFaceLarge,
+      overrides: [
+        serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+        wearTransportProvider.overrideWith(
+          (ref) => HybridWearTransport(relay: transport),
+        ),
+        requirePlateClearProvider.overrideWith((ref) async => false),
+      ],
+    );
+
+    await tapOnWatch(tester, find.text('Zatrzymaj'));
+
+    // Counted frames from here on, never `pumpAndSettle`. Pressing the button
+    // raises the busy veil and holds it up for as long as the confirmation is
+    // on screen — this whole path runs inside `_run` — and the veil's spinner
+    // never stops, so settling never returns. The confirm sits in the dialog's
+    // pinned footer, which needs no scrolling to reach.
+    Future<void> frames() async {
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await frames();
+    await tester.tap(find.byIcon(Icons.check_rounded));
+    await frames();
+
+    expect(transport.stops, 1, reason: 'the confirmation ran the command');
+    expect(find.text('Telefon nie odpowiedział'), findsOneWidget);
   });
 
   testWidgets('a failed printer command reaches the wrist readable',
