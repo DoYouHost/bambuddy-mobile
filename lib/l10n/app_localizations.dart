@@ -7958,6 +7958,12 @@ abstract class AppLocalizations {
   /// **'Current server'**
   String get wearCurrentServer;
 
+  /// Watch toast: the line under a transient message, saying a tap takes it away rather than waiting it out. Two letters because the message above it is what the room is for.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get wearOk;
+
   /// No description provided for @commonOn.
   ///
   /// In en, this message translates to:

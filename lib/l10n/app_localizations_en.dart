@@ -4641,6 +4641,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearCurrentServer => 'Current server';
 
   @override
+  String get wearOk => 'OK';
+
+  @override
   String get commonOn => 'On';
 
   @override

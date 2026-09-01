@@ -54,12 +54,22 @@ void main() {
     );
   });
 
-  test('the snackbar keeps a text colour', () {
-    // Overriding `contentTextStyle` replaces the Material default outright, so
-    // dropping the colour leaves the text inheriting the ambient white — on a
-    // snackbar whose M3 fill is `inverseSurface`, i.e. light. The toast then
-    // renders invisibly, which no widget test would notice.
-    expect(wearTheme().snackBarTheme.contentTextStyle?.color, isNotNull);
+  test('no watch screen reaches for a snackbar', () {
+    final snackbar = RegExp(r'showSnackBar|SnackBar\(');
+    final offenders = [
+      for (final entry in sources.entries)
+        if (snackbar.hasMatch(entry.value)) entry.key,
+    ];
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A snackbar is laid out against the square the display reports, '
+          'and a watch is the circle inscribed in it: pinned to the bottom of '
+          'that square it lands where the circle has almost no width left, so '
+          'most of the bar and most of its sentence are off the glass. Say it '
+          'with wearToast, which is given the middle of the face.',
+    );
   });
 
   test('a role carries its own weight, so a call site only picks a colour', () {

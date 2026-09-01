@@ -29,9 +29,11 @@ void main() {
     });
 
     test('the two budgets are what the callers ask for', () {
-      // Named rather than inlined so the difference stays an argument: a line
-      // that stays on screen may be longer than one in a snackbar.
-      expect(wearErrorMaxChars, greaterThan(wearToastMaxChars));
+      // Named rather than inlined so the difference stays an argument, and the
+      // argument is room rather than time: the passing message is given the
+      // whole face, while the one that stays has to share a screen with the
+      // button that caused it.
+      expect(wearToastMaxChars, greaterThan(wearErrorMaxChars));
     });
   });
 }

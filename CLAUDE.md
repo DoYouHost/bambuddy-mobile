@@ -197,7 +197,22 @@ do not stay silent because it was not part of the task.
   `contentWidthFraction` and is given a taller viewport in exchange. A watch row
   also needs a corner radius of ~16 or more and a label that can ellipsize; wear
   widget tests run on a 450x450 face (`pumpWear`), which is what makes an
-  overflow show up at all.
+  overflow show up at all — on the 384x384 face `pumpWear` defaults to, with
+  450x450 (`wearFaceLarge`) as the roomier one to check against.
+
+- **A watch never shows a `SnackBar`.** A bar is laid out against the square the
+  display reports and pinned to the bottom of it — where a round face has almost
+  no width left, so most of the bar and most of its sentence are off the glass,
+  and `ScaffoldMessenger` offers no hook to move it. Transient messages go
+  through `wearToast`
+  ([lib/wear/widgets/wear_toast.dart](lib/wear/widgets/wear_toast.dart)): the
+  middle of the face, the same round-safe rectangle, three seconds, a tap to
+  dismiss, and hosted by `WearScreen` so a message cannot outlive the screen
+  that raised it. `wear_type_scale_test.dart` scans the watch sources to keep
+  snackbars out, and `expectOnGlass` (`test/helpers.dart`) is the assertion for
+  anything the watch positions itself rather than handing to `WearScrollView` —
+  a widget test is otherwise happy with a layout that fits the square and lights
+  none of the circle.
 
 - **Every function that parses user input** (URLs, paths, formats) gets tests for
   the basic path, missing input and odd input, written with it. A mocked

@@ -12,7 +12,9 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_error.dart';
+import '../wear_geometry.dart';
 import '../wear_providers.dart';
+import '../wear_shape.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
@@ -22,6 +24,7 @@ import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import '../widgets/wear_spinner.dart';
 import '../widgets/wear_status_chip.dart';
+import '../widgets/wear_toast.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
 /// Scaffold so it gets its own back-swipe route.
@@ -69,7 +72,16 @@ class _WearPrinterControlBodyState
     final l10n = AppLocalizations.of(context);
     final item = _find(printers);
     if (item == null) {
-      return Center(child: Text(l10n.wearPrinterUnavailable));
+      // The one thing on this screen that never reaches `WearScrollView`, so
+      // the only one that has to ask for the round-safe rectangle itself.
+      return Padding(
+        padding: wearFaceInsets(
+            wearShapeOf(context), MediaQuery.sizeOf(context)),
+        child: Center(
+          child: Text(l10n.wearPrinterUnavailable,
+              textAlign: TextAlign.center, style: WearText.body),
+        ),
+      );
     }
     final status = item.status;
     final state = wearStateOf(status);
@@ -335,31 +347,27 @@ class _WearPrinterControlBodyState
 
   /// Runs an action behind the full-screen busy veil, then refreshes the poll.
   ///
-  /// Failures go to a SnackBar, not to text on the screen: these are commands on
-  /// live printer state, repeatable by tapping again, and a red line under one of
-  /// eight buttons in a scrolling list is missed. The refresh is why this wrapper
-  /// still exists on top of [run] — nothing else on the watch has a poll to pull.
+  /// Both outcomes go to a passing message rather than to text on the screen:
+  /// these are commands on live printer state, repeatable by tapping again, and
+  /// a red line under one of eight buttons in a scrolling list is missed. The
+  /// refresh is why this wrapper still exists on top of [run] — nothing else on
+  /// the watch has a poll to pull.
   Future<void> _run(Future<void> Function() action, {String? okMsg}) => run(
         () async {
           await action();
           await ref.read(wearFleetProvider.notifier).refresh();
         },
         onDone: () {
-          if (okMsg != null) _toast(okMsg);
+          if (okMsg != null) {
+            wearToast(context, okMsg, tone: WearToastTone.success);
+          }
         },
-        onError: (error) =>
-            _toast(_shortError(AppLocalizations.of(context), error)),
+        onError: (error) => wearToast(
+          context,
+          _shortError(AppLocalizations.of(context), error),
+          tone: WearToastTone.failure,
+        ),
       );
-
-  void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }
 
 /// One fault on the watch: what it is, then a full-width button per action.
@@ -478,7 +486,7 @@ String _shortError(AppLocalizations l10n, Object e) {
     return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
-  // Not localizable, so it is quoted as-is — trimmed to what a snackbar can
-  // hold before it disappears.
+  // Not localizable, so it is quoted as-is — trimmed to what the message can
+  // hold before it takes itself away.
   return wearShortText(e.toString(), max: wearToastMaxChars);
 }

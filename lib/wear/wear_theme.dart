@@ -25,9 +25,8 @@ const wearDestructive = Color(0xFFB3261E);
 /// colour (a state, an error) it is a `copyWith` on the role, so the size stays
 /// decided here.
 ///
-/// Sizes a component theme can carry are not here at all — a text button, a
-/// snackbar and an input label get theirs from [wearTheme], so a screen never
-/// styles them.
+/// Sizes a component theme can carry are not here at all — a text button and an
+/// input label get theirs from [wearTheme], so a screen never styles them.
 class WearText {
   /// The question on a full-screen confirm: alone on the face, so it gets to be
   /// the largest thing in the app.
@@ -58,7 +57,10 @@ class WearText {
 /// Dark, black-background theme (OLED-friendly) with larger tap targets.
 ///
 /// Anything with a component theme takes its type from here, so the screens stop
-/// repeating it: text buttons, snackbars, filled buttons and input labels.
+/// repeating it: text buttons, filled buttons and input labels. There is no
+/// snackbar theme because there are no snackbars: a bar pinned to the bottom of
+/// a round face is mostly off the glass, so the watch says it with `WearToast`
+/// instead.
 ThemeData wearTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: Colors.green,
@@ -77,13 +79,6 @@ ThemeData wearTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(textStyle: WearText.body),
-    ),
-    snackBarTheme: SnackBarThemeData(
-      // The colour has to be spelled out: a `contentTextStyle` replaces the
-      // Material default outright rather than merging with it, and without this
-      // the text falls back to the ambient white — on a snackbar whose M3 fill
-      // is `inverseSurface`, i.e. light. White on light is an invisible toast.
-      contentTextStyle: WearText.body.copyWith(color: scheme.onInverseSurface),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       labelStyle: WearText.body,
