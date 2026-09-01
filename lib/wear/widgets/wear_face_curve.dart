@@ -23,21 +23,33 @@ import '../wear_geometry.dart';
 /// differently on every frame of a scroll. A scale happens at paint time and the
 /// text keeps the metrics it was laid out with.
 class WearFaceCurve extends SingleChildRenderObjectWidget {
-  const WearFaceCurve({super.key, required this.face, required super.child});
+  const WearFaceCurve({
+    super.key,
+    required this.face,
+    required super.child,
+    this.cornerRadius = 0,
+  });
 
   /// The whole display, not the viewport: the curve is a fact about the glass,
   /// and the item has to know where it sits on it rather than where it sits in
   /// whatever box it is being scrolled through.
   final Size face;
 
+  /// How round the items in this list are — see [roundScaleFor]. Nothing by
+  /// default: claiming a radius an item does not have puts its square corner
+  /// past the chord.
+  final double cornerRadius;
+
   @override
   RenderWearFaceCurve createRenderObject(BuildContext context) =>
-      RenderWearFaceCurve(face: face);
+      RenderWearFaceCurve(face: face, cornerRadius: cornerRadius);
 
   @override
   void updateRenderObject(
           BuildContext context, RenderWearFaceCurve renderObject) =>
-      renderObject.face = face;
+      renderObject
+        ..face = face
+        ..cornerRadius = cornerRadius;
 }
 
 /// The paint-time half of [WearFaceCurve].
@@ -48,11 +60,13 @@ class WearFaceCurve extends SingleChildRenderObjectWidget {
 /// [hitTestChildren] (which is what decides where a tap lands). Getting one of
 /// them wrong is a button that is drawn in one place and pressed in another.
 class RenderWearFaceCurve extends RenderProxyBox {
-  // A named parameter may not start with `_`, so the private field is
-  // assigned rather than declared as an initializing formal — the same reason
+  // Named parameters may not start with `_`, so the private fields are assigned
+  // rather than declared as initializing formals — the same reason
   // `wear_transport.dart` waives this lint.
-  // ignore: prefer_initializing_formals
-  RenderWearFaceCurve({required Size face}) : _face = face;
+  // ignore_for_file: prefer_initializing_formals
+  RenderWearFaceCurve({required Size face, required double cornerRadius})
+      : _face = face,
+        _cornerRadius = cornerRadius;
 
   /// Whether the curve can do anything for this item.
   ///
@@ -64,6 +78,14 @@ class RenderWearFaceCurve extends RenderProxyBox {
   /// rectangle viewport did for it before the curve existed: for these items
   /// nothing changes at all.
   bool get clipsToFace => size.height >= _face.shortestSide / 2;
+
+  double get cornerRadius => _cornerRadius;
+  double _cornerRadius;
+  set cornerRadius(double value) {
+    if (_cornerRadius == value) return;
+    _cornerRadius = value;
+    markNeedsPaint();
+  }
 
   Size get face => _face;
   Size _face;
@@ -91,6 +113,7 @@ class RenderWearFaceCurve extends RenderProxyBox {
       itemWidth: size.width,
       top: top,
       bottom: bottom,
+      cornerRadius: _cornerRadius,
     );
     // Held by the edge facing the middle of the face, so the item gives way
     // outwards and keeps peeking in from the rim; centred horizontally, because

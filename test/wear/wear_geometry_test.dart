@@ -279,6 +279,66 @@ void main() {
       expect(scaleAt(40), closeTo(scaleAt(-40 - height), 0.000001));
     });
 
+    test('does not shrink a rounded item to protect a corner it never paints',
+        () {
+      double at(double corner) => roundScaleFor(
+            diameter: diameter,
+            itemWidth: width,
+            top: 20,
+            bottom: 20 + height,
+            cornerRadius: corner,
+          );
+
+      // The measured cost of ignoring this: a 20 dp round row was scaled to
+      // 0.85 to keep a square corner on the glass. Scaled text is re-rasterised
+      // — the same advances land on different pixels — so a row that shrinks
+      // for nothing reads as a row with different letter spacing.
+      expect(at(20), greaterThan(at(0)));
+    });
+
+    test('and the rounded shape it allows still fits the glass', () {
+      const corner = 20.0;
+      for (var top = 0.0; top < radius - 1; top += 1) {
+        final bottom = top + height;
+        final scale = roundScaleFor(
+          diameter: diameter,
+          itemWidth: width,
+          top: top,
+          bottom: bottom,
+          cornerRadius: corner,
+        );
+        if (scale == 0) continue;
+
+        final anchor = roundCurveAnchor(top, bottom);
+        final reach = math.max((top - anchor).abs(), (bottom - anchor).abs());
+        final round =
+            math.min(corner, math.min(width / 2, reach)) * scale;
+        final far = (anchor + (bottom - anchor) * scale).abs();
+        // What has to be inside the circle is the corner arc: its centre, one
+        // radius in from each edge, plus that radius.
+        final centre = Offset(width * scale / 2 - round, far - round);
+        expect(centre.distance + round, lessThanOrEqualTo(radius + 0.001),
+            reason: 'a $corner dp round item scaled to $scale at $top puts its '
+                'corner arc off the glass');
+      }
+    });
+
+    test('survives a corner radius larger than the item it is given', () {
+      // Nonsense in, something safe out: the quadratic loses its usable root
+      // when the corners eat the whole box, and the plain box is the answer
+      // that only ever asks for less.
+      final scale = roundScaleFor(
+        diameter: diameter,
+        itemWidth: 20,
+        top: 60,
+        bottom: 70,
+        cornerRadius: 200,
+      );
+
+      expect(scale, greaterThan(0));
+      expect(scale, lessThanOrEqualTo(1));
+    });
+
     test('anchors an item by whichever part of it is nearest the middle', () {
       expect(roundCurveAnchor(20, 80), 20, reason: 'below: its top edge');
       expect(roundCurveAnchor(-80, -20), -20, reason: 'above: its bottom edge');

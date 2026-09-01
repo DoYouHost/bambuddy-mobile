@@ -163,9 +163,16 @@ double roundCurveAnchor(double top, double bottom) =>
 ///
 /// Solved rather than approximated, because shrinking an item pulls its far
 /// corner in as well as narrowing it: the scale that fits has to satisfy
-/// `(s·w/2)² + (d + s·reach)² ≤ R²`, which is a quadratic in `s`. An item lying
-/// across the middle anchors at zero and simply takes the largest scale the
-/// chord allows.
+/// `(s·(w/2 − r))² + (d + s·(reach − r))² ≤ (R − s·r)²`, a quadratic in `s`. An
+/// item lying across the middle anchors at zero and simply takes the largest
+/// scale the chord allows.
+///
+/// [cornerRadius] is how round the caller's items actually are, and it is worth
+/// stating: measured against the square box, a row 20 dp round was being shrunk
+/// to 0.85 to keep a corner on the glass that it does not paint. It defaults to
+/// nothing because the watch's items are not uniform — a progress bar is 6 dp
+/// round, an input 4, a button a stadium — so only a screen whose rows are all
+/// one shape may claim it.
 ///
 /// Zero only once the anchor itself — the nearest part of the item — has left
 /// the face, which is the point where there is genuinely nothing to show.
@@ -174,6 +181,7 @@ double roundScaleFor({
   required double itemWidth,
   required double top,
   required double bottom,
+  double cornerRadius = 0,
 }) {
   if (itemWidth <= 0) return 1;
   // The same slack the inscribed rectangle takes ([roundSideSlack]): solved
@@ -188,8 +196,24 @@ double roundScaleFor({
   // How far the item reaches from its anchor. For one lying across the middle
   // that is its longer half; for one below or above, its whole height.
   final reach = math.max((top - anchor).abs(), (bottom - anchor).abs());
-  final a = itemWidth * itemWidth / 4 + reach * reach;
-  final b = 2 * distance * reach;
+  // A rounded item has nothing at the corner of its box, so requiring that
+  // corner to fit shrinks it for a pixel that is not painted. What has to fit
+  // is the corner *arc*: its centre, [cornerRadius] in from both edges, plus
+  // that radius. Bounded by the item, since a box cannot be rounder than half
+  // of itself.
+  var round = math.min(cornerRadius, math.min(itemWidth / 2, reach));
+  var side = itemWidth / 2 - round;
+  var span = reach - round;
+  var a = side * side + span * span - round * round;
+  if (a <= 0) {
+    // Corners that eat the whole item leave the quadratic without a usable
+    // root; fall back to the plain box, which only ever asks for less.
+    round = 0;
+    side = itemWidth / 2;
+    span = reach;
+    a = side * side + span * span;
+  }
+  final b = 2 * (distance * span + radius * round);
   // `c` is negative, so the discriminant is positive and the larger root is the
   // one in range: the biggest scale that still fits.
   return math.min(1, (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a));
