@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
+import '../widgets/wear_header.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
@@ -21,12 +22,9 @@ class WearPrinterListBody extends ConsumerWidget {
     return WearScrollView(
       onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
       children: [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(AppLocalizations.of(context).printersTitle,
-                style: WearText.title),
-          ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: WearHeader(AppLocalizations.of(context).printersTitle),
         ),
         for (final p in printers)
           Padding(
@@ -68,10 +66,14 @@ class _PrinterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(20),
+        color: wearSurface,
+        borderRadius: BorderRadius.circular(wearRadiusRow),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          // The same radius twice is not a repetition to fold away: Material
+          // clips the fill and InkWell clips the splash, and a splash with
+          // squarer corners than the row it lands in is what a literal here
+          // used to drift into.
+          borderRadius: BorderRadius.circular(wearRadiusRow),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

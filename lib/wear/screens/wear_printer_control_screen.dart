@@ -12,13 +12,13 @@ import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_error.dart';
-import '../wear_geometry.dart';
 import '../wear_providers.dart';
-import '../wear_shape.dart';
 import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_face.dart';
+import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
@@ -74,9 +74,7 @@ class _WearPrinterControlBodyState
     if (item == null) {
       // The one thing on this screen that never reaches `WearScrollView`, so
       // the only one that has to ask for the round-safe rectangle itself.
-      return Padding(
-        padding: wearFaceInsets(
-            wearShapeOf(context), MediaQuery.sizeOf(context)),
+      return WearFace(
         child: Center(
           child: Text(l10n.wearPrinterUnavailable,
               textAlign: TextAlign.center, style: WearText.body),
@@ -93,15 +91,7 @@ class _WearPrinterControlBodyState
         WearScrollView(
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
           children: [
-            Center(
-              child: Text(
-                item.printer.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: WearText.title,
-              ),
-            ),
+            WearHeader(item.printer.name),
             const SizedBox(height: 6),
             Center(child: WearStatusChip(state: state)),
             const SizedBox(height: 10),
@@ -132,14 +122,17 @@ class _WearPrinterControlBodyState
       if (eta.isNotEmpty) eta,
       if (layers.isNotEmpty) layers,
     ].join('  ·  ');
+    // The radius is the height so the bar's ends are round rather than merely
+    // softened; two numbers that have to agree, written once.
+    const barHeight = 6.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(barHeight),
           child: LinearProgressIndicator(
             value: pct / 100,
-            minHeight: 6,
-            backgroundColor: const Color(0xFF2A2A2C),
+            minHeight: barHeight,
+            backgroundColor: wearSurfaceHigh,
           ),
         ),
         const SizedBox(height: 6),
@@ -299,41 +292,38 @@ class _WearPrinterControlBodyState
           {String? okMsg, Color? color}) =>
       FilledButton.icon(
         onPressed: busy ? null : () => _run(action, okMsg: okMsg),
-        icon: Icon(icon, size: 18),
-        label: Text(label),
+        icon: Icon(icon),
+        label: _label(label),
         style: color != null
             ? FilledButton.styleFrom(backgroundColor: color)
             : null,
       );
 
-  /// Non-actionable placeholder (empty queue / no actions). Shares the button
-  /// row's height and shape so the layout doesn't jump, but reads as inert:
-  /// a muted fill instead of the accent, with an icon + a label brighter than
-  /// [wearMuted] so it's actually legible on the OLED black.
-  Widget _hint(IconData icon, String label) => Container(
-        height: 44,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2C),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: Colors.white70),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  // Same role as the button labels it stands in for.
-                  style: WearText.strong.copyWith(color: Colors.white70)),
-            ),
-          ],
+  /// Non-actionable placeholder (empty queue / no actions): a button that is
+  /// not on offer, so an actually disabled one rather than a pill shaped to
+  /// pass for it.
+  ///
+  /// It used to restate the theme by hand — height 44, radius 22,
+  /// `WearText.strong` — which is the trap this repo has a rule about: three
+  /// numbers that have to be edited in two places to stay true, and the button
+  /// theme is the one that moves. Disabled, it takes its height, its stadium
+  /// and its type from the same place as the buttons it stands among, and a
+  /// screen reader gets "dimmed button" instead of a shape it cannot name.
+  Widget _hint(IconData icon, String label) => FilledButton.icon(
+        onPressed: null,
+        icon: Icon(icon),
+        label: _label(label),
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: wearSurfaceHigh,
+          disabledForegroundColor: wearInert,
         ),
       );
+
+  /// Ellipsized rather than wrapped, for every button on this screen: a label
+  /// that wraps takes the row's height with it, and the round-safe width is
+  /// narrower than any of these labels was written against.
+  Widget _label(String label) =>
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
 
   Future<void> _confirmStop(WearActions actions, int id, String name) async {
     final ok = await wearConfirm(
@@ -406,25 +396,20 @@ class _WearFaultState extends State<_WearFault> {
         : hmsRenderableActions(widget.fault.actions);
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0x33B3261E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x80B3261E)),
-      ),
+      decoration: wearTintedBox(wearDestructive),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(Icons.warning_amber_rounded,
-                  size: 14, color: Color(0xFFE57373)),
+                  size: 14, color: wearFaultText),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: WearText.small.copyWith(
-                      color: const Color(0xFFE57373),
-                      fontWeight: FontWeight.w600),
+                  style: WearText.small
+                      .copyWith(color: wearFaultText, fontWeight: FontWeight.w600),
                 ),
               ),
             ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../wear_theme.dart';
+
 /// Watch-sized busy indicator, shown wherever a wear screen waits for something.
 /// Sized down by hand: the Material default is drawn for a phone and eats most
 /// of a 384 px face.
@@ -19,7 +21,7 @@ const wearSpinner = Center(
 /// and a second tap mid-command is how a print gets stopped twice.
 const wearBusyVeil = Positioned.fill(
   child: ColoredBox(
-    color: Color(0x99000000),
+    color: wearScrim,
     child: Center(
       child: SizedBox(
           width: 30, height: 30, child: CircularProgressIndicator()),

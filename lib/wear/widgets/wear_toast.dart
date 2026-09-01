@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../wear_geometry.dart';
-import '../wear_shape.dart';
 import '../wear_theme.dart';
+import 'wear_face.dart';
 
 /// How long a message stays up before it takes itself away.
 ///
@@ -128,9 +127,7 @@ class WearToast extends StatelessWidget {
         builder: (context, t, child) => Opacity(opacity: t, child: child),
         child: ColoredBox(
           color: Colors.black,
-          child: Padding(
-            padding: wearFaceInsets(
-                wearShapeOf(context), MediaQuery.sizeOf(context)),
+          child: WearFace(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
