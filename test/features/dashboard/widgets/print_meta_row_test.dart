@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// The real trio, with the ETA on a 12-hour clock — the one that made the line
 /// too wide in the first place.
 const _items = [
-  PrintMetaItem(icon: Icons.schedule, text: 'pozostało 52min'),
+  PrintMetaItem(icon: Icons.schedule, text: 'remaining 52min'),
   PrintMetaItem(icon: Icons.flag_outlined, text: 'ETA 11:09 PM'),
   PrintMetaItem(icon: Icons.layers_outlined, text: '113/264'),
 ];

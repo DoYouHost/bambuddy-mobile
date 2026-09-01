@@ -92,6 +92,7 @@ class PrintMetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
     final widths = [for (final item in items) item.measure(context)];
 
     return LayoutBuilder(

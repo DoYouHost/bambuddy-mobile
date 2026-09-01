@@ -21,7 +21,7 @@ import io.flutter.plugin.common.MethodChannel
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of three platform channels.
+ * Native side of four platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, fires the system prompt — that exemption is what

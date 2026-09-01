@@ -80,14 +80,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // an app that was never backgrounded. `started` separates those
               // from the case below, where nothing was ever asked to start.
               _logBgService('start', started: started);
-              // Already running, so its start-up never ran for this recording
-              // (nor for the clock format the UI has just written down) and it
-              // has no idea either exists. This is the normal state after the
-              // user has swiped the app away once.
-              if (!started) {
-                monitor.syncDiagnostics();
-                monitor.syncClockFormat();
-              }
+              // Already running, so its start-up never ran for this recording and
+              // it has no idea one exists. This is the normal state after the
+              // user has swiped the app away once. (The clock format is synced
+              // from `SystemClockSync`, once its own write has landed.)
+              if (!started) monitor.syncDiagnostics();
             }),
           );
           // Hand the watch relay over to the FGS isolate. Exactly one

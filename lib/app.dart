@@ -167,8 +167,10 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
 
   /// Kept on disk for the foreground service isolate, which formats the ETA in
   /// its notifications and has no way to read the 24-hour switch itself.
-  void _rememberClockFormat(bool use24Hour) => unawaited(
-        ref.read(settingsRepositoryProvider).saveUse24HourClock(use24Hour),
+  Future<void> _rememberClockFormat(bool use24Hour) => publishSystemClock(
+        use24Hour,
+        settings: ref.read(settingsRepositoryProvider),
+        monitor: ref.read(backgroundMonitorProvider),
       );
 
   @override
@@ -196,7 +198,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // reproduced on the dashboard, not there. Wrapping here puts the bar
       // above every route, pushed ones included.
       builder: (context, child) => SystemClockSync(
-        onChanged: _rememberClockFormat,
+        onChanged: (use24Hour) => unawaited(_rememberClockFormat(use24Hour)),
         child: RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
       ),
     );

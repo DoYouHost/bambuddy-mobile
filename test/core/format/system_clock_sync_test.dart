@@ -1,8 +1,33 @@
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/format/system_clock_sync.dart';
+import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Records what the clock looked like on disk at the moment it was pinged —
+/// which is the whole question the hand-off has to answer.
+class _RecordingMonitor implements BackgroundMonitor {
+  _RecordingMonitor({required this.running, required this.onDisk});
+
+  final bool running;
+  final bool? Function() onDisk;
+  final pings = <bool?>[];
+
+  @override
+  void syncClockFormat() => pings.add(onDisk());
+
+  @override
+  Future<bool> isRunning() async => running;
+  @override
+  Future<bool> start() async => true;
+  @override
+  Future<void> stop() async {}
+  @override
+  void syncDiagnostics() {}
+}
 
 /// A PM time, so a 12-hour clock is visible in the output rather than implied.
 final _at = DateTime(2026, 8, 22, 21, 20);
@@ -127,6 +152,41 @@ void main() {
 
     // Each republish is a preferences write, and this rebuilds with every route.
     expect(seen, [true]);
+  });
+
+  group('handing the clock to the service', () {
+    Future<(SettingsRepository, _RecordingMonitor)> setUpStore({
+      required bool running,
+    }) async {
+      SharedPreferences.setMockInitialValues({'clock_24h': false});
+      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      return (
+        settings,
+        _RecordingMonitor(running: running, onDisk: settings.loadUse24HourClock)
+      );
+    }
+
+    test('the ping follows the write, never races it', () async {
+      // Sent beside the write instead, the isolate reloads preferences that
+      // still hold the clock the app has just replaced — and it never looks
+      // again for as long as it lives.
+      final (settings, monitor) = await setUpStore(running: true);
+
+      await publishSystemClock(true, settings: settings, monitor: monitor);
+
+      expect(monitor.pings, [true], reason: 'the new value was already on disk');
+    });
+
+    test('a service that is not running is not pinged', () async {
+      // It reads the same preference in its own start-up; a ping into nothing
+      // costs a platform call and hides the case where one was needed.
+      final (settings, monitor) = await setUpStore(running: false);
+
+      await publishSystemClock(true, settings: settings, monitor: monitor);
+
+      expect(monitor.pings, isEmpty);
+      expect(settings.loadUse24HourClock(), isTrue);
+    });
   });
 
   testWidgets('a 12-hour phone is spelled as one, not left to the locale',

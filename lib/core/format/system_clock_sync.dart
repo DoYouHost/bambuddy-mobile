@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../notifications/background_monitor.dart';
 import '../platform/platform_query.dart';
+import '../settings/settings_repository.dart';
 import 'datetime_format.dart';
 
 /// Asks Android whether the user reads a 24-hour clock, through [MainActivity]'s
@@ -29,6 +31,22 @@ class SystemClockQuery {
 
   Future<bool?> read() =>
       platform.ask<bool?>('is24HourFormat', fallback: null);
+}
+
+/// Writes the clock down for the isolates that cannot read it, then tells a
+/// service that is already running to pick it up.
+///
+/// In that order, and awaited: the service reloads preferences the moment it is
+/// asked, so a ping sent beside the write can read the clock the app has just
+/// replaced. A service that is not running yet needs no ping — it reads the same
+/// value in its own start-up.
+Future<void> publishSystemClock(
+  bool use24Hour, {
+  required SettingsRepository settings,
+  required BackgroundMonitor monitor,
+}) async {
+  await settings.saveUse24HourClock(use24Hour);
+  if (await monitor.isRunning()) monitor.syncClockFormat();
 }
 
 /// Keeps the 12/24-hour clock true for everything below it, and for everything
