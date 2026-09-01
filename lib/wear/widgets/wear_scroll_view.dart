@@ -51,6 +51,7 @@ class WearScrollView extends StatefulWidget {
     this.onRefresh,
     this.centerWhenShort = false,
     this.curved = false,
+    this.itemCornerRadius = 0,
     this.contentWidthFraction,
     this.resetKey,
     this.footer,
@@ -78,6 +79,16 @@ class WearScrollView extends StatefulWidget {
   /// rejection this whole file exists because of. Those screens keep the
   /// rectangle, where the viewport clips them safely.
   final bool curved;
+
+  /// How round this list's items are, where they are all one shape.
+  ///
+  /// Worth stating because the scale is otherwise decided by the corner of a
+  /// box: a 20 dp round row was shrinking to 0.85 to keep a corner on the glass
+  /// that it never paints, and scaled text is re-rasterised — same advances,
+  /// different pixels — so a row that shrinks for nothing reads as a row with
+  /// different letter spacing. Left at nothing unless a screen's items really
+  /// are uniformly that round.
+  final double itemCornerRadius;
 
   /// How much of the face this screen's content actually needs, if less than all
   /// of it — see [wearNarrowWidthFraction]. Narrower content is allowed a taller
@@ -266,7 +277,14 @@ class _WearScrollViewState extends State<WearScrollView>
         ),
         children: [
           for (final child in widget.children)
-            if (face == null) child else WearFaceCurve(face: face, child: child),
+            if (face == null)
+              child
+            else
+              WearFaceCurve(
+                face: face,
+                cornerRadius: widget.itemCornerRadius,
+                child: child,
+              ),
         ],
       );
 
