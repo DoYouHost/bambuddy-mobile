@@ -158,9 +158,14 @@ Future<void> revealOnWatch(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
     await tester.scrollUntilVisible(finder, 40,
         scrollable: find.byType(Scrollable).first);
-  } else {
-    await tester.ensureVisible(finder);
   }
+  // Into the *middle* of the face, not merely into the viewport. A curved list
+  // runs all the way to the rim, so "on screen" now includes the last few
+  // degrees of the circle, where an item is scaled almost to nothing — existing
+  // there is not the same as being readable or hittable, and `scrollUntilVisible`
+  // stops at the first of those. A user scrolls what they want to the centre.
+  await Scrollable.ensureVisible(finder.evaluate().first,
+      alignment: 0.5, duration: Duration.zero);
   await tester.pumpAndSettle();
 }
 

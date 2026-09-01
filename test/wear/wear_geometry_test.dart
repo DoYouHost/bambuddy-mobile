@@ -192,4 +192,97 @@ void main() {
       );
     });
   });
+
+  group('the curve a scrolling list follows', () {
+    const diameter = 225.0;
+    const width = 166.0;
+    const height = 59.0;
+    final radius = diameter * (0.5 - roundSideSlack);
+
+    double scaleAt(double top) => roundScaleFor(
+          diameter: diameter,
+          itemWidth: width,
+          top: top,
+          bottom: top + height,
+        );
+
+    /// The corner furthest from the middle once [top] has been scaled.
+    double farCorner(double top) {
+      final bottom = top + height;
+      final anchor = roundCurveAnchor(top, bottom);
+      final scale = scaleAt(top);
+      return math.max(
+        (anchor + (top - anchor) * scale).abs(),
+        (anchor + (bottom - anchor) * scale).abs(),
+      );
+    }
+
+    test('leaves an item lying across the middle alone', () {
+      expect(scaleAt(-height / 2), 1);
+    });
+
+    test('the scale it returns actually fits, wherever the item is', () {
+      // The property the whole layout rests on, checked against the circle
+      // rather than against the formula that produced it: shrinking an item
+      // pulls its far corner in as well as narrowing it, which is the part the
+      // obvious answer — measure the unscaled corner — gets wrong in both
+      // directions at once.
+      for (var top = -diameter; top < diameter; top += 1) {
+        final scale = scaleAt(top);
+        if (scale == 0) continue;
+        final halfWidth = width * scale / 2;
+        final corner = farCorner(top);
+        expect(
+          halfWidth,
+          lessThanOrEqualTo(
+              math.sqrt(math.max(0, radius * radius - corner * corner)) + 0.001),
+          reason: 'an item scaled to $scale at $top still has a corner off the '
+              'glass',
+        );
+      }
+    });
+
+    test('never scales away an item that still has glass under it', () {
+      // The bug this anchoring exists for: held by its own centre, the demo
+      // fleet's third printer went to nothing with 15 dp of its row still on
+      // the display, so a list of four showed two and a black gap. Anything
+      // whose near edge is on the face has to be worth something.
+      for (var top = 0.0; top < radius - 1; top += 1) {
+        expect(scaleAt(top), greaterThan(0),
+            reason: 'an item starting at $top is still partly on the glass');
+      }
+    });
+
+    test('shrinks the further out it is asked about', () {
+      final scales = [for (var top = 0.0; top < 100; top += 20) scaleAt(top)];
+
+      expect(scales, orderedEquals(scales.toList()..sort((a, b) => b.compareTo(a))),
+          reason: 'a list that grew items on its way out would read as a fault');
+      // And it has to be a real curve, not a formula that answers 1 everywhere
+      // and satisfies the fit check by never shrinking anything.
+      expect(scales.first, 1);
+      expect(scales.last, lessThan(0.6));
+    });
+
+    test('is nothing once the near edge has left the face', () {
+      expect(scaleAt(radius + 1), 0);
+    });
+
+    test('does not divide by an item with no width', () {
+      expect(
+        roundScaleFor(diameter: diameter, itemWidth: 0, top: 50, bottom: 100),
+        1,
+      );
+    });
+
+    test('reads the same above and below the middle', () {
+      expect(scaleAt(40), closeTo(scaleAt(-40 - height), 0.000001));
+    });
+
+    test('anchors an item by whichever part of it is nearest the middle', () {
+      expect(roundCurveAnchor(20, 80), 20, reason: 'below: its top edge');
+      expect(roundCurveAnchor(-80, -20), -20, reason: 'above: its bottom edge');
+      expect(roundCurveAnchor(-30, 30), 0, reason: 'across: the middle itself');
+    });
+  });
 }
