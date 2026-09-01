@@ -158,10 +158,44 @@ Future<void> revealOnWatch(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
     await tester.scrollUntilVisible(finder, 40,
         scrollable: find.byType(Scrollable).first);
-  } else {
-    await tester.ensureVisible(finder);
   }
+  // Into the *middle* of the face, not merely into the viewport. A curved list
+  // runs all the way to the rim, so "on screen" now includes the last few
+  // degrees of the circle, where an item is scaled almost to nothing — existing
+  // there is not the same as being readable or hittable, and `scrollUntilVisible`
+  // stops at the first of those. A user scrolls what they want to the centre.
+  await Scrollable.ensureVisible(finder.evaluate().first,
+      alignment: 0.5, duration: Duration.zero);
   await tester.pumpAndSettle();
+}
+
+/// Fails unless every corner of [finder]'s box is on the round face's glass.
+///
+/// The check no wear test had, and the one the snackbar walked straight past: a
+/// widget test is happy as long as nothing overflows the *square* the display
+/// reports, while the watch only ever lights the circle inscribed in it. A bar
+/// pinned to the bottom of that square is not an overflow — it is simply mostly
+/// invisible, on the device and nowhere else.
+///
+/// Reach for it on anything the layout places rather than the scroll view: what
+/// goes through `WearScrollView` is already inside the glass by construction.
+void expectOnGlass(WidgetTester tester, Finder finder, {String? reason}) {
+  final face = tester.view.physicalSize / tester.view.devicePixelRatio;
+  final centre = Offset(face.width / 2, face.height / 2);
+  final radius = face.shortestSide / 2;
+  final box = tester.getRect(finder);
+  for (final corner in [
+    box.topLeft,
+    box.topRight,
+    box.bottomLeft,
+    box.bottomRight,
+  ]) {
+    expect(
+      (corner - centre).distance,
+      lessThanOrEqualTo(radius),
+      reason: reason ?? 'corner $corner of $box is off a ${radius * 2} dp face',
+    );
+  }
 }
 
 /// [revealOnWatch] and then tap, for the controls a test drives rather than

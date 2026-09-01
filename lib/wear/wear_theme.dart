@@ -12,10 +12,59 @@ import 'package:flutter/material.dart';
 /// "this is not the thing you came for".
 const wearMuted = Colors.white54;
 
+/// Foreground of something deliberately inert — a placeholder standing in for a
+/// button that is not on offer. A step brighter than [wearMuted], which reads
+/// as fine print rather than as a label at button size.
+const wearInert = Colors.white70;
+
 /// Accent for a confirm that destroys something — stopping a print, dropping a
 /// server. Every confirmation on the watch is one of those so far, hence the
 /// default in `wearConfirm`.
 const wearDestructive = Color(0xFFB3261E);
+
+/// Words on a fault card. [wearDestructive] is what the card is *tinted* with
+/// and too dark to then read on, so the text steps up to a red that survives
+/// being small on a dark fill.
+const wearFaultText = Color(0xFFE57373);
+
+/// A row lifted off the black so it reads as one thing you can tap.
+const wearSurface = Color(0xFF1C1C1E);
+
+/// A step higher: what sits beside or inside an accent control and must not
+/// compete with it — a progress track, a cancel next to a red confirm.
+const wearSurfaceHigh = Color(0xFF2A2A2C);
+
+/// Over the whole face while a command is in flight.
+const wearScrim = Color(0x99000000);
+
+/// Corner radius of a tinted pill or card — the status chip, a fault.
+///
+/// Also the floor Google Play's Wear OS review applies to anything row-shaped,
+/// which is why the fault card came up from the 14 it was written with.
+const wearRadiusCard = 16.0;
+
+/// Corner radius of a row you tap. Rounder than a card on purpose: it is the
+/// only thing on the watch that answers a touch, and the shape is what says so.
+const wearRadiusRow = 20.0;
+
+/// A surface tinted with the colour of whatever it is reporting: a low-alpha
+/// fill, a border of the same colour at a strength that survives the OLED
+/// black, and the accent left to the caller for its text.
+///
+/// The status chip and the fault card are the same design and were written
+/// twice — one deriving both alphas from a state colour, the other with three
+/// hand-mixed hex literals of the destructive red, at 0.2/0.5 against the
+/// chip's 0.15/0.6. Neither pair was anyone's decision; the chip's are kept
+/// because they were the ones tuned against a real face.
+BoxDecoration wearTintedBox(Color accent, {double radius = wearRadiusCard}) =>
+    BoxDecoration(
+      color: accent.withValues(alpha: _tintFill),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: accent.withValues(alpha: _tintBorder)),
+    );
+
+const _tintFill = 0.15;
+const _tintBorder = 0.6;
 
 /// The watch type scale, by role rather than by size.
 ///
@@ -25,9 +74,8 @@ const wearDestructive = Color(0xFFB3261E);
 /// colour (a state, an error) it is a `copyWith` on the role, so the size stays
 /// decided here.
 ///
-/// Sizes a component theme can carry are not here at all — a text button, a
-/// snackbar and an input label get theirs from [wearTheme], so a screen never
-/// styles them.
+/// Sizes a component theme can carry are not here at all — a text button and an
+/// input label get theirs from [wearTheme], so a screen never styles them.
 class WearText {
   /// The question on a full-screen confirm: alone on the face, so it gets to be
   /// the largest thing in the app.
@@ -58,7 +106,10 @@ class WearText {
 /// Dark, black-background theme (OLED-friendly) with larger tap targets.
 ///
 /// Anything with a component theme takes its type from here, so the screens stop
-/// repeating it: text buttons, snackbars, filled buttons and input labels.
+/// repeating it: text buttons, filled buttons and input labels. There is no
+/// snackbar theme because there are no snackbars: a bar pinned to the bottom of
+/// a round face is mostly off the glass, so the watch says it with `WearToast`
+/// instead.
 ThemeData wearTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: Colors.green,
@@ -77,13 +128,6 @@ ThemeData wearTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(textStyle: WearText.body),
-    ),
-    snackBarTheme: SnackBarThemeData(
-      // The colour has to be spelled out: a `contentTextStyle` replaces the
-      // Material default outright rather than merging with it, and without this
-      // the text falls back to the ambient white — on a snackbar whose M3 fill
-      // is `inverseSurface`, i.e. light. White on light is an invisible toast.
-      contentTextStyle: WearText.body.copyWith(color: scheme.onInverseSurface),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       labelStyle: WearText.body,

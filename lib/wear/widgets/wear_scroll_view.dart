@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../wear_geometry.dart';
 import '../wear_shape.dart';
+import 'wear_face.dart';
+import 'wear_face_curve.dart';
 import 'wear_scroll_indicator.dart';
 
 /// The one scrolling surface on the watch: a viewport cut down to the rectangle
@@ -15,19 +17,41 @@ import 'wear_scroll_indicator.dart';
 /// exactly how the first list row ended up under the bezel, and a per-screen
 /// scroll view is how four of them ended up with no indicator.
 ///
-/// The insets go on the **viewport**, not on the content: padding the content
-/// only settles where the first and last item come to rest, while everything
-/// between them still crosses the top and bottom of the circle as the screen
-/// scrolls. A viewport that is itself inside the glass cannot paint outside it
-/// at any offset. What it can do is cut a row in half at its own edge, so the
-/// content fades over the same distance it starts at ([_leadIn]) — nothing is
-/// dimmed at rest, and anything scrolling out leaves rather than being sliced.
+/// Two ways to survive a round face, and which one a screen gets depends on
+/// whether it is a list or a panel — the same split Wear OS itself draws between
+/// a transforming column and a fixed inset box.
+///
+/// **A list curves.** The viewport is the whole face and each item is scaled to
+/// the chord actually lit where it currently sits ([WearFaceCurve]). Nothing is
+/// cut, and nothing is reserved: the band above and below is scrolled *through*
+/// instead of left black. This is what Wear OS does and for the reason it gives
+/// — items near the top and bottom of a round screen are hard to see, so they
+/// shrink and leave rather than being clipped.
+///
+/// **A panel keeps the rectangle.** Anything with a [footer] or holding still
+/// with [centerWhenShort] is a fixed layout, and a fixed layout wants the
+/// largest rectangle inscribed in the circle ([WearFace]) — a confirmation whose
+/// two buttons are pinned at the bottom of the *face* would pin them where the
+/// circle has no width left.
+///
+/// Why the rectangle is not the answer for both: it is easy to be sure of, but
+/// it costs 36% of the height of a display that had none to spare, and it hands
+/// every row the width available at the worst point of the viewport, including
+/// the rows crossing the middle where the whole diameter is lit. Measured on a
+/// 225 dp face it left 144 dp of viewport — 1.8 rows of a printer list.
+///
+/// The insets, in either mode, go on the **viewport** and never on the content:
+/// padding the content only settles where the first and last item come to rest,
+/// while everything between them still crosses the top and bottom of the circle
+/// as the screen scrolls.
 class WearScrollView extends StatefulWidget {
   const WearScrollView({
     super.key,
     required this.children,
     this.onRefresh,
     this.centerWhenShort = false,
+    this.curved = false,
+    this.itemCornerRadius = 0,
     this.contentWidthFraction,
     this.resetKey,
     this.footer,
@@ -44,6 +68,27 @@ class WearScrollView extends StatefulWidget {
   /// margin. For the screens that are one message and a button; a list reads
   /// better from the top.
   final bool centerWhenShort;
+
+  /// Run the viewport across the whole face and let the items carry the
+  /// geometry, shrinking toward the rim ([WearFaceCurve]).
+  ///
+  /// **Only for a list of short rows.** The scale that keeps an item on the
+  /// glass is the chord at the item's own corners, and an item taller than the
+  /// face's radius has a corner past the chord wherever it stands — a paragraph
+  /// or a fault card cannot be rescued by shrinking, only cut, which is the
+  /// rejection this whole file exists because of. Those screens keep the
+  /// rectangle, where the viewport clips them safely.
+  final bool curved;
+
+  /// How round this list's items are, where they are all one shape.
+  ///
+  /// Worth stating because the scale is otherwise decided by the corner of a
+  /// box: a 20 dp round row was shrinking to 0.85 to keep a corner on the glass
+  /// that it never paints, and scaled text is re-rasterised — same advances,
+  /// different pixels — so a row that shrinks for nothing reads as a row with
+  /// different letter spacing. Left at nothing unless a screen's items really
+  /// are uniformly that round.
+  final double itemCornerRadius;
 
   /// How much of the face this screen's content actually needs, if less than all
   /// of it — see [wearNarrowWidthFraction]. Narrower content is allowed a taller
@@ -160,16 +205,26 @@ class _WearScrollViewState extends State<WearScrollView>
   @override
   Widget build(BuildContext context) {
     final shape = wearShapeOf(context);
-    final insets = wearFaceInsets(shape, MediaQuery.sizeOf(context),
-        widthFraction: widget.contentWidthFraction);
+    final face = MediaQuery.sizeOf(context);
+    // A square face keeps its corners and has nothing to curve away from; a
+    // panel (a footer to pin, or content held still) is not a list.
+    final curved = widget.curved &&
+        shape == WearShape.round &&
+        widget.footer == null &&
+        !widget.centerWhenShort;
 
     Widget content = NotificationListener<ScrollMetricsNotification>(
       onNotification: _onMetrics,
       child: NotificationListener<ScrollNotification>(
         onNotification: _onScroll,
         // Inside the refresh indicator, so its spinner is not masked as it
-        // comes down.
-        child: _faded(widget.centerWhenShort ? _centered() : _list()),
+        // comes down. The edge mask is for the rectangle only: where the items
+        // curve, shrinking to nothing at the rim *is* the fade, and a mask over
+        // it would buy an offscreen pass per frame on the flavour that exists
+        // because of the battery.
+        child: widget.centerWhenShort
+            ? _faded(_centered())
+            : (curved ? _list(face: face) : _faded(_list())),
       ),
     );
     if (widget.onRefresh != null) {
@@ -183,7 +238,17 @@ class _WearScrollViewState extends State<WearScrollView>
 
     return Stack(
       children: [
-        Padding(padding: insets, child: content),
+        if (curved)
+          // The width a row gets is unchanged — this buys height, and a row
+          // that re-wrapped as well would make every scroll a relayout.
+          Padding(
+            padding:
+                wearFaceInsets(shape, face, widthFraction: widget.contentWidthFraction)
+                    .copyWith(top: 0, bottom: 0),
+            child: content,
+          )
+        else
+          WearFace(widthFraction: widget.contentWidthFraction, child: content),
         // Outside the insets: the indicator belongs on the glass the content
         // just gave up, hugging the bezel where nothing else may go.
         Positioned.fill(
@@ -199,11 +264,28 @@ class _WearScrollViewState extends State<WearScrollView>
     );
   }
 
-  Widget _list() => ListView(
+  /// [face] non-null means the curved mode: the items carry the geometry, so
+  /// the list runs the whole height and only holds the first and last back far
+  /// enough to come to rest near full size.
+  Widget _list({Size? face}) => ListView(
         controller: _controller,
         physics: _physics,
-        padding: const EdgeInsets.symmetric(vertical: _leadIn),
-        children: widget.children,
+        padding: EdgeInsets.symmetric(
+          vertical: face == null
+              ? _leadIn
+              : face.shortestSide * roundCurveEndFraction,
+        ),
+        children: [
+          for (final child in widget.children)
+            if (face == null)
+              child
+            else
+              WearFaceCurve(
+                face: face,
+                cornerRadius: widget.itemCornerRadius,
+                child: child,
+              ),
+        ],
       );
 
   Widget _centered() => LayoutBuilder(
@@ -246,11 +328,13 @@ class _WearScrollViewState extends State<WearScrollView>
             shaderCallback: (bounds) => LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
+              // Alpha is all a `dstIn` mask reads; the colours are named
+              // rather than spelled in hex so they say "keep" and "drop".
               colors: const [
-                Color(0x00FFFFFF),
-                Color(0xFFFFFFFF),
-                Color(0xFFFFFFFF),
-                Color(0x00FFFFFF),
+                Colors.transparent,
+                Colors.white,
+                Colors.white,
+                Colors.transparent,
               ],
               stops: [0, fade, 1 - fade, 1],
             ).createShader(bounds),

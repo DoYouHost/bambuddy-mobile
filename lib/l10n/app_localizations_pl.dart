@@ -4714,6 +4714,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearCurrentServer => 'Obecny serwer';
 
   @override
+  String get wearOk => 'OK';
+
+  @override
   String get commonOn => 'Wł.';
 
   @override

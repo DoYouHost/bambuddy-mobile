@@ -19,6 +19,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const tokens = 'lib/wear/wear_theme.dart';
   final fontSize = RegExp(r'fontSize:');
+  final colour = RegExp(r'Color\(0x');
+
+  /// The two files whose job *is* to name a colour: the tokens, and the table
+  /// that gives every printer state one.
+  const palettes = {tokens, 'lib/wear/wear_status.dart'};
 
   late Map<String, String> sources;
 
@@ -33,10 +38,11 @@ void main() {
   });
 
   test('the sweep found the watch sources', () {
-    // A scan that stopped finding files would make the assertion below vacuous.
+    // A scan that stopped finding files would make the assertions below vacuous.
     expect(sources, hasLength(greaterThan(8)));
     expect(sources[tokens], isNotNull);
     expect(fontSize.allMatches(sources[tokens]!), isNotEmpty);
+    expect(colour.allMatches(sources[tokens]!), isNotEmpty);
   });
 
   test('no screen names a font size of its own', () {
@@ -54,12 +60,41 @@ void main() {
     );
   });
 
-  test('the snackbar keeps a text colour', () {
-    // Overriding `contentTextStyle` replaces the Material default outright, so
-    // dropping the colour leaves the text inheriting the ambient white — on a
-    // snackbar whose M3 fill is `inverseSurface`, i.e. light. The toast then
-    // renders invisibly, which no widget test would notice.
-    expect(wearTheme().snackBarTheme.contentTextStyle?.color, isNotNull);
+  test('no screen mixes a colour of its own', () {
+    final offenders = [
+      for (final entry in sources.entries)
+        if (!palettes.contains(entry.key) && colour.hasMatch(entry.value))
+          entry.key,
+    ];
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'Name it in wear_theme.dart. Four greys had already drifted '
+          'apart there — 0xFF1C1C1E and 0xFF2A2A2C with nothing saying which '
+          'was for what — and the status chip and the fault card turned out to '
+          'be the same tinted box written twice, at 0.15/0.6 and 0.2/0.5 '
+          'alpha. Each literal looks plausible where it sits, which is exactly '
+          'why the check has to be that none exists.',
+    );
+  });
+
+  test('no watch screen reaches for a snackbar', () {
+    final snackbar = RegExp(r'showSnackBar|SnackBar\(');
+    final offenders = [
+      for (final entry in sources.entries)
+        if (snackbar.hasMatch(entry.value)) entry.key,
+    ];
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'A snackbar is laid out against the square the display reports, '
+          'and a watch is the circle inscribed in it: pinned to the bottom of '
+          'that square it lands where the circle has almost no width left, so '
+          'most of the bar and most of its sentence are off the glass. Say it '
+          'with wearToast, which is given the middle of the face.',
+    );
   });
 
   test('a role carries its own weight, so a call site only picks a colour', () {

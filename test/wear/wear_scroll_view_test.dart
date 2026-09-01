@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
+import 'package:bambuddy_mobile/wear/widgets/wear_face_curve.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_indicator.dart';
 import 'package:bambuddy_mobile/wear/widgets/wear_scroll_view.dart';
 import 'package:flutter/material.dart';
@@ -185,6 +186,137 @@ void main() {
       await _pumpFace(tester, listOf(12));
 
       expect(find.byType(ShaderMask), findsOneWidget);
+    });
+  });
+
+  group('a curved list', () {
+    List<Widget> rows(int n) => [for (var i = 0; i < n; i++) _row(i)];
+
+    for (final (face, logical) in [
+      (wearFaceSmall, 192.0),
+      (wearFaceLarge, 225.0),
+    ]) {
+      testWidgets('keeps every row on the glass at every offset of a '
+          '${logical.round()} dp face', (tester) async {
+        await _pumpFace(
+          tester,
+          WearScrollView(curved: true, children: rows(12)),
+          face: face,
+        );
+
+        // The assertion the rectangle could not make and did not need: there,
+        // the viewport was inside the glass and a row leaving it was clipped.
+        // Here the viewport *is* the face and the rows carry the geometry
+        // themselves, so the guarantee has to be checked where it now lives —
+        // on every row, at every offset, the way a reviewer scrolls.
+        var checked = 0;
+        for (var step = 0; step < 14; step++) {
+          for (var i = 0; i < 12; i++) {
+            final row = find.byKey(ValueKey('row-$i'));
+            if (row.evaluate().isEmpty) continue;
+            final rect = tester.getRect(row);
+            // An empty rect is a row scaled to nothing, which is a row that
+            // paints nothing — the list keeps it built for a while after it
+            // leaves. Only what is actually drawn can be off the glass.
+            if (rect.isEmpty) continue;
+            checked++;
+            expect(rect, insideFace(logical), reason: 'row $i after $step drags');
+          }
+          await tester.drag(find.byType(WearScrollView), const Offset(0, -30));
+          await tester.pumpAndSettle();
+        }
+        expect(checked, greaterThan(30),
+            reason: 'a sweep that checked nothing proves nothing');
+      });
+    }
+
+    testWidgets('shows every row that still has glass under it',
+        (tester) async {
+      await _pumpFace(
+        tester,
+        WearScrollView(curved: true, children: rows(6)),
+        face: wearFaceSmall,
+      );
+
+      // The bug this caught in the field: held by its own centre, a row went to
+      // nothing the moment that centre passed the rim — with a third of the row
+      // still over the display. A demo fleet of four printers showed two and a
+      // black gap, and the scroll indicator said there was more.
+      var shown = 0;
+      for (var i = 0; i < 6; i++) {
+        final row = find.byKey(ValueKey('row-$i'));
+        final curve =
+            find.ancestor(of: row, matching: find.byType(WearFaceCurve));
+        if (curve.evaluate().isEmpty) continue;
+        // The wrapper reports where the row would be unscaled, which is what
+        // decides whether the face has anything left under it.
+        final box = tester.getRect(curve.first);
+        if (box.top >= 192 || box.bottom <= 0) continue;
+        expect(tester.getRect(row).isEmpty, isFalse,
+            reason: 'row $i has glass under it and paints nothing');
+        shown++;
+      }
+      expect(shown, greaterThanOrEqualTo(4),
+          reason: 'a 192 dp face has room for more than the two it used to show');
+    });
+
+    testWidgets('shrinks a row on its way out instead of cutting it',
+        (tester) async {
+      await _pumpFace(tester, WearScrollView(curved: true, children: rows(12)));
+
+      final widths = [
+        for (var i = 0; i < 4; i++)
+          if (find.byKey(ValueKey('row-$i')).evaluate().isNotEmpty)
+            tester.getRect(find.byKey(ValueKey('row-$i'))).width,
+      ];
+
+      // Widest across the middle of the face and narrower toward the rim, which
+      // is the shape of the glass rather than a decoration.
+      expect(widths.first, lessThan(widths.reduce((a, b) => a > b ? a : b)));
+    });
+
+    testWidgets('puts content where the rectangle kept a margin',
+        (tester) async {
+      await _pumpFace(tester, WearScrollView(children: rows(12)));
+      final rectangle = tester.getRect(find.byKey(const ValueKey('row-0'))).top;
+
+      await _pumpFace(tester, WearScrollView(curved: true, children: rows(12)));
+      final curved = tester.getRect(find.byKey(const ValueKey('row-0'))).top;
+
+      // The whole point: the band above the inscribed rectangle stops being
+      // black and starts being somewhere a row can be.
+      expect(curved, lessThan(rectangle));
+    });
+
+    testWidgets('leaves a block taller than the radius alone', (tester) async {
+      // Nothing to gain by shrinking it — its corners are past the chord
+      // wherever it stands — and everything to lose: scaled to fit it would
+      // vanish. The guard is what keeps a misuse from blanking a screen.
+      await _pumpFace(
+        tester,
+        WearScrollView(curved: true, children: [
+          SizedBox(
+            key: const ValueKey('tall'),
+            height: 140,
+            child: ColoredBox(color: Colors.green.shade900),
+          ),
+          ...rows(6),
+        ]),
+      );
+
+      final tall = tester.getRect(find.byKey(const ValueKey('tall')));
+      expect(tall.width, closeTo(166.1, 1),
+          reason: 'the full content width, unscaled');
+
+      // Unscaled is not the same as unguarded: it is clipped to the band the
+      // rectangle viewport used to give it, for paint and for taps alike.
+      final curve = find.ancestor(
+          of: find.byKey(const ValueKey('tall')),
+          matching: find.byType(WearFaceCurve));
+      expect(
+        tester.renderObject<RenderWearFaceCurve>(curve.first).clipsToFace,
+        isTrue,
+      );
     });
   });
 

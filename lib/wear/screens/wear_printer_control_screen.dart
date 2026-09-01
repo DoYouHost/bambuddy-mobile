@@ -17,11 +17,14 @@ import '../wear_status.dart';
 import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_face.dart';
+import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_settings_entry.dart';
 import '../widgets/wear_spinner.dart';
 import '../widgets/wear_status_chip.dart';
+import '../widgets/wear_toast.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
 /// Scaffold so it gets its own back-swipe route.
@@ -69,7 +72,14 @@ class _WearPrinterControlBodyState
     final l10n = AppLocalizations.of(context);
     final item = _find(printers);
     if (item == null) {
-      return Center(child: Text(l10n.wearPrinterUnavailable));
+      // The one thing on this screen that never reaches `WearScrollView`, so
+      // the only one that has to ask for the round-safe rectangle itself.
+      return WearFace(
+        child: Center(
+          child: Text(l10n.wearPrinterUnavailable,
+              textAlign: TextAlign.center, style: WearText.body),
+        ),
+      );
     }
     final status = item.status;
     final state = wearStateOf(status);
@@ -79,17 +89,14 @@ class _WearPrinterControlBodyState
     return Stack(
       children: [
         WearScrollView(
+          // Short items all the way down — a title, a chip, a readout, buttons
+          // — which is what the curve is for. The one exception carries itself:
+          // a fault card is taller than the radius, so `WearFaceCurve` clips it
+          // to the round-safe band exactly as the rectangle viewport used to.
+          curved: true,
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
           children: [
-            Center(
-              child: Text(
-                item.printer.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: WearText.title,
-              ),
-            ),
+            WearHeader(item.printer.name),
             const SizedBox(height: 6),
             Center(child: WearStatusChip(state: state)),
             const SizedBox(height: 10),
@@ -120,14 +127,17 @@ class _WearPrinterControlBodyState
       if (eta.isNotEmpty) eta,
       if (layers.isNotEmpty) layers,
     ].join('  ·  ');
+    // The radius is the height so the bar's ends are round rather than merely
+    // softened; two numbers that have to agree, written once.
+    const barHeight = 6.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(barHeight),
           child: LinearProgressIndicator(
             value: pct / 100,
-            minHeight: 6,
-            backgroundColor: const Color(0xFF2A2A2C),
+            minHeight: barHeight,
+            backgroundColor: wearSurfaceHigh,
           ),
         ),
         const SizedBox(height: 6),
@@ -287,41 +297,38 @@ class _WearPrinterControlBodyState
           {String? okMsg, Color? color}) =>
       FilledButton.icon(
         onPressed: busy ? null : () => _run(action, okMsg: okMsg),
-        icon: Icon(icon, size: 18),
-        label: Text(label),
+        icon: Icon(icon),
+        label: _label(label),
         style: color != null
             ? FilledButton.styleFrom(backgroundColor: color)
             : null,
       );
 
-  /// Non-actionable placeholder (empty queue / no actions). Shares the button
-  /// row's height and shape so the layout doesn't jump, but reads as inert:
-  /// a muted fill instead of the accent, with an icon + a label brighter than
-  /// [wearMuted] so it's actually legible on the OLED black.
-  Widget _hint(IconData icon, String label) => Container(
-        height: 44,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2C),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: Colors.white70),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  // Same role as the button labels it stands in for.
-                  style: WearText.strong.copyWith(color: Colors.white70)),
-            ),
-          ],
+  /// Non-actionable placeholder (empty queue / no actions): a button that is
+  /// not on offer, so an actually disabled one rather than a pill shaped to
+  /// pass for it.
+  ///
+  /// It used to restate the theme by hand — height 44, radius 22,
+  /// `WearText.strong` — which is the trap this repo has a rule about: three
+  /// numbers that have to be edited in two places to stay true, and the button
+  /// theme is the one that moves. Disabled, it takes its height, its stadium
+  /// and its type from the same place as the buttons it stands among, and a
+  /// screen reader gets "dimmed button" instead of a shape it cannot name.
+  Widget _hint(IconData icon, String label) => FilledButton.icon(
+        onPressed: null,
+        icon: Icon(icon),
+        label: _label(label),
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: wearSurfaceHigh,
+          disabledForegroundColor: wearInert,
         ),
       );
+
+  /// Ellipsized rather than wrapped, for every button on this screen: a label
+  /// that wraps takes the row's height with it, and the round-safe width is
+  /// narrower than any of these labels was written against.
+  Widget _label(String label) =>
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
 
   Future<void> _confirmStop(WearActions actions, int id, String name) async {
     final ok = await wearConfirm(
@@ -330,36 +337,38 @@ class _WearPrinterControlBodyState
       title: AppLocalizations.of(context).ctrlStopConfirmTitle,
       subtitle: name,
     );
+    // Called directly, and correctly so: this whole method already runs inside
+    // `_run`, because `_btn` wraps whatever it is given. Wrapping again is not
+    // belt and braces — `WearAction.run` opens with `if (_busy) return`, so the
+    // inner call is a silent no-op and the button stops working. The fault
+    // card's own stop looks different for the same reason: it reaches
+    // `_confirmHmsStop` without passing through `_btn`, so it wraps itself.
     if (ok) await actions.stop(id);
   }
 
   /// Runs an action behind the full-screen busy veil, then refreshes the poll.
   ///
-  /// Failures go to a SnackBar, not to text on the screen: these are commands on
-  /// live printer state, repeatable by tapping again, and a red line under one of
-  /// eight buttons in a scrolling list is missed. The refresh is why this wrapper
-  /// still exists on top of [run] — nothing else on the watch has a poll to pull.
+  /// Both outcomes go to a passing message rather than to text on the screen:
+  /// these are commands on live printer state, repeatable by tapping again, and
+  /// a red line under one of eight buttons in a scrolling list is missed. The
+  /// refresh is why this wrapper still exists on top of [run] — nothing else on
+  /// the watch has a poll to pull.
   Future<void> _run(Future<void> Function() action, {String? okMsg}) => run(
         () async {
           await action();
           await ref.read(wearFleetProvider.notifier).refresh();
         },
         onDone: () {
-          if (okMsg != null) _toast(okMsg);
+          if (okMsg != null) {
+            wearToast(context, okMsg, tone: WearToastTone.success);
+          }
         },
-        onError: (error) =>
-            _toast(_shortError(AppLocalizations.of(context), error)),
+        onError: (error) => wearToast(
+          context,
+          _shortError(AppLocalizations.of(context), error),
+          tone: WearToastTone.failure,
+        ),
       );
-
-  void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }
 
 /// One fault on the watch: what it is, then a full-width button per action.
@@ -398,25 +407,20 @@ class _WearFaultState extends State<_WearFault> {
         : hmsRenderableActions(widget.fault.actions);
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0x33B3261E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x80B3261E)),
-      ),
+      decoration: wearTintedBox(wearDestructive),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(Icons.warning_amber_rounded,
-                  size: 14, color: Color(0xFFE57373)),
+                  size: 14, color: wearFaultText),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   widget.fault.displayCode,
-                  style: WearText.small.copyWith(
-                      color: const Color(0xFFE57373),
-                      fontWeight: FontWeight.w600),
+                  style: WearText.small
+                      .copyWith(color: wearFaultText, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -478,7 +482,7 @@ String _shortError(AppLocalizations l10n, Object e) {
     return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
-  // Not localizable, so it is quoted as-is — trimmed to what a snackbar can
-  // hold before it disappears.
+  // Not localizable, so it is quoted as-is — trimmed to what the message can
+  // hold before it takes itself away.
   return wearShortText(e.toString(), max: wearToastMaxChars);
 }

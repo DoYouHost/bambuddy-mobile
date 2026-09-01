@@ -8,16 +8,26 @@ import 'wear_theme.dart';
 /// The two screens that show one had grown their own copy of this — the setup
 /// flow trimmed at 80 characters with its own style helper, the control screen
 /// at 60 with none — and neither number was anyone's decision. They are both
-/// kept, as named constants with the reason attached: the length that belongs
-/// to a line is decided by how long the line is on screen.
+/// kept, as named constants with the reason attached: what a message may spend
+/// is decided by the room it is given, not by how long it is up for. That is
+/// why the passing message is now the longer of the two — it owns the whole
+/// face, while the one that stays sits under a button on a screen that still
+/// has to fit everything else.
 
 /// A message that stays on screen until something replaces it, so it may run to
 /// a second line without costing anyone the thing they were reading.
 const wearErrorMaxChars = 80;
 
-/// A message in a snackbar, gone in two seconds. What cannot be read in that
-/// time is not worth the width.
-const wearToastMaxChars = 60;
+/// A message in a `WearToast`, gone in three seconds.
+///
+/// It was 60 while this was a snackbar, which was one line of a bar most of
+/// which sat off the glass anyway. The message now gets the middle of the face
+/// and four lines of it: the inscribed rectangle on the smallest supported face
+/// is around 142 dp wide and `WearText.body` averages some 6 dp a character, so
+/// four lines hold roughly 90. What actually enforces the shape is the widget's
+/// `maxLines` ellipsis; this cap is only here so that a 300-character exception
+/// string cannot arrive as a wall of grey.
+const wearToastMaxChars = 100;
 
 /// The line itself: small, in the theme's error colour.
 TextStyle wearErrorStyle(BuildContext context) =>

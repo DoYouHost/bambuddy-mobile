@@ -144,7 +144,7 @@ class _Answer extends StatelessWidget {
               _CircleButton(
                 diameter: diameter,
                 icon: Icons.close_rounded,
-                background: const Color(0xFF2A2A2C),
+                background: wearSurfaceHigh,
                 tooltip: l10n.cancel,
                 onTap: onCancel,
               ),

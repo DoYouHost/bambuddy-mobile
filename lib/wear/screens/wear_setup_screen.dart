@@ -13,6 +13,7 @@ import '../wear_action.dart';
 import '../wear_error.dart';
 import '../wear_providers.dart';
 import '../wear_theme.dart';
+import '../widgets/wear_header.dart';
 import '../widgets/wear_screen.dart';
 import '../widgets/wear_scroll_view.dart';
 import '../widgets/wear_spinner.dart';
@@ -88,13 +89,12 @@ class _WearSetupScreenState extends ConsumerState<WearSetupScreen>
 
     return WearScreen(
       child: WearScrollView(
+        curved: true,
         // Every branch below is a step of its own; naming it here is what
         // brings the scroll back to the top when the screen swaps.
         resetKey: _manual ? 'manual' : (offer != null ? 'offer' : 'handoff'),
         children: [
-          const Center(
-            child: Text('Bambuddy', style: WearText.title),
-          ),
+          const WearHeader('Bambuddy'),
           const SizedBox(height: 12),
           if (offer case final offer? when !_manual)
             ..._offerSection(l10n, offer)

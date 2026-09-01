@@ -124,6 +124,101 @@ EdgeInsets wearFaceInsets(WearShape shape, Size size, {double? widthFraction}) {
   );
 }
 
+/// How far into the face a scrolling list may run before an item has to start
+/// shrinking, as a fraction of the diameter.
+///
+/// The counterpart of [roundEdgeFraction] for a curved list: not a margin the
+/// content may never enter, but where the first and last item come to rest.
+/// Everything between the two travels through the whole face, which is the
+/// difference the curve buys — the band above and below is scrolled *through*
+/// rather than left black.
+const roundCurveEndFraction = 0.10;
+
+/// Where an item spanning [top]..[bottom] is held while it shrinks: whichever
+/// part of it is nearest the middle of the face. Both are measured from that
+/// middle, negative above it.
+///
+/// An item is pinned by its inner edge and gives way outwards, so it compresses
+/// *towards* the middle rather than retreating past the rim. Holding it by its
+/// own centre instead — the obvious choice, and the one this shipped with —
+/// walks the whole item off the glass as that centre passes the edge: the demo
+/// fleet's third printer was scaled to nothing with 15 dp of its row still over
+/// the display, so a list of four showed two and a black gap.
+double roundCurveAnchor(double top, double bottom) =>
+    top > 0 ? top : (bottom < 0 ? bottom : 0);
+
+/// How much an item [itemWidth] wide, spanning [top]..[bottom] from the middle
+/// of the face, has to shrink to sit on the glass when held at its anchor.
+///
+/// This is the whole of the curved layout: a round display is widest across its
+/// middle, so an item near the rim is not moved or clipped, it is *scaled* to
+/// the chord that is actually lit where it currently is. Wear OS does the same
+/// thing for the same reason — its transforming list shrinks items toward the
+/// edges precisely because they are hard to see there.
+///
+/// Scale rather than a narrower inset on purpose: an inset re-lays-out the item,
+/// so a printer name would re-wrap and ellipsize differently on every frame of a
+/// scroll. A scale is a paint-time transform and the text keeps its metrics all
+/// the way out.
+///
+/// Solved rather than approximated, because shrinking an item pulls its far
+/// corner in as well as narrowing it: the scale that fits has to satisfy
+/// `(s·(w/2 − r))² + (d + s·(reach − r))² ≤ (R − s·r)²`, a quadratic in `s`. An
+/// item lying across the middle anchors at zero and simply takes the largest
+/// scale the chord allows.
+///
+/// [cornerRadius] is how round the caller's items actually are, and it is worth
+/// stating: measured against the square box, a row 20 dp round was being shrunk
+/// to 0.85 to keep a corner on the glass that it does not paint. It defaults to
+/// nothing because the watch's items are not uniform — a progress bar is 6 dp
+/// round, an input 4, a button a stadium — so only a screen whose rows are all
+/// one shape may claim it.
+///
+/// Zero only once the anchor itself — the nearest part of the item — has left
+/// the face, which is the point where there is genuinely nothing to show.
+double roundScaleFor({
+  required double diameter,
+  required double itemWidth,
+  required double top,
+  required double bottom,
+  double cornerRadius = 0,
+}) {
+  if (itemWidth <= 0) return 1;
+  // The same slack the inscribed rectangle takes ([roundSideSlack]): solved
+  // exactly, this puts an item's corners *on* the circle, and tangent is not
+  // inside — the arithmetic lands them a rounding error outside it, and a real
+  // bezel eats a pixel or two more than the display metrics admit to.
+  final radius = diameter * (0.5 - roundSideSlack);
+  final anchor = roundCurveAnchor(top, bottom);
+  final distance = anchor.abs();
+  final c = distance * distance - radius * radius;
+  if (c >= 0) return 0;
+  // How far the item reaches from its anchor. For one lying across the middle
+  // that is its longer half; for one below or above, its whole height.
+  final reach = math.max((top - anchor).abs(), (bottom - anchor).abs());
+  // A rounded item has nothing at the corner of its box, so requiring that
+  // corner to fit shrinks it for a pixel that is not painted. What has to fit
+  // is the corner *arc*: its centre, [cornerRadius] in from both edges, plus
+  // that radius. Bounded by the item, since a box cannot be rounder than half
+  // of itself.
+  var round = math.min(cornerRadius, math.min(itemWidth / 2, reach));
+  var side = itemWidth / 2 - round;
+  var span = reach - round;
+  var a = side * side + span * span - round * round;
+  if (a <= 0) {
+    // Corners that eat the whole item leave the quadratic without a usable
+    // root; fall back to the plain box, which only ever asks for less.
+    round = 0;
+    side = itemWidth / 2;
+    span = reach;
+    a = side * side + span * span;
+  }
+  final b = 2 * (distance * span + radius * round);
+  // `c` is negative, so the discriminant is positive and the larger root is the
+  // one in range: the biggest scale that still fits.
+  return math.min(1, (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a));
+}
+
 /// Whether a row of [rowWidth] fits inside the circle when its outermost corner
 /// is [dyFromCenter] from the middle. The check [wearFaceInsets] is built to
 /// pass, exposed so tests can hold it to it.
