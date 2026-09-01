@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/format/text_measure.dart';
 import '../../../core/theme/dash_text.dart';
 import '../../../core/theme/dash_theme.dart';
 
@@ -27,14 +28,10 @@ class PrintMetaItem extends StatelessWidget {
   }
 
   /// How wide this item wants to be, at the font size the device is set to.
-  double measure(BuildContext context) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: resolveStyle(context)),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    return _iconWidth(context) + _iconGap + painter.width;
-  }
+  double measure(BuildContext context) =>
+      _iconWidth(context) +
+      _iconGap +
+      textWidth(context, text, resolveStyle(context));
 
   /// An icon follows the system font size only where the theme says so, and the
   /// row's arithmetic has to say the same thing the [Icon] will.

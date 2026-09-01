@@ -1,6 +1,7 @@
 import 'package:bambuddy_mobile/core/format/datetime_format.dart';
 import 'package:bambuddy_mobile/core/format/system_clock_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -14,10 +15,10 @@ class _RecordingMonitor implements BackgroundMonitor {
 
   final bool running;
   final bool? Function() onDisk;
-  final pings = <bool?>[];
+  final pings = <(BackgroundSync, bool?)>[];
 
   @override
-  void syncClockFormat() => pings.add(onDisk());
+  void sync(BackgroundSync what) => pings.add((what, onDisk()));
 
   @override
   Future<bool> isRunning() async => running;
@@ -25,8 +26,6 @@ class _RecordingMonitor implements BackgroundMonitor {
   Future<bool> start() async => true;
   @override
   Future<void> stop() async {}
-  @override
-  void syncDiagnostics() {}
 }
 
 /// A PM time, so a 12-hour clock is visible in the output rather than implied.
@@ -174,7 +173,8 @@ void main() {
 
       await publishSystemClock(true, settings: settings, monitor: monitor);
 
-      expect(monitor.pings, [true], reason: 'the new value was already on disk');
+      expect(monitor.pings, [(BackgroundSync.clock, true)],
+          reason: 'the new value was already on disk when the ping went out');
     });
 
     test('a service that is not running is not pinged', () async {

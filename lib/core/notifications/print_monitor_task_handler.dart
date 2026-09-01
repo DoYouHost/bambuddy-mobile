@@ -10,6 +10,7 @@ import '../../features/dashboard/ws_providers.dart' show wsUrlFor, wsAuthHeaders
 import '../../features/notifications/maintenance_monitor.dart';
 import '../../features/notifications/print_monitor.dart';
 import 'background_api.dart';
+import 'background_sync.dart';
 import 'finish_alert_memory.dart';
 import 'finish_photo_image.dart';
 import 'finish_photo_notifier.dart';
@@ -398,14 +399,11 @@ class PrintMonitorTaskHandler extends TaskHandler {
       prefs: notifPrefs,
       initialNotified: settings.loadNotifiedMaintenanceDueIds(),
       persist: settings.saveNotifiedMaintenanceDueIds,
-      reload: () async {
-        // The point of this callback: "Mark Done" runs in another isolate, so
-        // its removal only exists on disk. Without the reload this prefs handle
-        // keeps serving the cache this isolate started with and the re-arm is
-        // invisible here — the callback would return our own stale set.
-        await prefs.reload();
-        return settings.loadNotifiedMaintenanceDueIds();
-      },
+      // The point of this callback: "Mark Done" runs in another isolate, so its
+      // removal only exists on disk, and this handle would keep serving the set
+      // this isolate started with — the re-arm would be invisible here.
+      reload: () async =>
+          (await settings.reloaded()).loadNotifiedMaintenanceDueIds(),
     );
     _maintenance = maintenance;
     // `check()` guards its own fetch, but the dedup-set persistence and the alert
@@ -479,9 +477,14 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// half of the log was simply missing, which reads as "the service did nothing".
   @override
   void onReceiveData(Object data) {
-    if (data is! Map) return;
-    if (data['diagnostics'] == 'sync') unawaited(_syncDiagnostics());
-    if (data['clock'] == 'sync') unawaited(_syncClockFormat());
+    switch (BackgroundSync.parse(data)) {
+      case BackgroundSync.diagnostics:
+        unawaited(_syncDiagnostics());
+      case BackgroundSync.clock:
+        unawaited(_syncClockFormat());
+      case null:
+        break;
+    }
   }
 
   /// The 24-hour switch as the app last saw it. Same reason as above: a service
@@ -490,12 +493,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
   /// which, after a swipe, is across every later launch.
   Future<void> _syncClockFormat() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      // Written by the UI isolate, so this handle's snapshot predates it.
-      await prefs.reload();
-      DateTimeFormats.rememberSystemClock(
-        SettingsRepository(prefs).loadUse24HourClock(),
-      );
+      final settings = await SettingsRepository.opened();
+      DateTimeFormats.rememberSystemClock(settings.loadUse24HourClock());
     } on Object {
       // Keep whatever this isolate started with; a stale clock is not worth
       // taking the service down for.
@@ -504,10 +503,7 @@ class PrintMonitorTaskHandler extends TaskHandler {
 
   Future<void> _syncDiagnostics() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      // This isolate's snapshot predates the write, which came from the UI's.
-      await prefs.reload();
-      final settings = SettingsRepository(prefs);
+      final settings = await SettingsRepository.opened();
       final wanted = settings.loadDiagnosticsSession();
       if (wanted == _recording?.store.header.session) return;
 

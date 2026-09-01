@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../notifications/background_monitor.dart';
+import '../notifications/background_sync.dart';
 import '../platform/platform_query.dart';
 import '../settings/settings_repository.dart';
 import 'datetime_format.dart';
@@ -46,7 +47,7 @@ Future<void> publishSystemClock(
   required BackgroundMonitor monitor,
 }) async {
   await settings.saveUse24HourClock(use24Hour);
-  if (await monitor.isRunning()) monitor.syncClockFormat();
+  if (await monitor.isRunning()) monitor.sync(BackgroundSync.clock);
 }
 
 /// Keeps the 12/24-hour clock true for everything below it, and for everything

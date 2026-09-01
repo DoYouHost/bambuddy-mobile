@@ -28,6 +28,24 @@ class SettingsRepository {
 
   final SharedPreferences _prefs;
 
+  /// This repository again, after re-reading what another isolate wrote.
+  ///
+  /// `SharedPreferences` gives every isolate its own in-memory copy of the file,
+  /// so a handle keeps serving the snapshot it was opened with: the maintenance
+  /// item the service marked done, the sign-in it saw rejected, the clock the
+  /// app has just written down — none of it is visible on the other side until
+  /// this. Every read of a value the *other* isolate writes goes through here,
+  /// and the ones that forgot it each cost a debugging session.
+  Future<SettingsRepository> reloaded() async {
+    await _prefs.reload();
+    return this;
+  }
+
+  /// The same thing where no handle is open yet — a background isolate that was
+  /// woken by a notification action rather than started by the app.
+  static Future<SettingsRepository> opened() async =>
+      SettingsRepository(await SharedPreferences.getInstance()).reloaded();
+
   ServerProfile? loadProfile() {
     final raw = _prefs.getString(_profileKey);
     if (raw == null) return null;

@@ -226,9 +226,8 @@ Future<void> handleMaintenanceAction(NotificationResponse response) async {
         NotifProbe.actionFailed(error, items: 1);
       }
     }
-    final settings = SettingsRepository(prefs);
     // Read-modify-write on a set the service isolate also writes.
-    await prefs.reload();
+    final settings = await SettingsRepository(prefs).reloaded();
     // Failed resets are re-armed too: being *in* this set suppresses the alert,
     // and the button already took the notification away
     // (`cancelNotification: true`), so a re-alert is the only way the user
