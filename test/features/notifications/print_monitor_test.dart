@@ -464,6 +464,89 @@ void main() {
       expect(alertById(fake, bandId(5))?['title'], '25% printed',
           reason: "B's own thresholds still work");
     });
+
+    // The same race seen by a monitor that is *born* into it. The background
+    // isolate is rebuilt on every entry into the background, so the first frame
+    // this monitor ever sees — the one it primes from, firing nothing — can be
+    // the stale one. Priming records the printer as already printing, so no
+    // print-start edge follows to clear a latch set from that frame.
+    test("a monitor primed mid-dispatch still announces the new print's first layer",
+        () {
+      final fake = _FakeNotifications();
+      final m = monitorAll(fake);
+      // Layer 3 with the bed being scanned (stage 9), under A's name: the
+      // pre-print sequence of B, described with what is left of A.
+      m.update({
+        1: _status(state: 'RUNNING', job: 'A.3mf', layerNum: 3, stgCur: 9),
+      });
+      m.update({
+        1: _status(state: 'RUNNING', job: 'B.3mf', layerNum: 2, stgCur: 0),
+      });
+      expect(alertById(fake, bandId(4))?['body'], contains('B.3mf'),
+          reason: 'the baseline may not spend an alert this print is owed');
+    });
+
+    test('a monitor primed mid-dispatch keeps the new thresholds', () {
+      final fake = _FakeNotifications();
+      final m = monitorAll(fake);
+      // A's 100% as a baseline would latch all three thresholds at once.
+      m.update({
+        1: _status(
+            state: 'RUNNING',
+            job: 'A.3mf',
+            layerNum: 3,
+            progress: 100,
+            stgCur: 9),
+      });
+      m.update({
+        1: _status(
+            state: 'RUNNING',
+            job: 'B.3mf',
+            layerNum: 4,
+            progress: 30,
+            stgCur: 0),
+      });
+      expect(alertById(fake, bandId(5))?['title'], '25% printed');
+    });
+
+    test('a stage entered mid-print holds a threshold back, it does not drop it',
+        () {
+      final fake = _FakeNotifications();
+      final m = monitorAll(fake);
+      m.update({1: _status(state: 'IDLE')});
+      m.update({
+        1: _status(
+            state: 'RUNNING',
+            job: 'B.3mf',
+            layerNum: 5,
+            progress: 10,
+            stgCur: 0),
+      });
+      // 25% is crossed during a filament change (stage 4). The gate does not
+      // distinguish this from the pre-print sequence, so the crossing waits —
+      // the accepted price of the frame that fired three thresholds off a stale
+      // 100%.
+      m.update({
+        1: _status(
+            state: 'RUNNING',
+            job: 'B.3mf',
+            layerNum: 30,
+            progress: 26,
+            stgCur: 4),
+      });
+      expect(fake.alerts.where((a) => a['id'] == bandId(5)), isEmpty);
+      // Nothing latched while it waited, so the alert is still owed once the
+      // printer is laying plastic again.
+      m.update({
+        1: _status(
+            state: 'RUNNING',
+            job: 'B.3mf',
+            layerNum: 31,
+            progress: 27,
+            stgCur: 0),
+      });
+      expect(alertById(fake, bandId(5))?['title'], '25% printed');
+    });
   });
 
   test('milestones: 25/50/75 once each', () {

@@ -312,18 +312,32 @@ class PrintMonitor {
   /// priming record disagree with the records that follow it.
   void _prime(int id, _PrinterMemo memo, PrinterStatus status) {
     memo.printing = status.isPrinting;
-    // "First layer DONE" = printer is already on layer ≥ 2 (parity with bambuddy:
-    // `on_first_layer_complete` fires at layer_num ≥ 2). If we prime after completion,
-    // just record it — no alert.
-    if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
-    // Only a percentage that describes the job is a usable baseline. Priming off
-    // a calibration frame ("60%" at layer 0) would latch 25 and 50 as already
-    // sent, and then swallow both when the real print reaches them — the mirror
-    // image of the burst the gate in step 4) prevents.
-    if (status.progress != null && _jobUnderway(status)) {
-      final pct = status.progress!.round();
-      for (final m in _milestones) {
-        if (pct >= m) memo.milestonesSent.add(m);
+    // Nothing job-scoped can be read off a frame that does not describe the job
+    // ([_jobUnderway]). Priming off a calibration frame ("60%" at layer 0) would
+    // latch 25 and 50 as already sent and swallow both when the real print
+    // reaches them — the mirror image of the burst the gate in step 4) prevents.
+    // The dispatch race reaches priming too, through an isolate that restarts
+    // while it is on: the pre-print sequence has ticked `layer_num` past 2 while
+    // the name and the percentage are still the finished print's. A latch set
+    // from that frame has no edge left to clear it — priming records the printer
+    // as already printing, so no print-start edge follows and the new print's
+    // first layer would go by in silence. So the frame is recorded as the one to
+    // beat instead, exactly as the print-start edge does with it.
+    if (!_jobUnderway(status)) {
+      memo.previousJob = _jobFrame(status);
+    } else {
+      // "First layer DONE" = printer is already on layer ≥ 2 (parity with
+      // bambuddy: `on_first_layer_complete` fires at layer_num ≥ 2). If we prime
+      // after completion, just record it — no alert. Deliberately without
+      // [_firstLayerDone]'s upper bound: that window is there to decide whether
+      // an alert is *due*, while a baseline asks whether it is *spent*, and a
+      // counter in the hundreds is the plainest yes there is.
+      if ((status.layerNum ?? 0) >= 2) memo.firstLayerSent = true;
+      if (status.progress != null) {
+        final pct = status.progress!.round();
+        for (final m in _milestones) {
+          if (pct >= m) memo.milestonesSent.add(m);
+        }
       }
     }
     if (status.connected != null) memo.connected = status.connected;
@@ -442,7 +456,8 @@ class PrintMonitor {
     // `_prefs` is immutable for this monitor's whole life (the service is rebuilt
     // from scratch on the next background entry); if live preferences ever land,
     // this silently becomes "enable mid-print, stay quiet until the next one".
-    // `_prime` already latches both of these unconditionally.
+    // `_prime` latches both of these without alerting, when it primes off a
+    // frame that describes the job at all.
     //
     // The latch stays clear while a frame is merely unusable, so an alert this
     // frame could not settle is still owed on the next one. bambuddy holds its
@@ -515,9 +530,16 @@ class PrintMonitor {
   ///
   /// The stage half ([PrinterStatus.inNamedStage]) is what the layer check alone
   /// cannot cover: Bambu firmware ticks `layer_num` through the pre-print
-  /// sequence, so "layer ≥ 1" is true while the bed is still being scanned. A crossing this drops is not lost —
-  /// nothing latches, so it is announced from the next frame that describes the
-  /// job.
+  /// sequence, so "layer ≥ 1" is true while the bed is still being scanned. A
+  /// crossing this drops is not lost — nothing latches, so it is announced from
+  /// the next frame that describes the job.
+  ///
+  /// That half is deliberately not narrowed to the pre-print window, so a stage
+  /// the printer enters *mid*-print (a filament change, a user pause) holds a
+  /// threshold back until it clears rather than announcing it on time. The
+  /// alternative — trusting the percentage once the print looks underway — is
+  /// what let a stale 100% cross all three thresholds at once, and a milestone
+  /// arriving a filament change late is the cheaper of the two.
   ///
   /// A frame without `layer_num` says nothing about the phase, so it counts as
   /// underway — a server that omits the field keeps the previous behaviour
