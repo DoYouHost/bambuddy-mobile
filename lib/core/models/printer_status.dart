@@ -30,6 +30,7 @@ class PrinterStatus {
     this.totalLayers,
     this.temperatures,
     this.coverUrl,
+    this.stgCur,
     this.stgCurName,
     this.coolingFanSpeed,
     this.bigFan1Speed,
@@ -89,6 +90,16 @@ class PrinterStatus {
   /// Path to current print cover (e.g. `/api/v1/printers/1/cover`). Requires
   /// camera stream token as `?token=` parameter on fetch.
   final String? coverUrl;
+
+  /// Which stage the printer reports it is in: `0` is plain printing, `1`–`254`
+  /// a named stage, `-1` (X1) and `255` (A1/P1) none. Read it through
+  /// [inNamedStage] — that is the question every caller has.
+  ///
+  /// It is also the only stage field the WebSocket carries:
+  /// `mc_print_sub_stage`, which bambuddy's own first-layer guard consults, is
+  /// REST-only (`printer_state_to_dict`).
+  @JsonKey(fromJson: _toIntOrNull)
+  final int? stgCur;
 
   /// Current stage name from server (e.g. "Auto bed leveling", "Heating");
   /// null/empty outside prep phase. Comes in English.
@@ -235,6 +246,7 @@ class PrinterStatus {
           other.totalLayers == totalLayers &&
           _mapStringDoubleEquality.equals(other.temperatures, temperatures) &&
           other.coverUrl == coverUrl &&
+          other.stgCur == stgCur &&
           other.stgCurName == stgCurName &&
           other.coolingFanSpeed == coolingFanSpeed &&
           other.bigFan1Speed == bigFan1Speed &&
@@ -272,6 +284,7 @@ class PrinterStatus {
         totalLayers,
         temperatures == null ? null : _mapStringDoubleEquality.hash(temperatures),
         coverUrl,
+        stgCur,
         stgCurName,
         coolingFanSpeed,
         bigFan1Speed,
@@ -339,6 +352,7 @@ class PrinterStatus {
       totalLayers: totalLayers ?? previous.totalLayers,
       temperatures: _mergeTemps(previous.temperatures),
       coverUrl: coverUrl ?? inheritedCover,
+      stgCur: stgCur ?? previous.stgCur,
       stgCurName: stgCurName ?? previous.stgCurName,
       coolingFanSpeed: coolingFanSpeed ?? previous.coolingFanSpeed,
       bigFan1Speed: bigFan1Speed ?? previous.bigFan1Speed,
@@ -479,6 +493,24 @@ class PrinterStatus {
   /// Prep phase: active print but no real progress yet — show stage name
   /// instead of 0% bar in UI.
   bool get isPreparing => isPrinting && (progress ?? 0) <= 0;
+
+  /// Whether the printer reports being in a stage of its own rather than
+  /// plainly printing: bed levelling, bed scanning, homing, nozzle cleaning, a
+  /// pause, a filament change (`STAGE_NAMES` in the server's `bambu_mqtt.py`).
+  ///
+  /// Reads [stgCur] rather than [stgCurName], which is derived server-side and
+  /// says "Printing" at stage 0 — a non-null name settles nothing. Different
+  /// question from [isPreparing], which is about the percentage.
+  ///
+  /// Null counts as no stage. The field has been in every status the server
+  /// sends since v0.1.6, older than any version this app talks to, so its
+  /// absence means an unexpected shape rather than an old server — and for
+  /// what reads this (whether a layer or a percentage describes the job) the
+  /// answer that keeps the previous behaviour is the safe one.
+  bool get inNamedStage {
+    final stage = stgCur;
+    return stage != null && stage > 0 && stage < 255;
+  }
 
   /// Whether "print" is printer built-in calibration (e.g. file
   /// `auto_cali_for_user_param.gcode`). No own cover, so UI doesn't show

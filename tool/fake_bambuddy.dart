@@ -20,7 +20,11 @@ import 'dart:typed_data';
 
 const _archiveId = 82;
 const _printerId = 1;
-const _printName = 'Benchy';
+const _finishedPrintName = 'Benchy';
+
+/// The job a `dispatch` sends — a different name, so a notification naming the
+/// wrong print is unmistakable.
+const _nextPrintName = 'Bracket';
 late final String _photoExtension;
 
 /// Deliberately old, and never touched by a run: a reprint reuses its archive
@@ -34,6 +38,22 @@ DateTime? _completedAt;
 /// What the printer reports, and therefore what the app's monitor sees.
 String _state = 'RUNNING';
 int _progress = 40;
+
+/// The job name on the wire. A dispatch moves the state before the printer
+/// publishes the new job, so a run can hold the finished print's name here —
+/// which is what the reported "first layer of the PREVIOUS print" notification
+/// was built from.
+String _printName = _finishedPrintName;
+
+/// The layer the printer reports. Normally derived from the percentage, but a
+/// dispatch has to be able to hold the finished print's number and then tick it
+/// the way the pre-print sequence does.
+int? _layer;
+
+/// `stg_cur`: 0 is "Printing", 1-254 a stage of the printer's own (bed
+/// levelling, bed scan, nozzle cleaning), -1 none. The app's first-layer and
+/// milestone gates read it, so a run has to be able to set it.
+int _stage = -1;
 
 /// The faults the printer is reporting, in the server's `hms_errors` shape.
 List<Map<String, Object?>> _hmsErrors = [];
@@ -105,6 +125,13 @@ Future<void> _command(String raw) async {
   reset    forget the photo, so the next round starts clean
   status   what this server currently reports
 
+  dispatch replays the reported bug: a print finishes, the next one is sent,
+           and for a few seconds the printer reports RUNNING while every job
+           number on the wire is still the FINISHED print's — then the
+           pre-print sequence ticks layer_num through 2 and 3 while the stage
+           says bed scan / nozzle cleaning. Nothing should be announced until
+           the real print reaches layer 2 at stage 0, under its own name.
+
   runout   filament ran out (0300_8004), paused, with the buttons Bambu offers
   door     chamber door open (0300_800F), paused — resume or stop
   heat     heatbed temperature malfunction (0300_8009), no action offered
@@ -138,6 +165,8 @@ Future<void> _command(String raw) async {
       stdout.writeln('  waiting 15 s, as the server does while it captures…');
       await Future<void>.delayed(const Duration(seconds: 15));
       _attachPhoto(broadcast: false);
+    case 'dispatch':
+      await _replayDispatch();
     case 'reset':
       _photos = [];
       stdout.writeln('  archive has no photos again');
@@ -271,9 +300,56 @@ void _clearFaults({required String from}) {
 void _set(String state, int progress) {
   _state = state;
   _progress = progress;
+  _layer = null;
+  _stage = state == 'RUNNING' ? 0 : -1;
+  _printName = _finishedPrintName;
   if (state == 'FINISH' || state == 'FAILED') _completedAt = DateTime.now();
   _broadcastStatus();
   stdout.writeln('  printer → $state $progress%');
+}
+
+/// Replays a dispatch the way a real one arrives: the state flips to RUNNING
+/// while bambuddy's rolling state still describes the print that just ended,
+/// then the firmware ticks `layer_num` through the pre-print sequence, and only
+/// then does the printer publish the new job.
+///
+/// One frame a second, because the app's monitor is an edge detector and the
+/// bug it is guarding against needs the frames to arrive in this order.
+Future<void> _replayDispatch() async {
+  Future<void> frame(String note) async {
+    _broadcastStatus();
+    stdout.writeln('  $note — job "$_printName", layer '
+        '${_layer ?? (_progress * 2.4).round()}, stage $_stage');
+    await Future<void>.delayed(const Duration(seconds: 1));
+  }
+
+  _set('FINISH', 100);
+  _layer = 8;
+  await frame('the print that just ended');
+
+  // Dispatch: RUNNING again, everything else still the finished print's.
+  _state = 'RUNNING';
+  await frame('dispatch accepted, nothing new published yet');
+  await frame('still the finished print on the wire');
+
+  // The pre-print sequence, ticking layers under the old name (server #1837).
+  _stage = 9; // Scanning bed surface
+  _layer = 2;
+  await frame('bed scan — layer ticked past 2, name still the old one');
+  _stage = 14; // Cleaning nozzle tip
+  _layer = 3;
+  await frame('nozzle cleaning');
+
+  // The printer finally publishes the new job and starts printing it.
+  _printName = _nextPrintName;
+  _stage = 0;
+  _progress = 0;
+  _layer = 1;
+  await frame('printing for real, first layer down');
+  _layer = 2;
+  await frame('layer 2 — THIS is the one alert that should arrive');
+  stdout.writeln('  expect exactly one "first layer" alert, naming '
+      '"$_nextPrintName"');
 }
 
 /// Puts the photo on the archive; [broadcast] adds the `archive_updated` frame
@@ -330,8 +406,9 @@ Map<String, Object?> _statusData() => {
   'connected': true,
   'progress': _progress,
   'current_print': _printName,
-  'layer_num': (_progress * 2.4).round(),
+  'layer_num': _layer ?? (_progress * 2.4).round(),
   'total_layers': 240,
+  'stg_cur': _stage,
   'remaining_time': math.max(0, 100 - _progress),
   'bed_temper': 60.0,
   'nozzle_temper': 220.0,

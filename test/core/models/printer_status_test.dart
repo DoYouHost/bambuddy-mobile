@@ -28,6 +28,46 @@ void main() {
       expect(status.isPrinting, isTrue);
     });
 
+    test('a real WS frame from a print start reports its stage', () {
+      // The captured frame is a printer that has just been sent a job: RUNNING,
+      // layer 0, 0%, and `stg_cur: 54` — "Waiting for heatbed temperature".
+      // This is the frame the first-layer alert has to keep quiet through, and
+      // proof that the number really does arrive on the WebSocket lane, where
+      // `mc_print_sub_stage` never does.
+      final frame = readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      final status = PrinterStatus.fromJson(data);
+
+      expect(status.state, 'RUNNING');
+      expect(status.layerNum, 0);
+      expect(status.stgCur, 54);
+      expect(status.inNamedStage, isTrue);
+    });
+
+    test('the stage number decides what a stage is, not its name', () {
+      // `stg_cur_name` is derived server-side and says "Printing" at stage 0,
+      // so a non-null name is no evidence of a stage. Both lanes carry the
+      // number; the REST-only `mc_print_sub_stage` bambuddy reads is not an
+      // option for the app.
+      PrinterStatus parse(Object? stage) => PrinterStatus.fromJson(
+          {'id': 1, 'stg_cur': stage, 'stg_cur_name': 'Printing'});
+
+      expect(parse(0).stgCur, 0);
+      expect(parse(0).inNamedStage, isFalse, reason: '0 is "Printing"');
+      expect(parse(9).inNamedStage, isTrue, reason: '9 is scanning the bed');
+      expect(parse(254).inNamedStage, isTrue);
+      // The two idle codes: -1 on X1, 255 on A1/P1.
+      expect(parse(-1).inNamedStage, isFalse);
+      expect(parse(255).inNamedStage, isFalse);
+      // A server that sends no number at all keeps the previous behaviour.
+      expect(parse(null).stgCur, isNull);
+      expect(parse(null).inNamedStage, isFalse);
+      // Tolerant parsing like every other number here.
+      expect(parse('9').stgCur, 9);
+      expect(parse('nonsense').stgCur, isNull);
+    });
+
     test('parsuje pola sterowania (wentylatory, prędkość, światło)', () {
       final status = PrinterStatus.fromJson(
           readFixture('printer_status_printing.json') as Map<String, dynamic>);
@@ -398,6 +438,18 @@ void main() {
       expect(merged.ams, isNotNull);
       // hms_errors przenoszone: PrintMonitor pauzuje na nich zegar clear-grace.
       expect(merged.hmsErrors, isNotNull);
+    });
+
+    test('the stage number is dropped when the printer goes offline', () {
+      // Live telemetry, unlike the plate gate below: a printer nobody can reach
+      // is not levelling its bed, and a stale stage would keep the first-layer
+      // and milestone gates shut for a print that starts after it wakes.
+      const prev = PrinterStatus(id: 1, connected: true, stgCur: 9);
+      const offline = PrinterStatus(id: 1, connected: false);
+
+      expect(prev.inNamedStage, isTrue);
+      expect(offline.mergedWith(prev).stgCur, isNull);
+      expect(offline.mergedWith(prev).inNamedStage, isFalse);
     });
 
     test('the plate-clear gate survives the printer going offline', () {

@@ -39,10 +39,19 @@ enum NotifSkip {
   /// A maintenance poll failed outright, so no alert could be decided at all.
   fetchFailed,
 
-  /// The printer was still preparing (calibration, layer 0), so its `progress`
-  /// described that phase and not the job. Acting on it fires several
-  /// milestones at once before the first layer is even down.
+  /// The printer was in a stage of its own — the pre-print sequence (bed
+  /// levelling, bed scan, nozzle cleaning), a pause, a filament change — so
+  /// what it reported described that stage and not the job. Acting on it fires
+  /// several milestones at once before the first layer is even down, and
+  /// announces a first layer the printer has not started.
   prepPhase,
+
+  /// The frame still carried the job that had just finished. bambuddy's state is
+  /// a rolling merge of the printer's partial MQTT reports, so the frame that
+  /// flips a printer to RUNNING can still hold the previous print's name, layer
+  /// and percentage — which is how a freshly dispatched job announced the
+  /// *finished* one's first layer seconds after being sent.
+  previousJob,
 
   /// The same reading already earned an alert recently. Not a decision about
   /// the condition — it still holds — only about saying so again.
