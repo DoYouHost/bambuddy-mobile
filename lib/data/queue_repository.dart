@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/calibration_option.dart';
 import '../core/models/json_utils.dart';
@@ -121,16 +123,19 @@ class QueueRepository {
   /// unknown version: the boolean form, which every server generation accepts.
   final ServerVersionService? _serverVersion;
 
-  /// What the server's own queue payload showed, once one has arrived.
+  /// Whether this server stores the calibration options as `off`/`on`/`auto`.
   ///
-  /// This outranks the version number, because the version number cannot always
-  /// answer the question. bambuddy renumbered the 0.2.5 development cycle to
-  /// 1.2.5 partway through, so a server reporting `0.2.5b2` is a beta of the very
-  /// release that introduced the tri-state options — yet `0.2.5b2` sorts below
-  /// `1.2.5` on every sane comparison, and no ordering of those two strings can
-  /// tell you whether that particular beta predates the change. What the server
-  /// puts in `bed_levelling` answers it outright.
-  bool? _observedTriState;
+  /// What the server puts in `bed_levelling` outranks its version number, and
+  /// here that is not a nicety: bambuddy renumbered the 0.2.5 development cycle
+  /// to 1.2.5 partway through, so `0.2.5b2` is a beta of the very release that
+  /// introduced the tri-state options — yet it sorts below `1.2.5` on every
+  /// sane comparison, and no ordering of those two strings can tell you whether
+  /// that particular beta predates the change. The field's type says it
+  /// outright. Unknown → the boolean form, which every server accepts.
+  late final _triState = ObservedCapability(
+    ServerFeature.triStateCalibration,
+    _serverVersion,
+  );
 
   static const _calibrationKeys = [
     'bed_levelling',
@@ -138,12 +143,7 @@ class QueueRepository {
     'nozzle_offset_cali',
   ];
 
-  /// Whether this server stores the calibration options as `off`/`on`/`auto`.
-  /// Observed contract first, version second, and `false` when neither knows —
-  /// the boolean form is the one every server accepts.
-  Future<bool> supportsTriStateCalibration() async =>
-      _observedTriState ??
-      (await _serverVersion?.supportsTriStateCalibration() ?? false);
+  Future<bool> supportsTriStateCalibration() => _triState.supported;
 
   /// Records which spelling a queue payload used. Reads the raw JSON rather than
   /// the parsed [QueueItem], because the whole point of the parsed form is that
@@ -154,11 +154,11 @@ class QueueRepository {
       for (final key in _calibrationKeys) {
         final value = record[key];
         if (value is String) {
-          _observedTriState = true;
+          _triState.observe(present: true);
           return;
         }
         if (value is bool) {
-          _observedTriState = false;
+          _triState.observe(present: false);
           return;
         }
       }

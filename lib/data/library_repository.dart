@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/json_utils.dart';
@@ -28,34 +29,28 @@ class LibraryRepository {
   /// every server generation is happy with.
   final ServerVersionService? _serverVersion;
 
-  /// What the server's own file listing showed, once one has arrived.
-  ///
-  /// Outranks the version number for the same reason
-  /// `QueueRepository._observedTriState` does: `variant_count` is a
-  /// non-optional field on 1.2.6's `FileListResponse` and absent before it, so
-  /// its presence answers outright what a version string can only suggest.
-  /// Null until a listing with at least one row has been parsed — an empty
-  /// library reveals nothing either way.
-  bool? _observedVariants;
-
   /// Whether this server groups library files into cross-model variant sets.
   ///
-  /// Observation first, version second, `false` when neither knows — so the
-  /// grouping actions stay hidden rather than 404ing on an older server.
-  Future<bool> supportsCrossModelVariants() async {
-    final observed = _observedVariants;
-    if (observed != null) return observed;
-    return await _serverVersion?.supports(ServerFeature.crossModelVariants) ??
-        false;
-  }
+  /// The file listing outranks the version number: `variant_count` is a
+  /// non-optional field on 1.2.6's `FileListResponse` and absent before it, so
+  /// its presence answers outright what a version string can only suggest.
+  /// Unknown → hidden, so the grouping actions stay away rather than 404ing on
+  /// an older server.
+  late final _variants = ObservedCapability(
+    ServerFeature.crossModelVariants,
+    _serverVersion,
+  );
+
+  Future<bool> supportsCrossModelVariants() => _variants.supported;
 
   /// Records whether a parsed listing carried the 1.2.6 variant fields. Reads
   /// the raw rows rather than the model, because the model cannot distinguish
-  /// "absent" from the `0` it defaults to.
+  /// "absent" from the `0` it defaults to. A listing with no rows at all is
+  /// left unobserved — an empty library reveals nothing either way.
   void _observeVariantSupport(List<dynamic> rows) {
     final firstMap = rows.whereType<Map<String, dynamic>>().firstOrNull;
     if (firstMap == null) return;
-    _observedVariants = firstMap.containsKey('variant_count');
+    _variants.observe(present: firstMap.containsKey('variant_count'));
   }
 
   /// GET /library/files — files in folder [folderId] (null = root).

@@ -1625,6 +1625,7 @@
   "wearNoActions": "No actions available",
   "wearClearPlate": "Clear plate",
   "wearPlateCleared": "Plate cleared",
+  "wearPlateNeedsOnline": "This server needs the printer online",
   "wearStarted": "Started",
   "wearPhoneUnreachable": "Phone unreachable",
   "wearPhoneNoResponse": "Phone did not respond",

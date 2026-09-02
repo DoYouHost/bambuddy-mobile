@@ -1456,6 +1456,7 @@
   "wearNoActions": "Brak dostępnych akcji",
   "wearClearPlate": "Zwolnij płytę",
   "wearPlateCleared": "Płyta zwolniona",
+  "wearPlateNeedsOnline": "Ten serwer wymaga drukarki online",
   "wearStarted": "Uruchomiono",
   "wearPhoneUnreachable": "Telefon nieosiągalny",
   "wearPhoneNoResponse": "Telefon nie odpowiedział",

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive_capabilities.dart';
@@ -26,42 +27,23 @@ class SlicerRepository {
   /// a [presetValues] call has answered it.
   final ServerVersionService? _serverVersion;
 
-  /// What `GET /slicer/preset-values` actually did, once it has been called.
-  ///
-  /// The route arrived in 1.2.6 and 404s before it, which settles the question
-  /// outright — so it outranks the version number, as
-  /// `QueueRepository._observedTriState` does. Note this is about the *route*,
-  /// not about `resolved`: a server that answers `resolved: false` still
-  /// supports overrides, it just could not read the preset's values.
-  bool? _observedPresetValues;
-
-  /// Whether this caller was refused the route outright (403).
-  ///
-  /// Kept apart from [_observedPresetValues] because it answers a different
-  /// question: the route exists, this session may not use it. Recording it as an
-  /// observation about the *route* would outrank a correct version read for a
-  /// reason that has nothing to do with the server's version.
-  ///
-  /// Latching for the instance's life is safe — the repository is rebuilt when
-  /// `apiClientProvider` changes, so new credentials get a fresh answer — and a
-  /// later success clears it anyway.
-  bool _presetValuesForbidden = false;
-
   /// Whether this server accepts `process_overrides` on a slice request.
   ///
-  /// Observation first, version second, `false` when neither knows — the panel
-  /// stays hidden rather than collecting edits the server would silently drop
-  /// (nothing forbids extra fields in `SliceRequest`, so they vanish without a
-  /// word on an older server).
-  Future<bool> supportsProcessOverrides() async {
-    // A refusal outranks both: the route being there is no use to a caller who
-    // may not call it, and the slice itself needs the same permission.
-    if (_presetValuesForbidden) return false;
-    final observed = _observedPresetValues;
-    if (observed != null) return observed;
-    return await _serverVersion?.supports(ServerFeature.processOverrides) ??
-        false;
-  }
+  /// What `GET /slicer/preset-values` did outranks the version number: the
+  /// route arrived in 1.2.6 and 404s before it, which settles the question
+  /// outright. A 403 outranks both — the route being there is no use to a
+  /// caller who may not call it, and the slice itself needs the same
+  /// permission. Note this is about the *route*, not about `resolved`: a server
+  /// that answers `resolved: false` still supports overrides, it just could not
+  /// read the preset's values. Unknown → hidden, so the panel does not collect
+  /// edits the server would silently drop (nothing forbids extra fields in
+  /// `SliceRequest`, so they vanish without a word on an older server).
+  late final _processOverrides = ObservedCapability(
+    ServerFeature.processOverrides,
+    _serverVersion,
+  );
+
+  Future<bool> supportsProcessOverrides() => _processOverrides.supported;
 
   /// Whether `auto_orient` / `auto_arrange` reach the slicer. Version-only:
   /// they are request fields with no route of their own to probe, and an older
@@ -181,23 +163,17 @@ class SlicerRepository {
         Endpoints.slicerPresetValues,
         queryParameters: {...preset.toRef(), 'slot': 'process'},
       );
-      _observedPresetValues = true;
-      _presetValuesForbidden = false;
+      _processOverrides.observe(present: true);
       return PresetValues.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      if (status == 404) {
-        _observedPresetValues = false;
-        return null;
-      }
-      if (status == 403) {
-        // Deliberately handled before the AuthException rethrow below, which a
-        // 403 also maps to: unlike a 401 this is a permanent per-permission
-        // answer, and throwing it out of a panel read would surface a dialog for
-        // a control the user simply cannot have.
-        _presetValuesForbidden = true;
-        return null;
-      }
+      _processOverrides.observeFailure(status);
+      // The 403 is deliberately answered here rather than falling through to
+      // the AuthException rethrow below, which a 403 also maps to: unlike a 401
+      // this is a permanent per-permission answer, and throwing it out of a
+      // panel read would surface a dialog for a control the user simply cannot
+      // have.
+      if (status == 404 || status == 403) return null;
       final mapped = mapDioException(e);
       if (mapped is AuthException) throw mapped;
       return PresetValues.unresolved;

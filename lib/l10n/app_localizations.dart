@@ -7826,6 +7826,12 @@ abstract class AppLocalizations {
   /// **'Plate cleared'**
   String get wearPlateCleared;
 
+  /// No description provided for @wearPlateNeedsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs the printer online'**
+  String get wearPlateNeedsOnline;
+
   /// No description provided for @wearStarted.
   ///
   /// In en, this message translates to:

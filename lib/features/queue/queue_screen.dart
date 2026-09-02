@@ -669,7 +669,7 @@ Future<void> _startQueueItem(
         e,
         l10n,
         action: 'queue.plate_clear',
-        message: recordPlateClearFailure(ref, e)
+        message: recordPlateClearRefusal(ref, e.detail)
             ? l10n.plateClearNeedsOnline
             : null,
       );
@@ -695,12 +695,15 @@ Future<void> _startQueueItem(
 /// dispatches the pending job once the printer wakes. Falls back to a fresh
 /// fetch only when the printer isn't cached.
 Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
-  if (!await ref.read(requirePlateClearProvider.future)) return false;
+  final gateEnabled = await ref.read(requirePlateClearProvider.future);
+  if (!gateEnabled) return false;
   final cached = ref.read(printerStatusesProvider)[printerId];
-  if (cached != null) return cached.awaitingPlateClear == true;
+  if (cached != null) {
+    return plateClearPending(cached, gateEnabled: () => gateEnabled);
+  }
   try {
     final st = await ref.read(printersRepositoryProvider).fetchStatus(printerId);
-    return st?.awaitingPlateClear == true;
+    return plateClearPending(st, gateEnabled: () => gateEnabled);
   } on AppApiException {
     return false;
   }

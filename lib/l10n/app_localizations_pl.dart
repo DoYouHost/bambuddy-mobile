@@ -4648,6 +4648,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wearPlateCleared => 'Płyta zwolniona';
 
   @override
+  String get wearPlateNeedsOnline => 'Ten serwer wymaga drukarki online';
+
+  @override
   String get wearStarted => 'Uruchomiono';
 
   @override

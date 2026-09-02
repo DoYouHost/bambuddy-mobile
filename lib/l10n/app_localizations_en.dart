@@ -4575,6 +4575,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wearPlateCleared => 'Plate cleared';
 
   @override
+  String get wearPlateNeedsOnline => 'This server needs the printer online';
+
+  @override
   String get wearStarted => 'Started';
 
   @override
