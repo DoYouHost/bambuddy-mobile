@@ -34,6 +34,58 @@ enum WearRpcAction {
   hmsAction,
 }
 
+/// What a *second* run of an action costs.
+///
+/// Two places ask, from opposite sides — the watch deciding whether to run a
+/// timed-out call itself, the phone deciding whether to run a call whose sender
+/// has stopped waiting — and one table is what keeps their answers from
+/// drifting apart as actions are added.
+enum WearRpcRetry {
+  /// A read: asking again changes nothing.
+  read,
+
+  /// A command whose second run leaves the printer where the first one already
+  /// put it.
+  idempotent,
+
+  /// A command whose second run does something the first one did not.
+  destructive,
+}
+
+extension WearRpcActionRetry on WearRpcAction {
+  /// Exhaustive on purpose: a new action is classified here, in the protocol,
+  /// rather than separately in each place that asks.
+  WearRpcRetry get retry => switch (this) {
+        WearRpcAction.getFleet => WearRpcRetry.read,
+        WearRpcAction.pause => WearRpcRetry.idempotent,
+        WearRpcAction.resume => WearRpcRetry.idempotent,
+        WearRpcAction.stop => WearRpcRetry.idempotent,
+        WearRpcAction.clearPlate => WearRpcRetry.idempotent,
+        WearRpcAction.hmsClear => WearRpcRetry.idempotent,
+        WearRpcAction.hmsAction => WearRpcRetry.idempotent,
+        WearRpcAction.startNext => WearRpcRetry.destructive,
+      };
+
+  /// Whether the **watch** may serve this over its own REST connection after
+  /// the relay timed out (`HybridWearTransport`).
+  ///
+  /// Only a read, [WearRpcRetry.idempotent] included: a command that timed out
+  /// may have run on the phone with the reply lost on the way back, and the
+  /// watch cannot tell that from a phone that never heard it. It does not
+  /// guess — not even where the repeat itself would be harmless, because the
+  /// user is owed one answer about one command, not two attempts at it.
+  bool get mayRepeatOverRest => retry == WearRpcRetry.read;
+
+  /// Whether the **phone** may execute this for a sender that has already
+  /// given up on it (`wear_relay_engine.dart`).
+  ///
+  /// The phone is not guessing here: it was woken *by* this request, so it
+  /// knows nothing has run yet. The only question left is what the user's next
+  /// tap would do, and only [WearRpcRetry.destructive] answers that with
+  /// "print the next plate as well".
+  bool get isRepeatSafe => retry != WearRpcRetry.destructive;
+}
+
 const _kVersion = 'v';
 const _kKind = 'kind';
 const _kId = 'id';
@@ -43,17 +95,39 @@ const _kPrintError = 'printError';
 const _kHmsAction = 'hmsAction';
 const _kJobId = 'jobId';
 const _kOk = 'ok';
+const _kState = 'state';
 const _kData = 'data';
 const _kError = 'error';
 const _kReason = 'reason';
 
 const _kindRequest = 'req';
 const _kindResponse = 'res';
+const _kindAck = 'ack';
 
 /// Contract version, bumped on incompatible changes. A decoder seeing a newer
 /// version than it knows still tries to parse (fields are additive) — the
 /// field exists so a future breaking change can be detected explicitly.
-const wearRpcVersion = 1;
+///
+/// v2 = the sender understands [WearRpcAck] and waits [wearRpcWakeTimeout] for
+/// a request it has been acked. The phone reads this off a request to decide
+/// whether it may execute one on the cold path at all: a v1 watch has already
+/// given up by then, and its retry would run the command a second time.
+const wearRpcVersion = 2;
+
+/// First version whose sender waits for a woken phone. Mirrored natively in
+/// `WearRelayListenerService.kt` — the cold path is gated on it.
+const wearRpcWakeAwareVersion = 2;
+
+/// How long the watch waits for a request the phone acked as "waking". Covers a
+/// cold engine boot (process start, secure storage, an authenticated Dio) plus
+/// the request itself, and is deliberately not the timeout for a phone that
+/// never acks — see [wearRpcAckWaking].
+const wearRpcWakeTimeout = Duration(seconds: 15);
+
+/// The one [WearRpcAck.state] there is so far: the phone was asleep, its relay
+/// is starting, the reply will be late but it is coming. An unknown state
+/// decodes as an ack all the same — any ack means "someone is on it".
+const wearRpcAckWaking = 'waking';
 
 final _rng = Random();
 
@@ -86,6 +160,7 @@ class WearRpcRequest {
   const WearRpcRequest({
     required this.id,
     required this.action,
+    this.version = wearRpcVersion,
     this.printerId,
     this.printError,
     this.hmsAction,
@@ -99,10 +174,16 @@ class WearRpcRequest {
     this.printError,
     this.hmsAction,
     this.jobId,
-  }) : id = _newRpcId();
+  })  : id = _newRpcId(),
+        version = wearRpcVersion;
 
   final String id;
   final WearRpcAction action;
+
+  /// The *sender's* contract version, which is what tells the phone whether
+  /// this watch will still be listening after a wake — see
+  /// [wearRpcWakeAwareVersion].
+  final int version;
 
   /// Required for every action except [WearRpcAction.getFleet].
   final int? printerId;
@@ -118,6 +199,16 @@ class WearRpcRequest {
 
   /// The fault's `job_id` snapshot, absent for an idle-state fault.
   final String? jobId;
+
+  /// Whether a phone woken *by this request* may execute it there and then.
+  ///
+  /// A sender older than [wearRpcWakeAwareVersion] does not know the wake ack
+  /// and has given up long before a cold boot can answer, so its user's next
+  /// tap is the second run — which only a repeat-safe action survives. Every
+  /// later request reaches a warm engine, is answered in milliseconds, and is
+  /// not gated at all (`wear_relay_engine.dart`).
+  bool get mayRunOnWake =>
+      version >= wearRpcWakeAwareVersion || action.isRepeatSafe;
 
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
@@ -142,9 +233,13 @@ class WearRpcRequest {
     final action = WearRpcAction.values.asNameMap()[map[_kAction]];
     if (action == null) return null;
     final printerId = map[_kPrinterId];
+    final version = map[_kVersion];
     return WearRpcRequest(
       id: id,
       action: action,
+      // Absent only in a map that never came from this app; 1 is the version
+      // that did not send one it could be trusted for.
+      version: version is int ? version : 1,
       printerId: printerId is int ? printerId : null,
       printError: _stringOrNull(map[_kPrintError]),
       hmsAction: _stringOrNull(map[_kHmsAction]),
@@ -209,5 +304,37 @@ class WearRpcResponse {
       error is String ? error : 'unknown',
       reason: reason is String && reason.isNotEmpty ? reason : null,
     );
+  }
+}
+
+/// Phone→watch "hold on": the phone had no relay listening, the message woke
+/// its process, and an answer to [id] is coming later than the watch's normal
+/// deadline.
+///
+/// A separate `kind` rather than a field on [WearRpcResponse], because a watch
+/// built before this existed must not read it as an answer: its decoders match
+/// on the kind and drop everything else, so an ack is silently ignored there
+/// and the request keeps the deadline it always had.
+class WearRpcAck {
+  const WearRpcAck(this.id, {this.state = wearRpcAckWaking});
+
+  final String id;
+
+  /// Why the answer is late; [wearRpcAckWaking] today.
+  final String state;
+
+  Map<String, dynamic> encode() => <String, dynamic>{
+        _kVersion: wearRpcVersion,
+        _kKind: _kindAck,
+        _kId: id,
+        _kState: state,
+      };
+
+  /// Returns null for foreign/malformed maps and for the other two kinds.
+  static WearRpcAck? decode(Map<Object?, Object?> map) {
+    if (map[_kKind] != _kindAck) return null;
+    final id = map[_kId];
+    if (id is! String || id.isEmpty) return null;
+    return WearRpcAck(id, state: _stringOrNull(map[_kState]) ?? wearRpcAckWaking);
   }
 }

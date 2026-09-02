@@ -56,7 +56,7 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       unawaited(ref.read(watchConfigSyncProvider).push(profile));
     }
     // Answer watch relay requests for as long as the app lives (plan 05).
-    ref.read(wearRelayHandlerProvider).start();
+    unawaited(ref.read(wearRelayHandlerProvider).start());
   }
 
   @override

@@ -21,6 +21,7 @@ import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
+import 'core/watch/wear_relay_claim.dart';
 import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/current_user.dart';
@@ -92,6 +93,7 @@ final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
     dio: () => ref.read(serverProfileProvider) == null
         ? null
         : ref.read(apiClientProvider).dio,
+    claim: WearRelayClaim(ref.watch(settingsRepositoryProvider)),
   );
   ref.onDispose(handler.stop);
   return handler;

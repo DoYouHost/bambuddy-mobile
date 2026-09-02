@@ -1,8 +1,11 @@
+import 'package:bambuddy_mobile/core/settings/settings_repository.dart';
+import 'package:bambuddy_mobile/core/watch/wear_relay_claim.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_watch_connectivity.dart';
 
@@ -22,7 +25,7 @@ void main() {
     WearRelayHandler handler,
     WearRpcRequest request,
   ) async {
-    handler.start();
+    await handler.start();
     watch.deliver(request.encode());
     await pumpEventQueue();
     expect(watch.sent, hasLength(1));
@@ -274,9 +277,95 @@ void main() {
 
   test('ignores non-request messages (no reply loop on own responses)',
       () async {
-    WearRelayHandler(watch: watch, dio: () => dio).start();
+    await WearRelayHandler(watch: watch, dio: () => dio).start();
     watch.deliver(const WearRpcResponse.ok('x').encode());
     await pumpEventQueue();
     expect(watch.sent, isEmpty);
+  });
+
+  group('the claim', () {
+    late SettingsRepository settings;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      settings = SettingsRepository(await SharedPreferences.getInstance());
+    });
+
+    WearRelayHandler handlerWithClaim({String nonce = 'ui'}) => WearRelayHandler(
+          watch: watch,
+          dio: () => dio,
+          // One process, because that is the case the nonce exists for: the
+          // foreground service's isolate shares the app's.
+          claim: WearRelayClaim(settings, processId: 4242, nonce: nonce),
+        );
+
+    test('taken while listening, released when it stops', () async {
+      // The native listener service reads this to decide whether to wake an
+      // engine of its own; a listener without a claim would be answered twice.
+      final handler = handlerWithClaim();
+      await handler.start();
+      expect(settings.loadWearRelayClaim(), '4242:ui');
+
+      await handler.stop();
+      expect(settings.loadWearRelayClaim(), isNull);
+    });
+
+    test('the hand-over inside one process survives the outgoing release',
+        () async {
+      // Backgrounding starts the service's isolate and stops the app's
+      // handler, both without waiting for the other. They share a pid, so only
+      // the nonce keeps the leaving one from wiping the arriving one's claim —
+      // and an unclaimed listener is answered by a woken engine as well.
+      final leaving = handlerWithClaim();
+      await leaving.start();
+      await WearRelayClaim(settings, processId: 4242, nonce: 'fgs').take();
+
+      await leaving.stop();
+
+      expect(settings.loadWearRelayClaim(), '4242:fgs');
+    });
+
+    test('a claim another process has taken over is left alone', () async {
+      final handler = handlerWithClaim();
+      await handler.start();
+      // The app was killed and restarted while this handler was shutting down.
+      await settings.saveWearRelayClaim('99:other');
+
+      await handler.stop();
+      expect(settings.loadWearRelayClaim(), '99:other');
+    });
+
+    test('a start that arrives mid-stop still ends up listening', () async {
+      // Pause then resume in quick succession. Read against a half-cancelled
+      // subscription, `start` used to return believing it had nothing to do —
+      // leaving no listener and no claim, and the phone answering nothing.
+      final handler = handlerWithClaim();
+      await handler.start();
+      adapter.onPost(
+          '/api/v1/printers/1/print/pause', (s) => s.reply(200, {'ok': true}));
+
+      final stopping = handler.stop();
+      final starting = handler.start();
+      await Future.wait([stopping, starting]);
+
+      expect(settings.loadWearRelayClaim(), '4242:ui');
+      watch.deliver(
+          WearRpcRequest.create(WearRpcAction.pause, printerId: 1).encode());
+      await pumpEventQueue();
+      expect(watch.sent, hasLength(1));
+    });
+
+    test('handlers without one still answer (nothing native to coordinate)',
+        () async {
+      adapter.onPost(
+          '/api/v1/printers/1/print/pause', (s) => s.reply(200, {'ok': true}));
+      final handler = WearRelayHandler(watch: watch, dio: () => dio);
+      await handler.start();
+      watch.deliver(WearRpcRequest.create(WearRpcAction.pause, printerId: 1)
+          .encode());
+      await pumpEventQueue();
+      expect(settings.loadWearRelayClaim(), isNull);
+      expect(WearRpcResponse.decode(watch.sent.single)!.ok, isTrue);
+    });
   });
 }

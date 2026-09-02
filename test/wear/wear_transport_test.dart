@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -136,6 +138,35 @@ void main() {
         throwsA(isA<StateError>()
             .having((e) => e.message, 'message', 'empty-queue')),
       );
+    });
+
+    test('wake ack pushes the deadline out: a late reply still lands', () async {
+      // A phone that was dead acks first and answers only after the base
+      // deadline has passed — the case the ack exists for.
+      watch.autoRespond = (req) {
+        final id = req['id'] as String;
+        Timer(
+          const Duration(milliseconds: 300),
+          () => watch.deliver(WearRpcResponse.ok(id).encode()),
+        );
+        return WearRpcAck(id).encode();
+      };
+      await relay.pause(1);
+    });
+
+    test('an acked request still gives up in the end', () async {
+      relay = RelayTransport(
+        watch,
+        timeout: const Duration(milliseconds: 50),
+        wakeTimeout: const Duration(milliseconds: 150),
+      );
+      watch.autoRespond = (req) => WearRpcAck(req['id'] as String).encode();
+      await expectLater(relay.pause(1), throwsA(isA<WearRelayTimeout>()));
+    });
+
+    test('ack for another id does not extend this request', () async {
+      watch.autoRespond = (req) => const WearRpcAck('some-other-id').encode();
+      await expectLater(relay.pause(1), throwsA(isA<WearRelayTimeout>()));
     });
 
     test('other remote errors surface as WearRelayRemoteError with the code',
