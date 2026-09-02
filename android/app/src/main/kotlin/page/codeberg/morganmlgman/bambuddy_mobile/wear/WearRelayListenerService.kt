@@ -31,33 +31,37 @@ class WearRelayListenerService : WearableListenerService() {
         if (relayClaimedInThisProcess()) return
         val request = WearRpcCodec.requestOrNull(event.data) ?: return
         val id = WearRpcCodec.idOf(request) ?: return
+        // First thing on the wire, before any work: the ack exists to buy the
+        // watch time, and every millisecond spent ahead of it — the node check
+        // below can wait on a cold Play services — comes out of the deadline it
+        // is meant to extend. Nothing is executed yet, so an ack to a forged
+        // node id costs a message to a node that does not exist.
+        sendAck(event.sourceNodeId, id)
         // The service is exported (Play services binds it from its own
         // process), so the sender is checked rather than assumed: a real
         // request comes from a node that is connected to this phone right now,
         // and a node id is not something another app on the phone can produce.
         if (!isConnectedNode(event.sourceNodeId)) return
-        // Before the wake, not after: the extra time the watch grants has to
-        // cover the engine boot it is waiting through.
-        sendAck(event.sourceNodeId, id)
         WearRelayEngineHost.handle(this, request)
     }
 
     /**
      * Whether a Dart responder in *this* process is listening.
      *
-     * The mark is a process id and not a flag on purpose (`WearRelayClaim` in
-     * Dart has the reasoning): a process that was killed cannot leave a claim
-     * that silences this service for good, because the pid it wrote can never
-     * equal ours again.
+     * The claim is `<pid>:<nonce>` and this side reads only the pid: a process
+     * that was killed cannot leave a claim that silences the service for good,
+     * because the pid it wrote can never equal ours again. The nonce tells two
+     * responders inside one process apart, which is Dart's problem to solve
+     * (`WearRelayClaim`), not ours.
      */
     private fun relayClaimedInThisProcess(): Boolean {
         val prefs = getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
-        val claimed = try {
-            prefs.getLong(CLAIM_KEY, NO_CLAIM)
+        val claim = try {
+            prefs.getString(CLAIM_KEY, null)
         } catch (_: ClassCastException) {
-            NO_CLAIM
-        }
-        return claimed == Process.myPid().toLong()
+            null
+        } ?: return false
+        return claim.substringBefore(':').toLongOrNull() == Process.myPid().toLong()
     }
 
     private fun isConnectedNode(nodeId: String): Boolean = try {
@@ -88,7 +92,6 @@ class WearRelayListenerService : WearableListenerService() {
 
         /** `shared_preferences`' own file and the `flutter.` prefix it adds. */
         const val FLUTTER_PREFS = "FlutterSharedPreferences"
-        const val CLAIM_KEY = "flutter.wear_relay_pid"
-        const val NO_CLAIM = -1L
+        const val CLAIM_KEY = "flutter.wear_relay_claim"
     }
 }

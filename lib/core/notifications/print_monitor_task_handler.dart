@@ -550,7 +550,10 @@ class PrintMonitorTaskHandler extends TaskHandler {
     _maintenanceTimer?.cancel();
     _tokenRefresher?.stop();
     _monitor?.dispose();
-    _wearRelay?.stop();
+    // Awaited like the rest: the claim release is a prefs write, and this
+    // isolate is about to be torn down — an unawaited one may never land, and
+    // a claim left behind is a request nobody answers.
+    await _wearRelay?.stop();
     await _connSub?.cancel();
     await _sub?.cancel();
     await _plateSub?.cancel();

@@ -255,6 +255,25 @@ void main() {
       expect(WearRpcAction.startNext.mayRepeatOverRest, isFalse);
     });
 
+    test('the wake gate reads the sender version and the table together', () {
+      const pauseV1 =
+          WearRpcRequest(id: 'x', action: WearRpcAction.pause, version: 1);
+      const startV1 =
+          WearRpcRequest(id: 'x', action: WearRpcAction.startNext, version: 1);
+      const startNow = WearRpcRequest(
+        id: 'x',
+        action: WearRpcAction.startNext,
+        version: wearRpcWakeAwareVersion,
+      );
+
+      expect(pauseV1.mayRunOnWake, isTrue);
+      // The v1 watch stopped waiting long ago; its user's next tap would be
+      // the second start.
+      expect(startV1.mayRunOnWake, isFalse);
+      // This one waits for the ack, so it will see the answer to this run.
+      expect(startNow.mayRunOnWake, isTrue);
+    });
+
     test('a woken phone runs everything except the destructive one', () {
       // It knows nothing has run yet, so the only question is what the user's
       // retry would add — and that is a plate only for startNext.

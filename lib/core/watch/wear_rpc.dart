@@ -200,6 +200,16 @@ class WearRpcRequest {
   /// The fault's `job_id` snapshot, absent for an idle-state fault.
   final String? jobId;
 
+  /// Whether a phone woken *by this request* may execute it there and then.
+  ///
+  /// A sender older than [wearRpcWakeAwareVersion] does not know the wake ack
+  /// and has given up long before a cold boot can answer, so its user's next
+  /// tap is the second run — which only a repeat-safe action survives. Every
+  /// later request reaches a warm engine, is answered in milliseconds, and is
+  /// not gated at all (`wear_relay_engine.dart`).
+  bool get mayRunOnWake =>
+      version >= wearRpcWakeAwareVersion || action.isRepeatSafe;
+
   Map<String, dynamic> encode() => <String, dynamic>{
         _kVersion: wearRpcVersion,
         _kKind: _kindRequest,

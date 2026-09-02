@@ -57,6 +57,9 @@ class WearRelayHandler {
 
   StreamSubscription<Map<String, dynamic>>? _sub;
 
+  /// The tail of the start/stop chain — see [_sequenced].
+  Future<void> _pending = Future<void>.value();
+
   /// Idempotent. Requests are handled sequentially per message (each handled
   /// in its own async task; the stream isn't awaited) — fine for a watch that
   /// sends one request at a time per screen.
@@ -64,21 +67,39 @@ class WearRelayHandler {
   /// Claim first, listener second — and the reverse in [stop]. Between those
   /// two acts the native service believes nobody is answering, and a request
   /// arriving then would be answered by a woken engine as well as by this
-  /// listener.
-  Future<void> start() async {
-    if (_sub != null) return;
-    await _claim?.take();
-    _sub ??= _watch.messageStream.listen((map) {
-      final req = WearRpcRequest.decode(map);
-      if (req == null) return; // foreign message or our own response echo
-      unawaited(handle(req));
-    });
-  }
+  /// listener. A claim that could not be written means no listener at all, for
+  /// the same reason.
+  Future<void> start() => _sequenced(() async {
+        if (_sub != null) return;
+        final claim = _claim;
+        if (claim != null && !await claim.take()) return;
+        _sub = _watch.messageStream.listen((map) {
+          final req = WearRpcRequest.decode(map);
+          if (req == null) return; // foreign message or our own response echo
+          unawaited(handle(req));
+        });
+      });
 
-  Future<void> stop() async {
-    await _sub?.cancel();
-    _sub = null;
-    await _claim?.release();
+  Future<void> stop() => _sequenced(() async {
+        await _sub?.cancel();
+        _sub = null;
+        await _claim?.release();
+      });
+
+  /// Runs start/stop one at a time.
+  ///
+  /// Each of them is two steps — the claim and the subscription — and every
+  /// caller is a lifecycle callback that fires them without awaiting, so the
+  /// next one arrives while the previous is still in flight. Interleaved, they
+  /// leave either a listener with no claim (a woken engine answers the same
+  /// request) or a claim with no listener (nothing answers at all), and
+  /// `start`'s own `_sub` check would read a subscription that `stop` is
+  /// half-way through cancelling.
+  Future<void> _sequenced(Future<void> Function() step) {
+    final done = _pending.then((_) => step());
+    // A step that failed must not wedge the ones queued behind it.
+    _pending = done.catchError((_) {});
+    return done;
   }
 
   /// Executes one request and sends the reply back to the watch.

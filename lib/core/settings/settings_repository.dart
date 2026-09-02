@@ -25,7 +25,7 @@ class SettingsRepository {
   static const _printOptionsKey = 'print_options';
   static const _diagnosticsSessionKey = 'diagnostics_session';
   static const _clock24hKey = 'clock_24h';
-  static const _wearRelayPidKey = 'wear_relay_pid';
+  static const _wearRelayClaimKey = 'wear_relay_claim';
 
   final SharedPreferences _prefs;
 
@@ -201,13 +201,15 @@ class SettingsRepository {
       ? _prefs.remove(_diagnosticsSessionKey)
       : _prefs.setString(_diagnosticsSessionKey, session);
 
-  /// The process whose watch-relay responder is listening — `WearRelayClaim`
-  /// has the why. Also read natively, as `flutter.wear_relay_pid` in
-  /// `FlutterSharedPreferences` (`WearRelayListenerService.kt`): rename it here
-  /// and the phone stops waking up for the watch, with nothing to show it.
-  int? loadWearRelayPid() => _prefs.getInt(_wearRelayPidKey);
+  /// Which watch-relay responder is listening, as `<pid>:<nonce>` —
+  /// `WearRelayClaim` has the why for both halves. Also read natively, as
+  /// `flutter.wear_relay_claim` in `FlutterSharedPreferences`
+  /// (`WearRelayListenerService.kt`, which only reads the pid): rename it here
+  /// and the phone stops waking up for the watch, with nothing to show for it.
+  /// `wear_relay_native_contract_test` is what notices.
+  String? loadWearRelayClaim() => _prefs.getString(_wearRelayClaimKey);
 
-  Future<void> saveWearRelayPid(int? processId) => processId == null
-      ? _prefs.remove(_wearRelayPidKey)
-      : _prefs.setInt(_wearRelayPidKey, processId);
+  Future<void> saveWearRelayClaim(String? claim) => claim == null
+      ? _prefs.remove(_wearRelayClaimKey)
+      : _prefs.setString(_wearRelayClaimKey, claim);
 }

@@ -58,6 +58,9 @@ class WearRelayEngine {
   /// the request that woke this process.
   bool _cold = true;
 
+  /// Whether a diagnostics session is still worth looking for.
+  bool _mayRecord = true;
+
   /// Answers one forwarded request; false means this build could not read it
   /// as one (a newer watch's action, or a foreign map), so the native side can
   /// tell a wake that did nothing from one that answered.
@@ -69,12 +72,17 @@ class WearRelayEngine {
     if (req == null) return false;
     final cold = _cold;
     _cold = false;
-    final recording = await DiagnosticRecorder.startAction();
+    // A session cannot appear while this engine is in use: recording is
+    // started from the app, and an open app holds the claim that stops the
+    // service forwarding anything here. So one "no" is final, and the warm
+    // path stops paying a prefs reload per request for it.
+    final recording = _mayRecord ? await DiagnosticRecorder.startAction() : null;
+    _mayRecord = recording != null;
     final started = DateTime.now();
-    var outcome = 'answered';
+    var outcome = _WakeOutcome.answered;
     try {
-      if (cold && !_mayRunOnWake(req)) {
-        outcome = 'sender_cannot_wait';
+      if (cold && !req.mayRunOnWake) {
+        outcome = _WakeOutcome.senderCannotWait;
         return false;
       }
       // Built once per wake and kept: the watch usually follows a command with
@@ -91,7 +99,7 @@ class WearRelayEngine {
       await handler.handle(req);
       return true;
     } on Object {
-      outcome = 'failed';
+      outcome = _WakeOutcome.failed;
       return false;
     } finally {
       // Before the reply is answered, not after: once the service returns,
@@ -102,21 +110,11 @@ class WearRelayEngine {
     }
   }
 
-  /// Whether a request may be *executed* on the wake it caused.
-  ///
-  /// A watch older than [wearRpcWakeAwareVersion] does not know the wake ack
-  /// and has given up long before a cold boot can answer, so for it this wake
-  /// exists to leave the engine warm for the retry — and the retry must not be
-  /// the second run of something that does not repeat. Every later request
-  /// reaches a warm engine, is answered in milliseconds, and is not gated.
-  bool _mayRunOnWake(WearRpcRequest req) =>
-      req.version >= wearRpcWakeAwareVersion || req.action.isRepeatSafe;
-
   void _record(
     WearRpcRequest req, {
     required DateTime since,
     required bool cold,
-    required String outcome,
+    required _WakeOutcome outcome,
   }) {
     // The one line that separates "the watch never reached the phone" from
     // "the phone woke up and still could not answer" — the whole reason this
@@ -131,9 +129,22 @@ class WearRelayEngine {
         // watch that waited says the phone was slow, and the `outcome` is why
         // one that waited in vain got nothing.
         'cold': cold,
-        'outcome': outcome,
+        'outcome': outcome.name,
         'sender_v': req.version,
       },
     );
   }
+}
+
+/// What a wake did, as its record spells it.
+enum _WakeOutcome {
+  /// The reply went to the watch.
+  answered,
+
+  /// The sender cannot wait for a wake and the action does not survive being
+  /// run twice — [WearRpcRequest.mayRunOnWake].
+  senderCannotWait,
+
+  /// The handler threw where it is documented not to.
+  failed,
 }
