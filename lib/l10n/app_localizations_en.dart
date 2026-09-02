@@ -4452,6 +4452,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plateClearedSnack => 'Plate marked as cleared';
 
   @override
+  String get plateClearNeedsOnline =>
+      'This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.';
+
+  @override
   String get pfmTitle => 'File Manager';
 
   @override
@@ -4569,6 +4573,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wearPlateCleared => 'Plate cleared';
+
+  @override
+  String get wearPlateNeedsOnline => 'This server needs the printer online';
 
   @override
   String get wearStarted => 'Started';

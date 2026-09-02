@@ -400,6 +400,25 @@ void main() {
       expect(merged.hmsErrors, isNotNull);
     });
 
+    test('the plate-clear gate survives the printer going offline', () {
+      // Not telemetry: the gate is bambuddy's own flag, persisted so it outlives
+      // the printer being switched off. Under Auto Power Off that is how every
+      // print ends, and dropping the flag here hid the only control that
+      // releases it (server #2864).
+      const prev =
+          PrinterStatus(id: 1, connected: true, awaitingPlateClear: true);
+      const offline =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: true);
+
+      expect(offline.mergedWith(prev).awaitingPlateClear, isTrue);
+      // Same normalisation with nothing to merge onto (first frame after start).
+      expect(offline.mergedWith(null).awaitingPlateClear, isTrue);
+      // The server releasing the gate still propagates — this is not stickiness.
+      const cleared =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: false);
+      expect(cleared.mergedWith(prev).awaitingPlateClear, isFalse);
+    });
+
     test('powrót online repopuluje telemetrię ze świeżej ramki', () {
       const offline = PrinterStatus(id: 1, connected: false, model: 'P1S');
       const online = PrinterStatus(

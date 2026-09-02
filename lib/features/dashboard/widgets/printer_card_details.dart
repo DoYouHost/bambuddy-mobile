@@ -1,8 +1,9 @@
 part of 'printer_card.dart';
 
-/// Plate-clear banner: shown only when the scheduler requires plate-clear
-/// confirmation AND this printer still has a finished job on the plate. The
-/// button posts the `clear-plate` acknowledgement, freeing the scheduler.
+/// Plate-clear banner: the phone's door to the acknowledgement. When it is
+/// offered, and why an unreachable printer is offered it too, is
+/// [plateClearOffered]; the button posts the `clear-plate` acknowledgement,
+/// freeing the scheduler.
 class _PlateClearBanner extends ConsumerStatefulWidget {
   const _PlateClearBanner({required this.printerId, required this.status});
 
@@ -19,6 +20,10 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   Future<void> _clear() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Read out with the messenger, and for the same reason: the answer can land
+    // after this banner is gone (the printer reconnects and the card swaps
+    // layout, or the dashboard is left), and `ref` throws once that happens.
+    final gate = ref.read(offlinePlateClearProvider.notifier);
     setState(() => _busy = true);
     try {
       await ref
@@ -26,7 +31,15 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           .clearPlate(widget.printerId);
       messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'printer.plate_clear',
+        message: recordPlateClearRefusal(gate, e.detail)
+            ? l10n.plateClearNeedsOnline
+            : null,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -34,11 +47,9 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.status.awaitingPlateClear != true) {
+    if (!plateClearOffered(ref, widget.status)) {
       return const SizedBox.shrink();
     }
-    final require = ref.watch(requirePlateClearProvider).valueOrNull ?? false;
-    if (!require) return const SizedBox.shrink();
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);

@@ -1585,6 +1585,7 @@
   "plateClearAction": "Mark plate as cleared",
   "plateClearBadge": "Plate not cleared",
   "plateClearedSnack": "Plate marked as cleared",
+  "plateClearNeedsOnline": "This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.",
 
   "pfmTitle": "File Manager",
   "pfmTooltip": "Files on printer",
@@ -1624,6 +1625,7 @@
   "wearNoActions": "No actions available",
   "wearClearPlate": "Clear plate",
   "wearPlateCleared": "Plate cleared",
+  "wearPlateNeedsOnline": "This server needs the printer online",
   "wearStarted": "Started",
   "wearPhoneUnreachable": "Phone unreachable",
   "wearPhoneNoResponse": "Phone did not respond",

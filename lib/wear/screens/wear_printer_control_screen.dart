@@ -7,9 +7,9 @@ import '../../core/models/printer_status.dart';
 import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../data/printers_repository.dart';
+import '../../features/common/plate_clear.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../../providers.dart';
 import '../wear_action.dart';
 import '../wear_error.dart';
 import '../wear_providers.dart';
@@ -83,8 +83,6 @@ class _WearPrinterControlBodyState
     }
     final status = item.status;
     final state = wearStateOf(status);
-    final requirePlateClear =
-        ref.watch(requirePlateClearProvider).valueOrNull ?? false;
 
     return Stack(
       children: [
@@ -104,7 +102,7 @@ class _WearPrinterControlBodyState
               _progress(l10n, status),
             const SizedBox(height: 10),
             ..._faults(item),
-            ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+            ..._actions(item, state, fleet?.queuePending),
             if (widget.showSettings) ...[
               const SizedBox(height: 4),
               const WearSettingsEntry(),
@@ -235,12 +233,16 @@ class _WearPrinterControlBodyState
         jobId: fault.jobId));
   }
 
-  List<Widget> _actions(PrinterWithStatus item, WearState state,
-      bool requirePlateClear, int? queuePending) {
+  List<Widget> _actions(
+      PrinterWithStatus item, WearState state, int? queuePending) {
     final l10n = AppLocalizations.of(context);
     final status = item.status;
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
+    // Read out at build time rather than inside the failure callback: the
+    // callback is the one place `ref` would already be safe (it only fires
+    // while mounted), and this way every surface reaches the latch the same way.
+    final plateGate = ref.read(offlinePlateClearProvider.notifier);
     final buttons = <Widget>[];
     // What the faults above already offer. Two identical buttons stacked on a
     // 1.4" screen is a coin flip, and the fault's own is the one that carries
@@ -255,11 +257,18 @@ class _WearPrinterControlBodyState
           _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)));
     }
 
-    // Clear plate: only when the printer is waiting AND the server enforces it.
-    if (requirePlateClear && (status?.awaitingPlateClear ?? false)) {
+    // Clear plate: when it is offered — an unreachable printer included, and
+    // why — is [plateClearOffered], the same reading the phone card uses. The
+    // failure it words itself is the pre-#2864 server refusing to release the
+    // gate on a printer it cannot reach; that also withdraws this button.
+    if (plateClearOffered(ref, status)) {
       buttons.add(_btn(l10n.wearClearPlate, Icons.cleaning_services,
           () => actions.clearPlate(id),
-          okMsg: l10n.wearPlateCleared));
+          okMsg: l10n.wearPlateCleared,
+          errMsg: (error) =>
+              recordPlateClearRefusal(plateGate, _serverSaid(error))
+                  ? l10n.wearPlateNeedsOnline
+                  : null));
     }
 
     // Start next from queue: offered when the printer isn't actively printing
@@ -294,9 +303,10 @@ class _WearPrinterControlBodyState
   }
 
   Widget _btn(String label, IconData icon, Future<void> Function() action,
-          {String? okMsg, Color? color}) =>
+          {String? okMsg, Color? color, _WearFailureText? errMsg}) =>
       FilledButton.icon(
-        onPressed: busy ? null : () => _run(action, okMsg: okMsg),
+        onPressed:
+            busy ? null : () => _run(action, okMsg: okMsg, errMsg: errMsg),
         icon: Icon(icon),
         label: _label(label),
         style: color != null
@@ -353,7 +363,9 @@ class _WearPrinterControlBodyState
   /// a red line under one of eight buttons in a scrolling list is missed. The
   /// refresh is why this wrapper still exists on top of [run] — nothing else on
   /// the watch has a poll to pull.
-  Future<void> _run(Future<void> Function() action, {String? okMsg}) => run(
+  Future<void> _run(Future<void> Function() action,
+          {String? okMsg, _WearFailureText? errMsg}) =>
+      run(
         () async {
           await action();
           await ref.read(wearFleetProvider.notifier).refresh();
@@ -365,11 +377,24 @@ class _WearPrinterControlBodyState
         },
         onError: (error) => wearToast(
           context,
-          _shortError(AppLocalizations.of(context), error),
+          errMsg?.call(error) ??
+              _shortError(AppLocalizations.of(context), error),
           tone: WearToastTone.failure,
         ),
       );
 }
+
+/// A button's own wording for a failure, where the generic [_shortError] would
+/// send the user the wrong way. Null falls back to it.
+typedef _WearFailureText = String? Function(Object error);
+
+/// What the server wrote, out of whatever this screen's transport threw: the
+/// relay forwards the detail without its status code, direct REST keeps both.
+String? _serverSaid(Object error) => switch (error) {
+      WearRelayRemoteError e => e.reason,
+      AppApiException e => e.detail,
+      _ => null,
+    };
 
 /// One fault on the watch: what it is, then a full-width button per action.
 ///

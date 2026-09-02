@@ -7622,6 +7622,12 @@ abstract class AppLocalizations {
   /// **'Plate marked as cleared'**
   String get plateClearedSnack;
 
+  /// No description provided for @plateClearNeedsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This server releases the plate only while the printer is connected. Update bambuddy to do it on a printer that is switched off.'**
+  String get plateClearNeedsOnline;
+
   /// No description provided for @pfmTitle.
   ///
   /// In en, this message translates to:
@@ -7819,6 +7825,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plate cleared'**
   String get wearPlateCleared;
+
+  /// No description provided for @wearPlateNeedsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs the printer online'**
+  String get wearPlateNeedsOnline;
 
   /// No description provided for @wearStarted.
   ///
