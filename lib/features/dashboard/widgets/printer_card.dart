@@ -157,11 +157,7 @@ class _PrinterCardState extends State<PrinterCard> {
                 // remotely power the printer back on. Auto-hides if none assigned.
                 _SmartPlugButton(printerId: printerId, printing: false),
                 const SizedBox(width: 8),
-                _StateChip(
-                  label: l10n.statusOffline,
-                  connected: false,
-                  offline: true,
-                ),
+                _StateChip(label: l10n.statusOffline, offline: true),
               ],
             ),
             // The one thing that survives the collapse besides the plug, and for
@@ -213,7 +209,7 @@ class _PrinterCardState extends State<PrinterCard> {
                   children: [
                     Row(
                       children: [
-                        _IconSquare(tokens: t),
+                        _IconSquare(tokens: t, offline: !connected),
                         const SizedBox(width: 9),
                         Flexible(child: _NameText(name: name, tokens: t)),
                       ],
@@ -232,8 +228,7 @@ class _PrinterCardState extends State<PrinterCard> {
                         ? l10n.statusUnavailable
                         : (status.state ??
                             (connected ? l10n.online : l10n.offline)),
-                    connected: connected,
-                    active: printing,
+                    offline: !connected,
                   ),
                   if (connected) ...[
                     const SizedBox(height: 10),
