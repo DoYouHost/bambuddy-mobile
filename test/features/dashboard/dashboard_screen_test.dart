@@ -122,9 +122,9 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
 class _InertWearRelay extends WearRelayHandler {
   _InertWearRelay() : super(watch: WatchConnectivity(), dio: () => null);
   @override
-  void start() {}
+  Future<void> start() async {}
   @override
-  void stop() {}
+  Future<void> stop() async {}
 }
 
 /// Counts the hand-off alone; what the notifier does inside is covered by its

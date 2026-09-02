@@ -35,6 +35,7 @@ import '../format/datetime_format.dart';
 import '../models/printer_status.dart';
 import '../settings/server_profile.dart';
 import '../settings/settings_repository.dart';
+import '../watch/wear_relay_claim.dart';
 import '../watch/wear_relay_handler.dart';
 import '../widget/home_widget_publisher.dart';
 import '../widget/multi_widget_publisher.dart';
@@ -355,7 +356,9 @@ class PrintMonitorTaskHandler extends TaskHandler {
       watch: WatchConnectivity(),
       dio: () => api?.dio,
       liveStatus: (id) => _wsUp ? _rawStatuses[id] : null,
-    )..start();
+      claim: WearRelayClaim(SettingsRepository(prefs)),
+    );
+    unawaited(_wearRelay!.start());
 
     // Foreground service may live longer than JWT validity (e.g., multi-hour print) —
     // proactively refresh the token so WS handshake doesn't fail with 401.

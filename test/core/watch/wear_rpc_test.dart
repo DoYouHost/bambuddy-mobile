@@ -175,6 +175,78 @@ void main() {
     });
   });
 
+  group('WearRpcAck', () {
+    test('round-trips, and its state defaults to waking', () {
+      const ack = WearRpcAck('abc');
+      final decoded = WearRpcAck.decode(ack.encode())!;
+      expect(decoded.id, 'abc');
+      expect(decoded.state, wearRpcAckWaking);
+    });
+
+    test('an unknown state still reads as an ack', () {
+      // Any ack means "someone is on it"; a future state must not read as
+      // silence on a watch that predates it.
+      final decoded = WearRpcAck.decode(
+        const WearRpcAck('abc', state: 'from-the-future').encode(),
+      );
+      expect(decoded, isNotNull);
+      expect(decoded!.state, 'from-the-future');
+    });
+
+    test('is invisible to the request and response decoders', () {
+      // This is why the ack is a new kind and not a field: a watch or phone
+      // built before it exists drops it and keeps behaving exactly as it did.
+      final map = const WearRpcAck('abc').encode();
+      expect(WearRpcRequest.decode(map), isNull);
+      expect(WearRpcResponse.decode(map), isNull);
+    });
+
+    test('the other two kinds do not decode as an ack', () {
+      expect(
+        WearRpcAck.decode(WearRpcRequest.create(WearRpcAction.pause).encode()),
+        isNull,
+      );
+      expect(
+        WearRpcAck.decode(const WearRpcResponse.ok('abc').encode()),
+        isNull,
+      );
+    });
+  });
+
+  group('the sender version', () {
+    test('a request carries this build\'s version', () {
+      final req = WearRpcRequest.create(WearRpcAction.pause);
+      expect(req.version, wearRpcVersion);
+      expect(WearRpcRequest.decode(req.encode())!.version, wearRpcVersion);
+    });
+
+    test('a watch that sent v1 decodes as v1, not as this build', () {
+      final map = WearRpcRequest.create(WearRpcAction.startNext).encode()
+        ..['v'] = 1;
+      expect(WearRpcRequest.decode(map)!.version, 1);
+    });
+
+    test('a map with no version reads as the oldest one', () {
+      final map = WearRpcRequest.create(WearRpcAction.pause).encode()
+        ..remove('v');
+      expect(WearRpcRequest.decode(map)!.version, 1);
+    });
+  });
+
+  group('repeat safety', () {
+    test('startNext is the one action a retry must not double', () {
+      // The gate a woken phone applies to a watch that cannot wait for it:
+      // pausing twice is nothing, starting the next plate twice is a print.
+      for (final action in WearRpcAction.values) {
+        expect(
+          action.isRepeatSafe,
+          action != WearRpcAction.startNext,
+          reason: 'unexpected repeat safety for ${action.name}',
+        );
+      }
+    });
+  });
+
   group('deepSanitize', () {
     test('strips nulls recursively and re-keys maps', () {
       final out = deepSanitize({

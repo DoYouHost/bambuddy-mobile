@@ -119,4 +119,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Already on the classpath through watch_connectivity's `api` dependency,
+    // declared here because `wear/WearRelayListenerService.kt` is our own code
+    // and must not break if that plugin ever narrows it to `implementation`.
+    // Keep the version equal to the plugin's.
+    implementation("com.google.android.gms:play-services-wearable:19.0.0")
 }

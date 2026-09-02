@@ -81,16 +81,33 @@ abstract interface class WearTransport {
 /// is nearby the bridge rides Bluetooth/BLE — much cheaper than the watch
 /// holding its own WiFi connection.
 class RelayTransport implements WearTransport {
-  RelayTransport(this._watch, {this.timeout = const Duration(seconds: 4)});
+  RelayTransport(
+    this._watch, {
+    this.timeout = const Duration(seconds: 4),
+    this.wakeTimeout = wearRpcWakeTimeout,
+  });
 
   final WatchConnectivity _watch;
   final Duration timeout;
 
-  final _pending = <String, Completer<WearRpcResponse>>{};
+  /// Replaces [timeout] for a request the phone acked as waking — its process
+  /// was dead and a Flutter engine is booting to answer this one. Injectable so
+  /// a test does not have to wait out the real one.
+  final Duration wakeTimeout;
+
+  final _pending = <String, _PendingCall>{};
   StreamSubscription<Map<String, dynamic>>? _sub;
 
   void _ensureListening() {
     _sub ??= _watch.messageStream.listen((map) {
+      final ack = WearRpcAck.decode(map);
+      if (ack != null) {
+        // The phone had nothing listening and its process is starting one now.
+        // Only this request waits longer for it — a phone that is merely slow
+        // never acks, and keeps the deadline it always had.
+        _pending[ack.id]?.arm(wakeTimeout);
+        return;
+      }
       final res = WearRpcResponse.decode(map);
       if (res == null) return;
       // Unknown/duplicate id (late reply after timeout, or a second engine on
@@ -126,20 +143,24 @@ class RelayTransport implements WearTransport {
       hmsAction: hmsAction,
       jobId: jobId,
     );
-    final completer = Completer<WearRpcResponse>();
-    _pending[req.id] = completer;
+    final pending = _PendingCall();
+    _pending[req.id] = pending;
     try {
       await _watch.sendMessage(req.encode());
     } catch (_) {
       _pending.remove(req.id);
       throw WearRelayUnreachable();
     }
+    // Armed after the send, so a slow bridge write is not counted against the
+    // phone's time to answer.
+    pending.arm(timeout);
     final WearRpcResponse res;
     try {
-      res = await completer.future.timeout(timeout);
+      res = await pending.reply;
     } on TimeoutException {
       throw WearRelayTimeout();
     } finally {
+      pending.dispose();
       _pending.remove(req.id);
     }
     if (!res.ok) {
@@ -229,6 +250,47 @@ class RelayTransport implements WearTransport {
         jobId: jobId,
       );
 }
+
+/// One relay request waiting for its reply, with a deadline the phone can push
+/// out once — see [WearRpcAck].
+///
+/// A rearmable `Timer` rather than `Future.timeout`, which fixes its deadline
+/// at the moment it is awaited and cannot be told that the other side has since
+/// announced it is waking up.
+class _PendingCall {
+  final _completer = Completer<WearRpcResponse>();
+
+  Timer? _timer;
+  DateTime? _expiry;
+
+  Future<WearRpcResponse> get reply => _completer.future;
+
+  /// Waits at least [timeout] from now — and **never less**, which is what
+  /// makes the order of the two callers irrelevant: the ack may reach the
+  /// stream before the send that armed the base deadline has returned, and a
+  /// deadline that could be shortened would quietly cancel the wake it was
+  /// granted for.
+  void arm(Duration timeout) {
+    final until = DateTime.now().add(timeout);
+    final current = _expiry;
+    if (current != null && !until.isAfter(current)) return;
+    _expiry = until;
+    _timer?.cancel();
+    _timer = Timer(timeout, () {
+      if (!_completer.isCompleted) {
+        _completer.completeError(TimeoutException('wear relay', timeout));
+      }
+    });
+  }
+
+  void complete(WearRpcResponse res) {
+    _timer?.cancel();
+    if (!_completer.isCompleted) _completer.complete(res);
+  }
+
+  void dispose() => _timer?.cancel();
+}
+
 
 /// Direct REST to the server — the pre-relay behavior, kept as the fallback
 /// when the phone is out of reach. Requires a configured profile on the watch.

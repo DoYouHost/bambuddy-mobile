@@ -92,7 +92,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Hand the watch relay over to the FGS isolate. Exactly one
           // responder may listen at a time — a request answered twice is a
           // command executed twice (e.g. double startNext).
-          ref.read(wearRelayHandlerProvider).stop();
+          unawaited(ref.read(wearRelayHandlerProvider).stop());
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
@@ -114,7 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
           ref.read(backgroundMonitorProvider).stop().then((_) {
-            ref.read(wearRelayHandlerProvider).start();
+            unawaited(ref.read(wearRelayHandlerProvider).start());
             ref.read(finishPhotoNotifierProvider)?.start();
           }),
         );
