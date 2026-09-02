@@ -634,6 +634,16 @@ Future<void> _startQueueItem(
   AppLocalizations l10n,
 ) async {
   final messenger = ScaffoldMessenger.of(context);
+  // Read through the app's provider container rather than the widget's `ref`,
+  // for the same reason [messenger] is taken up front: this flow spans a
+  // printer picker, the mapping sheet, a confirmation and two requests, and the
+  // row that started it can be gone before any of those come back — the list
+  // rebuilds on every WS refresh, and a removed item shrinks it. `ref` throws
+  // the moment its widget is disposed ("Cannot use ref after the widget was
+  // disposed"), while the container is the app's own and outlives every screen.
+  // Reading through it also keeps each read live at the point of use, instead of
+  // a snapshot taken before the sheet was even open.
+  final providers = ProviderScope.containerOf(context, listen: false);
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);
@@ -651,7 +661,7 @@ Future<void> _startQueueItem(
   // Plate-clear gate: when the scheduler requires it and this printer still has
   // a finished job on the plate, confirm + acknowledge (clear-plate) before
   // sending — otherwise the scheduler would hold the print anyway.
-  if (await _awaitingPlateClear(ref, printerId)) {
+  if (await _awaitingPlateClear(providers, printerId)) {
     if (!context.mounted) return;
     final confirmed = await confirmDialog(
       context,
@@ -662,14 +672,16 @@ Future<void> _startQueueItem(
     );
     if (!confirmed) return;
     try {
-      await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
+      await providers.read(printerCommandsRepositoryProvider)
+          .clearPlate(printerId);
     } on AppApiException catch (e) {
       showApiFailure(
         messenger,
         e,
         l10n,
         action: 'queue.plate_clear',
-        message: recordPlateClearRefusal(ref, e.detail)
+        message: recordPlateClearRefusal(
+                providers.read(offlinePlateClearProvider.notifier), e.detail)
             ? l10n.plateClearNeedsOnline
             : null,
       );
@@ -677,7 +689,10 @@ Future<void> _startQueueItem(
     }
   }
 
-  final result = await ref
+  // One thing the container does not guarantee: `queueProvider` is autoDispose,
+  // so it outlives this row only because the tab badge in `RootScaffold` keeps
+  // it listened to.
+  final result = await providers
       .read(queueProvider.notifier)
       .startOnPrinter(item.id, printerId, amsMapping: mapping);
   messenger.snack(result.messageFor(l10n) ?? l10n.queuePrintStarted);
@@ -694,15 +709,21 @@ Future<void> _startQueueItem(
 /// pure server flag (no MQTT / no online requirement), so the scheduler
 /// dispatches the pending job once the printer wakes. Falls back to a fresh
 /// fetch only when the printer isn't cached.
-Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
-  final gateEnabled = await ref.read(requirePlateClearProvider.future);
+///
+/// Reads through the container rather than a `WidgetRef` because it runs after
+/// the mapping sheet, by which time the row that opened it may be disposed —
+/// see [_startQueueItem].
+Future<bool> _awaitingPlateClear(
+    ProviderContainer providers, int printerId) async {
+  final gateEnabled = await providers.read(requirePlateClearProvider.future);
   if (!gateEnabled) return false;
-  final cached = ref.read(printerStatusesProvider)[printerId];
+  final cached = providers.read(printerStatusesProvider)[printerId];
   if (cached != null) {
     return plateClearPending(cached, gateEnabled: () => gateEnabled);
   }
   try {
-    final st = await ref.read(printersRepositoryProvider).fetchStatus(printerId);
+    final st =
+        await providers.read(printersRepositoryProvider).fetchStatus(printerId);
     return plateClearPending(st, gateEnabled: () => gateEnabled);
   } on AppApiException {
     return false;

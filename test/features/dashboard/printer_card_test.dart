@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
@@ -66,12 +68,16 @@ class _RecordingCommands implements PrinterCommandsRepository {
   /// refuses to release the gate on a printer it cannot reach.
   Object? clearPlateError;
 
+  /// Holds the answer back, so a test can land it after the card is gone.
+  Completer<void>? clearPlateHeld;
+
   @override
   Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
 
   @override
   Future<void> clearPlate(int printerId) async {
     calls.add('clearPlate:$printerId');
+    await clearPlateHeld?.future;
     if (clearPlateError != null) throw clearPlateError!;
   }
 
@@ -1903,6 +1909,57 @@ void main() {
       // The reachable printer keeps it: that half worked on every server.
       expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
       expect(find.text('Oznacz płytę jako pustą'), findsOneWidget);
+    });
+
+    testWidgets('a refusal that lands after the card is gone still counts',
+        (tester) async {
+      // The window this closes: the answer comes back when the banner is no
+      // longer in the tree — the printer reconnected and the card swapped
+      // layout, or the dashboard was left. Reaching for `ref` there throws
+      // ("Cannot use ref after the widget was disposed"), so the latch is read
+      // out before the request, and the observation outlives the widget.
+      final held = Completer<void>();
+      final commands = _RecordingCommands()
+        ..clearPlateHeld = held
+        ..clearPlateError = const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 400,
+          detail: 'Printer not connected',
+        );
+      final onScreen = ValueNotifier<bool>(true);
+      addTearDown(onScreen.dispose);
+
+      // One stable scope — the container is the app's and never goes away; what
+      // goes away is the card.
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: ValueListenableBuilder<bool>(
+            valueListenable: onScreen,
+            builder: (_, visible, _) => visible
+                ? const PrinterCard(item: awaitingOffline)
+                : const SizedBox.shrink(),
+          ),
+        ),
+        extra: [
+          requirePlateClearProvider.overrideWith((ref) async => true),
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Oznacz płytę jako pustą'));
+      await tester.pump();
+
+      onScreen.value = false;
+      await tester.pump();
+      held.complete();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // The latch still flipped: the card comes back without the button.
+      onScreen.value = true;
+      await tester.pumpAndSettle();
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Oznacz płytę jako pustą'), findsNothing);
     });
 
     testWidgets('nothing is offered while the scheduler does not gate on the plate',

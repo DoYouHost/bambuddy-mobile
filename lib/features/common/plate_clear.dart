@@ -91,8 +91,18 @@ bool isOfflinePlateClearRefusal(String? serverSaid) =>
 /// Each surface words it for the room it has — a sentence in a snack bar on the
 /// phone, a short line in a toast on the watch — so this hands back the
 /// classification rather than the message.
-bool recordPlateClearRefusal(WidgetRef ref, String? serverSaid) {
+///
+/// Takes the notifier rather than a `WidgetRef` on purpose: this is only ever
+/// called after the request came back, and by then the control that sent it may
+/// be gone — a card whose printer reconnected, a screen the user left. `ref`
+/// throws once its widget is disposed (`Cannot use "ref" after the widget was
+/// disposed`), so the latch is read out **before** the request goes out, next to
+/// the messenger, and it outlives the widget either way.
+bool recordPlateClearRefusal(
+  OfflinePlateClearNotifier gate,
+  String? serverSaid,
+) {
   if (!isOfflinePlateClearRefusal(serverSaid)) return false;
-  ref.read(offlinePlateClearProvider.notifier).observeRefusal();
+  gate.observeRefusal();
   return true;
 }

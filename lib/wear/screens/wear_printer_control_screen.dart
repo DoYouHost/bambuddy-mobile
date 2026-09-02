@@ -239,6 +239,10 @@ class _WearPrinterControlBodyState
     final status = item.status;
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
+    // Read out at build time rather than inside the failure callback: the
+    // callback is the one place `ref` would already be safe (it only fires
+    // while mounted), and this way every surface reaches the latch the same way.
+    final plateGate = ref.read(offlinePlateClearProvider.notifier);
     final buttons = <Widget>[];
     // What the faults above already offer. Two identical buttons stacked on a
     // 1.4" screen is a coin flip, and the fault's own is the one that carries
@@ -261,9 +265,10 @@ class _WearPrinterControlBodyState
       buttons.add(_btn(l10n.wearClearPlate, Icons.cleaning_services,
           () => actions.clearPlate(id),
           okMsg: l10n.wearPlateCleared,
-          errMsg: (error) => recordPlateClearRefusal(ref, _serverSaid(error))
-              ? l10n.wearPlateNeedsOnline
-              : null));
+          errMsg: (error) =>
+              recordPlateClearRefusal(plateGate, _serverSaid(error))
+                  ? l10n.wearPlateNeedsOnline
+                  : null));
     }
 
     // Start next from queue: offered when the printer isn't actively printing

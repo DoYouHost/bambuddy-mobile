@@ -20,6 +20,10 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
   Future<void> _clear() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Read out with the messenger, and for the same reason: the answer can land
+    // after this banner is gone (the printer reconnects and the card swaps
+    // layout, or the dashboard is left), and `ref` throws once that happens.
+    final gate = ref.read(offlinePlateClearProvider.notifier);
     setState(() => _busy = true);
     try {
       await ref
@@ -32,7 +36,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
         e,
         l10n,
         action: 'printer.plate_clear',
-        message: recordPlateClearRefusal(ref, e.detail)
+        message: recordPlateClearRefusal(gate, e.detail)
             ? l10n.plateClearNeedsOnline
             : null,
       );
