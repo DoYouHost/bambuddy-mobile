@@ -3,6 +3,12 @@ part of 'printer_card.dart';
 /// Plate-clear banner: shown only when the scheduler requires plate-clear
 /// confirmation AND this printer still has a finished job on the plate. The
 /// button posts the `clear-plate` acknowledgement, freeing the scheduler.
+///
+/// Offered whether the printer is reachable or not: the gate is bambuddy's own
+/// flag and acknowledging it sends nothing to the machine, while under Auto
+/// Power Off "plate dirty, printer off" is how every print ends. The one
+/// exception is a server that has refused an offline acknowledgement already —
+/// see [offlinePlateClearProvider].
 class _PlateClearBanner extends ConsumerStatefulWidget {
   const _PlateClearBanner({required this.printerId, required this.status});
 
@@ -26,7 +32,15 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
           .clearPlate(widget.printerId);
       messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'printer.plate_clear');
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'printer.plate_clear',
+        message: recordPlateClearFailure(ref, e)
+            ? l10n.plateClearNeedsOnline
+            : null,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -39,6 +53,10 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
     }
     final require = ref.watch(requirePlateClearProvider).valueOrNull ?? false;
     if (!require) return const SizedBox.shrink();
+    final offline = widget.status.connected != true;
+    if (offline && !ref.watch(offlinePlateClearProvider)) {
+      return const SizedBox.shrink();
+    }
 
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);

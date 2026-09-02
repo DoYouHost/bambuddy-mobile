@@ -34,6 +34,7 @@ import '../../common/dash_search_field.dart';
 import '../../common/dash_sheet.dart';
 import '../../common/dash_snack.dart';
 import '../../common/dashed_line.dart';
+import '../../common/plate_clear.dart';
 import '../../files/printer_file_manager_screen.dart';
 import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
@@ -135,29 +136,40 @@ class _PrinterCardState extends State<PrinterCard> {
     if (_offline) {
       return _CardShell(
         tokens: t,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _IconSquare(tokens: t, offline: true),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _NameText(name: name, tokens: t),
-                  _TotalPrintTimeLine(printerId: printerId),
-                ],
-              ),
+            Row(
+              children: [
+                _IconSquare(tokens: t, offline: true),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _NameText(name: name, tokens: t),
+                      _TotalPrintTimeLine(printerId: printerId),
+                    ],
+                  ),
+                ),
+                // Smart plug stays controllable even when OFFLINE — the only way to
+                // remotely power the printer back on. Auto-hides if none assigned.
+                _SmartPlugButton(printerId: printerId, printing: false),
+                const SizedBox(width: 8),
+                _StateChip(
+                  label: l10n.statusOffline,
+                  connected: false,
+                  offline: true,
+                ),
+              ],
             ),
-            // Smart plug stays controllable even when OFFLINE — the only way to
-            // remotely power the printer back on. Auto-hides if none assigned.
-            _SmartPlugButton(printerId: printerId, printing: false),
-            const SizedBox(width: 8),
-            _StateChip(
-              label: l10n.statusOffline,
-              connected: false,
-              offline: true,
-            ),
+            // The one thing that survives the collapse besides the plug, and for
+            // the same reason: releasing the plate-clear gate is the only way to
+            // let the queue wake this printer for its next job, and it is
+            // bambuddy's own flag rather than anything on the machine.
+            if (status != null)
+              _PlateClearBanner(printerId: printerId, status: status),
           ],
         ),
       );

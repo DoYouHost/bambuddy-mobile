@@ -20,6 +20,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/plate_clear.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -663,7 +664,15 @@ Future<void> _startQueueItem(
     try {
       await ref.read(printerCommandsRepositoryProvider).clearPlate(printerId);
     } on AppApiException catch (e) {
-      showApiFailure(messenger, e, l10n, action: 'queue.plate_clear');
+      showApiFailure(
+        messenger,
+        e,
+        l10n,
+        action: 'queue.plate_clear',
+        message: recordPlateClearFailure(ref, e)
+            ? l10n.plateClearNeedsOnline
+            : null,
+      );
       return;
     }
   }
@@ -679,11 +688,12 @@ Future<void> _startQueueItem(
 /// before sending. Best-effort: unknown state → no confirmation.
 ///
 /// Prefers the last-known cached status: it survives the printer going offline
-/// (mergedWith keeps `awaiting_plate_clear`), whereas a fresh REST fetch can
-/// degrade to null for a powered-off printer and wrongly skip the ack. Acking an
-/// offline printer is valid — clear-plate is a pure server flag (no MQTT / no
-/// online requirement), so the scheduler dispatches the pending job once the
-/// printer wakes. Falls back to a fresh fetch only when the printer isn't cached.
+/// (`mergedWith` keeps `awaiting_plate_clear` through a disconnect on purpose),
+/// whereas a fresh REST fetch can degrade to null for a powered-off printer and
+/// wrongly skip the ack. Acking an offline printer is valid — clear-plate is a
+/// pure server flag (no MQTT / no online requirement), so the scheduler
+/// dispatches the pending job once the printer wakes. Falls back to a fresh
+/// fetch only when the printer isn't cached.
 Future<bool> _awaitingPlateClear(WidgetRef ref, int printerId) async {
   if (!await ref.read(requirePlateClearProvider.future)) return false;
   final cached = ref.read(printerStatusesProvider)[printerId];

@@ -4523,6 +4523,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get plateClearedSnack => 'Oznaczono płytę jako pustą';
 
   @override
+  String get plateClearNeedsOnline =>
+      'Ten serwer zwalnia płytę tylko przy podłączonej drukarce. Zaktualizuj bambuddy, aby robić to na wyłączonej.';
+
+  @override
   String get pfmTitle => 'Menedżer plików';
 
   @override

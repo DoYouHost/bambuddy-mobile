@@ -1416,6 +1416,7 @@
   "plateClearAction": "Oznacz płytę jako pustą",
   "plateClearBadge": "Płyta niewyczyszczona",
   "plateClearedSnack": "Oznaczono płytę jako pustą",
+  "plateClearNeedsOnline": "Ten serwer zwalnia płytę tylko przy podłączonej drukarce. Zaktualizuj bambuddy, aby robić to na wyłączonej.",
 
   "pfmTitle": "Menedżer plików",
   "pfmTooltip": "Pliki na drukarce",

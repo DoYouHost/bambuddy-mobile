@@ -378,6 +378,15 @@ class PrinterStatus {
   /// means a base P2S doesn't flash a chamber tile on reconnect while waiting
   /// for its first airduct frame (`null` there falls back to "show it").
   ///
+  /// `awaitingPlateClear` is kept for a different reason: it is not the
+  /// printer's state at all. The plate-clear gate is bambuddy's own flag, held
+  /// in its database so it survives the printer being switched off, and
+  /// acknowledging it sends nothing to the machine. Dropping it here hid the
+  /// only control that releases the gate on exactly the printers that need it —
+  /// with Auto Power Off the end of every print is "gate up, printer off" —
+  /// and made the queue's pre-start acknowledgement skip a printer that was
+  /// waiting (server #2864).
+  ///
   /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`), the physical AMS
   /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
   /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
@@ -399,6 +408,7 @@ class PrinterStatus {
       trayNow: trayNow,
       activeExtruder: activeExtruder,
       hmsErrors: hmsErrors,
+      awaitingPlateClear: awaitingPlateClear,
     );
   }
 

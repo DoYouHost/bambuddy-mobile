@@ -26,8 +26,14 @@ class PrinterCommandsRepository {
 
   /// Acknowledge the build plate has been cleared (lets the scheduler start the
   /// next queued print). Empty body.
+  ///
+  /// Keeps what the server wrote on a 400: this route answers that status for
+  /// two unrelated reasons, and only the text tells them apart — a printer that
+  /// is not awaiting an acknowledgement at all, or a pre-#2864 server refusing
+  /// to release the gate on a printer it cannot reach. See
+  /// `isOfflinePlateClearRefusal`.
   Future<void> clearPlate(int printerId) =>
-      _post(Endpoints.printerClearPlate(printerId));
+      _post(Endpoints.printerClearPlate(printerId), keepDetail: true);
 
   /// Chamber light: `on=true|false`.
   Future<void> setChamberLight(int printerId, {required bool on}) =>
@@ -216,11 +222,12 @@ class PrinterCommandsRepository {
     String path, {
     Map<String, dynamic>? query,
     Map<String, dynamic>? data,
+    bool keepDetail = false,
   }) async {
     try {
       await _dio.post<dynamic>(path, queryParameters: query, data: data);
     } on DioException catch (e) {
-      throw mapDioException(e);
+      throw keepDetail ? mapDioExceptionKeepingDetail(e) : mapDioException(e);
     }
   }
 }

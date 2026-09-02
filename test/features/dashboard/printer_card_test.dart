@@ -62,8 +62,18 @@ class _RecordingCommands implements PrinterCommandsRepository {
   /// one route with a permission of its own, so its refusal is worth staging.
   Object? rfidError;
 
+  /// Thrown by [clearPlate] instead of succeeding — a pre-#2864 server that
+  /// refuses to release the gate on a printer it cannot reach.
+  Object? clearPlateError;
+
   @override
   Future<void> clearHmsErrors(int printerId) async => calls.add('clear:$printerId');
+
+  @override
+  Future<void> clearPlate(int printerId) async {
+    calls.add('clearPlate:$printerId');
+    if (clearPlateError != null) throw clearPlateError!;
+  }
 
   @override
   Future<void> amsLoad(int printerId, int trayId) async =>
@@ -1816,6 +1826,99 @@ void main() {
 
       expect(find.textContaining('Skończył się filament'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Wznów'), findsNothing);
+    });
+  });
+
+  group('plate-clear gate on an unreachable printer', () {
+    // How every print ends with Auto Power Off: the job finished, bambuddy cut
+    // the power at the plug, and the plate is still flagged dirty. The gate is
+    // bambuddy's own flag, so acknowledging it needs nothing from the machine.
+    const awaitingOffline = PrinterWithStatus(
+      printer: Printer(id: 4, name: 'X2D-3DP'),
+      status: PrinterStatus(id: 4, connected: false, awaitingPlateClear: true),
+    );
+    const awaitingOnline = PrinterWithStatus(
+      printer: Printer(id: 5, name: 'A1 mini'),
+      status: PrinterStatus(
+          id: 5, connected: true, state: 'FINISH', awaitingPlateClear: true),
+    );
+
+    Widget cards(
+      _RecordingCommands commands, {
+      List<PrinterWithStatus> items = const [awaitingOffline],
+    }) =>
+        _scope(
+          Scaffold(
+            body: SingleChildScrollView(
+              child: Column(
+                children: [for (final item in items) PrinterCard(item: item)],
+              ),
+            ),
+          ),
+          extra: [
+            requirePlateClearProvider.overrideWith((ref) async => true),
+            printerCommandsRepositoryProvider.overrideWithValue(commands),
+          ],
+        );
+
+    testWidgets('the collapsed OFFLINE card still offers the acknowledgement',
+        (tester) async {
+      final commands = _RecordingCommands();
+      await tester.pumpWidget(cards(commands));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
+
+      await tester.tap(find.text('Oznacz płytę jako pustą'));
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['clearPlate:4']);
+      expect(find.text('Oznaczono płytę jako pustą'), findsOneWidget);
+    });
+
+    testWidgets('an old server\'s refusal is explained, then the button stands down',
+        (tester) async {
+      // Pre-#2864 the route answered 400 "Printer not connected". Nothing in a
+      // response says which contract the server serves and the version cannot
+      // tell (every 1.2.6 daily build reports 1.2.6b1), so the refusal itself
+      // is the answer: the offline button withdraws, the online one does not.
+      final commands = _RecordingCommands()
+        ..clearPlateError = const ApiException(
+          AppErrorCode.badResponse,
+          statusCode: 400,
+          detail: 'Printer not connected',
+        );
+      await tester.pumpWidget(
+          cards(commands, items: const [awaitingOffline, awaitingOnline]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Oznacz płytę jako pustą'), findsNWidgets(2));
+
+      await tester.tap(find.text('Oznacz płytę jako pustą').first);
+      await tester.pumpAndSettle();
+
+      expect(commands.calls, ['clearPlate:4']);
+      expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
+      // The reachable printer keeps it: that half worked on every server.
+      expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
+      expect(find.text('Oznacz płytę jako pustą'), findsOneWidget);
+    });
+
+    testWidgets('nothing is offered while the scheduler does not gate on the plate',
+        (tester) async {
+      final commands = _RecordingCommands();
+      await tester.pumpWidget(_cardWithProviders(
+        awaitingOffline,
+        extra: [
+          requirePlateClearProvider.overrideWith((ref) async => false),
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Płyta niewyczyszczona'), findsNothing);
     });
   });
 }
