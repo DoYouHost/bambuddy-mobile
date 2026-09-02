@@ -278,6 +278,11 @@ class WsProbe {
           'state': s.state,
           // English from the server ("Heating", "Auto bed leveling").
           'stage': s.stgCurName,
+          // The number behind that name, because that is what the first-layer
+          // and milestone gates read: 0 is "Printing", 1-254 a stage of the
+          // printer's own, -1/255 none. The name alone cannot tell stage 0 from
+          // a frame that reported no stage at all.
+          'stg': s.stgCur,
           'progress': s.progress?.round(),
           'layer': s.layerNum,
           'layers': s.totalLayers,
