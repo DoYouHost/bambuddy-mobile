@@ -4,12 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
-import '../auth/credentials_store.dart';
 import '../diagnostics/diagnostic_recorder.dart';
 import '../diagnostics/log_event.dart';
-import '../diagnostics/session_facts.dart';
 import '../notifications/background_api.dart';
-import '../settings/settings_repository.dart';
 import 'wear_relay_handler.dart';
 import 'wear_rpc.dart';
 
@@ -72,7 +69,7 @@ class WearRelayEngine {
     if (req == null) return false;
     final cold = _cold;
     _cold = false;
-    final recording = await _openRecording();
+    final recording = await DiagnosticRecorder.startAction();
     final started = DateTime.now();
     var outcome = 'answered';
     try {
@@ -114,32 +111,6 @@ class WearRelayEngine {
   /// reaches a warm engine, is answered in milliseconds, and is not gated.
   bool _mayRunOnWake(WearRpcRequest req) =>
       req.version >= wearRpcWakeAwareVersion || req.action.isRepeatSafe;
-
-  /// Same rule as the notification-action engine (`docs/logging-guide.md` §4):
-  /// only an engine where nothing else is logging opens a stream of its own,
-  /// and a wake with no recording session on disk opens nothing at all.
-  ///
-  /// Cannot throw, by the same rule: this runs before the request does, and
-  /// diagnostics failing must never be the reason the watch got no answer —
-  /// `SettingsRepository.opened` alone is a platform read that can fail on a
-  /// hostile OEM keystore.
-  Future<BackgroundRecording?> _openRecording() async {
-    try {
-      if (DiagnosticRecorder.isRecording) return null;
-      final settings = await SettingsRepository.opened();
-      return await DiagnosticRecorder.startBackground(
-        settings: settings,
-        stream: LogStream.action,
-        loadSecrets: () => sessionSecrets(
-          profile: settings.loadProfile(),
-          credentials: SecureCredentialsStore(),
-        ),
-        attachErrors: false,
-      );
-    } on Object {
-      return null;
-    }
-  }
 
   void _record(
     WearRpcRequest req, {

@@ -233,17 +233,34 @@ void main() {
     });
   });
 
-  group('repeat safety', () {
-    test('startNext is the one action a retry must not double', () {
-      // The gate a woken phone applies to a watch that cannot wait for it:
-      // pausing twice is nothing, starting the next plate twice is a print.
+  group('the retry policy', () {
+    test('every action is classified, and startNext is the destructive one',
+        () {
+      expect(WearRpcAction.getFleet.retry, WearRpcRetry.read);
+      expect(WearRpcAction.startNext.retry, WearRpcRetry.destructive);
       for (final action in WearRpcAction.values) {
-        expect(
-          action.isRepeatSafe,
-          action != WearRpcAction.startNext,
-          reason: 'unexpected repeat safety for ${action.name}',
-        );
+        if (action == WearRpcAction.getFleet ||
+            action == WearRpcAction.startNext) {
+          continue;
+        }
+        expect(action.retry, WearRpcRetry.idempotent, reason: action.name);
       }
+    });
+
+    test('the watch repeats only a read over REST', () {
+      // Not even a pause: a timed-out command may have run on the phone, and
+      // the watch cannot tell that from a phone that never heard it.
+      expect(WearRpcAction.getFleet.mayRepeatOverRest, isTrue);
+      expect(WearRpcAction.pause.mayRepeatOverRest, isFalse);
+      expect(WearRpcAction.startNext.mayRepeatOverRest, isFalse);
+    });
+
+    test('a woken phone runs everything except the destructive one', () {
+      // It knows nothing has run yet, so the only question is what the user's
+      // retry would add — and that is a plate only for startNext.
+      expect(WearRpcAction.pause.isRepeatSafe, isTrue);
+      expect(WearRpcAction.hmsAction.isRepeatSafe, isTrue);
+      expect(WearRpcAction.startNext.isRepeatSafe, isFalse);
     });
   });
 

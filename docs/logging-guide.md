@@ -113,10 +113,15 @@ its own file:
   through `SharedPreferences`, the header is the UI's re-tagged, so both files
   share one clock and the merge is a no-shift. **No readable UI header ⇒ the
   isolate does not record at all** — there would be nothing to merge into.
-- **the notification action engine** (`handleMaintenanceAction`, registered in
-  three isolates) — one guard, not three paths: `DiagnosticRecorder.isRecording`
-  ⇒ write into the store that already exists; otherwise open a standalone
-  `-act` stream and close it.
+- **an isolate woken for one job** — the notification action engine
+  (`handleMaintenanceAction`, `handleHmsAction`, registered in three isolates)
+  and the watch-relay engine (`wear_relay_engine.dart`, started by
+  `WearRelayListenerService` when the app's process is dead). One guard, not
+  one per path: **call `DiagnosticRecorder.startAction()`** — it writes into
+  the store that already exists where there is one, and otherwise opens a
+  standalone `-act` stream for the caller to close. It cannot throw, which on
+  these paths matters more than the record: the caller is carrying out the
+  user's tap.
 
 Two rules for anything you add on those paths: write the record **before** the
 `await` that tears the isolate down (a closed `LogFileSink` drops lines

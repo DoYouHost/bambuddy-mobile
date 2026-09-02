@@ -361,10 +361,11 @@ enum WearTransportMode { relay, rest }
 
 /// Relay-first with REST fallback (the "hybrid" from plan 05).
 ///
-/// Reads fall back on both [WearRelayUnreachable] and [WearRelayTimeout] —
-/// re-reading is always safe. Commands fall back only on
-/// [WearRelayUnreachable]: after a timeout the phone may have already executed
-/// the command (e.g. startNext), and repeating it over REST could double it.
+/// Every call falls back on [WearRelayUnreachable] — the phone was never
+/// reached, so nothing ran there. On [WearRelayTimeout] the answer depends on
+/// the action, and the table is [WearRpcActionRetry.mayRepeatOverRest]: a
+/// timed-out command may have executed on the phone with the reply lost, which
+/// re-reading survives and re-commanding does not.
 class HybridWearTransport implements WearTransport {
   /// The configured watch: relay through the phone, with [rest] behind it where
   /// the watch has a server profile of its own.
@@ -394,10 +395,12 @@ class HybridWearTransport implements WearTransport {
   /// the phone over the bridge). Null until the first successful call.
   WearTransportMode? lastMode;
 
+  /// [action] is what [op] asks of a transport, named so the retry policy is
+  /// read off the protocol rather than restated per method here.
   Future<T> _run<T>(
-    Future<T> Function(WearTransport t) op, {
-    required bool fallbackOnTimeout,
-  }) async {
+    WearRpcAction action,
+    Future<T> Function(WearTransport t) op,
+  ) async {
     final relay = _relay;
     if (relay == null) {
       // No relay is [HybridWearTransport.restOnly], which takes REST as a
@@ -412,7 +415,7 @@ class HybridWearTransport implements WearTransport {
       return result;
     } on Exception catch (e) {
       final canFallback = e is WearRelayUnreachable ||
-          (fallbackOnTimeout && e is WearRelayTimeout);
+          (action.mayRepeatOverRest && e is WearRelayTimeout);
       final rest = _rest;
       if (!canFallback || rest == null) rethrow;
       final result = await op(rest);
@@ -423,31 +426,31 @@ class HybridWearTransport implements WearTransport {
 
   @override
   Future<WearFleet> getFleet() =>
-      _run((t) => t.getFleet(), fallbackOnTimeout: true);
+      _run(WearRpcAction.getFleet, (t) => t.getFleet());
 
   @override
   Future<void> pause(int printerId) =>
-      _run((t) => t.pause(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.pause, (t) => t.pause(printerId));
 
   @override
   Future<void> resume(int printerId) =>
-      _run((t) => t.resume(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.resume, (t) => t.resume(printerId));
 
   @override
   Future<void> stop(int printerId) =>
-      _run((t) => t.stop(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.stop, (t) => t.stop(printerId));
 
   @override
   Future<void> clearPlate(int printerId) =>
-      _run((t) => t.clearPlate(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.clearPlate, (t) => t.clearPlate(printerId));
 
   @override
   Future<void> startNext(int printerId) =>
-      _run((t) => t.startNext(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.startNext, (t) => t.startNext(printerId));
 
   @override
   Future<void> clearHmsErrors(int printerId) =>
-      _run((t) => t.clearHmsErrors(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.hmsClear, (t) => t.clearHmsErrors(printerId));
 
   @override
   Future<void> executeHmsAction(
@@ -456,14 +459,13 @@ class HybridWearTransport implements WearTransport {
     required String action,
     String? jobId,
   }) =>
-      // No fallback on timeout, for the reason the class doc gives and which
-      // bites hardest here: a resume that ran on the phone and lost its reply
-      // must not be sent again over REST. A phone too old to know these actions
-      // stays silent, which is that same timeout — the buttons fail rather than
-      // risk running twice.
+      // The class doc's rule bites hardest here: a resume that ran on the
+      // phone and lost its reply must not be sent again over REST, and a phone
+      // too old to know these actions stays silent — which is that same
+      // timeout. The buttons fail rather than risk running twice.
       _run(
+        WearRpcAction.hmsAction,
         (t) => t.executeHmsAction(printerId,
             printError: printError, action: action, jobId: jobId),
-        fallbackOnTimeout: false,
       );
 }

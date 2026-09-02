@@ -34,27 +34,56 @@ enum WearRpcAction {
   hmsAction,
 }
 
-/// Whether running an action twice has the same effect as running it once.
+/// What a *second* run of an action costs.
 ///
-/// One caller: a request from a watch too old to wait for a woken phone
-/// ([wearRpcWakeAwareVersion]) has already timed out by the time the engine
-/// could answer it, so the user's retry is the second run. Pausing a paused
-/// printer or clearing a clear plate costs nothing; starting the next plate
-/// twice prints it twice.
-///
-/// The switch is exhaustive on purpose — a new action cannot slip through as
-/// "safe" by default.
-extension WearRpcActionRepeat on WearRpcAction {
-  bool get isRepeatSafe => switch (this) {
-        WearRpcAction.getFleet => true,
-        WearRpcAction.pause => true,
-        WearRpcAction.resume => true,
-        WearRpcAction.stop => true,
-        WearRpcAction.clearPlate => true,
-        WearRpcAction.hmsClear => true,
-        WearRpcAction.hmsAction => true,
-        WearRpcAction.startNext => false,
+/// Two places ask, from opposite sides — the watch deciding whether to run a
+/// timed-out call itself, the phone deciding whether to run a call whose sender
+/// has stopped waiting — and one table is what keeps their answers from
+/// drifting apart as actions are added.
+enum WearRpcRetry {
+  /// A read: asking again changes nothing.
+  read,
+
+  /// A command whose second run leaves the printer where the first one already
+  /// put it.
+  idempotent,
+
+  /// A command whose second run does something the first one did not.
+  destructive,
+}
+
+extension WearRpcActionRetry on WearRpcAction {
+  /// Exhaustive on purpose: a new action is classified here, in the protocol,
+  /// rather than separately in each place that asks.
+  WearRpcRetry get retry => switch (this) {
+        WearRpcAction.getFleet => WearRpcRetry.read,
+        WearRpcAction.pause => WearRpcRetry.idempotent,
+        WearRpcAction.resume => WearRpcRetry.idempotent,
+        WearRpcAction.stop => WearRpcRetry.idempotent,
+        WearRpcAction.clearPlate => WearRpcRetry.idempotent,
+        WearRpcAction.hmsClear => WearRpcRetry.idempotent,
+        WearRpcAction.hmsAction => WearRpcRetry.idempotent,
+        WearRpcAction.startNext => WearRpcRetry.destructive,
       };
+
+  /// Whether the **watch** may serve this over its own REST connection after
+  /// the relay timed out (`HybridWearTransport`).
+  ///
+  /// Only a read, [WearRpcRetry.idempotent] included: a command that timed out
+  /// may have run on the phone with the reply lost on the way back, and the
+  /// watch cannot tell that from a phone that never heard it. It does not
+  /// guess — not even where the repeat itself would be harmless, because the
+  /// user is owed one answer about one command, not two attempts at it.
+  bool get mayRepeatOverRest => retry == WearRpcRetry.read;
+
+  /// Whether the **phone** may execute this for a sender that has already
+  /// given up on it (`wear_relay_engine.dart`).
+  ///
+  /// The phone is not guessing here: it was woken *by* this request, so it
+  /// knows nothing has run yet. The only question left is what the user's next
+  /// tap would do, and only [WearRpcRetry.destructive] answers that with
+  /// "print the next plate as well".
+  bool get isRepeatSafe => retry != WearRpcRetry.destructive;
 }
 
 const _kVersion = 'v';
