@@ -1,6 +1,7 @@
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../features/notifications/print_monitor.dart' show systemAppLocalizations;
+import 'background_sync.dart';
 import 'print_monitor_task_handler.dart';
 
 /// Mechanism for maintaining print monitoring when the app is not in the foreground.
@@ -33,16 +34,13 @@ abstract class BackgroundMonitor {
   /// Whether monitoring is currently running.
   Future<bool> isRunning();
 
-  /// Tells a monitor that is already running to re-read the diagnostics session.
+  /// Tells a monitor that is already running to re-read [what] from preferences.
   ///
-  /// The session id travels through `SharedPreferences`, which the background
-  /// isolate reads once when it starts. That is enough when the service starts
-  /// after the recording did — and silently wrong when it was already up, which is
-  /// the normal state for anyone who has ever swiped the app away: Android
-  /// restarts the service and it outlives the next launch. Without this the
-  /// background half of their report is simply absent, and absent looks exactly
-  /// like "the service did nothing".
-  void syncDiagnostics();
+  /// Why it is needed at all is [BackgroundSync]'s own doc. The first fact to
+  /// need it was the diagnostics session: without this, the background half of a
+  /// bug report is simply absent for anyone who has ever swiped the app away,
+  /// and absent looks exactly like "the service did nothing".
+  void sync(BackgroundSync what);
 }
 
 /// Implementation using `flutter_foreground_task`: hosts [PrintMonitorTaskHandler]
@@ -65,8 +63,8 @@ class ForegroundServiceMonitor implements BackgroundMonitor {
   /// Over the communication port `main` already opens — the only way to reach an
   /// isolate that is past its own start-up.
   @override
-  void syncDiagnostics() =>
-      FlutterForegroundTask.sendDataToTask(const {'diagnostics': 'sync'});
+  void sync(BackgroundSync what) =>
+      FlutterForegroundTask.sendDataToTask(what.message);
 
   @override
   Future<void> stop() async {

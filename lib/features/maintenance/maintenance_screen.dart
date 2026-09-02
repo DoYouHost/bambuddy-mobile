@@ -48,12 +48,11 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen>
     if (state == AppLifecycleState.resumed) _refreshIfDirty();
   }
 
-  /// On app return: if background notification "mark done" reset counter in isolate,
-  /// fetch fresh state. `reload()` necessary — write from different isolate,
-  /// so UI prefs cache doesn't see it.
+  /// On app return: if background notification "mark done" reset counter in
+  /// isolate, fetch fresh state. Read through `reloaded` — the write came from
+  /// that isolate, so this side's cache does not have it.
   Future<void> _refreshIfDirty() async {
-    await ref.read(sharedPreferencesProvider).reload();
-    final settings = ref.read(settingsRepositoryProvider);
+    final settings = await ref.read(settingsRepositoryProvider).reloaded();
     if (!settings.maintenanceDirty()) return;
     await settings.setMaintenanceDirty(false);
     if (!mounted) return;

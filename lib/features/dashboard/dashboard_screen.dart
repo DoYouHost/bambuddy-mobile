@@ -11,7 +11,9 @@ import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
+import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
 import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
@@ -82,8 +84,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _logBgService('start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
-              // user has swiped the app away once.
-              if (!started) monitor.syncDiagnostics();
+              // user has swiped the app away once. (The clock format is synced
+              // from `SystemClockSync`, once its own write has landed.)
+              if (!started) monitor.sync(BackgroundSync.diagnostics);
             }),
           );
           // Hand the watch relay over to the FGS isolate. Exactly one
@@ -167,15 +170,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // the door open for the next resume.
     if (_signInWarned || _signInChecking || !mounted) return;
     _signInChecking = true;
+    final SettingsRepository settings;
     try {
-      // Both writers are other isolates, so this handle still serves the cache
-      // the app started with — the rejection it asks about is only on disk.
-      await ref.read(sharedPreferencesProvider).reload();
+      // Both writers are other isolates, so the rejection this asks about is
+      // only on disk.
+      settings = await ref.read(settingsRepositoryProvider).reloaded();
     } finally {
       _signInChecking = false;
     }
     if (!mounted) return;
-    final settings = ref.read(settingsRepositoryProvider);
     if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;

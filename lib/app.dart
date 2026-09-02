@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'core/format/system_clock_sync.dart';
 import 'core/notifications/background_api.dart';
 import 'core/notifications/hms_actions.dart';
 import 'core/notifications/hms_stop_request.dart';
@@ -164,6 +165,14 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
     });
   }
 
+  /// Kept on disk for the foreground service isolate, which formats the ETA in
+  /// its notifications and has no way to read the 24-hour switch itself.
+  Future<void> _rememberClockFormat(bool use24Hour) => publishSystemClock(
+        use24Hour,
+        settings: ref.read(settingsRepositoryProvider),
+        monitor: ref.read(backgroundMonitorProvider),
+      );
+
   @override
   Widget build(BuildContext context) {
     // Re-push to the watch whenever the profile changes (new server, login,
@@ -188,8 +197,10 @@ class _BambuddyAppState extends ConsumerState<BambuddyApp> {
       // Recording controls have to outlive the report screen — the bug gets
       // reproduced on the dashboard, not there. Wrapping here puts the bar
       // above every route, pushed ones included.
-      builder: (context, child) =>
-          RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => SystemClockSync(
+        onChanged: (use24Hour) => unawaited(_rememberClockFormat(use24Hour)),
+        child: RecordingBannerScaffold(child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/notifications/background_monitor.dart';
+import 'package:bambuddy_mobile/core/notifications/background_sync.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_alert_memory.dart';
 import 'package:bambuddy_mobile/core/notifications/finish_photo_notifier.dart';
 import 'package:bambuddy_mobile/core/watch/wear_relay_handler.dart';
@@ -114,7 +115,7 @@ class _FakeBackgroundMonitor implements BackgroundMonitor {
   @override
   Future<bool> isRunning() async => running;
   @override
-  void syncDiagnostics() {}
+  void sync(BackgroundSync what) {}
 }
 
 /// Watch relay stubbed only so it does not reach for the platform channel.

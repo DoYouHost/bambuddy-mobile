@@ -35,6 +35,7 @@ import '../../common/dash_sheet.dart';
 import '../../common/dash_snack.dart';
 import '../../common/dashed_line.dart';
 import '../../files/printer_file_manager_screen.dart';
+import 'print_meta_row.dart';
 import '../../inventory/inventory_providers.dart';
 import '../../inventory/inventory_screen.dart'
     show SpoolSwatch, assignmentSlotLabel, openSpoolInInventory;

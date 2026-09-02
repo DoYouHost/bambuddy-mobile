@@ -24,8 +24,27 @@ class SettingsRepository {
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
   static const _diagnosticsSessionKey = 'diagnostics_session';
+  static const _clock24hKey = 'clock_24h';
 
   final SharedPreferences _prefs;
+
+  /// This repository again, after re-reading what another isolate wrote.
+  ///
+  /// `SharedPreferences` gives every isolate its own in-memory copy of the file,
+  /// so a handle keeps serving the snapshot it was opened with: the maintenance
+  /// item the service marked done, the sign-in it saw rejected, the clock the
+  /// app has just written down — none of it is visible on the other side until
+  /// this. Every read of a value the *other* isolate writes goes through here,
+  /// and the ones that forgot it each cost a debugging session.
+  Future<SettingsRepository> reloaded() async {
+    await _prefs.reload();
+    return this;
+  }
+
+  /// The same thing where no handle is open yet — a background isolate that was
+  /// woken by a notification action rather than started by the app.
+  static Future<SettingsRepository> opened() async =>
+      SettingsRepository(await SharedPreferences.getInstance()).reloaded();
 
   ServerProfile? loadProfile() {
     final raw = _prefs.getString(_profileKey);
@@ -78,6 +97,19 @@ class SettingsRepository {
 
   Future<void> saveBgMonitoringEnabled(bool enabled) =>
       _prefs.setBool(_bgMonitoringKey, enabled);
+
+  /// The platform's 12/24-hour switch, as the UI last saw it. It travels through
+  /// preferences because the only isolate that can read the switch is the one
+  /// with a view attached: the foreground service gets a bare engine, where the
+  /// setting is not missing but *wrong* — a default `false` that spelled every
+  /// notification ETA in AM/PM on a 24-hour phone.
+  ///
+  /// Null until an install has run a version that writes it, and null is not
+  /// "12-hour": `DateTimeFormats` then follows the locale's own convention.
+  bool? loadUse24HourClock() => _prefs.getBool(_clock24hKey);
+
+  Future<void> saveUse24HourClock(bool use24Hour) =>
+      _prefs.setBool(_clock24hKey, use24Hour);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.

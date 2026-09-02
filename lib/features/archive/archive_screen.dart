@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/text_measure.dart';
 import '../../core/models/archive.dart';
 import '../../core/models/archive_purge.dart';
 import '../../core/models/project.dart';
@@ -943,12 +944,10 @@ class _SheetPrimaryActions extends StatelessWidget {
       style?.textStyle?.resolve(states),
     );
     final padding = style?.padding?.resolve(states)?.horizontal ?? 0;
-    final painter = TextPainter(
-      text: TextSpan(text: label, style: textStyle),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    return padding + _iconWidth + _iconGap + painter.width;
+    return padding +
+        _iconWidth +
+        _iconGap +
+        textWidth(context, label, textStyle);
   }
 }
 

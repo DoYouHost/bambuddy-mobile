@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.format.DateFormat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -20,7 +21,7 @@ import io.flutter.plugin.common.MethodChannel
 private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
 
 /**
- * Native side of three platform channels.
+ * Native side of four platform channels.
  *
  * `battery` is a bridge to the battery-optimization state: the Dart side asks whether the app
  * is exempt and, at the user's request, fires the system prompt — that exemption is what
@@ -28,6 +29,11 @@ private typealias MethodHandler = (MethodCall, MethodChannel.Result) -> Unit
  * process from an OEM killer (critical on Samsung).
  *
  * `wear_input` is text entry on the watch — see [requestWearText].
+ *
+ * `clock` answers whether the user reads a 24-hour clock. Flutter learns that once, when
+ * the view attaches, and never again — so an app that was running while the switch was flipped
+ * keeps the old `MediaQuery` value until the process dies, and the foreground service's engine
+ * is never told at all (`lib/core/format/datetime_format.dart`).
  *
  * `wear_shape` answers whether the display is round. Flutter never surfaces that: a round
  * watch face is not reported as a view inset, so `SafeArea` resolves to zero on it and the
@@ -64,6 +70,17 @@ class MainActivity : FlutterActivity() {
                 },
                 "requestText" to { call, result ->
                     requestWearText(call.argument<String>("label"), result)
+                }
+            )
+        )
+        flutterEngine.serve(
+            CLOCK_CHANNEL,
+            mapOf<String, MethodHandler>(
+                // The resolved setting, locale default included — the same value Android
+                // itself formats notification timestamps with, and the same one Flutter
+                // would have pushed as `alwaysUse24HourFormat` had it pushed anything.
+                "is24HourFormat" to { _, result ->
+                    result.success(DateFormat.is24HourFormat(this))
                 }
             )
         )
@@ -169,6 +186,7 @@ class MainActivity : FlutterActivity() {
         const val BATTERY_CHANNEL = "page.codeberg.morganmlgman.bambuddy/battery"
         const val WEAR_INPUT_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_input"
         const val WEAR_SHAPE_CHANNEL = "page.codeberg.morganmlgman.bambuddy/wear_shape"
+        const val CLOCK_CHANNEL = "page.codeberg.morganmlgman.bambuddy/clock"
 
         const val WEAR_TEXT_KEY = "bambuddy_wear_text"
         const val REQUEST_WEAR_TEXT = 0x7EA1
