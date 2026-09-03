@@ -1934,6 +1934,36 @@ abstract class AppLocalizations {
   /// **'Re-reading the tag…'**
   String get amsRfidRereadStarted;
 
+  /// No description provided for @amsFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed {slot} into which nozzle?'**
+  String amsFeedTitle(String slot);
+
+  /// No description provided for @amsFeedPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'The Filament Track Switch can route this slot to either nozzle, so the printer cannot work out where the filament should go.'**
+  String get amsFeedPrompt;
+
+  /// No description provided for @amsFeedAlreadyLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'already loaded'**
+  String get amsFeedAlreadyLoaded;
+
+  /// No description provided for @amsSwitchNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.'**
+  String get amsSwitchNotReady;
+
+  /// No description provided for @amsUnloadSlotNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No nozzle is fed from this slot'**
+  String get amsUnloadSlotNotLoaded;
+
   /// No description provided for @amsActionsWhilePrinting.
   ///
   /// In en, this message translates to:

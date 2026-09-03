@@ -133,6 +133,66 @@ void main() {
     expect(_fmt(locale: 'pl').shortWeekdaysMondayFirst.first, 'pon.');
   });
 
+  group('the clock a bare isolate resolves', () {
+    /// What `DateTimeFormats.system()` would spell with that answer, on a locale
+    /// whose own convention is the opposite of a hardcoded 12-hour clock.
+    /// `system()` itself cannot be steered from a test — it reads
+    /// `PlatformDispatcher.instance`, the process-wide singleton, which ignores
+    /// the values a widget test sets on its own dispatcher.
+    String spelled(bool? clock, {String locale = 'de_DE'}) =>
+        DateTimeFormats.forTest(locale: locale, use24Hour: clock).time(_at);
+
+    test('a dispatcher false is a non-answer, not a 12-hour clock', () {
+      // The foreground service runs a bare FlutterEngine, which is never sent
+      // the user settings and leaves the flag at its Dart-side default. Reading
+      // that as "12-hour" is how a phone set to 24 got `ETA 8:29 PM` in its
+      // print notification — the bug this whole rule exists for.
+      final clock = DateTimeFormats.isolateClock(
+        remembered: null,
+        dispatcherSays: false,
+      );
+
+      expect(clock, isNull, reason: 'nobody has said — ask the locale');
+      expect(spelled(clock), '21:20');
+      expect(spelled(clock, locale: 'en_US'), '9:20 PM',
+          reason: 'a 12-hour locale still reads 12-hour');
+    });
+
+    test('a dispatcher true is real and is taken', () {
+      // Nothing but the setting itself produces one, so it needs no corroboration.
+      expect(
+        DateTimeFormats.isolateClock(remembered: null, dispatcherSays: true),
+        isTrue,
+      );
+    });
+
+    test('a published 12-hour clock beats the locale that disagrees', () {
+      // The case a 24-hour locale makes easy to lose: someone on a de_DE phone
+      // who went and picked 12-hour by hand. Once the tree has published it,
+      // falling back to the locale would overrule them.
+      final clock = DateTimeFormats.isolateClock(
+        remembered: false,
+        dispatcherSays: false,
+      );
+
+      expect(clock, isFalse);
+      expect(spelled(clock), '9:20 PM');
+    });
+
+    test('what was published outranks whatever the dispatcher says', () {
+      // Either way round: the tree has seen the real setting, the dispatcher of
+      // a bare engine has not.
+      expect(
+        DateTimeFormats.isolateClock(remembered: false, dispatcherSays: true),
+        isFalse,
+      );
+      expect(
+        DateTimeFormats.isolateClock(remembered: true, dispatcherSays: false),
+        isTrue,
+      );
+    });
+  });
+
   group('resolution against the platform', () {
     testWidgets('an untranslated system language falls back to the app locale',
         (tester) async {

@@ -15,7 +15,7 @@ void main() {
     repo = PrinterCommandsRepository(dio);
   });
 
-  test('pause/resume/stop trafiają w poprawne ścieżki POST', () async {
+  test('pause/resume/stop hit the right POST paths', () async {
     adapter
       ..onPost('/api/v1/printers/1/print/pause', (s) => s.reply(200, null))
       ..onPost('/api/v1/printers/1/print/resume', (s) => s.reply(200, null))
@@ -27,7 +27,7 @@ void main() {
     await repo.stop(1);
   });
 
-  test('chamber-light wysyła on=true w query', () async {
+  test('chamber-light sends on=true in the query', () async {
     adapter.onPost(
       '/api/v1/printers/2/chamber-light',
       (s) => s.reply(200, null),
@@ -36,7 +36,7 @@ void main() {
     await repo.setChamberLight(2, on: true);
   });
 
-  test('print-speed wysyła mode w query', () async {
+  test('print-speed sends the mode in the query', () async {
     adapter.onPost(
       '/api/v1/printers/3/print-speed',
       (s) => s.reply(200, null),
@@ -120,7 +120,10 @@ void main() {
     });
   });
 
-  test('ams/load sends the global tray number in the query', () async {
+  test('ams/load leaves the hotend out when none was chosen', () async {
+    // "Optional" has to mean absent: a printer without a Filament Track Switch
+    // derives the hotend itself, and the server validates the parameter, so a
+    // value sent for the sake of sending one is at best noise and at worst a 422.
     adapter.onPost(
       '/api/v1/printers/1/ams/load',
       (s) => s.reply(200, {'success': true}),
@@ -129,12 +132,39 @@ void main() {
     await repo.amsLoad(1, 6);
   });
 
-  test('ams/unload takes no slot — it is printer-wide', () async {
+  test('ams/load names the hotend when one was chosen', () async {
+    adapter.onPost(
+      '/api/v1/printers/1/ams/load',
+      (s) => s.reply(200, {'success': true}),
+      queryParameters: {'tray_id': 6, 'extruder_id': 1},
+    );
+    await repo.amsLoad(1, 6, extruderId: 1);
+  });
+
+  test('ams/load sends hotend 0 rather than dropping it as falsy', () async {
+    adapter.onPost(
+      '/api/v1/printers/1/ams/load',
+      (s) => s.reply(200, {'success': true}),
+      queryParameters: {'tray_id': 6, 'extruder_id': 0},
+    );
+    await repo.amsLoad(1, 6, extruderId: 0);
+  });
+
+  test('ams/unload takes no slot when none was named', () async {
     adapter.onPost(
       '/api/v1/printers/1/ams/unload',
       (s) => s.reply(200, {'success': true}),
     );
     await repo.amsUnload(1);
+  });
+
+  test('ams/unload names the slot when one was given', () async {
+    adapter.onPost(
+      '/api/v1/printers/1/ams/unload',
+      (s) => s.reply(200, {'success': true}),
+      queryParameters: {'tray_id': 0},
+    );
+    await repo.amsUnload(1, trayId: 0);
   });
 
   test('the RFID re-read addresses the slot locally, in the path', () async {

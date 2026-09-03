@@ -1,6 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'printer_status.g.dart';
 
 const _listAmsUnitEquality = ListEquality<AmsUnit>();
@@ -10,6 +12,7 @@ const _listNozzleEquality = ListEquality<NozzleInfo>();
 const _stringListEquality = ListEquality<String>();
 const _mapStringDoubleEquality = MapEquality<String, double>();
 const _mapIntIntEquality = MapEquality<int, int>();
+const _mapIntExtruderSlotEquality = MapEquality<int, ExtruderSlot>();
 
 /// Printer status from `GET /printers/{id}/status` (and eventually from WS
 /// `printer_status` frames in M2). Central DTO — follows defensive parsing pattern:
@@ -53,6 +56,8 @@ class PrinterStatus {
     this.hmsErrors,
     this.supportsDrying,
     this.nozzles,
+    this.filaSwitch,
+    this.extruderSlots,
   });
 
   factory PrinterStatus.fromJson(Map<String, dynamic> json) =>
@@ -69,17 +74,17 @@ class PrinterStatus {
   final String? gcodeFile;
 
   /// Progress in percent 0–100.
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? progress;
 
   /// Remaining time in minutes.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? remainingTime;
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? layerNum;
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? totalLayers;
 
   /// Undocumented keys from server (usually nozzle/bed/chamber) — render
@@ -98,7 +103,7 @@ class PrinterStatus {
   /// It is also the only stage field the WebSocket carries:
   /// `mc_print_sub_stage`, which bambuddy's own first-layer guard consults, is
   /// REST-only (`printer_state_to_dict`).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? stgCur;
 
   /// Current stage name from server (e.g. "Auto bed leveling", "Heating");
@@ -106,15 +111,15 @@ class PrinterStatus {
   final String? stgCurName;
 
   /// Part cooling fan, 0–100%.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? coolingFanSpeed;
 
   /// Auxiliary fan (big fan 1), 0–100%.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? bigFan1Speed;
 
   /// Chamber / exhaust fan (big fan 2), 0–100%.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? bigFan2Speed;
 
   /// Left auxiliary part cooling fan, 0–100% — a P2S accessory kit, factory
@@ -124,7 +129,7 @@ class PrinterStatus {
   /// Either way there is nothing to show, so no server-version gate is needed.
   /// Controlled with `fan=aux2` (server ≥ 1.2.5.2; older ones answer 400, which
   /// we never reach because the tile only renders when this is non-null).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? leftAuxFanSpeed;
 
   /// Whether the chamber exhaust fan is physically fitted (airduct part id 3).
@@ -140,11 +145,11 @@ class PrinterStatus {
   final bool? exhaustFanPresent;
 
   /// Heatbreak fan, 0–100% (usually 0 — firmware-controlled).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? heatbreakFanSpeed;
 
   /// Bambu speed level: 1 Silent, 2 Standard, 3 Sport, 4 Ludicrous.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? speedLevel;
 
   /// Whether chamber light is on.
@@ -152,7 +157,7 @@ class PrinterStatus {
 
   /// Chamber airduct mode: 0 = cooling, 1 = heating. Other values → null
   /// in [airductIsHeating] (don't assume modes beyond known).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? airductMode;
 
   /// AMS units (one per module). Defensive parsing — non-map elements skipped,
@@ -166,12 +171,12 @@ class PrinterStatus {
   final List<AmsTray>? vtTray;
 
   /// Global active slot number (AMS: unit*4 + slot; external 254/255).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? trayNow;
 
   /// Active extruder (nozzle) on dual-head printers (X2D/H2D); 0/1.
   /// null/0 on regular single-head.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? activeExtruder;
 
   /// Map "AMS unit ID → feeding extruder". Keys come as strings (e.g. `{"0":1}`)
@@ -183,7 +188,7 @@ class PrinterStatus {
   final String? model;
 
   /// Wi-Fi signal strength in dBm (negative; closer to 0 = better). null = none/LAN.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? wifiSignal;
 
   /// Whether door/cover is open (if printer reports it).
@@ -207,6 +212,19 @@ class PrinterStatus {
   /// the AMS slot configuration has to send and which nothing else reports.
   @JsonKey(fromJson: _toNozzleListOrNull)
   final List<NozzleInfo>? nozzles;
+
+  /// The Filament Track Switch accessory, or null on a printer without one —
+  /// and on every server that does not report the field yet, which is the same
+  /// answer: no switch, load the old way.
+  @JsonKey(fromJson: _toFilaSwitchOrNull)
+  final FilaSwitch? filaSwitch;
+
+  /// Which AMS slot each hotend is fed from, keyed by extruder id (0 = right /
+  /// main, 1 = left / deputy). Null on servers and printers that do not report
+  /// it; [trayNow] is printer-wide and cannot answer the same question, because
+  /// with two hotends loaded it names only one of them.
+  @JsonKey(fromJson: _toExtruderSlotMapOrNull)
+  final Map<int, ExtruderSlot>? extruderSlots;
 
   /// Diameter of the nozzle an AMS unit feeds, as the string the server and the
   /// printer both use (`0.4`). Null when the printer has not reported its
@@ -268,6 +286,9 @@ class PrinterStatus {
           other.awaitingPlateClear == awaitingPlateClear &&
           other.supportsDrying == supportsDrying &&
           _listNozzleEquality.equals(other.nozzles, nozzles) &&
+          other.filaSwitch == filaSwitch &&
+          _mapIntExtruderSlotEquality.equals(
+              other.extruderSlots, extruderSlots) &&
           _listHmsErrorEquality.equals(other.hmsErrors, hmsErrors);
 
   @override
@@ -307,6 +328,10 @@ class PrinterStatus {
         hmsErrors == null ? null : _listHmsErrorEquality.hash(hmsErrors),
         supportsDrying,
         nozzles == null ? null : _listNozzleEquality.hash(nozzles),
+        filaSwitch,
+        extruderSlots == null
+            ? null
+            : _mapIntExtruderSlotEquality.hash(extruderSlots),
       ]);
 
   /// Merge fresh frame into previous state of same printer. Core rule:
@@ -375,6 +400,8 @@ class PrinterStatus {
       hmsErrors: hmsErrors ?? previous.hmsErrors,
       supportsDrying: supportsDrying ?? previous.supportsDrying,
       nozzles: nozzles ?? previous.nozzles,
+      filaSwitch: filaSwitch ?? previous.filaSwitch,
+      extruderSlots: extruderSlots ?? previous.extruderSlots,
     )._clearedIfOffline();
   }
 
@@ -401,9 +428,10 @@ class PrinterStatus {
   /// and made the queue's pre-start acknowledgement skip a printer that was
   /// waiting (server #2864).
   ///
-  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`), the physical AMS
-  /// inventory (`ams`/`vtTray`/`amsExtruderMap`/`trayNow`/`activeExtruder`) which
-  /// survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
+  /// Kept: identity/hardware (`name`/`model`/`supportsDrying`/`nozzles`/`filaSwitch`),
+  /// the physical AMS inventory
+  /// (`ams`/`vtTray`/`amsExtruderMap`/`extruderSlots`/`trayNow`/`activeExtruder`)
+  /// which survives a power-off, and `hmsErrors` — [PrintMonitor] pauses its HMS
   /// clear-grace clock on the carried-forward codes so a fault known before the
   /// outage doesn't re-alert on reconnect.
   PrinterStatus _clearedIfOffline() {
@@ -421,6 +449,8 @@ class PrinterStatus {
       amsExtruderMap: amsExtruderMap,
       trayNow: trayNow,
       activeExtruder: activeExtruder,
+      filaSwitch: filaSwitch,
+      extruderSlots: extruderSlots,
       hmsErrors: hmsErrors,
       awaitingPlateClear: awaitingPlateClear,
     );
@@ -621,7 +651,7 @@ class AmsUnit {
   factory AmsUnit.fromJson(Map<String, dynamic> json) =>
       _$AmsUnitFromJson(json);
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? id;
 
   /// Whether this is AMS-HT module (high-temperature) — distinguished in
@@ -629,11 +659,11 @@ class AmsUnit {
   final bool? isAmsHt;
 
   /// Humidity inside AMS in percent (if module measures).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? humidity;
 
   /// Temperature inside AMS in °C (server sometimes sends as string).
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? temp;
 
   /// Filament slots. Server key is `tray`.
@@ -641,12 +671,12 @@ class AmsUnit {
   final List<AmsTray>? trays;
 
   /// Minutes of drying remaining (`dry_time`); 0/null = not drying.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? dryTime;
 
   /// Drying status (`dry_status`): 0=Off, 1=Checking, 2=Drying, 3=Cooling,
   /// 4=Stopping, 5=Error.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? dryStatus;
 
   /// Module type: 'n3f' (AMS 2 Pro), 'n3s' (AMS-HT), 'ams' (original AMS), …
@@ -708,7 +738,7 @@ class AmsTray {
   factory AmsTray.fromJson(Map<String, dynamic> json) =>
       _$AmsTrayFromJson(json);
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? id;
 
   /// Filament color as hex RRGGBBAA (e.g. "F55A74FF"); null/empty = none.
@@ -721,7 +751,7 @@ class AmsTray {
   final String? traySubBrands;
 
   /// Remaining amount in percent (0–100); -1 = unknown (no RFID tag).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? remain;
 
   /// Bambu filament id the printer has bound to this slot (`GFL05`, or a user
@@ -732,7 +762,7 @@ class AmsTray {
   /// Calibration profile the slot is using; -1 or null = the printer's default
   /// K. Read when re-opening the slot configuration so the K profile already in
   /// force is the one preselected.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? caliIdx;
 
   /// RFID identifiers of the physical spool in the slot. The server sends both
@@ -805,6 +835,88 @@ class NozzleInfo {
   int get hashCode => Object.hash(nozzleType, nozzleDiameter);
 }
 
+/// The Filament Track Switch (FTS), from the status response's `fila_switch`.
+///
+/// The accessory sits between the AMS units and the hotends: with one fitted an
+/// AMS is no longer wired to a nozzle but plumbed into one of the switch's two
+/// inlets, from where either hotend is reachable. That is why it matters here —
+/// the firmware then has nothing to derive a load's target from and drops a
+/// command that does not name one, so `PrinterCommandsRepository.amsLoad` has to
+/// send the hotend and the user has to be asked which.
+///
+/// Only the two questions the app asks are read. The switch's own routing table
+/// (`in`/`out`/`stat`/`info`) is the server's business.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class FilaSwitch {
+  const FilaSwitch({this.installed = false, this.ready = false});
+
+  factory FilaSwitch.fromJson(Map<String, dynamic> json) =>
+      _$FilaSwitchFromJson(json);
+
+  /// Whether the accessory is fitted at all.
+  @JsonKey(fromJson: toBoolOrFalse)
+  final bool installed;
+
+  /// Whether every AMS has been bound to one of the switch's two inlets on the
+  /// printer's own "Manual AMS Setup" screen. Until that is done the switch can
+  /// route nothing, and a load command is dropped whatever hotend it names —
+  /// Bambu Studio refuses one up front rather than send it, and so does the app.
+  ///
+  /// Absent on a server that reports `fila_switch` but predates the field: read
+  /// as false, which blocks the load with an explanation rather than sending a
+  /// command that would silently do nothing.
+  @JsonKey(fromJson: toBoolOrFalse)
+  final bool ready;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FilaSwitch &&
+          other.installed == installed &&
+          other.ready == ready;
+
+  @override
+  int get hashCode => Object.hash(installed, ready);
+}
+
+/// Which AMS slot one hotend is currently fed from, from `extruder_slots`.
+///
+/// Ids are **local** — [amsId] is the unit, [slotId] the slot within it — so
+/// they compare against a slot's own coordinates, not against the global tray
+/// number the load command takes.
+@JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
+class ExtruderSlot {
+  const ExtruderSlot({this.amsId, this.slotId, this.hasFilament = false});
+
+  factory ExtruderSlot.fromJson(Map<String, dynamic> json) =>
+      _$ExtruderSlotFromJson(json);
+
+  /// Null when this hotend is fed from nothing.
+  @JsonKey(fromJson: toIntOrNull)
+  final int? amsId;
+
+  @JsonKey(fromJson: toIntOrNull)
+  final int? slotId;
+
+  @JsonKey(fromJson: toBoolOrFalse)
+  final bool hasFilament;
+
+  /// Whether this hotend is fed from the given slot.
+  bool holds({required int amsId, required int slotId}) =>
+      this.amsId == amsId && this.slotId == slotId;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExtruderSlot &&
+          other.amsId == amsId &&
+          other.slotId == slotId &&
+          other.hasFilament == hasFilament;
+
+  @override
+  int get hashCode => Object.hash(amsId, slotId, hasFilament);
+}
+
 /// Single printer HMS error from `hms_errors`. Server reports in two shapes per
 /// version: `{code, attr, module, severity}` or `{code, message}` — so all
 /// nullable, and `code` normalized to string (can be hex-string or number).
@@ -830,17 +942,17 @@ class HmsError {
 
   final String? message;
 
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? severity;
 
   /// HMS attribute (upper 32 bits of full code). From Bambu firmware.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? attr;
 
   /// Module/subsystem number, Bambu's `(attr >> 24) & 0xFF` (e.g. 5=mainboard,
   /// 7=AMS). Reported, never rendered: the code's own description is the only
   /// thing the UI shows (see `hmsIsDisplayable`).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? module;
 
   /// Remediation actions the firmware offers for this fault, as `HMSAction`
@@ -853,7 +965,7 @@ class HmsError {
 
   /// `subtask_id` snapshotted onto the fault when it was parsed. Echoed back
   /// with the action so the firmware matches it to the right job.
-  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  @JsonKey(fromJson: toStringOrNull)
   final String? jobId;
 
   /// The identifier the firmware matches HMS commands against, 8 hex chars for
@@ -868,7 +980,7 @@ class HmsError {
   /// send the field at all, and a current one whose `HMSError.full_code`
   /// defaults to `""`, which the parser folds into null so a blank never
   /// reaches the route (its regex demands 8 or 16 hex digits and answers 422).
-  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  @JsonKey(fromJson: toStringOrNull)
   final String? fullCode;
 
   /// The sentence the server's own fault catalog holds for this code (server
@@ -876,7 +988,7 @@ class HmsError {
   /// not cover, which is most of the `hms[]` channel. English only — the server
   /// ships one language — so it is read as the fallback behind this app's own
   /// localized catalog, never before it (`HmsCatalog.describe`).
-  @JsonKey(fromJson: _toNonBlankStringOrNull)
+  @JsonKey(fromJson: toStringOrNull)
   final String? description;
 
   @override
@@ -965,13 +1077,12 @@ String? _toCodeStringOrNull(dynamic value) => switch (value) {
       _ => null,
     };
 
-/// Server strings that mean "absent" by being blank rather than by being
-/// omitted — the identifiers whose empty form would otherwise be sent onward as
-/// if it named something.
-String? _toNonBlankStringOrNull(dynamic value) =>
-    value is String && value.trim().isNotEmpty ? value.trim() : null;
-
 /// Action keys — non-string elements dropped rather than crashing the frame.
+///
+/// Private on purpose, next to `json_utils`'s [toStringList]: this one trims and
+/// drops what is left blank, because an empty action key would be echoed back to
+/// the firmware as a command. Unifying the two would change what one of them
+/// parses.
 List<String> _toStringListOrEmpty(dynamic value) {
   if (value is! List) return const [];
   return [
@@ -980,26 +1091,13 @@ List<String> _toStringListOrEmpty(dynamic value) {
   ];
 }
 
-/// HMS error list — skip non-map elements (defensive parsing).
-List<HmsError>? _toHmsListOrNull(dynamic value) {
-  if (value is! List) return null;
-  return [
-    for (final e in value)
-      if (e is Map) HmsError.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
-
-double? _toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
-
-int? _toIntOrNull(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
+/// The status is merged frame by frame, so every list here is read through
+/// [parseJsonListOrNull]: a frame that does not carry the block has to answer
+/// null (inherit what is known) rather than an empty list (the hardware is
+/// gone). Each one is still a named function because `@JsonKey(fromJson:)`
+/// takes a tear-off, not a closure.
+List<HmsError>? _toHmsListOrNull(dynamic value) =>
+    parseJsonListOrNull(value, HmsError.fromJson);
 
 Map<String, double>? _toTemperaturesOrNull(dynamic value) {
   if (value is! Map) return null;
@@ -1011,46 +1109,33 @@ Map<String, double>? _toTemperaturesOrNull(dynamic value) {
     // double and would render as a bogus sensor tile — drop time fields.
     // Real sensor keys (nozzle/bed/chamber + `_target`) never end in `_time`.
     if (key.endsWith('_time')) continue;
-    final v = _toDoubleOrNull(entry.value);
+    final v = toDoubleOrNull(entry.value);
     if (v != null) out[key] = v;
   }
   return out;
 }
 
 /// Map `AMS ID → extruder` with string keys (`{"0":1}`) → `{0:1}`.
-Map<int, int>? _toExtruderMapOrNull(dynamic value) {
-  if (value is! Map) return null;
-  final out = <int, int>{};
-  for (final entry in value.entries) {
-    final k = _toIntOrNull(entry.key);
-    final v = _toIntOrNull(entry.value);
-    if (k != null && v != null) out[k] = v;
-  }
-  return out;
-}
+Map<int, int>? _toExtruderMapOrNull(dynamic value) =>
+    parseJsonMapByIdOrNull(value, toIntOrNull);
 
-/// AMS unit list — skip non-map elements (defensive parsing).
-List<AmsUnit>? _toAmsListOrNull(dynamic value) {
-  if (value is! List) return null;
-  return [
-    for (final e in value)
-      if (e is Map) AmsUnit.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
+List<AmsUnit>? _toAmsListOrNull(dynamic value) =>
+    parseJsonListOrNull(value, AmsUnit.fromJson);
 
-/// Filament slot list (AMS trays or spools) — skip non-map elements.
-List<AmsTray>? _toTrayListOrNull(dynamic value) {
-  if (value is! List) return null;
-  return [
-    for (final e in value)
-      if (e is Map) AmsTray.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
+/// Filament slots — AMS trays and external spools share one shape.
+List<AmsTray>? _toTrayListOrNull(dynamic value) =>
+    parseJsonListOrNull(value, AmsTray.fromJson);
 
-List<NozzleInfo>? _toNozzleListOrNull(dynamic value) {
-  if (value is! List) return null;
-  return [
-    for (final e in value)
-      if (e is Map) NozzleInfo.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
+List<NozzleInfo>? _toNozzleListOrNull(dynamic value) =>
+    parseJsonListOrNull(value, NozzleInfo.fromJson);
+
+/// Booleans the server may omit on an older version of a block it already
+/// sends. Absent reads as false everywhere it is used here, and false is the
+/// cautious answer in each case: no switch fitted, not set up, nothing loaded.
+FilaSwitch? _toFilaSwitchOrNull(dynamic value) =>
+    parseJsonObjectOrNull(value, FilaSwitch.fromJson);
+
+/// Map `extruder id → slot` with string keys (`{"0": {...}}`) → `{0: ...}`.
+Map<int, ExtruderSlot>? _toExtruderSlotMapOrNull(dynamic value) =>
+    parseJsonMapByIdOrNull(
+        value, (e) => parseJsonObjectOrNull(e, ExtruderSlot.fromJson));

@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'smart_plug.g.dart';
 
 /// Smart plug configuration from `GET /smart-plugs/` and
@@ -31,7 +33,7 @@ class SmartPlug {
   final String? plugType;
 
   /// Printer this plug is assigned to (null = unassigned).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? printerId;
 
   final bool? enabled;
@@ -111,38 +113,27 @@ class SmartPlugEnergy {
       _$SmartPlugEnergyFromJson(json);
 
   /// Active power [W].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? power;
 
   /// Voltage [V].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? voltage;
 
   /// Current [A].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? current;
 
   /// Energy today [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? today;
 
   /// Energy yesterday [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? yesterday;
 
   /// Total energy (meter) [kWh].
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? total;
 }
 
-double? _toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
-
-int? _toIntOrNull(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };

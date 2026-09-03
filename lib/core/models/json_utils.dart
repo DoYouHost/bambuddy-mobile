@@ -121,13 +121,18 @@ List<T> parseJsonList<T>(
   var dropped = 0;
   String? cause;
   for (final item in value) {
-    if (item is! Map<String, dynamic>) {
-      dropped++;
-      cause ??= 'not an object: ${item.runtimeType}';
-      continue;
-    }
     try {
-      out.add(fromJson(item));
+      // `Map`, not `Map<String, dynamic>`: a record that did not come straight
+      // out of `jsonDecode` — one relayed over a platform channel, which Dart
+      // types as `Map<Object?, Object?>`, or built by an untyped `Map.from` —
+      // is an object all the same, and the private list parsers this replaced
+      // all accepted it. Testing for the exact type would drop it silently.
+      if (item is! Map) {
+        dropped++;
+        cause ??= 'not an object: ${item.runtimeType}';
+        continue;
+      }
+      out.add(fromJson(asJsonRecord(item)));
     } on Object catch (e) {
       dropped++;
       // The first failure only: a field the server renamed fails the same way
@@ -149,6 +154,65 @@ List<T> parseJsonList<T>(
       },
     );
   }
+  return out;
+}
+
+/// One decoded record as the generated `fromJson` factories want it. Free when
+/// the value already has that type, which is the case for everything
+/// `jsonDecode` produced.
+Map<String, dynamic> asJsonRecord(Map<dynamic, dynamic> value) =>
+    value is Map<String, dynamic> ? value : Map<String, dynamic>.from(value);
+
+/// [parseJsonList] for a field whose **absence** has to stay distinguishable
+/// from an empty list, and which therefore cannot fall back to `const []`.
+///
+/// `PrinterStatus` is the reason this exists: its two lanes carry disjoint
+/// subsets of the status, so `mergedWith` reads a null as "this frame did not
+/// mention it" and inherits the last known value. An empty list there is news —
+/// the AMS was unplugged — and answering one for a frame that simply did not
+/// carry the block would blank the card on every poll.
+List<T>? parseJsonListOrNull<T>(
+  dynamic value,
+  T Function(Map<String, dynamic>) fromJson,
+) =>
+    value is List ? parseJsonList(value, fromJson) : null;
+
+/// One tolerant nested record: anything that is not an object, and any record
+/// [fromJson] itself chokes on, reads as absent rather than throwing through
+/// the parent.
+T? parseJsonObjectOrNull<T>(
+  dynamic value,
+  T Function(Map<String, dynamic>) fromJson,
+) {
+  if (value is! Map) return null;
+  try {
+    return fromJson(asJsonRecord(value));
+  } on Object catch (e) {
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'parse_drop',
+      lvl: LogLevel.warn,
+      fields: {'type': T.toString(), 'n': 1, 'of': 1, 'cause': e.toString()},
+    );
+    return null;
+  }
+}
+
+/// Tolerant map keyed by a numeric id the server stringifies (`{"0": …}`), with
+/// absence kept distinct from emptiness for the same reason
+/// [parseJsonListOrNull] is. [valueOf] reads one entry; an entry whose key or
+/// value it cannot read is dropped rather than guessed at.
+Map<int, V>? parseJsonMapByIdOrNull<V>(
+  dynamic value,
+  V? Function(dynamic value) valueOf,
+) {
+  if (value is! Map) return null;
+  final out = <int, V>{};
+  value.forEach((key, raw) {
+    final id = toIntOrNull(key);
+    final entry = valueOf(raw);
+    if (id != null && entry != null) out[id] = entry;
+  });
   return out;
 }
 
@@ -211,6 +275,18 @@ Map<String, String> toStringMap(dynamic value) {
   });
   return out;
 }
+
+/// Tolerant `bool` coercion with a `false` fallback: accepts a real boolean,
+/// a number (`0` is false) and the strings the server and the printer both use
+/// for one. False is the fallback because every flag read through it names a
+/// capability or an accessory, where "not reported" and "not there" are the
+/// same answer.
+bool toBoolOrFalse(dynamic value) => switch (value) {
+      bool b => b,
+      num n => n != 0,
+      String s => s.toLowerCase() == 'true' || s == '1',
+      _ => false,
+    };
 
 /// Tolerant `List<String>` coercion: keeps only string elements.
 List<String> toStringList(dynamic value) {

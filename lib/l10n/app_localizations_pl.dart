@@ -1119,6 +1119,26 @@ class AppLocalizationsPl extends AppLocalizations {
   String get amsRfidRereadStarted => 'Ponowny odczyt tagu…';
 
   @override
+  String amsFeedTitle(String slot) {
+    return 'Do której dyszy podać $slot?';
+  }
+
+  @override
+  String get amsFeedPrompt =>
+      'Filament Track Switch może poprowadzić ten slot do obu dysz, więc drukarka sama nie ustali, dokąd ma trafić filament.';
+
+  @override
+  String get amsFeedAlreadyLoaded => 'już załadowany';
+
+  @override
+  String get amsSwitchNotReady =>
+      'Filament Track Switch nie jest jeszcze skonfigurowany. Przypisz każdy AMS do wejścia na drukarce i spróbuj ponownie.';
+
+  @override
+  String get amsUnloadSlotNotLoaded =>
+      'Z tego slotu nie jest zasilana żadna dysza';
+
+  @override
   String get amsActionsWhilePrinting => 'Niedostępne, gdy drukarka drukuje';
 
   @override

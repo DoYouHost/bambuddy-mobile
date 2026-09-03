@@ -265,11 +265,24 @@ abstract final class Endpoints {
   /// A2L AMS-Lite is normalised to unit 6), 254 external / Ext-L, 255 Ext-R.
   /// The server rejects everything else with 400, AMS-HT (unit 128+) included —
   /// build the number with `amsLoadTrayId`, which answers null for those.
+  ///
+  /// Optional `extruder_id` (0 = right/main, 1 = left/deputy) names the hotend
+  /// to feed. Only a printer with a Filament Track Switch needs it — see
+  /// `PrinterStatus.filaSwitch`. A server too old to know the parameter ignores
+  /// it, which is the same answer as not having the accessory.
   static String amsLoad(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/load';
 
-  /// Unload whatever is in the extruder. Printer-wide: the source slot comes
-  /// from the printer's own `tray_now`, so there is nothing to address.
+  /// Unload filament. Optional `tray_id` — the same global encoding [amsLoad]
+  /// takes — names the slot, and through it the hotend fed from that slot: a
+  /// dual-nozzle printer has one `tray_now` for two loaded hotends, so an
+  /// unaddressed unload picks whichever of them that field happens to name.
+  /// Omitted, the server keeps that older behaviour, which is all a
+  /// single-nozzle printer ever needs; a server too old to know the parameter
+  /// ignores it and does the same.
+  ///
+  /// Answers 409 when no hotend is fed from the named slot — a per-slot menu
+  /// offers the action on every slot, and most of them are not loaded.
   static String amsUnload(int printerId) =>
       '$apiPrefix/printers/$printerId/ams/unload';
 

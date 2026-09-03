@@ -386,17 +386,26 @@ class ControlsNotifier extends Notifier<ControlsState> {
       );
 
   /// Load filament from one slot. [trayId] is the global tray number — build it
-  /// with [amsLoadTrayId] rather than by hand.
+  /// with [amsLoadTrayId] rather than by hand. [extruderId] names the hotend to
+  /// feed and belongs only to a printer with a Filament Track Switch fitted.
   ///
   /// The three AMS actions share [ControlAction.ams] so that a slot sheet locks
   /// as a whole: load, unload and an RFID re-read all move the same filament
   /// path, and two of them in the air at once is a jam, not a race the firmware
   /// sorts out.
-  Future<ActionOutcome> amsLoad(int id, int trayId) =>
-      _run(id, ControlAction.ams, () => _repo.amsLoad(id, trayId));
+  Future<ActionOutcome> amsLoad(int id, int trayId, {int? extruderId}) => _run(
+        id,
+        ControlAction.ams,
+        () => _repo.amsLoad(id, trayId, extruderId: extruderId),
+      );
 
-  Future<ActionOutcome> amsUnload(int id) =>
-      _run(id, ControlAction.ams, () => _repo.amsUnload(id));
+  /// Unload filament. [trayId] names the slot, which on a dual-nozzle printer
+  /// is the only way to say which of the two hotends to empty.
+  Future<ActionOutcome> amsUnload(int id, {int? trayId}) => _run(
+        id,
+        ControlAction.ams,
+        () => _repo.amsUnload(id, trayId: trayId),
+      );
 
   /// Re-read one slot's RFID tag. Ids are local to the unit.
   ///
