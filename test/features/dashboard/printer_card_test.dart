@@ -2685,28 +2685,29 @@ void main() {
       expect(find.text('Wybierz termin'), findsWidgets);
     });
 
+    /// Opens the drying sheet on a card whose server answers [settings].
+    Future<void> pumpWithSettings(
+      WidgetTester tester,
+      Map<String, dynamic> settings,
+    ) async {
+      await tester.pumpWidget(_cardWithProviders(
+        dryable(),
+        extra: [
+          scheduledDryingRepositoryProvider
+              .overrideWithValue(_StubScheduledDrying()),
+          serverSettingsProvider.overrideWith((ref) async => settings),
+        ],
+      ));
+      await tester.pumpAndSettle();
+      await openDetails(tester);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+    }
+
     /// The drying temperatures and durations are the server's, not a table
     /// bundled with the app: a user who set PETG to 70 °C on the web must not
     /// have the phone start — or schedule — a run at 65.
     group('presets come from the server', () {
-      Future<void> pumpWithSettings(
-        WidgetTester tester,
-        Map<String, dynamic> settings,
-      ) async {
-        await tester.pumpWidget(_cardWithProviders(
-          dryable(),
-          extra: [
-            scheduledDryingRepositoryProvider
-                .overrideWithValue(_StubScheduledDrying()),
-            serverSettingsProvider.overrideWith((ref) async => settings),
-          ],
-        ));
-        await tester.pumpAndSettle();
-        await openDetails(tester);
-        await tester.tap(find.text('Suszenie'));
-        await tester.pumpAndSettle();
-      }
-
       testWidgets('a configured table is what the sheet seeds from',
           (tester) async {
         await pumpWithSettings(tester, const {
@@ -2808,26 +2809,8 @@ void main() {
     /// does about it — the three settings behind it are `settings:update`,
     /// which an API key can never hold.
     group('the server dries by itself', () {
-      Future<void> pumpWithAuto(
-        WidgetTester tester,
-        Map<String, dynamic> settings,
-      ) async {
-        await tester.pumpWidget(_cardWithProviders(
-          dryable(),
-          extra: [
-            scheduledDryingRepositoryProvider
-                .overrideWithValue(_StubScheduledDrying()),
-            serverSettingsProvider.overrideWith((ref) async => settings),
-          ],
-        ));
-        await tester.pumpAndSettle();
-        await openDetails(tester);
-        await tester.tap(find.text('Suszenie'));
-        await tester.pumpAndSettle();
-      }
-
       testWidgets('ambient drying is named', (tester) async {
-        await pumpWithAuto(tester, const {'ambient_drying_enabled': true});
+        await pumpWithSettings(tester, const {'ambient_drying_enabled': true});
 
         expect(
           find.text(
@@ -2837,7 +2820,7 @@ void main() {
       });
 
       testWidgets('queue drying is named when ambient is off', (tester) async {
-        await pumpWithAuto(tester, const {'queue_drying_enabled': true});
+        await pumpWithSettings(tester, const {'queue_drying_enabled': true});
 
         expect(find.text('Auto-suszenie między wydrukami.'),
             findsOneWidget);
@@ -2845,7 +2828,7 @@ void main() {
 
       /// Ambient covers the queue case, so naming both would say it twice.
       testWidgets('both on says the wider of the two', (tester) async {
-        await pumpWithAuto(tester, const {
+        await pumpWithSettings(tester, const {
           'ambient_drying_enabled': true,
           'queue_drying_enabled': true,
         });
@@ -2861,7 +2844,7 @@ void main() {
 
       testWidgets('drying during a print is added to the sentence',
           (tester) async {
-        await pumpWithAuto(tester, const {
+        await pumpWithSettings(tester, const {
           'ambient_drying_enabled': true,
           'print_drying_enabled': true,
         });
@@ -2876,14 +2859,14 @@ void main() {
       /// On its own it only widens the two automations above it, so with both
       /// off there is nothing happening to report.
       testWidgets('drying during a print alone says nothing', (tester) async {
-        await pumpWithAuto(tester, const {'print_drying_enabled': true});
+        await pumpWithSettings(tester, const {'print_drying_enabled': true});
 
         expect(find.textContaining('Auto-suszenie'), findsNothing);
       });
 
       testWidgets('a server that dries nothing by itself stays quiet',
           (tester) async {
-        await pumpWithAuto(tester, const {});
+        await pumpWithSettings(tester, const {});
 
         expect(find.textContaining('Auto-suszenie'), findsNothing);
       });

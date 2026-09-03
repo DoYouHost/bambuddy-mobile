@@ -20,6 +20,7 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
+import 'core/settings/server_settings.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
 import 'core/watch/wear_relay_claim.dart';
@@ -702,7 +703,8 @@ final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
 final currencySymbolProvider = Provider<String>((ref) {
-  final code = ref.watch(serverSettingsProvider).valueOrNull?['currency'];
+  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
+      .settingString('currency');
   return currencySymbol(code is String ? code : null);
 });
 
@@ -711,8 +713,8 @@ final currencySymbolProvider = Provider<String>((ref) {
 /// pre-start confirmation.
 final requirePlateClearProvider = FutureProvider<bool>(
   (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
-      true,
+      (await ref.watch(serverSettingsProvider.future))
+          .settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.

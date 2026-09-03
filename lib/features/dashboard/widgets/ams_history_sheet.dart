@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
+import '../../../core/settings/server_settings.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
 import '../../common/dash_async.dart';
@@ -53,18 +54,13 @@ const _defaultAmsThresholds = (
 
 final amsThresholdsProvider = FutureProvider<AmsThresholds>((ref) async {
   final s = await ref.watch(serverSettingsProvider.future);
-  double read(String key, double fallback) {
-    final v = s[key];
-    if (v is num) return v.toDouble();
-    if (v is String) return double.tryParse(v) ?? fallback;
-    return fallback;
-  }
-
   return (
-    humidityGood: read('ams_humidity_good', _defaultAmsThresholds.humidityGood),
-    humidityFair: read('ams_humidity_fair', _defaultAmsThresholds.humidityFair),
-    tempGood: read('ams_temp_good', _defaultAmsThresholds.tempGood),
-    tempFair: read('ams_temp_fair', _defaultAmsThresholds.tempFair),
+    humidityGood: s.settingDouble(
+        'ams_humidity_good', _defaultAmsThresholds.humidityGood),
+    humidityFair: s.settingDouble(
+        'ams_humidity_fair', _defaultAmsThresholds.humidityFair),
+    tempGood: s.settingDouble('ams_temp_good', _defaultAmsThresholds.tempGood),
+    tempFair: s.settingDouble('ams_temp_fair', _defaultAmsThresholds.tempFair),
   );
 });
 

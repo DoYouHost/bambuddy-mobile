@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 import '../models/json_utils.dart';
+import '../settings/server_settings.dart';
 
 /// Recommended drying temperature and duration for one filament type, in both
 /// module flavours: `n3f` is the regular AMS 2 Pro, `n3s` the high-temperature
@@ -40,7 +39,7 @@ const defaultDryingPresets = <String, DryPreset>{
 /// Never throws — this runs on a value a server handed us, and a malformed one
 /// only costs the customisation, not the sheet.
 Map<String, DryPreset> dryingPresetsFrom(dynamic value) {
-  final decoded = _decode(value);
+  final decoded = decodeSettingBlob(value);
   if (decoded == null) return defaultDryingPresets;
 
   final presets = <String, DryPreset>{};
@@ -69,27 +68,6 @@ Map<String, DryPreset> dryingPresetsFrom(dynamic value) {
   return presets.isEmpty ? defaultDryingPresets : presets;
 }
 
-/// The blob as an object, or null when there is nothing usable in it.
-///
-/// A `Map` is accepted alongside the string because nothing stops a future
-/// server from typing the field properly, and a client that only understood the
-/// blob would then silently drop the customisation.
-Map<String, dynamic>? _decode(dynamic value) {
-  if (value is Map) {
-    final record = asJsonRecord(value);
-    return record.isEmpty ? null : record;
-  }
-  if (value is! String || value.trim().isEmpty) return null;
-  try {
-    final parsed = jsonDecode(value);
-    if (parsed is! Map) return null;
-    final record = asJsonRecord(parsed);
-    return record.isEmpty ? null : record;
-  } on FormatException {
-    return null;
-  }
-}
-
 /// Which of the server's own drying automations are switched on.
 ///
 /// Read-only on purpose. Writing them is `settings:update`, which an API key
@@ -115,7 +93,7 @@ const noAutoDrying =
     (betweenPrints: false, whenIdle: false, whilePrinting: false);
 
 AutoDrying autoDryingFrom(Map<String, dynamic> settings) => (
-      betweenPrints: toBoolOrFalse(settings['queue_drying_enabled']),
-      whenIdle: toBoolOrFalse(settings['ambient_drying_enabled']),
-      whilePrinting: toBoolOrFalse(settings['print_drying_enabled']),
+      betweenPrints: settings.settingBool('queue_drying_enabled'),
+      whenIdle: settings.settingBool('ambient_drying_enabled'),
+      whilePrinting: settings.settingBool('print_drying_enabled'),
     );
