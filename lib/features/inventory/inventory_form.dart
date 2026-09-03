@@ -284,7 +284,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ValueListenableBuilder(
               valueListenable: _c['labelWeight']!,
               builder: (context, _, _) {
-                final labelInt = parseUserInt(_c['labelWeight']!.text);
+                final labelInt = parseUserRoundedInt(_c['labelWeight']!.text);
                 return _field(
                   'remaining',
                   l10n.inventoryFieldRemainingWeight,
@@ -746,10 +746,11 @@ String? _trimmedField(Map<String, TextEditingController> c, String key) {
   return v.isEmpty ? null : v;
 }
 
-/// An integer-typed field, parsed with the same tolerance as its validator —
-/// see [parseUserInt] for why that is not `int.tryParse`.
+/// An integer-typed field, parsed with the same tolerance as its validator:
+/// every numeric field on both sheets is validated as a decimal, so a decimal
+/// has to round here rather than come out null — see [parseUserRoundedInt].
 int? _intField(Map<String, TextEditingController> c, String key) =>
-    parseUserInt(c[key]!.text);
+    parseUserRoundedInt(c[key]!.text);
 
 
 /// Color picker: large preview + popular swatches from database + search.

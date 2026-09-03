@@ -34,10 +34,25 @@ void main() {
       expect(parseUserDecimal('1 234 567,25'), 1234567.25);
     });
 
-    // Deliberate, and the one case that cannot be got right without a locale:
-    // a lone comma is the decimal key of the language the app is used in.
-    test('a lone comma is a decimal point, not a thousands mark', () {
-      expect(parseUserDecimal('1,234'), 1.234);
+    // The case that cannot be got right without a locale, and where both
+    // readings are plausible in these fields: "1,000" is a thousand to an
+    // English writer and one to a Polish one, and a 1000 g spool and a
+    // four-figure cost are both ordinary. Refused rather than guessed — the
+    // user sees a field to correct instead of a number nobody typed.
+    test('a lone comma over exactly three digits is refused, not guessed', () {
+      expect(parseUserDecimal('1,000'), isNull);
+      expect(parseUserDecimal('1,234'), isNull);
+      expect(parseUserDecimal('12,345'), isNull);
+    });
+
+    // Only that shape is ambiguous. Anything else the comma can only be a
+    // decimal point in.
+    test('every other comma is a decimal point', () {
+      expect(parseUserDecimal('1,23'), 1.23);
+      expect(parseUserDecimal('1,2345'), 1.2345);
+      expect(parseUserDecimal(',5'), 0.5);
+      // The space already said which mark groups, so the comma is the other.
+      expect(parseUserDecimal('1 234,567'), 1234.567);
     });
 
     test('an empty field is not a number', () {
@@ -62,29 +77,39 @@ void main() {
   });
 
   group('parseUserInt', () {
-    test('a whole number is itself', () {
+    test('a whole number is itself, separators and all', () {
       expect(parseUserInt('1000'), 1000);
       expect(parseUserInt('1 000'), 1000);
     });
 
-    // The reason it is not `int.tryParse`: a numeric field's own validator
-    // accepts "1000.5", so refusing it here loses a value the user was told
-    // was fine.
-    test('a decimal is rounded, not refused', () {
-      expect(parseUserInt('1000.5'), 1001);
-      expect(parseUserInt('1000,4'), 1000);
+    // Where the field means a whole number, rounding what the user typed is
+    // choosing a different value for them without saying so.
+    test('a decimal is refused, the way int.tryParse refused it', () {
+      expect(parseUserInt('2.5'), isNull);
+      expect(parseUserInt('40,6'), isNull);
     });
 
     test('an empty field is still nothing', () {
       expect(parseUserInt(''), isNull);
       expect(parseUserInt(null), isNull);
     });
+  });
+
+  group('parseUserRoundedInt', () {
+    // For the spool form, where every numeric field is validated as a decimal:
+    // "1000.5" is accepted on screen, so refusing it on the way out drops a
+    // value the user typed and watched pass.
+    test('a decimal is rounded rather than dropped', () {
+      expect(parseUserRoundedInt('1000.5'), 1001);
+      expect(parseUserRoundedInt('1000,4'), 1000);
+    });
 
     // `round()` saturates at the largest platform int rather than failing, so
-    // without this the field would quietly send 9223372036854775807.
+    // without the guard the field would quietly send 9223372036854775807.
     test('a number too large to be a whole one is refused', () {
+      expect(parseUserRoundedInt('1e20'), isNull);
+      expect(parseUserRoundedInt('99999999999999999999'), isNull);
       expect(parseUserInt('1e20'), isNull);
-      expect(parseUserInt('99999999999999999999'), isNull);
     });
   });
 }

@@ -40,12 +40,15 @@ enum FilamentGramsError { notANumber, outOfRange }
 }
 
 /// A weight the way the user would write it: no decimal point on a whole
-/// number, which nearly every figure is, and the typed precision when there is
+/// number, which nearly every figure is, and two decimals at most when there is
 /// one.
 ///
-/// Both the row's value and the field's initial text, so reopening the dialog
-/// offers back exactly what was saved rather than a rounded version of it that
-/// would be written back on the next save.
+/// Both the row's value and the field's initial text, so what the dialog offers
+/// back is what the row shows. Two decimals is where a *typed* weight is exact
+/// — nobody writes a milligram — but it is not always exactly what is stored:
+/// a figure the slicer computed can carry more, and reopening the dialog and
+/// saving rounds it to what the field displayed. That trade goes this way round
+/// because the alternative is a field that opens on 12.344999999999999.
 String filamentGramsText(double? grams) {
   if (grams == null) return '';
   final fixed = grams.toStringAsFixed(2);
@@ -79,15 +82,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     // The list is the screen's copy of this print, and the save writes the
     // stored row back into it — so the value here follows the edit without the
     // sheet being reopened.
-    final live = ref.watch(
-          archiveProvider.select(
-            (s) => s.valueOrNull
-                ?.where((a) => a.id == widget.archive.id)
-                .firstOrNull,
-          ),
-        ) ??
-        widget.archive;
-    final grams = live.filamentUsedGrams;
+    final grams = _live(ref.watch(archiveProvider).valueOrNull).filamentUsedGrams;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -143,16 +138,28 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     );
   }
 
+  /// This print as the loaded list holds it *now*.
+  ///
+  /// [ArchiveFilamentRow.archive] is the snapshot the sheet was opened with, and
+  /// it never changes: the sheet around this row is a `StatelessWidget` that
+  /// nothing rebuilds. After one save it carries the weight from before that
+  /// save — the one figure the dialog must not offer back, since accepting it
+  /// would write the old value over the new one.
+  Archive _live(List<Archive>? archives) =>
+      archives?.where((a) => a.id == widget.archive.id).firstOrNull ??
+      widget.archive;
+
   Future<void> _edit() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final repository = ref.read(archiveRepositoryProvider);
     final archiveId = widget.archive.id;
+    final stored = _live(ref.read(archiveProvider).valueOrNull);
 
     final answer = await showDialog<({double? grams})>(
       context: context,
       builder: (_) => _FilamentGramsDialog(
-        initial: filamentGramsText(widget.archive.filamentUsedGrams),
+        initial: filamentGramsText(stored.filamentUsedGrams),
       ),
     );
     if (answer == null || !mounted) return;

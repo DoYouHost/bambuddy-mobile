@@ -142,6 +142,25 @@ void main() {
           reason: 'the row follows the stored value the PATCH answered with');
     });
 
+    // The sheet holding this row is a StatelessWidget built once from the list
+    // as it was when the print was tapped, so the snapshot it passes down still
+    // carries the pre-edit weight. Seeding the field from it would offer the
+    // old figure back and write it over the new one on the next save.
+    testWidgets('a second edit starts from the weight the first one stored',
+        (tester) async {
+      await tester.pumpWidget(row(archive(grams: 17.1)));
+      await tester.pumpAndSettle();
+
+      await edit(tester, '42');
+      await tester.tap(find.byType(ArchiveFilamentRow));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller?.text,
+        '42',
+      );
+    });
+
     testWidgets('an emptied field clears the weight', (tester) async {
       await tester.pumpWidget(row(archive(grams: 17.1)));
       await tester.pumpAndSettle();
