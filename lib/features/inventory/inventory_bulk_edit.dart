@@ -152,66 +152,62 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
     final native =
         ref.watch(inventoryBackendProvider) == InventoryBackend.native;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.9,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (context, controller) => SheetSurface(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            controller: controller,
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
-            children: [
-              Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
-              const SizedBox(height: 4),
-              Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
-              const SizedBox(height: 12),
+    return DraggableSheetSurface(
+      initialSize: 0.9,
+      minSize: 0.5,
+      builder: (context, controller) => Form(
+        key: _formKey,
+        child: ListView(
+          controller: controller,
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+          children: [
+            Text(l10n.inventoryBulkEditTitle(_count), style: t.display),
+            const SizedBox(height: 4),
+            Text(l10n.inventoryBulkEditHint, style: t.bodySoft),
+            const SizedBox(height: 12),
 
-              _FormSection(label: l10n.inventorySectionFilament),
-              _presetField(l10n),
-              _combo('material', l10n.inventoryFieldMaterial,
-                  ref.watch(materialOptionsProvider)),
-              _combo('brand', l10n.inventoryFieldBrand,
-                  ref.watch(brandOptionsProvider)),
-              _combo('subtype', l10n.inventoryFieldSubtype,
-                  ref.watch(subtypeOptionsProvider)),
-              _field('labelWeight', l10n.inventoryFieldLabelWeight,
-                  number: true),
+            _FormSection(label: l10n.inventorySectionFilament),
+            _presetField(l10n),
+            _combo('material', l10n.inventoryFieldMaterial,
+                ref.watch(materialOptionsProvider)),
+            _combo('brand', l10n.inventoryFieldBrand,
+                ref.watch(brandOptionsProvider)),
+            _combo('subtype', l10n.inventoryFieldSubtype,
+                ref.watch(subtypeOptionsProvider)),
+            _field('labelWeight', l10n.inventoryFieldLabelWeight,
+                number: true),
 
-              const SizedBox(height: 8),
-              _FormSection(label: l10n.inventorySectionColor),
-              _field('colorName', l10n.inventoryFieldColorName),
-              ValueListenableBuilder(
-                valueListenable: _c['rgba']!,
-                builder: (context, _, _) => _colorField(l10n),
-              ),
+            const SizedBox(height: 8),
+            _FormSection(label: l10n.inventorySectionColor),
+            _field('colorName', l10n.inventoryFieldColorName),
+            ValueListenableBuilder(
+              valueListenable: _c['rgba']!,
+              builder: (context, _, _) => _colorField(l10n),
+            ),
 
-              const SizedBox(height: 8),
-              _FormSection(label: l10n.inventorySectionAdditional),
-              _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
-                  number: true),
-              _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
-              // Category and the low-stock override are native-only columns:
-              // on Spoolman the patch drops them, so offering the fields would
-              // promise "1 field will be overwritten" and then change nothing.
-              if (native) ...[
-                _field('category', l10n.inventoryFieldCategory),
-                _field('lowStock', l10n.inventoryFieldLowStock,
-                    number: true,
-                    hint: l10n.inventoryLowStockHint,
-                    min: _lowStockMin,
-                    max: _lowStockMax),
-              ],
-              _combo('location', l10n.inventoryFieldLocation,
-                  ref.watch(locationOptionsProvider)),
-              _field('note', l10n.inventoryFieldNote, maxLines: 3),
-
-              const SizedBox(height: 20),
-              _applyButton(t, l10n),
+            const SizedBox(height: 8),
+            _FormSection(label: l10n.inventorySectionAdditional),
+            _field('coreWeight', l10n.inventoryFieldEmptySpoolWeight,
+                number: true),
+            _field('costPerKg', l10n.inventoryFieldCostPerKg, number: true),
+            // Category and the low-stock override are native-only columns:
+            // on Spoolman the patch drops them, so offering the fields would
+            // promise "1 field will be overwritten" and then change nothing.
+            if (native) ...[
+              _field('category', l10n.inventoryFieldCategory),
+              _field('lowStock', l10n.inventoryFieldLowStock,
+                  number: true,
+                  hint: l10n.inventoryLowStockHint,
+                  min: _lowStockMin,
+                  max: _lowStockMax),
             ],
-          ),
+            _combo('location', l10n.inventoryFieldLocation,
+                ref.watch(locationOptionsProvider)),
+            _field('note', l10n.inventoryFieldNote, maxLines: 3),
+
+            const SizedBox(height: 20),
+            _applyButton(t, l10n),
+          ],
         ),
       ),
     );

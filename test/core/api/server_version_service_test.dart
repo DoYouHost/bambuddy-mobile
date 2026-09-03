@@ -1,3 +1,4 @@
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
@@ -42,14 +43,14 @@ void main() {
     replyVersion('1.2.5.1');
 
     expect((await service.current())?.raw, '1.2.5.1');
-    expect(await service.supportsTriStateCalibration(), isTrue);
+    expect(await service.supports(ServerFeature.triStateCalibration), isTrue);
     expect(await service.reportedVersion(), '1.2.5.1');
   });
 
   test('starszy serwer: trójstanu nie ma', () async {
     replyVersion('0.2.4.9');
 
-    expect(await service.supportsTriStateCalibration(), isFalse);
+    expect(await service.supports(ServerFeature.triStateCalibration), isFalse);
   });
 
   test('pyta raz, potem korzysta z zapamiętanej odpowiedzi', () async {
@@ -61,7 +62,7 @@ void main() {
 
     await service.current();
     await service.current();
-    await service.supportsTriStateCalibration();
+    await service.supports(ServerFeature.triStateCalibration);
 
     expect(calls(), 1, reason: 'wersja nie zmienia się bez restartu serwera');
   });
@@ -99,7 +100,7 @@ void main() {
       );
 
       expect(await service.current(), isNull);
-      expect(await service.supportsTriStateCalibration(), isFalse,
+      expect(await service.supports(ServerFeature.triStateCalibration), isFalse,
           reason: 'nieznane traktujemy jak starsze');
       expect(await service.reportedVersion(), isNull);
     });

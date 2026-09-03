@@ -4646,6 +4646,24 @@ abstract class AppLocalizations {
   /// **'US sheet stock; 30 labels per Letter page.'**
   String get inventoryLabelsAvery5160Hint;
 
+  /// No description provided for @inventoryLabelsStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First free label'**
+  String get inventoryLabelsStartTitle;
+
+  /// No description provided for @inventoryLabelsStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.'**
+  String get inventoryLabelsStartHint;
+
+  /// No description provided for @inventoryLabelsStartSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Position {position}'**
+  String inventoryLabelsStartSlot(int position);
+
   /// No description provided for @maintenanceEmpty.
   ///
   /// In en, this message translates to:

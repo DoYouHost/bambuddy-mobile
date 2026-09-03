@@ -24,6 +24,7 @@ import '../common/dash_search_field.dart';
 import '../common/dash_sheet.dart';
 import '../common/hex_color.dart';
 import 'process_settings_screen.dart';
+import 'slice_filament_colours.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -642,6 +643,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final target = widget.target;
     final refs = [for (final f in _filaments) f!.toRef()];
     final asDesigned = _asDesigned;
+    // Slot colours, positional like `refs`. Empty on the "as designed" path:
+    // the file's own project settings carry the colours it was drawn with, and
+    // the server ignores the resolved filament profiles there anyway.
+    final colours = asDesigned
+        ? const <String>[]
+        : sliceFilamentColours(
+            picked: _filaments,
+            owned: ref.read(ownedFilamentsProvider).valueOrNull ??
+                const <OwnedFilament>[],
+            requirements:
+                ref.read(filamentRequirementsProvider(_sourceKey)).valueOrNull ??
+                    const <FilamentRequirement>[],
+          );
     final overrides = asDesigned
         ? const <String, Object>{}
         : _overridesFrom(
@@ -668,6 +682,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       // that also hides which servers actually honoured it.
       if (_autoOrient) 'auto_orient': true,
       if (_autoArrange) 'auto_arrange': true,
+      // What each slot actually prints in, so the output records the spool's
+      // colour rather than the slicer's compiled-in green (server #2977). No
+      // version gate, unlike the switches above: this is derived from the
+      // pickers rather than being a control of its own, so an older server that
+      // drops the key just slices as it did before and there is nothing that
+      // could appear to work while doing nothing.
+      if (colours.isNotEmpty) 'filament_colours': colours,
       // Only genuine deviations, so an untouched screen leaves this slice
       // byte-identical to one from before the feature existed.
       if (overrides.isNotEmpty) 'process_overrides': overrides,

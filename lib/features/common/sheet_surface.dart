@@ -2,6 +2,53 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/dash_theme.dart';
 
+/// A draggable sheet standing on a [SheetSurface] — the pair every content
+/// sheet opened with `dashSurfaceSheet` is built from.
+///
+/// It exists because the pair was written out twelve times, always identically
+/// apart from the three sizes, and one of those lines is load-bearing in a way
+/// that is easy to drop: without `expand: false` the sheet ignores
+/// [initialSize] and opens at full height.
+///
+/// The defaults are the sizes most of those twelve settled on. State a size
+/// only where the sheet wants a different one — a filter list that should open
+/// around half the screen, a form that should open nearly full.
+///
+/// Only for a sheet shown with `dashSurfaceSheet`. The three shown with
+/// `dashSheet` — the AMS slot assignment, the maintenance type form and the
+/// slicer's preset picker — stand on Material's own surface and keep a bare
+/// [DraggableScrollableSheet] on purpose: giving them this one would draw a
+/// second surface and a second drag handle inside the first.
+class DraggableSheetSurface extends StatelessWidget {
+  const DraggableSheetSurface({
+    super.key,
+    this.initialSize = 0.7,
+    this.maxSize = 0.95,
+    this.minSize = 0.4,
+    required this.builder,
+  });
+
+  final double initialSize;
+  final double maxSize;
+  final double minSize;
+
+  /// Builds the content on the surface. The scroll view it returns **must**
+  /// take the [ScrollController] it is handed: one that ignores it drags the
+  /// whole sheet instead of scrolling its own content.
+  final Widget Function(BuildContext context, ScrollController controller)
+      builder;
+
+  @override
+  Widget build(BuildContext context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: initialSize,
+        maxChildSize: maxSize,
+        minChildSize: minSize,
+        builder: (context, controller) =>
+            SheetSurface(child: builder(context, controller)),
+      );
+}
+
 /// Rounded surface a draggable sheet sits on: own background, top hairline,
 /// lifted shadow and the drag handle above the content.
 class SheetSurface extends StatelessWidget {

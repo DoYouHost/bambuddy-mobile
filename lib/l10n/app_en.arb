@@ -998,6 +998,10 @@
   "inventoryLabelsAveryL7160Hint": "EU sheet stock; 21 labels per A4 page.",
   "inventoryLabelsAvery5160": "Avery 5160 — US Letter sheet (25.4 × 66.7 mm × 30)",
   "inventoryLabelsAvery5160Hint": "US sheet stock; 30 labels per Letter page.",
+  "inventoryLabelsStartTitle": "First free label",
+  "inventoryLabelsStartHint": "Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.",
+  "inventoryLabelsStartSlot": "Position {position}",
+  "@inventoryLabelsStartSlot": { "placeholders": { "position": { "type": "int" } } },
 
   "maintenanceEmpty": "No maintenance data",
   "maintenanceTotalHours": "{hours} h total",

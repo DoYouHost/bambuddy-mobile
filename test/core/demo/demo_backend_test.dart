@@ -90,7 +90,7 @@ void main() {
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);
-      expect(await version.supportsTriStateCalibration(), isTrue);
+      expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
     });
 
     test('the reported version matches what this backend actually serves',

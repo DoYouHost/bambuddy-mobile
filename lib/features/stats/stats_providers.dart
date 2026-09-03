@@ -162,11 +162,25 @@ final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
   final live = ref.watch(printerNamesProvider).valueOrNull ?? const {};
   final recorded = ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
   final labels = <int, String>{};
+
+  // A blank name is dropped rather than stored, on both sides. Two reasons it
+  // has to be a filter and not a merge: `PrinterUpdate.name` carries no
+  // `min_length` server-side and the PATCH route assigns it unchecked, so a
+  // printer really can end up nameless; and the row's `#id` fallback keys on
+  // the label being *absent*, which an empty string is not — it would draw a
+  // bar with nothing written on it. Letting a nameless live printer overwrite
+  // the name its own print log recorded is the worse half of that.
+  void put(int id, String name) {
+    if (name.trim().isNotEmpty) labels[id] = name;
+  }
+
   recorded.forEach((id, name) {
     final printerId = int.tryParse(id);
-    if (printerId != null) labels[printerId] = name;
+    if (printerId != null) put(printerId, name);
   });
-  return labels..addAll(live);
+  // Live last, so a rename wins over what the log recorded before it.
+  live.forEach(put);
+  return labels;
 });
 
 /// Slim list of all prints for active filter — source of rich stats (heatmap,

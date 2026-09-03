@@ -83,9 +83,6 @@ class InventoryRepository {
 
   Future<List<String>> fetchLocations() => _source.fetchLocations();
 
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _source.renderLabels(spoolIds, template, monochrome: monochrome);
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _source.renderLabels(request);
 }

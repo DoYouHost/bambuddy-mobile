@@ -7,6 +7,7 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
@@ -567,8 +568,11 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
 /// [serverVersionServiceProvider] is, so switching servers cannot carry the old
 /// ceiling over.
 ///
-/// The one gate here with nothing to observe — see
-/// [ServerVersion.chamberMaxTargetC].
+/// One of the two gates with nothing to observe — see
+/// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
+/// other. Every other capability provider here asks a repository instead,
+/// because a repository has seen the server's own answers and that outranks
+/// reasoning from a version number.
 final chamberMaxTargetProvider = FutureProvider<int>(
   (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
 );
@@ -593,6 +597,15 @@ final sliceLayoutOptionsProvider = FutureProvider.autoDispose<bool>(
 /// the version number.
 final processOverridesProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
+);
+
+/// Whether the label sheet may ask where on the sheet to start printing
+/// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
+/// why a PDF response cannot answer it.
+final labelStartingPositionProvider = FutureProvider<bool>(
+  (ref) => ref
+      .watch(serverVersionServiceProvider)
+      .supports(ServerFeature.labelStartingPosition),
 );
 
 /// Archive of prints (M5). Shares authenticated Dio.

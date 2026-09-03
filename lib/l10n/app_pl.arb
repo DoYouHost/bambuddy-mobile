@@ -848,6 +848,10 @@
   "inventoryLabelsAveryL7160Hint": "Arkusze europejskie; 21 etykiet na stronie A4.",
   "inventoryLabelsAvery5160": "Avery 5160 — arkusz US Letter (25,4 × 66,7 mm × 30)",
   "inventoryLabelsAvery5160Hint": "Arkusze amerykańskie; 30 etykiet na stronie Letter.",
+  "inventoryLabelsStartTitle": "Pierwsza wolna etykieta",
+  "inventoryLabelsStartHint": "Dotknij pola, w którym ma się wydrukować pierwsza etykieta — wcześniejsze zostaną puste, więc napoczęty arkusz da się dokończyć zamiast zaczynać nowy.",
+  "inventoryLabelsStartSlot": "Pozycja {position}",
+  "@inventoryLabelsStartSlot": { "placeholders": { "position": { "type": "int" } } },
 
   "maintenanceEmpty": "Brak danych o konserwacji",
   "maintenanceTotalHours": "{hours} h łącznie",

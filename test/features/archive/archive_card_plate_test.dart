@@ -68,4 +68,16 @@ void main() {
     expect(find.textContaining(l10n(tester).archivePlate(1)), findsNothing);
     expect(find.textContaining('PETG'), findsOneWidget);
   });
+
+  testWidgets('a recorded plate of 0 is read as no plate, not as plate zero',
+      (tester) async {
+    // Plates are numbered from 1 and the column has no lower bound, so a 0 is
+    // something that went wrong upstream rather than a plate anyone printed.
+    // "Plate 0" on the card would pass that on to the reader as a fact.
+    await tester.pumpWidget(_screen([_archive(plateId: 0)]));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(l10n(tester).archivePlate(0)), findsNothing);
+    expect(find.textContaining('PETG'), findsOneWidget);
+  });
 }

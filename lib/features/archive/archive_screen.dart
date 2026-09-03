@@ -558,7 +558,12 @@ class _ArchiveCard extends StatelessWidget {
     final meta = <String>[
       // Only a run that printed a chosen plate of a multi-plate file carries
       // one, which is exactly when the name alone cannot tell two rows apart.
-      if (archive.plateId != null)
+      //
+      // Guarded on the value, not just on null: plates are numbered from 1
+      // (`Metadata/plate_1.gcode` upward) and the server puts no lower bound on
+      // the column, while 0 is what the slicer's own API means by "every plate".
+      // Whatever wrote a 0 here, it did not print plate zero.
+      if ((archive.plateId ?? 0) > 0)
         AppLocalizations.of(context).archivePlate(archive.plateId!),
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
@@ -1220,176 +1225,173 @@ class _ArchiveFilterSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.archive_filters',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (context, controller) => SheetSurface(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              // Fixed height so the header never resizes when the Clear button
-              // toggles; the button keeps its slot via Visibility.maintainSize so
-              // its appearance can't reflow the sheet content.
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
-                    const Spacer(),
-                    Visibility(
-                      visible: filters.activeCount > 0,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: TextButton(
-                        onPressed: () => notifier.state = ArchiveFilters(
-                          // Keep the current search + sort; only clear filters.
-                          query: filters.query,
-                          sort: filters.sort,
-                        ),
-                        child: Text(l10n.archiveFiltersClear),
+      DraggableSheetSurface(
+        initialSize: 0.6,
+        maxSize: 0.9,
+        minSize: 0.35,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            // Fixed height so the header never resizes when the Clear button
+            // toggles; the button keeps its slot via Visibility.maintainSize so
+            // its appearance can't reflow the sheet content.
+            SizedBox(
+              height: 48,
+              child: Row(
+                children: [
+                  Text(l10n.archiveFilters, style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  Visibility(
+                    visible: filters.activeCount > 0,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: TextButton(
+                      onPressed: () => notifier.state = ArchiveFilters(
+                        // Keep the current search + sort; only clear filters.
+                        query: filters.query,
+                        sort: filters.sort,
                       ),
+                      child: Text(l10n.archiveFiltersClear),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            FilterGroupLabel(label: l10n.archiveSortLabel),
+            _ChipWrap(
+              children: [
+                for (final s in ArchiveSort.values)
+                  ChoiceChip(
+                    label: Text(_sortLabel(l10n, s)),
+                    selected: filters.sort == s,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(sort: s),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            FilterGroupLabel(label: l10n.archiveFilterFileType),
+            _ChipWrap(
+              children: [
+                for (final f in ArchiveFileType.values)
+                  ChoiceChip(
+                    label: Text(_fileTypeLabel(l10n, f)),
+                    selected: filters.fileType == f,
+                    onSelected: (_) =>
+                        notifier.state = filters.copyWith(fileType: f),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            FilterGroupLabel(label: l10n.archiveFilterFlags),
+            _ChipWrap(
+              children: [
+                FilterChip(
+                  avatar: Icon(
+                    filters.favoritesOnly ? Icons.star : Icons.star_border,
+                    size: 18,
+                  ),
+                  label: Text(l10n.archiveFilterFavorites),
+                  selected: filters.favoritesOnly,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(favoritesOnly: v),
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              FilterGroupLabel(label: l10n.archiveSortLabel),
-              _ChipWrap(
-                children: [
-                  for (final s in ArchiveSort.values)
-                    ChoiceChip(
-                      label: Text(_sortLabel(l10n, s)),
-                      selected: filters.sort == s,
-                      onSelected: (_) =>
-                          notifier.state = filters.copyWith(sort: s),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              FilterGroupLabel(label: l10n.archiveFilterFileType),
-              _ChipWrap(
-                children: [
-                  for (final f in ArchiveFileType.values)
-                    ChoiceChip(
-                      label: Text(_fileTypeLabel(l10n, f)),
-                      selected: filters.fileType == f,
-                      onSelected: (_) =>
-                          notifier.state = filters.copyWith(fileType: f),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              FilterGroupLabel(label: l10n.archiveFilterFlags),
-              _ChipWrap(
-                children: [
-                  FilterChip(
-                    avatar: Icon(
-                      filters.favoritesOnly ? Icons.star : Icons.star_border,
-                      size: 18,
-                    ),
-                    label: Text(l10n.archiveFilterFavorites),
-                    selected: filters.favoritesOnly,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(favoritesOnly: v),
-                  ),
-                  FilterChip(
-                    label: Text(l10n.archiveFilterHideFailed),
-                    selected: filters.hideFailed,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(hideFailed: v),
-                  ),
-                  FilterChip(
-                    label: Text(l10n.archiveFilterHideDuplicates),
-                    selected: filters.hideDuplicates,
-                    onSelected: (v) =>
-                        notifier.state = filters.copyWith(hideDuplicates: v),
-                  ),
-                ],
-              ),
-
-              if (usedPrinterIds.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                FilterGroupLabel(label: l10n.archiveFilterPrinter),
-                _ChipWrap(
-                  children: [
-                    for (final p in printers)
-                      if (usedPrinterIds.contains(p.id))
-                        FilterChip(
-                          label: Text(p.name),
-                          selected: filters.printerId == p.id,
-                          onSelected: (v) => notifier.state = v
-                              ? filters.copyWith(printerId: p.id)
-                              : filters.copyWith(clearPrinter: true),
-                        ),
-                  ],
+                FilterChip(
+                  label: Text(l10n.archiveFilterHideFailed),
+                  selected: filters.hideFailed,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(hideFailed: v),
+                ),
+                FilterChip(
+                  label: Text(l10n.archiveFilterHideDuplicates),
+                  selected: filters.hideDuplicates,
+                  onSelected: (v) =>
+                      notifier.state = filters.copyWith(hideDuplicates: v),
                 ),
               ],
+            ),
 
-              if (sortedMaterials.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                FilterGroupLabel(label: l10n.archiveFilterMaterial),
-                _ChipWrap(
-                  children: [
-                    for (final m in sortedMaterials)
+            if (usedPrinterIds.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              FilterGroupLabel(label: l10n.archiveFilterPrinter),
+              _ChipWrap(
+                children: [
+                  for (final p in printers)
+                    if (usedPrinterIds.contains(p.id))
                       FilterChip(
-                        label: Text(m),
-                        selected: filters.material == m,
+                        label: Text(p.name),
+                        selected: filters.printerId == p.id,
                         onSelected: (v) => notifier.state = v
-                            ? filters.copyWith(material: m)
-                            : filters.copyWith(clearMaterial: true),
+                            ? filters.copyWith(printerId: p.id)
+                            : filters.copyWith(clearPrinter: true),
                       ),
-                  ],
-                ),
-              ],
-
-              if (colors.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    FilterGroupLabel(label: l10n.archiveFilterColors),
-                    const Spacer(),
-                    if (filters.colors.length > 1)
-                      // OR/AND only matters once several colors are picked.
-                      SegmentedButton<ColorFilterMode>(
-                        style: const ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: ColorFilterMode.or,
-                            label: Text(l10n.archiveColorModeAny),
-                          ),
-                          ButtonSegment(
-                            value: ColorFilterMode.and,
-                            label: Text(l10n.archiveColorModeAll),
-                          ),
-                        ],
-                        selected: {filters.colorMode},
-                        onSelectionChanged: (s) =>
-                            notifier.state = filters.copyWith(colorMode: s.first),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                _ColorSwatchWrap(
-                  colors: colors.toList(),
-                  selected: filters.colors,
-                  onToggle: (c) {
-                    final next = {...filters.colors};
-                    if (!next.remove(c)) next.add(c);
-                    notifier.state = filters.copyWith(colors: next);
-                  },
-                ),
-              ],
+                ],
+              ),
             ],
-          ),
+
+            if (sortedMaterials.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              FilterGroupLabel(label: l10n.archiveFilterMaterial),
+              _ChipWrap(
+                children: [
+                  for (final m in sortedMaterials)
+                    FilterChip(
+                      label: Text(m),
+                      selected: filters.material == m,
+                      onSelected: (v) => notifier.state = v
+                          ? filters.copyWith(material: m)
+                          : filters.copyWith(clearMaterial: true),
+                    ),
+                ],
+              ),
+            ],
+
+            if (colors.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  FilterGroupLabel(label: l10n.archiveFilterColors),
+                  const Spacer(),
+                  if (filters.colors.length > 1)
+                    // OR/AND only matters once several colors are picked.
+                    SegmentedButton<ColorFilterMode>(
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      segments: [
+                        ButtonSegment(
+                          value: ColorFilterMode.or,
+                          label: Text(l10n.archiveColorModeAny),
+                        ),
+                        ButtonSegment(
+                          value: ColorFilterMode.and,
+                          label: Text(l10n.archiveColorModeAll),
+                        ),
+                      ],
+                      selected: {filters.colorMode},
+                      onSelectionChanged: (s) =>
+                          notifier.state = filters.copyWith(colorMode: s.first),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              _ColorSwatchWrap(
+                colors: colors.toList(),
+                selected: filters.colors,
+                onToggle: (c) {
+                  final next = {...filters.colors};
+                  if (!next.remove(c)) next.add(c);
+                  notifier.state = filters.copyWith(colors: next);
+                },
+              ),
+            ],
+          ],
         ),
       )
     );

@@ -71,6 +71,17 @@ enum ServerFeature {
   ///   drops those without a word: the list comes back `created_at desc`
   ///   whatever was asked for. Same silent-drop class as [sliceLayoutOptions].
   printLogCostEnergy,
+
+  /// `starting_position` on `POST /inventory/labels` / `POST /spoolman/labels`
+  /// — resume a part-used Avery sheet instead of always printing from slot 1.
+  ///
+  /// Gated for the same reason as [sliceLayoutOptions]: `LabelRequest` forbids
+  /// no extra fields, so an older server takes the number, says nothing, and
+  /// prints from position 1 anyway. Nothing in the reply distinguishes the two
+  /// — both are a valid PDF — so there is no observation to prefer over this
+  /// row, and a control that quietly wastes a sheet of labels is worse than one
+  /// that is not offered.
+  labelStartingPosition,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -177,6 +188,13 @@ class ServerVersion implements Comparable<ServerVersion> {
     // it, so this one row covers both schemes; writing it as (1, 2, 4, 8) would
     // hide the chart on exactly the 0.2.4.x servers that have it.
     ServerFeature.printerSensorHistory: (0, 2, 4, 8),
+    // starting_position on the two label routes (server #2879). Like the rows
+    // above it this landed partway through the 1.2.6 beta cycle, which the
+    // numeric base cannot split any finer — a 1.2.6b1 daily older than the
+    // commit is told yes and prints from position 1. That is the same sheet it
+    // prints today, so the cost of the gate being early is a wasted sheet
+    // rather than a refused request.
+    ServerFeature.labelStartingPosition: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].
@@ -194,9 +212,6 @@ class ServerVersion implements Comparable<ServerVersion> {
     return true;
   }
 
-  bool get supportsTriStateCalibration =>
-      supports(ServerFeature.triStateCalibration);
-
   /// Highest chamber target the server will accept, in °C.
   ///
   /// The one gate that is a value rather than a yes/no, and the one that cannot
@@ -207,17 +222,9 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// rather than clamping. 60 whenever we don't know.
   int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
 
-  bool get supportsCrossModelVariants =>
-      supports(ServerFeature.crossModelVariants);
-
-  bool get supportsSliceLayoutOptions =>
-      supports(ServerFeature.sliceLayoutOptions);
-
-  bool get supportsProcessOverrides => supports(ServerFeature.processOverrides);
-
   List<int> get _base => [major, minor, patch, micro];
 
-  /// Prerelease status deliberately ignored — see [supportsTriStateCalibration].
+  /// Prerelease status deliberately ignored — see [introducedIn].
   int _compareBase(ServerVersion other) {
     final mine = _base;
     final theirs = other._base;

@@ -592,158 +592,155 @@ class _PrintLogFilterSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.print_log_filters',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (context, controller) => SheetSurface(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Text(l10n.printLogFilters,
-                        style: theme.textTheme.titleLarge),
-                    const Spacer(),
-                    Visibility(
-                      visible: filters.activeCount > 0,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: logTag(
-                        'print_log.filters.clear',
-                        TextButton(
-                          onPressed: notifier.clear,
-                          child: Text(l10n.filtersClear),
-                        ),
+      DraggableSheetSurface(
+        initialSize: 0.6,
+        maxSize: 0.9,
+        minSize: 0.35,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            SizedBox(
+              height: 48,
+              child: Row(
+                children: [
+                  Text(l10n.printLogFilters,
+                      style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  Visibility(
+                    visible: filters.activeCount > 0,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: logTag(
+                      'print_log.filters.clear',
+                      TextButton(
+                        onPressed: notifier.clear,
+                        child: Text(l10n.filtersClear),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              FilterGroupLabel(label: l10n.printLogFilterStatus),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  // One id per value: the status keys are the server's wire
-                  // vocabulary, so the log can say which was picked without
-                  // carrying anything the user wrote.
-                  ChoiceChip(
-                    label: Text(l10n.printLogAnyStatus),
-                    selected: filters.status == null,
-                    onSelected: (_) =>
-                        notifier.set(filters.copyWith(clearStatus: true)),
-                  ).tagged('print_log.filters.status.any'),
-                  for (final s in printLogStatuses)
-                    ChoiceChip(
-                      label: Text(printRunStatusLabel(l10n, s)),
-                      selected: filters.status == s,
-                      onSelected: (_) =>
-                          notifier.set(filters.copyWith(status: s)),
-                    ).tagged('print_log.filters.status.$s'),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 8),
 
-              if (printers.isNotEmpty) ...[
-                FilterGroupLabel(label: l10n.printLogFilterPrinter),
-                _anyOrOne<int>(
-                  context,
-                  id: 'print_log.filters.printer',
-                  anyLabel: l10n.printLogAnyPrinter,
-                  // No printer carries it, so it cannot collide with a real id.
-                  anyValue: -1,
-                  selected: filters.printerId,
-                  options: [for (final p in printers) (p.id, p.name)],
-                  onPick: (v) => notifier.set(
-                    v == null
-                        ? filters.copyWith(clearPrinter: true)
-                        : filters.copyWith(printerId: v),
-                  ),
-                ),
-                const SizedBox(height: 16),
+            FilterGroupLabel(label: l10n.printLogFilterStatus),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // One id per value: the status keys are the server's wire
+                // vocabulary, so the log can say which was picked without
+                // carrying anything the user wrote.
+                ChoiceChip(
+                  label: Text(l10n.printLogAnyStatus),
+                  selected: filters.status == null,
+                  onSelected: (_) =>
+                      notifier.set(filters.copyWith(clearStatus: true)),
+                ).tagged('print_log.filters.status.any'),
+                for (final s in printLogStatuses)
+                  ChoiceChip(
+                    label: Text(printRunStatusLabel(l10n, s)),
+                    selected: filters.status == s,
+                    onSelected: (_) =>
+                        notifier.set(filters.copyWith(status: s)),
+                  ).tagged('print_log.filters.status.$s'),
               ],
+            ),
+            const SizedBox(height: 16),
 
-              if (users.isNotEmpty) ...[
-                FilterGroupLabel(label: l10n.printLogFilterUser),
-                _anyOrOne<String>(
-                  context,
-                  id: 'print_log.filters.user',
-                  anyLabel: l10n.printLogAnyUser,
-                  anyValue: '',
-                  selected: filters.username,
-                  options: [for (final u in users) (u.username, u.username)],
-                  onPick: (v) => notifier.set(
-                    v == null
-                        ? filters.copyWith(clearUsername: true)
-                        : filters.copyWith(username: v),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              FilterGroupLabel(label: l10n.printLogFilterDates),
-              logTag(
-                'print_log.filters.dates',
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.date_range, size: 18),
-                  label: Text(
-                    filters.from == null && filters.to == null
-                        ? l10n.printLogFilterDates
-                        : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
-                            ' – '
-                            '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
-                  ),
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(now.year - 5),
-                      lastDate: now,
-                      initialDateRange: filters.from != null &&
-                              filters.to != null
-                          ? DateTimeRange(start: filters.from!, end: filters.to!)
-                          : null,
-                    );
-                    if (picked == null) return;
-                    notifier.set(filters.copyWith(
-                      from: picked.start,
-                      // The picker hands back midnight; the range is meant to
-                      // include everything printed on that day, and the server
-                      // compares against an instant.
-                      to: DateTime(
-                        picked.end.year,
-                        picked.end.month,
-                        picked.end.day,
-                        23,
-                        59,
-                        59,
-                      ),
-                    ));
-                  },
+            if (printers.isNotEmpty) ...[
+              FilterGroupLabel(label: l10n.printLogFilterPrinter),
+              _anyOrOne<int>(
+                context,
+                id: 'print_log.filters.printer',
+                anyLabel: l10n.printLogAnyPrinter,
+                // No printer carries it, so it cannot collide with a real id.
+                anyValue: -1,
+                selected: filters.printerId,
+                options: [for (final p in printers) (p.id, p.name)],
+                onPick: (v) => notifier.set(
+                  v == null
+                      ? filters.copyWith(clearPrinter: true)
+                      : filters.copyWith(printerId: v),
                 ),
               ),
-              if (filters.from != null || filters.to != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: logTag(
-                    'print_log.filters.dates_clear',
-                    TextButton(
-                      onPressed: () =>
-                          notifier.set(filters.copyWith(clearDates: true)),
-                      child: Text(l10n.clear),
+              const SizedBox(height: 16),
+            ],
+
+            if (users.isNotEmpty) ...[
+              FilterGroupLabel(label: l10n.printLogFilterUser),
+              _anyOrOne<String>(
+                context,
+                id: 'print_log.filters.user',
+                anyLabel: l10n.printLogAnyUser,
+                anyValue: '',
+                selected: filters.username,
+                options: [for (final u in users) (u.username, u.username)],
+                onPick: (v) => notifier.set(
+                  v == null
+                      ? filters.copyWith(clearUsername: true)
+                      : filters.copyWith(username: v),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            FilterGroupLabel(label: l10n.printLogFilterDates),
+            logTag(
+              'print_log.filters.dates',
+              OutlinedButton.icon(
+                icon: const Icon(Icons.date_range, size: 18),
+                label: Text(
+                  filters.from == null && filters.to == null
+                      ? l10n.printLogFilterDates
+                      : '${filters.from == null ? '' : DateTimeFormats.of(context).date(filters.from!)}'
+                          ' – '
+                          '${filters.to == null ? '' : DateTimeFormats.of(context).date(filters.to!)}',
+                ),
+                onPressed: () async {
+                  final now = DateTime.now();
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(now.year - 5),
+                    lastDate: now,
+                    initialDateRange: filters.from != null &&
+                            filters.to != null
+                        ? DateTimeRange(start: filters.from!, end: filters.to!)
+                        : null,
+                  );
+                  if (picked == null) return;
+                  notifier.set(filters.copyWith(
+                    from: picked.start,
+                    // The picker hands back midnight; the range is meant to
+                    // include everything printed on that day, and the server
+                    // compares against an instant.
+                    to: DateTime(
+                      picked.end.year,
+                      picked.end.month,
+                      picked.end.day,
+                      23,
+                      59,
+                      59,
                     ),
+                  ));
+                },
+              ),
+            ),
+            if (filters.from != null || filters.to != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: logTag(
+                  'print_log.filters.dates_clear',
+                  TextButton(
+                    onPressed: () =>
+                        notifier.set(filters.copyWith(clearDates: true)),
+                    child: Text(l10n.clear),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

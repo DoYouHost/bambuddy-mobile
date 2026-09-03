@@ -67,4 +67,24 @@ void main() {
       isEmpty,
     );
   });
+
+  test('a nameless live printer does not blank out the recorded name',
+      () async {
+    // `PrinterUpdate.name` has no minimum length and the PATCH route assigns it
+    // unchecked, so a printer really can end up with an empty name. Letting it
+    // win would draw a bar with nothing written on it — the `#id` fallback only
+    // fires when the label is missing, and an empty string is not missing.
+    expect(
+      await labels(recorded: const {'71': 'Ultron'}, live: const {71: ''}),
+      {71: 'Ultron'},
+    );
+  });
+
+  test('a printer nameless on both sides is left to the row fallback',
+      () async {
+    expect(
+      await labels(recorded: const {'71': '   '}, live: const {71: ''}),
+      isEmpty,
+    );
+  });
 }

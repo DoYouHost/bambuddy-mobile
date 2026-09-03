@@ -62,9 +62,6 @@ class ServerVersionService {
   Future<bool> supports(ServerFeature feature) async =>
       (await current())?.supports(feature) ?? false;
 
-  Future<bool> supportsTriStateCalibration() =>
-      supports(ServerFeature.triStateCalibration);
-
   /// Unknown → 60, the ceiling every server generation accepts. See
   /// [ServerVersion.chamberMaxTargetC] for why this one cannot be observed.
   Future<int> chamberMaxTargetC() async =>

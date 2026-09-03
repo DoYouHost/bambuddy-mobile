@@ -122,15 +122,8 @@ abstract class SpoolInventorySource {
   /// Spoolman degrades to empty (the picker still accepts free text).
   Future<List<String>> fetchLocations();
 
-  /// Renders labels for [spoolIds] onto [template] and returns the PDF bytes.
-  /// Label order follows [spoolIds], so a caller-chosen sort carries through to
-  /// a sheet print. [monochrome] drops the colour swatch for B&W thermal
-  /// printers.
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  });
+  /// Renders the labels [request] describes and returns the PDF bytes.
+  Future<Uint8List> renderLabels(SpoolLabelRequest request);
 }
 
 /// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
@@ -153,17 +146,11 @@ bool _looksLikePdf(Uint8List bytes) =>
 Future<Uint8List> _postLabels(
   Dio dio,
   String path,
-  List<int> spoolIds,
-  SpoolLabelTemplate template,
-  bool monochrome,
+  SpoolLabelRequest request,
 ) => guard(() async {
   final res = await dio.post<List<int>>(
     path,
-    data: {
-      'spool_ids': spoolIds,
-      'template': template.wire,
-      'monochrome': monochrome,
-    },
+    data: request.toJson(),
     // The response is a PDF stream, not JSON — without this Dio's default
     // JSON transformer would try to decode it and throw.
     options: Options(responseType: ResponseType.bytes),
@@ -476,17 +463,8 @@ class NativeInventorySource implements SpoolInventorySource {
       });
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
-        _dio,
-        Endpoints.inventoryLabels,
-        spoolIds,
-        template,
-        monochrome,
-      );
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.inventoryLabels, request);
 }
 
 /// Spoolman backend `/spoolman/inventory/*`. Spoolman returns loose passthrough, so
@@ -670,15 +648,6 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   Future<List<String>> fetchLocations() async => const [];
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
-        _dio,
-        Endpoints.spoolmanLabels,
-        spoolIds,
-        template,
-        monochrome,
-      );
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.spoolmanLabels, request);
 }
