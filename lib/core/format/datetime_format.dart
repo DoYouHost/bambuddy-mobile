@@ -52,9 +52,35 @@ class DateTimeFormats {
     return DateTimeFormats._resolve(
       dispatcher.locale,
       const Locale('en'),
-      _rememberedClock ?? (dispatcher.alwaysUse24HourFormat ? true : null),
+      isolateClock(
+        remembered: _rememberedClock,
+        dispatcherSays: dispatcher.alwaysUse24HourFormat,
+      ),
     );
   }
+
+  /// Which clock an isolate outside the widget tree can be *sure* of, or null
+  /// when it cannot be sure of one and [use24Hour] has to ask the locale.
+  ///
+  /// A rule of its own because it cannot be reached through [system]: that reads
+  /// `PlatformDispatcher.instance`, which is the process-wide singleton and
+  /// ignores the test values a widget test sets on its own dispatcher — so the
+  /// only way to pin this is to call it directly.
+  ///
+  /// [remembered] is what the tree published ([rememberSystemClock]) or what the
+  /// service read back out of preferences, and it wins outright: it is the only
+  /// source out here that has actually seen the user's setting.
+  /// [dispatcherSays] is the engine's own flag, which reads `false` both for a
+  /// phone on a 12-hour clock and for an engine nobody ever told — the bare
+  /// `FlutterEngine` the foreground service runs. Only a `true` can have come
+  /// from the real setting, so a `true` is taken and a `false` is discarded as
+  /// the non-answer it usually is.
+  @visibleForTesting
+  static bool? isolateClock({
+    required bool? remembered,
+    required bool dispatcherSays,
+  }) =>
+      remembered ?? (dispatcherSays ? true : null);
 
   /// What the platform's 12/24-hour switch says, for the isolates that cannot
   /// ask it themselves. Null means nobody has said — [use24Hour] then falls back
