@@ -1091,6 +1091,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amsRfidRereadStarted => 'Re-reading the tag…';
 
   @override
+  String amsFeedTitle(String slot) {
+    return 'Feed $slot into which nozzle?';
+  }
+
+  @override
+  String get amsFeedPrompt =>
+      'The Filament Track Switch can route this slot to either nozzle, so the printer cannot work out where the filament should go.';
+
+  @override
+  String get amsFeedAlreadyLoaded => 'already loaded';
+
+  @override
+  String get amsSwitchNotReady =>
+      'The Filament Track Switch is not set up yet. Assign every AMS to an inlet on the printer, then try again.';
+
+  @override
+  String get amsUnloadSlotNotLoaded => 'No nozzle is fed from this slot';
+
+  @override
   String get amsActionsWhilePrinting =>
       'Unavailable while the printer is printing';
 

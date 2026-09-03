@@ -716,6 +716,90 @@ void main() {
     });
   });
 
+  group('Filament Track Switch', () {
+    test('parses the switch and which hotend holds which slot', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true, 'ready': true},
+        'extruder_slots': {
+          '0': {'ams_id': 1, 'slot_id': 2, 'has_filament': true},
+          '1': {'ams_id': null, 'slot_id': null, 'has_filament': false},
+        },
+      });
+
+      expect(status.filaSwitch!.installed, isTrue);
+      expect(status.filaSwitch!.ready, isTrue);
+      expect(status.extruderSlots![0]!.holds(amsId: 1, slotId: 2), isTrue);
+      expect(status.extruderSlots![0]!.holds(amsId: 1, slotId: 3), isFalse);
+      expect(status.extruderSlots![1]!.holds(amsId: 1, slotId: 2), isFalse,
+          reason: 'a hotend fed from nothing holds no slot');
+    });
+
+    test('reads a server that never mentions the switch as not having one', () {
+      // Every server older than the one that added the field, and every printer
+      // without the accessory, answer the same way — and the same way matters,
+      // because it is what keeps the load command shaped as it always was.
+      final status = PrinterStatus.fromJson({'id': 1});
+
+      expect(status.filaSwitch, isNull);
+      expect(status.extruderSlots, isNull);
+    });
+
+    test('a switch reported without `ready` is not ready', () {
+      // False blocks the load with an explanation. True would send a command
+      // the firmware drops without a word, which is the bug being fixed.
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true},
+      });
+
+      expect(status.filaSwitch!.installed, isTrue);
+      expect(status.filaSwitch!.ready, isFalse);
+    });
+
+    test('a frame that omits the switch keeps the one already known', () {
+      // The two lanes carry disjoint subsets, so absence is silence, not news —
+      // the same rule the rest of the status follows.
+      final known = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true, 'ready': true},
+        'extruder_slots': {
+          '0': {'ams_id': 0, 'slot_id': 1},
+        },
+      });
+
+      final merged = const PrinterStatus(id: 1, progress: 12).mergedWith(known);
+
+      expect(merged.filaSwitch!.installed, isTrue);
+      expect(merged.extruderSlots![0]!.holds(amsId: 0, slotId: 1), isTrue);
+    });
+
+    test('the fitted switch survives the printer going offline', () {
+      // Hardware, like the nozzles: unplugging the printer does not remove it,
+      // and the slot sheet still has to ask the question on reconnect.
+      final offline = const PrinterStatus(id: 1, connected: false).mergedWith(
+        PrinterStatus.fromJson({
+          'id': 1,
+          'fila_switch': {'installed': true, 'ready': true},
+        }),
+      );
+
+      expect(offline.filaSwitch!.installed, isTrue);
+    });
+
+    test('a switch that changed makes the status unequal', () {
+      // Equality decides whether a fresh poll is published at all: a switch that
+      // has just become ready has to reach the sheet that is blocking on it.
+      PrinterStatus withReady(bool ready) => PrinterStatus.fromJson({
+            'id': 1,
+            'fila_switch': {'installed': true, 'ready': ready},
+          });
+
+      expect(withReady(true), isNot(withReady(false)));
+      expect(withReady(true), withReady(true));
+    });
+  });
+
   group('Printer.fromJson', () {
     test('parsuje listę drukarek, ignorując nieznane pola', () {
       final raw = readFixture('printers_list.json') as List<dynamic>;

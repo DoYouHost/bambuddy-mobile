@@ -200,15 +200,34 @@ class PrinterCommandsRepository {
 
   /// Load filament from one slot. [trayId] is the global tray number from
   /// [amsLoadTrayId] — not the slot's local id.
-  Future<void> amsLoad(int printerId, int trayId) {
+  ///
+  /// [extruderId] names the hotend to feed (0 = right/main, 1 = left/deputy)
+  /// and is sent only when given, exactly as Bambu Studio sends it: without a
+  /// Filament Track Switch the AMS is wired to a hotend and the firmware works
+  /// the target out itself, so a value there says nothing the printer does not
+  /// already know. See `PrinterStatus.filaSwitch` for when it is needed.
+  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) {
     assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
-    return _post(Endpoints.amsLoad(printerId), query: {'tray_id': trayId});
+    assert(extruderId == null || extruderId == 0 || extruderId == 1,
+        'extruder id out of range: $extruderId');
+    return _post(Endpoints.amsLoad(printerId), query: {
+      'tray_id': trayId,
+      'extruder_id': ?extruderId,
+    });
   }
 
-  /// Unload the filament currently in the extruder — printer-wide, see
-  /// [Endpoints.amsUnload].
-  Future<void> amsUnload(int printerId) =>
-      _post(Endpoints.amsUnload(printerId));
+  /// Unload filament. [trayId] — the global number from [amsLoadTrayId], as on
+  /// [amsLoad] — names the slot to unload; omitted, the printer unloads whatever
+  /// its own `tray_now` names. See [Endpoints.amsUnload] for why naming it
+  /// matters on a dual-nozzle machine.
+  Future<void> amsUnload(int printerId, {int? trayId}) {
+    assert(trayId == null || _isLoadableTrayId(trayId),
+        'tray id not loadable: $trayId');
+    return _post(
+      Endpoints.amsUnload(printerId),
+      query: {'tray_id': ?trayId},
+    );
+  }
 
   /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
   Future<void> refreshAmsSlot(

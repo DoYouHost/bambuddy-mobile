@@ -90,9 +90,11 @@ class _FakeCommands implements PrinterCommandsRepository {
     }
   }
   @override
-  Future<void> amsLoad(int id, int trayId) => _do('amsLoad:$id:$trayId');
+  Future<void> amsLoad(int id, int trayId, {int? extruderId}) =>
+      _do('amsLoad:$id:$trayId:${extruderId ?? '-'}');
   @override
-  Future<void> amsUnload(int id) => _do('amsUnload:$id');
+  Future<void> amsUnload(int id, {int? trayId}) =>
+      _do('amsUnload:$id:${trayId ?? '-'}');
   @override
   Future<void> refreshAmsSlot(int id, {required int amsId, required int slotId}) =>
       _do('amsRfid:$id:$amsId:$slotId');
@@ -217,7 +219,7 @@ void main() {
     await loading;
     expect(c.read(controlsProvider).pendingFor(1).isBusy(ControlAction.ams),
         false);
-    expect(fake.calls, ['amsLoad:1:6']);
+    expect(fake.calls, ['amsLoad:1:6:-']);
   });
 
   test('po sukcesie optymistyczne nadpisanie znika po optimisticHold', () {

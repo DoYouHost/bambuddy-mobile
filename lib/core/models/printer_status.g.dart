@@ -43,6 +43,8 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       hmsErrors: _toHmsListOrNull(json['hms_errors']),
       supportsDrying: json['supports_drying'] as bool?,
       nozzles: _toNozzleListOrNull(json['nozzles']),
+      filaSwitch: _toFilaSwitchOrNull(json['fila_switch']),
+      extruderSlots: _toExtruderSlotMapOrNull(json['extruder_slots']),
     );
 
 AmsUnit _$AmsUnitFromJson(Map<String, dynamic> json) => AmsUnit(
@@ -71,6 +73,21 @@ AmsTray _$AmsTrayFromJson(Map<String, dynamic> json) => AmsTray(
 NozzleInfo _$NozzleInfoFromJson(Map<String, dynamic> json) => NozzleInfo(
   nozzleType: json['nozzle_type'] as String?,
   nozzleDiameter: json['nozzle_diameter'] as String?,
+);
+
+FilaSwitch _$FilaSwitchFromJson(Map<String, dynamic> json) => FilaSwitch(
+  installed: json['installed'] == null
+      ? false
+      : _toBoolOrFalse(json['installed']),
+  ready: json['ready'] == null ? false : _toBoolOrFalse(json['ready']),
+);
+
+ExtruderSlot _$ExtruderSlotFromJson(Map<String, dynamic> json) => ExtruderSlot(
+  amsId: _toIntOrNull(json['ams_id']),
+  slotId: _toIntOrNull(json['slot_id']),
+  hasFilament: json['has_filament'] == null
+      ? false
+      : _toBoolOrFalse(json['has_filament']),
 );
 
 HmsError _$HmsErrorFromJson(Map<String, dynamic> json) => HmsError(

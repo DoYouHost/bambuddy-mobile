@@ -83,8 +83,12 @@ class _RecordingCommands implements PrinterCommandsRepository {
   }
 
   @override
-  Future<void> amsLoad(int printerId, int trayId) async =>
-      calls.add('amsLoad:$printerId:$trayId');
+  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) async =>
+      calls.add('amsLoad:$printerId:$trayId:${extruderId ?? '-'}');
+
+  @override
+  Future<void> amsUnload(int printerId, {int? trayId}) async =>
+      calls.add('amsUnload:$printerId:${trayId ?? '-'}');
 
   @override
   Future<void> refreshAmsSlot(
@@ -746,12 +750,16 @@ void main() {
       InventoryNotifier Function()? inventory,
       InventoryBackend backend = InventoryBackend.native,
       bool apiKeySession = false,
+      FilaSwitch? filaSwitch,
+      Map<int, ExtruderSlot>? extruderSlots,
     }) async {
       final item = realItem(tagged: tagged);
       final status = PrinterStatus(
         id: item.printer.id,
         connected: true,
         state: state,
+        filaSwitch: filaSwitch,
+        extruderSlots: extruderSlots,
       ).mergedWith(item.status!);
       final commands = withCommands ?? _RecordingCommands();
 
@@ -813,7 +821,108 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       // AMS unit 0, first slot → global tray 0, not the local slot id.
-      expect(commands.calls, ['amsLoad:1:0']);
+      expect(commands.calls, ['amsLoad:1:0:-']);
+    });
+
+    testWidgets('slot sheet unloads the slot it names, not the printer',
+        (tester) async {
+      // `tray_now` is one value for a printer with two hotends, so an
+      // unaddressed unload empties whichever of them that field happens to name.
+      final commands = await openSlotSheet(tester, state: 'IDLE');
+
+      await tester.tap(find.text('Wyładuj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, ['amsUnload:1:0']);
+    });
+
+    testWidgets('a Filament Track Switch asks which nozzle to feed',
+        (tester) async {
+      // With one fitted the AMS is bound to a switch inlet rather than to a
+      // hotend, so the firmware cannot derive the target and drops a load that
+      // does not name one.
+      final commands = await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        filaSwitch: const FilaSwitch(installed: true, ready: true),
+      );
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, isEmpty, reason: 'nothing goes out unanswered');
+      expect(find.text('Lewy ekstruder'), findsOneWidget);
+
+      await tester.tap(find.text('Lewy ekstruder'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, ['amsLoad:1:0:1']);
+    });
+
+    testWidgets('the right nozzle is sent as 0, not dropped as falsy',
+        (tester) async {
+      final commands = await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        filaSwitch: const FilaSwitch(installed: true, ready: true),
+      );
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.tap(find.text('Prawy ekstruder'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, ['amsLoad:1:0:0']);
+    });
+
+    testWidgets('a nozzle already fed from this slot cannot be picked again',
+        (tester) async {
+      final commands = await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        filaSwitch: const FilaSwitch(installed: true, ready: true),
+        // Ids here are local: AMS 0, first slot — the row the sheet opened on.
+        extruderSlots: const {
+          0: ExtruderSlot(amsId: 0, slotId: 0, hasFilament: true),
+        },
+      );
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Prawy ekstruder — już załadowany'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, isEmpty);
+      expect(find.text('Lewy ekstruder'), findsOneWidget,
+          reason: 'the other hotend is still a valid answer');
+    });
+
+    testWidgets('a switch nobody has set up refuses the load with a reason',
+        (tester) async {
+      // Until every AMS is bound to an inlet the switch routes nothing, and the
+      // firmware drops the command whatever hotend it names — which is silence,
+      // not an error the user could act on.
+      final commands = await openSlotSheet(
+        tester,
+        state: 'IDLE',
+        filaSwitch: const FilaSwitch(installed: true),
+      );
+
+      await tester.tap(find.text('Załaduj'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(commands.calls, isEmpty);
+      expect(find.textContaining('Filament Track Switch'), findsOneWidget);
+      expect(find.text('Lewy ekstruder'), findsNothing);
     });
 
     testWidgets('a printing printer keeps the filament actions unreachable',
@@ -838,7 +947,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(commands.calls, ['amsLoad:1:0']);
+      expect(commands.calls, ['amsLoad:1:0:-']);
     });
 
     /// Brings a widget into view inside the assign sheet's own scroll view.
