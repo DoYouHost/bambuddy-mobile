@@ -9,6 +9,14 @@
 #
 # The tree checked out is `dev`, because "do we already have this" is a question
 # about our integration branch, not about the default branch the cron runs from.
+# That also means the skill and `tool/server-ref-diff.sh` this job obeys are
+# `dev`'s copies, not this file's neighbours on master.
+#
+# Features are triaged by what an **API key** can do with them, reachable first:
+# the app recommends a key as the way to connect, so a route gated on a
+# permission no key can hold is a feature only a password login could use. The
+# facts step resolves every added route's gate through the server's own API-key
+# allowlist so the verdict is computed rather than guessed — see the skill.
 name: Server drift
 
 on:

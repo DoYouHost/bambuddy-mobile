@@ -74,7 +74,8 @@ are the whole output.
 - [ ] `hms_errors[].description` — server sends the fault sentence; `HmsError` has no field for it — `printer_status.dart:770` — S
 
 ## Feature
-- [ ] `/scheduled-dryings` — schedule a dry run; new repository, sheet entry, l10n — M
+- [ ] `/scheduled-dryings` — schedule a dry run; new repository, sheet entry, l10n — key: full (`PRINTERS_CONTROL` → `can_control_printer`) — M
+- [ ] `/location-ha-sensors/*` — bind an HA sensor to a storage location; new surface — key: partial — reads on `can_read_status`, every write is `SMART_PLUGS_CREATE/UPDATE/DELETE` → no key scope — L
 
 ## Watch only
 - `PATCH /archives/{id}` rejects a weight over 100 kg — nothing to change, but it is the answer if a 422 shows up in a report
@@ -92,6 +93,11 @@ without a caveat gets one short parenthetical; anything longer belongs under
 
 Sizes are `XS` (a field and its test), `S` (a field plus one screen), `M` (a
 route, a form, l10n), `L` (a screen or a parked branch).
+
+A line under `## Feature` carries an API-key verdict before its size — see that
+section. Anywhere else it is only worth writing when the answer is no: a cheap
+win that turns out to need a permission no key holds is not a cheap win, and the
+line says so where it would otherwise read as ten minutes' work.
 
 ## The five sections, and what decides which one a line lands in
 
@@ -111,9 +117,50 @@ into a model that no screen shows.
 **`## Feature`** — a new surface. UI, l10n, diagnostic ids, a product call about
 whether we want it at all.
 
+**Ordered by what an API key can do with it, reachable first.** The app
+recommends a key as the way to connect
+([setup_screen.dart](../../../lib/features/setup/setup_screen.dart), where the
+key segment is the default), so a feature whose point needs a permission no key
+can hold is unusable for the most likely session — and the reader has to see
+that before picking a line up, not after writing the code. Each line therefore
+ends in one of three verdicts, before its size:
+
+- **`key: full`** — every route it needs resolves to a scope a key can carry.
+- **`key: partial`** — the main functional part does, and the line names the
+  part that does not (`key: partial — writing the sensor needs a login`).
+- **`key: no`** — the thing the feature is *for* is out of reach. Also gets
+  `(needs a decision)`: building it then means telling users to switch to a
+  password login, which is not a size estimate.
+
+`facts.md` computes this, so it is not a judgement: every added route in
+**Routes added server-side** carries its gate and the verdict for it, and the
+permissions on changed lines carry theirs. Copy the permission into the line as
+the evidence — `` `SMART_PLUGS_CREATE` → no key scope `` — the same way
+`## Watch only` names where our code gets its data. Read the allowlist yourself
+(`core/auth.py::_APIKEY_SCOPE_BY_PERMISSION`) only when a route came back
+`no gate found`.
+
+Three things the verdict is *not*. It is not about whether the feature is worth
+building — a `key: no` feature the maintainer wants is still a feature. It is
+not a claim about auth being off server-side, where every gate passes and there
+is no identity at all
+([identifiedPermissionProvider](../../../lib/providers.dart) hides those screens
+anyway). And a **read-only** verdict is worth its own line rather than a
+silent downgrade: a surface a key can read but not write is often still worth
+half of — the drying sheet reports the server's automations and never offers to
+change them.
+
 **`## Watch only`** — nothing to do, and that is the finding. A validation rule,
 a migration that shifts stored numbers, a limit — the things that explain a
 future bug report. No checkbox: these are not work.
+
+"Nothing to do" is a claim about **our** call sites, so every line here names
+where our code gets that data: the constant in `endpoints.dart`, or the model
+field, or the fact that we call none of that file's routes — which `facts.md`
+states outright. A line that says "the app never did this itself" without a
+citation is how a server-side plug ranking got filed as harmless while
+`smart_plugs_providers.dart:46` was still picking the first visible plug and
+`endpoints.dart` had never heard of `/smart-plugs/by-printer/{id}`.
 
 **`## Questions`** — one sentence each, for what is not yours to decide.
 
@@ -130,6 +177,10 @@ Where each kind of finding comes from in `facts.md`:
 | fields added, key read nowhere | Cheap win or Feature |
 | routes added | Cheap win if one call, Feature if a screen |
 | route bodies → functions added | read the diff: ranking and gating changes hide here |
+| route bodies → **we call routes in this file** | decides Watch only from real work — this file serves our traffic |
+| route bodies → permissions named on changed lines | each one already resolved to its API-key scope, or to "no key scope" |
+| routes added → the gate and verdict on each line | the API-key verdict for a Feature line; `no gate found` means read the route |
+| CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 
 The report carries the same sections and the same one-line entries, plus
 **Struck off**.
@@ -158,9 +209,14 @@ The report carries the same sections and the same one-line entries, plus
 - **`dev` is the only baseline.** Work sitting on an unmerged feature branch
   counts as not done. That is deliberate: it repeats an item you are mid-way
   through rather than hiding one that was abandoned.
-- **The CHANGELOG is a claim.** The server's author explains each change at
-  length and is usually right, but the diff is the evidence. Check anything you
-  put on the list.
+- **The CHANGELOG is a claim, and it is also the only place some changes
+  exist.** A response that keeps its shape and changes its meaning — a field
+  that starts being populated, a flag that survives a disconnect, a listing that
+  now reports why it is empty — leaves no trace in routes, fields, gates or
+  status codes. Read the CHANGELOG section of `facts.md` for entries that match
+  nothing above it, and file those too. Everything you take from it still needs
+  the diff as evidence: the author is usually right, and the diff is what
+  proves it.
 - **What is not yours to decide gets `(needs a decision)`** and nothing more: a
   limit, cap, timeout or threshold; anything that cannot be built so an older
   server still works (see [CLAUDE.md](../../../CLAUDE.md)); anything that is a
