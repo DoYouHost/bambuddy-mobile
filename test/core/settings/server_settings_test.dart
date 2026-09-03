@@ -16,18 +16,22 @@ void main() {
       expect(const {'on': 'false'}.settingBool('on'), isFalse);
     });
 
-    test('an absent key takes the fallback', () {
+    /// Absent and null are the same thing — a key the server did not answer —
+    /// and [settingDouble] treats them the same way.
+    test('an absent or null key takes the fallback', () {
       expect(const <String, dynamic>{}.settingBool('on'), isFalse);
       expect(
         const <String, dynamic>{}.settingBool('on', fallback: true),
         isTrue,
       );
+      expect(const {'on': null}.settingBool('on', fallback: true), isTrue);
     });
 
-    /// Present but unreadable is an answer — the server said something — so the
-    /// fallback does not apply.
+    /// A value that is there but unreadable is off: a flag has a natural off,
+    /// where a threshold has no natural zero and keeps falling back.
     test('an unreadable value is off, not the fallback', () {
-      expect(const {'on': null}.settingBool('on', fallback: true), isFalse);
+      expect(const {'on': <int>[]}.settingBool('on', fallback: true), isFalse);
+      expect(const {'v': 'x'}.settingDouble('v', 60), 60.0);
     });
   });
 

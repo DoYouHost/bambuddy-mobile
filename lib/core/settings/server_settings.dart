@@ -11,11 +11,18 @@ import '../models/json_utils.dart';
 /// it, because `_build_settings_response` types every field. The point of one
 /// reader is that the disagreement cannot come back the day something does.
 extension ServerSettings on Map<String, dynamic> {
-  /// A flag. Absent, unreadable, or anything falsy → [fallback].
-  bool settingBool(String key, {bool fallback = false}) =>
-      containsKey(key) ? toBoolOrFalse(this[key]) : fallback;
+  /// A flag. Absent or null → [fallback], the same rule [settingDouble] uses:
+  /// a key the server did not answer is one it did not answer, however it
+  /// spelled that. Anything else is coerced, so a value it cannot read at all
+  /// is `false` — a flag has a natural off, where a threshold has no natural
+  /// zero and keeps falling back.
+  bool settingBool(String key, {bool fallback = false}) {
+    final value = this[key];
+    return value == null ? fallback : toBoolOrFalse(value);
+  }
 
-  /// A number the server may send as a string.
+  /// A number the server may send as a string. Absent, null or unreadable →
+  /// [fallback].
   double settingDouble(String key, double fallback) =>
       toDoubleOrNull(this[key]) ?? fallback;
 

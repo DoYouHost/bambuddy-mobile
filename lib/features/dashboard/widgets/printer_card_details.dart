@@ -1172,7 +1172,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     // The server's settings are fetched once per session and can land after
     // this sheet opened — see [_touched].
     ref.listen(dryingPresetsProvider, (_, next) {
-      if (!_touched) setState(() => _adopt(next));
+      if (mounted && !_touched) setState(() => _adopt(next));
     });
 
     final t = DashTokens.of(context);
