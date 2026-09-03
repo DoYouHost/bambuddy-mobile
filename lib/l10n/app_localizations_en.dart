@@ -386,6 +386,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ctrlDryAutoIdle =>
+      'The server dries idle printers by itself above the humidity threshold.';
+
+  @override
+  String get ctrlDryAutoQueue =>
+      'The server dries by itself between queued prints.';
+
+  @override
+  String get ctrlDryAutoWhilePrinting => 'During a print, too.';
+
+  @override
   String get ctrlDryStartWhen => 'Start time';
 
   @override

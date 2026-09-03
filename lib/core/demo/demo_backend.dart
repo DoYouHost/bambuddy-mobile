@@ -436,6 +436,20 @@ class DemoBackend {
           'gcode_snippets':
               '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
                   '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+          // Drying presets as the real server stores them: a JSON string, not
+          // an object. Two rows differ from the built-in defaults (PETG 70 °C /
+          // 8 h) so demo shows the customisation actually reaching the sheet
+          // rather than the bundled table that would look identical.
+          'drying_presets':
+              '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
+                  '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+                  '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+          // The server's own drying automation, which the sheet reports and
+          // never offers to change — writing these is settings:update, denied
+          // to every API key.
+          'ambient_drying_enabled': true,
+          'queue_drying_enabled': true,
+          'print_drying_enabled': false,
         });
 
       case 'slicer':

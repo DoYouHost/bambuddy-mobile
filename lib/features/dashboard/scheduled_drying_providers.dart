@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ams/drying_presets.dart';
 import '../../core/models/scheduled_drying.dart';
 import '../../providers.dart';
 
@@ -57,3 +58,25 @@ List<ScheduledDrying> scheduledDryingsFor(
             (row.isPending || row.isFailed))
           row,
     ];
+
+/// The drying temperatures and durations the server itself uses, from its
+/// `drying_presets` setting — the same table the web's Queue Auto-Drying page
+/// edits and the scheduler dries by.
+///
+/// Falls back to [defaultDryingPresets] whenever the setting is absent, empty
+/// or unreadable, which covers the session that may not read settings at all:
+/// `settings:read` rides on an API key's `can_read_status` scope, so a key
+/// without it gets a 403 and `serverSettingsProvider` answers `{}`. The sheet
+/// then offers what the server would have used anyway.
+final dryingPresetsProvider = Provider<Map<String, DryPreset>>(
+  (ref) => dryingPresetsFrom(
+    ref.watch(serverSettingsProvider).valueOrNull?['drying_presets'],
+  ),
+);
+
+/// Whether the server dries on its own, and how. Read-only — see [AutoDrying].
+final autoDryingProvider = Provider<AutoDrying>(
+  (ref) => autoDryingFrom(
+    ref.watch(serverSettingsProvider).valueOrNull ?? const {},
+  ),
+);

@@ -394,6 +394,16 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get ctrlDryAutoIdle =>
+      'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.';
+
+  @override
+  String get ctrlDryAutoQueue => 'Serwer sam suszy między wydrukami z kolejki.';
+
+  @override
+  String get ctrlDryAutoWhilePrinting => 'Także w trakcie wydruku.';
+
+  @override
   String get ctrlDryStartWhen => 'Kiedy zacząć';
 
   @override

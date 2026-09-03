@@ -293,3 +293,44 @@ class _DryStartPicker extends StatelessWidget {
     );
   }
 }
+
+/// Says that the server dries on its own, when it does.
+///
+/// Not a control: the three settings behind it are `settings:update`, which an
+/// API key can never hold, so there is nothing here to switch. It is here
+/// because a cycle the user did not start otherwise reads as a fault — the
+/// flame chip lights up, the sheet offers Stop, and nothing says why.
+class _AutoDryingNote extends ConsumerWidget {
+  const _AutoDryingNote();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auto = ref.watch(autoDryingProvider);
+    // `whilePrinting` alone changes nothing — it only widens the two automations
+    // above it to a printer that is busy.
+    if (!auto.whenIdle && !auto.betweenPrints) return const SizedBox.shrink();
+
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    // Idle drying is the wider of the two and covers the queue case as well, so
+    // naming both would say the same thing twice.
+    final what = auto.whenIdle ? l10n.ctrlDryAutoIdle : l10n.ctrlDryAutoQueue;
+    final text = auto.whilePrinting
+        ? '$what ${l10n.ctrlDryAutoWhilePrinting}'
+        : what;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.autorenew, size: 15, color: t.textTertiary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text, style: t.body.copyWith(color: t.textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+}

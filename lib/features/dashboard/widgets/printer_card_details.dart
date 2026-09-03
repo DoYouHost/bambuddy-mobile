@@ -1049,21 +1049,6 @@ class _DryingSheet extends ConsumerStatefulWidget {
   ConsumerState<_DryingSheet> createState() => _DryingSheetState();
 }
 
-/// Recommended drying temp/duration per filament, mirroring the bambuddy
-/// frontend's DRYING_PRESETS. `n3*` = regular AMS module, `ht*` = AMS-HT
-/// (high-temp) module; picked via [AmsUnit.isAmsHt].
-typedef _DryPreset = ({int temp, int htTemp, int hours, int htHours});
-const _dryingPresets = <String, _DryPreset>{
-  'PLA': (temp: 45, htTemp: 45, hours: 12, htHours: 12),
-  'PETG': (temp: 65, htTemp: 65, hours: 12, htHours: 12),
-  'TPU': (temp: 65, htTemp: 75, hours: 12, htHours: 18),
-  'ABS': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'ASA': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PA': (temp: 65, htTemp: 85, hours: 12, htHours: 12),
-  'PC': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PVA': (temp: 65, htTemp: 85, hours: 12, htHours: 18),
-};
-
 class _DryingSheetState extends ConsumerState<_DryingSheet> {
   static const _durationPresets = [4, 6, 8, 12];
 
@@ -1071,6 +1056,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   int _temp = 55;
   int _hours = 4;
   bool _busy = false;
+
+  /// The table the pickers seed from — the server's own, or the bundled
+  /// fallback until its settings have arrived.
+  Map<String, DryPreset> _presets = defaultDryingPresets;
+
+  /// Whether anything here has been chosen by hand. The server's table can land
+  /// after this sheet opened — on a cold start it usually does — and it is
+  /// adopted then, but only while this is false: a table arriving under the
+  /// user's finger must not move a temperature they have just set.
+  bool _touched = false;
 
   DryStartMode _startMode = DryStartMode.now;
   int _delayMinutes = 60;
@@ -1086,20 +1081,37 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   @override
   void initState() {
     super.initState();
-    _applyFilament(_filament); // seed temp/duration from the default filament
+    // Directly, not through `setState`: this runs before the first build.
+    _adopt(ref.read(dryingPresetsProvider));
+  }
+
+  /// Takes [presets] as the table to seed from, and re-seeds the pickers.
+  void _adopt(Map<String, DryPreset> presets) {
+    _presets = presets;
+    // A table the server configured need not contain PLA — open on the first
+    // filament it does have, so the dropdown always has its own value in it.
+    if (!_presets.containsKey(_filament)) {
+      _filament = _presets.keys.firstOrNull ?? _filament;
+    }
+    _applyFilament(_filament);
   }
 
   /// Selecting a filament sets the recommended temp + duration for this AMS
-  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the sliders.
+  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the
+  /// sliders. Callers own the `setState`, because two of them also have to
+  /// record that the choice was the user's.
+  ///
+  /// A preset above what the module can reach is clamped rather than offered:
+  /// the server validates 45-85 °C whatever the module is, while an AMS 2 Pro
+  /// stops at 65, so a table configured for AMS-HT must not send a temperature
+  /// this hardware cannot hold.
   void _applyFilament(String filament) {
-    final p = _dryingPresets[filament];
-    setState(() {
-      _filament = filament;
-      if (p != null) {
-        _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
-        _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
-      }
-    });
+    final p = _presets[filament];
+    _filament = filament;
+    if (p != null) {
+      _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
+      _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
+    }
   }
 
   Future<void> _run(Future<ActionOutcome> Function() action) async {
@@ -1157,6 +1169,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // The server's settings are fetched once per session and can land after
+    // this sheet opened — see [_touched].
+    ref.listen(dryingPresetsProvider, (_, next) {
+      if (!_touched) setState(() => _adopt(next));
+    });
+
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final drying = widget.unit.isDrying;
@@ -1210,6 +1228,9 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      // Above both bodies: it explains a running cycle nobody
+                      // started just as much as it explains one about to be.
+                      const _AutoDryingNote(),
                       if (drying)
                         ..._runningBody(t, l10n)
                       else
@@ -1288,12 +1309,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             ),
           ),
           onSelected: (v) {
-            if (v != null) _applyFilament(v);
+            if (v == null) return;
+            setState(() {
+              _touched = true;
+              _applyFilament(v);
+            });
           },
           entries: [
             // Preset keys are Bambu material names, so the pick rides in the
             // `mat` field instead of turning the identifier into content.
-            for (final f in _dryingPresets.keys)
+            for (final f in _presets.keys)
               DropdownMenuEntry(
                 value: f,
                 label: f,
@@ -1312,7 +1337,10 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: _maxTemp,
           presets: _tempPresets,
           presetLabel: (p) => '$p°',
-          onChanged: (v) => setState(() => _temp = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _temp = v;
+          }),
         ),
         const SizedBox(height: 16),
         _DrySlider(
@@ -1324,7 +1352,10 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: 24,
           presets: _durationPresets,
           presetLabel: (p) => l10n.ctrlDryHours(p),
-          onChanged: (v) => setState(() => _hours = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _hours = v;
+          }),
         ),
         ..._startWhen(l10n),
         const SizedBox(height: 20),

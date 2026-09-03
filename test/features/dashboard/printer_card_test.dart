@@ -2685,6 +2685,210 @@ void main() {
       expect(find.text('Wybierz termin'), findsWidgets);
     });
 
+    /// The drying temperatures and durations are the server's, not a table
+    /// bundled with the app: a user who set PETG to 70 °C on the web must not
+    /// have the phone start — or schedule — a run at 65.
+    group('presets come from the server', () {
+      Future<void> pumpWithSettings(
+        WidgetTester tester,
+        Map<String, dynamic> settings,
+      ) async {
+        await tester.pumpWidget(_cardWithProviders(
+          dryable(),
+          extra: [
+            scheduledDryingRepositoryProvider
+                .overrideWithValue(_StubScheduledDrying()),
+            serverSettingsProvider.overrideWith((ref) async => settings),
+          ],
+        ));
+        await tester.pumpAndSettle();
+        await openDetails(tester);
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('a configured table is what the sheet seeds from',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":60,"n3s":72,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        // The only filament the server knows is the one the sheet opens on.
+        expect(find.text('60°'), findsWidgets);
+        expect(find.text('8 godz'), findsWidgets);
+      });
+
+      /// The web's own drying popover caps the same way (`maxTemp` there is
+      /// 85 for an `n3s` and 65 otherwise), so a table configured for an AMS-HT
+      /// does not send an AMS 2 Pro a temperature it cannot hold.
+      testWidgets('a preset above what the module can hold is capped',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":70,"n3s":85,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        expect(find.text('65°'), findsWidgets);
+        expect(find.text('70°'), findsNothing);
+      });
+
+      testWidgets('a filament the server dropped is not offered',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":70,"n3s":72,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        await tester.tap(find.byWidgetPredicate((w) =>
+            w is Semantics && w.properties.identifier == 'drying.filament'));
+        await tester.pumpAndSettle();
+
+        // Counted through the option tag rather than by text: the AMS row on
+        // the card behind the sheet shows its loaded spool's material too.
+        expect(
+          find.byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '')
+                  .startsWith('drying.filament_option')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('nothing configured falls back to the bundled table',
+          (tester) async {
+        await pumpWithSettings(tester, const {'drying_presets': ''});
+
+        // PLA on an AMS 2 Pro: 45 °C for 12 h, the server's own default.
+        expect(find.text('45°'), findsWidgets);
+        expect(find.text('12 godz'), findsWidgets);
+      });
+
+      testWidgets('settings that could not be read fall back too',
+          (tester) async {
+        await pumpWithSettings(tester, const {});
+
+        expect(find.text('45°'), findsWidgets);
+        expect(find.text('12 godz'), findsWidgets);
+      });
+
+      /// The scheduler dries with the same numbers, so a schedule built from a
+      /// stale table would be wrong in exactly the way this reads settings to
+      /// avoid.
+      testWidgets('a scheduled run carries the server\'s numbers',
+          (tester) async {
+        final repo = _StubScheduledDrying();
+        await tester.pumpWidget(_cardWithProviders(
+          dryable(),
+          extra: [
+            scheduledDryingRepositoryProvider.overrideWithValue(repo),
+            serverSettingsProvider.overrideWith((ref) async => const {
+                  'drying_presets': '{"PETG":{"n3f":60,"n3s":72,'
+                      '"n3f_hours":8,"n3s_hours":6}}',
+                }),
+          ],
+        ));
+        await tester.pumpAndSettle();
+        await openDetails(tester);
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Za'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Zaplanuj'));
+        await tester.pumpAndSettle();
+
+        expect(repo.created.single.temp, 60);
+        expect(repo.created.single.durationHours, 8);
+        expect(repo.created.single.filament, 'PETG');
+      });
+    });
+
+    /// The server can start a cycle nobody asked for. Saying so is all the app
+    /// does about it — the three settings behind it are `settings:update`,
+    /// which an API key can never hold.
+    group('the server dries by itself', () {
+      Future<void> pumpWithAuto(
+        WidgetTester tester,
+        Map<String, dynamic> settings,
+      ) async {
+        await tester.pumpWidget(_cardWithProviders(
+          dryable(),
+          extra: [
+            scheduledDryingRepositoryProvider
+                .overrideWithValue(_StubScheduledDrying()),
+            serverSettingsProvider.overrideWith((ref) async => settings),
+          ],
+        ));
+        await tester.pumpAndSettle();
+        await openDetails(tester);
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('ambient drying is named', (tester) async {
+        await pumpWithAuto(tester, const {'ambient_drying_enabled': true});
+
+        expect(
+          find.text(
+              'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('queue drying is named when ambient is off', (tester) async {
+        await pumpWithAuto(tester, const {'queue_drying_enabled': true});
+
+        expect(find.text('Serwer sam suszy między wydrukami z kolejki.'),
+            findsOneWidget);
+      });
+
+      /// Ambient covers the queue case, so naming both would say it twice.
+      testWidgets('both on says the wider of the two', (tester) async {
+        await pumpWithAuto(tester, const {
+          'ambient_drying_enabled': true,
+          'queue_drying_enabled': true,
+        });
+
+        expect(find.text('Serwer sam suszy między wydrukami z kolejki.'),
+            findsNothing);
+        expect(
+          find.text(
+              'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('drying during a print is added to the sentence',
+          (tester) async {
+        await pumpWithAuto(tester, const {
+          'ambient_drying_enabled': true,
+          'print_drying_enabled': true,
+        });
+
+        expect(
+          find.text('Serwer sam suszy bezczynne drukarki powyżej progu '
+              'wilgotności. Także w trakcie wydruku.'),
+          findsOneWidget,
+        );
+      });
+
+      /// On its own it only widens the two automations above it, so with both
+      /// off there is nothing happening to report.
+      testWidgets('drying during a print alone says nothing', (tester) async {
+        await pumpWithAuto(tester, const {'print_drying_enabled': true});
+
+        expect(find.textContaining('Serwer sam suszy'), findsNothing);
+      });
+
+      testWidgets('a server that dries nothing by itself stays quiet',
+          (tester) async {
+        await pumpWithAuto(tester, const {});
+
+        expect(find.textContaining('Serwer sam suszy'), findsNothing);
+      });
+    });
+
     /// What a screen reader is told about the sheet, and what the diagnostic log
     /// is told about the same widgets. They travel on one semantics tree, so a
     /// change made for one is checked against the other here.

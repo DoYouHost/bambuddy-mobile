@@ -800,6 +800,24 @@ abstract class AppLocalizations {
   /// **'{h} h'**
   String ctrlDryHours(int h);
 
+  /// No description provided for @ctrlDryAutoIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'The server dries idle printers by itself above the humidity threshold.'**
+  String get ctrlDryAutoIdle;
+
+  /// No description provided for @ctrlDryAutoQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'The server dries by itself between queued prints.'**
+  String get ctrlDryAutoQueue;
+
+  /// No description provided for @ctrlDryAutoWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'During a print, too.'**
+  String get ctrlDryAutoWhilePrinting;
+
   /// No description provided for @ctrlDryStartWhen.
   ///
   /// In en, this message translates to:
