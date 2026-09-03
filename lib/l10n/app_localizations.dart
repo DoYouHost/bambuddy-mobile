@@ -1406,11 +1406,17 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
+  /// No description provided for @archivePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archivePlate(int plate);
+
   /// Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed
   ///
   /// In en, this message translates to:
   /// **'Plate {plate} of a multi-plate file'**
-  String archivePlate(int plate);
+  String archivePlateDetail(int plate);
 
   /// No description provided for @archivePhotosTitle.
   ///

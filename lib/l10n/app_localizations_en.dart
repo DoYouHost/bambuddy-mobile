@@ -745,6 +745,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String archivePlateDetail(int plate) {
     return 'Plate $plate of a multi-plate file';
   }
 

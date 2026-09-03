@@ -917,7 +917,7 @@ class _ArchiveSheet extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                l10n.archivePlate(archive.plateId!),
+                                l10n.archivePlateDetail(archive.plateId!),
                                 style: theme.textTheme.bodySmall,
                               ),
                             ),

@@ -760,6 +760,11 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String archivePlateDetail(int plate) {
     return 'Płyta $plate z pliku wielopłytowego';
   }
 
