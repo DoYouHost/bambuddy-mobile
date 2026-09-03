@@ -34,21 +34,25 @@ Future<DateTime?> pickDateTime(
   // comparison would also move a seed that merely sits earlier in the first
   // allowed day, which is the queue's ordinary case (yesterday at 18:00 against
   // a `firstDate` of yesterday evening) and would silently reset the time.
-  final base = DateUtils.dateOnly(seed).isBefore(DateUtils.dateOnly(earliest))
+  final openOn = DateUtils.dateOnly(seed).isBefore(DateUtils.dateOnly(earliest))
       ? earliest
       : seed;
 
   final date = await showDatePicker(
     context: context,
-    initialDate: base,
+    initialDate: openOn,
     firstDate: earliest,
     lastDate: DateTime(now.year + 5),
   );
   if (date == null || !context.mounted) return null;
 
+  // From [seed], not from the clamped day: only the calendar can refuse a
+  // value, and only a date. Seeding the clock from the clamp too would throw
+  // away the hour the user actually chose — a job set for 06:00 last week comes
+  // back to be re-dated, not re-timed.
   final time = await showTimePicker(
     context: context,
-    initialTime: TimeOfDay.fromDateTime(base),
+    initialTime: TimeOfDay.fromDateTime(seed),
   );
   if (time == null) return null;
 

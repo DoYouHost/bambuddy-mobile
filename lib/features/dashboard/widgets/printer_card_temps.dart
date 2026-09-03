@@ -900,7 +900,9 @@ class _PresetChip extends StatelessWidget {
             style: t.monoValue.copyWith(color: fg),
           ),
         ),
-      ).tagged(id),
+        // Which chip is the current one is otherwise painted and nothing else:
+        // a reader would announce seven identical buttons.
+      ).tagged(id, selected: selected),
     );
   }
 }

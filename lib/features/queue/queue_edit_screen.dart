@@ -1342,7 +1342,8 @@ class _SegToggle<T> extends StatelessWidget {
             ],
           ),
         ),
-      ).tagged(id),
+        // The fill is the only thing that says which segment is on.
+      ).tagged(id, selected: isSel),
     );
   }
 }
@@ -1453,32 +1454,38 @@ class _OptionSwitch extends StatelessWidget {
     final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: t.titleSm,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: t.labelSoft,
-                ),
-              ],
+      // Merged, so the switch is announced with the setting it belongs to. On
+      // its own it read as "off, switch" — six of these sit on this screen and
+      // nothing said which one had focus. The probe treats a merged subtree as
+      // one control and keeps the identifier, so the log is unchanged.
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: t.titleSm,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: t.labelSoft,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Switch(
-            value: value,
-            activeThumbColor: Colors.white,
-            activeTrackColor: t.accentGreen,
-            onChanged: onChanged,
-          ).tagged(id),
-        ],
+            const SizedBox(width: 12),
+            Switch(
+              value: value,
+              activeThumbColor: Colors.white,
+              activeTrackColor: t.accentGreen,
+              onChanged: onChanged,
+            ).tagged(id),
+          ],
+        ),
       ),
     );
   }

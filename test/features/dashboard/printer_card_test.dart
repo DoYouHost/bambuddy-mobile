@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
@@ -32,6 +33,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -2681,6 +2683,92 @@ void main() {
       expect(repo.created, isEmpty);
       // The prompt, not a dryer that started immediately.
       expect(find.text('Wybierz termin'), findsWidgets);
+    });
+
+    /// What a screen reader is told about the sheet, and what the diagnostic log
+    /// is told about the same widgets. They travel on one semantics tree, so a
+    /// change made for one is checked against the other here.
+    group('semantics', () {
+      Future<void> openSheet(WidgetTester tester) async {
+        await pumpCard(tester, _StubScheduledDrying());
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+      }
+
+      SemanticsNode node(WidgetTester tester, String id) => tester.getSemantics(
+            find.byWidgetPredicate(
+                (w) => w is Semantics && w.properties.identifier == id),
+          );
+
+      /// A `Semantics(identifier:)` forms a node *around* the control rather
+      /// than on it — the same shape `InteractionProbe` carries an id down
+      /// through — so a slider's spoken value sits one level below the tag.
+      String valueUnder(WidgetTester tester, String id) {
+        var found = '';
+        node(tester, id).visitChildren((child) {
+          if (child.value.isNotEmpty) found = child.value;
+          return found.isEmpty;
+        });
+        return found;
+      }
+
+      testWidgets('the temperature slider reads in degrees, not in percent',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        handle.dispose();
+      });
+
+      testWidgets('the duration slider reads in hours', (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(valueUnder(tester, 'drying.hours_slider'), '12 godz');
+        handle.dispose();
+      });
+
+      /// The chips say which option is current by their fill alone, so the flag
+      /// is the only thing a reader has to go on.
+      testWidgets('the chosen start mode is announced as selected',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(node(tester, 'drying.start_mode.now').flagsCollection.isSelected,
+            Tristate.isTrue);
+        expect(
+            node(tester, 'drying.start_mode.delay').flagsCollection.isSelected,
+            Tristate.isFalse);
+
+        await tester.tap(find.text('Za'));
+        await tester.pumpAndSettle();
+
+        expect(node(tester, 'drying.start_mode.now').flagsCollection.isSelected,
+            Tristate.isFalse);
+        expect(
+            node(tester, 'drying.start_mode.delay').flagsCollection.isSelected,
+            Tristate.isTrue);
+        handle.dispose();
+      });
+
+      /// The flag rides on the node that takes the tap, so the identifier the
+      /// log resolves a press against has to still be on it.
+      testWidgets('a chip that announces its state is still named for the log',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        final chip = node(tester, 'drying.start_mode.now');
+
+        expect(chip.identifier, 'drying.start_mode.now');
+        expect(
+          chip.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue,
+        );
+        handle.dispose();
+      });
     });
 
     testWidgets('Now still starts the dryer rather than scheduling it',

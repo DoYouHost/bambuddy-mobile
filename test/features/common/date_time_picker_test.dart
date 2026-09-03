@@ -124,8 +124,9 @@ void main() {
     });
 
     expect(tester.takeException(), isNull);
-    // Clamped to the earliest day it is allowed to offer, not left in August.
-    expect(answer.at, DateTime(2026, 9, 3, 20));
+    // The *day* is clamped to the earliest one on offer; the hour is the one
+    // that was stored, because no clock value was ever out of range.
+    expect(answer.at, DateTime(2026, 9, 3, 6));
   });
 
   /// The queue edits jobs whose time has passed, so its calendar reaches back a

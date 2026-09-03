@@ -1118,8 +1118,9 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
   /// Hands the run to the server's scheduler instead of the printer.
   ///
-  /// The sheet closes as soon as the request is away, so the handles are taken
-  /// first — see [detachFrom].
+  /// The sheet stays open until the server answers, and closes on the way out.
+  /// The handles are still taken first, because the user can dismiss it under
+  /// the request — see [detachFrom].
   Future<void> _schedule(DateTime startAfter) async {
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
@@ -1472,6 +1473,10 @@ class _DrySlider extends StatelessWidget {
                 min: min.toDouble(),
                 max: max.toDouble(),
                 activeColor: t.accentOrange,
+                // Without it a reader announces the position as a percentage
+                // ("25%"), which says nothing about a dryer: the same wording
+                // the presets carry is what the value means.
+                semanticFormatterCallback: (v) => presetLabel(v.round()),
                 onChanged: (v) => onChanged(v.round()),
               ).tagged('${id}_slider'),
             ),
