@@ -54,6 +54,48 @@ enum SpoolLabelTemplate {
 /// more is a 422, so the UI blocks the print instead of sending it.
 const maxSpoolLabelsPerRequest = 500;
 
+/// The body of `POST /inventory/labels` / `POST /spoolman/labels`.
+///
+/// A value type rather than a parameter list, because the two backends take the
+/// same body and the shape has already grown twice: every field the server adds
+/// otherwise means editing the source interface, both implementations and the
+/// repository facade, with nothing but four copies of the same signature
+/// keeping them in step. Here it is one field and one line of [toJson].
+class SpoolLabelRequest {
+  const SpoolLabelRequest({
+    required this.spoolIds,
+    required this.template,
+    this.monochrome = false,
+    this.startingPosition = 1,
+  }) : assert(startingPosition >= 1, 'sheet positions are numbered from 1');
+
+  /// Also the print order: the server renders in the order it receives ids, so
+  /// a caller-chosen sort is what reaches the sheet.
+  final List<int> spoolIds;
+
+  final SpoolLabelTemplate template;
+
+  /// Drops the colour swatch (it prints as a muddy grey block) and widens the
+  /// text column instead, for black-and-white thermal printers.
+  final bool monochrome;
+
+  /// Slot of the first sheet to start printing at, leaving the ones before it
+  /// blank so a part-used sheet gets finished. 1 prints a whole sheet, and is
+  /// the only value a roll template accepts.
+  final int startingPosition;
+
+  Map<String, dynamic> toJson() => {
+        'spool_ids': spoolIds,
+        'template': template.wire,
+        'monochrome': monochrome,
+        // Only when it deviates: 1 is the server's own default, and a server
+        // too old to know the field would drop it silently either way — sending
+        // it unasked would put a key on the wire that proves nothing about who
+        // honoured it.
+        if (startingPosition > 1) 'starting_position': startingPosition,
+      };
+}
+
 /// Sort position for the label picker's "by colour" mode.
 ///
 /// Chromatic colours land in bucket 0 ordered by HSL hue (0..360), so a printed

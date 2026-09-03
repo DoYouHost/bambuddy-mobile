@@ -568,8 +568,11 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
 /// [serverVersionServiceProvider] is, so switching servers cannot carry the old
 /// ceiling over.
 ///
-/// The one gate here with nothing to observe — see
-/// [ServerVersion.chamberMaxTargetC].
+/// One of the two gates with nothing to observe — see
+/// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
+/// other. Every other capability provider here asks a repository instead,
+/// because a repository has seen the server's own answers and that outranks
+/// reasoning from a version number.
 final chamberMaxTargetProvider = FutureProvider<int>(
   (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
 );

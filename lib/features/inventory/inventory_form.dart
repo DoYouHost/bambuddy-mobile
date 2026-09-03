@@ -195,12 +195,10 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final locations = ref.watch(locationOptionsProvider);
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.9,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (context, controller) => SheetSurface(child: Form(
+    return DraggableSheetSurface(
+      initialSize: 0.9,
+      minSize: 0.5,
+      builder: (context, controller) => Form(
         key: _formKey,
         child: ListView(
           controller: controller,
@@ -343,7 +341,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
           ],
         ),
-      )),
+      ),
     );
   }
 
@@ -900,12 +898,8 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
     final t = DashTokens.of(context);
     final async = ref.watch(slicerPresetsProvider);
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, controller) => SheetSurface(child: Column(
+    return DraggableSheetSurface(
+      builder: (context, controller) => Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -979,7 +973,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
             ),
           ),
         ],
-      )),
+      ),
     );
   }
 
@@ -1037,12 +1031,8 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
           c,
     ];
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, controller) => SheetSurface(child: Column(
+    return DraggableSheetSurface(
+      builder: (context, controller) => Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1100,7 +1090,7 @@ class _CoreWeightPickerState extends ConsumerState<_CoreWeightPicker> {
                   ),
           ),
         ],
-      )),
+      ),
     );
   }
 }

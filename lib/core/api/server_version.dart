@@ -212,9 +212,6 @@ class ServerVersion implements Comparable<ServerVersion> {
     return true;
   }
 
-  bool get supportsTriStateCalibration =>
-      supports(ServerFeature.triStateCalibration);
-
   /// Highest chamber target the server will accept, in °C.
   ///
   /// The one gate that is a value rather than a yes/no, and the one that cannot
@@ -225,17 +222,9 @@ class ServerVersion implements Comparable<ServerVersion> {
   /// rather than clamping. 60 whenever we don't know.
   int get chamberMaxTargetC => supports(ServerFeature.chamberTemp65) ? 65 : 60;
 
-  bool get supportsCrossModelVariants =>
-      supports(ServerFeature.crossModelVariants);
-
-  bool get supportsSliceLayoutOptions =>
-      supports(ServerFeature.sliceLayoutOptions);
-
-  bool get supportsProcessOverrides => supports(ServerFeature.processOverrides);
-
   List<int> get _base => [major, minor, patch, micro];
 
-  /// Prerelease status deliberately ignored — see [supportsTriStateCalibration].
+  /// Prerelease status deliberately ignored — see [introducedIn].
   int _compareBase(ServerVersion other) {
     final mine = _base;
     final theirs = other._base;

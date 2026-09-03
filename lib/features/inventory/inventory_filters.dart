@@ -69,12 +69,11 @@ class _FilterSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.inventory_filters',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (context, controller) => SheetSurface(child: ListView(
+      DraggableSheetSurface(
+        initialSize: 0.6,
+        maxSize: 0.9,
+        minSize: 0.35,
+        builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
@@ -160,7 +159,7 @@ class _FilterSheet extends ConsumerWidget {
               ),
             ],
           ],
-        )),
+        ),
       )
     );
   }

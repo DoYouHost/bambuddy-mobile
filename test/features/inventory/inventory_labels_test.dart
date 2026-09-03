@@ -34,18 +34,11 @@ class _CapturingInventory extends InventoryNotifier {
 class _CapturingRepository extends InventoryRepository {
   _CapturingRepository() : super(_UnusedSource());
 
-  SpoolLabelTemplate? template;
-  int? startingPosition;
+  SpoolLabelRequest? request;
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate labelTemplate, {
-    bool monochrome = false,
-    int startingPosition = 1,
-  }) async {
-    template = labelTemplate;
-    this.startingPosition = startingPosition;
+  Future<Uint8List> renderLabels(SpoolLabelRequest labelRequest) async {
+    request = labelRequest;
     throw const ApiException(AppErrorCode.connectionError);
   }
 }
@@ -133,8 +126,8 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('7'));
     await settle(tester);
-    expect(repo.template, SpoolLabelTemplate.averyL7160);
-    expect(repo.startingPosition, 7);
+    expect(repo.request!.template, SpoolLabelTemplate.averyL7160);
+    expect(repo.request!.startingPosition, 7);
   });
 
   testWidgets('a roll template never asks — the server refuses any answer but 1',
@@ -144,8 +137,8 @@ void main() {
     await pickTemplate(tester, l10n.inventoryLabelsBox40);
 
     expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
-    expect(repo.template, SpoolLabelTemplate.box40x30);
-    expect(repo.startingPosition, 1);
+    expect(repo.request!.template, SpoolLabelTemplate.box40x30);
+    expect(repo.request!.startingPosition, 1);
   });
 
   testWidgets('a server that would ignore the answer is not asked either',
@@ -157,6 +150,6 @@ void main() {
     await pickTemplate(tester, l10n.inventoryLabelsAveryL7160);
 
     expect(find.text(l10n.inventoryLabelsStartTitle), findsNothing);
-    expect(repo.startingPosition, 1);
+    expect(repo.request!.startingPosition, 1);
   });
 }

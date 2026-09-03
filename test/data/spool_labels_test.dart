@@ -90,9 +90,11 @@ void main() {
         serve(_pdfBytes);
 
         final bytes = await NativeInventorySource(dio).renderLabels(
-          [7, 3, 11],
-          SpoolLabelTemplate.averyL7160,
-          monochrome: true,
+          const SpoolLabelRequest(
+            spoolIds: [7, 3, 11],
+            template: SpoolLabelTemplate.averyL7160,
+            monochrome: true,
+          ),
         );
 
         expect(bytes, _pdfBytes);
@@ -107,9 +109,12 @@ void main() {
 
     test('monochrome defaults to false', () async {
       serve(_pdfBytes);
-      await NativeInventorySource(
-        dio,
-      ).renderLabels([1], SpoolLabelTemplate.box40x30);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.box40x30,
+        ),
+      );
       expect((adapter.captured!.data as Map)['monochrome'], isFalse);
     });
 
@@ -117,9 +122,12 @@ void main() {
       'Spoolman hits /spoolman/labels, not /spoolman/inventory/...',
       () async {
         serve(_pdfBytes);
-        final bytes = await SpoolmanInventorySource(
-          dio,
-        ).renderLabels([5], SpoolLabelTemplate.amsHolderSmall);
+        final bytes = await SpoolmanInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [5],
+            template: SpoolLabelTemplate.amsHolderSmall,
+          ),
+        );
 
         expect(bytes, _pdfBytes);
         expect(adapter.captured!.path, '/api/v1/spoolman/labels');
@@ -129,9 +137,12 @@ void main() {
     test('an unknown id → 404 mapped to AppApiException', () async {
       serve(utf8.encode('{"detail":"Spool(s) not found: [99]"}'), status: 404);
       await expectLater(
-        NativeInventorySource(
-          dio,
-        ).renderLabels([99], SpoolLabelTemplate.box62x29),
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [99],
+            template: SpoolLabelTemplate.box62x29,
+          ),
+        ),
         throwsA(isA<AppApiException>()),
       );
     });
@@ -146,9 +157,12 @@ void main() {
       () async {
         serve(utf8.encode('{}'));
         await expectLater(
-          NativeInventorySource(
-            dio,
-          ).renderLabels([1], SpoolLabelTemplate.amsHolderLarge),
+          NativeInventorySource(dio).renderLabels(
+            const SpoolLabelRequest(
+              spoolIds: [1],
+              template: SpoolLabelTemplate.amsHolderLarge,
+            ),
+          ),
           throwsA(
             isA<AppApiException>().having(
               (e) => e.code,
@@ -163,9 +177,12 @@ void main() {
     test('an empty 200 does not get through either', () async {
       serve(const []);
       await expectLater(
-        NativeInventorySource(
-          dio,
-        ).renderLabels([1], SpoolLabelTemplate.box62x29),
+        NativeInventorySource(dio).renderLabels(
+          const SpoolLabelRequest(
+            spoolIds: [1],
+            template: SpoolLabelTemplate.box62x29,
+          ),
+        ),
         throwsA(isA<AppApiException>()),
       );
     });
@@ -200,9 +217,11 @@ void main() {
 
     test('reaches the body when a part-used sheet is resumed', () async {
       await NativeInventorySource(dio).renderLabels(
-        [1],
-        SpoolLabelTemplate.averyL7160,
-        startingPosition: 7,
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+          startingPosition: 7,
+        ),
       );
       expect(body()['starting_position'], 7);
     });
@@ -210,16 +229,22 @@ void main() {
     test('is absent for a whole sheet', () async {
       // 1 is the server's own default, and an older server would drop the key
       // either way — sending it would prove nothing about who honoured it.
-      await NativeInventorySource(dio)
-          .renderLabels([1], SpoolLabelTemplate.averyL7160);
+      await NativeInventorySource(dio).renderLabels(
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.averyL7160,
+        ),
+      );
       expect(body().containsKey('starting_position'), isFalse);
     });
 
     test('reaches the Spoolman route too', () async {
       await SpoolmanInventorySource(dio).renderLabels(
-        [1],
-        SpoolLabelTemplate.avery5160,
-        startingPosition: 30,
+        const SpoolLabelRequest(
+          spoolIds: [1],
+          template: SpoolLabelTemplate.avery5160,
+          startingPosition: 30,
+        ),
       );
       expect(adapter.captured!.path, '/api/v1/spoolman/labels');
       expect(body()['starting_position'], 30);

@@ -364,81 +364,157 @@ class _SpoolDetailSheet extends ConsumerWidget {
 
     return logTag(
       'sheet.spool_detail',
-      DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        minChildSize: 0.4,
-        builder: (context, controller) => SheetSurface(
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              Row(
-                children: [
-                  SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                spool.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.display,
-                              ),
+      DraggableSheetSurface(
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Row(
+              children: [
+                SpoolSwatch(rgba: spool.rgba, size: 52, radius: 16),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              spool.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.display,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '#${spool.id}',
-                              style: t.monoHeadline.copyWith(color: t.accentGreenInk),
-                            ),
-                          ],
-                        ),
-                        if (spool.colorName != null)
-                          Text(
-                            spool.colorName!,
-                            style: t.bodyPlain,
                           ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '#${spool.id}',
+                            style: t.monoHeadline.copyWith(color: t.accentGreenInk),
+                          ),
+                        ],
+                      ),
+                      if (spool.colorName != null)
+                        Text(
+                          spool.colorName!,
+                          style: t.bodyPlain,
+                        ),
+                    ],
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            _SpoolActions(spool: spool, assignment: assignment),
+            const SizedBox(height: 16),
+
+            if (spool.remainingFraction != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: spool.remainingFraction,
+                  minHeight: 8,
+                  backgroundColor: t.gaugeTrack,
+                  valueColor: AlwaysStoppedAnimation(
+                    spool.isLowStock ? t.danger : t.accentGreen,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
+                ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
+                style: t.label.copyWith(color: t.textSecondary),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: t.subCardBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _DetailRow(
+                    icon: Icons.print_outlined,
+                    label: assignment != null
+                        ? l10n.inventoryLoadedIn(
+                            [
+                              if (assignment!.printerName != null)
+                                assignment!.printerName!,
+                              assignmentSlotLabel(l10n, assignment!),
+                            ].join(' · '),
+                          )
+                        : l10n.inventoryNotLoaded,
+                  ),
+                  if (spool.storageLocation != null)
+                    _DetailRow(
+                      icon: Icons.place_outlined,
+                      label:
+                          '${l10n.inventoryLocation}: ${spool.storageLocation}',
+                    ),
+                  // The counter the reset action resets. Without it on screen
+                  // that action had nothing to show for itself: it moves the
+                  // baseline, never the remaining weight above.
+                  if (spool.consumedWeight > 0)
+                    _DetailRow(
+                      icon: Icons.trending_down,
+                      label: l10n.inventoryConsumedSinceReset(
+                        fmtGrams(spool.consumedWeight),
+                      ),
+                    ),
+                  if (spool.costPerKg != null)
+                    _DetailRow(
+                      icon: Icons.payments_outlined,
+                      label: l10n.inventoryCostPerKg(
+                        spool.costPerKg!.toStringAsFixed(2),
+                      ),
+                    ),
+                  if (spool.slicerFilamentName != null ||
+                      spool.slicerFilament != null)
+                    _DetailRow(
+                      icon: Icons.tune,
+                      label:
+                          '${l10n.inventoryFieldSlicerPreset}: '
+                          '${spool.slicerFilamentName ?? spool.slicerFilament}',
+                    ),
+                  if (spool.nozzleTempMin != null ||
+                      spool.nozzleTempMax != null)
+                    _DetailRow(
+                      icon: Icons.thermostat_outlined,
+                      label:
+                          '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
+                    ),
+                  if (spool.tagUid != null)
+                    _DetailRow(
+                      icon: Icons.nfc_outlined,
+                      label: '${l10n.inventoryTag}: ${spool.tagUid}',
+                    ),
+                  if (spool.note != null)
+                    _DetailRow(
+                      icon: Icons.sticky_note_2_outlined,
+                      label: '${l10n.inventoryNote}: ${spool.note}',
+                    ),
                 ],
               ),
-              const SizedBox(height: 14),
+            ),
 
-              _SpoolActions(spool: spool, assignment: assignment),
+            if (spool.kProfiles.isNotEmpty) ...[
               const SizedBox(height: 16),
-
-              if (spool.remainingFraction != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: spool.remainingFraction,
-                    minHeight: 8,
-                    backgroundColor: t.gaugeTrack,
-                    valueColor: AlwaysStoppedAnimation(
-                      spool.isLowStock ? t.danger : t.accentGreen,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${l10n.inventoryRemaining(spool.remainingWeight.toStringAsFixed(0))}'
-                  ' ${l10n.inventoryOfTotal(spool.labelWeight)}',
-                  style: t.label.copyWith(color: t.textSecondary),
-                ),
-                const SizedBox(height: 16),
-              ],
-
+              _SheetSectionTitle(label: l10n.inventoryKProfiles),
+              const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: t.subCard,
                   borderRadius: BorderRadius.circular(16),
@@ -447,138 +523,56 @@ class _SpoolDetailSheet extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _DetailRow(
-                      icon: Icons.print_outlined,
-                      label: assignment != null
-                          ? l10n.inventoryLoadedIn(
-                              [
-                                if (assignment!.printerName != null)
-                                  assignment!.printerName!,
-                                assignmentSlotLabel(l10n, assignment!),
-                              ].join(' · '),
-                            )
-                          : l10n.inventoryNotLoaded,
-                    ),
-                    if (spool.storageLocation != null)
-                      _DetailRow(
-                        icon: Icons.place_outlined,
-                        label:
-                            '${l10n.inventoryLocation}: ${spool.storageLocation}',
-                      ),
-                    // The counter the reset action resets. Without it on screen
-                    // that action had nothing to show for itself: it moves the
-                    // baseline, never the remaining weight above.
-                    if (spool.consumedWeight > 0)
-                      _DetailRow(
-                        icon: Icons.trending_down,
-                        label: l10n.inventoryConsumedSinceReset(
-                          fmtGrams(spool.consumedWeight),
-                        ),
-                      ),
-                    if (spool.costPerKg != null)
-                      _DetailRow(
-                        icon: Icons.payments_outlined,
-                        label: l10n.inventoryCostPerKg(
-                          spool.costPerKg!.toStringAsFixed(2),
-                        ),
-                      ),
-                    if (spool.slicerFilamentName != null ||
-                        spool.slicerFilament != null)
+                    for (final k in spool.kProfiles)
                       _DetailRow(
                         icon: Icons.tune,
-                        label:
-                            '${l10n.inventoryFieldSlicerPreset}: '
-                            '${spool.slicerFilamentName ?? spool.slicerFilament}',
-                      ),
-                    if (spool.nozzleTempMin != null ||
-                        spool.nozzleTempMax != null)
-                      _DetailRow(
-                        icon: Icons.thermostat_outlined,
-                        label:
-                            '${l10n.inventoryNozzleTemp}: ${spool.nozzleTempMin ?? '?'}–${spool.nozzleTempMax ?? '?'} °C',
-                      ),
-                    if (spool.tagUid != null)
-                      _DetailRow(
-                        icon: Icons.nfc_outlined,
-                        label: '${l10n.inventoryTag}: ${spool.tagUid}',
-                      ),
-                    if (spool.note != null)
-                      _DetailRow(
-                        icon: Icons.sticky_note_2_outlined,
-                        label: '${l10n.inventoryNote}: ${spool.note}',
+                        label: [
+                          if (k.name != null) k.name!,
+                          l10n.inventoryKProfileLine(
+                            k.nozzleDiameter ?? '?',
+                            k.kValue?.toStringAsFixed(3) ?? '?',
+                          ),
+                        ].join(' · '),
                       ),
                   ],
                 ),
               ),
-
-              if (spool.kProfiles.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _SheetSectionTitle(label: l10n.inventoryKProfiles),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.subCard,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: t.subCardBorder),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final k in spool.kProfiles)
-                        _DetailRow(
-                          icon: Icons.tune,
-                          label: [
-                            if (k.name != null) k.name!,
-                            l10n.inventoryKProfileLine(
-                              k.nozzleDiameter ?? '?',
-                              k.kValue?.toStringAsFixed(3) ?? '?',
-                            ),
-                          ].join(' · '),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 16),
-              _SheetSectionTitle(label: l10n.inventoryUsageHistory),
-              const SizedBox(height: 4),
-              usage.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: DashLoading(),
-                ),
-                error: (_, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    l10n.inventoryUsageEmpty,
-                    style: t.labelSoft,
-                  ),
-                ),
-                data: (entries) => entries.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          l10n.inventoryUsageEmpty,
-                          style: t.labelSoft,
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          for (var i = 0; i < entries.length; i++)
-                            _UsageRow(
-                              entry: entries[i],
-                              last: i == entries.length - 1,
-                            ),
-                        ],
-                      ),
-              ),
             ],
-          ),
+
+            const SizedBox(height: 16),
+            _SheetSectionTitle(label: l10n.inventoryUsageHistory),
+            const SizedBox(height: 4),
+            usage.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: DashLoading(),
+              ),
+              error: (_, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  l10n.inventoryUsageEmpty,
+                  style: t.labelSoft,
+                ),
+              ),
+              data: (entries) => entries.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        l10n.inventoryUsageEmpty,
+                        style: t.labelSoft,
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (var i = 0; i < entries.length; i++)
+                          _UsageRow(
+                            entry: entries[i],
+                            last: i == entries.length - 1,
+                          ),
+                      ],
+                    ),
+            ),
+          ],
         ),
       )
     );

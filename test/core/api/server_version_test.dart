@@ -77,20 +77,20 @@ void main() {
   group('tri-state calibrations', () {
     test('from 1.2.5 upward', () {
       for (final v in ['1.2.5', '1.2.5.1', '1.2.6', '2.0.0']) {
-        expect(parse(v).supportsTriStateCalibration, isTrue, reason: v);
+        expect(parse(v).supports(ServerFeature.triStateCalibration), isTrue, reason: v);
       }
     });
 
     test('the whole 0.2.x line, not yet', () {
       for (final v in ['0.2.4.9', '0.2.4.8', '0.2.3', '0.1.5']) {
-        expect(parse(v).supportsTriStateCalibration, isFalse, reason: v);
+        expect(parse(v).supports(ServerFeature.triStateCalibration), isFalse, reason: v);
       }
     });
 
     test('a 1.2.5 beta counts as supporting', () {
       // The change landed in that cycle; reading a beta as the older shape
       // would send a boolean where the user asked for auto.
-      expect(parse('1.2.5b1').supportsTriStateCalibration, isTrue);
+      expect(parse('1.2.5b1').supports(ServerFeature.triStateCalibration), isTrue);
     });
 
     test('0.2.5bN comes out as "not supported" — and that is this method\'s limit',
@@ -104,8 +104,8 @@ void main() {
       // What is left is a careful "no": sending a string to a server that does
       // not know it is a 422, while a missing auto option is only a missing
       // feature. The real answer comes from observing what the server replies —
-      // see QueueRepository.supportsTriStateCalibration and its tests.
-      expect(parse('0.2.5b2').supportsTriStateCalibration, isFalse);
+      // see QueueRepository.supports(ServerFeature.triStateCalibration) and its tests.
+      expect(parse('0.2.5b2').supports(ServerFeature.triStateCalibration), isFalse);
       expect(parse('0.2.5b2') < parse('1.2.5'), isTrue);
     });
   });
@@ -161,9 +161,9 @@ void main() {
       // contract would take features away from a server that has them.
       final beta = parse('1.2.6b1');
       expect(beta.chamberMaxTargetC, 65);
-      expect(beta.supportsCrossModelVariants, isTrue);
-      expect(beta.supportsSliceLayoutOptions, isTrue);
-      expect(beta.supportsProcessOverrides, isTrue);
+      expect(beta.supports(ServerFeature.crossModelVariants), isTrue);
+      expect(beta.supports(ServerFeature.sliceLayoutOptions), isTrue);
+      expect(beta.supports(ServerFeature.processOverrides), isTrue);
     });
 
     test('a daily build of the beta counts too', () {
@@ -172,9 +172,9 @@ void main() {
 
     test('an older server gets none of the gates', () {
       final old = parse('1.2.5.2');
-      expect(old.supportsCrossModelVariants, isFalse);
-      expect(old.supportsSliceLayoutOptions, isFalse);
-      expect(old.supportsProcessOverrides, isFalse);
+      expect(old.supports(ServerFeature.crossModelVariants), isFalse);
+      expect(old.supports(ServerFeature.sliceLayoutOptions), isFalse);
+      expect(old.supports(ServerFeature.processOverrides), isFalse);
     });
   });
 }
