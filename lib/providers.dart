@@ -48,6 +48,7 @@ import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/scheduled_drying_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -520,6 +521,15 @@ final amsSlotConfigRepositoryProvider = Provider<AmsSlotConfigRepository>(
 /// Dio.
 final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Delayed AMS drying runs. Shares authenticated Dio; the version service
+/// answers whether to offer scheduling until the listing itself has.
+final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
+  (ref) => ScheduledDryingRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Printer heater history (nozzle / bed / chamber charts). Shares authenticated

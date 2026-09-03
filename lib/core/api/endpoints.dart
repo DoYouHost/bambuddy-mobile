@@ -227,6 +227,16 @@ abstract final class Endpoints {
   static String dryingStop(int printerId) =>
       '$apiPrefix/printers/$printerId/drying/stop';
 
+  /// Drying runs the server will start later. `GET` lists the `pending` /
+  /// `running` / `failed` rows (optional `printer_id` filter), `POST` schedules
+  /// one. 404 on servers before the route shipped — see
+  /// [ServerFeature.scheduledDryings].
+  static const scheduledDryings = '$apiPrefix/scheduled-dryings';
+
+  /// Cancel a pending or running scheduled drying run, or dismiss a failed one
+  /// — the same `DELETE` does both.
+  static String scheduledDrying(int id) => '$scheduledDryings/$id';
+
   // --- Movement / jog (manual control; idle only) --- All POST, empty body,
   // params in query. Relative moves; the server maps the Z sign per model (A1
   // bed-slingers are inverted). Require `can_control_printer`.

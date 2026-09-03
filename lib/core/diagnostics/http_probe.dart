@@ -40,7 +40,7 @@ class HttpProbe extends Interceptor {
   /// Endpoints whose answers are the app's content.
   static final _sampledPaths = RegExp(
     r'/api/v1/(queue|archives|printers|inventory|spoolman'
-    r'|smart-plugs|maintenance|projects|library)(/|$)',
+    r'|smart-plugs|maintenance|projects|library|scheduled-dryings)(/|$)',
   );
 
   /// Checked before [_sampledPaths] and wins over it.

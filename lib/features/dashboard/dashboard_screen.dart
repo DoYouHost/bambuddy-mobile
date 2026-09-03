@@ -31,6 +31,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
+import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
@@ -521,6 +522,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // repositories drops the latch; the "supported" providers watch them.
         ref.invalidate(heaterHistoryRepositoryProvider);
         ref.invalidate(amsHistoryRepositoryProvider);
+        // Nothing polls the scheduled runs, so this is where a row someone
+        // added from the web — or one the scheduler has since picked up —
+        // reaches the card.
+        ref.invalidate(scheduledDryingsProvider);
         return ref.read(dashboardProvider.notifier).refresh();
       },
       child: CustomScrollView(

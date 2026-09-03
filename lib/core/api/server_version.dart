@@ -82,6 +82,16 @@ enum ServerFeature {
   /// row, and a control that quietly wastes a sheet of labels is worse than one
   /// that is not offered.
   labelStartingPosition,
+
+  /// `GET/POST/DELETE /scheduled-dryings` — a manual AMS drying run the
+  /// scheduler starts later (server #2638).
+  ///
+  /// A whole route family rather than a field, so an older server answers
+  /// **404** and `ScheduledDryingRepository` prefers that observation to this
+  /// row. The gate exists for the moment before the first listing comes back:
+  /// the drying sheet has to decide whether to offer "Later" at all, and an
+  /// offer that ends in a 404 costs the user a filled-in form.
+  scheduledDryings,
 }
 
 /// A bambuddy server version, comparable across both numbering schemes the
@@ -195,6 +205,11 @@ class ServerVersion implements Comparable<ServerVersion> {
     // prints today, so the cost of the gate being early is a wasted sheet
     // rather than a refused request.
     ServerFeature.labelStartingPosition: (1, 2, 6, 0),
+    // /scheduled-dryings (server #2638, commit d37ce94f). Landed after the
+    // 1.2.5.3 release, inside the 1.2.6 beta cycle — same caveat as the rows
+    // above, except that here being early is free: the route answers 404 and
+    // the repository records that in place of this row.
+    ServerFeature.scheduledDryings: (1, 2, 6, 0),
   };
 
   /// Whether this server is at or past the release that introduced [feature].

@@ -14,6 +14,7 @@ import '../../../core/format/duration_format.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
+import '../../../core/models/scheduled_drying.dart';
 import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
@@ -46,6 +47,8 @@ import '../../inventory/inventory_screen.dart'
 import '../../inventory/spool_scanner_screen.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../controls_providers.dart';
+import '../drying_schedule.dart';
+import '../scheduled_drying_providers.dart';
 import '../firmware_providers.dart';
 import '../ws_providers.dart';
 import '../skip_objects_screen.dart';
@@ -57,6 +60,7 @@ import 'heater_history_sheet.dart';
 import 'temp_gauge.dart';
 
 part 'printer_card_details.dart';
+part 'printer_card_scheduled_drying.dart';
 part 'printer_card_panels.dart';
 part 'printer_card_controls.dart';
 part 'printer_card_temps.dart';
