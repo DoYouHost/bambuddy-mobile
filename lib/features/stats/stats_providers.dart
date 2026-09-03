@@ -153,6 +153,22 @@ final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
   },
 );
 
+/// Labels for the per-printer breakdowns: the live printer's current name
+/// first, so a rename shows up straight away, and behind it the name the
+/// server's print log last recorded for that id. Only the second one can name
+/// a printer that has since been deleted — the live list has no row for it,
+/// which is why its history used to read as a bare `#id`.
+final printerLabelsProvider = Provider.autoDispose<Map<int, String>>((ref) {
+  final live = ref.watch(printerNamesProvider).valueOrNull ?? const {};
+  final recorded = ref.watch(statsProvider).valueOrNull?.printerNames ?? const {};
+  final labels = <int, String>{};
+  recorded.forEach((id, name) {
+    final printerId = int.tryParse(id);
+    if (printerId != null) labels[printerId] = name;
+  });
+  return labels..addAll(live);
+});
+
 /// Slim list of all prints for active filter — source of rich stats (heatmap,
 /// records, colors, usage over time, histograms).
 final archiveSlimProvider =

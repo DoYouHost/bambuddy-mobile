@@ -959,6 +959,19 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
     }
   }
 
+  /// Second half of the "it did not land where you asked" sentence. Unknown
+  /// keys (a reason a newer server adds) get no clause rather than their raw
+  /// wire value — the first half already says where the file actually is.
+  String? _externalFallbackReason(AppLocalizations l10n, String reason) =>
+      switch (reason) {
+        'external_readonly' => l10n.sliceExternalReadonly,
+        'external_no_path' => l10n.sliceExternalNoPath,
+        'external_unreachable' => l10n.sliceExternalUnreachable,
+        'external_not_writable' => l10n.sliceExternalNotWritable,
+        'external_invalid_name' => l10n.sliceExternalInvalidName,
+        _ => null,
+      };
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -989,6 +1002,17 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
             Text(l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!))),
           if (r?.filamentUsedG != null)
             Text(l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1))),
+          if (r?.externalWriteFallback != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                l10n.sliceExternalFallback,
+                ?_externalFallbackReason(l10n, r!.externalWriteFallback!),
+              ].join(' '),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
         ],
       );
     } else {

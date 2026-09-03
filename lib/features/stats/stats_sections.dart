@@ -459,7 +459,7 @@ class _PrinterStatsCardState extends ConsumerState<PrinterStatsCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final names = ref.watch(printerNamesProvider).valueOrNull ?? const {};
+    final names = ref.watch(printerLabelsProvider);
     final entries = widget.data.byPrinter.entries.toList()
       ..sort((a, b) => _metric.of(b.value).compareTo(_metric.of(a.value)));
     final maxVal = entries.fold<num>(

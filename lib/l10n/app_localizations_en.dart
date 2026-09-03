@@ -738,6 +738,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String archivePlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
   String get archivePhotosTitle => 'Photos';
 
   @override
@@ -4377,6 +4382,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sliceFailed => 'Slice failed';
+
+  @override
+  String get sliceExternalFallback =>
+      'Saved in the server\'s library — the file\'s own folder could not take it.';
+
+  @override
+  String get sliceExternalReadonly => 'That folder is set to read-only.';
+
+  @override
+  String get sliceExternalNoPath => 'That folder has no path configured.';
+
+  @override
+  String get sliceExternalUnreachable =>
+      'That folder\'s path is not reachable right now.';
+
+  @override
+  String get sliceExternalNotWritable =>
+      'The server cannot write to that folder.';
+
+  @override
+  String get sliceExternalInvalidName =>
+      'That folder would not take the file\'s name.';
 
   @override
   String get sliceClose => 'Close';

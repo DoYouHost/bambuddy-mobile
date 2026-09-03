@@ -556,6 +556,10 @@ class _ArchiveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
     final meta = <String>[
+      // Only a run that printed a chosen plate of a multi-plate file carries
+      // one, which is exactly when the name alone cannot tell two rows apart.
+      if (archive.plateId != null)
+        AppLocalizations.of(context).archivePlate(archive.plateId!),
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
         '${archive.filamentUsedGrams!.toStringAsFixed(0)} g',

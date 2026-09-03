@@ -15,6 +15,7 @@ class Archive {
     required this.status,
     this.printerId,
     this.printName,
+    this.plateId,
     this.completedAt,
     this.thumbnailPath,
     this.timelapsePath,
@@ -53,6 +54,13 @@ class Archive {
 
   /// Human-readable print name from user or slicer.
   final String? printName;
+
+  /// Which plate of a multi-plate 3MF this run printed (`#2603`; the value was
+  /// stored but always reported as null before server 1.2.5.4). Null whenever
+  /// no plate was picked for the print — a plain single-plate file, or a print
+  /// started from a client that does not send one, this app included — so it is
+  /// shown only when present rather than defaulted to plate 1.
+  final int? plateId;
 
   /// Thumbnail path for the print.
   final String? thumbnailPath;
@@ -149,6 +157,7 @@ class Archive {
     status: status,
     printerId: printerId,
     printName: printName,
+    plateId: plateId,
     completedAt: completedAt,
     thumbnailPath: thumbnailPath,
     timelapsePath: timelapsePath,

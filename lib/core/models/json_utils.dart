@@ -199,6 +199,19 @@ Map<String, double> toDoubleMap(dynamic value) {
   return out;
 }
 
+/// Tolerant `Map<String, String>` coercion, see [toIntMap]. An entry whose
+/// value is not a non-blank string is dropped rather than kept as an empty
+/// label — the caller's own fallback names that row better than nothing does.
+Map<String, String> toStringMap(dynamic value) {
+  if (value is! Map) return const {};
+  final out = <String, String>{};
+  value.forEach((key, v) {
+    final text = toStringOrNull(v);
+    if (text != null) out['$key'] = text;
+  });
+  return out;
+}
+
 /// Tolerant `List<String>` coercion: keeps only string elements.
 List<String> toStringList(dynamic value) {
   if (value is! List) return const [];

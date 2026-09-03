@@ -178,4 +178,30 @@ void main() {
       );
     });
   });
+
+  group('toStringMap', () {
+    test('keeps the keys as strings and drops what is not a label', () {
+      // `printer_names` on `/archives/stats`: ids as string keys, and a name
+      // the server has no record of arriving as null rather than as a name.
+      final names = toStringMap(const {
+        '3': 'Ultron',
+        4: 'Bender',
+        '5': null,
+        '6': '   ',
+        '7': 42,
+      });
+
+      expect(names['3'], 'Ultron');
+      expect(names['4'], 'Bender');
+      // A blank or non-string value is no label: the caller's own fallback
+      // names that row better than an empty string would.
+      expect(names.keys, ['3', '4']);
+    });
+
+    test('a missing or non-map field is an empty map, never a throw', () {
+      expect(toStringMap(null), isEmpty);
+      expect(toStringMap('nope'), isEmpty);
+      expect(toStringMap(const []), isEmpty);
+    });
+  });
 }
