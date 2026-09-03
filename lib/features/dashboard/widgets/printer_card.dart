@@ -13,6 +13,7 @@ import '../../../core/format/duration_format.dart';
 import '../../../core/models/inventory.dart';
 import '../../../core/models/printer_capabilities.dart';
 import '../../../core/models/printer_status.dart';
+import '../../../core/printers/offline_debounce.dart';
 import '../../../core/models/smart_plug.dart';
 import '../../../core/notifications/hms_actions.dart';
 import '../../../core/notifications/hms_catalog.dart';
@@ -83,11 +84,12 @@ class _PrinterCardState extends State<PrinterCard> {
   /// to survive polling/WS refreshes (card is keyed by printer id).
   bool _expanded = false;
 
-  /// Whether the card displays as OFFLINE. This is debounced via [_offlineGrace]
-  /// to prevent flashing when `connected` flickers (e.g., REST still reports online
-  /// while WS doesn't—typical right after power-switching). Immediate return to online.
-  late bool _offline;
-  Timer? _offlineGrace;
+  /// Whether the card displays as OFFLINE, and the wait that keeps a flicker
+  /// from collapsing it. The rule itself lives in [OfflineDebounce] — the
+  /// offline alert follows the same one.
+  final _debounce = OfflineDebounce();
+
+  bool get _offline => _debounce.offline;
 
 
   /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
@@ -96,58 +98,55 @@ class _PrinterCardState extends State<PrinterCard> {
       if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
   ];
 
-  /// Grace period before collapsing the card when offline is sustained; fresh
-  /// `connected:true` within this window resets the timer (debounce flashing).
-  /// It doubles as the window in which a reachable frame still counts as an
-  /// observation — see [_connectedRecently].
-  static const _offlineGracePeriod = Duration(seconds: 15);
-
   @override
   void initState() {
     super.initState();
-    // Initial offline state (no grace period): card collapses immediately.
-    _offline = !(widget.item.status?.connected ?? false);
+    // The state the card opens on is not something that just happened, so it
+    // is adopted rather than debounced.
+    _debounce.seed(_reachability(widget.item.status));
   }
 
   @override
   void didUpdateWidget(PrinterCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final connected = widget.item.status?.connected ?? false;
-    if (connected) {
-      // Back/maintaining online: immediately expand and cancel timer.
-      _offlineGrace?.cancel();
-      _offlineGrace = null;
-      if (_offline) setState(() => _offline = false);
-    } else if (!_offline && _offlineGrace == null) {
-      if (!_lineWasUp()) {
-        // The line had not been up long enough for anything to contradict this
-        // frame — it is not a flicker, it is news.
-        setState(() => _offline = true);
-      } else {
-        // Freshly disconnected — count down instead of collapsing immediately (debounce).
-        _offlineGrace = Timer(_offlineGracePeriod, () {
-          _offlineGrace = null;
-          if (mounted) setState(() => _offline = true);
-        });
-      }
-    }
+    // A rebuild follows this call, so the synchronous paths need no setState of
+    // their own; the countdown, which fires long after, does.
+    _debounce.observe(
+      _reachability(widget.item.status),
+      debounce: _lineWasUp(),
+      onSustained: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
+
+  /// What a frame says about reaching this printer, in the three states the
+  /// debounce takes.
+  ///
+  /// No status at all is not a partial frame: the roster carries the printer
+  /// and nothing else, so the card knows nothing and shows it as unreachable,
+  /// which is what it has always done. A status whose `connected` is missing is
+  /// the other case — an older server, or a payload carrying a subset of the
+  /// fields — and it says nothing either way, so it leaves the card as it is
+  /// rather than collapsing a printer that may well be printing.
+  bool? _reachability(PrinterStatus? status) =>
+      status == null ? false : status.connected;
 
   /// Whether the line to the server had been up long enough, when this frame
   /// arrived, for a contradicting one to be possible. Measured against the
-  /// grace period it guards, so the two can never drift apart, and read through
+  /// window it guards, so the two can never drift apart, and read through
   /// `package:clock` so the age is worked out at the moment of the decision —
   /// no expiry callback to lose a race with the first frame after the process
   /// is unfrozen, and widget tests move this clock with `tester.pump`.
   bool _lineWasUp() {
     final since = widget.inTouchSince;
     if (since == null) return true; // caller tracks no contact — old behaviour
-    return clock.now().difference(since) >= _offlineGracePeriod;
+    return clock.now().difference(since) >= _debounce.window;
   }
 
   @override
   void dispose() {
-    _offlineGrace?.cancel();
+    _debounce.dispose();
     super.dispose();
   }
 

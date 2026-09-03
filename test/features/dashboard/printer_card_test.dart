@@ -1414,6 +1414,39 @@ void main() {
       expect(find.text('Szczegóły'), findsNothing);
     });
 
+    testWidgets('a printer the roster carries with no status at all is offline',
+        (tester) async {
+      // Not the same as a frame whose `connected` is missing: here there is no
+      // status to read at all, so the card knows nothing about the printer and
+      // says so, the way it always has.
+      await tester.pumpWidget(_cardWithProviders(
+        const PrinterWithStatus(printer: Printer(id: 1, name: 'X1C')),
+      ));
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
+    testWidgets('a frame that never mentions the connection leaves the card be',
+        (tester) async {
+      // An older server, or a payload carrying a subset of the fields. Read as
+      // "offline" it would collapse a printer that may well be printing, so it
+      // is read as what it is: no news.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
+      item.value = const PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X1C'),
+        status: PrinterStatus(id: 1, state: 'RUNNING', model: 'X1C'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 30));
+
+      expect(find.text('OFFLINE'), findsNothing);
+      expect(find.text('Szczegóły'), findsOneWidget);
+    });
+
     testWidgets('inside the grace window the header already reads as offline',
         (tester) async {
       final item = ValueNotifier<PrinterWithStatus>(connected);

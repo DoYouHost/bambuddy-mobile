@@ -12,7 +12,12 @@ import '../../core/notifications/hms_actions.dart';
 import '../../core/notifications/hms_catalog.dart';
 import '../../core/notifications/notification_prefs.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/printers/offline_debounce.dart';
 import '../../l10n/app_localizations.dart';
+
+/// `TimerFactory` is part of this library's surface: the monitor takes one so
+/// tests can control time instead of waiting out a window.
+export '../../core/printers/offline_debounce.dart' show TimerFactory;
 
 /// Room reserved per event type. The offsets added to a base are server row ids
 /// (a printer, a maintenance task), which grow without bound and are never
@@ -44,9 +49,6 @@ const List<int> _milestones = [25, 50, 75];
 /// drops whatever follows without a word.
 const int _maxAlertActions = 3;
 
-/// Grace period before declaring printer offline — `connected` can flicker
-/// (similar to OFFLINE card collapse in printer_card.dart).
-const Duration _offlineGrace = Duration(seconds: 15);
 
 /// How long an HMS code is remembered after it last appeared. A code that drops
 /// out of `hms_errors` for less than this is treated as the SAME ongoing fault
@@ -87,17 +89,19 @@ const Duration _humidityAlertCooldown = Duration(hours: 1);
 /// a print we joined halfway or to the one that just ended.
 const int _firstLayerLayerCeiling = 10;
 
-/// Timer factory — injectable so tests can control time instead of waiting 15s.
-typedef TimerFactory = Timer Function(Duration, void Function());
 
 /// Monitor state for one printer — tracks event edges between frames.
 class _PrinterMemo {
+  _PrinterMemo(TimerFactory timerFactory)
+      : offline = OfflineDebounce(timerFactory: timerFactory);
+
   bool printing = false;
   bool firstLayerSent = false;
   final Set<int> milestonesSent = {};
-  bool? connected;
-  bool offlineNotified = false;
-  Timer? offlineTimer;
+
+  /// Whether this printer counts as offline, and the wait that keeps a flicker
+  /// from alerting. The printer card follows the same rule.
+  final OfflineDebounce offline;
 
   /// HMS code → last time it was seen in a frame. A code is forgotten once it
   /// has been absent for [_hmsClearGrace], so a genuinely new occurrence can
@@ -246,7 +250,7 @@ class PrintMonitor {
       // would treat current state as just-happened edges and fire "first layer/25%/HMS error"
       // for events that happened long ago.
       final isNew = !_memo.containsKey(entry.key);
-      final memo = _memo.putIfAbsent(entry.key, _PrinterMemo.new);
+      final memo = _memo.putIfAbsent(entry.key, () => _PrinterMemo(_timer));
       if (isNew) {
         _prime(entry.key, memo, entry.value);
       } else {
@@ -256,7 +260,7 @@ class PrintMonitor {
     // Printers gone from map — drop their timers and state.
     final gone = _memo.keys.where((id) => !statuses.containsKey(id)).toList();
     for (final id in gone) {
-      _memo.remove(id)?.offlineTimer?.cancel();
+      _memo.remove(id)?.offline.dispose();
     }
 
     _updateOngoing(statuses);
@@ -286,7 +290,7 @@ class PrintMonitor {
   /// touch a notification service that's no longer valid.
   void dispose() {
     for (final memo in _memo.values) {
-      memo.offlineTimer?.cancel();
+      memo.offline.dispose();
     }
   }
 
@@ -341,7 +345,7 @@ class PrintMonitor {
         }
       }
     }
-    if (status.connected != null) memo.connected = status.connected;
+    memo.offline.seed(status.connected);
     final errors = status.hmsErrors;
     if (errors != null) {
       final now = _now();
@@ -644,35 +648,23 @@ class PrintMonitor {
   }
 
   void _processOffline(int id, PrinterStatus status, _PrinterMemo memo) {
-    final connected = status.connected;
-    if (connected == null) return; // Partial frame — no info
-    if (connected) {
-      // Only when a timer was really pending: the alert the grace period was
-      // holding back never happened, which answers both "the offline alert came
-      // fifteen seconds late" and "it never came at all". Guarded on the timer so
-      // this is one record per flap, not one per connected frame.
-      if (memo.offlineTimer != null) {
-        NotifProbe.suppressed(NotifSkip.reconnected,
-            printerId: id, event: NotifEvent.printerOffline);
-      }
-      memo.offlineTimer?.cancel();
-      memo.offlineTimer = null;
-      memo.offlineNotified = false;
-    } else if (memo.connected != false && !memo.offlineNotified) {
-      // Just disconnected — fire alert after grace period if still quiet.
-      memo.offlineTimer?.cancel();
-      memo.offlineTimer = _timer(_offlineGrace, () {
-        memo.offlineTimer = null;
-        memo.offlineNotified = true;
+    memo.offline.observe(
+      status.connected,
+      onSustained: () {
         if (_on(NotifEvent.printerOffline)) {
           _alertOffline(id, status);
         } else {
           NotifProbe.suppressed(_offReason,
               printerId: id, event: NotifEvent.printerOffline);
         }
-      });
-    }
-    memo.connected = connected;
+      },
+      // The alert the wait was holding back never happened, which answers both
+      // "the offline alert came fifteen seconds late" and "it never came at
+      // all". One record per flap: a disconnect already alerted for is not
+      // holding anything back.
+      onFlicker: () => NotifProbe.suppressed(NotifSkip.reconnected,
+          printerId: id, event: NotifEvent.printerOffline),
+    );
   }
 
   void _processHms(int id, PrinterStatus status, _PrinterMemo memo) {
