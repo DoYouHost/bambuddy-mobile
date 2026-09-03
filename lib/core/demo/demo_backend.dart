@@ -357,7 +357,7 @@ class DemoBackend {
         return _queueRoute(m, s, body);
 
       case 'archives':
-        return _archivesRoute(m, s, q);
+        return _archivesRoute(m, s, q, body);
 
       case 'print-log':
         return _printLogRoute(m, s, q, body);
@@ -1720,7 +1720,12 @@ class DemoBackend {
     }).toList();
   }
 
-  DemoResult? _archivesRoute(String m, List<String> s, Map<String, String> q) {
+  DemoResult? _archivesRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
     if (s.length == 1 && m == 'GET') return _ok(_pageArchives(q));
     if (s.length >= 2) {
       switch (s[1]) {
@@ -1792,6 +1797,16 @@ class DemoBackend {
           return _ok(_demoPlates(archive));
         }
         if (s.length == 2 && m == 'GET') return _ok(archive);
+        // The demo stands in for a current server, so it knows the key and
+        // answers with the row as stored — which is what tells the app the
+        // edit landed. `containsKey`, not a null check: a present null is how
+        // the weight is cleared.
+        if (s.length == 2 && m == 'PATCH') {
+          if (body.containsKey('filament_used_grams')) {
+            archive['filament_used_grams'] = body['filament_used_grams'];
+          }
+          return _ok(archive);
+        }
       }
     }
     return _fallback(m);

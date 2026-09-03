@@ -129,6 +129,105 @@ void main() {
     expect(deleted, 7);
   });
 
+  group('setFilamentGrams', () {
+    Map<String, dynamic> archiveWith(Object? grams) => {
+          ...readFixture('archive.json') as Map<String, dynamic>,
+          'filament_used_grams': grams,
+        };
+
+    test('sends the weight and reads back the stored one', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(42.0)),
+        data: {'filament_used_grams': 42.0},
+      );
+
+      final result = await repo.setFilamentGrams(82, 42.0);
+
+      expect(result.archive.filamentUsedGrams, 42.0);
+      expect(result.applied, isTrue);
+    });
+
+    // The case the whole return type exists for. A server older than the field
+    // still has the route and still answers 200 — its request model just drops
+    // the key it cannot name — so the archive comes back with the weight it had
+    // and the status code says nothing at all.
+    test('a server that drops the key answers 200 and changes nothing',
+        () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(17.1)),
+        data: {'filament_used_grams': 42.0},
+      );
+
+      final result = await repo.setFilamentGrams(82, 42.0);
+
+      expect(result.applied, isFalse);
+      expect(result.archive.filamentUsedGrams, 17.1,
+          reason: 'the row the user is looking at, not the one they asked for');
+    });
+
+    // A present null, never an omitted key: the server applies `exclude_unset`,
+    // so leaving it out means "do not touch this column" and would clear
+    // nothing.
+    test('clearing sends the key with a null', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(null)),
+        data: {'filament_used_grams': null},
+      );
+
+      final result = await repo.setFilamentGrams(82, null);
+
+      expect(result.archive.filamentUsedGrams, isNull);
+      expect(result.applied, isTrue);
+    });
+
+    test('a clear an old server ignored is not reported as done', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(17.1)),
+        data: {'filament_used_grams': null},
+      );
+
+      expect((await repo.setFilamentGrams(82, null)).applied, isFalse);
+    });
+
+    // Why the comparison has a tolerance: the figure goes out as JSON, through
+    // a float column and back, and a difference in the fourth decimal is the
+    // same weight. The case it must not swallow is a whole typed number apart.
+    test('a float round trip is still the weight that was sent', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(42.30000000000001)),
+        data: {'filament_used_grams': 42.3},
+      );
+
+      expect((await repo.setFilamentGrams(82, 42.3)).applied, isTrue);
+    });
+
+    // The field checks the server's own bounds before sending, so a refusal
+    // here means the two drifted apart — and then the server's sentence is
+    // worth more than ours.
+    test('a refused weight keeps what the server said', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(422, {
+          'detail': [
+            {'msg': 'Input should be less than or equal to 100000'},
+          ],
+        }),
+        data: {'filament_used_grams': 200000.0},
+      );
+
+      await expectLater(
+        repo.setFilamentGrams(82, 200000.0),
+        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
+            contains('less than or equal to 100000'))),
+      );
+    });
+  });
+
   group('plates', () {
     test('reads the plate rows of a multi-plate archive', () async {
       adapter.onGet(

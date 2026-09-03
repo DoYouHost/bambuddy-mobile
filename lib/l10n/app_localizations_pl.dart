@@ -773,6 +773,43 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archivePhotoFailed => 'Nie udało się wczytać tego zdjęcia.';
 
   @override
+  String get archiveFilamentUsed => 'Zużycie filamentu';
+
+  @override
+  String archiveFilamentGrams(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String get archiveFilamentNone => 'Nie zapisano';
+
+  @override
+  String get archiveFilamentHint =>
+      'Wydruk zarchiwizowany bez pliku .gcode.3mf nie ma własnej masy i nic jej już potem nie odczyta. To, co tu wpiszesz, wlicza się też do statystyk i podsumowań projektów.';
+
+  @override
+  String get archiveFilamentLabel => 'Masa';
+
+  @override
+  String get archiveFilamentUnit => 'g';
+
+  @override
+  String get archiveFilamentNotANumber =>
+      'Podaj liczbę albo zostaw puste, żeby wyczyścić masę.';
+
+  @override
+  String archiveFilamentOutOfRange(String max) {
+    return 'Masa od 0 do $max g.';
+  }
+
+  @override
+  String get archiveFilamentSaved => 'Zapisano masę filamentu';
+
+  @override
+  String get archiveFilamentUnsupported =>
+      'Ten serwer nie zapisuje jeszcze ręcznie podanej masy filamentu. Zaktualizuj bambuddy.';
+
+  @override
   String get archiveHasTimelapse => 'Ma timelapse';
 
   @override

@@ -34,6 +34,7 @@ import '../projects/project_common.dart';
 import '../queue/queue_edit_screen.dart';
 import '../slicer/slice_providers.dart';
 import '../slicer/slice_screen.dart';
+import 'archive_filament_edit.dart';
 import 'archive_providers.dart';
 import '../common/hex_color.dart';
 
@@ -931,6 +932,7 @@ class _ArchiveSheet extends StatelessWidget {
                   onReprint: onReprint,
                 ),
                 const SizedBox(height: 8),
+                ArchiveFilamentRow(archive: archive),
                 SizedBox(
                   width: double.infinity,
                   child: logTag(

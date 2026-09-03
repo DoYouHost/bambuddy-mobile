@@ -1430,6 +1430,66 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load this photo.'**
   String get archivePhotoFailed;
 
+  /// No description provided for @archiveFilamentUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get archiveFilamentUsed;
+
+  /// No description provided for @archiveFilamentGrams.
+  ///
+  /// In en, this message translates to:
+  /// **'{grams} g'**
+  String archiveFilamentGrams(String grams);
+
+  /// No description provided for @archiveFilamentNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get archiveFilamentNone;
+
+  /// No description provided for @archiveFilamentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A print archived without its .gcode.3mf has no weight of its own, and nothing can read one afterwards. What you enter here also counts towards your statistics and project totals.'**
+  String get archiveFilamentHint;
+
+  /// No description provided for @archiveFilamentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get archiveFilamentLabel;
+
+  /// No description provided for @archiveFilamentUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'g'**
+  String get archiveFilamentUnit;
+
+  /// No description provided for @archiveFilamentNotANumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number, or leave it empty to clear the weight.'**
+  String get archiveFilamentNotANumber;
+
+  /// No description provided for @archiveFilamentOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'A weight between 0 and {max} g.'**
+  String archiveFilamentOutOfRange(String max);
+
+  /// No description provided for @archiveFilamentSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament weight saved'**
+  String get archiveFilamentSaved;
+
+  /// No description provided for @archiveFilamentUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.'**
+  String get archiveFilamentUnsupported;
+
   /// No description provided for @archiveHasTimelapse.
   ///
   /// In en, this message translates to:

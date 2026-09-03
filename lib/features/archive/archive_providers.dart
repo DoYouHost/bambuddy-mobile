@@ -221,6 +221,19 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
     }
   }
 
+  /// Put a re-read archive back in the list, in place.
+  ///
+  /// For an edit whose answer *is* the stored row: the loaded list is the
+  /// screen's only copy of a print, and the alternative to writing one row into
+  /// it is refetching all of them to see one number change.
+  void replace(Archive updated) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data([
+      for (final a in current) a.id == updated.id ? updated : a,
+    ]);
+  }
+
   /// Optimistic delete (swipe / sheet). [purgeStats] also removes the print
   /// from aggregate statistics. Error → restore the item, returns false.
   Future<bool> delete(int archiveId, {required bool purgeStats}) async {

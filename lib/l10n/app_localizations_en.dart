@@ -758,6 +758,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archivePhotoFailed => 'Couldn\'t load this photo.';
 
   @override
+  String get archiveFilamentUsed => 'Filament used';
+
+  @override
+  String archiveFilamentGrams(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String get archiveFilamentNone => 'Not recorded';
+
+  @override
+  String get archiveFilamentHint =>
+      'A print archived without its .gcode.3mf has no weight of its own, and nothing can read one afterwards. What you enter here also counts towards your statistics and project totals.';
+
+  @override
+  String get archiveFilamentLabel => 'Weight';
+
+  @override
+  String get archiveFilamentUnit => 'g';
+
+  @override
+  String get archiveFilamentNotANumber =>
+      'Enter a number, or leave it empty to clear the weight.';
+
+  @override
+  String archiveFilamentOutOfRange(String max) {
+    return 'A weight between 0 and $max g.';
+  }
+
+  @override
+  String get archiveFilamentSaved => 'Filament weight saved';
+
+  @override
+  String get archiveFilamentUnsupported =>
+      'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.';
+
+  @override
   String get archiveHasTimelapse => 'Has a timelapse';
 
   @override
