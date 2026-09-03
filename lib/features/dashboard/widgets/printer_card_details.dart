@@ -1118,15 +1118,13 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
 
   /// Hands the run to the server's scheduler instead of the printer.
   ///
-  /// The sheet closes as soon as the request is away, so the container and the
-  /// messenger are taken first — the same reason [_ScheduledDryingRowState]
-  /// does it.
+  /// The sheet closes as soon as the request is away, so the handles are taken
+  /// first — see [detachFrom].
   Future<void> _schedule(DateTime startAfter) async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final container = ProviderScope.containerOf(context, listen: false);
-    final repository = container.read(scheduledDryingRepositoryProvider);
+    final (:providers, :messenger) = detachFrom(context);
+    final repository = providers.read(scheduledDryingRepositoryProvider);
     setState(() => _busy = true);
     try {
       await repository.create(
@@ -1137,7 +1135,7 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
         filament: _filament,
         startAfter: startAfter,
       );
-      container.invalidate(scheduledDryingsProvider);
+      providers.invalidate(scheduledDryingsProvider);
       if (mounted) navigator.pop();
       messenger.snack(l10n.ctrlDryScheduled, clearQueue: true);
     } on AppApiException catch (e) {
@@ -1148,26 +1146,12 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     }
   }
 
-  /// Date then time, the same two-step the queue's schedule field uses.
+  /// No `firstDate`: a run can only be scheduled forward, so today is the
+  /// earliest day worth showing.
   Future<void> _pickStartAt() async {
-    final now = clock.now();
-    final base = _startAt ?? now.add(const Duration(hours: 1));
-    final date = await showDatePicker(
-      context: context,
-      initialDate: base,
-      firstDate: now,
-      lastDate: DateTime(now.year + 5),
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(base),
-    );
-    if (time == null || !mounted) return;
-    setState(() {
-      _startAt =
-          DateTime(date.year, date.month, date.day, time.hour, time.minute);
-    });
+    final picked = await pickDateTime(context, initial: _startAt);
+    if (picked == null || !mounted) return;
+    setState(() => _startAt = picked);
   }
 
   @override

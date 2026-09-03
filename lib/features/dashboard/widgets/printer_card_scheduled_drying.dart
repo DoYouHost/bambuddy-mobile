@@ -79,15 +79,14 @@ class _ScheduledDryingRowState extends ConsumerState<_ScheduledDryingRow> {
 
   Future<void> _drop() async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     // The card this row sits in is rebuilt by every status frame, so the row
-    // can be gone before the DELETE answers. Both of these outlive it.
-    final container = ProviderScope.containerOf(context, listen: false);
-    final repository = container.read(scheduledDryingRepositoryProvider);
+    // can be gone before the DELETE answers — see [detachFrom].
+    final (:providers, :messenger) = detachFrom(context);
+    final repository = providers.read(scheduledDryingRepositoryProvider);
     setState(() => _busy = true);
     try {
       await repository.cancel(widget.row.id);
-      container.invalidate(scheduledDryingsProvider);
+      providers.invalidate(scheduledDryingsProvider);
     } on AppApiException catch (e) {
       showApiFailure(mounted ? messenger : null, e, l10n,
           action: 'printer.drying_schedule_cancel');
