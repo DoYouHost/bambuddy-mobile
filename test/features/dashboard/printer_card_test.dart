@@ -2514,7 +2514,7 @@ void main() {
       // The instant itself is formatted by the shared date/time helper, whose
       // 12/24-hour choice follows the device — so the assertion is on the
       // sentence that says a time was named at all, not on its spelling.
-      expect(find.textContaining('Suszenie o'), findsOneWidget);
+      expect(find.textContaining('Suszenie:'), findsOneWidget);
       expect(find.text('Suszenie zaplanowane, czeka na drukarkę'), findsNothing);
     });
 
@@ -2651,7 +2651,7 @@ void main() {
         await tester.tap(find.text('Suszenie'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Za'));
+        await tester.tap(find.text('Później'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('2h'));
         await tester.pumpAndSettle();
@@ -2793,7 +2793,7 @@ void main() {
         await tester.tap(find.text('Suszenie'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Za'));
+        await tester.tap(find.text('Później'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Zaplanuj'));
         await tester.pumpAndSettle();
@@ -2831,7 +2831,7 @@ void main() {
 
         expect(
           find.text(
-              'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.'),
+              'Auto-suszenie przy wysokiej wilgotności.'),
           findsOneWidget,
         );
       });
@@ -2839,7 +2839,7 @@ void main() {
       testWidgets('queue drying is named when ambient is off', (tester) async {
         await pumpWithAuto(tester, const {'queue_drying_enabled': true});
 
-        expect(find.text('Serwer sam suszy między wydrukami z kolejki.'),
+        expect(find.text('Auto-suszenie między wydrukami.'),
             findsOneWidget);
       });
 
@@ -2850,11 +2850,11 @@ void main() {
           'queue_drying_enabled': true,
         });
 
-        expect(find.text('Serwer sam suszy między wydrukami z kolejki.'),
+        expect(find.text('Auto-suszenie między wydrukami.'),
             findsNothing);
         expect(
           find.text(
-              'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.'),
+              'Auto-suszenie przy wysokiej wilgotności.'),
           findsOneWidget,
         );
       });
@@ -2867,8 +2867,8 @@ void main() {
         });
 
         expect(
-          find.text('Serwer sam suszy bezczynne drukarki powyżej progu '
-              'wilgotności. Także w trakcie wydruku.'),
+          find.text('Auto-suszenie przy wysokiej wilgotności. '
+              'Także w druku.'),
           findsOneWidget,
         );
       });
@@ -2878,14 +2878,14 @@ void main() {
       testWidgets('drying during a print alone says nothing', (tester) async {
         await pumpWithAuto(tester, const {'print_drying_enabled': true});
 
-        expect(find.textContaining('Serwer sam suszy'), findsNothing);
+        expect(find.textContaining('Auto-suszenie'), findsNothing);
       });
 
       testWidgets('a server that dries nothing by itself stays quiet',
           (tester) async {
         await pumpWithAuto(tester, const {});
 
-        expect(find.textContaining('Serwer sam suszy'), findsNothing);
+        expect(find.textContaining('Auto-suszenie'), findsNothing);
       });
     });
 
@@ -2946,7 +2946,7 @@ void main() {
             node(tester, 'drying.start_mode.delay').flagsCollection.isSelected,
             Tristate.isFalse);
 
-        await tester.tap(find.text('Za'));
+        await tester.tap(find.text('Później'));
         await tester.pumpAndSettle();
 
         expect(node(tester, 'drying.start_mode.now').flagsCollection.isSelected,

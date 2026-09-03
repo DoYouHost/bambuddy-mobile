@@ -386,15 +386,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get ctrlDryAutoIdle =>
-      'The server dries idle printers by itself above the humidity threshold.';
+  String get ctrlDryAutoIdle => 'Auto-drying when humidity is high.';
 
   @override
-  String get ctrlDryAutoQueue =>
-      'The server dries by itself between queued prints.';
+  String get ctrlDryAutoQueue => 'Auto-drying between queued prints.';
 
   @override
-  String get ctrlDryAutoWhilePrinting => 'During a print, too.';
+  String get ctrlDryAutoWhilePrinting => 'During prints, too.';
 
   @override
   String get ctrlDryStartWhen => 'Start time';
@@ -403,7 +401,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ctrlDryStartNow => 'Now';
 
   @override
-  String get ctrlDryStartAfter => 'After';
+  String get ctrlDryStartAfter => 'Later';
 
   @override
   String get ctrlDryStartAt => 'At time';

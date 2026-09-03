@@ -803,19 +803,19 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlDryAutoIdle.
   ///
   /// In en, this message translates to:
-  /// **'The server dries idle printers by itself above the humidity threshold.'**
+  /// **'Auto-drying when humidity is high.'**
   String get ctrlDryAutoIdle;
 
   /// No description provided for @ctrlDryAutoQueue.
   ///
   /// In en, this message translates to:
-  /// **'The server dries by itself between queued prints.'**
+  /// **'Auto-drying between queued prints.'**
   String get ctrlDryAutoQueue;
 
   /// No description provided for @ctrlDryAutoWhilePrinting.
   ///
   /// In en, this message translates to:
-  /// **'During a print, too.'**
+  /// **'During prints, too.'**
   String get ctrlDryAutoWhilePrinting;
 
   /// No description provided for @ctrlDryStartWhen.
@@ -833,7 +833,7 @@ abstract class AppLocalizations {
   /// No description provided for @ctrlDryStartAfter.
   ///
   /// In en, this message translates to:
-  /// **'After'**
+  /// **'Later'**
   String get ctrlDryStartAfter;
 
   /// No description provided for @ctrlDryStartAt.

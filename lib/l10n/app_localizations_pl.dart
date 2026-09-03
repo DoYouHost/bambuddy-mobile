@@ -394,14 +394,13 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get ctrlDryAutoIdle =>
-      'Serwer sam suszy bezczynne drukarki powyżej progu wilgotności.';
+  String get ctrlDryAutoIdle => 'Auto-suszenie przy wysokiej wilgotności.';
 
   @override
-  String get ctrlDryAutoQueue => 'Serwer sam suszy między wydrukami z kolejki.';
+  String get ctrlDryAutoQueue => 'Auto-suszenie między wydrukami.';
 
   @override
-  String get ctrlDryAutoWhilePrinting => 'Także w trakcie wydruku.';
+  String get ctrlDryAutoWhilePrinting => 'Także w druku.';
 
   @override
   String get ctrlDryStartWhen => 'Kiedy zacząć';
@@ -410,7 +409,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get ctrlDryStartNow => 'Teraz';
 
   @override
-  String get ctrlDryStartAfter => 'Za';
+  String get ctrlDryStartAfter => 'Później';
 
   @override
   String get ctrlDryStartAt => 'O godzinie';
@@ -429,7 +428,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String ctrlDryScheduledFor(String time) {
-    return 'Suszenie o $time';
+    return 'Suszenie: $time';
   }
 
   @override
