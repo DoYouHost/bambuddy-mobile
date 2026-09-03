@@ -675,6 +675,32 @@ void main() {
       );
     });
 
+    testWidgets('every reason the server can send has a sentence',
+        (tester) async {
+      // The five `_resolve_slice_destination` returns (library.py). A reason
+      // the app knows but has no clause for reads as the generic half alone,
+      // which is indistinguishable from a reason it has never heard of.
+      for (final reason in const [
+        'external_readonly',
+        'external_no_path',
+        'external_unreachable',
+        'external_not_writable',
+        'external_invalid_name',
+      ]) {
+        repo.result = {
+          'library_file_id': 9,
+          'name': 'out.gcode.3mf',
+          'external_write_fallback': reason,
+        };
+        await openSheet(tester);
+        await slice(tester);
+
+        expect(find.text(l10n(tester).sliceExternalFallback), findsNothing,
+            reason: '$reason rendered without a reason clause');
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
     testWidgets('a reason this build has no sentence for still says where',
         (tester) async {
       // A newer server may name a reason this app does not know. The half that

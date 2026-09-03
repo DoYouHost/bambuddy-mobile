@@ -1398,6 +1398,7 @@
   "sliceExternalNoPath": "Ten folder nie ma ustawionej ścieżki.",
   "sliceExternalUnreachable": "Ścieżka tego folderu jest teraz nieosiągalna.",
   "sliceExternalNotWritable": "Serwer nie ma prawa zapisu do tego folderu.",
+  "sliceExternalInvalidName": "Ten folder nie przyjąłby nazwy tego pliku.",
   "sliceClose": "Zamknij",
   "sliceResultTime": "Szacowany czas: {time}",
   "@sliceResultTime": { "placeholders": { "time": { "type": "String" } } },

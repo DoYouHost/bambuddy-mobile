@@ -7532,6 +7532,12 @@ abstract class AppLocalizations {
   /// **'The server cannot write to that folder.'**
   String get sliceExternalNotWritable;
 
+  /// No description provided for @sliceExternalInvalidName.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder would not take the file\'s name.'**
+  String get sliceExternalInvalidName;
+
   /// No description provided for @sliceClose.
   ///
   /// In en, this message translates to:

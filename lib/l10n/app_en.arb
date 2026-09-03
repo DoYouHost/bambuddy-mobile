@@ -1567,6 +1567,7 @@
   "sliceExternalNoPath": "That folder has no path configured.",
   "sliceExternalUnreachable": "That folder's path is not reachable right now.",
   "sliceExternalNotWritable": "The server cannot write to that folder.",
+  "sliceExternalInvalidName": "That folder would not take the file's name.",
   "sliceClose": "Close",
   "sliceResultTime": "Estimated time: {time}",
   "@sliceResultTime": { "placeholders": { "time": { "type": "String" } } },

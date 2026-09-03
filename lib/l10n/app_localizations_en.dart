@@ -4402,6 +4402,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The server cannot write to that folder.';
 
   @override
+  String get sliceExternalInvalidName =>
+      'That folder would not take the file\'s name.';
+
+  @override
   String get sliceClose => 'Close';
 
   @override

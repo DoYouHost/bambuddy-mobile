@@ -968,6 +968,7 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
         'external_no_path' => l10n.sliceExternalNoPath,
         'external_unreachable' => l10n.sliceExternalUnreachable,
         'external_not_writable' => l10n.sliceExternalNotWritable,
+        'external_invalid_name' => l10n.sliceExternalInvalidName,
         _ => null,
       };
 

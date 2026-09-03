@@ -4473,6 +4473,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Serwer nie ma prawa zapisu do tego folderu.';
 
   @override
+  String get sliceExternalInvalidName =>
+      'Ten folder nie przyjąłby nazwy tego pliku.';
+
+  @override
   String get sliceClose => 'Zamknij';
 
   @override
