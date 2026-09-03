@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/print_log_entry.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/print_log/print_log_screen.dart';
@@ -65,14 +64,6 @@ class _FakePrintLog extends PrintLogNotifier {
   }
 }
 
-/// Null profile: nothing here talks to a server, and building the API client
-/// without one throws by design. It also keeps the thumbnail tile on its
-/// placeholder instead of reaching for a camera token.
-class _NullProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 PrintLogEntry _entry({
   int id = 7,
   String name = 'Benchy',
@@ -100,6 +91,17 @@ PrintLogEntry _entry({
       energyKwh: energyKwh,
     );
 
+/// Starts the screen with filters already on, the way a user who opened the
+/// sheet before reaching for "clear log" has them.
+class _PresetFilters extends PrintLogFiltersNotifier {
+  _PresetFilters(this._initial);
+
+  final PrintLogFilters _initial;
+
+  @override
+  PrintLogFilters build() => _initial;
+}
+
 void main() {
   late AppLocalizations l10n;
 
@@ -121,11 +123,14 @@ void main() {
     List<PrintLogEntry>? entries,
     bool costEnergy = true,
     AppApiException? failure,
+    PrintLogFilters? filters,
   }) async {
     final fake = _FakePrintLog(entries ?? [_entry()], failure: failure);
     await tester.pumpWidget(ProviderScope(
       overrides: [
         printLogProvider.overrideWith(() => fake),
+        if (filters != null)
+          printLogFiltersProvider.overrideWith(() => _PresetFilters(filters)),
         printLogCostEnergyProvider.overrideWith((ref) async => costEnergy),
         // Money needs the server's currency, which otherwise means building an
         // API client — and there is no profile here to build one from.
@@ -133,7 +138,7 @@ void main() {
         printersForPickerProvider.overrideWith(
           (ref) async => const [Printer(id: 3, name: 'P1S')],
         ),
-        serverProfileProvider.overrideWith(_NullProfile.new),
+        noServerProfileOverride,
       ],
       child: plApp(const PrintLogScreen()),
     ));
@@ -390,6 +395,30 @@ void main() {
     await settle(tester);
 
     expect(fake.cleared, 1);
+  });
+
+  testWidgets('under a filter the question stops quoting the filtered count',
+      (tester) async {
+    // `total` is what the filter matches; `DELETE /print-log/` takes no filter
+    // and empties the table. Quoting the one while doing the other turned
+    // "2 rows shown" into "All 2 runs go" over a log of thousands.
+    final fake = await pumpScreen(
+      tester,
+      entries: [_entry(id: 1), _entry(id: 2, name: 'Cube')],
+      filters: const PrintLogFilters(status: 'failed'),
+    );
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await settle(tester);
+    await tester.tap(find.text(l10n.printLogClear).last);
+    await settle(tester);
+
+    expect(find.text(l10n.printLogClearBody(2)), findsNothing);
+    expect(find.text(l10n.printLogClearBodyFiltered), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, l10n.printLogClear));
+    await settle(tester);
+    expect(fake.cleared, 1, reason: 'it still clears everything');
   });
 
   testWidgets('deleting one run asks first', (tester) async {

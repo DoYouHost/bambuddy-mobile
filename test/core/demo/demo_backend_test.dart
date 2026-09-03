@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
@@ -115,6 +117,29 @@ void main() {
       expect(found, isNotEmpty);
       final preview = await repo.purgePreview(olderThanDays: 5);
       expect(preview.count, greaterThan(0));
+    });
+
+    test('plates: one demo print is multi-plate, the rest are not', () async {
+      final repo = ArchiveRepository(dio);
+      final list = await repo.list();
+      final multi = list.where((a) => a.plateId != null).toList();
+      final single = list.where((a) => a.plateId == null).first;
+
+      expect(multi, hasLength(1),
+          reason: 'the demo needs one, to have a plate picker to show');
+      final plates = await repo.plates(multi.single.id);
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.plates.map((p) => p.index), [1, 2, 3]);
+      expect(plates.byIndex(multi.single.plateId), isNotNull,
+          reason: 'the plate the print ran on has to be one of the choices');
+
+      expect((await repo.plates(single.id)).isMultiPlate, isFalse);
+    });
+
+    test('no-3mf nudge: the demo has nothing to complain about', () async {
+      // Unrouted in the demo backend, which answers 404 — the same answer an
+      // older server gives, and the same "no banner" for both.
+      expect((await ArchiveRepository(dio).no3mfWarning()).hasFallback, isFalse);
     });
 
     test('stats, slim, failures, users', () async {
@@ -458,11 +483,37 @@ void main() {
     });
 
     test('printer files + storage + AMS history', () async {
-      final files = await PrinterFilesRepository(dio).listFiles(1, '/');
-      expect(files, isNotEmpty);
-      expect(files.any((f) => f.isDirectory), isTrue);
+      final listing = await PrinterFilesRepository(dio).listFiles(1, '/');
+      expect(listing.files, isNotEmpty);
+      expect(listing.files.any((f) => f.isDirectory), isTrue);
+      expect(listing.printerUnavailable, isFalse);
       final storage = await PrinterFilesRepository(dio).fetchStorage(1);
       expect(storage.hasData, isTrue);
+
+      // Downloading is served, not faked with a fallback: a single file comes
+      // back as bytes, capped at 2 MB so a demo download stays a download rather
+      // than a memory test, and the bundle as a ZIP a tool can open.
+      final dir = Directory.systemTemp.createTempSync('demo-printer-files');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final one = '${dir.path}/one.3mf';
+      await PrinterFilesRepository(dio)
+          .downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
+      // The listing claims 2 108 509 bytes for this one; the cap is what lands.
+      expect(File(one).lengthSync(), 2 * 1024 * 1024);
+
+      final small = '${dir.path}/small.3mf';
+      await PrinterFilesRepository(dio)
+          .downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
+      expect(File(small).lengthSync(), 1524736);
+
+      final zip = '${dir.path}/bundle.zip';
+      await PrinterFilesRepository(dio).downloadZipTo(
+        1,
+        const ['/cache/Benchy.gcode.3mf', '/cache/Cable clips x8.gcode.3mf'],
+        zip,
+      );
+      // The 22 bytes of an empty archive, starting with the ZIP signature.
+      expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
 
       final history = await AmsHistoryRepository(dio).fetch(1, 0, hours: 6);
       expect(history.points, isNotEmpty);

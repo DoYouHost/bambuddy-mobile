@@ -40,20 +40,29 @@ class WearRelayHandler {
   /// so a request never reaches both a listener and a freshly woken engine.
   /// Null where there is nothing to coordinate with: tests, and the woken
   /// engine itself — that one never listens, the service hands it each request.
+  ///
+  /// [plateGateAcknowledged] lets that cache be told the plate-clear gate is
+  /// down. The server pushes a fresh frame for the flag only while the printer
+  /// has a live MQTT client, so after acknowledging a printer that Auto Power
+  /// Off already switched off nothing would ever correct the cached `true`, and
+  /// the watch's own post-action refresh would draw the button again.
   WearRelayHandler({
     required WatchConnectivity watch,
     required Dio? Function() dio,
     Map<String, dynamic>? Function(int printerId)? liveStatus,
     WearRelayClaim? claim,
+    void Function(int printerId)? plateGateAcknowledged,
   })  : _watch = watch,
         _dio = dio,
         _liveStatus = liveStatus,
-        _claim = claim;
+        _claim = claim,
+        _plateGateAcknowledged = plateGateAcknowledged;
 
   final WatchConnectivity _watch;
   final Dio? Function() _dio;
   final Map<String, dynamic>? Function(int printerId)? _liveStatus;
   final WearRelayClaim? _claim;
+  final void Function(int printerId)? _plateGateAcknowledged;
 
   StreamSubscription<Map<String, dynamic>>? _sub;
 
@@ -150,6 +159,7 @@ class WearRelayHandler {
         await commands.stop(printerId);
       case WearRpcAction.clearPlate:
         await commands.clearPlate(printerId);
+        _plateGateAcknowledged?.call(printerId);
       case WearRpcAction.startNext:
         await QueueRepository(dio).startNextPending(printerId);
       case WearRpcAction.hmsClear:

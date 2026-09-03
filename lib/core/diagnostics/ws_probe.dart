@@ -299,6 +299,11 @@ class WsProbe {
           'door_open': s.doorOpen == true ? true : null,
           'plate_wait': s.awaitingPlateClear == true ? true : null,
           'extruder': s.activeExtruder,
+          // Only on a machine with a Filament Track Switch fitted, which is the
+          // only case where a slot's nozzle cannot be read off
+          // `ams_extruder_map` — and the only case a report about the wrong
+          // nozzle size needs it.
+          'fts_inlet': _inlets(s.amsSwitchInlet),
           'tray_now': s.trayNow,
           ..._hms(s.hmsErrors),
           ..._ams(s.ams),
@@ -314,6 +319,13 @@ class WsProbe {
   /// `tray_type` is free text on some server versions, so a slot's material
   /// goes through [FilamentMaterial]'s closed list; colour and sub-brand are
   /// not logged at all.
+  /// `{0: "A"}` as `0:A`, or null when no switch is fitted.
+  static String? _inlets(Map<int, String>? inlets) =>
+      (inlets == null || inlets.isEmpty)
+          ? null
+          : (inlets.entries.map((e) => '${e.key}:${e.value}').toList()..sort())
+              .join(',');
+
   static Map<String, Object?> _ams(List<AmsUnit>? units) {
     if (units == null || units.isEmpty) return const {};
     return {

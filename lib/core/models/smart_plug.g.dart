@@ -15,6 +15,12 @@ SmartPlug _$SmartPlugFromJson(Map<String, dynamic> json) => SmartPlug(
   lastState: json['last_state'] as String?,
   showOnPrinterCard: json['show_on_printer_card'] as bool?,
   showInSwitchbar: json['show_in_switchbar'] as bool?,
+  controlsPrinterPower: json['controls_printer_power'] as bool?,
+  haEntityId: json['ha_entity_id'] as String?,
+  haPowerEntity: json['ha_power_entity'] as String?,
+  mqttTopic: json['mqtt_topic'] as String?,
+  mqttPowerTopic: json['mqtt_power_topic'] as String?,
+  restPowerPath: json['rest_power_path'] as String?,
 );
 
 SmartPlugStatus _$SmartPlugStatusFromJson(Map<String, dynamic> json) =>

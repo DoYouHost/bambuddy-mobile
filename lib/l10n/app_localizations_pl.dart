@@ -59,6 +59,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get connectFailed => 'Nie udało się połączyć z serwerem';
 
   @override
+  String get filePickerFailed => 'Nie udało się otworzyć okna wyboru pliku';
+
+  @override
   String get retry => 'Spróbuj ponownie';
 
   @override
@@ -564,6 +567,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smartPlugUnreachable => 'Niedostępne';
 
   @override
+  String get smartPlugMonitorOnly => 'Tylko podgląd';
+
+  @override
   String get smartPlugCantPowerOff =>
       'Nie można odciąć zasilania w trakcie druku';
 
@@ -754,7 +760,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
-    return 'Płyta $plate';
+    return 'Płyta $plate z pliku wielopłytowego';
   }
 
   @override
@@ -931,6 +937,39 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get gcodeFeaturePrimeTower => 'Wieża czyszcząca';
+
+  @override
+  String get archiveNo3mfTitle =>
+      'Część ostatnich wydruków zarchiwizowała się bez miniatur';
+
+  @override
+  String get archiveNo3mfBody =>
+      'Slicer nie zostawił pliku .gcode.3mf na karcie drukarki, więc Bambuddy nie miał skąd wziąć miniatury ani danych ze slicera. Zwykle znaczy to, że w slicerze (zakładka Device) jest wyłączone „Store sent files on external storage”.';
+
+  @override
+  String get archiveNo3mfTitleInternal =>
+      'Część ostatnich wydruków została w pamięci wewnętrznej drukarki';
+
+  @override
+  String get archiveNo3mfBodyInternal =>
+      'Bambu Studio wysłało pocięty plik do pamięci wewnętrznej drukarki, a nie na kartę — przez FTP nie ma tam czego czytać. W H2 i P2S przycisk Drukuj zawsze robi to tak, więc włączanie ustawienia w slicerze nic nie zmieni. Takie wydruki i tak trafiają do archiwum z nazwą i czasem, tylko bez miniatury i danych ze slicera. Żeby archiwum było pełne, zaczynaj wydruk z Bambuddy albo tnij w OrcaSlicerze — w obu przypadkach z kartą lub pendrivem w drukarce.';
+
+  @override
+  String get archiveNo3mfTitleNoStorage =>
+      'Część ostatnich wydruków nie mogła się zarchiwizować — brak nośnika w drukarce';
+
+  @override
+  String get archiveNo3mfBodyNoStorage =>
+      'Drukarka nie widzi karty ani pendrive\'a w gniazdzie, więc pocięty plik nie miał gdzie wylądować, a Bambuddy nie miał czego czytać. Włóż nośnik i kolejny wydruk zarchiwizuje się w całości.';
+
+  @override
+  String get archiveNo3mfDocs => 'Zobacz krok 4 instalacji';
+
+  @override
+  String get archiveNo3mfDocsWhy => 'Dlaczego tak się dzieje';
+
+  @override
+  String get archiveNo3mfDismiss => 'Zamknij tę informację';
 
   @override
   String get archiveDelete => 'Usuń';
@@ -2288,6 +2327,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String inventoryFieldRange(int min, int max) {
     return 'Podaj wartość od $min do $max';
   }
+
+  @override
+  String get inventoryFieldNegative => 'Podaj wartość 0 lub większą';
 
   @override
   String get inventorySectionBasics => 'Podstawy';
@@ -4225,9 +4267,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectDownloadFailed => 'Pobieranie nie powiodło się';
 
   @override
-  String get projectSaveCancelled => 'Anulowano zapis';
-
-  @override
   String get projectCoverUpload => 'Ustaw okładkę';
 
   @override
@@ -4653,13 +4692,33 @@ class AppLocalizationsPl extends AppLocalizations {
   String get pfmNoMatches => 'Brak plików pasujących do filtra';
 
   @override
+  String get pfmPrinterUnavailable =>
+      'Drukarka nie odpowiedziała, więc nie udało się wylistować jej plików';
+
+  @override
+  String get pfmDownloadTooLarge =>
+      'Wybór jest za duży, żeby serwer spakował go w paczkę';
+
+  @override
+  String get pfmDownloadNoServerSpace =>
+      'Serwer nie ma miejsca na przygotowanie tego pobrania';
+
+  @override
+  String get pfmDownloadTookTooLong =>
+      'Przygotowanie pobrania trwało zbyt długo i serwer je przerwał';
+
+  @override
+  String get pfmDownloadSaved => 'Zapisano plik';
+
+  @override
+  String get pfmDownloadNotSaved =>
+      'Nie udało się zapisać pliku we wskazanym miejscu';
+
+  @override
   String get pfmDownload => 'Pobierz';
 
   @override
   String get pfmDelete => 'Usuń';
-
-  @override
-  String get pfmDownloadSaved => 'Zapisano plik';
 
   @override
   String get pfmDeleteConfirmTitle => 'Usunąć pliki?';
@@ -4857,6 +4916,41 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get queueEditMappingAuto => 'Automatycznie (bez ręcznego mapowania)';
+
+  @override
+  String get queueEditPlate => 'Płyta';
+
+  @override
+  String queueEditPlateSelected(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String queueEditPlateNamed(int plate, String name) {
+    return 'Płyta $plate · $name';
+  }
+
+  @override
+  String queueEditPlateFixed(int plate) {
+    return 'To zadanie drukuje płytę $plate';
+  }
+
+  @override
+  String get queuePlatePickTitle => 'Która płyta?';
+
+  @override
+  String queuePlateObjects(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count obiektu',
+      many: '$count obiektów',
+      few: '$count obiekty',
+      one: '1 obiekt',
+      zero: 'Brak obiektów',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get queueEditPrintOptions => 'Opcje druku';
@@ -6123,6 +6217,10 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$_temp0 — wszystkich użytkowników, nie tylko Twoje — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
   }
+
+  @override
+  String get printLogClearBodyFiltered =>
+      'Zniknie każdy przebieg w logu — wszystkich użytkowników, nie tylko Twoje, i włączony filtr tego nie zawęża — a ich filament, koszt i czas znikną ze statystyk. Archiwum i kolejka zostają nietknięte. Tego nie da się cofnąć.';
 
   @override
   String printLogCleared(int count) {

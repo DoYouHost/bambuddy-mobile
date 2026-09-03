@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Could not connect to the server'**
   String get connectFailed;
 
+  /// No description provided for @filePickerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file dialog could not be opened'**
+  String get filePickerFailed;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -1052,6 +1058,12 @@ abstract class AppLocalizations {
   /// **'Unreachable'**
   String get smartPlugUnreachable;
 
+  /// Why an MQTT plug cannot be switched from the card
+  ///
+  /// In en, this message translates to:
+  /// **'Monitoring only'**
+  String get smartPlugMonitorOnly;
+
   /// Why the off switch is blocked during a print
   ///
   /// In en, this message translates to:
@@ -1394,10 +1406,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
-  /// No description provided for @archivePlate.
+  /// Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed
   ///
   /// In en, this message translates to:
-  /// **'Plate {plate}'**
+  /// **'Plate {plate} of a multi-plate file'**
   String archivePlate(int plate);
 
   /// No description provided for @archivePhotosTitle.
@@ -1699,6 +1711,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Prime tower'**
   String get gcodeFeaturePrimeTower;
+
+  /// No description provided for @archiveNo3mfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints archived without their thumbnails'**
+  String get archiveNo3mfTitle;
+
+  /// Banner on the archive screen for the original cause: the slicer setting. The quoted string is a Bambu Studio / OrcaSlicer label and stays in English in every locale, because that is what the slicer shows.
+  ///
+  /// In en, this message translates to:
+  /// **'The slicer didn\'t leave the .gcode.3mf on the printer\'s card, so Bambuddy couldn\'t pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer\'s Device tab.'**
+  String get archiveNo3mfBody;
+
+  /// No description provided for @archiveNo3mfTitleInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints stayed on the printer\'s internal storage'**
+  String get archiveNo3mfTitleInternal;
+
+  /// Same banner for the H2-series / P2S case (#2780), where the slicer setting is already on and the advice above would be wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.'**
+  String get archiveNo3mfBodyInternal;
+
+  /// No description provided for @archiveNo3mfTitleNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recent prints couldn\'t be archived — no storage in the printer'**
+  String get archiveNo3mfTitleNoStorage;
+
+  /// No description provided for @archiveNo3mfBodyNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.'**
+  String get archiveNo3mfBodyNoStorage;
+
+  /// No description provided for @archiveNo3mfDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'See install step 4'**
+  String get archiveNo3mfDocs;
+
+  /// No description provided for @archiveNo3mfDocsWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this happens'**
+  String get archiveNo3mfDocsWhy;
+
+  /// Tooltip and accessible name of the banner's close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss this notice'**
+  String get archiveNo3mfDismiss;
 
   /// No description provided for @archiveDelete.
   ///
@@ -3943,6 +4009,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a value from {min} to {max}'**
   String inventoryFieldRange(int min, int max);
+
+  /// Numeric inventory fields with no explicit range. The server stores a negative core weight without complaint and it corrupts every remaining-weight sum built on it, so the refusal has to happen here.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value of 0 or more'**
+  String get inventoryFieldNegative;
 
   /// No description provided for @inventorySectionBasics.
   ///
@@ -7106,12 +7178,6 @@ abstract class AppLocalizations {
   /// **'Download failed'**
   String get projectDownloadFailed;
 
-  /// No description provided for @projectSaveCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Save cancelled'**
-  String get projectSaveCancelled;
-
   /// No description provided for @projectCoverUpload.
   ///
   /// In en, this message translates to:
@@ -7694,13 +7760,13 @@ abstract class AppLocalizations {
   /// **'Plate is clear'**
   String get plateClearConfirm;
 
-  /// No description provided for @plateClearAction.
+  /// Tooltip of the checkmark button in the printer card's plate-clear banner — not a visible label, so it may be a full sentence. The watch says the same thing in wearClearPlate and has to be shorter; do not align the two.
   ///
   /// In en, this message translates to:
   /// **'Mark plate as cleared'**
   String get plateClearAction;
 
-  /// No description provided for @plateClearBadge.
+  /// Sentence beside that checkmark button. It is what lets the button be an icon alone — shorten this and the banner stops saying what it is about.
   ///
   /// In en, this message translates to:
   /// **'Plate not cleared'**
@@ -7844,6 +7910,42 @@ abstract class AppLocalizations {
   /// **'No files match your filter'**
   String get pfmNoMatches;
 
+  /// No description provided for @pfmPrinterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The printer did not answer, so its files could not be listed'**
+  String get pfmPrinterUnavailable;
+
+  /// No description provided for @pfmDownloadTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The selection is too large for the server to bundle'**
+  String get pfmDownloadTooLarge;
+
+  /// No description provided for @pfmDownloadNoServerSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'The server has no room to prepare this download'**
+  String get pfmDownloadNoServerSpace;
+
+  /// No description provided for @pfmDownloadTookTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the download took too long and the server gave up'**
+  String get pfmDownloadTookTooLong;
+
+  /// No description provided for @pfmDownloadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved'**
+  String get pfmDownloadSaved;
+
+  /// No description provided for @pfmDownloadNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be saved where you chose'**
+  String get pfmDownloadNotSaved;
+
   /// No description provided for @pfmDownload.
   ///
   /// In en, this message translates to:
@@ -7855,12 +7957,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get pfmDelete;
-
-  /// No description provided for @pfmDownloadSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'File saved'**
-  String get pfmDownloadSaved;
 
   /// No description provided for @pfmDeleteConfirmTitle.
   ///
@@ -7904,13 +8000,13 @@ abstract class AppLocalizations {
   /// **'No actions available'**
   String get wearNoActions;
 
-  /// No description provided for @wearClearPlate.
+  /// Watch button, and the whole statement that the plate is waiting — the watch has no badge beside it. Worded here rather than reused from plateClearAction because that sentence wraps to a second line on a watch: every wear* label has to fit one line, which is why this family exists at all.
   ///
   /// In en, this message translates to:
   /// **'Clear plate'**
   String get wearClearPlate;
 
-  /// No description provided for @wearPlateCleared.
+  /// Confirmation toast after that button. Short for the same reason as wearClearPlate — the phone's plateClearedSnack does not fit.
   ///
   /// In en, this message translates to:
   /// **'Plate cleared'**
@@ -8191,6 +8287,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto (no manual mapping)'**
   String get queueEditMappingAuto;
+
+  /// No description provided for @queueEditPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get queueEditPlate;
+
+  /// No description provided for @queueEditPlateSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String queueEditPlateSelected(int plate);
+
+  /// Plate number plus the plate's own name from the 3MF, when it has one
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate} · {name}'**
+  String queueEditPlateNamed(int plate, String name);
+
+  /// No description provided for @queueEditPlateFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'This job prints plate {plate}'**
+  String queueEditPlateFixed(int plate);
+
+  /// No description provided for @queuePlatePickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which plate?'**
+  String get queuePlatePickTitle;
+
+  /// No description provided for @queuePlateObjects.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No objects} =1{1 object} other{{count} objects}}'**
+  String queuePlateObjects(int count);
 
   /// No description provided for @queueEditPrintOptions.
   ///
@@ -10315,6 +10447,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{The one run in the log goes} other{All {count} runs go}} — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
   String printLogClearBody(int count);
+
+  /// Shown instead of printLogClearBody when a filter or search is active. The route deletes the whole log and cannot take a filter, so this one quotes no count — printLogClearBody's number is the filtered total and would understate what goes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every run in the log goes — everyone\'s, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.'**
+  String get printLogClearBodyFiltered;
 
   /// No description provided for @printLogCleared.
   ///

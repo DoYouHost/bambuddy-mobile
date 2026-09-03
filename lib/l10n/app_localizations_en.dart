@@ -57,6 +57,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectFailed => 'Could not connect to the server';
 
   @override
+  String get filePickerFailed => 'The file dialog could not be opened';
+
+  @override
   String get retry => 'Try again';
 
   @override
@@ -552,6 +555,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartPlugUnreachable => 'Unreachable';
 
   @override
+  String get smartPlugMonitorOnly => 'Monitoring only';
+
+  @override
   String get smartPlugCantPowerOff =>
       'Can\'t cut power while the printer is printing';
 
@@ -739,7 +745,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
-    return 'Plate $plate';
+    return 'Plate $plate of a multi-plate file';
   }
 
   @override
@@ -914,6 +920,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gcodeFeaturePrimeTower => 'Prime tower';
+
+  @override
+  String get archiveNo3mfTitle =>
+      'Some recent prints archived without their thumbnails';
+
+  @override
+  String get archiveNo3mfBody =>
+      'The slicer didn\'t leave the .gcode.3mf on the printer\'s card, so Bambuddy couldn\'t pull the thumbnail or the slicer metadata. Usually \"Store sent files on external storage\" is off in the slicer\'s Device tab.';
+
+  @override
+  String get archiveNo3mfTitleInternal =>
+      'Some recent prints stayed on the printer\'s internal storage';
+
+  @override
+  String get archiveNo3mfBodyInternal =>
+      'Bambu Studio put the sliced file on the printer\'s internal storage instead of the card, so there was nothing to read over FTP. On H2-series and P2S the Print button always does that — switching the slicer setting on changes nothing. Those prints are still archived with their name and timing, just without a thumbnail or slicer metadata. For complete archives, start the print from Bambuddy or slice in OrcaSlicer — either way with a card or stick in the printer.';
+
+  @override
+  String get archiveNo3mfTitleNoStorage =>
+      'Some recent prints couldn\'t be archived — no storage in the printer';
+
+  @override
+  String get archiveNo3mfBodyNoStorage =>
+      'The printer reports no card or stick in its slot, so the sliced file had nowhere to land and Bambuddy had nothing to read. Insert one and the next print archives in full.';
+
+  @override
+  String get archiveNo3mfDocs => 'See install step 4';
+
+  @override
+  String get archiveNo3mfDocsWhy => 'Why this happens';
+
+  @override
+  String get archiveNo3mfDismiss => 'Dismiss this notice';
 
   @override
   String get archiveDelete => 'Delete';
@@ -2253,6 +2292,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String inventoryFieldRange(int min, int max) {
     return 'Enter a value from $min to $max';
   }
+
+  @override
+  String get inventoryFieldNegative => 'Enter a value of 0 or more';
 
   @override
   String get inventorySectionBasics => 'Basics';
@@ -4157,9 +4199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectDownloadFailed => 'Download failed';
 
   @override
-  String get projectSaveCancelled => 'Save cancelled';
-
-  @override
   String get projectCoverUpload => 'Set cover image';
 
   @override
@@ -4581,13 +4620,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pfmNoMatches => 'No files match your filter';
 
   @override
+  String get pfmPrinterUnavailable =>
+      'The printer did not answer, so its files could not be listed';
+
+  @override
+  String get pfmDownloadTooLarge =>
+      'The selection is too large for the server to bundle';
+
+  @override
+  String get pfmDownloadNoServerSpace =>
+      'The server has no room to prepare this download';
+
+  @override
+  String get pfmDownloadTookTooLong =>
+      'Preparing the download took too long and the server gave up';
+
+  @override
+  String get pfmDownloadSaved => 'File saved';
+
+  @override
+  String get pfmDownloadNotSaved =>
+      'The file could not be saved where you chose';
+
+  @override
   String get pfmDownload => 'Download';
 
   @override
   String get pfmDelete => 'Delete';
-
-  @override
-  String get pfmDownloadSaved => 'File saved';
 
   @override
   String get pfmDeleteConfirmTitle => 'Delete files?';
@@ -4781,6 +4840,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get queueEditMappingAuto => 'Auto (no manual mapping)';
+
+  @override
+  String get queueEditPlate => 'Plate';
+
+  @override
+  String queueEditPlateSelected(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String queueEditPlateNamed(int plate, String name) {
+    return 'Plate $plate · $name';
+  }
+
+  @override
+  String queueEditPlateFixed(int plate) {
+    return 'This job prints plate $plate';
+  }
+
+  @override
+  String get queuePlatePickTitle => 'Which plate?';
+
+  @override
+  String queuePlateObjects(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count objects',
+      one: '1 object',
+      zero: 'No objects',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get queueEditPrintOptions => 'Print Options';
@@ -6033,6 +6125,10 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0 — everyone\'s, not only yours — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
   }
+
+  @override
+  String get printLogClearBodyFiltered =>
+      'Every run in the log goes — everyone\'s, not only yours, and the filter you have on does not narrow it — and their filament, cost and time leave the statistics. Archives and the queue are untouched. This cannot be undone.';
 
   @override
   String printLogCleared(int count) {

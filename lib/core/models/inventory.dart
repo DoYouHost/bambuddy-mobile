@@ -8,6 +8,7 @@
 /// ignored, numbers accept int/num/string.
 library;
 
+import '../ams/slot_addressing.dart';
 import 'json_utils.dart';
 
 /// Strips everything that is not a hex digit and upper-cases the rest — the
@@ -427,26 +428,20 @@ class SpoolAssignment {
   final String? printerName;
   final String? amsLabel;
 
-  /// External spool (external holder), NOT in AMS unit — inventory backend
-  /// marks as `ams_id` 254/255. Then "slot" is extruder (dual-head printers),
-  /// not "AMS·tray".
-  bool get isExternalSpool => amsId >= 254;
+  /// External spool (external holder), NOT in an AMS unit — the inventory
+  /// backend marks it with an `ams_id` of 254 or 255. Then "slot" is the
+  /// extruder (dual-head printers), not "AMS·tray".
+  bool get isExternalSpool => isExternalHolder(amsId);
 
-  /// Extruder fed by external spool (X2D/H2D). NOTE: inventory backend has
-  /// BOTH external spools with `ams_id=255` — distinguished by `tray_id`.
-  /// Verified live on X2D from raw assignments:
-  /// TPU `ams=255, tray=0` sits physically LEFT, PLA `ams=255, tray=1` RIGHT.
-  /// (Different from MQTT `vtTray` 254/255 from dashboard — don't confuse.)
-  /// Convention as in `printer_status`: 1 = left, 0 = right;
-  /// null for regular AMS slot or unexpected `tray_id`.
-  int? get extruder {
-    if (!isExternalSpool) return null;
-    return switch (trayId) {
-      0 => 1, // tray 0 → left extruder
-      1 => 0, // tray 1 → right extruder
-      _ => null,
-    };
-  }
+  /// Extruder fed by this external spool, null for a regular AMS slot or an
+  /// unexpected `tray_id`.
+  ///
+  /// Verified live on an X2D from raw assignments: TPU `ams=255, tray=0` sits
+  /// physically LEFT, PLA `ams=255, tray=1` RIGHT. Note that [trayId] here is
+  /// the holder **side**, not the `vt_tray` id the dashboard shows — see
+  /// [slot_addressing] for the two.
+  int? get extruder =>
+      isExternalSpool ? extruderForExternalSide(trayId) : null;
 
   /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
   /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.

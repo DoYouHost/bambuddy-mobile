@@ -21,6 +21,7 @@ import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
 import '../common/plate_clear.dart';
+import '../gcode/gcode_viewer_route.dart';
 import '../common/state_views.dart';
 import '../common/print_thumbnail.dart';
 import '../dashboard/ws_providers.dart';
@@ -610,15 +611,16 @@ class _QueueActions extends ConsumerWidget {
   }
 
   /// Opens fullscreen G-code preview for item source (archive or library file).
-  /// App bar title = print name, if known.
+  ///
+  /// The item's plate goes with it, so a multi-plate job previews the plate it
+  /// will actually print.
   void _previewGcode(BuildContext context) {
-    final title = item.archiveName ?? item.libraryFileName;
-    final name =
-        title == null ? '' : '&name=${Uri.encodeQueryComponent(title)}';
-    final source = item.archiveId != null
-        ? 'archive=${item.archiveId}'
-        : 'library_file=${item.libraryFileId}';
-    context.push('/gcode-viewer?$source$name');
+    context.push(gcodeViewerRoute(
+      archiveId: item.archiveId,
+      libraryFileId: item.libraryFileId,
+      plate: item.plateId,
+      title: item.archiveName ?? item.libraryFileName,
+    ));
   }
 }
 
@@ -674,6 +676,13 @@ Future<void> _startQueueItem(
     try {
       await providers.read(printerCommandsRepositoryProvider)
           .clearPlate(printerId);
+      // The cached status has to hear about it here as much as on the card. The
+      // server pushes no frame for a printer with no MQTT client, so on the
+      // printer this gate exists for the next start inside the poll window would
+      // read the stale `true`, ack a gate that is already down, and take the
+      // route's 400 as a reason not to start the print at all.
+      providers.read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(printerId);
     } on AppApiException catch (e) {
       showApiFailure(
         messenger,

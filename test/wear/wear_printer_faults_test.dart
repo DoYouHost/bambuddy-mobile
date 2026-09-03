@@ -1,7 +1,6 @@
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/screens/wear_printer_control_screen.dart';
@@ -11,41 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
-
-/// The watch's own end of the HMS work: it reads the faults out of the fleet
-/// poll it already runs, and its buttons go through the same transport as
-/// pause/stop — the relay when the phone is near, REST when it is not.
-class _FakeTransport implements WearTransport {
-  _FakeTransport(this._fleet);
-
-  final WearFleet _fleet;
-  final List<String> calls = [];
-
-  @override
-  Future<WearFleet> getFleet() async => _fleet;
-
-  @override
-  Future<void> clearHmsErrors(int printerId) async =>
-      calls.add('clear:$printerId');
-
-  @override
-  Future<void> executeHmsAction(
-    int printerId, {
-    required String printError,
-    required String action,
-    String? jobId,
-  }) async =>
-      calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('${invocation.memberName} is not this test\'s');
-}
-
-class _NoProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
 
 /// Filament runout, as the server reports it on the `print_error` channel.
 const _runout = HmsError(
@@ -79,18 +43,21 @@ WearFleet _fleetWith(List<HmsError> errors, {bool connected = true}) =>
       ],
     );
 
-Future<_FakeTransport> _pumpControl(
+/// The watch's own end of the HMS work: it reads the faults out of the fleet
+/// poll it already runs, and its buttons go through the same transport as
+/// pause/stop — the relay when the phone is near, REST when it is not.
+Future<FakeWearTransport> _pumpControl(
   WidgetTester tester,
   List<HmsError> errors, {
   bool connected = true,
 }) async {
   final transport =
-      _FakeTransport(_fleetWith(errors, connected: connected));
+      FakeWearTransport(fleet: _fleetWith(errors, connected: connected));
   await pumpWear(
     tester,
     const WearPrinterControlScreen(printerId: 7),
     overrides: [
-      serverProfileProvider.overrideWith(_NoProfileNotifier.new),
+      noServerProfileOverride,
       wearTransportProvider.overrideWith(
         (ref) => HybridWearTransport(relay: transport),
       ),
@@ -148,7 +115,7 @@ void main() {
     await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Wznów'));
     await tester.pumpAndSettle();
 
-    expect(transport.calls, ['action:7:03008004:RESUME_PRINTING:746795586']);
+    expect(transport.commands, ['executeHmsAction:7:03008004:RESUME_PRINTING:746795586']);
   });
 
   testWidgets('stopping the print asks first, on the watch too', (tester) async {
@@ -157,11 +124,11 @@ void main() {
     // The fault's own stop button, not the lifecycle bar's below it.
     await tapOnWatch(tester, find.widgetWithText(FilledButton, 'Zatrzymaj').first);
     await tester.pumpAndSettle();
-    expect(transport.calls, isEmpty, reason: 'nothing before the confirmation');
+    expect(transport.commands, isEmpty, reason: 'nothing before the confirmation');
 
     await tapOnWatch(tester, find.byIcon(Icons.check_rounded));
     await tester.pumpAndSettle();
-    expect(transport.calls, ['action:7:03008004:STOP_PRINTING:746795586']);
+    expect(transport.commands, ['executeHmsAction:7:03008004:STOP_PRINTING:746795586']);
   });
 
   testWidgets('dismiss-all clears the printer', (tester) async {
@@ -170,6 +137,6 @@ void main() {
     await tapOnWatch(tester, find.text('Odrzuć wszystkie'));
     await tester.pumpAndSettle();
 
-    expect(transport.calls, ['clear:7']);
+    expect(transport.commands, ['clearHmsErrors:7']);
   });
 }

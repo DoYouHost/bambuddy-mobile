@@ -1,12 +1,13 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers.dart';
 
 /// What the multi-select actions do against a server that has the bulk routes
 /// and against one that does not. The routes arrived in 0.2.5b1 and report an
@@ -59,14 +60,6 @@ class _FakeSource implements SpoolInventorySource {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-class _FakeProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
-
 class _NativeBackend extends InventoryBackendNotifier {
   @override
   InventoryBackend build() => InventoryBackend.native;
@@ -75,7 +68,7 @@ class _NativeBackend extends InventoryBackendNotifier {
 void main() {
   Future<(ProviderContainer, _FakeSource)> harness(_FakeSource source) async {
     final container = ProviderContainer(overrides: [
-      serverProfileProvider.overrideWith(_FakeProfile.new),
+      fakeServerProfileOverride(),
       inventoryBackendProvider.overrideWith(_NativeBackend.new),
       inventorySourceProvider.overrideWithValue(source),
     ]);

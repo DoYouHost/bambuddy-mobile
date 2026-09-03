@@ -93,9 +93,10 @@ class HomeWidgetPublisher {
       );
     }
     final baseKey = WidgetStatus.keyFor(picked);
-    // An offline printer can't be actively faulting — its `hms_errors` are just
-    // the last-known values carried forward by mergedWith. Keep OFFLINE, don't
-    // flip the widget to an error state. Parity with the notification path.
+    // The shared filter drops the carried-forward codes of a disconnected
+    // printer, but this guard is wider on purpose: `keyFor` also calls
+    // "connectivity unknown" offline, and the widget must not flip to an error
+    // state out of a frame that never said the printer was reachable.
     final hms = baseKey == WidgetStatus.offline
         ? null
         : _topHmsError(picked, describeHms);
@@ -228,17 +229,13 @@ class HomeWidgetPublisher {
     );
   }
 
-  /// The first "displayable" HMS error (severity 1..4 / with content — see
-  /// [hmsIsDisplayable]), or `null`. Same criteria as the printer card.
+  /// The first fault worth showing, or `null` — the same filter the card and the
+  /// watch read, with this isolate's own catalogue rather than the UI one's.
   static HmsError? _topHmsError(
     PrinterStatus s,
     String? Function(HmsError)? describeHms,
-  ) {
-    for (final e in s.hmsErrors ?? const <HmsError>[]) {
-      if (hmsIsDisplayable(e, description: describeHms?.call(e))) return e;
-    }
-    return null;
-  }
+  ) =>
+      firstDisplayableHmsError(s, describe: describeHms);
 
   /// Layers as "X/Y" during printing, if server provides both fields. Otherwise empty.
   static String _layers(PrinterStatus s, String key) {

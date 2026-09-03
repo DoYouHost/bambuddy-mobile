@@ -29,6 +29,9 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
       await ref
           .read(printerCommandsRepositoryProvider)
           .clearPlate(widget.printerId);
+      ref
+          .read(printerStatusesProvider.notifier)
+          .plateGateAcknowledged(widget.printerId);
       messenger.snack(l10n.plateClearedSnack);
     } on AppApiException catch (e) {
       showApiFailure(
@@ -56,7 +59,7 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
         decoration: BoxDecoration(
           color: t.accentBlue.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -72,14 +75,19 @@ class _PlateClearBannerState extends ConsumerState<_PlateClearBanner> {
                 style: t.bodyPlain.copyWith(color: t.textPrimary),
               ),
             ),
-            logTag(
-              'printer.plate_clear',
-              TextButton(
+            // A checkmark rather than the full "mark plate as cleared": the
+            // sentence spelled the badge next to it out twice and left the badge
+            // itself two words wide on a 360 dp screen. The wording survives as
+            // the tooltip, which is also what a screen reader announces. Being
+            // disabled is how the card's other network buttons say "in flight"
+            // (see `_SmartPlugButton`), so no spinner of its own.
+            _HeaderIconButton(
+              id: 'printer.plate_clear',
+              icon: Icons.check_rounded,
+              tooltip: l10n.plateClearAction,
+              color: t.accentBlue,
+              borderColor: t.accentBlue.withValues(alpha: 0.5),
               onPressed: _busy ? null : _clear,
-              child: _busy
-                  ? const DashSpinner(size: 16)
-                  : Text(l10n.plateClearAction),
-              ),
             ),
           ],
         ),
@@ -465,6 +473,9 @@ class _DetailsPanel extends ConsumerWidget {
     final assigned = ref.watch(assignedSpoolsProvider(status.id));
     final printerId = status.id;
     final printerName = status.name;
+    // The 0/1 side the external holder is addressed by everywhere ids are
+    // local — the slot routes, the inventory assignment and the load command.
+    int trayIdOf(int i) => externalSideOf(spools[i].id) ?? 0;
 
     final blocks = <Widget>[
       for (var i = 0; i < ams.length; i++)
@@ -472,14 +483,21 @@ class _DetailsPanel extends ConsumerWidget {
           unit: ams[i],
           unitIndex: i,
           active: active,
+          // The badge names a fixed side, so only a real `ams_extruder_map`
+          // entry may fill it. A unit bound to a Filament Track Switch reaches
+          // both nozzles and has none — [PrinterStatus.extruderForSlot] still
+          // resolves it through the inlet, but that is where the slot rests
+          // between prints, not a side to label the unit with.
           extruder: dual ? (status.amsExtruderMap?[ams[i].id]) : null,
+          slotExtruder:
+              dual ? status.extruderForSlot(ams[i].id ?? i, 0) : null,
           activeExtruder: activeExtruder,
           assigned: assigned,
           printerId: printerId,
           printerName: printerName,
           supportsDrying: status.supportsDrying ?? false,
           printing: status.isPrinting && !status.isPaused,
-          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i),
+          nozzleDiameter: status.nozzleDiameterFor(ams[i].id ?? i, 0),
           printerModel: status.model,
           filaSwitch: status.filaSwitch,
           fedFrom: status.extruderSlots,
@@ -493,17 +511,15 @@ class _DetailsPanel extends ConsumerWidget {
           assignedOf: (i) => assigned.forExtruder(
             dual ? status.extruderForExternal(spools[i].id) : 1,
           ),
-          trayIdOf: (i) {
-            if (!dual) return 0;
-            return status.extruderForExternal(spools[i].id) == 1 ? 0 : 1;
-          },
+          trayIdOf: trayIdOf,
           printerId: printerId,
           printerName: printerName,
           printing: status.isPrinting && !status.isPaused,
-          // External spools feed a nozzle too, and the unit they are keyed
-          // under (255) is not in `ams_extruder_map` — the primary nozzle is
-          // the only answer available here.
-          nozzleDiameter: status.nozzleDiameterFor(255),
+          // The external holder is keyed under a unit no `ams_extruder_map`
+          // mentions — the tray side is the whole answer there, so it has to be
+          // asked per spool rather than per section.
+          nozzleDiameterOf: (i) =>
+              status.nozzleDiameterFor(externalHolderUnit, trayIdOf(i)),
           printerModel: status.model,
         ),
     ];
@@ -552,6 +568,7 @@ class _AmsSection extends ConsumerWidget {
     required this.unitIndex,
     required this.active,
     required this.extruder,
+    required this.slotExtruder,
     required this.activeExtruder,
     required this.assigned,
     required this.printerId,
@@ -567,7 +584,15 @@ class _AmsSection extends ConsumerWidget {
   final AmsUnit unit;
   final int unitIndex;
   final AmsTray? active;
+
+  /// The side to badge the unit with — a real `ams_extruder_map` entry only.
   final int? extruder;
+
+  /// The nozzle this unit's slots currently rest on, which on a Filament Track
+  /// Switch machine is known even when [extruder] is not. Travels to the slot
+  /// configuration sheet, where it tells the printer's two calibration tables
+  /// apart.
+  final int? slotExtruder;
   final int? activeExtruder;
   final AssignedSpools assigned;
   final int printerId;
@@ -687,7 +712,7 @@ class _AmsSection extends ConsumerWidget {
                 caliIdx: trays[i].caliIdx,
                 nozzleDiameter: nozzleDiameter,
                 printerModel: printerModel,
-                extruderId: extruder,
+                extruderId: slotExtruder,
                 filaSwitch: filaSwitch,
                 fedFrom: fedFrom,
               ),
@@ -709,7 +734,7 @@ class _SpoolSection extends StatelessWidget {
     required this.printerId,
     required this.printerName,
     required this.printing,
-    required this.nozzleDiameter,
+    required this.nozzleDiameterOf,
     required this.printerModel,
   });
 
@@ -721,7 +746,7 @@ class _SpoolSection extends StatelessWidget {
   final int printerId;
   final String? printerName;
   final bool printing;
-  final String? nozzleDiameter;
+  final String? Function(int index) nozzleDiameterOf;
   final String? printerModel;
 
   @override
@@ -751,7 +776,7 @@ class _SpoolSection extends StatelessWidget {
             slot: _SlotRef(
               printerId: printerId,
               printerName: printerName,
-              amsId: 255,
+              amsId: externalHolderUnit,
               trayId: trayIdOf(i),
               label: switch (extruderOf(i)) {
                 1 => l10n.extruderLeft,
@@ -759,17 +784,14 @@ class _SpoolSection extends StatelessWidget {
                 _ => l10n.externalSpool,
               },
               printing: printing,
-              // The spool's own id (254/255) is already the global tray number;
-              // `trayIdOf` above is the extruder-ordered index the inventory
-              // assignment is keyed by, and means nothing to the load command.
               loadTrayId: amsLoadTrayId(
-                amsId: 255,
-                trayId: trays[i].id ?? 254,
+                amsId: externalHolderUnit,
+                trayId: trayIdOf(i),
               ),
               trayInfoIdx: trays[i].trayInfoIdx,
               trayColour: trays[i].trayColor,
               caliIdx: trays[i].caliIdx,
-              nozzleDiameter: nozzleDiameter,
+              nozzleDiameter: nozzleDiameterOf(i),
               printerModel: printerModel,
               extruderId: extruderOf(i),
             ),

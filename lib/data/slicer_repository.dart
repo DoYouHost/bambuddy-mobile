@@ -6,7 +6,6 @@ import '../core/api/observed_capability.dart';
 import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/archive_capabilities.dart';
-import '../core/models/embedded_settings.dart';
 import '../core/models/filament_requirement.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/slice_job.dart';
@@ -85,14 +84,15 @@ class SlicerRepository {
   /// to slot 1, leaving slot 4 on whatever the source had baked in (server
   /// #2712). Each row carries `used_in_plate` so the unused ones can be marked.
   ///
-  /// `plate_id` is what makes `used_in_plate` mean anything on a file that has
+  /// [plateId] is what makes `used_in_plate` mean anything on a file that has
   /// never been sliced. The server can only tell used from unused there by
   /// running a preview slice, and it does that **only** when a plate is named
   /// (`if project_filaments and plate_id is not None`); without one it falls
-  /// back to flagging every slot used. 1 because that is the plate this request
-  /// will slice — `SliceRequest.plate` left null means plate 1 on the sidecar —
-  /// so the two answers describe the same job. Whenever plate picking arrives,
-  /// this has to follow it.
+  /// back to flagging every slot used. It has to name the plate the caller is
+  /// really going to print or slice, so that the slots offered are the slots
+  /// that plate consumes: the slice form has no plate picker and leaves it at 1
+  /// (`SliceRequest.plate` null means plate 1 on the sidecar), while the queue
+  /// form passes whichever plate is selected there.
   ///
   /// That preview is a real slice, but it is cached server-side per
   /// `(kind, source_id, plate_id, content hash)`, so it costs once per file
@@ -107,6 +107,7 @@ class SlicerRepository {
   Future<List<FilamentRequirement>> filamentRequirements({
     required int id,
     required bool isArchive,
+    int plateId = 1,
   }) async {
     final path = isArchive
         ? Endpoints.archiveFilamentRequirements(id)
@@ -114,32 +115,11 @@ class SlicerRepository {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         path,
-        queryParameters: {'full_slots': true, 'plate_id': 1},
+        queryParameters: {'full_slots': true, 'plate_id': plateId},
       );
       return FilamentRequirement.parseList(res.data ?? const {});
     } on DioException {
       return const [];
-    }
-  }
-
-  /// What the 3MF was prepared with, for the "slice as designed" switch.
-  ///
-  /// Deliberately not version-gated — [EmbeddedSettings] says why. Best-effort
-  /// like [filamentRequirements]: a failure hides the switch and leaves profile
-  /// slicing untouched.
-  Future<EmbeddedSettings> embeddedSettings({
-    required int id,
-    required bool isArchive,
-  }) async {
-    final path =
-        isArchive ? Endpoints.archivePlates(id) : Endpoints.libraryFilePlates(id);
-    try {
-      final res = await _dio.get<Map<String, dynamic>>(path);
-      final data = res.data;
-      if (data == null) return EmbeddedSettings.none;
-      return EmbeddedSettings.fromJson(data);
-    } on DioException {
-      return EmbeddedSettings.none;
     }
   }
 

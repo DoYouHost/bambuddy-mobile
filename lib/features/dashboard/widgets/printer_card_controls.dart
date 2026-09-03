@@ -246,7 +246,8 @@ class _PillSwitch extends StatelessWidget {
 
 /// Smart plug control (M7)—compact ghost icon button in the card header. Plug
 /// symbol shows state (`power` on / `power_off` off); power draw + state in
-/// tooltip. Grayed out during print; every change needs confirmation. Optimistic
+/// tooltip. Grayed out during print and for a monitor-only (MQTT) plug, which
+/// the server refuses to switch; every change needs confirmation. Optimistic
 /// state + rollback via [smartPlugsProvider]. Auto-hides if none assigned.
 class _SmartPlugButton extends ConsumerWidget {
   const _SmartPlugButton({required this.printerId, required this.printing});
@@ -273,15 +274,21 @@ class _SmartPlugButton extends ConsumerWidget {
     final reachable = status?.isReachable ?? true;
     final power = status?.powerW;
 
-    final canControl = !busy && !forbidden && reachable && !printing;
+    final canControl =
+        !plug.isMonitorOnly && !busy && !forbidden && reachable && !printing;
 
-    final tip = printing
-        ? l10n.smartPlugCantPowerOff
-        : !reachable
-            ? l10n.smartPlugUnreachable
-            : (on && power != null
-                ? l10n.powerWatts(power.round())
-                : (on ? l10n.smartPlugOn : l10n.smartPlugOff));
+    final stateLabel = on && power != null
+        ? l10n.powerWatts(power.round())
+        : (on ? l10n.smartPlugOn : l10n.smartPlugOff);
+    final tip = plug.isMonitorOnly
+        // The reading is all such a plug can offer, so it stays next to the
+        // reason the button is dead.
+        ? '$stateLabel · ${l10n.smartPlugMonitorOnly}'
+        : printing
+            ? l10n.smartPlugCantPowerOff
+            : !reachable
+                ? l10n.smartPlugUnreachable
+                : stateLabel;
 
     final fg = !reachable
         ? scheme.error

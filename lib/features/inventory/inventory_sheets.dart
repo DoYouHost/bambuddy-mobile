@@ -37,7 +37,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
   bool _external = false;
   int _amsUnit = 0;
   int _amsSlot = 0;
-  int _externalTray = 0; // 0 = lewy, 1 = prawy
+  int _externalTray = 0; // Holder side — see `slot_addressing`.
   bool _saving = false;
 
   @override
@@ -215,7 +215,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     final draft = SpoolAssignmentDraft(
       spoolId: widget.spool.id,
       printerId: printerId,
-      amsId: _external ? 255 : _amsUnit,
+      amsId: _external ? externalHolderUnit : _amsUnit,
       trayId: _external ? _externalTray : _amsSlot,
     );
     setState(() => _saving = true);

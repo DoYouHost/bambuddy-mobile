@@ -79,6 +79,10 @@ class QueueItem {
   /// A print job the user is configuring BEFORE it exists server-side — what
   /// the create form starts from (see `QueueEditScreen` in create mode).
   ///
+  /// [plateId] matters for a reprint: the print starts on `plate_id or 1`
+  /// server-side, so a draft that drops the archive's plate reprints plate 1 of
+  /// a multi-plate file instead of the plate the archive is a record of.
+  ///
   /// [id] and [position] are placeholders that nothing reads: create posts a
   /// body built from the form, and the item gets its real identity from the
   /// server's response. [name] and [thumbnail] land on the archive or library
@@ -94,6 +98,7 @@ class QueueItem {
     String? filamentType,
     String? filamentColor,
     String? slicedForModel,
+    int? plateId,
     bool manualStart = false,
   }) {
     final isArchive = archiveId != null;
@@ -112,6 +117,7 @@ class QueueItem {
       filamentType: filamentType,
       filamentColor: filamentColor,
       slicedForModel: slicedForModel,
+      plateId: plateId,
       manualStart: manualStart,
     );
   }

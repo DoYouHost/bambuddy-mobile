@@ -1,3 +1,4 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'json_utils.dart';
@@ -7,6 +8,12 @@ part 'archive.g.dart';
 /// Archive entry from `ArchiveResponse`.
 /// Defensive parsing: all fields except id/filename/status are nullable, unknown
 /// keys ignored — the API is young and evolving.
+///
+/// [copyWith] is generated from the constructor (`skipFields` keeps it to the
+/// one call shape). It used to be a hand-written `withFavorite` that re-listed
+/// every field, so each new field had to be added twice or it was silently
+/// dropped on the copy — which is exactly what nearly happened to `plate_id`.
+@CopyWith(skipFields: true)
 @JsonSerializable(createToJson: false, fieldRename: FieldRename.snake)
 class Archive {
   const Archive({
@@ -55,11 +62,14 @@ class Archive {
   /// Human-readable print name from user or slicer.
   final String? printName;
 
-  /// Which plate of a multi-plate 3MF this run printed (`#2603`; the value was
-  /// stored but always reported as null before server 1.2.5.4). Null whenever
-  /// no plate was picked for the print — a plain single-plate file, or a print
-  /// started from a client that does not send one, this app included — so it is
-  /// shown only when present rather than defaulted to plate 1.
+  /// Which plate of a multi-plate 3MF this run printed (1-indexed), or null for
+  /// a single-plate file — and on every server older than #2603, which does not
+  /// send the field at all.
+  ///
+  /// Load-bearing rather than decorative: the print starts on
+  /// `item.plate_id or 1` (`print_scheduler.py`), so a reprint that drops this
+  /// prints plate 1 instead of the plate the archive is a record of.
+  @JsonKey(fromJson: toIntOrNull)
   final int? plateId;
 
   /// Thumbnail path for the print.
@@ -150,36 +160,12 @@ class Archive {
   String get displayName => printName ?? filename;
 
   /// Copy with a flipped/overridden favorite flag — for optimistic UI updates
-  /// (the only field the app mutates locally). Everything else is carried over.
-  Archive withFavorite(bool value) => Archive(
-    id: id,
-    filename: filename,
-    status: status,
-    printerId: printerId,
-    printName: printName,
-    plateId: plateId,
-    completedAt: completedAt,
-    thumbnailPath: thumbnailPath,
-    timelapsePath: timelapsePath,
-    photos: photos,
-    printTimeSeconds: printTimeSeconds,
-    filamentUsedGrams: filamentUsedGrams,
-    filamentType: filamentType,
-    filamentColor: filamentColor,
-    cost: cost,
-    isFavorite: value,
-    createdAt: createdAt,
-    designer: designer,
-    makerworldUrl: makerworldUrl,
-    totalLayers: totalLayers,
-    layerHeight: layerHeight,
-    nozzleDiameter: nozzleDiameter,
-    slicedForModel: slicedForModel,
-    quantity: quantity,
-    fileSize: fileSize,
-    duplicateCount: duplicateCount,
-    duplicateSequence: duplicateSequence,
-  );
+  /// (the only field the app mutates locally).
+  ///
+  /// Kept as its own name rather than letting callers reach for [copyWith]: the
+  /// favorite flag is the one field the app is allowed to decide by itself, and
+  /// a named method says so where a general-purpose copy would not.
+  Archive withFavorite(bool value) => copyWith(isFavorite: value);
 
   /// Whether this archive is a sliced/printable file rather than a source
   /// project. Mirrors bambuddy's `isSlicedFile`: a `.gcode`/`.gcode.*` name, or

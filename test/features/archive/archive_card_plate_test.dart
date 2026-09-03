@@ -1,5 +1,5 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
+import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
@@ -7,6 +7,7 @@ import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
@@ -23,17 +24,19 @@ class _FakeArchiveNotifier extends ArchiveNotifier {
   Future<List<Archive>> build() async => _items;
 }
 
-/// Null profile → the thumbnail draws its placeholder instead of hitting the
-/// network.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
+late SharedPreferences _prefs;
 
 Widget _screen(List<Archive> items) => ProviderScope(
       overrides: [
         archiveProvider.overrideWith(() => _FakeArchiveNotifier(items)),
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        // The screen also carries the "archived without its 3MF" banner, which
+        // reads preferences to know whether it was waved off. Nothing to report
+        // here — this test is about the row, not the banner.
+        no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
+        sharedPreferencesProvider.overrideWithValue(_prefs),
+        // Null profile → the thumbnail draws its placeholder instead of hitting
+        // the network.
+        noServerProfileOverride,
       ],
       child: plApp(const ArchiveScreen()),
     );
@@ -48,6 +51,11 @@ Archive _archive({int? plateId}) => Archive(
     );
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   AppLocalizations l10n(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(ArchiveScreen)));
 

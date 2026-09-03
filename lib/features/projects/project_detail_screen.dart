@@ -16,11 +16,11 @@ import '../common/confirm_dialog.dart';
 import '../../providers.dart';
 import '../common/dash_async.dart';
 import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
 import 'project_detail_sections.dart';
-import 'project_files.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
 
@@ -628,14 +628,20 @@ class _OverflowMenu extends ConsumerWidget {
   Future<void> _uploadCover(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickSingleFile(
+    final picked = await pickFileFromDevice(
       allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'gif'],
     );
-    if (picked == null) return;
+    final file = picked.file;
+    if (file == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.filePickerFailed);
+      }
+      return;
+    }
     try {
       await ref
           .read(projectsRepositoryProvider)
-          .uploadCoverImage(project.id, filePath: picked.path, filename: picked.name);
+          .uploadCoverImage(project.id, filePath: file.path, filename: file.name);
       // `ProjectListResponse` has no `updated_at` to cache-bust the list
       // card's cover URL with, so a same-session reprint of a project whose
       // cover URL is otherwise stable could show the old bitmap from cache —
@@ -669,16 +675,22 @@ class _OverflowMenu extends ConsumerWidget {
     try {
       final bytes = await ref.read(projectsRepositoryProvider).export(project.id);
       final safeName = project.name.replaceAll(RegExp(r'[^\w\-]+'), '_');
-      final path = await saveBytesToFile(
+      final saved = await saveBytesToDevice(
         fileName: '$safeName.zip',
         bytes: bytes,
         dialogTitle: l10n.projectMenuExport,
       );
-      if (path == null) {
-        messenger.snack(l10n.projectSaveCancelled);
-        return;
+      switch (saved.outcome) {
+        // Backing out of the dialog is an answer, not a failure — the user just
+        // said so themselves, and confirming it back is noise. Same silence as
+        // every other screen that saves a file.
+        case DeviceFileOutcome.cancelled:
+          return;
+        case DeviceFileOutcome.failed:
+          messenger.snack(l10n.filePickerFailed);
+        case DeviceFileOutcome.done:
+          messenger.snack(l10n.projectExported(saved.path!));
       }
-      messenger.snack(l10n.projectExported(path));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.export');
     }

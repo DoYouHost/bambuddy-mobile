@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +19,8 @@ import '../common/dash_async.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../gcode/gcode_viewer_route.dart';
+import '../common/device_files.dart';
 import '../common/prompt_name_dialog.dart';
 import '../common/dash_search_field.dart';
 import '../common/sliver_search_bar.dart';
@@ -750,8 +751,10 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   /// G-code preview: opens the full-screen 3D viewer for a sliced library file.
   void _previewGcode(LibraryFile file) {
-    final name = Uri.encodeQueryComponent(file.displayName);
-    context.push('/gcode-viewer?library_file=${file.id}&name=$name');
+    context.push(gcodeViewerRoute(
+      libraryFileId: file.id,
+      title: file.displayName,
+    ));
   }
 
   Future<void> _sliceFile(LibraryFile file) async {
@@ -768,31 +771,26 @@ class _FileManagerScreenState extends ConsumerState<FileManagerScreen> {
 
   Future<void> _uploadFile(FileManagerState s) async {
     final l10n = _l10n;
-    final FilePickerResult? picked;
-    try {
-      picked = await FilePicker.platform.pickFiles(withReadStream: false);
-    } on Exception {
-      if (!mounted) return;
-      _snack(l10n.fmUploadFailed);
+    final picked = await pickFileFromDevice();
+    if (!mounted) return;
+    final file = picked.file;
+    if (file == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) _snack(l10n.fmUploadFailed);
       return;
     }
-    if (!mounted) return;
-    final path = picked?.files.single.path;
-    final name = picked?.files.single.name;
-    if (path == null || name == null) return; // anulowano
 
     _snack(l10n.fmUploading);
     try {
       await ref.read(libraryRepositoryProvider).uploadFile(
-            filePath: path,
-            filename: name,
+            filePath: file.path,
+            filename: file.name,
             folderId: s.currentFolderId,
           );
       if (!mounted) return;
       await ref.read(fileManagerProvider.notifier).refresh();
       if (!mounted) return;
       ref.invalidate(libraryStatsProvider);
-      _snack(l10n.fmUploaded(name));
+      _snack(l10n.fmUploaded(file.name));
     } on AppApiException catch (e) {
       _failed(e, 'files.upload');
     }

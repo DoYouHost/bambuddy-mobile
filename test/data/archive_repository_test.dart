@@ -1,3 +1,5 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,5 +127,104 @@ void main() {
     final deleted = await repo.purge(olderThanDays: 30, purgeStats: true);
 
     expect(deleted, 7);
+  });
+
+  group('plates', () {
+    test('reads the plate rows of a multi-plate archive', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(200, {
+          'archive_id': 82,
+          'filename': 'multi.gcode.3mf',
+          'plates': [
+            {'index': 1, 'name': 'Left', 'has_thumbnail': true,
+              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1'},
+            {'index': 2, 'name': 'Right', 'has_thumbnail': false},
+          ],
+          'is_multi_plate': true,
+          'has_gcode': true,
+        }),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.plates.map((p) => p.index), [1, 2]);
+      expect(plates.byIndex(1)?.thumbnailPath,
+          '/api/v1/archives/82/plate-thumbnail/1');
+    });
+
+    // One request, both answers: the slice screen's "as designed" gate used to
+    // ask the same route a second time through the slicer repository.
+    test('the same read carries what the 3MF was prepared with', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(200, {
+          'plates': [
+            {'index': 1, 'has_thumbnail': false},
+          ],
+          'embedded_printer': 'Bambu Lab X2D 0.6 nozzle',
+          'embedded_process': '0.30mm Standard @BBL X2D 0.6 nozzle',
+          'design_overrides': [],
+        }),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.embedded.printer, 'Bambu Lab X2D 0.6 nozzle');
+      expect(plates.embedded.isAvailable, isTrue);
+    });
+
+    // A server older than the route, an archive whose file is gone, a plain
+    // .gcode that was never a 3MF: three causes, one correct answer — there is
+    // no plate to pick, so the form must look exactly as it did before.
+    test('a 404 leaves no plate to choose instead of throwing', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(404, {'detail': 'Not Found'}),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.plates, isEmpty);
+      expect(plates.isMultiPlate, isFalse);
+    });
+  });
+
+  group('no3mfWarning', () {
+    test('reads the flag and the reason', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) =>
+            server.reply(200, {'has_fallback': true, 'reason': 'internal_storage'}),
+      );
+
+      final warning = await repo.no3mfWarning();
+
+      expect(warning.hasFallback, isTrue);
+      expect(warning.reason, No3mfReason.internalStorage);
+    });
+
+    // A 401 is the session ending, which the app has to act on; a 403 is one
+    // route the account cannot have. Only the first may reach the UI.
+    test('an expired session still bubbles up', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) => server.reply(401, {'detail': 'Not authenticated'}),
+      );
+
+      await expectLater(repo.no3mfWarning(), throwsA(isA<AuthException>()));
+    });
+
+    test('an unreachable route means no nudge, not an error', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) => server.reply(403, {'detail': 'Forbidden'}),
+      );
+
+      final warning = await repo.no3mfWarning();
+
+      expect(warning.hasFallback, isFalse);
+    });
   });
 }

@@ -5,6 +5,8 @@ import '../core/api/endpoints.dart';
 import '../core/models/archive.dart';
 import '../core/models/archive_purge.dart';
 import '../core/models/json_utils.dart';
+import '../core/models/no_3mf_warning.dart';
+import '../core/models/plate_list.dart';
 
 /// REST data source for print archive (M5).
 ///
@@ -103,6 +105,40 @@ class ArchiveRepository {
         );
         return ArchivePurgePreview.fromJson(res.data ?? const {});
       });
+
+  /// GET /archives/{id}/plates — the plates of a multi-plate 3MF.
+  ///
+  /// Best-effort by design: every failure answers [PlateList.none], which reads
+  /// as "no plate to choose" and leaves the caller looking exactly as it did
+  /// before plates existed. That covers a server without the route, an archive
+  /// whose file is gone (404), a `.gcode` that was never a 3MF, and an account
+  /// without `archives:read` (403) — four causes, one correct response.
+  Future<PlateList> plates(int archiveId) async {
+    final data = await guardOrNullAllowingForbidden(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archivePlates(archiveId),
+      );
+      return res.data;
+    });
+    return data == null ? PlateList.none : PlateList.fromJson(data);
+  }
+
+  /// GET /archives/no-3mf-warning — whether any print in the last 30 days
+  /// archived without its 3MF, and why.
+  ///
+  /// Best-effort like [plates]: a server that lacks the route, or a user whose
+  /// permissions do not reach it (403), gets no nudge rather than an error. The
+  /// `reason` key is newer than the route, and its absence is a meaningful
+  /// answer rather than a gap — see [No3mfReason.slicerSetting].
+  Future<No3mfWarning> no3mfWarning() async {
+    final data = await guardOrNullAllowingForbidden(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        Endpoints.archivesNo3mfWarning,
+      );
+      return res.data;
+    });
+    return data == null ? No3mfWarning.none : No3mfWarning.fromJson(data);
+  }
 
   /// POST /archives/purge — bulk-delete prints older than [olderThanDays].
   /// [purgeStats] also drops them from statistics (irreversible). Returns the

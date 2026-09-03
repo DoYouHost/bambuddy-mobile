@@ -18,7 +18,8 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.archiveId,
     this.size = 52,
     this.zoom = 1.4,
-  }) : printLogEntryId = null;
+  })  : printLogEntryId = null,
+        path = null;
 
   /// The same tile for a print-log row, served by the entry's own route.
   ///
@@ -31,7 +32,22 @@ class PrintThumbnail extends ConsumerStatefulWidget {
     required this.printLogEntryId,
     this.size = 52,
     this.zoom = 1.4,
-  }) : archiveId = null;
+  })  : archiveId = null,
+        path = null;
+
+  /// A render the caller already holds the path of — one plate of a multi-plate
+  /// 3MF, whose row carries its own `thumbnail_url` because the archive and
+  /// library routes spell it differently.
+  ///
+  /// Same crop and the same token handling as the print tile: a plate render is
+  /// the same kind of image, margins included.
+  const PrintThumbnail.path({
+    super.key,
+    required this.path,
+    this.size = 52,
+    this.zoom = 1.4,
+  })  : archiveId = null,
+        printLogEntryId = null;
 
   /// Archive id; when null → placeholder (e.g. queue item without archive).
   final int? archiveId;
@@ -39,6 +55,10 @@ class PrintThumbnail extends ConsumerStatefulWidget {
   /// Print-log entry id; set instead of [archiveId] by
   /// [PrintThumbnail.printLogEntry].
   final int? printLogEntryId;
+
+  /// Ready-made server path, set instead of either id by
+  /// [PrintThumbnail.path].
+  final String? path;
 
   final double size;
 
@@ -69,11 +89,12 @@ class _PrintThumbnailState extends ConsumerState<PrintThumbnail>
     );
 
     final entryId = widget.printLogEntryId;
-    final path = entryId != null
-        ? Endpoints.printLogThumbnail(entryId)
-        : (widget.archiveId == null
-            ? null
-            : Endpoints.archiveThumbnail(widget.archiveId!));
+    final path = widget.path ??
+        (entryId != null
+            ? Endpoints.printLogThumbnail(entryId)
+            : (widget.archiveId == null
+                ? null
+                : Endpoints.archiveThumbnail(widget.archiveId!)));
     final profile = ref.watch(serverProfileProvider);
     final baseUrl = profile?.baseUrl;
     // Demo mode has no thumbnail renders — placeholder beats a broken image.

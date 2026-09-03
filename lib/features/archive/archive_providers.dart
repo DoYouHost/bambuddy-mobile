@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/archive.dart';
+import '../../core/models/no_3mf_warning.dart';
 import '../../core/models/printer.dart';
 import '../../providers.dart';
 
@@ -271,3 +272,29 @@ class ArchiveNotifier extends AutoDisposeAsyncNotifier<List<Archive>> {
 final printersForPickerProvider = FutureProvider.autoDispose<List<Printer>>(
   (ref) => ref.watch(printersRepositoryProvider).fetchPrinters(),
 );
+
+/// Whether to nudge the user about prints that archived without their 3MF, and
+/// why — `GET /archives/no-3mf-warning`, read once per app run.
+///
+/// Skipped entirely once dismissed: the answer would change nothing, and the
+/// route walks 30 days of archives to produce it. Not `autoDispose`, so leaving
+/// the archive screen and coming back does not ask again.
+final no3mfWarningProvider = FutureProvider<No3mfWarning>((ref) async {
+  if (ref.watch(no3mfDismissedProvider)) return No3mfWarning.none;
+  return ref.watch(archiveRepositoryProvider).no3mfWarning();
+});
+
+/// Whether the no-3MF nudge has been waved off. One-way: there is no un-dismiss,
+/// on the web either.
+final no3mfDismissedProvider =
+    NotifierProvider<No3mfDismissedNotifier, bool>(No3mfDismissedNotifier.new);
+
+class No3mfDismissedNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.watch(settingsRepositoryProvider).loadNo3mfDismissed();
+
+  Future<void> dismiss() async {
+    await ref.read(settingsRepositoryProvider).saveNo3mfDismissed();
+    state = true;
+  }
+}

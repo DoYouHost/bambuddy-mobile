@@ -4,7 +4,6 @@ import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/queue/queue_mapping_sheet.dart';
@@ -28,17 +27,10 @@ class _FakeQueueNotifier extends QueueNotifier {
   Future<List<QueueItem>> build() async => _items;
 }
 
-/// Profil null → miniatura pokazuje placeholder, bez próby sieciowej
-/// (i bez sięgania po SharedPreferences, którego w teście nie ma).
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
-
 Widget _screen(List<QueueItem> items) => ProviderScope(
       overrides: [
         queueProvider.overrideWith(() => _FakeQueueNotifier(items)),
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
       ],
       child: plApp(const QueueScreen()),
     );
@@ -123,7 +115,7 @@ void main() {
       return ProviderScope(
         overrides: [
           queueProvider.overrideWith(() => queue),
-          serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+          noServerProfileOverride,
           printerCommandsRepositoryProvider.overrideWithValue(commands),
           // The scheduler gates on the plate, and this printer's is dirty —
           // the branch that sends a request before the start does.

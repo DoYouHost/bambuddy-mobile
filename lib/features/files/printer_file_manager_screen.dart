@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,7 +19,8 @@ import '../common/dash_search_field.dart';
 import '../common/dash_snack.dart';
 import '../common/format_bytes.dart';
 import '../common/sliver_search_bar.dart';
-import '../projects/project_files.dart' show saveBytesToFile;
+import '../common/device_files.dart';
+import '../common/file_export.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -48,12 +51,19 @@ class _PrinterFileManagerScreenState
   List<PrinterFile>? _files; // null = not loaded yet
   bool _loading = false;
   String? _error; // localized load error
+  // The listing came back empty because the printer did not answer, which older
+  // servers cannot tell us — then this stays false and an empty listing reads as
+  // an empty folder, exactly as before.
+  bool _printerUnavailable = false;
   PrinterStorage _storage = const PrinterStorage();
 
   PrinterFileSort _sort = PrinterFileSort.nameAsc;
   String _query = '';
   final Set<String> _selected = {}; // full paths of selected files
   bool _busy = false; // download/delete in progress
+  // Fraction of the running download, or null while the server has not said how
+  // much there is to come.
+  double? _downloadProgress;
 
   // Quick-navigation shortcuts, mirroring the server web UI.
   static const _quickDirs = [
@@ -74,14 +84,16 @@ class _PrinterFileManagerScreenState
     setState(() {
       _loading = true;
       _error = null;
+      _printerUnavailable = false;
       _selected.clear();
     });
     try {
       final repo = ref.read(printerFilesRepositoryProvider);
-      final files = await repo.listFiles(widget.printerId, _path);
+      final listing = await repo.listFiles(widget.printerId, _path);
       if (!mounted) return;
       setState(() {
-        _files = files;
+        _files = listing.files;
+        _printerUnavailable = listing.printerUnavailable;
         _loading = false;
       });
     } on AppApiException catch (e) {
@@ -171,33 +183,71 @@ class _PrinterFileManagerScreenState
     });
   }
 
+  /// Pulls the selection down and asks the user where to keep it.
+  ///
+  /// Streamed into a cache file rather than read into memory: a printer's card
+  /// holds gigabytes, the server will now bundle as much of it as is asked for,
+  /// and the bytes used to pass through the phone's RAM on their way to the save
+  /// dialog. The dialog stays — [saveDownloadedFile] copies the finished file
+  /// into the chosen location on the platform side, so the size never reaches
+  /// Dart.
   Future<void> _download() async {
     if (_selected.isEmpty || _busy) return;
     final l10n = AppLocalizations.of(context);
     final repo = ref.read(printerFilesRepositoryProvider);
     final paths = _selected.toList();
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _downloadProgress = null;
+    });
+    // Dropped in the `finally`, whichever way this leaves — including the two
+    // `mounted` returns, which are how a copy used to be left behind on a screen
+    // the user walked away from. Declared out here so that block can see it.
+    File? cached;
     try {
-      if (paths.length == 1) {
-        final bytes = await repo.downloadFile(widget.printerId, paths.first);
-        final name = paths.first.split('/').last;
-        final saved = await saveBytesToFile(fileName: name, bytes: bytes);
-        if (!mounted) return;
-        if (saved != null) {
-          _snack(l10n.pfmDownloadSaved);
+      final single = paths.length == 1;
+      final safeName = widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
+      final fileName =
+          single ? paths.first.split('/').last : '$safeName-files.zip';
+      cached = await downloadToCacheFile(
+        scratchName: 'printer-files-${widget.printerId}.download',
+        download: (savePath) async {
+          if (single) {
+            await repo.downloadFileTo(
+              widget.printerId,
+              paths.first,
+              savePath,
+              onProgress: _onDownloadProgress,
+            );
+          } else {
+            await repo.downloadZipTo(
+              widget.printerId,
+              paths,
+              savePath,
+              onProgress: _onDownloadProgress,
+            );
+          }
+          // The name is already known here; the served content type only
+          // matters for routes that answer with more than one kind of file.
+          return null;
+        },
+        name: (_) => fileName,
+      );
+      if (!mounted) return;
+      final saved = await saveDownloadedFile(
+        cached,
+        fileName: fileName,
+        mimeType: mimeTypeForFileName(fileName),
+      );
+      if (!mounted) return;
+      switch (saved.outcome) {
+        case DeviceFileOutcome.cancelled:
+          return;
+        case DeviceFileOutcome.failed:
+          _snack(l10n.pfmDownloadNotSaved);
+        case DeviceFileOutcome.done:
           setState(_selected.clear);
-        }
-      } else {
-        final bytes = await repo.downloadZip(widget.printerId, paths);
-        final safeName =
-            widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
-        final saved =
-            await saveBytesToFile(fileName: '$safeName-files.zip', bytes: bytes);
-        if (!mounted) return;
-        if (saved != null) {
           _snack(l10n.pfmDownloadSaved);
-          setState(_selected.clear);
-        }
       }
     } on AppApiException catch (e) {
       showApiFailure(
@@ -205,11 +255,50 @@ class _PrinterFileManagerScreenState
         e,
         l10n,
         action: 'printer_files.download',
+        message: _downloadFailure(e, l10n),
       );
     } finally {
-      if (mounted) setState(() => _busy = false);
+      // The save dialog copies the file on the platform side and returns only
+      // once it has, so by here nothing is reading this copy — not the user's
+      // saved file, and never the printer's own, which a download does not
+      // touch. Keeping it would leave a duplicate of every distinct file name
+      // in the cache until Android runs short of storage. The share sheet is
+      // the case where this would be wrong (see `file_export.dart`), and it is
+      // not the hand-off this screen uses.
+      if (cached != null) await discardCacheCopy(cached);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _downloadProgress = null;
+        });
+      }
     }
   }
+
+  /// Dio reports progress per received chunk, which on a gigabyte of models is
+  /// thousands of callbacks — each one rebuilding the whole listing for a bar
+  /// that moves by a fraction of a pixel. Only a change the bar can show is
+  /// worth a frame. A server streaming without a length reports -1 as the total,
+  /// and then the bar stays indeterminate rather than inventing a fraction.
+  void _onDownloadProgress(int received, int total) {
+    if (!mounted) return;
+    final next = total > 0 ? (received / total * 100).floor() / 100 : null;
+    if (next == _downloadProgress) return;
+    setState(() => _downloadProgress = next);
+  }
+
+  /// The three refusals the download routes explain in a way the user can act
+  /// on: the bundle exceeds what the server will build, the server has no disk
+  /// space to build it in, or it ran past its own preparation ceiling. Null for
+  /// everything else, which keeps the shared wording — and null on older
+  /// servers too, which answer none of these.
+  String? _downloadFailure(AppApiException e, AppLocalizations l10n) =>
+      switch (e.statusCode) {
+        413 => l10n.pfmDownloadTooLarge,
+        504 => l10n.pfmDownloadTookTooLong,
+        507 => l10n.pfmDownloadNoServerSpace,
+        _ => null,
+      };
 
   Future<void> _delete() async {
     if (_selected.isEmpty || _busy) return;
@@ -467,13 +556,24 @@ class _PrinterFileManagerScreenState
           if (items.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: _centered(
-                icon: Icons.folder_open,
-                message: (_files?.isEmpty ?? true)
-                    ? l10n.pfmEmpty
-                    : l10n.pfmNoMatches,
-                tokens: t,
-              ),
+              child: _printerUnavailable
+                  ? _centered(
+                      icon: Icons.cloud_off,
+                      message: l10n.pfmPrinterUnavailable,
+                      tokens: t,
+                      action: FilledButton(
+                        style: dashPrimaryButtonStyle(t),
+                        onPressed: _load,
+                        child: Text(l10n.retry),
+                      ).tagged('printer_files.retry'),
+                    )
+                  : _centered(
+                      icon: Icons.folder_open,
+                      message: (_files?.isEmpty ?? true)
+                          ? l10n.pfmEmpty
+                          : l10n.pfmNoMatches,
+                      tokens: t,
+                    ),
             )
           else
             SliverPadding(
@@ -556,9 +656,21 @@ class _PrinterFileManagerScreenState
                   ),
                 ),
                 if (_busy)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: DashSpinner(size: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        if (_downloadProgress != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              '${(_downloadProgress! * 100).round()}%',
+                              style: t.monoLabel,
+                            ),
+                          ),
+                        DashSpinner(size: 20, value: _downloadProgress),
+                      ],
+                    ),
                   )
                 else ...[
                   logTag(

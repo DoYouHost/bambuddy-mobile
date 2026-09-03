@@ -642,11 +642,12 @@ void main() {
 
   group('nozzles', () {
     PrinterStatus withNozzles(List<Map<String, String>> nozzles,
-            {Map<String, int>? extruderMap}) =>
+            {Map<String, int>? extruderMap, Map<String, String>? inlets}) =>
         PrinterStatus.fromJson({
           'id': 1,
           'nozzles': nozzles,
           'ams_extruder_map': ?extruderMap,
+          'ams_switch_inlet': ?inlets,
         });
 
     test('parses the fitted nozzles', () {
@@ -656,7 +657,7 @@ void main() {
 
       expect(status.nozzles, hasLength(1));
       expect(status.nozzles!.single.nozzleType, 'hardened_steel');
-      expect(status.nozzleDiameterFor(0), '0.4');
+      expect(status.nozzleDiameterFor(0, 0), '0.4');
     });
 
     test('answers the diameter of the nozzle the AMS unit feeds', () {
@@ -670,15 +671,68 @@ void main() {
         extruderMap: {'0': 1},
       );
 
-      expect(status.nozzleDiameterFor(0), '0.8');
-      expect(status.nozzleDiameterFor(1), '0.4',
-          reason: 'an unmapped unit falls back to the primary nozzle');
+      expect(status.nozzleDiameterFor(0, 0), '0.8');
+      expect(status.nozzleDiameterFor(1, 0), isNull,
+          reason: 'two sizes and no mapping for this unit — the caller guesses');
+    });
+
+    test('answers per side for the external holder', () {
+      // Unit 255 is in no extruder map: the tray id is the whole answer, and
+      // reading it as extruder 0 gave Ext-L the right-hand nozzle's size.
+      final status = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ]);
+
+      expect(status.nozzleDiameterFor(255, 0), '0.8',
+          reason: 'tray 0 is Ext-L, extruder 1');
+      expect(status.nozzleDiameterFor(255, 1), '0.4');
+    });
+
+    test('a matched pair needs no side', () {
+      // The stub second entry a single-nozzle printer reports, and the common
+      // dual machine wearing two 0.4s, both answer without knowing the side.
+      final single = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': ''},
+      ]);
+      final matched = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.4'},
+      ]);
+
+      expect(single.nozzleDiameterFor(3, 0), '0.4');
+      expect(matched.nozzleDiameterFor(255, 0), '0.4');
+    });
+
+    test('reads the side off the switch inlet when the map is empty', () {
+      // An FTS machine reports 0xE for every AMS, so `ams_extruder_map` is
+      // empty and the inlet binding is the only side there is.
+      final status = withNozzles(
+        [
+          {'nozzle_diameter': '0.4'},
+          {'nozzle_diameter': '0.8'},
+        ],
+        extruderMap: const {},
+        inlets: {'0': 'A', '1': 'B'},
+      );
+
+      expect(status.nozzleDiameterFor(0, 0), '0.8', reason: 'inlet A → left');
+      expect(status.nozzleDiameterFor(1, 0), '0.4', reason: 'inlet B → right');
+      expect(status.nozzleDiameterFor(2, 0), isNull,
+          reason: 'a unit on neither inlet stays unknown');
     });
 
     test('answers null when the printer reported no nozzles', () {
       // Guessing 0.4 here would hide the gap; the caller decides what to send.
-      expect(const PrinterStatus(id: 1).nozzleDiameterFor(0), isNull);
-      expect(withNozzles(const []).nozzleDiameterFor(0), isNull);
+      expect(const PrinterStatus(id: 1).nozzleDiameterFor(0, 0), isNull);
+      expect(withNozzles(const []).nozzleDiameterFor(0, 0), isNull);
+      expect(
+          withNozzles([
+            {'nozzle_diameter': ''},
+            {'nozzle_diameter': ''},
+          ]).nozzleDiameterFor(0, 0),
+          isNull);
     });
 
     test('survives the printer going offline', () {
@@ -689,7 +743,128 @@ void main() {
         {'nozzle_diameter': '0.6'},
       ]));
 
-      expect(offline.nozzleDiameterFor(0), '0.6');
+      expect(offline.nozzleDiameterFor(0, 0), '0.6');
+    });
+  });
+
+  group('slot addressing', () {
+    test('a single external holder feeds the only nozzle there is', () {
+      // One holder means one nozzle, and that one is extruder 0 — the inverted
+      // 254/255 pair only describes a dual-head machine.
+      final single = PrinterStatus.fromJson(const {
+        'id': 1,
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+        ],
+      });
+
+      expect(single.extruderForExternal(254), 0);
+      expect(single.extruderForExternal(255), isNull,
+          reason: 'a spool this printer does not report');
+    });
+
+    test('an AMS-HT slot is found by tray_now', () {
+      // An HT unit holds one tray and is numbered from 128, so `unit * 4 + slot`
+      // put it at 512 and `tray_now: 128` matched nothing.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 128,
+        'ams': [
+          {
+            'id': 128,
+            'tray': [
+              {'id': 0, 'tray_type': 'PA-CF'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray?.trayType, 'PA-CF');
+    });
+
+    test('a tray without an id matches nothing rather than something else', () {
+      // Reading a missing slot id as 0 made unit 1's phantom slot collide with
+      // unit 0's fourth one.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 3,
+        'ams': [
+          {
+            'id': 0,
+            'tray': [
+              {'tray_type': 'PLA'},
+            ],
+          },
+          {
+            'id': 1,
+            'tray': [
+              {'tray_type': 'PETG'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray, isNull);
+    });
+  });
+
+  group('ams_switch_inlet', () {
+    PrinterStatus withInlets(Object? raw) =>
+        PrinterStatus.fromJson({'id': 1, 'ams_switch_inlet': raw});
+
+    test('parses the string-keyed inlet map', () {
+      expect(withInlets({'0': 'A', '1': 'B'}).amsSwitchInlet, {0: 'A', 1: 'B'});
+    });
+
+    test('an older server that never sends it leaves it null', () {
+      // The whole compatibility story: no field, no FTS assumptions, and
+      // `ams_extruder_map` keeps answering exactly as it did before.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'ams_extruder_map': {'0': 1},
+      });
+
+      expect(status.amsSwitchInlet, isNull);
+      expect(status.extruderForSlot(0, 0), 1);
+      expect(status.extruderForSlot(1, 0), isNull);
+    });
+
+    test('a non-map value does not take the parser down', () {
+      expect(withInlets('nonsense').amsSwitchInlet, isNull);
+      expect(withInlets({'0': 7, 'x': 'A'}).amsSwitchInlet, isEmpty);
+    });
+
+    test('a frame without the field keeps the last known binding', () {
+      // Same rule as the rest of the merge: a WebSocket push that omits it
+      // must not unbind the AMS the REST snapshot had bound.
+      final previous = withInlets({'0': 'A'});
+      final merged = const PrinterStatus(id: 1, progress: 12).mergedWith(previous);
+
+      expect(merged.amsSwitchInlet, {0: 'A'});
+    });
+
+    test('the binding survives the printer going offline', () {
+      // Plumbing does not change while the machine is unreachable — and the
+      // AMS inventory it belongs to is kept for the same reason.
+      final offline = const PrinterStatus(id: 1, connected: false)
+          .mergedWith(withInlets({'0': 'B'}));
+
+      expect(offline.amsSwitchInlet, {0: 'B'});
+    });
+
+    test('an FTS machine still counts as dual-extruder', () {
+      // Its AMS units drop out of `ams_extruder_map`, which used to be the
+      // signal — losing it hid the extruder badges and the side labels.
+      expect(withInlets({'0': 'A'}).isDualExtruder, isTrue);
+      expect(withInlets(const {}).isDualExtruder, isFalse);
+    });
+
+    test('an emptied binding wins over the last known one', () {
+      // The server sends `{}` once the accessory is unplugged, and an empty
+      // map is a value, not a gap — the stale binding has to go.
+      final merged = withInlets(const {}).mergedWith(withInlets({'0': 'A'}));
+
+      expect(merged.amsSwitchInlet, isEmpty);
     });
   });
 

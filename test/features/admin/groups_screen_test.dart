@@ -114,14 +114,6 @@ class _FakeCurrentUser extends CurrentUserNotifier {
   Future<void> refresh() async {}
 }
 
-class _FakeProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.jwt,
-      );
-}
-
 class _FakeUsersList extends UsersListNotifier {
   @override
   Future<List<CurrentUser>> build() async => const [
@@ -136,7 +128,7 @@ Widget _app(Widget child, {required _FakeGroups repo, CurrentUser? signedInAs}) 
       overrides: [
         groupsRepositoryProvider.overrideWithValue(repo),
         currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
-        serverProfileProvider.overrideWith(_FakeProfile.new),
+        fakeServerProfileOverride(authMode: AuthMode.jwt),
         usersListProvider.overrideWith(_FakeUsersList.new),
       ],
       child: plApp(child),
@@ -428,9 +420,9 @@ void main() {
         {AuthMode mode = AuthMode.jwt}) {
       final container = ProviderContainer(overrides: [
         currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
-        serverProfileProvider.overrideWith(_FakeProfile.new),
+        fakeServerProfileOverride(authMode: AuthMode.jwt),
         if (mode == AuthMode.apiKey)
-          serverProfileProvider.overrideWith(_ApiKeyProfile.new),
+          fakeServerProfileOverride(authMode: AuthMode.apiKey),
       ]);
       addTearDown(container.dispose);
       return container;
@@ -473,10 +465,3 @@ class _SystemGroup extends _FakeGroups {
       );
 }
 
-class _ApiKeyProfile extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.apiKey,
-      );
-}

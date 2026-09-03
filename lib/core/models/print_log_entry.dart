@@ -1,4 +1,8 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
+
 import 'json_utils.dart';
+
+part 'print_log_entry.g.dart';
 
 /// The failure causes `PATCH /print-log/{id}` accepts, in the server's order.
 ///
@@ -55,6 +59,16 @@ bool printLogStatusIsFailure(String? status) =>
 /// fields the server always sends, and even those are coerced rather than cast
 /// so one malformed record drops itself instead of the whole page (see
 /// `parseJsonList`).
+///
+/// [copyWith] is generated from the constructor. It exists because a `PATCH
+/// /print-log/{id}` answer is **merged** into the local row rather than
+/// replacing it: a server older than 1.2.6 omits `cost` / `energy_kwh` /
+/// `energy_cost` from that answer the same way it omits them from the list, so
+/// taking the response wholesale would blank whatever those columns held.
+/// Passing null to a nullable field nullifies it, which is how a cleared
+/// failure cause travels — the hand-written version needed a separate
+/// `clearFailureReason` flag to say the same thing.
+@CopyWith(skipFields: true)
 class PrintLogEntry {
   const PrintLogEntry({
     required this.id,
@@ -171,45 +185,6 @@ class PrintLogEntry {
   /// `date` column: `started_at` when the run started, `created_at` for the
   /// ones that never did.
   DateTime get displayDate => startedAt ?? createdAt;
-
-  /// Merge back what `PATCH /print-log/{id}` is allowed to change, keeping
-  /// every other field from the local row.
-  ///
-  /// Deliberately narrower than replacing the row with the response: a server
-  /// older than 1.2.6 omits `cost` / `energy_kwh` / `energy_cost` from the
-  /// PATCH answer the same way it omits them from the list, so merging that
-  /// response wholesale would blank whatever those columns held.
-  ///
-  /// [clearFailureReason] is what sending `''` means — a null default cannot
-  /// express "unset it".
-  PrintLogEntry copyWith({
-    String? failureReason,
-    bool clearFailureReason = false,
-    String? status,
-  }) =>
-      PrintLogEntry(
-        id: id,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        archiveId: archiveId,
-        printName: printName,
-        printerName: printerName,
-        printerId: printerId,
-        startedAt: startedAt,
-        completedAt: completedAt,
-        durationSeconds: durationSeconds,
-        filamentType: filamentType,
-        filamentColor: filamentColor,
-        filamentUsedGrams: filamentUsedGrams,
-        cost: cost,
-        energyKwh: energyKwh,
-        energyCost: energyCost,
-        failureReason:
-            clearFailureReason ? null : (failureReason ?? this.failureReason),
-        thumbnailPath: thumbnailPath,
-        createdById: createdById,
-        createdByUsername: createdByUsername,
-      );
 }
 
 /// One page of `GET /print-log/`: the rows asked for, plus how many rows the

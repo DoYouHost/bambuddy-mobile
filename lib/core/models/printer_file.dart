@@ -32,6 +32,36 @@ class PrinterFile {
       );
 }
 
+/// One directory listing from `GET /printers/{id}/files`, plus whether the
+/// server managed to talk to the printer at all.
+///
+/// The listing route answers with an empty `files` for both "this folder is
+/// empty" and "the FTP listing did not happen", and newer servers tell the two
+/// apart with `warnings: ["printer_unavailable"]`. A server that sends no
+/// `warnings` says nothing about it, and then an empty listing reads as an
+/// empty folder exactly as before.
+class PrinterFileListing {
+  const PrinterFileListing({
+    this.files = const [],
+    this.printerUnavailable = false,
+  });
+
+  final List<PrinterFile> files;
+
+  /// The printer did not answer, so [files] is empty for lack of an answer
+  /// rather than for lack of files.
+  final bool printerUnavailable;
+
+  static const String _unavailableWarning = 'printer_unavailable';
+
+  factory PrinterFileListing.fromJson(Map<String, dynamic> json) =>
+      PrinterFileListing(
+        files: parseJsonList(json['files'], PrinterFile.fromJson),
+        printerUnavailable:
+            toStringList(json['warnings']).contains(_unavailableWarning),
+      );
+}
+
 /// Storage usage from `GET /printers/{id}/storage`. Both fields are nullable —
 /// the printer may not report them (offline/unsupported model).
 class PrinterStorage {

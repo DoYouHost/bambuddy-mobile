@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/ams/slot_addressing.dart';
 import '../../../core/diagnostics/log_tag.dart';
 import '../../../core/api/action_outcome.dart';
 import '../../../core/api/api_exceptions.dart';
@@ -91,12 +92,6 @@ class _PrinterCardState extends State<PrinterCard> {
 
   bool get _offline => _debounce.offline;
 
-
-  /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
-  List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
-    for (final e in status?.hmsErrors ?? const <HmsError>[])
-      if (hmsIsDisplayable(e, description: HmsCatalog.instance.describe(e))) e,
-  ];
 
   @override
   void initState() {
@@ -220,7 +215,8 @@ class _PrinterCardState extends State<PrinterCard> {
     // has something to show (speed is only actionable while printing).
     final showDetailsToggle =
         status != null && (hasDetails || hasFans || printing || canMove);
-    final hmsErrors = _displayableHmsErrors(status);
+    final hmsErrors =
+        displayableHmsErrors(status, describe: HmsCatalog.instance.describe);
 
     return _CardShell(
       tokens: t,

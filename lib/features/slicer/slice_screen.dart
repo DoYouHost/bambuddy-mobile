@@ -117,7 +117,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
     final reqs = ref
-            .watch(filamentRequirementsProvider(_sourceKey))
+            .watch(filamentRequirementsProvider(_filamentKey))
             .valueOrNull ??
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
@@ -454,6 +454,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
 
+  /// Plate 1, because this screen has no plate picker and the slice it posts
+  /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
+  /// two have to name the same plate or the slots offered are not the slots the
+  /// slice will use.
+  PlateSource get _filamentKey => (
+        isArchive: widget.target.isArchive,
+        id: widget.target.id,
+        plate: 1,
+      );
+
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
   bool get _asDesigned {
@@ -653,7 +663,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
             owned: ref.read(ownedFilamentsProvider).valueOrNull ??
                 const <OwnedFilament>[],
             requirements:
-                ref.read(filamentRequirementsProvider(_sourceKey)).valueOrNull ??
+                ref.read(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
                     const <FilamentRequirement>[],
           );
     final overrides = asDesigned

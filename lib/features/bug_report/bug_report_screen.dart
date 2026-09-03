@@ -16,6 +16,7 @@ import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_progress.dart';
 import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import 'bug_report_controller.dart';
 import 'log_export.dart';
 import 'log_preview.dart';
@@ -561,11 +562,11 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     switch (result) {
       // Backing out of the picker is an answer, not a failure: nothing to say,
       // and the review stays open.
-      case LogSaveResult.cancelled:
+      case DeviceFileOutcome.cancelled:
         return;
-      case LogSaveResult.failed:
+      case DeviceFileOutcome.failed:
         messenger.snack(l10n.bugReportSaveFailed, replaceCurrent: true);
-      case LogSaveResult.saved:
+      case DeviceFileOutcome.done:
         await _finish(messenger, l10n.bugReportSaved);
     }
   }

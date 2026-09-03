@@ -26,6 +26,7 @@ class SettingsRepository {
   static const _diagnosticsSessionKey = 'diagnostics_session';
   static const _clock24hKey = 'clock_24h';
   static const _wearRelayClaimKey = 'wear_relay_claim';
+  static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
 
   final SharedPreferences _prefs;
 
@@ -111,6 +112,17 @@ class SettingsRepository {
 
   Future<void> saveUse24HourClock(bool use24Hour) =>
       _prefs.setBool(_clock24hKey, use24Hour);
+  /// Whether the user has waved off the "archived without its 3MF" nudge.
+  ///
+  /// One-shot and permanent, like the web's own `localStorage` flag: fixing the
+  /// cause stops new fallbacks anyway, so there is nothing to re-warn about.
+  /// Absent — which is every install that upgrades into this — reads as not
+  /// dismissed, so the banner appears once and only if the server says there is
+  /// something to say.
+  bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
+
+  Future<void> saveNo3mfDismissed() =>
+      _prefs.setBool(_no3mfDismissedKey, true);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.

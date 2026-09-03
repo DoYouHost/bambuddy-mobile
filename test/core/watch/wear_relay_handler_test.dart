@@ -136,6 +136,42 @@ void main() {
     expect((printer['status'] as Map<String, dynamic>)['state'], 'PAUSE');
   });
 
+  test('clear-plate lowers the gate in the cache the watch reads back',
+      () async {
+    // The printer this happens on is off (Auto Power Off), so the server has no
+    // MQTT client for it and pushes no frame when the gate goes down. Without
+    // this the watch's own refresh right after the tap would read the stale
+    // `true` back out of the cache and draw the button again — and the second
+    // tap gets a 400.
+    adapter
+      ..onPost('/api/v1/printers/7/clear-plate', (s) => s.reply(200, {'ok': true}))
+      ..onGet('/api/v1/printers/',
+          (s) => s.reply(200, [
+                {'id': 7, 'name': 'X1C'},
+              ]));
+    final cached = <int, Map<String, dynamic>>{
+      7: {'id': 7, 'connected': false, 'awaiting_plate_clear': true},
+    };
+    final handler = WearRelayHandler(
+      watch: watch,
+      dio: () => dio,
+      liveStatus: (id) => cached[id],
+      plateGateAcknowledged: (id) => cached[id]?['awaiting_plate_clear'] = false,
+    );
+
+    final ack = await roundTrip(
+        handler, WearRpcRequest.create(WearRpcAction.clearPlate, printerId: 7));
+    expect(ack.ok, isTrue);
+
+    watch.sent.clear();
+    final fleet =
+        await roundTrip(handler, WearRpcRequest.create(WearRpcAction.getFleet));
+    final printer =
+        (fleet.data!['printers'] as List).single as Map<String, dynamic>;
+    expect((printer['status'] as Map<String, dynamic>)['awaiting_plate_clear'],
+        isFalse);
+  });
+
   test('command executes the POST and replies ok', () async {
     adapter.onPost(
         '/api/v1/printers/3/print/pause', (s) => s.reply(200, {'ok': true}));

@@ -238,6 +238,29 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     }
   }
 
+  /// Drop the plate-clear gate for [printerId] once the server has accepted the
+  /// acknowledgement.
+  ///
+  /// The server only pushes a `printer_status` for that flag while the printer
+  /// has a live MQTT client (`printer_manager._broadcast_status_change` returns
+  /// early without one), so on a printer Auto Power Off already switched off
+  /// nothing arrives until the next REST poll — up to a minute of a banner
+  /// offering a button the server now answers with 400.
+  ///
+  /// Written as a one-field frame merged over the last known status: that is
+  /// exactly what a REST poll carrying the same news does, so the inheritance
+  /// and offline-clearing rules stay in [PrinterStatus.mergedWith] rather than
+  /// being reimplemented here.
+  void plateGateAcknowledged(int printerId) {
+    final prev = state[printerId];
+    if (prev == null || prev.awaitingPlateClear != true) return;
+    state = {
+      ...state,
+      printerId:
+          PrinterStatus(id: printerId, awaitingPlateClear: false).mergedWith(prev),
+    };
+  }
+
   /// Called by lifecycle: background → close socket.
   void suspend() {
     lostContact();

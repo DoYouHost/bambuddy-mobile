@@ -1,34 +1,14 @@
 import 'package:bambuddy_mobile/core/models/library_file.dart';
 import 'package:bambuddy_mobile/core/models/library_stats.dart';
 import 'package:bambuddy_mobile/core/models/library_tag.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_providers.dart';
 import 'package:bambuddy_mobile/features/files/file_manager_screen.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
-import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
-
-/// Harness for the file manager, which had none.
-///
-/// The screen's action sheets are the reason: they are built inside private
-/// state methods and grow a row per feature, so the only way to catch a sheet
-/// that no longer fits — or an action that quietly stopped being offered — is to
-/// drive the real screen.
-///
-/// [_FakeNotifier] replaces the notifier's `build`, so nothing reaches a
-/// repository; the four other providers the screen reads are overridden with
-/// plain values.
-/// Without this the thumbnail's `serverProfileProvider` read throws
-/// `UnimplementedError`, the widget becomes an unbounded ErrorWidget, and the
-/// resulting 100000px Row overflow buries the real failure.
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
 
 class _FakeNotifier extends FileManagerNotifier {
   _FakeNotifier(this._state);
@@ -73,7 +53,7 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+        noServerProfileOverride,
         fileManagerProvider
             .overrideWith(() => _FakeNotifier(FileManagerState(files: [file]))),
         libraryStatsProvider.overrideWith((ref) async => const LibraryStats()),

@@ -1,5 +1,4 @@
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -8,15 +7,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The provider only watches the profile (rebuild on server change), so any
-/// value does — it just has to exist.
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
+import '../../helpers.dart';
 
 /// Counts polls. No plugs come back, so a poll is exactly one list request.
 class _CountingRepo extends SmartPlugsRepository {
@@ -38,7 +29,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         smartPlugsRepositoryProvider.overrideWithValue(repo),
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
       ],
     );
     // Auto-dispose: something has to hold the provider the way the dashboard

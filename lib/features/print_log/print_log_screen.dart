@@ -31,6 +31,7 @@ import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import '../stats/stats_providers.dart' show statsUsersProvider;
 import 'print_log_classify_sheet.dart';
 import 'print_log_providers.dart';
+import '../common/dash_progress.dart';
 
 /// The print log: one row per run, from a table that outlives the archives it
 /// points at.
@@ -77,14 +78,23 @@ class _PrintLogScreenState extends ConsumerState<PrintLogScreen> {
   /// Clearing wipes every user's rows and drops their contribution from the
   /// statistics, so the count goes in the question rather than in a toast
   /// afterwards.
+  ///
+  /// Except under a filter, where there is no honest count to give: `total` is
+  /// what the filter matches server-side, while `DELETE /print-log/` takes no
+  /// filter and empties the table. Quoting it turned "12 rows shown" into
+  /// "All 12 runs go" over a log of thousands.
   Future<void> _clearLog() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final filters = ref.read(printLogFiltersProvider);
+    final narrowed = filters.activeCount > 0 || filters.query.isNotEmpty;
     final total = ref.read(printLogProvider).valueOrNull?.total ?? 0;
     final confirmed = await confirmDialog(
       context,
       title: l10n.printLogClearTitle,
-      message: l10n.printLogClearBody(total),
+      message: narrowed
+          ? l10n.printLogClearBodyFiltered
+          : l10n.printLogClearBody(total),
       confirmLabel: l10n.printLogClear,
       destructive: true,
       icon: Icons.delete_sweep_outlined,
@@ -335,11 +345,7 @@ class _ListFooter extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Center(
         child: state.loadingMore
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+            ? const DashSpinner(size: 22)
             : logTag(
                 'print_log.load_more',
                 TextButton(

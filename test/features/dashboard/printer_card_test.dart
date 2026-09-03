@@ -23,6 +23,8 @@ import 'package:bambuddy_mobile/core/models/inventory.dart';
 import 'package:bambuddy_mobile/features/inventory/inventory_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
+import 'package:bambuddy_mobile/features/dashboard/widgets/ams_slot_config_sheet.dart';
+import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/printer_card.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -113,6 +115,7 @@ class _RecordingCommands implements PrinterCommandsRepository {
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not part of this test');
 }
+
 
 /// The slot sheet reads the inventory to offer spools; these tests care about
 /// the printer-side actions above that list, so it stays empty and offline.
@@ -212,15 +215,6 @@ class _RefusingInventory extends InventoryNotifier {
   }
 }
 
-/// A session authenticated by API key rather than by an account.
-class _ApiKeyProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.apiKey,
-      );
-}
-
 /// The card tests run without a settings repository, and the real backend
 /// notifier reads one — so the choice is staged here instead.
 class _FixedBackendNotifier extends InventoryBackendNotifier {
@@ -230,14 +224,6 @@ class _FixedBackendNotifier extends InventoryBackendNotifier {
 
   @override
   InventoryBackend build() => _backend;
-}
-
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
 }
 
 /// Inert gniazdka: testy karty nie sprawdzają smart gniazdek, więc nie pollujemy
@@ -288,7 +274,7 @@ SmartPlugsState _plugState() => SmartPlugsState(
 Widget _cardWithPlugs(PrinterWithStatus item, SmartPlugsNotifier stub) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
@@ -326,9 +312,8 @@ Widget _scope(
 }) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(apiKeySession
-            ? _ApiKeyProfileNotifier.new
-            : _FakeProfileNotifier.new),
+        fakeServerProfileOverride(
+            authMode: apiKeySession ? AuthMode.apiKey : AuthMode.none),
         inventoryBackendProvider
             .overrideWith(() => _FixedBackendNotifier(backend)),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
@@ -360,7 +345,7 @@ Widget _cardWithProviders(
 Widget _cardSwap(ValueNotifier<PrinterWithStatus> item, {DateTime? inTouchSince}) =>
     ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
         inertFirmwareOverride,
         inertTotalPrintHoursOverride,
@@ -381,6 +366,14 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item, {DateTime? inTouchSince}
         ),
       ),
     );
+
+/// The shared status map without the WebSocket client behind it — the banner
+/// only reaches for it to lower the plate-clear gate after an acknowledgement,
+/// and building the real notifier would have this test dial a server.
+class _InertStatuses extends PrinterStatusesNotifier {
+  @override
+  Map<int, PrinterStatus> build() => const {};
+}
 
 void main() {
   testWidgets('karta renderuje nazwę, postęp i temperatury z fixture\'a',
@@ -925,6 +918,124 @@ void main() {
       expect(find.text('Lewy ekstruder'), findsNothing);
     });
 
+    testWidgets('each external spool is offered its own nozzle size',
+        (tester) async {
+      // The external holder is keyed under unit 255, which no
+      // `ams_extruder_map` mentions — reading it as extruder 0 handed Ext-L
+      // the right-hand nozzle's size, and that size is what the slot
+      // configuration writes and queries the calibration table by.
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      data.remove('cover_url');
+      data['nozzles'] = const [
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ];
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(
+                printer: const Printer(id: 1, name: 'X2D-3DP'),
+                status: PrinterStatus.fromJson(data),
+              ),
+            ),
+          ),
+        ),
+        extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The TPU spool is `vt_tray` 254 — Ext-L, extruder 1.
+      final row = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '') == 'printer.ams_slot@TPU')
+          .first;
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final sheet =
+          tester.widget<AmsSlotConfigSheet>(find.byType(AmsSlotConfigSheet));
+      expect(sheet.target.amsId, 255);
+      expect(sheet.target.trayId, 0, reason: 'Ext-L is tray 0');
+      expect(sheet.target.extruderId, 1);
+      expect(sheet.target.nozzleDiameter, '0.8');
+    });
+
+    testWidgets('a switch-bound AMS is configured on the nozzle it rests on',
+        (tester) async {
+      // With a Filament Track Switch fitted every AMS reports 0xE, so
+      // `ams_extruder_map` is empty and the unit gets no left/right badge — but
+      // its inlet still says which calibration table the slot belongs to.
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      data.remove('cover_url');
+      data['ams_extruder_map'] = const <String, int>{};
+      data['ams_switch_inlet'] = const {'0': 'A'};
+      data['nozzles'] = const [
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ];
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: PrinterCard(
+              item: PrinterWithStatus(
+                printer: const Printer(id: 1, name: 'H2C'),
+                status: PrinterStatus.fromJson(data),
+              ),
+            ),
+          ),
+        ),
+        extra: [inventoryProvider.overrideWith(_EmptyInventory.new)],
+      ));
+
+      await tester.ensureVisible(find.text('Szczegóły'));
+      await tester.tap(find.text('Szczegóły'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      // The AMS header names no side: the switch moves the unit between both.
+      expect(find.widgetWithText(Tooltip, 'L'), findsNothing);
+      expect(find.widgetWithText(Tooltip, 'P'), findsNothing);
+
+      final row = find
+          .byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '') == 'printer.ams_slot@PETG')
+          .first;
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Skonfiguruj slot'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final sheet =
+          tester.widget<AmsSlotConfigSheet>(find.byType(AmsSlotConfigSheet));
+      expect(sheet.target.extruderId, 1, reason: 'inlet A rests on the left');
+      expect(sheet.target.nozzleDiameter, '0.8');
+    });
+
     testWidgets('a printing printer keeps the filament actions unreachable',
         (tester) async {
       final commands = await openSlotSheet(tester, state: 'RUNNING');
@@ -1038,7 +1149,7 @@ void main() {
       );
       return ProviderScope(
         overrides: [
-          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          fakeServerProfileOverride(),
           cameraTokenProvider.overrideWith((ref) async => 'tok'),
           inertFirmwareOverride,
           inertTotalPrintHoursOverride,
@@ -1362,6 +1473,51 @@ void main() {
       expect(stub.calls, isEmpty); // zasilanie NIE zmienione
     });
 
+    testWidgets('monitor-only MQTT plug: reading stays, button is dead',
+        (tester) async {
+      // The server refuses to switch an MQTT plug (400), so offering the button
+      // would only produce an error the app can predict.
+      final stub = _StubSmartPlugsNotifier(
+        SmartPlugsState(
+          plugs: const [
+            SmartPlug(
+              id: 10,
+              name: 'Licznik',
+              plugType: 'mqtt',
+              printerId: 1,
+              enabled: true,
+              mqttPowerTopic: 'tele/x1c/SENSOR',
+            ),
+          ],
+          statuses: {
+            10: SmartPlugStatus(
+              state: 'ON',
+              reachable: true,
+              energy: const SmartPlugEnergy(power: 42),
+            ),
+          },
+        ),
+      );
+      final item = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      );
+
+      await tester.pumpWidget(_cardWithPlugs(item, stub));
+
+      expect(find.byTooltip('42 W · Tylko podgląd'), findsOneWidget);
+      final btn = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.power),
+      );
+      expect(btn.onPressed, isNull);
+
+      await tester.ensureVisible(find.byIcon(Icons.power));
+      await tester.tap(find.byIcon(Icons.power), warnIfMissed: false);
+      await tester.pump();
+
+      expect(stub.calls, isEmpty);
+    });
+
     testWidgets('poza drukiem wyłączenie wymaga potwierdzenia, potem wysyła off',
         (tester) async {
       final stub = _StubSmartPlugsNotifier(_plugState());
@@ -1653,7 +1809,7 @@ void main() {
   group('firmware pod nazwą drukarki', () {
     Widget cardWithFirmware(FirmwareUpdateInfo info) => ProviderScope(
           overrides: [
-            serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+            fakeServerProfileOverride(),
             cameraTokenProvider.overrideWith((ref) async => 'tok'),
             smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
             printerFirmwareProvider(1).overrideWithValue(info),
@@ -1705,7 +1861,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [
-          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          fakeServerProfileOverride(),
           cameraTokenProvider.overrideWith((ref) async => 'tok'),
           smartPlugsProvider.overrideWith(_InertSmartPlugsNotifier.new),
           inertFirmwareOverride, // zwraca null
@@ -2093,6 +2249,7 @@ void main() {
           extra: [
             requirePlateClearProvider.overrideWith((ref) async => true),
             printerCommandsRepositoryProvider.overrideWithValue(commands),
+            printerStatusesProvider.overrideWith(_InertStatuses.new),
           ],
         );
 
@@ -2105,7 +2262,7 @@ void main() {
       expect(find.text('OFFLINE'), findsOneWidget);
       expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
 
-      await tester.tap(find.text('Oznacz płytę jako pustą'));
+      await tester.tap(find.byTooltip('Oznacz płytę jako pustą'));
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['clearPlate:4']);
@@ -2128,16 +2285,16 @@ void main() {
           cards(commands, items: const [awaitingOffline, awaitingOnline]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Oznacz płytę jako pustą'), findsNWidgets(2));
+      expect(find.byTooltip('Oznacz płytę jako pustą'), findsNWidgets(2));
 
-      await tester.tap(find.text('Oznacz płytę jako pustą').first);
+      await tester.tap(find.byTooltip('Oznacz płytę jako pustą').first);
       await tester.pumpAndSettle();
 
       expect(commands.calls, ['clearPlate:4']);
       expect(find.textContaining('Zaktualizuj bambuddy'), findsOneWidget);
       // The reachable printer keeps it: that half worked on every server.
       expect(find.text('Płyta niewyczyszczona'), findsOneWidget);
-      expect(find.text('Oznacz płytę jako pustą'), findsOneWidget);
+      expect(find.byTooltip('Oznacz płytę jako pustą'), findsOneWidget);
     });
 
     testWidgets('a refusal that lands after the card is gone still counts',
@@ -2175,7 +2332,7 @@ void main() {
         ],
       ));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Oznacz płytę jako pustą'));
+      await tester.tap(find.byTooltip('Oznacz płytę jako pustą'));
       await tester.pump();
 
       onScreen.value = false;
@@ -2188,7 +2345,7 @@ void main() {
       onScreen.value = true;
       await tester.pumpAndSettle();
       expect(find.text('OFFLINE'), findsOneWidget);
-      expect(find.text('Oznacz płytę jako pustą'), findsNothing);
+      expect(find.byTooltip('Oznacz płytę jako pustą'), findsNothing);
     });
 
     testWidgets('nothing is offered while the scheduler does not gate on the plate',

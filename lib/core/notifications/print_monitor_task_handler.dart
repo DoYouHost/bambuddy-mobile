@@ -357,6 +357,8 @@ class PrintMonitorTaskHandler extends TaskHandler {
       dio: () => api?.dio,
       liveStatus: (id) => _wsUp ? _rawStatuses[id] : null,
       claim: WearRelayClaim(SettingsRepository(prefs)),
+      plateGateAcknowledged: (id) =>
+          _rawStatuses[id]?['awaiting_plate_clear'] = false,
     );
     unawaited(_wearRelay!.start());
 

@@ -14,22 +14,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers.dart';
 
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
-
-class _ApiKeyProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.apiKey,
-      );
-}
-
 /// Records what the sheet writes and can be told to withhold each source.
 class _FakeRepo implements AmsSlotConfigRepository {
   final List<String> calls = [];
@@ -172,7 +156,7 @@ void main() {
     final fake = repo ?? _FakeRepo();
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         amsSlotConfigRepositoryProvider.overrideWithValue(fake),
         colorCatalogProvider.overrideWith((ref) async => colours ?? const []),
       ],
@@ -321,7 +305,7 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         amsSlotConfigRepositoryProvider.overrideWithValue(repo),
       ],
       child: plApp(
@@ -377,7 +361,7 @@ void main() {
     final repo = _FakeRepo();
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        serverProfileProvider.overrideWith(_ApiKeyProfileNotifier.new),
+        fakeServerProfileOverride(authMode: AuthMode.apiKey),
         amsSlotConfigRepositoryProvider.overrideWithValue(repo),
       ],
       child: plApp(
@@ -505,7 +489,7 @@ void main() {
         ];
       await tester.pumpWidget(ProviderScope(
         overrides: [
-          serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+          fakeServerProfileOverride(),
           amsSlotConfigRepositoryProvider.overrideWithValue(repo),
         ],
         child: plApp(

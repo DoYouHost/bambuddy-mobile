@@ -308,6 +308,11 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
             if (min != null && max != null && (value < min || value > max)) {
               return l10n.inventoryFieldRange(min, max);
             }
+            // Fields without a declared range still have a floor. `cost_per_kg`
+            // is `ge=0` server-side and a negative one 422s the whole selection;
+            // `core_weight` has no such guard and stores the negative, which
+            // then poisons every remaining-weight sum built on it.
+            if (value < 0) return l10n.inventoryFieldNegative;
             return null;
           },
         ),

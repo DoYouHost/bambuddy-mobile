@@ -36,6 +36,7 @@ PrinterStatus _$PrinterStatusFromJson(Map<String, dynamic> json) =>
       trayNow: toIntOrNull(json['tray_now']),
       activeExtruder: toIntOrNull(json['active_extruder']),
       amsExtruderMap: _toExtruderMapOrNull(json['ams_extruder_map']),
+      amsSwitchInlet: _toInletMapOrNull(json['ams_switch_inlet']),
       model: json['model'] as String?,
       wifiSignal: toIntOrNull(json['wifi_signal']),
       doorOpen: json['door_open'] as bool?,

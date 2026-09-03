@@ -118,13 +118,10 @@ echo "yes" > "$OUT/drift"
 # first `prefix="…"` in the file, which is how every route module in this server
 # is written; a module that ever splits the constructor across lines would need
 # a real parser, and facts.md would show its routes with an empty prefix.
-routes_at() {
-  local rev="$1" file
-  while read -r file; do
-    [[ "$file" == *.py ]] || continue
-    # A file that is new at one end of the range does not exist at the other;
-    # with pipefail a missing blob would abort the whole run.
-    { ref_git show "$rev:$file" 2>/dev/null || true; } | awk '
+route_lines_in() {
+  # A file that is new at one end of the range does not exist at the other;
+  # with pipefail a missing blob would abort the whole run.
+  { ref_git show "$1:$2" 2>/dev/null || true; } | awk '
       prefix == "" && match($0, /prefix[[:space:]]*=[[:space:]]*"[^"]*"/) {
         seg = substr($0, RSTART, RLENGTH)
         sub(/^prefix[[:space:]]*=[[:space:]]*"/, "", seg)
@@ -138,6 +135,13 @@ routes_at() {
         print toupper(verb) " " prefix p
       }
     '
+}
+
+routes_at() {
+  local rev="$1" file
+  while read -r file; do
+    [[ "$file" == *.py ]] || continue
+    route_lines_in "$rev" "$file"
   done < <(printf '%s\n' "$CHANGED" | grep '^backend/app/api/routes/' || true)
 }
 
@@ -195,9 +199,28 @@ done < "$OUT/fields.to"
 # main-plug ranking all passed the first version of this script unseen. They are
 # read from the diff, because what matters is that they moved and where.
 route_signals() {
-  local file diff gates codes defs
+  local file diff gates codes defs perms ours
   while read -r file; do
     diff="$(ref_git diff "$FROM_SHA" "$TO_SHA" -- "$file")"
+
+    # A rewritten ranking inside a route we call is our problem; the same
+    # rewrite in a route we never call is not, and only endpoints.dart can tell
+    # the two apart. Without this line a reader sees a file name and guesses —
+    # which is how a server-side plug ranking got filed as "transparent to us"
+    # while the app was still picking its own plug from /smart-plugs/.
+    ours=""
+    if [[ "$file" == backend/app/api/routes/* ]]; then
+      ours="$(route_lines_in "$TO_SHA" "$file" | normalize_path | sort -u \
+        | while read -r route; do
+            if app_has_route "${route#* }"; then echo "$route"; fi
+          done | sed -n '1,5p' | paste -sd';' - | sed 's/;/; /g' || true)"
+    fi
+
+    # The scope map decides what an API key may do at all, and it moves without
+    # touching a route or a field.
+    perms="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
+      | grep -oE 'Permission\.[A-Z_]+' | sort -u | sed 's/^Permission\.//' \
+      | paste -sd' ' - || true)"
     gates="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
       | grep -oE '(Require[A-Za-z_]+|Depends\([a-zA-Z_.]+|Security\([a-zA-Z_.]+)' \
       | sed -E 's/^(Depends|Security)\(//' | sort -u | paste -sd' ' - || true)"
@@ -207,8 +230,14 @@ route_signals() {
     defs="$(printf '%s\n' "$diff" | grep -E '^[+-][[:space:]]*(async )?def ' \
       | sed -E 's/^[+-][[:space:]]*(async )?def ([a-zA-Z_0-9]+).*/\2/' \
       | sort -u | paste -sd' ' - || true)"
-    if [[ -n "$gates$codes$defs" ]]; then
+    if [[ -n "$gates$codes$defs$perms$ours" ]]; then
       echo "- \`${file#backend/app/}\`"
+      if [[ -n "$ours" ]]; then
+        echo "  - **we call routes in this file**: $ours"
+      elif [[ "$file" == backend/app/api/routes/* ]]; then
+        echo "  - we call none of this file's routes"
+      fi
+      [[ -n "$perms" ]] && echo "  - permissions named on changed lines: $perms"
       [[ -n "$gates" ]] && echo "  - gates touched: $gates"
       [[ -n "$codes" ]] && echo "  - error codes on added lines: $codes"
       [[ -n "$defs" ]] && echo "  - functions added or removed: $defs"

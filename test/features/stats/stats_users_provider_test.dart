@@ -1,5 +1,4 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:bambuddy_mobile/features/stats/stats_providers.dart';
 import 'package:bambuddy_mobile/providers.dart';
@@ -8,14 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
-/// An empty answer hides the "filter by user" picker, which is the right thing
-/// to do when the server refuses the listing — and the wrong thing to do when
-/// the server never answered at all. These pin which failures are allowed to
-/// mean "you may not see this".
-class _NullProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => null;
-}
+import '../../helpers.dart';
 
 void main() {
   late Dio dio;
@@ -31,7 +23,7 @@ void main() {
 
   ProviderContainer container() {
     final c = ProviderContainer(overrides: [
-      serverProfileProvider.overrideWith(_NullProfileNotifier.new),
+      noServerProfileOverride,
       statsRepositoryProvider.overrideWithValue(StatsRepository(dio)),
     ]);
     addTearDown(c.dispose);

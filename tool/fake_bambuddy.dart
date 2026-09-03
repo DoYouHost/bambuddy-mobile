@@ -58,6 +58,23 @@ int _stage = -1;
 /// The faults the printer is reporting, in the server's `hms_errors` shape.
 List<Map<String, Object?>> _hmsErrors = [];
 
+/// Whether the printer is reachable. Auto Power Off switches the machine off
+/// the moment a print ends, so "gate up, printer down" is the ordinary end
+/// state on a farm — and the only one where the plate-clear banner has ever
+/// been hard to reach.
+bool _connected = true;
+
+/// The plate-clear gate. Bambuddy-side state the server persists and reports
+/// whether or not the printer is reachable (#2864).
+bool _awaitingPlateClear = false;
+
+/// Whether to answer like a server older than #2864: it built the status of a
+/// printer with no MQTT client from the schema default, so the gate read as
+/// down the moment the machine powered off. The app has to keep working against
+/// both, and this is the only way to see the old behaviour without an old
+/// server.
+bool _legacyPlateGate = false;
+
 /// Whether the printer answers an HMS action. The real route publishes, waits
 /// 2.5 s for a push back and 502s if none comes; turning this off is how the
 /// "printer did not confirm" message gets exercised without a printer that
@@ -141,8 +158,15 @@ Future<void> _command(String raw) async {
   hms[]    an hms[]-channel fault (0300_0100_0001_000A) — the app is meant to
            stay silent about it, card and notification alike
   blank    a fault whose full_code the server left empty — named, no buttons
+  served   a code outside the bundled catalogue, named by the server's own
+           `description` — the English fallback, whatever the UI language
   ok       clear the faults, as `hms/clear` would
   ack      toggle whether the printer answers an action (off → the route 502s)
+
+  plate    raise the plate-clear gate, as a finished print does
+  off/on   printer loses / regains its connection (Auto Power Off, by hand)
+  legacy   toggle answering like a pre-#2864 server, which reported the gate as
+           down for a printer it had no MQTT client for
 
   Prefix any fault with `+` to add it to the ones already reported
   (`runout`, then `+door`), the way a printer stacks them.''');
@@ -231,15 +255,44 @@ Future<void> _command(String raw) async {
       _pause('hms[] 0300_0100_0001_000A (${_hmsErrors.length} reported)');
     case 'blank':
       _fault(0x03008004, actions: ['RESUME_PRINTING'], fullCode: '');
+    case 'served':
+      // 0300_FFFF is in no catalogue, ours or the server's, so the only thing
+      // that can name this card is the `description` on the wire.
+      _fault(
+        0x0300FFFF,
+        add: add,
+        actions: ['STOP_PRINTING'],
+        description: 'The toolhead reported a fault this app has no text for.',
+      );
     case 'ok':
       _clearFaults(from: 'console');
+    case 'plate':
+      _awaitingPlateClear = true;
+      _broadcastStatus();
+      stdout.writeln('  plate-clear gate up'
+          '${_connected ? '' : ' (printer is off — nothing on the wire)'}');
+    case 'off':
+      _connected = false;
+      _broadcastStatus();
+      stdout.writeln('  printer → offline');
+    case 'on':
+      _connected = true;
+      _broadcastStatus();
+      stdout.writeln('  printer → online');
+    case 'legacy':
+      _legacyPlateGate = !_legacyPlateGate;
+      stdout.writeln('  status route answers like a '
+          '${_legacyPlateGate ? 'pre-#2864' : 'current'} server');
     case 'ack':
       _hmsAcks = !_hmsAcks;
       stdout.writeln('  printer ${_hmsAcks ? 'answers' : 'ignores'} HMS actions'
           '${_hmsAcks ? '' : ' → the route will 502'}');
     case 'status':
       stdout.writeln(
-        '  $_state $_progress% · photo: ${_photoAttached ? 'attached' : 'none'}'
+        '  $_state $_progress% · ${_connected ? 'online' : 'offline'}'
+        ' · plate gate: ${_awaitingPlateClear ? 'up' : 'down'}'
+        '${_legacyPlateGate ? ' (legacy)' : ''}'
+        ' · photo: ${_photoAttached ? 'attached' : 'none'}'
         ' · faults: ${_hmsErrors.isEmpty ? 'none' : _hmsErrors.map((e) => e['full_code']).join(', ')}'
         ' · acks: $_hmsAcks · ${_sockets.length} client(s)',
       );
@@ -259,6 +312,7 @@ void _fault(
   int printError, {
   List<String> actions = const [],
   String? fullCode,
+  String? description,
   bool add = false,
 }) {
   final code = fullCode ??
@@ -273,6 +327,9 @@ void _fault(
     // Defaults to the 8-hex key; `blank` passes '' to reproduce the server's
     // own empty default, which must not turn into a button.
     'full_code': code,
+    // Absent unless a command asks for it: an older server sends no such field,
+    // and that absence is what the rest of these faults are testing.
+    'description': ?description,
   };
   _hmsErrors = [
     if (add)
@@ -303,7 +360,13 @@ void _set(String state, int progress) {
   _layer = null;
   _stage = state == 'RUNNING' ? 0 : -1;
   _printName = _finishedPrintName;
-  if (state == 'FINISH' || state == 'FAILED') _completedAt = DateTime.now();
+  if (state == 'FINISH' || state == 'FAILED') {
+    _completedAt = DateTime.now();
+    // Any terminal status may have left material on the bed, so the real server
+    // raises the gate for all of them — `finish`, then `off`, is the sequence
+    // Auto Power Off produces on its own.
+    _awaitingPlateClear = true;
+  }
   _broadcastStatus();
   stdout.writeln('  printer → $state $progress%');
 }
@@ -402,8 +465,15 @@ Map<String, Object?> _archive() => {
 Map<String, Object?> _statusData() => {
   'name': 'X1C (atrapa)',
   'model': 'X1C',
-  'state': _state,
-  'connected': true,
+  // The real route builds the status of a printer it holds no client for from
+  // the schema alone: `connected` false, `state` null, and (since #2864) the
+  // gate as it really stands.
+  'state': _connected ? _state : null,
+  'connected': _connected,
+  // A pre-#2864 server had no truthful value to report for a printer it held no
+  // client for, and sent the schema default instead.
+  'awaiting_plate_clear':
+      _awaitingPlateClear && !(_legacyPlateGate && !_connected),
   'progress': _progress,
   'current_print': _printName,
   'layer_num': _layer ?? (_progress * 2.4).round(),
@@ -449,6 +519,35 @@ Future<void> _serve(HttpServer server) async {
     }
     if (path == '/api/v1/printers/$_printerId/status') {
       await _json(request, {'id': _printerId, ..._statusData()});
+      continue;
+    }
+    // What gates the banner and the pre-start confirmation app-side; without it
+    // the app treats the whole feature as switched off on the server.
+    if (path == '/api/v1/settings') {
+      await _json(request, {'require_plate_clear': true});
+      continue;
+    }
+    if (path == '/api/v1/printers/$_printerId/clear-plate') {
+      if (!_awaitingPlateClear) {
+        // The real route's own refusal: it only takes the acknowledgement from a
+        // printer that is waiting for one, whatever its connection state.
+        stdout.writeln('  → 400: printer is not awaiting plate-clear');
+        request.response.statusCode = HttpStatus.badRequest;
+        await _json(request, const {
+          'detail': 'Printer is not awaiting plate-clear acknowledgment '
+              '(state=unknown)',
+        });
+        continue;
+      }
+      _awaitingPlateClear = false;
+      stdout.writeln('  plate-clear gate down');
+      // Only a printer with a live client gets a frame — `_broadcast_status_change`
+      // returns early without one, which is why the app drops the gate locally.
+      if (_connected) _broadcastStatus();
+      await _json(request, const {
+        'success': true,
+        'message': 'Plate cleared, next print will start shortly',
+      });
       continue;
     }
     if (path == '/api/v1/printers/$_printerId/hms/clear') {

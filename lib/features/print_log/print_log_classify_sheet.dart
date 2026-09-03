@@ -16,6 +16,7 @@ import '../common/dash_input.dart';
 import '../common/print_run_labels.dart';
 import '../stats/stats_common.dart' show fmtGrams, fmtNum;
 import 'print_log_providers.dart';
+import '../common/dash_progress.dart';
 
 /// Editor for one run's classification — the failure cause, and the status it
 /// is counted under.
@@ -315,11 +316,7 @@ class _PrintLogClassifySheetState
                   FilledButton(
                     onPressed: _changed && !_saving ? _save : null,
                     child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const DashSpinner()
                         : Text(l10n.printLogSave),
                   ),
                 ),

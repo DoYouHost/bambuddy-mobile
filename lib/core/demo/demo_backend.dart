@@ -1,9 +1,22 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'demo_config.dart';
 
 /// Result of a routed demo request: HTTP status + JSON-encodable body.
 typedef DemoResult = ({int status, Object? body});
+
+/// A response that is a file rather than a document.
+///
+/// Carried as the result's `body` so every other route keeps its two-field
+/// shape; `DemoHttpClientAdapter` serves this one as bytes with its own content
+/// type instead of JSON-encoding it.
+class DemoFile {
+  const DemoFile(this.bytes, this.contentType);
+
+  final Uint8List bytes;
+  final String contentType;
+}
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -167,6 +180,8 @@ class DemoBackend {
 
   DemoResult _ok(Object? body) => (status: 200, body: body);
   DemoResult _notFound() => (status: 404, body: {'detail': 'Not Found'});
+  DemoResult _file(Uint8List bytes, String contentType) =>
+      (status: 200, body: DemoFile(bytes, contentType));
   DemoResult _fallback(String method) =>
       method == 'GET' ? _notFound() : _ok(const <String, dynamic>{});
 
@@ -290,6 +305,22 @@ class DemoBackend {
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
           if (s.length == 3 && m == 'GET') return _ok(_printerFiles(q['path'] ?? '/'));
+          // Downloading is the one printer-file action with something to hand
+          // back, so demo mode serves it rather than falling through: without
+          // this a tap answered 404 for a single file and, because the fallback
+          // says yes to a POST, handed the ZIP button two bytes of JSON.
+          if (s.length == 4 && at(3, 'download') && m == 'GET') {
+            final path = q['path'] ?? '';
+            if (path.isEmpty) return _notFound();
+            return _file(_printerFileBytes(path), _demoContentType(path));
+          }
+          if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
+            final paths = (body['paths'] as List?)?.whereType<String>().toList();
+            if (paths == null || paths.isEmpty) {
+              return (status: 400, body: {'detail': 'No files specified'});
+            }
+            return _file(_emptyZip(), 'application/zip');
+          }
           return _fallback(m);
         }
         if (at(2, 'storage')) {
@@ -951,6 +982,50 @@ class DemoBackend {
 
   // --- Printer files (on-device storage) ---
 
+  /// Filler standing in for a printer's file: the same size the listing claims,
+  /// capped so a demo download stays a download rather than a memory test.
+  ///
+  /// Deliberately not a real 3MF. Demo mode fabricates the whole dataset, and
+  /// what this exercises is the transfer — the progress it reports, the save
+  /// dialog it ends in — not the contents, which no demo screen opens.
+  Uint8List _printerFileBytes(String path) {
+    const cap = 2 * 1024 * 1024;
+    final listed = _listedSize(path);
+    final size = listed <= 0 ? 64 * 1024 : (listed > cap ? cap : listed);
+    // A repeating pattern rather than zeroes, so a saved file is recognisably
+    // this and not an empty allocation.
+    return Uint8List.fromList(
+      List<int>.generate(size, (i) => 0x30 + (i % 10)),
+    );
+  }
+
+  /// Size the listing gives [path], or 0 when nothing lists it.
+  int _listedSize(String path) {
+    final parent = path.contains('/')
+        ? path.substring(0, path.lastIndexOf('/'))
+        : '';
+    final listing = _printerFiles(parent.isEmpty ? '/' : parent);
+    final files = (listing as Map)['files'] as List;
+    for (final file in files.whereType<Map>()) {
+      if (file['path'] == path) return (file['size'] as int?) ?? 0;
+    }
+    return 0;
+  }
+
+  /// The 22 bytes of an empty ZIP — a valid archive every tool opens, which is
+  /// the honest answer for a bundle of files that do not exist.
+  Uint8List _emptyZip() => Uint8List.fromList([
+        0x50, 0x4B, 0x05, 0x06, // end-of-central-directory signature
+        ...List<int>.filled(18, 0),
+      ]);
+
+  String _demoContentType(String path) {
+    final name = path.toLowerCase();
+    if (name.endsWith('.3mf')) return 'model/3mf';
+    if (name.endsWith('.gcode')) return 'text/x.gcode';
+    return 'application/octet-stream';
+  }
+
   Object _printerFiles(String path) {
     final files = switch (path) {
       '/' => [
@@ -1306,6 +1381,7 @@ class DemoBackend {
       double? cost,
       double? energyKwh,
       int quantity = 1,
+      int? plateId,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -1325,6 +1401,7 @@ class DemoBackend {
         'duplicate_sequence': 0,
         'object_count': quantity,
         'print_name': name,
+        'plate_id': plateId,
         'print_time_seconds': estSec,
         'actual_time_seconds': actualSec,
         'time_accuracy':
@@ -1361,7 +1438,11 @@ class DemoBackend {
     }
 
     return [
-      a('Drawer organizer x4', 1, 1, estSec: 5400, grams: 96.2, color: '#000000'),
+      // The one multi-plate print in the demo: without it the plate line on the
+      // detail sheet and the plate picker in the print form have nothing to
+      // stand on, and both are part of what the demo is showing off.
+      a('Drawer organizer x4', 1, 1,
+          estSec: 5400, grams: 96.2, color: '#000000', plateId: 2),
       a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
       a('Raspberry Pi 5 case', 2, 3,
           estSec: 7920, grams: 48.4, type: 'PETG', color: '#FFFFFF'),
@@ -1707,10 +1788,47 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'filament-requirements') {
           return _ok(const {'filaments': <Object>[]});
         }
+        if (s.length >= 3 && s[2] == 'plates') {
+          return _ok(_demoPlates(archive));
+        }
         if (s.length == 2 && m == 'GET') return _ok(archive);
       }
     }
     return _fallback(m);
+  }
+
+  /// Plates of a demo archive. Three for the one print that carries a
+  /// `plate_id`, one for everything else — a single-plate answer is what the
+  /// picker reads as "nothing to choose", which is the state most prints are in.
+  Map<String, dynamic> _demoPlates(Map<String, dynamic> archive) {
+    final multi = archive['plate_id'] != null;
+    final grams = (archive['filament_used_grams'] as num).toDouble();
+    final seconds = archive['print_time_seconds'] as int;
+    final count = multi ? 3 : 1;
+    return {
+      'archive_id': archive['id'],
+      'filename': archive['filename'],
+      'plates': [
+        for (var i = 1; i <= count; i++)
+          {
+            'index': i,
+            'name': null,
+            'objects': <String>[],
+            'object_count': i,
+            'has_thumbnail': false,
+            'thumbnail_url': null,
+            'print_time_seconds': (seconds / count).round(),
+            'filament_used_grams': _r1(grams / count),
+            'filaments': <Object>[],
+            'bed_type': archive['bed_type'],
+          },
+      ],
+      'is_multi_plate': multi,
+      'has_gcode': true,
+      'embedded_printer': null,
+      'embedded_process': null,
+      'design_overrides': <Object>[],
+    };
   }
 
   List<Map<String, dynamic>> _pageArchives(Map<String, String> q) {

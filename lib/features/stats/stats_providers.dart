@@ -146,10 +146,28 @@ class StatsNotifier extends AutoDisposeAsyncNotifier<ArchiveStats> {
 
 /// Map `printer_id → name` to label "by printer" breakdown. Config only
 /// (no statuses) — cheap. Missing entry → UI shows `#id`.
+///
+/// Two sources, live printers last so a rename shows up immediately. Underneath
+/// them sit the names `/archives/stats` recorded per run, which cover an id the
+/// live list does not: a key that may read archives but not `/printers` sees
+/// every bar labelled `#id` without them. They do **not** bring back a deleted
+/// printer's bars — the breakdown is aggregated from `/archives/slim`, and
+/// deleting a printer either deletes its archives or clears their `printer_id`,
+/// so those runs are not in the aggregate to label. A server that does not send
+/// `printer_names` leaves that layer empty and the map is what it always was.
 final printerNamesProvider = FutureProvider.autoDispose<Map<int, String>>(
   (ref) async {
+    final recorded = ref.watch(statsProvider).valueOrNull?.printerNames;
     final printers = await ref.watch(printersRepositoryProvider).fetchPrinters();
-    return {for (final p in printers) p.id: p.name};
+    final names = <int, String>{};
+    for (final entry in (recorded ?? const <String, String>{}).entries) {
+      final id = int.tryParse(entry.key);
+      if (id != null) names[id] = entry.value;
+    }
+    for (final printer in printers) {
+      names[printer.id] = printer.name;
+    }
+    return names;
   },
 );
 

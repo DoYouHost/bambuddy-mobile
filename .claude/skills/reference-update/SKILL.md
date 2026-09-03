@@ -115,6 +115,14 @@ whether we want it at all.
 a migration that shifts stored numbers, a limit — the things that explain a
 future bug report. No checkbox: these are not work.
 
+"Nothing to do" is a claim about **our** call sites, so every line here names
+where our code gets that data: the constant in `endpoints.dart`, or the model
+field, or the fact that we call none of that file's routes — which `facts.md`
+states outright. A line that says "the app never did this itself" without a
+citation is how a server-side plug ranking got filed as harmless while
+`smart_plugs_providers.dart:46` was still picking the first visible plug and
+`endpoints.dart` had never heard of `/smart-plugs/by-printer/{id}`.
+
 **`## Questions`** — one sentence each, for what is not yours to decide.
 
 An empty section keeps its heading and says `- none`.
@@ -130,6 +138,9 @@ Where each kind of finding comes from in `facts.md`:
 | fields added, key read nowhere | Cheap win or Feature |
 | routes added | Cheap win if one call, Feature if a screen |
 | route bodies → functions added | read the diff: ranking and gating changes hide here |
+| route bodies → **we call routes in this file** | decides Watch only from real work — this file serves our traffic |
+| route bodies → permissions named on changed lines | what an API key may now do; check the scope map in the diff |
+| CHANGELOG entries with no footprint above | Watch only or Cheap win — see the rule below |
 
 The report carries the same sections and the same one-line entries, plus
 **Struck off**.
@@ -158,9 +169,14 @@ The report carries the same sections and the same one-line entries, plus
 - **`dev` is the only baseline.** Work sitting on an unmerged feature branch
   counts as not done. That is deliberate: it repeats an item you are mid-way
   through rather than hiding one that was abandoned.
-- **The CHANGELOG is a claim.** The server's author explains each change at
-  length and is usually right, but the diff is the evidence. Check anything you
-  put on the list.
+- **The CHANGELOG is a claim, and it is also the only place some changes
+  exist.** A response that keeps its shape and changes its meaning — a field
+  that starts being populated, a flag that survives a disconnect, a listing that
+  now reports why it is empty — leaves no trace in routes, fields, gates or
+  status codes. Read the CHANGELOG section of `facts.md` for entries that match
+  nothing above it, and file those too. Everything you take from it still needs
+  the diff as evidence: the author is usually right, and the diff is what
+  proves it.
 - **What is not yours to decide gets `(needs a decision)`** and nothing more: a
   limit, cap, timeout or threshold; anything that cannot be built so an older
   server still works (see [CLAUDE.md](../../../CLAUDE.md)); anything that is a

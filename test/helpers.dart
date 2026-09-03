@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
+import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
@@ -11,12 +12,29 @@ import 'package:bambuddy_mobile/features/maintenance/maintenance_providers.dart'
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/wear/wear_shape.dart';
+import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
+
+/// Hands the app a temporary directory the test owns, so whatever a download
+/// leaves in the cache can be listed afterwards.
+///
+/// Assign it to `PathProviderPlatform.instance` in `setUp` and delete the
+/// directory in `tearDown`; there is nothing to restore, the app reads the
+/// instance on every call.
+class TempDirProvider extends PathProviderPlatform {
+  TempDirProvider(this.path);
+
+  final String path;
+
+  @override
+  Future<String?> getTemporaryPath() async => path;
+}
 
 /// Inert firmware for widget tests: the printer card reads firmware while it
 /// renders and the tests do not assert on it — null keeps the fetch off the
@@ -313,4 +331,124 @@ class InMemoryCredentialsStore implements CredentialsStore {
     username = null;
     password = null;
   }
+}
+
+/// The host every test that needs a server talks to. Shared so a Dio adapter
+/// and the profile a screen reads cannot drift apart.
+const fakeServerBaseUrl = 'http://s.local:8000';
+
+/// `serverProfileProvider` answering with [profile], or with "nothing
+/// configured yet" when it is null.
+///
+/// One factory rather than a `_FakeProfileNotifier` per test file: there were 26
+/// of those. Twelve were byte-identical `build() => null`, and every one of the
+/// rest but the watch's settings screen pointed at [fakeServerBaseUrl] and
+/// differed only in the auth mode.
+///
+/// The two left with their own are the two that need one: `current_user_provider`
+/// drives the profile by hand mid-test, and the watch's settings screen overrides
+/// `clear()` to record that it was called.
+Override serverProfileOverride([ServerProfile? profile]) =>
+    serverProfileProvider.overrideWith(() => _FixedServerProfile(profile));
+
+/// No server configured, so nothing can be fetched — what a test that only
+/// renders a screen wants.
+///
+/// Not optional in a widget test that renders anything reading the profile:
+/// building the API client without one throws `UnimplementedError`, the widget
+/// becomes an unbounded `ErrorWidget`, and the 100000 px overflow that follows
+/// buries whatever the test was actually about.
+final noServerProfileOverride = serverProfileOverride();
+
+/// The fake server, reached over [authMode]. The mode is not decoration: screens
+/// hide admin-only routes for an API key, and the auth interceptors differ.
+Override fakeServerProfileOverride({AuthMode authMode = AuthMode.none}) =>
+    serverProfileOverride(
+      ServerProfile(baseUrl: fakeServerBaseUrl, authMode: authMode),
+    );
+
+class _FixedServerProfile extends ServerProfileNotifier {
+  _FixedServerProfile(this._profile);
+
+  final ServerProfile? _profile;
+
+  @override
+  ServerProfile? build() => _profile;
+}
+
+/// The watch's other side, faked: a fixed [fleet] for every poll, a log of every
+/// command that went through, and optionally one [error] thrown by all of it.
+///
+/// One fake rather than one per test file, the same reasoning as
+/// [FakeWatchConfigSync]: four of them had grown — the two screen tests each
+/// recording its own third of the API in its own string format, the transport
+/// test using it as a stand-in for a whole leg of [HybridWearTransport].
+///
+/// Every method is implemented and logged as `name` / `name:printerId`, using
+/// the real method names, so a stray command shows up in [calls] instead of
+/// vanishing into a `noSuchMethod` that only throws for the routes one test
+/// happened to think of. Assert the whole list, not a `contains`, and that
+/// property holds.
+class FakeWearTransport implements WearTransport {
+  FakeWearTransport({this.fleet = const WearFleet(printers: []), this.error});
+
+  /// What every `getFleet` answers.
+  final WearFleet fleet;
+
+  /// Thrown by every call when set — the phone refusing, or out of reach.
+  final Exception? error;
+
+  /// Every call in order, oldest first — [getFleet] included, which is what the
+  /// transport's own tests are about.
+  final List<String> calls = [];
+
+  /// The commands only, without the fleet polls a screen runs on mount and
+  /// again after every action. This is what a screen test means by "what did
+  /// the watch send", and it still shows a stray command rather than swallowing
+  /// it.
+  List<String> get commands => [
+        for (final call in calls)
+          if (call != 'getFleet') call,
+      ];
+
+  Future<T> _log<T>(String call, T value) {
+    calls.add(call);
+    final e = error;
+    if (e != null) throw e;
+    return Future.value(value);
+  }
+
+  @override
+  Future<WearFleet> getFleet() => _log('getFleet', fleet);
+
+  @override
+  Future<void> pause(int printerId) => _log('pause:$printerId', null);
+
+  @override
+  Future<void> resume(int printerId) => _log('resume:$printerId', null);
+
+  @override
+  Future<void> stop(int printerId) => _log('stop:$printerId', null);
+
+  @override
+  Future<void> clearPlate(int printerId) => _log('clearPlate:$printerId', null);
+
+  @override
+  Future<void> startNext(int printerId) => _log('startNext:$printerId', null);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _log('clearHmsErrors:$printerId', null);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _log(
+        'executeHmsAction:$printerId:$printError:$action:${jobId ?? ''}',
+        null,
+      );
 }

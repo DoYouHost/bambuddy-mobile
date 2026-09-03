@@ -19,6 +19,7 @@ import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/files/file_manager_screen.dart';
 import 'features/files/trash_screen.dart';
+import 'features/gcode/gcode_viewer_route.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
@@ -213,8 +214,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // G-code viewer (WebView) — full screen outside shell. Source in query:
       // `archive` or `library_file` (+ optionally `plate`); `name` sets title.
+      // Links to it are built by `gcodeViewerRoute`, which owns these names.
       GoRoute(
-        path: '/gcode-viewer',
+        path: gcodeViewerPath,
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return GcodeViewerScreen(
