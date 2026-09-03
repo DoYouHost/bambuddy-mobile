@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
@@ -711,14 +712,14 @@ class _BomItemDialogState extends State<BomItemDialog> {
             onPressed: () {
               if (_name.text.trim().isEmpty) return;
               final item = widget.item;
-              final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+              final price = parseUserDecimal(_price.text);
               final url = _url.text.trim();
               final remarks = _remarks.text.trim();
               Navigator.pop(
                 context,
                 BomItemInput(
                   name: _name.text.trim(),
-                  quantityNeeded: int.tryParse(_needed.text.trim()),
+                  quantityNeeded: parseUserInt(_needed.text),
                   unitPrice: price,
                   // Editing an existing value down to empty must actively clear
                   // it server-side (see [BomItemInput]) — a fresh item has

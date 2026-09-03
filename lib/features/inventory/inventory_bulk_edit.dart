@@ -85,7 +85,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
         rgba: normalizeRgba(_c['rgba']!.text),
         labelWeight: _int('labelWeight'),
         coreWeight: _int('coreWeight'),
-        costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
+        costPerKg: parseUserDecimal(_c['costPerKg']!.text),
         category: _trim('category'),
         // The range is enforced by the field's validator, which runs before
         // this is ever built; the clamp is the backstop that keeps a 422 out
@@ -303,7 +303,7 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
           validator: (v) {
             final text = (v ?? '').trim();
             if (!number || text.isEmpty) return null;
-            final value = double.tryParse(text);
+            final value = parseUserDecimal(text);
             if (value == null) return l10n.inventoryFieldInvalidNumber;
             if (min != null && max != null && (value < min || value > max)) {
               return l10n.inventoryFieldRange(min, max);

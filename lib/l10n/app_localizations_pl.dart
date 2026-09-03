@@ -760,6 +760,11 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
+  String archivePlateDetail(int plate) {
     return 'Płyta $plate z pliku wielopłytowego';
   }
 
@@ -771,6 +776,55 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get archivePhotoFailed => 'Nie udało się wczytać tego zdjęcia.';
+
+  @override
+  String get archiveFilamentUsed => 'Zużycie filamentu';
+
+  @override
+  String archiveFilamentGrams(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String archiveFilamentActual(String grams, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zużyto $grams w $count przebiegach',
+      many: 'Zużyto $grams w $count przebiegach',
+      few: 'Zużyto $grams w $count przebiegach',
+      one: 'Zużyto $grams',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveFilamentNoActual => 'Bez zapisanego zużycia';
+
+  @override
+  String get archiveFilamentSaving => 'Zapisywanie';
+
+  @override
+  String get archiveFilamentNone => 'Nie zapisano';
+
+  @override
+  String get archiveFilamentLabel => 'Masa (g)';
+
+  @override
+  String get archiveFilamentNotANumber =>
+      'Podaj liczbę albo zostaw puste, żeby wyczyścić masę.';
+
+  @override
+  String archiveFilamentOutOfRange(String max) {
+    return 'Masa od 0 do $max g.';
+  }
+
+  @override
+  String get archiveFilamentSaved => 'Zapisano masę filamentu';
+
+  @override
+  String get archiveFilamentUnsupported =>
+      'Ten serwer nie zapisuje jeszcze ręcznie podanej masy filamentu. Zaktualizuj bambuddy.';
 
   @override
   String get archiveHasTimelapse => 'Ma timelapse';

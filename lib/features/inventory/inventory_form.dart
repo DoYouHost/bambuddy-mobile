@@ -95,9 +95,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// This ensures save (weight_used = label − remaining) actually changes spool state —
   /// without it, the reading alone wouldn't update anything.
   void _applyScaleWeight(String raw) {
-    final measured = double.tryParse(raw.trim());
+    final measured = parseUserDecimal(raw);
     if (measured == null) return;
-    final core = double.tryParse(_c['coreWeight']!.text.trim()) ?? 0;
+    final core = parseUserDecimal(_c['coreWeight']!.text) ?? 0;
     final remaining = (measured - core).clamp(0, double.infinity);
     // No setState needed: the bound TextFormField already rebuilds itself
     // from its controller's own listener when `.text` changes programmatically.
@@ -127,7 +127,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     // Server requires low-stock threshold in range 1..99 (outside = 422).
     final lowStock = _parseIntField('lowStock')?.clamp(1, 99);
     final label = _parseIntField('labelWeight');
-    final remaining = double.tryParse(_c['remaining']!.text.trim());
+    final remaining = parseUserDecimal(_c['remaining']!.text);
     // Remaining weight controls usage: weight_used = label − remaining.
     double? used;
     if (remaining != null && label != null) {
@@ -148,7 +148,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
       coreWeight: _parseIntField('coreWeight'),
       coreWeightCatalogId: _coreWeightCatalogId,
       lastScaleWeight: _parseIntField('measured'),
-      costPerKg: double.tryParse(_c['costPerKg']!.text.trim()),
+      costPerKg: parseUserDecimal(_c['costPerKg']!.text),
       category: _trim('category'),
       lowStockThresholdPct: lowStock,
       storageLocation: _trim('location'),
@@ -284,7 +284,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ValueListenableBuilder(
               valueListenable: _c['labelWeight']!,
               builder: (context, _, _) {
-                final labelInt = int.tryParse(_c['labelWeight']!.text.trim());
+                final labelInt = parseUserRoundedInt(_c['labelWeight']!.text);
                 return _field(
                   'remaining',
                   l10n.inventoryFieldRemainingWeight,
@@ -715,7 +715,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
           validator: (v) {
             final text = (v ?? '').trim();
             if (!number || text.isEmpty) return null;
-            final value = double.tryParse(text);
+            final value = parseUserDecimal(text);
             if (value == null) return l10n.inventoryFieldInvalidNumber;
             // Same floor as the bulk sheet: the server takes a negative core
             // weight without a word and every remaining-weight sum built on it
@@ -746,12 +746,11 @@ String? _trimmedField(Map<String, TextEditingController> c, String key) {
   return v.isEmpty ? null : v;
 }
 
-/// An integer-typed field parsed with the same tolerance as its validator
-/// (`double.tryParse`) — a plain `int.tryParse` would silently drop a value
-/// like "1000.5" (passes validation as a valid number, but is not a valid
-/// int), sending `null` instead of a rounded weight.
+/// An integer-typed field, parsed with the same tolerance as its validator:
+/// every numeric field on both sheets is validated as a decimal, so a decimal
+/// has to round here rather than come out null — see [parseUserRoundedInt].
 int? _intField(Map<String, TextEditingController> c, String key) =>
-    double.tryParse(c[key]!.text.trim())?.round();
+    parseUserRoundedInt(c[key]!.text);
 
 
 /// Color picker: large preview + popular swatches from database + search.

@@ -6,6 +6,7 @@ import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/available_filament.dart';
 import '../../core/models/calibration_option.dart';
 import '../../core/models/filament_requirement.dart';
@@ -1119,7 +1120,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
     if (_preheatOverride == 'off') return null;
     // `read`: this one runs from the save button, outside a build.
     final max = _ceiling(ref.read(chamberMaxTargetProvider));
-    return int.tryParse(_chamberTarget.text.trim())?.clamp(0, max);
+    return parseUserInt(_chamberTarget.text)?.clamp(0, max);
   }
 
   /// A calibration option for the PATCH body, or `null` to leave the key out.

@@ -29,6 +29,8 @@ class Archive {
     this.photos = const [],
     this.printTimeSeconds,
     this.filamentUsedGrams,
+    this.totalFilamentActualGrams,
+    this.runCount = 0,
     this.filamentType,
     this.filamentColor,
     this.cost,
@@ -97,7 +99,29 @@ class Archive {
   final int? printTimeSeconds;
 
   /// Filament used in grams.
+  ///
+  /// The archive's own figure: the slicer's estimate read out of the 3MF, or
+  /// what a user typed to correct it. Not what any run measured — that is
+  /// [totalFilamentActualGrams].
   final double? filamentUsedGrams;
+
+  /// What the runs of this file actually used, summed over all of them
+  /// (`_load_run_aggregates`). Per run that is the tracked spool delta where
+  /// the slots were mapped to inventory, the slicer estimate for a completed
+  /// print without tracking, and estimate x progress for one that stopped
+  /// partway.
+  ///
+  /// Null on a server older than the aggregate, **and** whenever the sum comes
+  /// to zero: the route answers `float(total) if total else None`, so "the runs
+  /// used nothing" and "no figure" arrive as the same value. [runCount] is what
+  /// separates them — runs that exist and summed to null recorded no filament,
+  /// which is what a print cancelled before its first layer looks like.
+  final double? totalFilamentActualGrams;
+
+  /// How many runs of this file the print log holds. Zero both for a file that
+  /// was never printed and on a server that does not send the aggregate.
+  @JsonKey(defaultValue: 0)
+  final int runCount;
 
   /// Filament type (e.g. "PETG", "PLA").
   final String? filamentType;

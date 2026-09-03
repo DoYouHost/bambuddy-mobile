@@ -81,6 +81,48 @@ class ArchiveRepository {
         return Archive.fromJson(res.data ?? const {});
       });
 
+  /// PATCH /archives/{id} — write the filament weight this print is recorded
+  /// with, or clear it with a null.
+  ///
+  /// The one archive figure the app lets a user type. A print that archived
+  /// without its 3MF has no weight at all and nothing can supply one after the
+  /// fact — a rescan needs the file this archive does not have — so the server
+  /// made the column editable and mirrors the new value onto the run's log
+  /// entry, which is what the filament totals actually sum.
+  ///
+  /// Sent as an explicit null rather than omitted when clearing: the server
+  /// applies `exclude_unset`, so a key that is *present* and null is what wipes
+  /// the column, while an absent key means "leave it alone".
+  ///
+  /// **`applied` is the whole point.** A server older than the one that added
+  /// the field still has the route and still answers 200 — its request model
+  /// simply drops a key it cannot name — so the status code says nothing about
+  /// whether anything was stored. The response carries the archive as it now
+  /// is, so the value that comes back either is the one that went out or the
+  /// server threw it away.
+  Future<({Archive archive, bool applied})> setFilamentGrams(
+    int archiveId,
+    double? grams,
+  ) async {
+    try {
+      final res = await _dio.patch<Map<String, dynamic>>(
+        Endpoints.archive(archiveId),
+        data: <String, dynamic>{'filament_used_grams': grams},
+      );
+      final archive = Archive.fromJson(res.data ?? const {});
+      return (
+        archive: archive,
+        applied: sameFilamentGrams(archive.filamentUsedGrams, grams),
+      );
+    } on DioException catch (e) {
+      // The server bounds the column (0..100 kg) and answers 422 with which
+      // bound was crossed. The field checks the same range before sending, so
+      // getting here means the two lists drifted — and then its sentence is
+      // worth more than ours.
+      throw mapDioExceptionKeepingDetail(e);
+    }
+  }
+
   /// DELETE /archives/{id} — delete a print from the archive. Soft-delete by
   /// default; [purgeStats] sends `?purge_stats=true` to also remove the print
   /// from aggregate statistics.
@@ -155,3 +197,15 @@ class ArchiveRepository {
         return toInt(res.data?['deleted']);
       });
 }
+
+/// Whether the weight that came back is the one that was sent.
+///
+/// Compared with a tolerance rather than by `==`: the figure makes a round trip
+/// through JSON and a float column, and a thousandth of a gram of drift is the
+/// same weight — while no edit worth reporting as saved moves it by less than
+/// that. Only used to tell "stored" from "an older server dropped the key",
+/// which are a whole typed number apart.
+bool sameFilamentGrams(double? stored, double? sent) =>
+    stored == null || sent == null
+        ? stored == sent
+        : (stored - sent).abs() < 0.001;

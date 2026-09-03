@@ -145,6 +145,30 @@ void main() {
     expect(fake.patch!.toNativeJson(), {'note': 'restocked'});
   });
 
+  // The decimal key of a Polish keyboard. The field used to refuse it outright:
+  // the validator called it "not a number" and the price never reached the
+  // patch — a rejection the user could do nothing about, since the comma is
+  // what the phone's own numeric layout puts there.
+  testWidgets('a comma is the decimal point the keyboard offers',
+      (tester) async {
+    final fake = await openSheet(tester);
+
+    await tester.enterText(
+      find.ancestor(
+        of: find.text(l10n.inventoryFieldCostPerKg),
+        matching: find.byType(TextFormField),
+      ),
+      '89,50',
+    );
+    await tester.pump();
+    await tester.tap(applyButton());
+    await settle(tester);
+    await tester.tap(find.text(l10n.inventoryApply));
+    await settle(tester);
+
+    expect(fake.patch!.toNativeJson(), {'cost_per_kg': 89.5});
+  });
+
   testWidgets('a number that is not a number blocks the whole edit',
       (tester) async {
     // Without the validator the field would be dropped from the patch and the

@@ -745,6 +745,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String archivePlate(int plate) {
+    return 'Plate $plate';
+  }
+
+  @override
+  String archivePlateDetail(int plate) {
     return 'Plate $plate of a multi-plate file';
   }
 
@@ -756,6 +761,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archivePhotoFailed => 'Couldn\'t load this photo.';
+
+  @override
+  String get archiveFilamentUsed => 'Filament used';
+
+  @override
+  String archiveFilamentGrams(String grams) {
+    return '$grams g';
+  }
+
+  @override
+  String archiveFilamentActual(String grams, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Used $grams over $count runs',
+      one: 'Used $grams',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveFilamentNoActual => 'No usage recorded';
+
+  @override
+  String get archiveFilamentSaving => 'Saving';
+
+  @override
+  String get archiveFilamentNone => 'Not recorded';
+
+  @override
+  String get archiveFilamentLabel => 'Weight (g)';
+
+  @override
+  String get archiveFilamentNotANumber =>
+      'Enter a number, or leave it empty to clear the weight.';
+
+  @override
+  String archiveFilamentOutOfRange(String max) {
+    return 'A weight between 0 and $max g.';
+  }
+
+  @override
+  String get archiveFilamentSaved => 'Filament weight saved';
+
+  @override
+  String get archiveFilamentUnsupported =>
+      'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.';
 
   @override
   String get archiveHasTimelapse => 'Has a timelapse';

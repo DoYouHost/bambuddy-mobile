@@ -5,6 +5,7 @@ import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/json_utils.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/dash_text.dart';
@@ -432,8 +433,8 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   }
 
   String? _emptyToNull(String s) => s.trim().isEmpty ? null : s.trim();
-  int? _intOrNull(String s) => int.tryParse(s.trim());
-  double? _doubleOrNull(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
+  int? _intOrNull(String s) => parseUserInt(s);
+  double? _doubleOrNull(String s) => parseUserDecimal(s);
 }
 
 /// Imperative entry: open the create form.

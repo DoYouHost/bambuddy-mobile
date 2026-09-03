@@ -1406,11 +1406,17 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
+  /// No description provided for @archivePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archivePlate(int plate);
+
   /// Line in the archive detail sheet: which plate of a multi-plate 3MF this run printed
   ///
   /// In en, this message translates to:
   /// **'Plate {plate} of a multi-plate file'**
-  String archivePlate(int plate);
+  String archivePlateDetail(int plate);
 
   /// No description provided for @archivePhotosTitle.
   ///
@@ -1429,6 +1435,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load this photo.'**
   String get archivePhotoFailed;
+
+  /// No description provided for @archiveFilamentUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament used'**
+  String get archiveFilamentUsed;
+
+  /// No description provided for @archiveFilamentGrams.
+  ///
+  /// In en, this message translates to:
+  /// **'{grams} g'**
+  String archiveFilamentGrams(String grams);
+
+  /// No description provided for @archiveFilamentActual.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Used {grams}} other{Used {grams} over {count} runs}}'**
+  String archiveFilamentActual(String grams, int count);
+
+  /// No description provided for @archiveFilamentNoActual.
+  ///
+  /// In en, this message translates to:
+  /// **'No usage recorded'**
+  String get archiveFilamentNoActual;
+
+  /// No description provided for @archiveFilamentSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving'**
+  String get archiveFilamentSaving;
+
+  /// No description provided for @archiveFilamentNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get archiveFilamentNone;
+
+  /// No description provided for @archiveFilamentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (g)'**
+  String get archiveFilamentLabel;
+
+  /// No description provided for @archiveFilamentNotANumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number, or leave it empty to clear the weight.'**
+  String get archiveFilamentNotANumber;
+
+  /// No description provided for @archiveFilamentOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'A weight between 0 and {max} g.'**
+  String archiveFilamentOutOfRange(String max);
+
+  /// No description provided for @archiveFilamentSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Filament weight saved'**
+  String get archiveFilamentSaved;
+
+  /// No description provided for @archiveFilamentUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This server doesn\'t store a typed-in filament weight yet. Update bambuddy.'**
+  String get archiveFilamentUnsupported;
 
   /// No description provided for @archiveHasTimelapse.
   ///

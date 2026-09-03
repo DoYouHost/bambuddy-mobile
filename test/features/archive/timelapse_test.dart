@@ -1,5 +1,4 @@
 import 'package:bambuddy_mobile/core/models/archive.dart';
-import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/archive/archive_screen.dart';
 import 'package:bambuddy_mobile/features/archive/timelapse_screen.dart';
 import 'package:flutter/material.dart';
@@ -11,14 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers.dart';
 
 /// Podaje listę archiwów bez dotykania repozytorium/sieci.
-class _FakeArchiveNotifier extends ArchiveNotifier {
-  _FakeArchiveNotifier(this._items);
-
-  final List<Archive> _items;
-
-  @override
-  Future<List<Archive>> build() async => _items;
-}
 
 Archive _archive({String? timelapsePath}) => Archive(
   id: 42,
@@ -30,7 +21,7 @@ Archive _archive({String? timelapsePath}) => Archive(
 
 Widget _archiveScreen(Archive archive) => ProviderScope(
   overrides: [
-    archiveProvider.overrideWith(() => _FakeArchiveNotifier([archive])),
+    archiveListOverride([archive]),
     sharedPreferencesProvider.overrideWithValue(_prefs),
     noServerProfileOverride,
   ],
