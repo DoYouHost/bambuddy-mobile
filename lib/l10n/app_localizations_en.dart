@@ -386,6 +386,88 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ctrlDryAutoIdle => 'Auto-drying when humidity is high.';
+
+  @override
+  String get ctrlDryAutoQueue => 'Auto-drying between queued prints.';
+
+  @override
+  String get ctrlDryAutoWhilePrinting => 'During prints, too.';
+
+  @override
+  String get ctrlDryStartWhen => 'Start time';
+
+  @override
+  String get ctrlDryStartNow => 'Now';
+
+  @override
+  String get ctrlDryStartAfter => 'Later';
+
+  @override
+  String get ctrlDryStartAt => 'At time';
+
+  @override
+  String get ctrlDryPickTime => 'Pick a time';
+
+  @override
+  String get ctrlDrySchedule => 'Schedule';
+
+  @override
+  String get ctrlDryScheduled => 'Drying scheduled';
+
+  @override
+  String get ctrlDryScheduleTimePast => 'Pick a time in the future';
+
+  @override
+  String ctrlDryScheduledFor(String time) {
+    return 'Drying at $time';
+  }
+
+  @override
+  String get ctrlDryScheduledAsap =>
+      'Drying scheduled, waiting for the printer';
+
+  @override
+  String get ctrlDryScheduleCancel => 'Cancel scheduled drying';
+
+  @override
+  String get ctrlDryScheduleDismiss => 'Dismiss';
+
+  @override
+  String ctrlDryScheduleFailed(String reason) {
+    return 'Scheduled drying failed: $reason';
+  }
+
+  @override
+  String get ctrlDryScheduleFailedUnknown => 'unknown error';
+
+  @override
+  String get ctrlDryWaitPower => 'Connect the AMS power adapter';
+
+  @override
+  String get ctrlDryWaitRetract => 'Retract the filament at the AMS outlet';
+
+  @override
+  String get ctrlDryWaitBlocked => 'The AMS cannot start drying right now';
+
+  @override
+  String get ctrlDryWaitAmsNotFound => 'Waiting for the AMS to be detected';
+
+  @override
+  String get ctrlDryWaitOffline => 'Waiting for the printer to come online';
+
+  @override
+  String get ctrlDryWaitBusy => 'Waiting for the printer to be free';
+
+  @override
+  String get ctrlDryWaitAlreadyDrying =>
+      'Waiting for the current cycle to finish';
+
+  @override
+  String get ctrlDryWaitInterrupted =>
+      'Interrupted, will restart when the printer is free';
+
+  @override
   String get ctrlMove => 'Move';
 
   @override

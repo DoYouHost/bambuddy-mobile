@@ -14,6 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
 import '../common/dash_snack.dart';
+import '../common/detached_flow.dart';
 import '../stats/stats_providers.dart';
 import 'archive_providers.dart';
 
@@ -212,17 +213,12 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
 
   Future<void> _edit() async {
     final l10n = AppLocalizations.of(context);
-    // Both of these outlive this widget on purpose. The sheet can be dismissed
-    // while the PATCH is in flight and the server stores the weight anyway:
-    // reaching for providers through `ref` afterwards would throw, so the list
-    // would keep the old figure until a manual refresh and the user would be
-    // told nothing at all. The container belongs to the app, and the messenger
-    // to the `MaterialApp` above the sheet, so both are still there to use.
-    final container = ProviderScope.containerOf(context, listen: false);
-    final messenger = ScaffoldMessenger.of(context);
-    final repository = container.read(archiveRepositoryProvider);
+    // The sheet can be dismissed while the PATCH is in flight and the server
+    // stores the weight anyway — see [detachFrom].
+    final (:providers, :messenger) = detachFrom(context);
+    final repository = providers.read(archiveRepositoryProvider);
     final archiveId = widget.archive.id;
-    final stored = _live(container.read(archiveProvider).valueOrNull);
+    final stored = _live(providers.read(archiveProvider).valueOrNull);
 
     final answer = await showDialog<({double? grams})>(
       context: context,
@@ -239,14 +235,14 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     if (mounted) setState(() => _saving = true);
     try {
       final result = await repository.setFilamentGrams(archiveId, answer.grams);
-      container.read(archiveProvider.notifier).replace(result.archive);
+      providers.read(archiveProvider.notifier).replace(result.archive);
       if (result.applied) {
         // The weight is an aggregate figure — the server mirrors it onto the
         // run's log entry, which is what the totals actually sum — and the tabs
         // are an `IndexedStack`, so the statistics screen behind this one stays
         // mounted with the figure it loaded. Nothing else would tell it.
-        container.invalidate(statsProvider);
-        container.invalidate(archiveSlimProvider);
+        providers.invalidate(statsProvider);
+        providers.invalidate(archiveSlimProvider);
       }
       messenger.snack(
         result.applied

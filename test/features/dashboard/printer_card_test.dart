@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
@@ -7,6 +8,7 @@ import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
+import 'package:bambuddy_mobile/core/models/scheduled_drying.dart';
 import 'package:bambuddy_mobile/core/models/smart_plug.dart';
 import 'package:bambuddy_mobile/core/notifications/hms_catalog.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
@@ -16,6 +18,7 @@ import 'package:bambuddy_mobile/core/api/action_outcome.dart';
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/data/scheduled_drying_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/camera/camera_view.dart';
 import 'package:bambuddy_mobile/features/dashboard/smart_plugs_providers.dart';
@@ -30,6 +33,7 @@ import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:bambuddy_mobile/router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -110,6 +114,16 @@ class _RecordingCommands implements PrinterCommandsRepository {
     String? jobId,
   }) async =>
       calls.add('action:$printerId:$printError:$action:${jobId ?? ''}');
+
+  @override
+  Future<void> startDrying(
+    int printerId, {
+    required int amsId,
+    required int temp,
+    required int duration,
+    String filament = '',
+  }) async =>
+      calls.add('startDrying:$printerId:$amsId:$temp:$duration:$filament');
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -212,6 +226,66 @@ class _RefusingInventory extends InventoryNotifier {
   @override
   Future<int?> createSpoolFromSlot(int printerId, int amsId, int trayId) async {
     throw failure;
+  }
+}
+
+/// Scheduled drying without a server: the listing a card reads, the schedules
+/// it writes, and the cancels it sends.
+///
+/// [supported] is what an older server answers by 404 and a current one by
+/// listing at all — the sheet's "later" modes hang off it, so both sides are
+/// staged rather than derived from a version.
+class _StubScheduledDrying extends ScheduledDryingRepository {
+  _StubScheduledDrying({List<ScheduledDrying> rows = const [], this.supported = true})
+      : rows = [...rows],
+        super(Dio());
+
+  final List<ScheduledDrying> rows;
+  final bool supported;
+
+  final List<ScheduledDrying> created = [];
+  final List<int> cancelled = [];
+  int listCalls = 0;
+
+  @override
+  Future<bool> supportsScheduling() async => supported;
+
+  @override
+  Future<List<ScheduledDrying>> list({int? printerId}) async {
+    listCalls++;
+    return [...rows];
+  }
+
+  @override
+  Future<ScheduledDrying> create({
+    required int printerId,
+    required int amsId,
+    required int temp,
+    required int durationHours,
+    String filament = '',
+    bool rotateTray = false,
+    DateTime? startAfter,
+  }) async {
+    final row = ScheduledDrying(
+      id: 100 + created.length,
+      printerId: printerId,
+      amsId: amsId,
+      temp: temp,
+      durationHours: durationHours,
+      filament: filament,
+      rotateTray: rotateTray,
+      status: 'pending',
+      startAfter: startAfter,
+    );
+    created.add(row);
+    rows.add(row);
+    return row;
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    cancelled.add(id);
+    rows.removeWhere((row) => row.id == id);
   }
 }
 
@@ -2362,6 +2436,549 @@ void main() {
 
       expect(find.text('OFFLINE'), findsOneWidget);
       expect(find.text('Płyta niewyczyszczona'), findsNothing);
+    });
+  });
+
+  group('scheduled drying', () {
+    /// A printer whose AMS 1 is an AMS 2 Pro — the module type is what decides
+    /// whether the dry chip, and with it the schedule, is offered at all.
+    PrinterWithStatus dryable({int dryTime = 0}) => PrinterWithStatus(
+          printer: const Printer(id: 3, name: 'X2D'),
+          status: PrinterStatus(
+            id: 3,
+            connected: true,
+            state: 'IDLE',
+            supportsDrying: true,
+            ams: [
+              AmsUnit(
+                id: 1,
+                humidity: 28,
+                temp: 24,
+                moduleType: 'n3f',
+                dryTime: dryTime,
+                trays: const [AmsTray(id: 0, trayType: 'PLA')],
+              ),
+            ],
+          ),
+        );
+
+    ScheduledDrying pending({
+      int id = 7,
+      int amsId = 1,
+      String status = 'pending',
+      DateTime? startAfter,
+      DryingWaitReason? waitingReason,
+      String? errorMessage,
+    }) =>
+        ScheduledDrying(
+          id: id,
+          printerId: 3,
+          amsId: amsId,
+          temp: 65,
+          durationHours: 8,
+          filament: 'PETG',
+          rotateTray: false,
+          status: status,
+          startAfter: startAfter,
+          waitingReason: waitingReason,
+          errorMessage: errorMessage,
+        );
+
+    Future<void> openDetails(WidgetTester tester) async {
+      await tester.tap(find.byWidgetPredicate((w) =>
+          w is Semantics && w.properties.identifier == 'printer.details_toggle'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> pumpCard(
+      WidgetTester tester,
+      _StubScheduledDrying repo, {
+      int dryTime = 0,
+    }) async {
+      await tester.pumpWidget(_cardWithProviders(
+        dryable(dryTime: dryTime),
+        extra: [scheduledDryingRepositoryProvider.overrideWithValue(repo)],
+      ));
+      await tester.pumpAndSettle();
+      await openDetails(tester);
+    }
+
+    testWidgets('a pending run says when it starts, under its AMS',
+        (tester) async {
+      final repo = _StubScheduledDrying(
+        rows: [pending(startAfter: DateTime(2026, 9, 4, 21, 30))],
+      );
+
+      await pumpCard(tester, repo);
+
+      // The instant itself is formatted by the shared date/time helper, whose
+      // 12/24-hour choice follows the device — so the assertion is on the
+      // sentence that says a time was named at all, not on its spelling.
+      expect(find.textContaining('Suszenie:'), findsOneWidget);
+      expect(find.text('Suszenie zaplanowane, czeka na drukarkę'), findsNothing);
+    });
+
+    testWidgets('a run with no time says it is waiting for the printer',
+        (tester) async {
+      final repo = _StubScheduledDrying(rows: [pending()]);
+
+      await pumpCard(tester, repo);
+
+      expect(find.text('Suszenie zaplanowane, czeka na drukarkę'),
+          findsOneWidget);
+    });
+
+    testWidgets('a due run explains what it is waiting for', (tester) async {
+      final repo = _StubScheduledDrying(rows: [
+        pending(waitingReason: DryingWaitReason.powerRequired),
+      ]);
+
+      await pumpCard(tester, repo);
+
+      expect(find.text('Podłącz zasilacz AMS'), findsOneWidget);
+    });
+
+    /// A reason added by a server newer than this build must not be printed at
+    /// the user as its wire identifier.
+    testWidgets('a reason this build cannot word is left unsaid',
+        (tester) async {
+      final repo = _StubScheduledDrying(rows: [
+        pending(waitingReason: DryingWaitReason.unknown),
+      ]);
+
+      await pumpCard(tester, repo);
+
+      expect(find.text('Suszenie zaplanowane, czeka na drukarkę'),
+          findsOneWidget);
+      expect(find.textContaining('unknown'), findsNothing);
+    });
+
+    testWidgets('a failed run says why, and offers to be dismissed',
+        (tester) async {
+      final repo = _StubScheduledDrying(rows: [
+        pending(status: 'failed', errorMessage: 'Firmware too old'),
+      ]);
+
+      await pumpCard(tester, repo);
+
+      expect(
+        find.text('Zaplanowane suszenie nie ruszyło: Firmware too old'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Odrzuć'));
+      await tester.pumpAndSettle();
+
+      expect(repo.cancelled, [7]);
+    });
+
+    testWidgets('a run for another AMS is not shown on this one',
+        (tester) async {
+      final repo = _StubScheduledDrying(rows: [pending(amsId: 0)]);
+
+      await pumpCard(tester, repo);
+
+      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+    });
+
+    testWidgets('cancelling a pending run drops it and re-reads the listing',
+        (tester) async {
+      final repo = _StubScheduledDrying(rows: [pending()]);
+
+      await pumpCard(tester, repo);
+      expect(repo.listCalls, 1);
+
+      await tester.tap(find.byTooltip('Anuluj zaplanowane suszenie'));
+      await tester.pumpAndSettle();
+
+      expect(repo.cancelled, [7]);
+      expect(repo.listCalls, 2);
+      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+    });
+
+    /// The live AMS reports a dispatched run long before anything else would
+    /// ask the server again; without the re-read the banner would go on
+    /// promising a run that is already going.
+    testWidgets('the AMS starting to dry re-reads the listing', (tester) async {
+      final repo = _StubScheduledDrying(rows: [pending()]);
+      final item = ValueNotifier(dryable());
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_scope(
+        Scaffold(
+          body: SingleChildScrollView(
+            child: ValueListenableBuilder<PrinterWithStatus>(
+              valueListenable: item,
+              builder: (_, it, _) =>
+                  PrinterCard(key: const ValueKey('card'), item: it),
+            ),
+          ),
+        ),
+        extra: [scheduledDryingRepositoryProvider.overrideWithValue(repo)],
+      ));
+      await tester.pumpAndSettle();
+      await openDetails(tester);
+      expect(repo.listCalls, 1);
+
+      repo.rows.clear(); // the scheduler picked it up
+      item.value = dryable(dryTime: 120);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(repo.listCalls, 2);
+      expect(find.textContaining('Suszenie zaplanowane'), findsNothing);
+    });
+
+    testWidgets('an older server offers the sheet without the later modes',
+        (tester) async {
+      final repo = _StubScheduledDrying(supported: false);
+
+      await pumpCard(tester, repo);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start'), findsOneWidget); // the immediate button
+      expect(find.text('Teraz'), findsNothing);
+      expect(find.text('Zaplanuj'), findsNothing);
+    });
+
+    testWidgets('a delay is measured from the moment the button is pressed',
+        (tester) async {
+      final repo = _StubScheduledDrying();
+      final at = DateTime(2026, 9, 3, 20);
+
+      await withClock(Clock.fixed(at), () async {
+        await pumpCard(tester, repo);
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Później'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('2h'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Zaplanuj'));
+        await tester.pumpAndSettle();
+      });
+
+      expect(repo.created, hasLength(1));
+      expect(repo.created.single.startAfter, at.add(const Duration(hours: 2)));
+      expect(repo.created.single.amsId, 1);
+      // The sheet's own filament/temperature pickers travel with it.
+      expect(repo.created.single.filament, 'PLA');
+      expect(repo.created.single.temp, 45);
+      expect(find.text('Suszenie zaplanowane'), findsOneWidget);
+    });
+
+    testWidgets('"at time" with nothing picked schedules nothing',
+        (tester) async {
+      final repo = _StubScheduledDrying();
+
+      await pumpCard(tester, repo);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('O godzinie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zaplanuj'));
+      await tester.pumpAndSettle();
+
+      expect(repo.created, isEmpty);
+      // The prompt, not a dryer that started immediately.
+      expect(find.text('Wybierz termin'), findsWidgets);
+    });
+
+    /// Opens the drying sheet on a card whose server answers [settings].
+    Future<void> pumpWithSettings(
+      WidgetTester tester,
+      Map<String, dynamic> settings,
+    ) async {
+      await tester.pumpWidget(_cardWithProviders(
+        dryable(),
+        extra: [
+          scheduledDryingRepositoryProvider
+              .overrideWithValue(_StubScheduledDrying()),
+          serverSettingsProvider.overrideWith((ref) async => settings),
+        ],
+      ));
+      await tester.pumpAndSettle();
+      await openDetails(tester);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+    }
+
+    /// The drying temperatures and durations are the server's, not a table
+    /// bundled with the app: a user who set PETG to 70 °C on the web must not
+    /// have the phone start — or schedule — a run at 65.
+    group('presets come from the server', () {
+      testWidgets('a configured table is what the sheet seeds from',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":60,"n3s":72,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        // The only filament the server knows is the one the sheet opens on.
+        expect(find.text('60°'), findsWidgets);
+        expect(find.text('8 godz'), findsWidgets);
+      });
+
+      /// The web's own drying popover caps the same way (`maxTemp` there is
+      /// 85 for an `n3s` and 65 otherwise), so a table configured for an AMS-HT
+      /// does not send an AMS 2 Pro a temperature it cannot hold.
+      testWidgets('a preset above what the module can hold is capped',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":70,"n3s":85,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        expect(find.text('65°'), findsWidgets);
+        expect(find.text('70°'), findsNothing);
+      });
+
+      testWidgets('a filament the server dropped is not offered',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'drying_presets': '{"PETG":{"n3f":70,"n3s":72,"n3f_hours":8,'
+              '"n3s_hours":6}}',
+        });
+
+        await tester.tap(find.byWidgetPredicate((w) =>
+            w is Semantics && w.properties.identifier == 'drying.filament'));
+        await tester.pumpAndSettle();
+
+        // Counted through the option tag rather than by text: the AMS row on
+        // the card behind the sheet shows its loaded spool's material too.
+        expect(
+          find.byWidgetPredicate((w) =>
+              w is Semantics &&
+              (w.properties.identifier ?? '')
+                  .startsWith('drying.filament_option')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('nothing configured falls back to the bundled table',
+          (tester) async {
+        await pumpWithSettings(tester, const {'drying_presets': ''});
+
+        // PLA on an AMS 2 Pro: 45 °C for 12 h, the server's own default.
+        expect(find.text('45°'), findsWidgets);
+        expect(find.text('12 godz'), findsWidgets);
+      });
+
+      testWidgets('settings that could not be read fall back too',
+          (tester) async {
+        await pumpWithSettings(tester, const {});
+
+        expect(find.text('45°'), findsWidgets);
+        expect(find.text('12 godz'), findsWidgets);
+      });
+
+      /// The scheduler dries with the same numbers, so a schedule built from a
+      /// stale table would be wrong in exactly the way this reads settings to
+      /// avoid.
+      testWidgets('a scheduled run carries the server\'s numbers',
+          (tester) async {
+        final repo = _StubScheduledDrying();
+        await tester.pumpWidget(_cardWithProviders(
+          dryable(),
+          extra: [
+            scheduledDryingRepositoryProvider.overrideWithValue(repo),
+            serverSettingsProvider.overrideWith((ref) async => const {
+                  'drying_presets': '{"PETG":{"n3f":60,"n3s":72,'
+                      '"n3f_hours":8,"n3s_hours":6}}',
+                }),
+          ],
+        ));
+        await tester.pumpAndSettle();
+        await openDetails(tester);
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Później'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Zaplanuj'));
+        await tester.pumpAndSettle();
+
+        expect(repo.created.single.temp, 60);
+        expect(repo.created.single.durationHours, 8);
+        expect(repo.created.single.filament, 'PETG');
+      });
+    });
+
+    /// The server can start a cycle nobody asked for. Saying so is all the app
+    /// does about it — the three settings behind it are `settings:update`,
+    /// which an API key can never hold.
+    group('the server dries by itself', () {
+      testWidgets('ambient drying is named', (tester) async {
+        await pumpWithSettings(tester, const {'ambient_drying_enabled': true});
+
+        expect(
+          find.text(
+              'Auto-suszenie przy wysokiej wilgotności.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('queue drying is named when ambient is off', (tester) async {
+        await pumpWithSettings(tester, const {'queue_drying_enabled': true});
+
+        expect(find.text('Auto-suszenie między wydrukami.'),
+            findsOneWidget);
+      });
+
+      /// Ambient covers the queue case, so naming both would say it twice.
+      testWidgets('both on says the wider of the two', (tester) async {
+        await pumpWithSettings(tester, const {
+          'ambient_drying_enabled': true,
+          'queue_drying_enabled': true,
+        });
+
+        expect(find.text('Auto-suszenie między wydrukami.'),
+            findsNothing);
+        expect(
+          find.text(
+              'Auto-suszenie przy wysokiej wilgotności.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('drying during a print is added to the sentence',
+          (tester) async {
+        await pumpWithSettings(tester, const {
+          'ambient_drying_enabled': true,
+          'print_drying_enabled': true,
+        });
+
+        expect(
+          find.text('Auto-suszenie przy wysokiej wilgotności. '
+              'Także w druku.'),
+          findsOneWidget,
+        );
+      });
+
+      /// On its own it only widens the two automations above it, so with both
+      /// off there is nothing happening to report.
+      testWidgets('drying during a print alone says nothing', (tester) async {
+        await pumpWithSettings(tester, const {'print_drying_enabled': true});
+
+        expect(find.textContaining('Auto-suszenie'), findsNothing);
+      });
+
+      testWidgets('a server that dries nothing by itself stays quiet',
+          (tester) async {
+        await pumpWithSettings(tester, const {});
+
+        expect(find.textContaining('Auto-suszenie'), findsNothing);
+      });
+    });
+
+    /// What a screen reader is told about the sheet, and what the diagnostic log
+    /// is told about the same widgets. They travel on one semantics tree, so a
+    /// change made for one is checked against the other here.
+    group('semantics', () {
+      Future<void> openSheet(WidgetTester tester) async {
+        await pumpCard(tester, _StubScheduledDrying());
+        await tester.tap(find.text('Suszenie'));
+        await tester.pumpAndSettle();
+      }
+
+      SemanticsNode node(WidgetTester tester, String id) => tester.getSemantics(
+            find.byWidgetPredicate(
+                (w) => w is Semantics && w.properties.identifier == id),
+          );
+
+      /// A `Semantics(identifier:)` forms a node *around* the control rather
+      /// than on it — the same shape `InteractionProbe` carries an id down
+      /// through — so a slider's spoken value sits one level below the tag.
+      String valueUnder(WidgetTester tester, String id) {
+        var found = '';
+        node(tester, id).visitChildren((child) {
+          if (child.value.isNotEmpty) found = child.value;
+          return found.isEmpty;
+        });
+        return found;
+      }
+
+      testWidgets('the temperature slider reads in degrees, not in percent',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(valueUnder(tester, 'drying.temp_slider'), '45°');
+        handle.dispose();
+      });
+
+      testWidgets('the duration slider reads in hours', (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(valueUnder(tester, 'drying.hours_slider'), '12 godz');
+        handle.dispose();
+      });
+
+      /// The chips say which option is current by their fill alone, so the flag
+      /// is the only thing a reader has to go on.
+      testWidgets('the chosen start mode is announced as selected',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        expect(node(tester, 'drying.start_mode.now').flagsCollection.isSelected,
+            Tristate.isTrue);
+        expect(
+            node(tester, 'drying.start_mode.delay').flagsCollection.isSelected,
+            Tristate.isFalse);
+
+        await tester.tap(find.text('Później'));
+        await tester.pumpAndSettle();
+
+        expect(node(tester, 'drying.start_mode.now').flagsCollection.isSelected,
+            Tristate.isFalse);
+        expect(
+            node(tester, 'drying.start_mode.delay').flagsCollection.isSelected,
+            Tristate.isTrue);
+        handle.dispose();
+      });
+
+      /// The flag rides on the node that takes the tap, so the identifier the
+      /// log resolves a press against has to still be on it.
+      testWidgets('a chip that announces its state is still named for the log',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await openSheet(tester);
+
+        final chip = node(tester, 'drying.start_mode.now');
+
+        expect(chip.identifier, 'drying.start_mode.now');
+        expect(
+          chip.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue,
+        );
+        handle.dispose();
+      });
+    });
+
+    testWidgets('Now still starts the dryer rather than scheduling it',
+        (tester) async {
+      final repo = _StubScheduledDrying();
+      final commands = _RecordingCommands();
+
+      await tester.pumpWidget(_cardWithProviders(
+        dryable(),
+        extra: [
+          scheduledDryingRepositoryProvider.overrideWithValue(repo),
+          printerCommandsRepositoryProvider.overrideWithValue(commands),
+        ],
+      ));
+      await tester.pumpAndSettle();
+      await openDetails(tester);
+      await tester.tap(find.text('Suszenie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+
+      expect(repo.created, isEmpty);
+      expect(commands.calls, contains('startDrying:3:1:45:12:PLA'));
     });
   });
 }

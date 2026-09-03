@@ -678,6 +678,15 @@ class _AmsSection extends ConsumerWidget {
             ],
           ],
         ),
+        // Under the header rather than beside the flame chip: a pending run has
+        // a sentence to say (when, and what it is waiting for) and the chip is
+        // one word wide.
+        if (supportsDrying && unit.canDry)
+          _ScheduledDryingBanner(
+            printerId: printerId,
+            amsId: unit.id ?? unitIndex,
+            drying: unit.isDrying,
+          ),
         const SizedBox(height: 10),
         if (trays.isEmpty)
           Text('—',
@@ -980,15 +989,22 @@ class _AmsDryControl extends ConsumerWidget {
         drying && remain > 0 ? formatMinutes(l10n, remain) : l10n.ctrlDry;
 
     return InkWell(
-      onTap: () => dashSurfaceSheet<void>(
-        context,
-        builder: (_) => _DryingSheet(
-          printerId: printerId,
-          amsId: amsId,
-          amsLabel: amsLabel,
-          unit: unit,
-        ),
-      ),
+      onTap: () {
+        // The sheet decides whether to offer the "later" modes from what the
+        // listing last answered, so this is the moment to ask again: a server
+        // that gained the route (or a session that gained the permission)
+        // otherwise stays without them until the dashboard is pulled down.
+        ref.invalidate(scheduledDryingsProvider);
+        dashSurfaceSheet<void>(
+          context,
+          builder: (_) => _DryingSheet(
+            printerId: printerId,
+            amsId: amsId,
+            amsLabel: amsLabel,
+            unit: unit,
+          ),
+        );
+      },
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -1033,21 +1049,6 @@ class _DryingSheet extends ConsumerStatefulWidget {
   ConsumerState<_DryingSheet> createState() => _DryingSheetState();
 }
 
-/// Recommended drying temp/duration per filament, mirroring the bambuddy
-/// frontend's DRYING_PRESETS. `n3*` = regular AMS module, `ht*` = AMS-HT
-/// (high-temp) module; picked via [AmsUnit.isAmsHt].
-typedef _DryPreset = ({int temp, int htTemp, int hours, int htHours});
-const _dryingPresets = <String, _DryPreset>{
-  'PLA': (temp: 45, htTemp: 45, hours: 12, htHours: 12),
-  'PETG': (temp: 65, htTemp: 65, hours: 12, htHours: 12),
-  'TPU': (temp: 65, htTemp: 75, hours: 12, htHours: 18),
-  'ABS': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'ASA': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PA': (temp: 65, htTemp: 85, hours: 12, htHours: 12),
-  'PC': (temp: 65, htTemp: 80, hours: 12, htHours: 8),
-  'PVA': (temp: 65, htTemp: 85, hours: 12, htHours: 18),
-};
-
 class _DryingSheetState extends ConsumerState<_DryingSheet> {
   static const _durationPresets = [4, 6, 8, 12];
 
@@ -1055,6 +1056,22 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   int _temp = 55;
   int _hours = 4;
   bool _busy = false;
+
+  /// The table the pickers seed from — the server's own, or the bundled
+  /// fallback until its settings have arrived.
+  Map<String, DryPreset> _presets = defaultDryingPresets;
+
+  /// Whether anything here has been chosen by hand. The server's table can land
+  /// after this sheet opened — on a cold start it usually does — and it is
+  /// adopted then, but only while this is false: a table arriving under the
+  /// user's finger must not move a temperature they have just set.
+  bool _touched = false;
+
+  DryStartMode _startMode = DryStartMode.now;
+  int _delayMinutes = 60;
+
+  /// Chosen in [DryStartMode.atTime]; null until the picker has run once.
+  DateTime? _startAt;
 
   /// AMS-HT tops out at 85 °C; AMS 2 Pro at 65 °C.
   bool get _isHt => widget.unit.isHtDryModule;
@@ -1064,20 +1081,37 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
   @override
   void initState() {
     super.initState();
-    _applyFilament(_filament); // seed temp/duration from the default filament
+    // Directly, not through `setState`: this runs before the first build.
+    _adopt(ref.read(dryingPresetsProvider));
+  }
+
+  /// Takes [presets] as the table to seed from, and re-seeds the pickers.
+  void _adopt(Map<String, DryPreset> presets) {
+    _presets = presets;
+    // A table the server configured need not contain PLA — open on the first
+    // filament it does have, so the dropdown always has its own value in it.
+    if (!_presets.containsKey(_filament)) {
+      _filament = _presets.keys.firstOrNull ?? _filament;
+    }
+    _applyFilament(_filament);
   }
 
   /// Selecting a filament sets the recommended temp + duration for this AMS
-  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the sliders.
+  /// module type (AMS 2 Pro vs AMS-HT). The user can still fine-tune the
+  /// sliders. Callers own the `setState`, because two of them also have to
+  /// record that the choice was the user's.
+  ///
+  /// A preset above what the module can reach is clamped rather than offered:
+  /// the server validates 45-85 °C whatever the module is, while an AMS 2 Pro
+  /// stops at 65, so a table configured for AMS-HT must not send a temperature
+  /// this hardware cannot hold.
   void _applyFilament(String filament) {
-    final p = _dryingPresets[filament];
-    setState(() {
-      _filament = filament;
-      if (p != null) {
-        _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
-        _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
-      }
-    });
+    final p = _presets[filament];
+    _filament = filament;
+    if (p != null) {
+      _temp = (_isHt ? p.htTemp : p.temp).clamp(45, _maxTemp);
+      _hours = (_isHt ? p.htHours : p.hours).clamp(1, 24);
+    }
   }
 
   Future<void> _run(Future<ActionOutcome> Function() action) async {
@@ -1094,8 +1128,53 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
     }
   }
 
+  /// Hands the run to the server's scheduler instead of the printer.
+  ///
+  /// The sheet stays open until the server answers, and closes on the way out.
+  /// The handles are still taken first, because the user can dismiss it under
+  /// the request — see [detachFrom].
+  Future<void> _schedule(DateTime startAfter) async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final (:providers, :messenger) = detachFrom(context);
+    final repository = providers.read(scheduledDryingRepositoryProvider);
+    setState(() => _busy = true);
+    try {
+      await repository.create(
+        printerId: widget.printerId,
+        amsId: widget.amsId,
+        temp: _temp,
+        durationHours: _hours,
+        filament: _filament,
+        startAfter: startAfter,
+      );
+      providers.invalidate(scheduledDryingsProvider);
+      if (mounted) navigator.pop();
+      messenger.snack(l10n.ctrlDryScheduled, clearQueue: true);
+    } on AppApiException catch (e) {
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'drying.schedule');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// No `firstDate`: a run can only be scheduled forward, so today is the
+  /// earliest day worth showing.
+  Future<void> _pickStartAt() async {
+    final picked = await pickDateTime(context, initial: _startAt);
+    if (picked == null || !mounted) return;
+    setState(() => _startAt = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // The server's settings are fetched once per session and can land after
+    // this sheet opened — see [_touched].
+    ref.listen(dryingPresetsProvider, (_, next) {
+      if (mounted && !_touched) setState(() => _adopt(next));
+    });
+
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final drying = widget.unit.isDrying;
@@ -1123,31 +1202,41 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          l10n.ctrlDry,
-                          style: t.titleLg,
-                        ),
-                        const Spacer(),
-                        Text(
-                          widget.amsLabel,
-                          style: t.body.copyWith(color: t.textSecondary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (drying)
-                      ..._runningBody(t, l10n)
-                    else
-                      ..._setupBody(t, l10n),
-                  ],
+              // Scrollable, and `Flexible` so a short sheet still ends where
+              // its content does: filament, two sliders, the start-time picker
+              // and the button are more than a 360×640 screen has room for at a
+              // large system text size, and a sheet that overflows hides its
+              // own Start button.
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            l10n.ctrlDry,
+                            style: t.titleLg,
+                          ),
+                          const Spacer(),
+                          Text(
+                            widget.amsLabel,
+                            style: t.body.copyWith(color: t.textSecondary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Above both bodies: it explains a running cycle nobody
+                      // started just as much as it explains one about to be.
+                      const _AutoDryingNote(),
+                      if (drying)
+                        ..._runningBody(t, l10n)
+                      else
+                        ..._setupBody(t, l10n),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1220,12 +1309,16 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
             ),
           ),
           onSelected: (v) {
-            if (v != null) _applyFilament(v);
+            if (v == null) return;
+            setState(() {
+              _touched = true;
+              _applyFilament(v);
+            });
           },
           entries: [
             // Preset keys are Bambu material names, so the pick rides in the
             // `mat` field instead of turning the identifier into content.
-            for (final f in _dryingPresets.keys)
+            for (final f in _presets.keys)
               DropdownMenuEntry(
                 value: f,
                 label: f,
@@ -1244,7 +1337,10 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: _maxTemp,
           presets: _tempPresets,
           presetLabel: (p) => '$p°',
-          onChanged: (v) => setState(() => _temp = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _temp = v;
+          }),
         ),
         const SizedBox(height: 16),
         _DrySlider(
@@ -1256,25 +1352,92 @@ class _DryingSheetState extends ConsumerState<_DryingSheet> {
           max: 24,
           presets: _durationPresets,
           presetLabel: (p) => l10n.ctrlDryHours(p),
-          onChanged: (v) => setState(() => _hours = v),
+          onChanged: (v) => setState(() {
+            _touched = true;
+            _hours = v;
+          }),
         ),
+        ..._startWhen(l10n),
         const SizedBox(height: 20),
-        _SheetButton(
-          label: l10n.ctrlDryStart,
-          id: 'drying.start',
-          filled: true,
-          busy: _busy,
-          onTap: _busy
-              ? null
-              : () => _run(() => ref.read(controlsProvider.notifier).startDrying(
-                    widget.printerId,
-                    amsId: widget.amsId,
-                    temp: _temp,
-                    duration: _hours,
-                    filament: _filament,
-                  )),
-        ),
+        // Two buttons rather than one with a chosen id: an identifier picked by
+        // an expression is invisible to the scan that keeps the log's action
+        // tags pointing at real controls (`action_tag_vocabulary_test`).
+        if (_startMode == DryStartMode.now)
+          _SheetButton(
+            label: l10n.ctrlDryStart,
+            id: 'drying.start',
+            filled: true,
+            busy: _busy,
+            onTap: _busy ? null : _submit,
+          )
+        else
+          _SheetButton(
+            label: l10n.ctrlDrySchedule,
+            id: 'drying.schedule',
+            filled: true,
+            busy: _busy,
+            onTap: _busy ? null : _submit,
+          ),
       ];
+
+  /// The start-time picker, on a server that has somewhere to put a schedule.
+  ///
+  /// Before any answer the sheet shows nothing rather than a picker that could
+  /// vanish under the user's finger; the listing behind it runs whenever a
+  /// drying-capable card is built, so by the time this sheet opens it has
+  /// almost always answered. `valueOrNull`, not a `data` match: opening the
+  /// sheet re-asks, and a picker that blinked out during that refresh would be
+  /// the very thing this is avoiding.
+  List<Widget> _startWhen(AppLocalizations l10n) {
+    final offered =
+        ref.watch(scheduledDryingSupportedProvider).valueOrNull ?? false;
+    if (!offered) return const [];
+    return [
+      const SizedBox(height: 16),
+      _DryStartPicker(
+        mode: _startMode,
+        delayMinutes: _delayMinutes,
+        at: _startAt,
+        onMode: (v) => setState(() => _startMode = v),
+        onDelay: (v) => setState(() => _delayMinutes = v),
+        onPickTime: _pickStartAt,
+      ),
+    ];
+  }
+
+  /// Start now, or schedule — one button, because the mode above it already
+  /// says which of the two it is.
+  void _submit() {
+    final l10n = AppLocalizations.of(context);
+    final start = dryingStart(
+      mode: _startMode,
+      delayMinutes: _delayMinutes,
+      at: _startAt,
+    );
+    final problem = start.problem;
+    if (problem != null) {
+      ScaffoldMessenger.of(context).snack(
+        switch (problem) {
+          DryingStartProblem.noTimePicked => l10n.ctrlDryPickTime,
+          DryingStartProblem.timeInPast => l10n.ctrlDryScheduleTimePast,
+        },
+        clearQueue: true,
+      );
+      return;
+    }
+    final startAfter = start.startAfter;
+    if (startAfter == null) {
+      _run(() => ref.read(controlsProvider.notifier).startDrying(
+            widget.printerId,
+            amsId: widget.amsId,
+            temp: _temp,
+            duration: _hours,
+            filament: _filament,
+          ));
+      return;
+    }
+    _schedule(startAfter);
+  }
 }
 
 /// Labelled value + slider (with −/+ steppers and presets) used twice in the
@@ -1341,6 +1504,10 @@ class _DrySlider extends StatelessWidget {
                 min: min.toDouble(),
                 max: max.toDouble(),
                 activeColor: t.accentOrange,
+                // Without it a reader announces the position as a percentage
+                // ("25%"), which says nothing about a dryer: the same wording
+                // the presets carry is what the value means.
+                semanticFormatterCallback: (v) => presetLabel(v.round()),
                 onChanged: (v) => onChanged(v.round()),
               ).tagged('${id}_slider'),
             ),

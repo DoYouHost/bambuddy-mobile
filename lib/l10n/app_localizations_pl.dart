@@ -394,6 +394,86 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get ctrlDryAutoIdle => 'Auto-suszenie przy wysokiej wilgotności.';
+
+  @override
+  String get ctrlDryAutoQueue => 'Auto-suszenie między wydrukami.';
+
+  @override
+  String get ctrlDryAutoWhilePrinting => 'Także w druku.';
+
+  @override
+  String get ctrlDryStartWhen => 'Kiedy zacząć';
+
+  @override
+  String get ctrlDryStartNow => 'Teraz';
+
+  @override
+  String get ctrlDryStartAfter => 'Później';
+
+  @override
+  String get ctrlDryStartAt => 'O godzinie';
+
+  @override
+  String get ctrlDryPickTime => 'Wybierz termin';
+
+  @override
+  String get ctrlDrySchedule => 'Zaplanuj';
+
+  @override
+  String get ctrlDryScheduled => 'Suszenie zaplanowane';
+
+  @override
+  String get ctrlDryScheduleTimePast => 'Wybierz termin w przyszłości';
+
+  @override
+  String ctrlDryScheduledFor(String time) {
+    return 'Suszenie: $time';
+  }
+
+  @override
+  String get ctrlDryScheduledAsap => 'Suszenie zaplanowane, czeka na drukarkę';
+
+  @override
+  String get ctrlDryScheduleCancel => 'Anuluj zaplanowane suszenie';
+
+  @override
+  String get ctrlDryScheduleDismiss => 'Odrzuć';
+
+  @override
+  String ctrlDryScheduleFailed(String reason) {
+    return 'Zaplanowane suszenie nie ruszyło: $reason';
+  }
+
+  @override
+  String get ctrlDryScheduleFailedUnknown => 'nieznany błąd';
+
+  @override
+  String get ctrlDryWaitPower => 'Podłącz zasilacz AMS';
+
+  @override
+  String get ctrlDryWaitRetract => 'Wycofaj filament z wylotu AMS';
+
+  @override
+  String get ctrlDryWaitBlocked => 'AMS nie może teraz zacząć suszyć';
+
+  @override
+  String get ctrlDryWaitAmsNotFound => 'Czeka na wykrycie AMS';
+
+  @override
+  String get ctrlDryWaitOffline => 'Czeka na połączenie z drukarką';
+
+  @override
+  String get ctrlDryWaitBusy => 'Czeka, aż drukarka będzie wolna';
+
+  @override
+  String get ctrlDryWaitAlreadyDrying => 'Czeka na koniec trwającego cyklu';
+
+  @override
+  String get ctrlDryWaitInterrupted =>
+      'Przerwane, wznowi się, gdy drukarka będzie wolna';
+
+  @override
   String get ctrlMove => 'Ruch';
 
   @override

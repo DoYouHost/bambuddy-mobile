@@ -46,7 +46,19 @@ means an interpolated file name would ship intact.
 | `PopupMenuItem` | cannot be wrapped (`Semantics` is not a `PopupMenuEntry`) — the tag goes on its `child:` |
 | hand-built `AppBar` (camera, G-code, QR) | `loggedAppBar(AppBar(…))` from `lib/core/theme/dash_theme.dart`, or the back button is nameless |
 | you also need an a11y label | `Semantics(identifier: …, label: …)` directly — the scanner understands it |
+| the control is one of a set and currently the chosen one | `logTag(id, w, selected: …)` / `.tagged(id, selected: …)` — **not** a `Semantics(selected:)` wrapper of its own |
 | filament material | `logTagMaterial` / `.taggedMaterial` — the one on-screen value allowed into a log, and only from `FilamentMaterial.known` |
+
+**A11y state belongs on the tagged node, not beside it.** A segment or a preset
+chip says which one is current by its fill alone, so it needs
+`SemanticsFlag.isSelected` — and that flag has to sit on the *same* node as the
+identifier. Measured, not assumed: `Semantics(selected: …)` wrapped around a
+tagged control annotates a different node, and the reader is told nothing at all
+while the id moves. Hence the parameter on `logTag`. Nothing about the state
+reaches the log; the probe reads the identifier only. `MergeSemantics` is safe
+next to this — a merged node carries the identifier of the control inside it,
+and the probe stops at a merged subtree by design. Both facts are pinned in
+`interaction_probe_test.dart`.
 
 **A shared widget must not tag itself.** A control used from several places takes
 its `id` as a **required parameter** from the call site; a tag written into its

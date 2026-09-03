@@ -800,6 +800,156 @@ abstract class AppLocalizations {
   /// **'{h} h'**
   String ctrlDryHours(int h);
 
+  /// No description provided for @ctrlDryAutoIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-drying when humidity is high.'**
+  String get ctrlDryAutoIdle;
+
+  /// No description provided for @ctrlDryAutoQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-drying between queued prints.'**
+  String get ctrlDryAutoQueue;
+
+  /// No description provided for @ctrlDryAutoWhilePrinting.
+  ///
+  /// In en, this message translates to:
+  /// **'During prints, too.'**
+  String get ctrlDryAutoWhilePrinting;
+
+  /// No description provided for @ctrlDryStartWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get ctrlDryStartWhen;
+
+  /// No description provided for @ctrlDryStartNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get ctrlDryStartNow;
+
+  /// No description provided for @ctrlDryStartAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get ctrlDryStartAfter;
+
+  /// No description provided for @ctrlDryStartAt.
+  ///
+  /// In en, this message translates to:
+  /// **'At time'**
+  String get ctrlDryStartAt;
+
+  /// No description provided for @ctrlDryPickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time'**
+  String get ctrlDryPickTime;
+
+  /// No description provided for @ctrlDrySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get ctrlDrySchedule;
+
+  /// No description provided for @ctrlDryScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying scheduled'**
+  String get ctrlDryScheduled;
+
+  /// No description provided for @ctrlDryScheduleTimePast.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time in the future'**
+  String get ctrlDryScheduleTimePast;
+
+  /// No description provided for @ctrlDryScheduledFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying at {time}'**
+  String ctrlDryScheduledFor(String time);
+
+  /// No description provided for @ctrlDryScheduledAsap.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying scheduled, waiting for the printer'**
+  String get ctrlDryScheduledAsap;
+
+  /// No description provided for @ctrlDryScheduleCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel scheduled drying'**
+  String get ctrlDryScheduleCancel;
+
+  /// No description provided for @ctrlDryScheduleDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get ctrlDryScheduleDismiss;
+
+  /// No description provided for @ctrlDryScheduleFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled drying failed: {reason}'**
+  String ctrlDryScheduleFailed(String reason);
+
+  /// No description provided for @ctrlDryScheduleFailedUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'unknown error'**
+  String get ctrlDryScheduleFailedUnknown;
+
+  /// No description provided for @ctrlDryWaitPower.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the AMS power adapter'**
+  String get ctrlDryWaitPower;
+
+  /// No description provided for @ctrlDryWaitRetract.
+  ///
+  /// In en, this message translates to:
+  /// **'Retract the filament at the AMS outlet'**
+  String get ctrlDryWaitRetract;
+
+  /// No description provided for @ctrlDryWaitBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The AMS cannot start drying right now'**
+  String get ctrlDryWaitBlocked;
+
+  /// No description provided for @ctrlDryWaitAmsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the AMS to be detected'**
+  String get ctrlDryWaitAmsNotFound;
+
+  /// No description provided for @ctrlDryWaitOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the printer to come online'**
+  String get ctrlDryWaitOffline;
+
+  /// No description provided for @ctrlDryWaitBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the printer to be free'**
+  String get ctrlDryWaitBusy;
+
+  /// No description provided for @ctrlDryWaitAlreadyDrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the current cycle to finish'**
+  String get ctrlDryWaitAlreadyDrying;
+
+  /// No description provided for @ctrlDryWaitInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupted, will restart when the printer is free'**
+  String get ctrlDryWaitInterrupted;
+
   /// No description provided for @ctrlMove.
   ///
   /// In en, this message translates to:

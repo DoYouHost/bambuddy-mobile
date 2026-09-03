@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/dash_snack.dart';
+import '../common/date_time_picker.dart';
 import '../common/print_thumbnail.dart';
 import '../common/system_insets.dart';
 import '../files/library_thumbnail.dart';
@@ -388,6 +390,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SegToggle<bool>(
+            id: 'queue_edit.target_mode',
             selected: _modelMode,
             segments: [
               (value: false, label: l10n.queueEditSpecificPrinter, icon: Icons.print_outlined),
@@ -811,6 +814,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
       child: Column(
         children: [
           _CalibrationRow(
+            id: 'queue_edit.bed_levelling',
             title: l10n.queueOptBedLevelling,
             subtitle: l10n.queueOptBedLevellingDesc,
             value: _bedLevelling,
@@ -818,6 +822,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _bedLevelling = v),
           ),
           _CalibrationRow(
+            id: 'queue_edit.flow_cali',
             title: l10n.queueOptFlowCali,
             subtitle: l10n.queueOptFlowCaliDesc,
             value: _flowCali,
@@ -825,18 +830,21 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
             onChanged: (v) => setState(() => _flowCali = v),
           ),
           _OptionSwitch(
+            id: 'queue_edit.vibration_cali',
             title: l10n.queueOptVibrationCali,
             subtitle: l10n.queueOptVibrationCaliDesc,
             value: _vibrationCali,
             onChanged: (v) => setState(() => _vibrationCali = v),
           ),
           _OptionSwitch(
+            id: 'queue_edit.layer_inspect',
             title: l10n.queueOptLayerInspect,
             subtitle: l10n.queueOptLayerInspectDesc,
             value: _layerInspect,
             onChanged: (v) => setState(() => _layerInspect = v),
           ),
           _OptionSwitch(
+            id: 'queue_edit.timelapse',
             title: l10n.queueOptTimelapse,
             subtitle: l10n.queueOptTimelapseDesc,
             value: _timelapse,
@@ -844,6 +852,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           if (_showNozzleOffset)
             _CalibrationRow(
+              id: 'queue_edit.nozzle_offset_cali',
               title: l10n.queueOptNozzleOffset,
               subtitle: l10n.queueOptNozzleOffsetDesc,
               value: _nozzleOffsetCali,
@@ -868,6 +877,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
           ),
           const SizedBox(height: 12),
           _SegToggle<String>(
+            id: 'queue_edit.preheat_override',
             selected: _preheatOverride,
             segments: [
               (value: 'inherit', label: l10n.queuePreheatInherit, icon: null),
@@ -907,6 +917,7 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SegToggle<QueueScheduleType>(
+            id: 'queue_edit.schedule_type',
             selected: _scheduleType,
             segments: [
               (value: QueueScheduleType.asap, label: l10n.queueScheduleAsap, icon: Icons.schedule),
@@ -990,24 +1001,16 @@ class _QueueEditScreenState extends ConsumerState<QueueEditScreen> {
   }
 
   Future<void> _pickScheduledTime() async {
-    final now = DateTime.now();
-    final base = _scheduledTime ?? now.add(const Duration(hours: 1));
-    final date = await showDatePicker(
-      context: context,
-      initialDate: base,
-      firstDate: now.subtract(const Duration(days: 1)),
-      lastDate: DateTime(now.year + 5),
+    // Yesterday, not today: this form also edits a job whose time has already
+    // passed, and a calendar that refused to show that day would make picking
+    // "the same day, an hour later" impossible.
+    final picked = await pickDateTime(
+      context,
+      initial: _scheduledTime,
+      firstDate: clock.now().subtract(const Duration(days: 1)),
     );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(base),
-    );
-    if (time == null || !mounted) return;
-    setState(() {
-      _scheduledTime =
-          DateTime(date.year, date.month, date.day, time.hour, time.minute);
-    });
+    if (picked == null || !mounted) return;
+    setState(() => _scheduledTime = picked);
   }
 
   // --- Save ---
@@ -1269,10 +1272,17 @@ typedef _Segment<T> = ({T value, String label, IconData? icon});
 /// Selected segment is green-filled; the rest are neutral.
 class _SegToggle<T> extends StatelessWidget {
   const _SegToggle({
+    required this.id,
     required this.selected,
     required this.segments,
     required this.onChanged,
   });
+
+  /// Log identifier, required from the call site — see [_CheckRow.id]. Six of
+  /// these are rendered on this screen and they set six different things, so a
+  /// tag written into `build` made a report say only that "a segment in the
+  /// queue form" was pressed.
+  final String id;
 
   final T selected;
   final List<_Segment<T>> segments;
@@ -1332,7 +1342,8 @@ class _SegToggle<T> extends StatelessWidget {
             ],
           ),
         ),
-      ).tagged('queue_edit.segment'),
+        // The fill is the only thing that says which segment is on.
+      ).tagged(id, selected: isSel),
     );
   }
 }
@@ -1352,12 +1363,19 @@ class _SegToggle<T> extends StatelessWidget {
 /// field entirely (see `_calibrationUpdate`).
 class _CalibrationRow extends StatelessWidget {
   const _CalibrationRow({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.value,
     required this.triState,
     required this.onChanged,
   });
+
+  /// One id for both shapes this row takes: the three-way segment and the
+  /// two-state switch an older server falls back to are the same setting, and a
+  /// log that split them would be naming the server's version rather than the
+  /// control the user touched.
+  final String id;
 
   final String title;
   final String subtitle;
@@ -1369,6 +1387,7 @@ class _CalibrationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!triState) {
       return _OptionSwitch(
+        id: id,
         title: title,
         subtitle: subtitle,
         value: value.asSwitch,
@@ -1394,6 +1413,7 @@ class _CalibrationRow extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _SegToggle<CalibrationOption>(
+            id: id,
             selected: value,
             segments: [
               (
@@ -1414,11 +1434,15 @@ class _CalibrationRow extends StatelessWidget {
 
 class _OptionSwitch extends StatelessWidget {
   const _OptionSwitch({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.value,
     required this.onChanged,
   });
+
+  /// Log identifier, required from the call site — see [_CheckRow.id].
+  final String id;
 
   final String title;
   final String subtitle;
@@ -1430,32 +1454,38 @@ class _OptionSwitch extends StatelessWidget {
     final t = DashTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: t.titleSm,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: t.labelSoft,
-                ),
-              ],
+      // Merged, so the switch is announced with the setting it belongs to. On
+      // its own it read as "off, switch" — six of these sit on this screen and
+      // nothing said which one had focus. The probe treats a merged subtree as
+      // one control and keeps the identifier, so the log is unchanged.
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: t.titleSm,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: t.labelSoft,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Switch(
-            value: value,
-            activeThumbColor: Colors.white,
-            activeTrackColor: t.accentGreen,
-            onChanged: onChanged,
-          ).tagged('queue_edit.toggle'),
-        ],
+            const SizedBox(width: 12),
+            Switch(
+              value: value,
+              activeThumbColor: Colors.white,
+              activeTrackColor: t.accentGreen,
+              onChanged: onChanged,
+            ).tagged(id),
+          ],
+        ),
       ),
     );
   }

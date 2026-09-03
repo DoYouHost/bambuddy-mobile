@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/archive_capabilities.dart';
+import '../../core/settings/server_settings.dart';
 import '../../core/models/embedded_settings.dart';
 import '../../core/models/filament_requirement.dart';
 import '../../core/models/plate_list.dart';
@@ -17,7 +18,8 @@ typedef OwnedFilament = ({String name, String material, String? color});
 /// button in the app. Cached for the session — the setting rarely changes.
 final slicerEnabledProvider = FutureProvider<bool>(
   (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))['use_slicer_api'] == true,
+      (await ref.watch(serverSettingsProvider.future))
+          .settingBool('use_slicer_api'),
 );
 
 /// Preset options for the slice modal. Kept alive while a sheet is open; the

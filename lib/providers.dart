@@ -20,6 +20,7 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
+import 'core/settings/server_settings.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
 import 'core/watch/wear_relay_claim.dart';
@@ -48,6 +49,7 @@ import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/scheduled_drying_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
@@ -522,6 +524,15 @@ final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Delayed AMS drying runs. Shares authenticated Dio; the version service
+/// answers whether to offer scheduling until the listing itself has.
+final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
+  (ref) => ScheduledDryingRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
 /// Printer heater history (nozzle / bed / chamber charts). Shares authenticated
 /// Dio; the version service answers whether to offer the chart until the route
 /// itself has.
@@ -692,7 +703,8 @@ final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
 /// The symbol for the currency the server keeps prices in, or `''` when it has
 /// not said. Reads the settings the app already fetches once per session.
 final currencySymbolProvider = Provider<String>((ref) {
-  final code = ref.watch(serverSettingsProvider).valueOrNull?['currency'];
+  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
+      .settingString('currency');
   return currencySymbol(code is String ? code : null);
 });
 
@@ -701,8 +713,8 @@ final currencySymbolProvider = Provider<String>((ref) {
 /// pre-start confirmation.
 final requirePlateClearProvider = FutureProvider<bool>(
   (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
-      true,
+      (await ref.watch(serverSettingsProvider.future))
+          .settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.

@@ -20,6 +20,7 @@ import '../common/confirm_dialog.dart';
 import '../common/dash_async.dart';
 import '../common/dash_sheet.dart';
 import '../common/dash_snack.dart';
+import '../common/detached_flow.dart';
 import '../common/plate_clear.dart';
 import '../gcode/gcode_viewer_route.dart';
 import '../common/state_views.dart';
@@ -635,17 +636,11 @@ Future<void> _startQueueItem(
   QueueItem item,
   AppLocalizations l10n,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
-  // Read through the app's provider container rather than the widget's `ref`,
-  // for the same reason [messenger] is taken up front: this flow spans a
-  // printer picker, the mapping sheet, a confirmation and two requests, and the
-  // row that started it can be gone before any of those come back — the list
-  // rebuilds on every WS refresh, and a removed item shrinks it. `ref` throws
-  // the moment its widget is disposed ("Cannot use ref after the widget was
-  // disposed"), while the container is the app's own and outlives every screen.
-  // Reading through it also keeps each read live at the point of use, instead of
-  // a snapshot taken before the sheet was even open.
-  final providers = ProviderScope.containerOf(context, listen: false);
+  // This flow spans a printer picker, the mapping sheet, a confirmation and two
+  // requests, and the row that started it can be gone before any of those come
+  // back: the list rebuilds on every WS refresh, and a removed item shrinks it.
+  // See [detachFrom].
+  final (:providers, :messenger) = detachFrom(context);
   var printerId = item.printerId;
   if (printerId == null) {
     final printer = await _pickQueuePrinter(context, ref, l10n);

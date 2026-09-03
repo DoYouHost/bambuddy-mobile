@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../models/json_utils.dart';
 import 'demo_config.dart';
 
 /// Result of a routed demo request: HTTP status + JSON-encodable body.
@@ -131,6 +132,11 @@ class DemoBackend {
   final Map<String, int> _fanSpeeds = {};
   // AMS drying: minutes remaining keyed by ams id (demo doesn't count down).
   final Map<int, int> _dryTime = {};
+  // Runs the demo "scheduler" is holding. Nothing dispatches them — the demo
+  // has no clock the printer answers to — so a row stays pending until it is
+  // cancelled, which is exactly the state the card's banner is there to show.
+  final List<Map<String, dynamic>> _scheduledDryings = [];
+  int _nextScheduledDryingId = 1;
   final Map<int, bool> _plugOn = {1: true, 2: false};
   // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
   // over the generated status so a demo write shows on the card, the way the
@@ -353,6 +359,9 @@ class DemoBackend {
           (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
         ));
 
+      case 'scheduled-dryings':
+        return _scheduledDryingRoute(m, s, q, body);
+
       case 'queue':
         return _queueRoute(m, s, body);
 
@@ -427,6 +436,20 @@ class DemoBackend {
           'gcode_snippets':
               '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
                   '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+          // Drying presets as the real server stores them: a JSON string, not
+          // an object. Two rows differ from the built-in defaults (PETG 70 °C /
+          // 8 h) so demo shows the customisation actually reaching the sheet
+          // rather than the bundled table that would look identical.
+          'drying_presets':
+              '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
+                  '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+                  '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+          // The server's own drying automation, which the sheet reports and
+          // never offers to change — writing these is settings:update, denied
+          // to every API key.
+          'ambient_drying_enabled': true,
+          'queue_drying_enabled': true,
+          'print_drying_enabled': false,
         });
 
       case 'slicer':
@@ -1948,6 +1971,58 @@ class DemoBackend {
   }
 
   // --- Smart plugs ---
+
+  /// `/scheduled-dryings` — list, schedule, cancel. Served because the demo
+  /// reports 1.2.6b1, which is the release the route shipped in: a version that
+  /// offers the sheet's "later" modes over a 404 would be the one thing the
+  /// gate exists to prevent.
+  DemoResult? _scheduledDryingRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1 && m == 'GET') {
+      final printerId = int.tryParse(q['printer_id'] ?? '');
+      return _ok([
+        for (final row in _scheduledDryings)
+          if (printerId == null || row['printer_id'] == printerId) row,
+      ]);
+    }
+    if (s.length == 1 && m == 'POST') {
+      // Echoed with the `Z` the real schema appends, not as the app sent it:
+      // the client writes naive UTC because that is what the column compares
+      // against, and reading its own spelling back would hide a parser that
+      // only handles one of the two.
+      final asked = dateTimeFromJson(body['start_after']);
+      final row = <String, dynamic>{
+        'id': _nextScheduledDryingId++,
+        'printer_id': body['printer_id'] ?? 1,
+        'ams_id': body['ams_id'] ?? 0,
+        'temp': body['temp'] ?? 45,
+        'duration_hours': body['duration_hours'] ?? 4,
+        'filament': body['filament'] ?? '',
+        'rotate_tray': body['rotate_tray'] ?? false,
+        'start_after': asked == null ? null : _iso(asked),
+        'status': 'pending',
+        'waiting_reason': null,
+        'error_message': null,
+        'created_at': _iso(DateTime.now()),
+        'started_at': null,
+        'completed_at': null,
+      };
+      _scheduledDryings.add(row);
+      return _ok(row);
+    }
+    final rowId = int.tryParse(s.length > 1 ? s[1] : '');
+    if (rowId != null && m == 'DELETE') {
+      final before = _scheduledDryings.length;
+      _scheduledDryings.removeWhere((row) => row['id'] == rowId);
+      if (_scheduledDryings.length == before) return _notFound();
+      return _ok({'status': 'cancelled', 'id': rowId});
+    }
+    return _fallback(m);
+  }
 
   DemoResult? _plugsRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1 && m == 'GET') {

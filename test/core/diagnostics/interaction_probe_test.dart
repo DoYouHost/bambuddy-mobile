@@ -759,6 +759,59 @@ void main() {
     expect(stop(), isEmpty);
   });
 
+  testWidgets('a row merged for the screen reader still names its control',
+      (tester) async {
+    // `MergeSemantics` is how a setting's title is spoken together with the
+    // switch that changes it — otherwise a reader announces "off, switch" and
+    // six of them look alike. It also collapses the subtree into one node, so
+    // the identifier the log resolves against has to survive the collapse; the
+    // probe stops at a merged node instead of descending into it.
+    await pumpApp(
+      tester,
+      Center(
+        child: MergeSemantics(
+          child: Row(
+            children: [
+              const Expanded(child: Text('Poklatkowy')),
+              logTag(
+                'queue_edit.timelapse',
+                Switch(value: false, onChanged: (_) {}),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+
+    expect(stop().last['id'], 'queue_edit.timelapse');
+  });
+
+  testWidgets('a chip that announces it is selected still names itself',
+      (tester) async {
+    // `logTag(selected:)` puts the state on the tagged node rather than on a
+    // wrapper of its own, because a wrapper annotates a different node — the
+    // reader was told nothing and the id would have moved. Both have to be on
+    // the one node the press lands on.
+    await pumpApp(
+      tester,
+      Center(
+        child: logTag(
+          'drying.start_mode.now',
+          selected: true,
+          InkWell(onTap: () {}, child: const Text('Teraz')),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Teraz'));
+    await tester.pump();
+
+    expect(stop().last['id'], 'drying.start_mode.now');
+  });
+
   testWidgets('attach twice, detach twice — no leaked handle', (tester) async {
     await pumpApp(tester, const SizedBox.expand());
 
