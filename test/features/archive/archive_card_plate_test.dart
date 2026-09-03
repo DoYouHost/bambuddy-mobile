@@ -15,20 +15,12 @@ import '../../helpers.dart';
 /// reported null until 1.2.5.4 (#2796), so the card has to read an absent
 /// value as "no plate was chosen" — the common case, and the one where naming
 /// a plate on every row would be noise rather than information.
-class _FakeArchiveNotifier extends ArchiveNotifier {
-  _FakeArchiveNotifier(this._items);
-
-  final List<Archive> _items;
-
-  @override
-  Future<List<Archive>> build() async => _items;
-}
 
 late SharedPreferences _prefs;
 
 Widget _screen(List<Archive> items) => ProviderScope(
       overrides: [
-        archiveProvider.overrideWith(() => _FakeArchiveNotifier(items)),
+        archiveListOverride(items),
         // The screen also carries the "archived without its 3MF" banner, which
         // reads preferences to know whether it was waved off. Nothing to report
         // here — this test is about the row, not the banner.

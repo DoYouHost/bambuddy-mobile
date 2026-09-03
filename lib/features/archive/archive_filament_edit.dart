@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/archive.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
@@ -24,20 +25,14 @@ enum FilamentGramsError { notANumber, outOfRange }
 /// Reads the weight field.
 ///
 /// Empty text is a value, not a mistake: it clears the figure, which is how a
-/// wrong correction is taken back. The comma is accepted because that is the
-/// decimal separator on a Polish keyboard and `double.tryParse` refuses it —
-/// without this the field silently rejects what the phone's own numeric layout
-/// produces.
+/// wrong correction is taken back. That is the one thing this adds over
+/// [parseUserDecimal], which cannot tell an empty field from an unreadable one
+/// and does not need to — every other field means "unset" by both.
 ({double? grams, FilamentGramsError? error}) parseFilamentGrams(String text) {
-  // Dart's `\s` covers the non-breaking space too, which is what a
-  // locale-formatted number pasted from elsewhere groups thousands with.
-  final cleaned = text.replaceAll(RegExp(r'\s'), '').replaceAll(',', '.');
-  if (cleaned.isEmpty) return (grams: null, error: null);
+  if (text.trim().isEmpty) return (grams: null, error: null);
 
-  final value = double.tryParse(cleaned);
-  if (value == null || !value.isFinite) {
-    return (grams: null, error: FilamentGramsError.notANumber);
-  }
+  final value = parseUserDecimal(text);
+  if (value == null) return (grams: null, error: FilamentGramsError.notANumber);
   if (value < 0 || value > filamentGramsMax) {
     return (grams: null, error: FilamentGramsError.outOfRange);
   }

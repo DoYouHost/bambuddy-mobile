@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/auth/credentials_store.dart';
+import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/core/watch/watch_config_sync.dart';
+import 'package:bambuddy_mobile/features/archive/archive_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/firmware_providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/ams_history_sheet.dart';
 import 'package:bambuddy_mobile/features/dashboard/widgets/heater_history_sheet.dart';
@@ -374,6 +376,23 @@ class _FixedServerProfile extends ServerProfileNotifier {
 
   @override
   ServerProfile? build() => _profile;
+}
+
+/// The archive list a screen renders, with nothing behind it: every load
+/// answers [archives] and no request is made.
+///
+/// One factory rather than a `_FakeArchiveNotifier` per test file — there were
+/// five, byte-identical down to the field name.
+Override archiveListOverride(List<Archive> archives) =>
+    archiveProvider.overrideWith(() => _FixedArchiveList(archives));
+
+class _FixedArchiveList extends ArchiveNotifier {
+  _FixedArchiveList(this._archives);
+
+  final List<Archive> _archives;
+
+  @override
+  Future<List<Archive>> build() async => _archives;
 }
 
 /// The watch's other side, faked: a fixed [fleet] for every poll, a log of every

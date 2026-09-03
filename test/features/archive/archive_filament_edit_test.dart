@@ -92,7 +92,7 @@ void main() {
 
     Widget row(Archive archive) => ProviderScope(
           overrides: [
-            archiveProvider.overrideWith(() => _FakeArchiveNotifier([archive])),
+            archiveListOverride([archive]),
             archiveRepositoryProvider.overrideWithValue(repository),
           ],
           child: plApp(Scaffold(body: ArchiveFilamentRow(archive: archive))),
@@ -218,7 +218,7 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        archiveProvider.overrideWith(() => _FakeArchiveNotifier([archive])),
+        archiveListOverride([archive]),
         no3mfWarningProvider.overrideWith((ref) async => No3mfWarning.none),
         sharedPreferencesProvider.overrideWithValue(prefs),
         slicerEnabledProvider.overrideWith((ref) async => false),
@@ -236,14 +236,6 @@ void main() {
 }
 
 /// The list the screen holds, with nothing behind it.
-class _FakeArchiveNotifier extends ArchiveNotifier {
-  _FakeArchiveNotifier(this._items);
-
-  final List<Archive> _items;
-
-  @override
-  Future<List<Archive>> build() async => _items;
-}
 
 /// Records the weights it was asked to store and answers like the server that
 /// stored them — or, with [applied] false, like one that dropped the key.

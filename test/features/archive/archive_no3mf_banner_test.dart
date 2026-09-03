@@ -10,14 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers.dart';
 
-class _FakeArchiveNotifier extends ArchiveNotifier {
-  _FakeArchiveNotifier(this._items);
-
-  final List<Archive> _items;
-
-  @override
-  Future<List<Archive>> build() async => _items;
-}
 
 const _archive = Archive(
   id: 1,
@@ -30,7 +22,7 @@ late SharedPreferences _prefs;
 
 Widget _screen(No3mfWarning warning) => ProviderScope(
       overrides: [
-        archiveProvider.overrideWith(() => _FakeArchiveNotifier(const [_archive])),
+        archiveListOverride(const [_archive]),
         no3mfWarningProvider.overrideWith((ref) async => warning),
         sharedPreferencesProvider.overrideWithValue(_prefs),
         noServerProfileOverride,
@@ -113,8 +105,7 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        archiveProvider
-            .overrideWith(() => _FakeArchiveNotifier(const [_archive])),
+        archiveListOverride(const [_archive]),
         sharedPreferencesProvider.overrideWithValue(_prefs),
         noServerProfileOverride,
       ],
