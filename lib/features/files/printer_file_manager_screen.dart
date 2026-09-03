@@ -3,12 +3,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/diagnostics/diagnostic_recorder.dart';
+import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/format/datetime_format.dart';
+import '../../core/models/printer_download_job.dart';
 import '../../core/models/printer_file.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
+import '../../data/printer_files_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
@@ -21,6 +25,7 @@ import '../common/format_bytes.dart';
 import '../common/sliver_search_bar.dart';
 import '../common/device_files.dart';
 import '../common/file_export.dart';
+import 'printer_download_job.dart';
 
 /// Client-side sort keys for the printer file list (the endpoint doesn't sort).
 enum PrinterFileSort { nameAsc, nameDesc, sizeAsc, sizeDesc, dateAsc, dateDesc }
@@ -64,6 +69,15 @@ class _PrinterFileManagerScreenState
   // Fraction of the running download, or null while the server has not said how
   // much there is to come.
   double? _downloadProgress;
+  // The server-side preparation, while one is running: what it last reported,
+  // and the handle Cancel needs. Both null on the legacy path, which has
+  // neither a phase to report nor a way to be called off.
+  PrinterDownloadJob? _job;
+  PrinterDownloadRun? _run;
+  // Cancel has been asked for but the poll it interrupts has not come round
+  // yet. Kept apart from [_job] because that one is the record's evidence:
+  // clearing it to take the button away lost the counts the log is for.
+  bool _cancelRequested = false;
 
   // Quick-navigation shortcuts, mirroring the server web UI.
   static const _quickDirs = [
@@ -78,6 +92,18 @@ class _PrinterFileManagerScreenState
     super.initState();
     _load();
     _loadStorage();
+  }
+
+  @override
+  void dispose() {
+    // Leaving the screen abandons the download, so the server is told to stop
+    // rather than left pulling gigabytes off the printer for a bundle nothing
+    // will save: `_download`'s `mounted` guards skip the save dialog and its
+    // `finally` discards the cache copy, but neither reaches the server.
+    // Errors are dropped — the request is a courtesy and there is nobody left
+    // to tell.
+    _run?.cancel().ignore();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -199,6 +225,8 @@ class _PrinterFileManagerScreenState
     setState(() {
       _busy = true;
       _downloadProgress = null;
+      _job = null;
+      _cancelRequested = false;
     });
     // Dropped in the `finally`, whichever way this leaves — including the two
     // `mounted` returns, which are how a copy used to be left behind on a screen
@@ -212,20 +240,25 @@ class _PrinterFileManagerScreenState
       cached = await downloadToCacheFile(
         scratchName: 'printer-files-${widget.printerId}.download',
         download: (savePath) async {
-          if (single) {
-            await repo.downloadFileTo(
-              widget.printerId,
-              paths.first,
-              savePath,
-              onProgress: _onDownloadProgress,
-            );
-          } else {
-            await repo.downloadZipTo(
-              widget.printerId,
-              paths,
-              savePath,
-              onProgress: _onDownloadProgress,
-            );
+          if (!await _downloadAsJob(repo, paths, fileName, savePath, single)) {
+            // No preparation route on this server: the same bytes, fetched the
+            // way every server generation serves them — one held request, no
+            // progress until the bundle exists, no way to call it off.
+            if (single) {
+              await repo.downloadFileTo(
+                widget.printerId,
+                paths.first,
+                savePath,
+                onProgress: _onDownloadProgress,
+              );
+            } else {
+              await repo.downloadZipTo(
+                widget.printerId,
+                paths,
+                savePath,
+                onProgress: _onDownloadProgress,
+              );
+            }
           }
           // The name is already known here; the served content type only
           // matters for routes that answer with more than one kind of file.
@@ -247,8 +280,19 @@ class _PrinterFileManagerScreenState
           _snack(l10n.pfmDownloadNotSaved);
         case DeviceFileOutcome.done:
           setState(_selected.clear);
-          _snack(l10n.pfmDownloadSaved);
+          // A bundle can be short of what was asked for: the server stages what
+          // it could read and reports the rest rather than throwing the whole
+          // selection away, and a "saved" that does not say so hands the user a
+          // ZIP they would have to count themselves.
+          final skipped = _job?.failed ?? 0;
+          if (skipped > 0) _recordPreparedDownload('partial');
+          _snack(skipped > 0
+              ? '${l10n.pfmDownloadSaved} · ${l10n.pfmDownloadPartial(skipped)}'
+              : l10n.pfmDownloadSaved);
       }
+    } on PrinterDownloadFailure catch (e) {
+      _recordPreparedDownload(e.reason.name);
+      if (mounted) _snack(_prepareFailureText(e, l10n));
     } on AppApiException catch (e) {
       showApiFailure(
         mounted ? ScaffoldMessenger.of(context) : null,
@@ -266,7 +310,11 @@ class _PrinterFileManagerScreenState
       // the case where this would be wrong (see `file_export.dart`), and it is
       // not the hand-off this screen uses.
       if (cached != null) await discardCacheCopy(cached);
+      _run = null;
       if (mounted) {
+        // [_job] deliberately survives: the record above is written from it,
+        // and the next download clears it. Nothing reads it once [_busy] is
+        // false — the row is back to the selection count.
         setState(() {
           _busy = false;
           _downloadProgress = null;
@@ -286,6 +334,128 @@ class _PrinterFileManagerScreenState
     if (next == _downloadProgress) return;
     setState(() => _downloadProgress = next);
   }
+
+  /// Runs the download as a server-side preparation job, when this server has
+  /// one. False means it has not, and the caller falls back to the legacy
+  /// route; a job that ends any way other than `ready` throws
+  /// [PrinterDownloadFailure].
+  ///
+  /// The gate is the repository's capability latch rather than an attempt: an
+  /// unknown answer leaves the legacy path in place, which downloads the same
+  /// bytes and costs only the progress and the Cancel button. A `1.2.6` daily
+  /// from before the routes landed is told yes by the version table and answers
+  /// 404, which the start call reports as "not supported" and falls back too.
+  Future<bool> _downloadAsJob(
+    PrinterFilesRepository repo,
+    List<String> paths,
+    String fileName,
+    String savePath,
+    bool single,
+  ) async {
+    if (!await repo.supportsDownloadJobs()) return false;
+    final run = PrinterDownloadRun(repo, printerId: widget.printerId);
+    _run = run;
+    return run.download(
+      paths: paths,
+      sizes: _sizesFor(paths),
+      filename: fileName,
+      // A single file is asked for natively, as the browser does: the user gets
+      // the model rather than a ZIP holding one model. The server accepts that
+      // for exactly one path.
+      asZip: !single,
+      savePath: savePath,
+      onJob: _onDownloadJob,
+      onProgress: _onDownloadProgress,
+    );
+  }
+
+  /// Sizes for the selection, from the listing that is already on screen.
+  ///
+  /// **All or nothing, and only when every size is a real one.** The server
+  /// spends them on an up-front free-space check and its schema demands one per
+  /// path; an entry the FTP listing could not size arrives as `0`, and claiming
+  /// a gigabyte of models is empty would pass a check that then fails halfway
+  /// through the transfer. Better no check than a check on invented numbers.
+  Map<String, int> _sizesFor(List<String> paths) {
+    final byPath = {
+      for (final f in _files ?? const <PrinterFile>[]) f.path: f.size,
+    };
+    final sizes = <String, int>{};
+    for (final path in paths) {
+      final size = byPath[path];
+      if (size == null || size <= 0) return const {};
+      sizes[path] = size;
+    }
+    return sizes;
+  }
+
+  /// Every state the preparation reports, for the phase label and the bar.
+  void _onDownloadJob(PrinterDownloadJob job) {
+    if (!mounted) return;
+    setState(() {
+      _job = job;
+      // The bar belongs to whichever phase is running: file counts while the
+      // server pulls files off the printer, bytes once the transfer starts.
+      // Left alone on a `ready` job so the switch happens on the first byte
+      // rather than as a jump back to nothing.
+      if (job.state != PrinterDownloadJobState.ready) {
+        _downloadProgress = job.progress;
+      }
+    });
+  }
+
+  /// Calls off a running preparation. The run itself then ends by throwing
+  /// [PrinterDownloadStopped.cancelled], which is where the snack comes from —
+  /// so this only has to ask.
+  Future<void> _cancelPreparation() async {
+    final run = _run;
+    if (run == null) return;
+    // Reported straight away: the DELETE and the poll it interrupts both take a
+    // moment, and a Cancel button that stays lit reads as one that did nothing.
+    setState(() => _cancelRequested = true);
+    await run.cancel();
+  }
+
+  /// Records how a prepared download ended, for a report that says the button
+  /// was pressed and then nothing arrived.
+  ///
+  /// The counts are what tell the three cases apart afterwards: a preparation
+  /// that never started, one the user called off part-way, and a bundle the
+  /// server had to leave files out of.
+  ///
+  /// **The server's own message is deliberately not recorded.** It is worth
+  /// showing on screen, but it can name the file it stopped on, and a file name
+  /// is the user's own text — the one thing this log refuses to carry
+  /// (`docs/diagnostics-log.md`).
+  void _recordPreparedDownload(String state) {
+    final job = _job;
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'printer_download',
+      lvl: LogLevel.warn,
+      fields: {
+        'printer': widget.printerId,
+        'state': state,
+        'requested': job?.requested,
+        'staged': job?.successful,
+        'skipped': job?.failed,
+      },
+    );
+  }
+
+  String _prepareFailureText(
+    PrinterDownloadFailure failure,
+    AppLocalizations l10n,
+  ) =>
+      switch (failure.reason) {
+        PrinterDownloadStopped.cancelled => l10n.pfmDownloadCancelled,
+        // The server's own sentence names the limit or the file it stopped on,
+        // which is worth more than the generic line — see
+        // [PrinterDownloadFailure.detail] on why it is not localized.
+        PrinterDownloadStopped.failed =>
+          failure.detail ?? l10n.pfmDownloadPrepareFailed,
+        PrinterDownloadStopped.lost => l10n.pfmDownloadPrepareFailed,
+      };
 
   /// The three refusals the download routes explain in a way the user can act
   /// on: the bundle exceeds what the server will build, the server has no disk
@@ -639,6 +809,38 @@ class _PrinterFileManagerScreenState
     return '$size · ${DateTimeFormats.of(context).dateTime(date)}';
   }
 
+  /// Whether a server-side preparation is still running — the only phase that
+  /// can be cancelled, and the one where the counts mean files rather than
+  /// bytes.
+  bool get _preparing {
+    final state = _job?.state;
+    return state != null && !state.isTerminal;
+  }
+
+  /// What the selection row says while something is running: which phase the
+  /// wait is in. Null when nothing is, and the row goes back to the count.
+  ///
+  /// The legacy path has no phase to report — it is one held request — so it
+  /// shows the transfer wording throughout, which is what it is doing as far as
+  /// this screen can tell.
+  String? _phaseLabel(AppLocalizations l10n) {
+    if (!_busy) return null;
+    return _preparing ? l10n.pfmPreparingOnServer : l10n.pfmDownloading;
+  }
+
+  /// The figure beside the spinner: files staged while the server prepares,
+  /// per cent once bytes are moving. Null while neither is countable.
+  String? _progressLabel() {
+    final job = _job;
+    if (_preparing && job != null) {
+      return job.requested > 1
+          ? '${job.successful + job.failed}/${job.requested}'
+          : null;
+    }
+    final progress = _downloadProgress;
+    return progress == null ? null : '${(progress * 100).round()}%';
+  }
+
   Widget _actionBar(AppLocalizations l10n, DashTokens t) => DecoratedBox(
         decoration: BoxDecoration(
           color: t.navBar,
@@ -650,25 +852,59 @@ class _PrinterFileManagerScreenState
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    l10n.pfmSelected(_selected.length),
-                    style: t.body.copyWith(color: t.textSecondary),
+                  // A live region so a screen reader says the phase changed:
+                  // the row is the only place that distinguishes waiting for
+                  // the server from waiting for the transfer, and a change of
+                  // text alone is announced to nobody.
+                  child: Semantics(
+                    liveRegion: _busy,
+                    child: Text(
+                      _phaseLabel(l10n) ?? l10n.pfmSelected(_selected.length),
+                      style: t.body.copyWith(color: t.textSecondary),
+                      // Two lines because the phase wording is a sentence, not
+                      // a count: "Przygotowywanie na serwerze…" is cut to
+                      // "Przygotowywa…" on one line at the larger system text
+                      // sizes, and the bar can afford the height.
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 if (_busy)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.only(
+                      left: 8,
+                      right: _preparing ? 0 : 16,
+                    ),
                     child: Row(
                       children: [
-                        if (_downloadProgress != null)
+                        if (_progressLabel() case final label?)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
-                            child: Text(
-                              '${(_downloadProgress! * 100).round()}%',
-                              style: t.monoLabel,
-                            ),
+                            child: Text(label, style: t.monoLabel),
                           ),
                         DashSpinner(size: 20, value: _downloadProgress),
+                        // Only while the server is still pulling files. Once
+                        // the transfer starts there is nothing worth stopping:
+                        // the bytes are coming off the server's own disk, and
+                        // the token is already spent.
+                        //
+                        // Disabled rather than removed once pressed. It has to
+                        // stop looking pressable straight away — the DELETE and
+                        // the poll it interrupts both take a moment — but a
+                        // control that vanishes under the finger takes screen-
+                        // reader focus with it, back to the top of the route.
+                        if (_preparing)
+                          logTag(
+                            'printer_files.download_cancel',
+                            IconButton(
+                              onPressed:
+                                  _cancelRequested ? null : _cancelPreparation,
+                              tooltip: l10n.cancel,
+                              icon: const Icon(Icons.close),
+                              color: t.textSecondary,
+                            ),
+                          ),
                       ],
                     ),
                   )

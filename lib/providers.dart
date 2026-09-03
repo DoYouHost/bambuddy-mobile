@@ -683,7 +683,10 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
 
 /// Printer on-device storage (file manager). Shares authenticated Dio.
 final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
-  (ref) => PrinterFilesRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterFilesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Server-side slicing (sidecar). Shares authenticated Dio.

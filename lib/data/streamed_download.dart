@@ -31,6 +31,12 @@ Future<String?> streamDownload(
   /// for the routes where the wait is the server working.
   Duration receiveTimeout = Duration.zero,
   void Function(int received, int total)? onProgress,
+
+  /// Aborts a transfer already in flight. For the caller that has decided the
+  /// bytes are no longer wanted — the screen that raised the download is gone —
+  /// where finishing it would spend the user's data on a file about to be
+  /// discarded.
+  CancelToken? cancelToken,
 }) =>
     guard(() async {
       final res = await dio.download(
@@ -40,6 +46,7 @@ Future<String?> streamDownload(
         queryParameters: queryParameters,
         options: Options(method: method, receiveTimeout: receiveTimeout),
         onReceiveProgress: onProgress,
+        cancelToken: cancelToken,
       );
       return res.headers.value(Headers.contentTypeHeader);
     });

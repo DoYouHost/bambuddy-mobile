@@ -135,8 +135,41 @@ abstract final class Endpoints {
       '$apiPrefix/printers/$printerId/files/download';
 
   /// Download several files (`{"paths":[...]}` body) bundled as one ZIP.
+  ///
+  /// The whole bundle is built while the request is held open, so the reply
+  /// arrives minutes later with no word in the meantime. [printerFilesJob] is
+  /// the same work without the held socket, on servers that have it.
   static String printerFilesDownloadZip(int printerId) =>
       '$apiPrefix/printers/$printerId/files/download-zip';
+
+  /// `POST {paths, sizes, filename, as_zip}` — start preparing a download on
+  /// the server and answer at once with a job to poll (server #2850).
+  ///
+  /// 404 on an older server, which is what [printerFilesDownloadZip] stays for.
+  static String printerFilesJob(int printerId) =>
+      '$apiPrefix/printers/$printerId/files/download-job';
+
+  /// `GET` one job's state, `DELETE` cancels it (and deletes what was already
+  /// prepared). Note the plural, which the start route does not have.
+  static String printerFilesJobStatus(int printerId, String jobId) =>
+      '$apiPrefix/printers/$printerId/files/download-jobs/$jobId';
+
+  /// The prepared bytes, addressed by the single-use token a `ready` job
+  /// carries. **Unauthenticated by design** — the token is the authorisation,
+  /// bound to this printer and consumed on first use (`create_slicer_download
+  /// _token` / `verify_slicer_download_token`, five-minute TTL) — and the
+  /// server deletes the staged file once it has been served, so there is no
+  /// second attempt: a transfer that breaks needs a new job.
+  ///
+  /// [filename] only names the download for the client; the server sanitises
+  /// it and it does not select the file.
+  static String printerFilesPrepared(
+    int printerId,
+    String token,
+    String filename,
+  ) =>
+      '$apiPrefix/printers/$printerId/files/dl/'
+      '${Uri.encodeComponent(token)}/${Uri.encodeComponent(filename)}';
 
   /// `DELETE ?path=` removes one file. Same route as [printerFiles].
   static String printerFileDelete(int printerId) =>
