@@ -17,10 +17,11 @@
 /// too, so "1 234,5" is settled the same way.
 ///
 /// What is left is genuinely ambiguous and is **refused**: a lone comma with
-/// exactly three digits after it and nothing else to go on. "1,000" is one
-/// thousand to an English writer and one to a Polish one, and these fields
-/// carry values where both readings are plausible — a 1000 g spool, a
-/// four-figure cost. There is no locale to ask here, and of the two ways to be
+/// exactly three digits after it, over a number that could have been grouped.
+/// "1,000" is one thousand to an English writer and one to a Polish one, and
+/// these fields carry values where both readings are plausible — a 1000 g
+/// spool, a four-figure cost. "0,500" is not ambiguous at all, since nothing is
+/// grouped below a thousand. There is no locale to ask here, and of the two ways to be
 /// wrong, refusing shows the user a field they can correct while guessing
 /// stores a number nobody typed. Any other comma is a decimal point.
 ///
@@ -40,7 +41,10 @@ double? parseUserDecimal(String? text) {
     cleaned = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
         ? cleaned.replaceAll('.', '')
         : cleaned.replaceAll(',', '');
-  } else if (!spaceGrouped && RegExp(r'\d,\d{3}$').hasMatch(cleaned)) {
+  } else if (!spaceGrouped && RegExp(r'[1-9]\d*,\d{3}$').hasMatch(cleaned)) {
+    // Only a number that could have been grouped is ambiguous. Nobody writes a
+    // thousand as "0,500", so a leading zero settles it: that is a decimal
+    // point, and half a gram is exactly the kind of value these fields take.
     return null;
   }
   cleaned = cleaned.replaceAll(',', '.');

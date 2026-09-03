@@ -55,6 +55,13 @@ void main() {
       expect(parseUserDecimal('1 234,567'), 1234.567);
     });
 
+    // Nothing is grouped below a thousand, so a leading zero settles it — and
+    // half a gram is exactly what these fields are for.
+    test('a number under one is never a grouped thousand', () {
+      expect(parseUserDecimal('0,500'), 0.5);
+      expect(parseUserDecimal('0,125'), 0.125);
+    });
+
     test('an empty field is not a number', () {
       expect(parseUserDecimal(''), isNull);
       expect(parseUserDecimal('   '), isNull);

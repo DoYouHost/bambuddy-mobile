@@ -1454,6 +1454,12 @@ abstract class AppLocalizations {
   /// **'No usage recorded'**
   String get archiveFilamentNoActual;
 
+  /// No description provided for @archiveFilamentSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving'**
+  String get archiveFilamentSaving;
+
   /// No description provided for @archiveFilamentNone.
   ///
   /// In en, this message translates to:

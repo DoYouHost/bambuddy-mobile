@@ -267,6 +267,7 @@
   "archiveFilamentActual": "{count, plural, =1{Zużyto {grams}} few{Zużyto {grams} w {count} przebiegach} many{Zużyto {grams} w {count} przebiegach} other{Zużyto {grams} w {count} przebiegach}}",
   "@archiveFilamentActual": { "placeholders": { "grams": { "type": "String" }, "count": { "type": "int" } } },
   "archiveFilamentNoActual": "Bez zapisanego zużycia",
+  "archiveFilamentSaving": "Zapisywanie",
   "archiveFilamentNone": "Nie zapisano",
   "archiveFilamentLabel": "Masa",
   "archiveFilamentUnit": "g",

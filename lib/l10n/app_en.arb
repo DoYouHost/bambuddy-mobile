@@ -313,6 +313,7 @@
   "archiveFilamentActual": "{count, plural, =1{Used {grams}} other{Used {grams} over {count} runs}}",
   "@archiveFilamentActual": { "placeholders": { "grams": { "type": "String" }, "count": { "type": "int" } } },
   "archiveFilamentNoActual": "No usage recorded",
+  "archiveFilamentSaving": "Saving",
   "archiveFilamentNone": "Not recorded",
   "archiveFilamentLabel": "Weight",
   "archiveFilamentUnit": "g",

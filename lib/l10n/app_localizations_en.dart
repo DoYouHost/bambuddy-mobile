@@ -780,6 +780,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveFilamentNoActual => 'No usage recorded';
 
   @override
+  String get archiveFilamentSaving => 'Saving';
+
+  @override
   String get archiveFilamentNone => 'Not recorded';
 
   @override

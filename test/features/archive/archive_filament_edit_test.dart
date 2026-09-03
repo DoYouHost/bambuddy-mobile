@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/models/archive.dart';
 import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
@@ -195,6 +197,24 @@ void main() {
       expect(find.text(l10n(tester).archiveFilamentNone), findsOneWidget);
     });
 
+    // The row is one thing to touch, so it has to be one thing to read: the
+    // merge is also where the `logTag` identifier could have been lost, and
+    // that identifier is what every diagnostic report names this control by.
+    testWidgets('reads as a single button, still named for the log',
+        (tester) async {
+      await tester.pumpWidget(row(archive(grams: 17.1)));
+      await tester.pumpAndSettle();
+      final handle = tester.ensureSemantics();
+
+      expect(find.bySemanticsIdentifier('archive.filament_edit'),
+          findsOneWidget);
+      expect(
+        tester.getSemantics(find.byType(ArchiveFilamentRow)),
+        isSemantics(isButton: true, hasTapAction: true),
+      );
+      handle.dispose();
+    });
+
     testWidgets('a saved weight is sent and shown without a reload',
         (tester) async {
       await tester.pumpWidget(row(archive(grams: 17.1)));
@@ -227,6 +247,20 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller?.text,
         '42',
       );
+    });
+
+    // Opening the row to read the weight and closing it with Save is an
+    // ordinary thing to do. It used to spend a request on writing back exactly
+    // what was there, and answer "saved" for storing nothing.
+    testWidgets('saving an unchanged weight asks the server nothing',
+        (tester) async {
+      await tester.pumpWidget(row(archive(grams: 17.1)));
+      await tester.pumpAndSettle();
+
+      await edit(tester, '17.1');
+
+      expect(repository.sent, isEmpty);
+      expect(find.text(l10n(tester).archiveFilamentSaved), findsNothing);
     });
 
     testWidgets('an emptied field clears the weight', (tester) async {
@@ -290,6 +324,68 @@ void main() {
     });
   });
 
+  // The request outlives the sheet: a user can save and swipe the sheet away
+  // before the server answers, and the weight is stored either way. Reading
+  // providers through a disposed widget's `ref` would throw, leaving the list
+  // showing the old figure until a manual refresh.
+  testWidgets('a save the user walked away from still reaches the list',
+      (tester) async {
+    final repository = _FakeArchives()..held = Completer<void>();
+    final container = ProviderContainer(overrides: [
+      archiveListOverride([
+        const Archive(
+          id: 1,
+          filename: 'benchy.gcode.3mf',
+          status: 'completed',
+          filamentUsedGrams: 17.1,
+        ),
+      ]),
+      archiveRepositoryProvider.overrideWithValue(repository),
+    ]);
+    addTearDown(container.dispose);
+    // The archive screen behind the sheet, which is what keeps the list alive
+    // while the sheet is dismissed — the tabs are an `IndexedStack`, so it does
+    // not go away. Without a listener the auto-disposed provider is rebuilt
+    // from scratch and there is no list to write into.
+    container.listen(archiveProvider, (_, _) {});
+
+    Widget app(Widget child) => UncontrolledProviderScope(
+          container: container,
+          child: plApp(Scaffold(body: child)),
+        );
+
+    await tester.pumpWidget(app(const ArchiveFilamentRow(
+      archive: Archive(
+        id: 1,
+        filename: 'benchy.gcode.3mf',
+        status: 'completed',
+        filamentUsedGrams: 17.1,
+      ),
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(ArchiveFilamentRow));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '42');
+    await tester.tap(find.byType(FilledButton));
+    // Not `pumpAndSettle`: the row spins while the request is held, and an
+    // indeterminate progress indicator never settles.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(repository.sent, [42.0], reason: 'the request is on the wire');
+
+    // The sheet goes while it is still there.
+    await tester.pumpWidget(app(const SizedBox.shrink()));
+    await tester.pump();
+    expect(find.byType(ArchiveFilamentRow), findsNothing);
+
+    repository.release();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(container.read(archiveProvider).value!.single.filamentUsedGrams, 42,
+        reason: 'the list holds what the server stored');
+  });
+
   // The row is only worth anything where the user can reach it, and nothing
   // else opens this sheet in the test suite.
   testWidgets('the print\'s sheet carries the weight', (tester) async {
@@ -331,6 +427,11 @@ class _FakeArchives implements ArchiveRepository {
   bool applied = true;
   AppApiException? error;
 
+  /// Set before the edit to leave the request in flight until [release].
+  Completer<void>? held;
+
+  void release() => held!.complete();
+
   @override
   Future<({Archive archive, bool applied})> setFilamentGrams(
     int archiveId,
@@ -338,6 +439,7 @@ class _FakeArchives implements ArchiveRepository {
   ) async {
     if (error != null) throw error!;
     sent.add(grams);
+    if (held != null) await held!.future;
     final stored = Archive(
       id: archiveId,
       filename: 'benchy.gcode.3mf',

@@ -115,6 +115,25 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     final grams = live.filamentUsedGrams;
     final actual = filamentActualCaption(live, l10n);
 
+    // One control, not a label, a weight, a caption and an icon: without the
+    // merge a screen reader walks a row it can tap as four unrelated strings
+    // and never says it is a button. `logTag`'s identifier sits inside this and
+    // reaches the merged node, which is what the interaction probe reads.
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: _card(context, l10n, t, grams, actual),
+      ),
+    );
+  }
+
+  Widget _card(
+    BuildContext context,
+    AppLocalizations l10n,
+    DashTokens t,
+    double? grams,
+    String? actual,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -157,10 +176,13 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                     ),
                   ),
                   if (_saving)
-                    const SizedBox(
+                    SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        semanticsLabel: l10n.archiveFilamentSaving,
+                      ),
                     )
                   else
                     Icon(Icons.edit_outlined, size: 18, color: t.textSecondary),
@@ -186,10 +208,17 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
 
   Future<void> _edit() async {
     final l10n = AppLocalizations.of(context);
+    // Both of these outlive this widget on purpose. The sheet can be dismissed
+    // while the PATCH is in flight and the server stores the weight anyway:
+    // reaching for providers through `ref` afterwards would throw, so the list
+    // would keep the old figure until a manual refresh and the user would be
+    // told nothing at all. The container belongs to the app, and the messenger
+    // to the `MaterialApp` above the sheet, so both are still there to use.
+    final container = ProviderScope.containerOf(context, listen: false);
     final messenger = ScaffoldMessenger.of(context);
-    final repository = ref.read(archiveRepositoryProvider);
+    final repository = container.read(archiveRepositoryProvider);
     final archiveId = widget.archive.id;
-    final stored = _live(ref.read(archiveProvider).valueOrNull);
+    final stored = _live(container.read(archiveProvider).valueOrNull);
 
     final answer = await showDialog<({double? grams})>(
       context: context,
@@ -197,22 +226,23 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
         initial: filamentGramsText(stored.filamentUsedGrams),
       ),
     );
-    if (answer == null || !mounted) return;
+    if (answer == null) return;
+    // Nothing to write. Opening the row to read the weight and closing it with
+    // Save is an ordinary thing to do, and it should not cost a request — nor
+    // report a save that stored nothing.
+    if (sameFilamentGrams(stored.filamentUsedGrams, answer.grams)) return;
 
-    setState(() => _saving = true);
+    if (mounted) setState(() => _saving = true);
     try {
       final result = await repository.setFilamentGrams(archiveId, answer.grams);
-      // The sheet can be gone by now — the request outlives it — so nothing
-      // below may touch this widget's `ref` without asking first.
-      if (!mounted) return;
-      ref.read(archiveProvider.notifier).replace(result.archive);
+      container.read(archiveProvider.notifier).replace(result.archive);
       if (result.applied) {
         // The weight is an aggregate figure — the server mirrors it onto the
         // run's log entry, which is what the totals actually sum — and the tabs
         // are an `IndexedStack`, so the statistics screen behind this one stays
         // mounted with the figure it loaded. Nothing else would tell it.
-        ref.invalidate(statsProvider);
-        ref.invalidate(archiveSlimProvider);
+        container.invalidate(statsProvider);
+        container.invalidate(archiveSlimProvider);
       }
       messenger.snack(
         result.applied
@@ -220,12 +250,7 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
             : l10n.archiveFilamentUnsupported,
       );
     } on AppApiException catch (e) {
-      showApiFailure(
-        mounted ? messenger : null,
-        e,
-        l10n,
-        action: 'archive.filament_edit',
-      );
+      showApiFailure(messenger, e, l10n, action: 'archive.filament_edit');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -251,11 +276,13 @@ class _FilamentGramsDialog extends StatefulWidget {
 class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
   late final TextEditingController _controller =
       TextEditingController(text: widget.initial);
+  final _field = FocusNode();
   FilamentGramsError? _error;
 
   @override
   void dispose() {
     _controller.dispose();
+    _field.dispose();
     super.dispose();
   }
 
@@ -270,6 +297,10 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
     final parsed = parseFilamentGrams(_controller.text);
     if (parsed.error != null) {
       setState(() => _error = parsed.error);
+      // Focus goes back to what has to change. A screen reader is otherwise
+      // left on the Save button, where nothing announces that a message under
+      // the field appeared at all.
+      _field.requestFocus();
       return;
     }
     Navigator.pop(context, (grams: parsed.grams));
@@ -279,6 +310,9 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AlertDialog(
+      // At 200% system text the title, the field and a two-line error do not
+      // fit a short screen, and a dialog that cannot scroll clips them.
+      scrollable: true,
       title: Text(l10n.archiveFilamentUsed),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -286,18 +320,26 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
         children: [
           TextField(
             controller: _controller,
+            focusNode: _field,
             autofocus: true,
             // Not `TextInputType.number`: that layout has no separator key on
             // several keyboards, and the weight is written with one often
             // enough that the field accepts both.
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            // Whitespace comes through because it carries meaning: a pasted
+            // "1 234,5" is only unambiguous while the space is still in it —
+            // strip that and the comma becomes a guess the parser refuses.
+            // Letters are what the formatter is here for.
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\s]')),
             ],
             decoration: InputDecoration(
               labelText: l10n.archiveFilamentLabel,
               suffixText: l10n.archiveFilamentUnit,
               errorText: _error == null ? null : _message(l10n, _error!),
+              // The refusals are a sentence, and one line cuts them off at any
+              // text scale above the smallest.
+              errorMaxLines: 3,
             ),
             onChanged: (_) {
               if (_error != null) setState(() => _error = null);

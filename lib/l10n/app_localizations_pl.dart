@@ -797,6 +797,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveFilamentNoActual => 'Bez zapisanego zużycia';
 
   @override
+  String get archiveFilamentSaving => 'Zapisywanie';
+
+  @override
   String get archiveFilamentNone => 'Nie zapisano';
 
   @override
