@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
 
 import '../diagnostics/auth_probe.dart';
@@ -38,7 +39,7 @@ class ProactiveTokenRefresher {
         _refresh = refresh,
         // ignore: prefer_initializing_formals
         _canRetry = canRetry,
-        _now = clock ?? DateTime.now,
+        _now = clock ?? (() => ambient.clock.now()),
         _timerFactory = timerFactory ?? Timer.new;
 
   /// `null` when the expiry cannot be read.

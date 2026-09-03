@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
 import 'endpoints.dart';
@@ -36,7 +37,7 @@ class ServerVersionService {
 
     final failedAt = _failedAt;
     if (failedAt != null &&
-        DateTime.now().difference(failedAt) < _retryAfter) {
+        clock.now().difference(failedAt) < _retryAfter) {
       return null;
     }
 
@@ -78,7 +79,7 @@ class ServerVersionService {
       if (parsed == null) {
         // Reached the server but got a proxy's error page, or a numbering
         // scheme from the future. Retry later rather than never.
-        _failedAt = DateTime.now();
+        _failedAt = clock.now();
         return null;
       }
       _version = parsed;
@@ -87,7 +88,7 @@ class ServerVersionService {
     } on Object {
       // Including a 404: no version is a usable answer, an exception on the
       // queue save path is not.
-      _failedAt = DateTime.now();
+      _failedAt = clock.now();
       return null;
     }
   }

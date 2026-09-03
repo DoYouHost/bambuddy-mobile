@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -79,18 +80,23 @@ class _PrinterCardState extends State<PrinterCard> {
   late bool _offline;
   Timer? _offlineGrace;
 
-  /// Whether a frame saying the printer is reachable arrived within the last
-  /// [_offlineGracePeriod]. Only a disconnect that follows such an observation
-  /// gets the grace period — a flicker is by definition a dense run of frames,
-  /// so it always qualifies.
+  /// When a frame last said the printer was reachable. Only a disconnect that
+  /// follows such an observation by less than [_offlineGracePeriod] gets the
+  /// grace period — a flicker is by definition a dense run of frames, so it
+  /// always qualifies.
   ///
   /// Without this the debounce fired on evidence the card no longer had: in the
   /// background the socket is closed and polling stopped, so the first frame
   /// after a resume is compared against a `connected:true` that can be hours
   /// old, and a printer switched off last night was granted a fresh 15 seconds
   /// of the full layout on every open.
-  bool _connectedRecently = false;
-  Timer? _connectedRecency;
+  ///
+  /// Read through `package:clock` rather than `DateTime.now()`: the age is
+  /// worked out when the disconnect arrives, so there is no expiry callback to
+  /// lose a race with the frame after the process is unfrozen — and widget
+  /// tests advance this clock with `tester.pump`, which they cannot do to the
+  /// wall clock.
+  DateTime? _lastConnectedAt;
 
   /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
   List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
@@ -116,11 +122,14 @@ class _PrinterCardState extends State<PrinterCard> {
   void didUpdateWidget(PrinterCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     final connected = widget.item.status?.connected ?? false;
-    // Only a status that actually changed is an observation. Plain rebuilds —
-    // the dashboard re-filtering, the app coming back to the front — re-render
-    // the value the card already holds, and counting those would keep the
-    // observation alive for as long as the card is on screen.
-    final observed = widget.item.status != oldWidget.item.status;
+    // An observation is a frame, not a repaint. Identity is what separates the
+    // two: every ingested frame puts a NEW instance in the statuses map
+    // (`mergedWith` always builds one), while a plain rebuild — the dashboard
+    // re-filtering, the app coming back to the front — hands the card the very
+    // instance it already holds. Comparing by value instead would drop the
+    // repeated readings an idle printer sends, and let the observation lapse
+    // on a machine that is demonstrably still answering.
+    final observed = !identical(widget.item.status, oldWidget.item.status);
     if (connected) {
       if (observed) _observedConnected();
       // Back/maintaining online: immediately expand and cancel timer.
@@ -128,7 +137,7 @@ class _PrinterCardState extends State<PrinterCard> {
       _offlineGrace = null;
       if (_offline) setState(() => _offline = false);
     } else if (!_offline && _offlineGrace == null) {
-      if (!_connectedRecently) {
+      if (!_connectedRecently()) {
         // Nothing recent to contradict this frame — it is not a flicker, it is
         // the answer to a question the card had stopped asking.
         setState(() => _offline = true);
@@ -142,21 +151,19 @@ class _PrinterCardState extends State<PrinterCard> {
     }
   }
 
-  /// Record a reachable frame and let the record expire with the grace period
-  /// it guards, so the two can never drift apart.
-  void _observedConnected() {
-    _connectedRecently = true;
-    _connectedRecency?.cancel();
-    _connectedRecency = Timer(
-      _offlineGracePeriod,
-      () => _connectedRecently = false,
-    );
+  void _observedConnected() => _lastConnectedAt = clock.now();
+
+  /// Whether the last reachable frame is still recent enough to make a
+  /// disconnect look like a flicker. Measured against the grace period it
+  /// guards, so the two can never drift apart.
+  bool _connectedRecently() {
+    final seen = _lastConnectedAt;
+    return seen != null && clock.now().difference(seen) < _offlineGracePeriod;
   }
 
   @override
   void dispose() {
     _offlineGrace?.cancel();
-    _connectedRecency?.cancel();
     super.dispose();
   }
 

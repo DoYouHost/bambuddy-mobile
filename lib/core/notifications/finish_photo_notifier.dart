@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
 
 import '../api/ws_messages.dart';
@@ -33,7 +34,7 @@ class FinishPhotoNotifier {
     required this._memory,
     required this._isEnabled,
     DateTime Function()? clock,
-  }) : _now = clock ?? DateTime.now;
+  }) : _now = clock ?? (() => ambient.clock.now());
 
   final Stream<WsArchiveUpdated> _updates;
   final Future<Archive?> Function(int archiveId) _fetchArchive;

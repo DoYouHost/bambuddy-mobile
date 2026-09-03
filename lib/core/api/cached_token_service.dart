@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 
 import 'api_exceptions.dart';
@@ -30,7 +31,7 @@ abstract class CachedTokenService {
     if (!forceRefresh &&
         cached != null &&
         expiry != null &&
-        DateTime.now().isBefore(expiry)) {
+        clock.now().isBefore(expiry)) {
       return cached;
     }
 
@@ -59,7 +60,7 @@ abstract class CachedTokenService {
       throw const ApiException(AppErrorCode.malformedResponse);
     }
     _token = token;
-    _expiresAt = DateTime.now().add(_ttl);
+    _expiresAt = clock.now().add(_ttl);
     return token;
   }
 

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -191,7 +192,7 @@ class PrintMonitor {
     String? Function(HmsError)? hmsDescribe,
     this._onPrintEnded,
   })  : _l10n = l10n ?? systemAppLocalizations,
-        _now = clock ?? DateTime.now,
+        _now = clock ?? (() => ambient.clock.now()),
         _formats = formats ?? DateTimeFormats.system,
         _timer = timerFactory ?? Timer.new,
         // ignore: prefer_initializing_formals — private field with a named param

@@ -1364,6 +1364,34 @@ void main() {
       expect(find.text('OFFLINE'), findsNothing); // never collapsed
     });
 
+    testWidgets('a repeated reading still counts as the printer answering',
+        (tester) async {
+      // An idle printer sends the same numbers over and over. Those frames are
+      // equal in value but each is its own instance, and they are the proof
+      // that the machine is still there — a drop that follows them is a
+      // flicker like any other and keeps the grace period.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item));
+      await tester.pump(const Duration(seconds: 12));
+      item.value = PrinterWithStatus(
+        printer: const Printer(id: 1, name: 'X1C'),
+        // Deliberately not const: two identical const expressions are the same
+        // instance, which is exactly what this test needs to avoid.
+        // ignore: prefer_const_constructors
+        status: PrinterStatus(id: 1, connected: true, state: 'IDLE', model: 'X1C'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 12)); // 24s in, 12s since the frame
+
+      item.value = merged;
+      await tester.pump();
+      expect(find.text('Szczegóły'), findsOneWidget); // debounced, not collapsed
+      await tester.pump(const Duration(seconds: 16));
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
     testWidgets('a disconnect the card could not have seen coming collapses at once',
         (tester) async {
       // The everyday case: the app spent the night in the background with the
