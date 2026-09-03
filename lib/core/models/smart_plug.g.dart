@@ -10,7 +10,7 @@ SmartPlug _$SmartPlugFromJson(Map<String, dynamic> json) => SmartPlug(
   id: (json['id'] as num).toInt(),
   name: json['name'] as String?,
   plugType: json['plug_type'] as String?,
-  printerId: _toIntOrNull(json['printer_id']),
+  printerId: toIntOrNull(json['printer_id']),
   enabled: json['enabled'] as bool?,
   lastState: json['last_state'] as String?,
   showOnPrinterCard: json['show_on_printer_card'] as bool?,
@@ -29,10 +29,10 @@ SmartPlugStatus _$SmartPlugStatusFromJson(Map<String, dynamic> json) =>
 
 SmartPlugEnergy _$SmartPlugEnergyFromJson(Map<String, dynamic> json) =>
     SmartPlugEnergy(
-      power: _toDoubleOrNull(json['power']),
-      voltage: _toDoubleOrNull(json['voltage']),
-      current: _toDoubleOrNull(json['current']),
-      today: _toDoubleOrNull(json['today']),
-      yesterday: _toDoubleOrNull(json['yesterday']),
-      total: _toDoubleOrNull(json['total']),
+      power: toDoubleOrNull(json['power']),
+      voltage: toDoubleOrNull(json['voltage']),
+      current: toDoubleOrNull(json['current']),
+      today: toDoubleOrNull(json['today']),
+      yesterday: toDoubleOrNull(json['yesterday']),
+      total: toDoubleOrNull(json['total']),
     );
