@@ -4776,11 +4776,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pfmDownloading => 'Downloading…';
 
   @override
-  String pfmPreparedCount(int done, int total) {
-    return '$done/$total';
-  }
-
-  @override
   String get pfmDownloadCancelled => 'Download cancelled';
 
   @override

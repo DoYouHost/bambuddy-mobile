@@ -21,8 +21,9 @@ enum PrinterDownloadJobState {
   cancelled,
 
   /// A state this app does not know. Treated as "still working": a newer server
-  /// naming an intermediate phase must not read as a finished download, and
-  /// polling ends on the deadline rather than on a guess.
+  /// naming an intermediate phase must not read as a finished download. What
+  /// ends the polling then is the server's own answer, or `PrinterDownloadRun
+  /// .maxWait` behind it — never a guess about what the name meant.
   unknown;
 
   bool get isTerminal => this == ready || this == failed || this == cancelled;

@@ -1518,7 +1518,6 @@
   "pfmDownloadTookTooLong": "Przygotowanie pobrania trwało zbyt długo i serwer je przerwał",
   "pfmPreparingOnServer": "Przygotowywanie na serwerze…",
   "pfmDownloading": "Pobieranie…",
-  "pfmPreparedCount": "{done}/{total}",
   "pfmDownloadCancelled": "Pobieranie anulowane",
   "pfmDownloadPrepareFailed": "Serwer nie zdołał przygotować tego pobierania",
   "pfmDownloadPartial": "Pominięto {count, plural, one{{count} plik} few{{count} pliki} other{{count} plików}}, których nie udało się odczytać z drukarki",

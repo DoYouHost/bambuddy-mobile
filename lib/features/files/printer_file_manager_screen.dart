@@ -94,6 +94,18 @@ class _PrinterFileManagerScreenState
     _loadStorage();
   }
 
+  @override
+  void dispose() {
+    // Leaving the screen abandons the download, so the server is told to stop
+    // rather than left pulling gigabytes off the printer for a bundle nothing
+    // will save: `_download`'s `mounted` guards skip the save dialog and its
+    // `finally` discards the cache copy, but neither reaches the server.
+    // Errors are dropped — the request is a courtesy and there is nobody left
+    // to tell.
+    _run?.cancel().ignore();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -840,18 +852,29 @@ class _PrinterFileManagerScreenState
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    _phaseLabel(l10n) ?? l10n.pfmSelected(_selected.length),
-                    style: t.body.copyWith(color: t.textSecondary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // A live region so a screen reader says the phase changed:
+                  // the row is the only place that distinguishes waiting for
+                  // the server from waiting for the transfer, and a change of
+                  // text alone is announced to nobody.
+                  child: Semantics(
+                    liveRegion: _busy,
+                    child: Text(
+                      _phaseLabel(l10n) ?? l10n.pfmSelected(_selected.length),
+                      style: t.body.copyWith(color: t.textSecondary),
+                      // Two lines because the phase wording is a sentence, not
+                      // a count: "Przygotowywanie na serwerze…" is cut to
+                      // "Przygotowywa…" on one line at the larger system text
+                      // sizes, and the bar can afford the height.
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 if (_busy)
                   Padding(
                     padding: EdgeInsets.only(
                       left: 8,
-                      right: _preparing && !_cancelRequested ? 0 : 16,
+                      right: _preparing ? 0 : 16,
                     ),
                     child: Row(
                       children: [
@@ -861,14 +884,22 @@ class _PrinterFileManagerScreenState
                             child: Text(label, style: t.monoLabel),
                           ),
                         DashSpinner(size: 20, value: _downloadProgress),
-                        // Only while the server is still pulling files: once the
-                        // transfer starts the token is spent and stopping would
-                        // leave neither the file nor a way to ask again.
-                        if (_preparing && !_cancelRequested)
+                        // Only while the server is still pulling files. Once
+                        // the transfer starts there is nothing worth stopping:
+                        // the bytes are coming off the server's own disk, and
+                        // the token is already spent.
+                        //
+                        // Disabled rather than removed once pressed. It has to
+                        // stop looking pressable straight away — the DELETE and
+                        // the poll it interrupts both take a moment — but a
+                        // control that vanishes under the finger takes screen-
+                        // reader focus with it, back to the top of the route.
+                        if (_preparing)
                           logTag(
                             'printer_files.download_cancel',
                             IconButton(
-                              onPressed: _cancelPreparation,
+                              onPressed:
+                                  _cancelRequested ? null : _cancelPreparation,
                               tooltip: l10n.cancel,
                               icon: const Icon(Icons.close),
                               color: t.textSecondary,

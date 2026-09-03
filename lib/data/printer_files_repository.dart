@@ -213,12 +213,14 @@ class PrinterFilesRepository {
     required String filename,
     required String savePath,
     void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     await streamDownload(
       _dio,
       Endpoints.printerFilesPrepared(printerId, token, filename),
       savePath,
       onProgress: onProgress,
+      cancelToken: cancelToken,
     );
   }
 

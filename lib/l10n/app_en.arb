@@ -1695,8 +1695,6 @@
   "pfmDownloadTookTooLong": "Preparing the download took too long and the server gave up",
   "pfmPreparingOnServer": "Preparing on the server…",
   "pfmDownloading": "Downloading…",
-  "pfmPreparedCount": "{done}/{total}",
-  "@pfmPreparedCount": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
   "pfmDownloadCancelled": "Download cancelled",
   "pfmDownloadPrepareFailed": "The server could not prepare this download",
   "pfmDownloadPartial": "Left out {count, plural, one{one file} other{{count} files}} that could not be read from the printer",

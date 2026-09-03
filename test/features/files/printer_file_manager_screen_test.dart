@@ -94,6 +94,7 @@ class _JobRepo extends _FakeRepo {
     required String filename,
     required String savePath,
     void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     fetched = true;
     await File(savePath).writeAsString('a prepared bundle');
@@ -315,8 +316,9 @@ void main() {
       AppLocalizations l10n, {
       Duration budget = const Duration(milliseconds: 400),
       bool Function()? until,
+      String file = 'benchy.3mf',
     }) async {
-      await tester.tap(find.text('benchy.3mf'));
+      await tester.tap(find.text(file));
       await tester.pumpAndSettle();
       await tester.runAsync(() async {
         await tester.tap(find.text(l10n.pfmDownload));
@@ -324,6 +326,31 @@ void main() {
         final deadline = DateTime.now().add(budget);
         while (DateTime.now().isBefore(deadline)) {
           if (until != null && until()) return;
+          await tester.pump(const Duration(milliseconds: 20));
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+      });
+    }
+
+    /// Pops the screen and waits for the run it leaves behind to unwind.
+    ///
+    /// A test that ends with a download still polling does not stop it: the
+    /// work carries on over the shared event loop and lands its diagnostic
+    /// record in whatever the *next* test is recording. `dispose` cancels the
+    /// run, and this waits for that to reach the fake server.
+    Future<void> abandonScreen(WidgetTester tester, _JobRepo repo) async {
+      await tester.pumpWidget(plApp(const SizedBox.shrink()));
+      await tester.runAsync(() async {
+        final deadline = DateTime.now().add(const Duration(seconds: 2));
+        while (DateTime.now().isBefore(deadline) && !repo.cancelled) {
+          await tester.pump(const Duration(milliseconds: 20));
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        // The DELETE landing is not the end of it: the run is asleep on its
+        // one-second poll and only notices the cancellation when it wakes, and
+        // the screen records it after that. Drained past both here, so the
+        // record belongs to this test rather than to the next one.
+        for (var i = 0; i < 80; i++) {
           await tester.pump(const Duration(milliseconds: 20));
           await Future<void>.delayed(const Duration(milliseconds: 20));
         }
@@ -385,6 +412,28 @@ void main() {
       expect(cache.listSync(), isEmpty);
     });
 
+    // Guards the touch target without asserting `meetsGuideline` over the whole
+    // screen: the quick-navigation chips above the listing are 36 dp tall and
+    // predate this change, so a screen-wide assertion would fail on them and
+    // say nothing about this button.
+    testWidgets('the Cancel button is a legal tap target', (tester) async {
+      final repo = _JobRepo(
+        oneFile,
+        started: _job(PrinterDownloadJobState.preparing, requested: 3),
+        poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
+      );
+      final l10n = await pumpWith(tester, oneFile, repo: repo);
+
+      await startDownload(tester, l10n,
+          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+
+      expect(
+        tester.getSize(find.widgetWithIcon(IconButton, Icons.close)),
+        const Size(48, 48),
+      );
+      await abandonScreen(tester, repo);
+    });
+
     testWidgets('a bundle short of the selection says what was left out',
         (tester) async {
       final repo = _JobRepo(
@@ -437,6 +486,117 @@ void main() {
       expect(repo.fetched, isFalse);
     });
 
+    testWidgets('leaving the screen tells the server to stop preparing',
+        (tester) async {
+      // Otherwise the server goes on pulling gigabytes off the printer for a
+      // bundle nobody will save: the screen's own guards skip the save dialog
+      // and bin the cache copy, but neither of them reaches the server.
+      final repo = _JobRepo(
+        oneFile,
+        started: _job(PrinterDownloadJobState.preparing, requested: 3),
+        poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
+      );
+      final l10n = await pumpWith(tester, oneFile, repo: repo);
+
+      await startDownload(tester, l10n,
+          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+      expect(repo.cancelled, isFalse);
+
+      // Replaces the route the way popping it does, and disposes the state.
+      await abandonScreen(tester, repo);
+
+      expect(repo.cancelled, isTrue);
+      expect(repo.fetched, isFalse);
+    });
+
+    testWidgets('the Cancel button stays put while the cancellation lands',
+        (tester) async {
+      // Disabled, not removed: a control that vanishes under the finger takes
+      // screen-reader focus with it, back to the top of the route.
+      final repo = _JobRepo(
+        oneFile,
+        started: _job(PrinterDownloadJobState.preparing, requested: 3),
+        poll: () => _job(PrinterDownloadJobState.preparing, requested: 3),
+      );
+      final l10n = await pumpWith(tester, oneFile, repo: repo);
+
+      await startDownload(tester, l10n,
+          until: () => find.byIcon(Icons.close).evaluate().isNotEmpty);
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.close),
+      );
+      expect(button.onPressed, isNull, reason: 'must stop being pressable');
+      await abandonScreen(tester, repo);
+    });
+
+    testWidgets('a cancelled preparation is recorded, without the file names',
+        (tester) async {
+      // The report this exists for says "I pressed Download and nothing came".
+      // What settles it is the state and the counts — and what must never be in
+      // there is what the user called their models.
+      SharedPreferences.setMockInitialValues({});
+      final recorder = DiagnosticRecorder(
+        settings: SettingsRepository(await SharedPreferences.getInstance()),
+        loadFacts: () async =>
+            const SessionFacts(app: '0.12.1+1201000', flavor: 'mobile'),
+        resolveDirectory: () async => null,
+      );
+      addTearDown(recorder.discard);
+      await recorder.start();
+
+      const named = PrinterFileListing(
+        files: [
+          PrinterFile(
+            name: 'Mum birthday present.3mf',
+            path: '/model/Mum birthday present.3mf',
+            isDirectory: false,
+            size: 15,
+          ),
+        ],
+      );
+      final repo = _JobRepo(
+        named,
+        started: _job(PrinterDownloadJobState.preparing, requested: 4),
+        poll: () => _job(PrinterDownloadJobState.preparing, requested: 4),
+      );
+      final l10n = await pumpWith(tester, named, repo: repo);
+
+      await startDownload(
+        tester,
+        l10n,
+        file: 'Mum birthday present.3mf',
+        until: () => find.byIcon(Icons.close).evaluate().isNotEmpty,
+      );
+      await tester.runAsync(() async {
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pump();
+        final deadline = DateTime.now().add(const Duration(seconds: 3));
+        while (DateTime.now().isBefore(deadline)) {
+          if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) break;
+          await tester.pump(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        }
+      });
+      await tester.pump();
+
+      final jsonl = await recorder.stop();
+      final records = [
+        for (final line in const LineSplitter().convert(jsonl))
+          if (jsonDecode(line) case final Map<String, dynamic> row
+              when row['evt'] == 'printer_download')
+            row,
+      ];
+
+      expect(records, hasLength(1));
+      expect(records.single['state'], 'cancelled');
+      expect(records.single['requested'], 4);
+      expect(records.single['printer'], 1);
+      expect(jsonl, isNot(contains('Mum birthday present')));
+    });
+
     testWidgets('a server without the route still downloads the file',
         (tester) async {
       // The legacy path, which every server generation serves: no phase to
@@ -449,67 +609,5 @@ void main() {
       expect(find.text(l10n.pfmDownloadSaved), findsOneWidget);
       expect(find.byIcon(Icons.close), findsNothing);
     });
-  });
-
-  testWidgets('a cancelled preparation is recorded, without the file names',
-      (tester) async {
-    // The report this exists for says "I pressed Download and nothing came".
-    // What settles it is the state and the counts — and what must never be in
-    // there is what the user called their models.
-    SharedPreferences.setMockInitialValues({});
-    final recorder = DiagnosticRecorder(
-      settings: SettingsRepository(await SharedPreferences.getInstance()),
-      loadFacts: () async =>
-          const SessionFacts(app: '0.12.1+1201000', flavor: 'mobile'),
-      resolveDirectory: () async => null,
-    );
-    addTearDown(recorder.discard);
-    await recorder.start();
-
-    const listing = PrinterFileListing(
-      files: [
-        PrinterFile(
-          name: 'Mum birthday present.3mf',
-          path: '/model/Mum birthday present.3mf',
-          isDirectory: false,
-          size: 15,
-        ),
-      ],
-    );
-    final repo = _JobRepo(
-      listing,
-      started: _job(PrinterDownloadJobState.preparing, requested: 4),
-      poll: () => _job(PrinterDownloadJobState.preparing, requested: 4),
-    );
-    final l10n = await pumpWith(tester, listing, repo: repo);
-
-    await tester.tap(find.text('Mum birthday present.3mf'));
-    await tester.pumpAndSettle();
-    await tester.runAsync(() async {
-      await tester.tap(find.text(l10n.pfmDownload));
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pump();
-      final deadline = DateTime.now().add(const Duration(seconds: 3));
-      while (DateTime.now().isBefore(deadline)) {
-        if (find.text(l10n.pfmDownloadCancelled).evaluate().isNotEmpty) break;
-        await tester.pump(const Duration(milliseconds: 50));
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-      }
-    });
-    await tester.pump();
-
-    final jsonl = await recorder.stop();
-    final records = [
-      for (final line in const LineSplitter().convert(jsonl))
-        if (jsonDecode(line) case final Map<String, dynamic> row
-            when row['evt'] == 'printer_download')
-          row,
-    ];
-
-    expect(records, hasLength(1));
-    expect(records.single['state'], 'cancelled');
-    expect(records.single['requested'], 4);
-    expect(jsonl, isNot(contains('Mum birthday present')));
   });
 }

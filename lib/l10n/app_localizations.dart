@@ -8168,12 +8168,6 @@ abstract class AppLocalizations {
   /// **'Downloading…'**
   String get pfmDownloading;
 
-  /// No description provided for @pfmPreparedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{done}/{total}'**
-  String pfmPreparedCount(int done, int total);
-
   /// No description provided for @pfmDownloadCancelled.
   ///
   /// In en, this message translates to:

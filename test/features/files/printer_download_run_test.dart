@@ -50,6 +50,7 @@ class _ScriptedRepo extends PrinterFilesRepository {
     required String filename,
     required String savePath,
     void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
   }) async {
     calls.add('download');
     downloadedToken = token;
@@ -227,6 +228,80 @@ void main() {
     );
     expect(repo.calls, contains('cancel'));
     expect(repo.calls, isNot(contains('download')));
+  });
+
+  test('a job that vanishes while being cancelled reads as cancelled', () async {
+    // The DELETE and the poll are in flight together, so the server may answer
+    // the poll with a 404 rather than with `cancelled`. Both are the
+    // cancellation landing, and calling one of them a lost job would tell the
+    // user their download broke when they are the one who stopped it.
+    final repo = _ScriptedRepo(start: _job('preparing'), polls: [null]);
+    final run =
+        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+
+    final result = _run(repo, using: run, onJob: (_) => run.cancel());
+
+    await expectLater(
+      result,
+      throwsA(isA<PrinterDownloadFailure>()
+          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+    );
+  });
+
+  test('a cancel that lands as the bundle goes ready still stops it', () async {
+    // The last poll answers `ready`, so the loop ends and there is no sleep
+    // left to notice the cancellation in. Without a check past the loop this
+    // downloaded the bundle and raised the save dialog for a download the user
+    // had called off.
+    final repo = _ScriptedRepo(
+      start: _job('preparing'),
+      polls: [_job('ready', successful: 2, token: 'tok')],
+    );
+    final run =
+        PrinterDownloadRun(repo, printerId: 1, pollInterval: Duration.zero);
+
+    final result = _run(repo, using: run, onJob: (job) {
+      if (job.state == PrinterDownloadJobState.ready) run.cancel();
+    });
+
+    await expectLater(
+      result,
+      throwsA(isA<PrinterDownloadFailure>()
+          .having((e) => e.reason, 'reason', PrinterDownloadStopped.cancelled)),
+    );
+    expect(repo.calls, isNot(contains('download')));
+    // The staged bundle is the server's to delete, and it only knows to if it
+    // is told.
+    expect(repo.calls, contains('cancel'));
+  });
+
+  test('a preparation that never finishes is given up on', () async {
+    // A server that goes away mid-job leaves its status file reading
+    // `preparing` and nothing will ever rewrite it. Without a ceiling the
+    // screen polls that for as long as it is open.
+    final repo = _ScriptedRepo(
+      start: _job('preparing'),
+      polls: [for (var i = 0; i < 50; i++) _job('preparing', successful: 1)],
+    );
+
+    await expectLater(
+      PrinterDownloadRun(
+        repo,
+        printerId: 1,
+        pollInterval: Duration.zero,
+        maxWait: Duration.zero,
+      ).download(
+        paths: const ['/a.3mf'],
+        sizes: const {},
+        filename: 'a.3mf',
+        asZip: false,
+        savePath: '/tmp/x.zip',
+      ),
+      throwsA(isA<PrinterDownloadFailure>()
+          .having((e) => e.reason, 'reason', PrinterDownloadStopped.lost)),
+    );
+    // Gave up on the first answer rather than draining the script.
+    expect(repo.calls.where((c) => c == 'poll'), hasLength(1));
   });
 
   test('cancel before a job exists asks the server for nothing', () async {
