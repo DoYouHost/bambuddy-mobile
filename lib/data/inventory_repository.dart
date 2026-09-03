@@ -87,5 +87,11 @@ class InventoryRepository {
     List<int> spoolIds,
     SpoolLabelTemplate template, {
     bool monochrome = false,
-  }) => _source.renderLabels(spoolIds, template, monochrome: monochrome);
+    int startingPosition = 1,
+  }) => _source.renderLabels(
+        spoolIds,
+        template,
+        monochrome: monochrome,
+        startingPosition: startingPosition,
+      );
 }

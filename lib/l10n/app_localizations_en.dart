@@ -2723,6 +2723,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'US sheet stock; 30 labels per Letter page.';
 
   @override
+  String get inventoryLabelsStartTitle => 'First free label';
+
+  @override
+  String get inventoryLabelsStartHint =>
+      'Tap the slot the first label should print in — the ones before it stay blank, so a part-used sheet gets finished instead of started over.';
+
+  @override
+  String inventoryLabelsStartSlot(int position) {
+    return 'Position $position';
+  }
+
+  @override
   String get maintenanceEmpty => 'No maintenance data';
 
   @override

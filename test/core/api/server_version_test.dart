@@ -4,24 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   ServerVersion parse(String s) {
     final v = ServerVersion.tryParse(s);
-    expect(v, isNotNull, reason: 'nie sparsowano: $s');
+    expect(v, isNotNull, reason: 'did not parse: $s');
     return v!;
   }
 
-  group('parsowanie', () {
-    test('trzy człony', () {
+  group('parsing', () {
+    test('three components', () {
       final v = parse('1.2.5');
       expect([v.major, v.minor, v.patch, v.micro], [1, 2, 5, 0]);
       expect(v.isPrerelease, isFalse);
     });
 
-    test('cztery człony — stara numeracja 0.2.x', () {
+    test('four components — the old 0.2.x numbering', () {
       final v = parse('0.2.4.9');
       expect([v.major, v.minor, v.patch, v.micro], [0, 2, 4, 9]);
       expect(v.isPrerelease, isFalse);
     });
 
-    test('prefiks v', () {
+    test('a v prefix', () {
       expect(parse('v1.2.5.1').micro, 1);
     });
 
@@ -32,79 +32,79 @@ void main() {
       expect(v.prereleaseNum, 1);
     });
 
-    test('daily build — sufiks obcinany jak na serwerze', () {
+    test('a daily build — the suffix is stripped as the server strips it', () {
       final v = parse('1.2.6b1-daily.20260729');
       expect([v.major, v.minor, v.patch], [1, 2, 6]);
       expect(v.prereleaseNum, 1);
       expect(v.isPrerelease, isTrue);
       expect(v.raw, '1.2.6b1-daily.20260729',
-          reason: 'w logu ma być to, co serwer podał');
+          reason: 'the log has to carry what the server actually said');
     });
 
-    test('rc i alpha też', () {
+    test('rc and alpha count too', () {
       expect(parse('1.3.0rc2').prereleaseNum, 2);
       expect(parse('1.3.0alpha1').isPrerelease, isTrue);
     });
 
-    test('nie-wersja → null, nie wyjątek', () {
-      for (final junk in [null, '', '   ', 'nieznana', '1', '1.2', '<html>']) {
-        expect(ServerVersion.tryParse(junk), isNull, reason: 'wejście: $junk');
+    test('a non-version → null, not an exception', () {
+      for (final junk in [null, '', '   ', 'unknown', '1', '1.2', '<html>']) {
+        expect(ServerVersion.tryParse(junk), isNull, reason: 'input: $junk');
       }
     });
   });
 
-  group('porównanie', () {
-    test('kolejność członów', () {
+  group('comparison', () {
+    test('component order', () {
       expect(parse('1.2.5') < parse('1.2.6'), isTrue);
       expect(parse('0.2.4.9') < parse('1.2.5'), isTrue);
       expect(parse('1.2.5') < parse('1.2.5.1'), isTrue);
     });
 
-    test('wydanie bije swoją betę', () {
+    test('a release beats its own beta', () {
       expect(parse('1.2.5') >= parse('1.2.5b7'), isTrue);
       expect(parse('1.2.5b7') < parse('1.2.5'), isTrue);
     });
 
-    test('późniejsza beta bije wcześniejszą', () {
+    test('a later beta beats an earlier one', () {
       expect(parse('1.2.5b10') >= parse('1.2.5b7'), isTrue);
     });
 
-    test('beta następnej wersji bije obecne wydanie', () {
+    test("the next version's beta beats the current release", () {
       expect(parse('1.2.6b1') >= parse('1.2.5'), isTrue);
     });
   });
 
-  group('trójstanowe kalibracje', () {
-    test('od 1.2.5 w górę', () {
+  group('tri-state calibrations', () {
+    test('from 1.2.5 upward', () {
       for (final v in ['1.2.5', '1.2.5.1', '1.2.6', '2.0.0']) {
         expect(parse(v).supportsTriStateCalibration, isTrue, reason: v);
       }
     });
 
-    test('cała linia 0.2.x jeszcze nie', () {
+    test('the whole 0.2.x line, not yet', () {
       for (final v in ['0.2.4.9', '0.2.4.8', '0.2.3', '0.1.5']) {
         expect(parse(v).supportsTriStateCalibration, isFalse, reason: v);
       }
     });
 
-    test('beta 1.2.5 liczy się jako obsługująca', () {
-      // Zmiana weszła w tym cyklu; potraktowanie bety jako starszego kształtu
-      // wysłałoby boolean tam, gdzie user poprosił o auto.
+    test('a 1.2.5 beta counts as supporting', () {
+      // The change landed in that cycle; reading a beta as the older shape
+      // would send a boolean where the user asked for auto.
       expect(parse('1.2.5b1').supportsTriStateCalibration, isTrue);
     });
 
-    test('0.2.5bN wychodzi na „nie obsługuje" — i to jest granica tej metody',
+    test('0.2.5bN comes out as "not supported" — and that is this method\'s limit',
         () {
-      // bambuddy przenumerowało cykl 0.2.5 na 1.2.5 w trakcie, więc `0.2.5b2`
-      // (wersja, którą raportuje nasz serwer) jest betą DOKŁADNIE tego wydania,
-      // co wprowadziło trójstan — a mimo to leży pod 1.2.5 w każdym sensownym
-      // porządku. Żadne porównanie tych dwóch napisów nie odpowie, czy ta
-      // konkretna beta jest przed zmianą czy po niej.
+      // bambuddy renumbered the 0.2.5 cycle to 1.2.5 partway through, so
+      // `0.2.5b2` (the version our own server reports) is a beta of EXACTLY the
+      // release that introduced the tri-state — and still sorts below 1.2.5 in
+      // every sensible ordering. No comparison of those two strings can say
+      // whether this particular beta is before the change or after it.
       //
-      // Zostaje ostrożne „nie": wysłanie stringa serwerowi, który go nie zna, to
-      // 422, a brak pozycji auto to tylko brak funkcji. Prawdziwą odpowiedź daje
-      // obserwacja odpowiedzi serwera — patrz
-      // QueueRepository.supportsTriStateCalibration i jej testy.
+      // What is left is a careful "no": sending a string to a server that does
+      // not know it is a 422, while a missing auto option is only a missing
+      // feature. The real answer comes from observing what the server replies —
+      // see QueueRepository.supportsTriStateCalibration and its tests.
       expect(parse('0.2.5b2').supportsTriStateCalibration, isFalse);
       expect(parse('0.2.5b2') < parse('1.2.5'), isTrue);
     });
@@ -136,6 +136,8 @@ void main() {
         ServerFeature.sliceLayoutOptions,
         ServerFeature.processOverrides,
         ServerFeature.usersSlimListing,
+        ServerFeature.printLogCostEnergy,
+        ServerFeature.labelStartingPosition,
       ]) {
         expect(v125.supports(f), isFalse, reason: '$f absent in 1.2.5');
         expect(v126.supports(f), isTrue, reason: '$f present in 1.2.6');

@@ -241,6 +241,12 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     );
     if (template == null || !mounted) return;
 
+    // Step 3, sheet stock only: which slot of a part-used sheet to start at.
+    // Asked after the stock is picked rather than before it, so a roll template
+    // — where the server refuses anything but 1 — never sees the question.
+    final startingPosition = await _pickStartingPosition(template);
+    if (startingPosition == null || !mounted) return;
+
     // Keep the sorted order — that's what makes "by colour" flow into an
     // Avery sheet instead of being re-sorted by id server-side.
     final ids = [
@@ -252,7 +258,8 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     try {
       final pdf = await ref
           .read(inventoryRepositoryProvider)
-          .renderLabels(ids, template, monochrome: _monochrome);
+          .renderLabels(ids, template,
+              monochrome: _monochrome, startingPosition: startingPosition);
       if (!mounted) return;
       Navigator.of(context).pop();
       final filename = 'bambuddy-labels-${template.wire}.pdf';
@@ -276,6 +283,24 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
       setState(() => _busy = false);
       messenger.snack(l10n.inventoryLabelsFailed);
     }
+  }
+
+  /// Where on the sheet the first label goes, or null when the question was
+  /// dismissed — which cancels the print rather than defaulting to 1, since a
+  /// swipe-away is how someone backs out of the flow.
+  ///
+  /// Answers 1 without asking for a roll template, and for a server that would
+  /// take the field and print from 1 anyway: an older `LabelRequest` ignores
+  /// unknown keys, and a picker that quietly wastes a sheet of Avery stock is
+  /// worse than one that never appears.
+  Future<int?> _pickStartingPosition(SpoolLabelTemplate template) async {
+    if (template.sheetCapacity == null) return 1;
+    if (!await ref.read(labelStartingPositionProvider.future)) return 1;
+    if (!mounted) return null;
+    return dashSurfaceSheet<int>(
+      context,
+      builder: (_) => _StartingPositionSheet(template: template),
+    );
   }
 }
 
@@ -510,6 +535,96 @@ class _TemplateSheet extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Step 3 of label printing, for sheet stock only: which slot the first label
+/// goes in.
+///
+/// Drawn as the sheet itself rather than asked as a number, because that is the
+/// thing the user is looking at — a page with the first few labels already
+/// peeled off — and counting slots on paper is easier than counting them in
+/// your head. The slots keep the proportions of the stock they stand for, which
+/// is what tells the two Avery sheets apart at a glance. Tapping one prints,
+/// the same way tapping a stock card in [_TemplateSheet] does.
+class _StartingPositionSheet extends StatelessWidget {
+  const _StartingPositionSheet({required this.template});
+
+  final SpoolLabelTemplate template;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final layout = template.sheet!;
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      builder: (context, controller) => SheetSurface(
+        child: ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Text(l10n.inventoryLabelsStartTitle, style: t.titleLg),
+            const SizedBox(height: 6),
+            Text(l10n.inventoryLabelsStartHint, style: t.labelSoft),
+            const SizedBox(height: 14),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: layout.columns * layout.rows,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: layout.columns,
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
+                childAspectRatio: layout.widthMm / layout.heightMm,
+              ),
+              itemBuilder: (context, i) => _StartingPositionSlot(
+                position: i + 1,
+                onTap: () => Navigator.of(context).pop(i + 1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One slot of the sheet in [_StartingPositionSheet].
+class _StartingPositionSlot extends StatelessWidget {
+  const _StartingPositionSlot({required this.position, required this.onTap});
+
+  final int position;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      button: true,
+      label: l10n.inventoryLabelsStartSlot(position),
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Text('$position', style: t.monoLabel),
+          ),
+        ).tagged('labels.start_position'),
       ),
     );
   }

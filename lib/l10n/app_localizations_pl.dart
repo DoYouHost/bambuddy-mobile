@@ -2760,6 +2760,18 @@ class AppLocalizationsPl extends AppLocalizations {
       'Arkusze amerykańskie; 30 etykiet na stronie Letter.';
 
   @override
+  String get inventoryLabelsStartTitle => 'Pierwsza wolna etykieta';
+
+  @override
+  String get inventoryLabelsStartHint =>
+      'Dotknij pola, w którym ma się wydrukować pierwsza etykieta — wcześniejsze zostaną puste, więc napoczęty arkusz da się dokończyć zamiast zaczynać nowy.';
+
+  @override
+  String inventoryLabelsStartSlot(int position) {
+    return 'Pozycja $position';
+  }
+
+  @override
   String get maintenanceEmpty => 'Brak danych o konserwacji';
 
   @override

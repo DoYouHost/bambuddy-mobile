@@ -47,17 +47,25 @@ final ownedPrinterCodesProvider = FutureProvider.autoDispose<Set<String>>(
 );
 
 /// Filaments the user owns (from inventory spools) that carry a slicer-preset
-/// mapping, used to limit the filament list to owned filaments and to auto-pick
-/// per slot by material/colour. Empty for backends (Spoolman) without a slicer
-/// mapping — the modal then falls back to printer-compatibility only.
+/// mapping, used to limit the filament list to owned filaments, to auto-pick
+/// per slot by material/colour, and to say what colour each slot actually
+/// prints in (`sliceFilamentColours`). Empty for backends (Spoolman) without a
+/// slicer mapping — the modal then falls back to printer-compatibility only.
+///
+/// Deduplicated by name **and** colour, not by name alone: one preset covers
+/// every spool of that filament, so collapsing on the name kept an arbitrary
+/// one of a shelf full of colours and threw the rest away. Both readers want
+/// the colours — the auto-pick to find the closest to the plate, the request to
+/// record what is really being printed — and neither can ask for a colour that
+/// was dropped here.
 final ownedFilamentsProvider = FutureProvider.autoDispose<List<OwnedFilament>>(
   (ref) async {
     final spools = await ref.watch(inventoryRepositoryProvider).fetchSpools();
     final out = <OwnedFilament>[];
-    final seen = <String>{};
+    final seen = <(String, String?)>{};
     for (final s in spools) {
       final name = s.slicerFilamentName?.trim();
-      if (name == null || name.isEmpty || !seen.add(name)) continue;
+      if (name == null || name.isEmpty || !seen.add((name, s.rgba))) continue;
       out.add((name: name, material: s.material, color: s.rgba));
     }
     return out;

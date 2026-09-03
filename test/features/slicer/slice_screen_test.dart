@@ -114,6 +114,7 @@ void main() {
     UnifiedPresets presets = _presets,
     bool layoutOptions = false,
     Set<String> ownedCodes = const {},
+    List<OwnedFilament> owned = const [],
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -122,8 +123,7 @@ void main() {
         embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
         sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
-        ownedFilamentsProvider
-            .overrideWith((ref) async => const <OwnedFilament>[]),
+        ownedFilamentsProvider.overrideWith((ref) async => owned),
         filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
@@ -326,6 +326,32 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('process_overrides'), isFalse,
           reason: 'an override equal to the preset is noise in the process JSON');
+    });
+  });
+
+  group('the colour each slot prints in', () {
+    // Without it the slicer writes its compiled-in green onto every slot, and
+    // the print dialog then reports a colour mismatch against the AMS slot the
+    // print was mapped to (server #2977).
+    const shelf = [
+      (name: 'Bambu PLA Basic', material: 'PLA', color: 'ff0000ff'),
+      (name: 'Bambu PLA Basic', material: 'PLA', color: '0000ffff'),
+    ];
+
+    testWidgets('reaches the body as the picked spool colour', (tester) async {
+      await openSheet(tester, owned: shelf, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', color: '#0000FF'),
+      ]);
+      final body = await slice(tester);
+      expect(body['filament_colours'], ['#0000FF']);
+    });
+
+    testWidgets('is absent when the inventory names no colour', (tester) async {
+      // Nothing to say: the request has to stay identical to one from before
+      // the field existed, so the server's own fallback chain still runs.
+      await openSheet(tester);
+      final body = await slice(tester);
+      expect(body.containsKey('filament_colours'), isFalse);
     });
   });
 

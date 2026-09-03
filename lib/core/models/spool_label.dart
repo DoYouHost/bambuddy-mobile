@@ -18,13 +18,36 @@ enum SpoolLabelTemplate {
   amsHolderLarge('ams_holder_75x55'),
   box40x30('box_40x30'),
   box62x29('box_62x29'),
-  averyL7160('avery_l7160'),
-  avery5160('avery_5160');
+  averyL7160(
+    'avery_l7160',
+    sheet: (columns: 3, rows: 7, widthMm: 63.5, heightMm: 38.1),
+  ),
+  avery5160(
+    'avery_5160',
+    sheet: (columns: 3, rows: 10, widthMm: 66.675, heightMm: 25.4),
+  );
 
-  const SpoolLabelTemplate(this.wire);
+  const SpoolLabelTemplate(this.wire, {this.sheet});
 
   /// Value sent as `template` in the request body.
   final String wire;
+
+  /// How the labels are laid out on a sheet, or null for a roll template that
+  /// prints one label per page.
+  ///
+  /// Mirrors `_SHEET_TEMPLATES` in the server's `label_renderer.py`, which is
+  /// also what validates `starting_position` — a value past [sheetCapacity] is
+  /// a 422, so the picker must not offer one. The millimetres are there so a
+  /// picker can draw slots shaped like the stock in the printer's tray: the two
+  /// sheets differ far more in label proportion than in slot count.
+  final ({int columns, int rows, double widthMm, double heightMm})? sheet;
+
+  /// Labels one sheet holds, or null for a roll template. Positions are
+  /// numbered 1..capacity left to right, top row first.
+  int? get sheetCapacity {
+    final layout = sheet;
+    return layout == null ? null : layout.columns * layout.rows;
+  }
 }
 
 /// Server-side cap on one label request (`MAX_LABELS_PER_REQUEST`). Asking for
