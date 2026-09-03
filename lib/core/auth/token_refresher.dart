@@ -1,5 +1,6 @@
-import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
+
+import 'package:clock/clock.dart' as ambient;
 
 import '../diagnostics/auth_probe.dart';
 import 'auth_service.dart';

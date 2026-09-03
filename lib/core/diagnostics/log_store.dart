@@ -1,5 +1,6 @@
-import 'package:clock/clock.dart' as ambient;
 import 'dart:collection';
+
+import 'package:clock/clock.dart' as ambient;
 
 import 'log_event.dart';
 import 'report_config.dart';

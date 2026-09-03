@@ -211,7 +211,12 @@ class WearRpcRequest {
       version >= wearRpcWakeAwareVersion || action.isRepeatSafe;
 
   Map<String, dynamic> encode() => <String, dynamic>{
-        _kVersion: wearRpcVersion,
+        // The version this request carries, not the one this build speaks. They
+        // differ the moment a decoded request is encoded again, and the field
+        // is the whole basis of the wake gate: stamping the current version on
+        // a v1 sender would promote a watch that stopped waiting long ago into
+        // one the phone may run a non-repeat-safe action for.
+        _kVersion: version,
         _kKind: _kindRequest,
         _kId: id,
         _kAction: action.name,

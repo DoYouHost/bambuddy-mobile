@@ -1,5 +1,6 @@
-import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
+
+import 'package:clock/clock.dart' as ambient;
 
 import '../api/ws_messages.dart';
 import '../diagnostics/notif_probe.dart';

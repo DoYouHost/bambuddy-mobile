@@ -1,7 +1,7 @@
-import 'package:clock/clock.dart' as ambient;
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
+import 'package:clock/clock.dart' as ambient;
 import 'package:flutter/widgets.dart' show Locale;
 
 import '../../core/diagnostics/notif_probe.dart';
