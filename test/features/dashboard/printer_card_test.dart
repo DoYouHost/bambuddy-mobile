@@ -1364,6 +1364,29 @@ void main() {
       expect(find.text('OFFLINE'), findsNothing); // never collapsed
     });
 
+    testWidgets('a disconnect the card could not have seen coming collapses at once',
+        (tester) async {
+      // The everyday case: the app spent the night in the background with the
+      // socket closed and polling stopped, the printer was switched off in the
+      // meantime, and the first frame after the resume says so. The card is
+      // comparing against a `connected:true` from hours ago, which is no reason
+      // to hold the layout up for another 15 seconds.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item));
+      await tester.pump(const Duration(seconds: 30)); // out of touch
+
+      // The resume itself rebuilds the card with the value it already held —
+      // that is not a fresh observation and must not renew the grace period.
+      await tester.pumpWidget(_cardSwap(item));
+      item.value = merged;
+      await tester.pump();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
     testWidgets('inside the grace window the header already reads as offline',
         (tester) async {
       final item = ValueNotifier<PrinterWithStatus>(connected);

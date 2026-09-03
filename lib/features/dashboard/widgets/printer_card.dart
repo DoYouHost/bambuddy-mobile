@@ -79,6 +79,19 @@ class _PrinterCardState extends State<PrinterCard> {
   late bool _offline;
   Timer? _offlineGrace;
 
+  /// Whether a frame saying the printer is reachable arrived within the last
+  /// [_offlineGracePeriod]. Only a disconnect that follows such an observation
+  /// gets the grace period — a flicker is by definition a dense run of frames,
+  /// so it always qualifies.
+  ///
+  /// Without this the debounce fired on evidence the card no longer had: in the
+  /// background the socket is closed and polling stopped, so the first frame
+  /// after a resume is compared against a `connected:true` that can be hours
+  /// old, and a printer switched off last night was granted a fresh 15 seconds
+  /// of the full layout on every open.
+  bool _connectedRecently = false;
+  Timer? _connectedRecency;
+
   /// Filter HMS errors to displayable ones: omit internal/untranslatable entries.
   List<HmsError> _displayableHmsErrors(PrinterStatus? status) => [
     for (final e in status?.hmsErrors ?? const <HmsError>[])
@@ -87,6 +100,8 @@ class _PrinterCardState extends State<PrinterCard> {
 
   /// Grace period before collapsing the card when offline is sustained; fresh
   /// `connected:true` within this window resets the timer (debounce flashing).
+  /// It doubles as the window in which a reachable frame still counts as an
+  /// observation — see [_connectedRecently].
   static const _offlineGracePeriod = Duration(seconds: 15);
 
   @override
@@ -94,29 +109,54 @@ class _PrinterCardState extends State<PrinterCard> {
     super.initState();
     // Initial offline state (no grace period): card collapses immediately.
     _offline = !(widget.item.status?.connected ?? false);
+    if (!_offline) _observedConnected();
   }
 
   @override
   void didUpdateWidget(PrinterCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     final connected = widget.item.status?.connected ?? false;
+    // Only a status that actually changed is an observation. Plain rebuilds —
+    // the dashboard re-filtering, the app coming back to the front — re-render
+    // the value the card already holds, and counting those would keep the
+    // observation alive for as long as the card is on screen.
+    final observed = widget.item.status != oldWidget.item.status;
     if (connected) {
+      if (observed) _observedConnected();
       // Back/maintaining online: immediately expand and cancel timer.
       _offlineGrace?.cancel();
       _offlineGrace = null;
       if (_offline) setState(() => _offline = false);
     } else if (!_offline && _offlineGrace == null) {
-      // Freshly disconnected — count down instead of collapsing immediately (debounce).
-      _offlineGrace = Timer(_offlineGracePeriod, () {
-        _offlineGrace = null;
-        if (mounted) setState(() => _offline = true);
-      });
+      if (!_connectedRecently) {
+        // Nothing recent to contradict this frame — it is not a flicker, it is
+        // the answer to a question the card had stopped asking.
+        setState(() => _offline = true);
+      } else {
+        // Freshly disconnected — count down instead of collapsing immediately (debounce).
+        _offlineGrace = Timer(_offlineGracePeriod, () {
+          _offlineGrace = null;
+          if (mounted) setState(() => _offline = true);
+        });
+      }
     }
+  }
+
+  /// Record a reachable frame and let the record expire with the grace period
+  /// it guards, so the two can never drift apart.
+  void _observedConnected() {
+    _connectedRecently = true;
+    _connectedRecency?.cancel();
+    _connectedRecency = Timer(
+      _offlineGracePeriod,
+      () => _connectedRecently = false,
+    );
   }
 
   @override
   void dispose() {
     _offlineGrace?.cancel();
+    _connectedRecency?.cancel();
     super.dispose();
   }
 
