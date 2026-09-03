@@ -561,6 +561,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 itemBuilder: (_, i) => PrinterCard(
                   key: ValueKey(filtered[i].printer.id),
                   item: filtered[i],
+                  inTouchSince:
+                      ref.read(printerStatusesProvider.notifier).inTouchSince,
                 ),
               ),
             ),

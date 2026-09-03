@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -348,7 +349,12 @@ Widget _cardWithProviders(
 
 /// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
 /// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
-Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
+///
+/// [inTouchSince] is what the dashboard passes from the statuses store: when
+/// the line to the server last came up. `null` means the caller tracks no
+/// contact at all.
+Widget _cardSwap(ValueNotifier<PrinterWithStatus> item, {DateTime? inTouchSince}) =>
+    ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
@@ -362,8 +368,11 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
         Scaffold(
           body: ValueListenableBuilder<PrinterWithStatus>(
             valueListenable: item,
-            builder: (_, it, _) =>
-                PrinterCard(key: const ValueKey('card'), item: it),
+            builder: (_, it, _) => PrinterCard(
+              key: const ValueKey('card'),
+              item: it,
+              inTouchSince: inTouchSince,
+            ),
           ),
         ),
       ),
@@ -1331,12 +1340,16 @@ void main() {
           .mergedWith(onlineStatus),
     );
 
+    /// A line that has been up long enough for a second frame to contradict
+    /// the first — the steady state the debounce was written for.
+    DateTime steadyContact() => clock.now().subtract(const Duration(hours: 1));
+
     testWidgets('a disconnect collapses the card only after the grace period',
         (tester) async {
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
       expect(find.text('OFFLINE'), findsNothing);
 
       item.value = off;
@@ -1352,7 +1365,7 @@ void main() {
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
 
       item.value = off;
       await tester.pump();
@@ -1364,26 +1377,17 @@ void main() {
       expect(find.text('OFFLINE'), findsNothing); // never collapsed
     });
 
-    testWidgets('a repeated reading still counts as the printer answering',
+    testWidgets('a printer with nothing to report keeps its grace period',
         (tester) async {
-      // An idle printer sends the same numbers over and over. Those frames are
-      // equal in value but each is its own instance, and they are the proof
-      // that the machine is still there — a drop that follows them is a
-      // flicker like any other and keeps the grace period.
+      // An idle printer is silent by design: bambuddy drops a WS broadcast
+      // whose status_key is unchanged, and the poll lane skips an ingest that
+      // carries nothing new. Silence is therefore no evidence about the
+      // printer — only the line matters, and the line is up.
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
-      await tester.pump(const Duration(seconds: 12));
-      item.value = PrinterWithStatus(
-        printer: const Printer(id: 1, name: 'X1C'),
-        // Deliberately not const: two identical const expressions are the same
-        // instance, which is exactly what this test needs to avoid.
-        // ignore: prefer_const_constructors
-        status: PrinterStatus(id: 1, connected: true, state: 'IDLE', model: 'X1C'),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 12)); // 24s in, 12s since the frame
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
+      await tester.pump(const Duration(seconds: 30)); // not a frame in sight
 
       item.value = merged;
       await tester.pump();
@@ -1392,22 +1396,17 @@ void main() {
       expect(find.text('Szczegóły'), findsNothing);
     });
 
-    testWidgets('a disconnect the card could not have seen coming collapses at once',
+    testWidgets('a disconnect on a line that just came up collapses at once',
         (tester) async {
       // The everyday case: the app spent the night in the background with the
       // socket closed and polling stopped, the printer was switched off in the
-      // meantime, and the first frame after the resume says so. The card is
-      // comparing against a `connected:true` from hours ago, which is no reason
-      // to hold the layout up for another 15 seconds.
+      // meantime, and the first frame after the resume says so. Nothing can
+      // contradict a frame that arrived with the line, so there is no reason to
+      // hold the layout up for another 15 seconds.
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
-      await tester.pump(const Duration(seconds: 30)); // out of touch
-
-      // The resume itself rebuilds the card with the value it already held —
-      // that is not a fresh observation and must not renew the grace period.
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: clock.now()));
       item.value = merged;
       await tester.pump();
 
@@ -1420,7 +1419,7 @@ void main() {
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
       item.value = merged;
       await tester.pump();
 
