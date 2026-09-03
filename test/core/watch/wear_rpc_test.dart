@@ -226,6 +226,21 @@ void main() {
       expect(WearRpcRequest.decode(map)!.version, 1);
     });
 
+    test('a request re-encodes the version it carries, not this build\'s', () {
+      // Every encode in the app today is of a freshly built request, so this
+      // costs nothing now — but the field is what the wake gate reads, and a
+      // forwarding or echo path that re-encoded a decoded request would hand
+      // the phone a v1 watch dressed as wake-aware.
+      const v1 = WearRpcRequest(
+        id: 'r1',
+        action: WearRpcAction.startNext,
+        version: 1,
+      );
+
+      expect(v1.encode()['v'], 1);
+      expect(WearRpcRequest.decode(v1.encode())!.version, 1);
+    });
+
     test('a map with no version reads as the oldest one', () {
       final map = WearRpcRequest.create(WearRpcAction.pause).encode()
         ..remove('v');

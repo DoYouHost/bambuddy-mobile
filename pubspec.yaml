@@ -20,6 +20,7 @@ dependencies:
       url: https://github.com/DoYouHost/app-shared.git
       ref: v0.1.1
       path: packages/app_report_client
+  clock: ^1.1.2
   collection: ^1.19.0
   cupertino_icons: ^1.0.8
   dio: ^5.7.0

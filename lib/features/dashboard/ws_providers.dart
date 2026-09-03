@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/endpoints.dart';
@@ -100,6 +101,28 @@ final printerStatusesProvider =
 );
 
 class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
+  /// When the app last (re)gained an unbroken line to the server, or `null`
+  /// while it has none. It answers the only question a `connected:false` frame
+  /// raises: is there anything that could contradict it in a second's time?
+  ///
+  /// Per-printer freshness cannot answer that. bambuddy skips a WS broadcast
+  /// whose `status_key` is unchanged (`main.py`, `_last_status_broadcast`) and
+  /// [ingestPoll] skips a poll that carries nothing new, so a connected printer
+  /// sitting idle is silent by design on both lanes — silence says nothing
+  /// about the printer, only about how little it has to say.
+  DateTime? _inTouchSince;
+
+  DateTime? get inTouchSince => _inTouchSince;
+
+  /// Anything that arrived from the server is contact. The first one after a
+  /// gap starts the clock; the rest leave it where it is, because what matters
+  /// is how long the line has been up, not when it last carried something.
+  void _sawServer() => _inTouchSince ??= clock.now();
+
+  /// The line is down: backgrounded (socket closed, polling stopped) or a poll
+  /// that failed. The next frame after this is news, not a flicker.
+  void lostContact() => _inTouchSince = null;
+
   @override
   Map<int, PrinterStatus> build() {
     final profile = ref.watch(serverProfileProvider);
@@ -109,6 +132,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     final sub = client.statuses.listen((status) {
       // Merge on previous state so WS frame doesn't erase fields WS doesn't
       // carry (e.g. chamber mode `airduct_mode` from REST) — see mergedWith.
+      _sawServer();
       final prev = state[status.id];
       final merged = status.mergedWith(prev);
       state = {...state, status.id: merged};
@@ -190,6 +214,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
     // Poll carries full roster, so authoritative source of composition — trim
     // statuses of printers gone from list (otherwise would grow unbounded; WS
     // doesn't report deletes). Entries with null-status stay in roster.
+    _sawServer();
     final rosterIds = {for (final p in polled) p.printer.id};
     final next = {...state}..removeWhere((id, _) => !rosterIds.contains(id));
     var changed = next.length != state.length;
@@ -215,6 +240,7 @@ class PrinterStatusesNotifier extends Notifier<Map<int, PrinterStatus>> {
 
   /// Called by lifecycle: background → close socket.
   void suspend() {
+    lostContact();
     final profile = ref.read(serverProfileProvider);
     if (profile == null) return;
     ref.read(wsClientProvider).suspend();

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bambuddy_mobile/core/models/firmware.dart';
 import 'package:bambuddy_mobile/core/models/heater_history.dart';
 import 'package:bambuddy_mobile/data/heater_history_repository.dart';
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 import 'package:bambuddy_mobile/core/models/printer.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
@@ -348,7 +349,12 @@ Widget _cardWithProviders(
 
 /// Stabilny scope z podmienialnym itemem (ten sam klucz karty → reuse State,
 /// czyli didUpdateWidget) — do testów debounce'u OFFLINE.
-Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
+///
+/// [inTouchSince] is what the dashboard passes from the statuses store: when
+/// the line to the server last came up. `null` means the caller tracks no
+/// contact at all.
+Widget _cardSwap(ValueNotifier<PrinterWithStatus> item, {DateTime? inTouchSince}) =>
+    ProviderScope(
       overrides: [
         serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
         cameraTokenProvider.overrideWith((ref) async => 'tok'),
@@ -362,8 +368,11 @@ Widget _cardSwap(ValueNotifier<PrinterWithStatus> item) => ProviderScope(
         Scaffold(
           body: ValueListenableBuilder<PrinterWithStatus>(
             valueListenable: item,
-            builder: (_, it, _) =>
-                PrinterCard(key: const ValueKey('card'), item: it),
+            builder: (_, it, _) => PrinterCard(
+              key: const ValueKey('card'),
+              item: it,
+              inTouchSince: inTouchSince,
+            ),
           ),
         ),
       ),
@@ -1308,47 +1317,158 @@ void main() {
     });
   });
 
-  group('debounce OFFLINE (anty-miganie po odcięciu zasilania)', () {
+  group('OFFLINE debounce (no flashing after the power is cut)', () {
+    // `model` is carried through a disconnect, so the details toggle stays on
+    // the full layout — which is how these tests tell the two layouts apart.
+    const onlineStatus =
+        PrinterStatus(id: 1, connected: true, state: 'IDLE', model: 'X1C');
     final connected = PrinterWithStatus(
       printer: const Printer(id: 1, name: 'X1C'),
-      status: const PrinterStatus(id: 1, connected: true, state: 'IDLE'),
+      status: onlineStatus,
     );
     final off = PrinterWithStatus(
       printer: const Printer(id: 1, name: 'X1C'),
       status: const PrinterStatus(id: 1, connected: false, state: 'IDLE'),
     );
+    // What the card is really handed when the printer drops: the frame goes
+    // through `mergedWith`, which blanks the live state of an unreachable
+    // printer — so the header has no state string left and falls back to the
+    // "offline" label while the body is still on screen.
+    final merged = PrinterWithStatus(
+      printer: const Printer(id: 1, name: 'X1C'),
+      status: const PrinterStatus(id: 1, connected: false)
+          .mergedWith(onlineStatus),
+    );
 
-    testWidgets('rozłączenie zwija kartę dopiero po okresie łaski',
+    /// A line that has been up long enough for a second frame to contradict
+    /// the first — the steady state the debounce was written for.
+    DateTime steadyContact() => clock.now().subtract(const Duration(hours: 1));
+
+    testWidgets('a disconnect collapses the card only after the grace period',
         (tester) async {
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
       expect(find.text('OFFLINE'), findsNothing);
 
       item.value = off;
-      await tester.pump(); // didUpdateWidget → start licznika, jeszcze nie zwija
+      await tester.pump(); // didUpdateWidget → timer starts, no collapse yet
       expect(find.text('OFFLINE'), findsNothing);
 
-      await tester.pump(const Duration(seconds: 16)); // po okresie łaski
+      await tester.pump(const Duration(seconds: 16)); // past the grace period
       expect(find.text('OFFLINE'), findsOneWidget);
     });
 
-    testWidgets('mignięcie connected w oknie łaski NIE zwija karty',
+    testWidgets('a connected blip inside the grace window does NOT collapse it',
         (tester) async {
       final item = ValueNotifier<PrinterWithStatus>(connected);
       addTearDown(item.dispose);
 
-      await tester.pumpWidget(_cardSwap(item));
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
 
       item.value = off;
       await tester.pump();
-      await tester.pump(const Duration(seconds: 5)); // w trakcie łaski
-      item.value = connected; // bambuddy znów raportuje online → reset
+      await tester.pump(const Duration(seconds: 5)); // inside the grace period
+      item.value = connected; // bambuddy reports online again → reset
       await tester.pump();
       await tester.pump(const Duration(seconds: 16));
 
-      expect(find.text('OFFLINE'), findsNothing); // nigdy nie zwinięte
+      expect(find.text('OFFLINE'), findsNothing); // never collapsed
+    });
+
+    testWidgets('a printer with nothing to report keeps its grace period',
+        (tester) async {
+      // An idle printer is silent by design: bambuddy drops a WS broadcast
+      // whose status_key is unchanged, and the poll lane skips an ingest that
+      // carries nothing new. Silence is therefore no evidence about the
+      // printer — only the line matters, and the line is up.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
+      await tester.pump(const Duration(seconds: 30)); // not a frame in sight
+
+      item.value = merged;
+      await tester.pump();
+      expect(find.text('Szczegóły'), findsOneWidget); // debounced, not collapsed
+      await tester.pump(const Duration(seconds: 16));
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
+    testWidgets('a disconnect on a line that just came up collapses at once',
+        (tester) async {
+      // The everyday case: the app spent the night in the background with the
+      // socket closed and polling stopped, the printer was switched off in the
+      // meantime, and the first frame after the resume says so. Nothing can
+      // contradict a frame that arrived with the line, so there is no reason to
+      // hold the layout up for another 15 seconds.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: clock.now()));
+      item.value = merged;
+      await tester.pump();
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
+    testWidgets('a printer the roster carries with no status at all is offline',
+        (tester) async {
+      // Not the same as a frame whose `connected` is missing: here there is no
+      // status to read at all, so the card knows nothing about the printer and
+      // says so, the way it always has.
+      await tester.pumpWidget(_cardWithProviders(
+        const PrinterWithStatus(printer: Printer(id: 1, name: 'X1C')),
+      ));
+
+      expect(find.text('OFFLINE'), findsOneWidget);
+      expect(find.text('Szczegóły'), findsNothing);
+    });
+
+    testWidgets('a frame that never mentions the connection leaves the card be',
+        (tester) async {
+      // An older server, or a payload carrying a subset of the fields. Read as
+      // "offline" it would collapse a printer that may well be printing, so it
+      // is read as what it is: no news.
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
+      item.value = const PrinterWithStatus(
+        printer: Printer(id: 1, name: 'X1C'),
+        status: PrinterStatus(id: 1, state: 'RUNNING', model: 'X1C'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 30));
+
+      expect(find.text('OFFLINE'), findsNothing);
+      expect(find.text('Szczegóły'), findsOneWidget);
+    });
+
+    testWidgets('inside the grace window the header already reads as offline',
+        (tester) async {
+      final item = ValueNotifier<PrinterWithStatus>(connected);
+      addTearDown(item.dispose);
+
+      await tester.pumpWidget(_cardSwap(item, inTouchSince: steadyContact()));
+      item.value = merged;
+      await tester.pump();
+
+      // The body is still up (the collapse waits out the grace period), so the
+      // header is the only thing saying the printer is unreachable — it must
+      // not say it in the colour that means "connected".
+      final chip = tester.widget<Text>(find.text('OFFLINE'));
+      final scheme =
+          Theme.of(tester.element(find.text('OFFLINE'))).colorScheme;
+      expect(chip.style?.color, scheme.error);
+
+      // Proof that this was the full layout and not the collapsed one: the
+      // details toggle is on screen here and gone once the card collapses.
+      expect(find.text('Szczegóły'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 16));
+      expect(find.text('Szczegóły'), findsNothing);
     });
   });
 

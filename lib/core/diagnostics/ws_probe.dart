@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart' as ambient;
 import '../api/ws_messages.dart';
 import '../models/printer_status.dart' show AmsTray, AmsUnit, HmsError;
 import 'diagnostic_recorder.dart';
@@ -40,7 +41,7 @@ enum WsDisconnectReason {
 /// Which frame fields go in and why repeats collapse:
 /// `docs/diagnostics-log.md`.
 class WsProbe {
-  WsProbe({DateTime Function()? clock}) : _now = clock ?? DateTime.now {
+  WsProbe({DateTime Function()? clock}) : _now = clock ?? (() => ambient.clock.now()) {
     _live.add(this);
   }
 

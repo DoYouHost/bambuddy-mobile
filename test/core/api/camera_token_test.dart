@@ -1,5 +1,6 @@
 import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
 import 'package:bambuddy_mobile/core/api/camera_token.dart';
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -41,6 +42,39 @@ void main() {
       final second = await service.token();
       expect(second, first);
       expect(second, 'abc');
+    });
+
+    test('a token past its lifetime is minted again, not served from cache',
+        () async {
+      // The cache keeps a token for 55 minutes. Nothing used to exercise the
+      // far side of that: the service read the wall clock, so the only way to
+      // reach the lapse was to wait for it.
+      // Answered from an interceptor rather than the mock adapter: the
+      // adapter's route handler runs once, when the route is declared, so it
+      // cannot hand out a different token to the second request.
+      var minted = 0;
+      dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+        minted++;
+        handler.resolve(Response(
+          requestOptions: options,
+          statusCode: 200,
+          data: {'token': 'abc$minted'},
+        ));
+      }));
+
+      final issued = DateTime(2026, 9, 3, 12);
+      expect(await withClock(Clock.fixed(issued), service.token), 'abc1');
+      expect(
+        await withClock(
+            Clock.fixed(issued.add(const Duration(minutes: 54))), service.token),
+        'abc1',
+        reason: 'still inside the lifetime',
+      );
+      expect(
+        await withClock(
+            Clock.fixed(issued.add(const Duration(minutes: 56))), service.token),
+        'abc2',
+      );
     });
 
     test('malformed (brak pola token) → ApiException malformedResponse',

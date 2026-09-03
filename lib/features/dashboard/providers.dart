@@ -159,6 +159,7 @@ class DashboardNotifier extends AutoDisposeNotifier<DashboardState> {
       state = DashboardState(printers: state.printers, authExpired: true);
     } on AppApiException catch (e) {
       if (generation != _generation) return;
+      ref.read(printerStatusesProvider.notifier).lostContact();
       state = DashboardState(printers: state.printers, error: e);
     }
   }

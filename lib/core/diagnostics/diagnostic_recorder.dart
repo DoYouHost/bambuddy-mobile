@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clock/clock.dart' as ambient;
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -39,7 +40,7 @@ class DiagnosticRecorder {
     this.ringRecords = ringRecordLimit,
     this.ringChars = ringCharLimit,
     DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+  }) : _clock = clock ?? (() => ambient.clock.now());
 
   final SettingsRepository settings;
   final Future<SessionFacts> Function() loadFacts;
@@ -308,7 +309,7 @@ class DiagnosticRecorder {
     try {
       final session = settings.loadDiagnosticsSession();
       if (session == null) return null;
-      final now = (clock ?? DateTime.now)();
+      final now = (clock ?? ambient.clock.now)();
 
       final prepared = await Future(() async {
         final directory = await resolveDirectory();

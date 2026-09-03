@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:clock/clock.dart' as ambient;
+
 import 'log_event.dart';
 import 'report_config.dart';
 import 'package:app_report_client/app_report_client.dart';
@@ -33,7 +35,7 @@ class LogStore {
     this.onClosed,
   })  : redactor = redactor ?? bambuddyRedactor(),
         _openedAtOverride = openedAt,
-        _clock = clock ?? DateTime.now;
+        _clock = clock ?? (() => ambient.clock.now());
 
   final LogHeader header;
   final LogRedactor redactor;

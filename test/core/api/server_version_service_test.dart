@@ -1,4 +1,5 @@
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
+import 'package:clock/clock.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -13,6 +14,24 @@ void main() {
     adapter = DioAdapter(dio: dio);
     service = ServerVersionService(dio);
   });
+
+  /// Counts the requests that really left the app and answers them here.
+  /// A counter inside `adapter.onGet(...)` counts route REGISTRATIONS — the
+  /// handler is invoked once, when the route is declared — so it reads `1`
+  /// whether the service asked once, twice or never.
+  int Function() countingReplies(Response<dynamic> Function() reply) {
+    var requests = 0;
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests++;
+      final staged = reply();
+      handler.resolve(Response(
+        requestOptions: options,
+        statusCode: staged.statusCode,
+        data: staged.data,
+      ));
+    }));
+    return () => requests;
+  }
 
   void replyVersion(String version) => adapter.onGet(
         '/api/v1/updates/version',
@@ -34,25 +53,25 @@ void main() {
   });
 
   test('pyta raz, potem korzysta z zapamiętanej odpowiedzi', () async {
-    var calls = 0;
-    adapter.onGet('/api/v1/updates/version', (server) {
-      calls++;
-      return server.reply(200, {'version': '1.2.5', 'repo': 'x/y'});
-    });
+    final calls = countingReplies(() => Response(
+          requestOptions: RequestOptions(),
+          statusCode: 200,
+          data: {'version': '1.2.5', 'repo': 'x/y'},
+        ));
 
     await service.current();
     await service.current();
     await service.supportsTriStateCalibration();
 
-    expect(calls, 1, reason: 'wersja nie zmienia się bez restartu serwera');
+    expect(calls(), 1, reason: 'wersja nie zmienia się bez restartu serwera');
   });
 
   test('równoległe wywołania dzielą jedno żądanie', () async {
-    var calls = 0;
-    adapter.onGet('/api/v1/updates/version', (server) {
-      calls++;
-      return server.reply(200, {'version': '1.2.5', 'repo': 'x/y'});
-    });
+    final calls = countingReplies(() => Response(
+          requestOptions: RequestOptions(),
+          statusCode: 200,
+          data: {'version': '1.2.5', 'repo': 'x/y'},
+        ));
 
     await Future.wait([
       service.current(),
@@ -60,7 +79,7 @@ void main() {
       service.current(),
     ]);
 
-    expect(calls, 1);
+    expect(calls(), 1);
   });
 
   test('cached: bez sieci nie zgaduje', () async {
@@ -112,17 +131,35 @@ void main() {
     test('nieudany odczyt nie jest zapamiętywany na stałe', () async {
       // Sonda, która trafiła w moment bez sieci, nie może wyłączyć auto na całą
       // sesję — inaczej jedna chwila offline kosztuje funkcję do restartu apki.
-      var calls = 0;
-      adapter.onGet('/api/v1/updates/version', (server) {
-        calls++;
-        return server.reply(500, null);
-      });
+      final calls = countingReplies(
+          () => Response(requestOptions: RequestOptions(), statusCode: 500));
 
       await service.current();
       await service.current();
 
-      expect(calls, 1, reason: 'w oknie ponowienia nie dobija serwera');
+      expect(calls(), 1, reason: 'w oknie ponowienia nie dobija serwera');
       expect(service.cached, isNull);
+    });
+
+    test('past the retry window the read is attempted again', () async {
+      // The other half of the rule above, and the half that decides whether a
+      // feature comes back at all: a probe that met a moment without a network
+      // has to be retried once the window is out, not once the app restarts.
+      final calls = countingReplies(
+          () => Response(requestOptions: RequestOptions(), statusCode: 500));
+
+      final failedAt = DateTime(2026, 9, 3, 12);
+      await withClock(Clock.fixed(failedAt), () async {
+        await service.current();
+        await service.current();
+      });
+      expect(calls(), 1, reason: 'inside the window the server is left alone');
+
+      await withClock(Clock.fixed(failedAt.add(const Duration(minutes: 6))),
+          () async {
+        await service.current();
+      });
+      expect(calls(), 2);
     });
   });
 }
