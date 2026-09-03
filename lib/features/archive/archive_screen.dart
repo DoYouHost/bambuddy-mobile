@@ -558,7 +558,12 @@ class _ArchiveCard extends StatelessWidget {
     final meta = <String>[
       // Only a run that printed a chosen plate of a multi-plate file carries
       // one, which is exactly when the name alone cannot tell two rows apart.
-      if (archive.plateId != null)
+      //
+      // Guarded on the value, not just on null: plates are numbered from 1
+      // (`Metadata/plate_1.gcode` upward) and the server puts no lower bound on
+      // the column, while 0 is what the slicer's own API means by "every plate".
+      // Whatever wrote a 0 here, it did not print plate zero.
+      if ((archive.plateId ?? 0) > 0)
         AppLocalizations.of(context).archivePlate(archive.plateId!),
       if (archive.filamentType != null) archive.filamentType!,
       if (archive.filamentUsedGrams != null)
