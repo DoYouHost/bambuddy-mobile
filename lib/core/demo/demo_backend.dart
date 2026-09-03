@@ -327,6 +327,15 @@ class DemoBackend {
             }
             return _file(_emptyZip(), 'application/zip');
           }
+          if (s.length == 4 && at(3, 'download-job') && m == 'POST') {
+            return _startDownloadJob(pid, body);
+          }
+          if (s.length == 5 && at(3, 'download-jobs')) {
+            return _downloadJobRoute(m, pid, s[4]);
+          }
+          if (s.length == 6 && at(3, 'dl')) {
+            return _preparedDownload(pid, s[4]);
+          }
           return _fallback(m);
         }
         if (at(2, 'storage')) {
@@ -1033,6 +1042,72 @@ class DemoBackend {
       if (file['path'] == path) return (file['size'] as int?) ?? 0;
     }
     return 0;
+  }
+
+  /// One download preparation the demo server is holding, mirroring
+  /// `PrinterFilesJobStatus`.
+  ///
+  /// Real preparations run in the background and are polled; here the polling
+  /// *is* the clock — each `GET` stages one more file — so the demo shows the
+  /// counter moving and the Cancel button doing something without a timer that
+  /// would keep running after the screen is gone.
+  final Map<String, _DemoDownloadJob> _downloadJobs = {};
+
+  /// Tokens minted by finished jobs, each good for exactly one download, as on
+  /// the real server.
+  final Map<String, _DemoDownloadJob> _downloadTokens = {};
+
+  /// Never reused, unlike a count of live jobs: cancelling one and starting
+  /// another would otherwise hand out an id a job still on the map holds.
+  int _downloadJobSeq = 0;
+
+  DemoResult _startDownloadJob(int printerId, Map<String, dynamic> body) {
+    final paths = (body['paths'] as List?)?.whereType<String>().toList();
+    if (paths == null || paths.isEmpty) {
+      return (status: 400, body: {'detail': 'No files specified'});
+    }
+    final asZip = body['as_zip'] != false;
+    if (!asZip && paths.length != 1) {
+      return (
+        status: 400,
+        body: {'detail': 'Native downloads require exactly one file'},
+      );
+    }
+    final job = _DemoDownloadJob(
+      jobId: 'demo-job-${++_downloadJobSeq}',
+      printerId: printerId,
+      paths: paths,
+      asZip: asZip,
+      filename: toStringOrNull(body['filename']) ?? 'printer-files.zip',
+    );
+    _downloadJobs[job.jobId] = job;
+    return _ok(job.toJson());
+  }
+
+  DemoResult _downloadJobRoute(String method, int printerId, String jobId) {
+    final job = _downloadJobs[jobId];
+    if (job == null || job.printerId != printerId) return _notFound();
+    if (method == 'DELETE') {
+      _downloadJobs.remove(jobId);
+      _downloadTokens.remove(job.token);
+      return _ok(const {'status': 'cancelled'});
+    }
+    if (method != 'GET') return _fallback(method);
+    job.advance();
+    if (job.token case final token?) _downloadTokens[token] = job;
+    return _ok(job.toJson());
+  }
+
+  DemoResult _preparedDownload(int printerId, String token) {
+    final job = _downloadTokens.remove(token);
+    if (job == null || job.printerId != printerId) return _notFound();
+    _downloadJobs.remove(job.jobId);
+    return job.asZip
+        ? _file(_emptyZip(), 'application/zip')
+        : _file(
+            _printerFileBytes(job.paths.first),
+            _demoContentType(job.paths.first),
+          );
   }
 
   /// The 22 bytes of an empty ZIP — a valid archive every tool opens, which is
@@ -3302,4 +3377,45 @@ class DemoBackend {
       DateTime.now().subtract(Duration(days: days, hours: hours));
 
   static String _iso(DateTime t) => t.toUtc().toIso8601String();
+}
+
+/// State of one demo download preparation. Advanced by polling it — see
+/// [DemoBackend._downloadJobs].
+class _DemoDownloadJob {
+  _DemoDownloadJob({
+    required this.jobId,
+    required this.printerId,
+    required this.paths,
+    required this.asZip,
+    required this.filename,
+  });
+
+  final String jobId;
+  final int printerId;
+  final List<String> paths;
+  final bool asZip;
+  final String filename;
+
+  int staged = 0;
+  String? token;
+
+  /// Stages one more file, and mints the token once every file is in.
+  void advance() {
+    if (staged < paths.length) staged++;
+    if (staged >= paths.length) token ??= 'demo-token-$jobId';
+  }
+
+  String get state => token == null ? 'preparing' : 'ready';
+
+  Map<String, dynamic> toJson() => {
+        'job_id': jobId,
+        'printer_id': printerId,
+        'state': state,
+        'requested': paths.length,
+        'successful': staged,
+        'failed': 0,
+        'token': token,
+        'filename': filename,
+        'message': null,
+      };
 }

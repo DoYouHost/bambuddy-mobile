@@ -4770,6 +4770,35 @@ class AppLocalizationsEn extends AppLocalizations {
       'Preparing the download took too long and the server gave up';
 
   @override
+  String get pfmPreparingOnServer => 'Preparing on the server…';
+
+  @override
+  String get pfmDownloading => 'Downloading…';
+
+  @override
+  String pfmPreparedCount(int done, int total) {
+    return '$done/$total';
+  }
+
+  @override
+  String get pfmDownloadCancelled => 'Download cancelled';
+
+  @override
+  String get pfmDownloadPrepareFailed =>
+      'The server could not prepare this download';
+
+  @override
+  String pfmDownloadPartial(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: 'one file',
+    );
+    return 'Left out $_temp0 that could not be read from the printer';
+  }
+
+  @override
   String get pfmDownloadSaved => 'File saved';
 
   @override

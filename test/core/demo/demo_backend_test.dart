@@ -19,6 +19,7 @@ import 'package:bambuddy_mobile/data/library_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
 import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
@@ -517,6 +518,72 @@ void main() {
 
       final history = await AmsHistoryRepository(dio).fetch(1, 0, hours: 6);
       expect(history.points, isNotEmpty);
+    });
+
+    test('a download the server prepares first runs end to end', () async {
+      final repo = PrinterFilesRepository(dio);
+      final paths = const [
+        '/cache/Benchy.gcode.3mf',
+        '/cache/Cable clips x8.gcode.3mf',
+      ];
+
+      final started = await repo.startDownloadJob(
+        1,
+        paths: paths,
+        sizes: const {},
+        filename: 'X1-files.zip',
+      );
+      expect(started, isNotNull);
+      expect(started!.state, PrinterDownloadJobState.preparing);
+      expect(started.requested, 2);
+
+      // Polling is the demo's clock: one file is staged per poll, so the
+      // counter on screen moves and the bundle is ready on the second.
+      final half = await repo.downloadJob(1, started.jobId);
+      expect(half!.successful, 1);
+      expect(half.state, PrinterDownloadJobState.preparing);
+      final ready = await repo.downloadJob(1, started.jobId);
+      expect(ready!.state, PrinterDownloadJobState.ready);
+      expect(ready.token, isNotNull);
+
+      final dir = Directory.systemTemp.createTempSync('demo-prepared');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final zip = '${dir.path}/bundle.zip';
+      await repo.downloadPreparedTo(
+        1,
+        token: ready.token!,
+        filename: ready.filename ?? 'X1-files.zip',
+        savePath: zip,
+      );
+      expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
+
+      // Single-use, as on the real server: the token is spent and the job is
+      // gone with it.
+      await expectLater(
+        repo.downloadPreparedTo(
+          1,
+          token: ready.token!,
+          filename: 'X1-files.zip',
+          savePath: '${dir.path}/again.zip',
+        ),
+        throwsA(isA<AppApiException>()),
+      );
+      expect(await repo.downloadJob(1, started.jobId), isNull);
+    });
+
+    test('a prepared download can be called off', () async {
+      final repo = PrinterFilesRepository(dio);
+      final started = await repo.startDownloadJob(
+        1,
+        paths: const ['/cache/Benchy.gcode.3mf'],
+        sizes: const {},
+        filename: 'Benchy.gcode.3mf',
+        asZip: false,
+      );
+
+      await repo.cancelDownloadJob(1, started!.jobId);
+
+      expect(await repo.downloadJob(1, started.jobId), isNull);
     });
   });
 

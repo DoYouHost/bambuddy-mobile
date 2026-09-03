@@ -83,6 +83,16 @@ enum ServerFeature {
   /// that is not offered.
   labelStartingPosition,
 
+  /// `POST /printers/{id}/files/download-job` and the two routes that go with
+  /// it — a printer-file download prepared in the background instead of behind
+  /// a held request (server #2850).
+  ///
+  /// A route family, so an older server answers **404** and
+  /// `PrinterFilesRepository` prefers that observation to this row. Being
+  /// early costs nothing either way: the legacy `download-zip` is still there
+  /// on every server, including the newest, and is what the app falls back to.
+  printerFilesDownloadJob,
+
   /// `GET/POST/DELETE /scheduled-dryings` — a manual AMS drying run the
   /// scheduler starts later (server #2638).
   ///
@@ -205,6 +215,10 @@ class ServerVersion implements Comparable<ServerVersion> {
     // prints today, so the cost of the gate being early is a wasted sheet
     // rather than a refused request.
     ServerFeature.labelStartingPosition: (1, 2, 6, 0),
+    // Prepared printer-file downloads (server #2850). Landed inside the 1.2.6
+    // beta cycle; like /scheduled-dryings the route answers 404 below it and
+    // the repository records that instead of this row.
+    ServerFeature.printerFilesDownloadJob: (1, 2, 6, 0),
     // /scheduled-dryings (server #2638, commit d37ce94f). Landed after the
     // 1.2.5.3 release, inside the 1.2.6 beta cycle — same caveat as the rows
     // above, except that here being early is free: the route answers 404 and

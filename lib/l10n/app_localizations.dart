@@ -8156,6 +8156,42 @@ abstract class AppLocalizations {
   /// **'Preparing the download took too long and the server gave up'**
   String get pfmDownloadTookTooLong;
 
+  /// No description provided for @pfmPreparingOnServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing on the server…'**
+  String get pfmPreparingOnServer;
+
+  /// No description provided for @pfmDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get pfmDownloading;
+
+  /// No description provided for @pfmPreparedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{done}/{total}'**
+  String pfmPreparedCount(int done, int total);
+
+  /// No description provided for @pfmDownloadCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled'**
+  String get pfmDownloadCancelled;
+
+  /// No description provided for @pfmDownloadPrepareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not prepare this download'**
+  String get pfmDownloadPrepareFailed;
+
+  /// No description provided for @pfmDownloadPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Left out {count, plural, one{one file} other{{count} files}} that could not be read from the printer'**
+  String pfmDownloadPartial(int count);
+
   /// No description provided for @pfmDownloadSaved.
   ///
   /// In en, this message translates to:

@@ -4842,6 +4842,36 @@ class AppLocalizationsPl extends AppLocalizations {
       'Przygotowanie pobrania trwało zbyt długo i serwer je przerwał';
 
   @override
+  String get pfmPreparingOnServer => 'Przygotowywanie na serwerze…';
+
+  @override
+  String get pfmDownloading => 'Pobieranie…';
+
+  @override
+  String pfmPreparedCount(int done, int total) {
+    return '$done/$total';
+  }
+
+  @override
+  String get pfmDownloadCancelled => 'Pobieranie anulowane';
+
+  @override
+  String get pfmDownloadPrepareFailed =>
+      'Serwer nie zdołał przygotować tego pobierania';
+
+  @override
+  String pfmDownloadPartial(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plików',
+      few: '$count pliki',
+      one: '$count plik',
+    );
+    return 'Pominięto $_temp0, których nie udało się odczytać z drukarki';
+  }
+
+  @override
   String get pfmDownloadSaved => 'Zapisano plik';
 
   @override
