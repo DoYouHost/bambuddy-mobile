@@ -188,6 +188,60 @@ void main() {
     });
   });
 
+  group("the sentence the server attaches to a fault", () {
+    test('a code the bundled table cannot name is named by the server', () {
+      // 1.2.5.4+ (#2926) sends its own catalogue's sentence with the fault. It
+      // reaches the app as the fallback behind the bundled table, which is the
+      // difference between a named card and one hmsIsDisplayable hides.
+      final described = HmsError.fromJson(const {
+        'code': '0x10007',
+        'attr': 0x05000500,
+        'severity': 2,
+        'full_code': '05000500FFFF0007',
+        'description': 'The AMS lid is open',
+      });
+
+      expect(en.describe(described), 'The AMS lid is open');
+      expect(hmsIsDisplayable(described, description: en.describe(described)),
+          isTrue);
+      expect(hmsIsNotifiable(described, description: en.describe(described)),
+          isTrue);
+    });
+
+    test('the bundled table wins, because it is the localized one', () async {
+      // The server ships one language; the app ships two. A code both know
+      // must read in the user's language, so the wire sentence is a fallback
+      // and never an override.
+      final pl = HmsCatalog();
+      await pl.load(const Locale('pl'));
+      final runout = HmsError.fromJson(const {
+        'code': '0x8004',
+        'attr': 0x03008004,
+        'full_code': '03008004',
+        'description': 'Filament ran out',
+      });
+
+      expect(pl.describe(runout), contains('filament'));
+      expect(pl.describe(runout), isNot('Filament ran out'));
+    });
+
+    test('an empty description is no text, and hides the fault as before', () {
+      // `description` is `str | None` server-side; a blank has to fold into
+      // null the same way `full_code` does, or an unnameable fault turns into
+      // a card headed by a bare hex code.
+      final blank = HmsError.fromJson(const {
+        'code': '0xffff',
+        'attr': 0x0300FFFF,
+        'full_code': '0300FFFF',
+        'description': '   ',
+      });
+
+      expect(blank.description, isNull);
+      expect(en.describe(blank), isNull);
+      expect(hmsIsDisplayable(blank, description: en.describe(blank)), isFalse);
+    });
+  });
+
   group('locales', () {
     test('pl describes the same codes in Polish and keeps unknowns unknown',
         () async {

@@ -753,6 +753,11 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String archivePlate(int plate) {
+    return 'Płyta $plate';
+  }
+
+  @override
   String get archivePhotosTitle => 'Zdjęcia';
 
   @override
@@ -4448,6 +4453,24 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get sliceFailed => 'Cięcie nie powiodło się';
+
+  @override
+  String get sliceExternalFallback =>
+      'Zapisano w bibliotece serwera — folder tego pliku nie mógł go przyjąć.';
+
+  @override
+  String get sliceExternalReadonly => 'Ten folder jest tylko do odczytu.';
+
+  @override
+  String get sliceExternalNoPath => 'Ten folder nie ma ustawionej ścieżki.';
+
+  @override
+  String get sliceExternalUnreachable =>
+      'Ścieżka tego folderu jest teraz nieosiągalna.';
+
+  @override
+  String get sliceExternalNotWritable =>
+      'Serwer nie ma prawa zapisu do tego folderu.';
 
   @override
   String get sliceClose => 'Zamknij';

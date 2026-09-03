@@ -17,6 +17,7 @@ class ArchiveStats {
     this.totalCost = 0,
     this.printsByFilamentType = const {},
     this.printsByPrinter = const {},
+    this.printerNames = const {},
     this.averageTimeAccuracy = 0,
     this.timeAccuracyByPrinter = const {},
     this.totalEnergyKwh = 0,
@@ -34,6 +35,7 @@ class ArchiveStats {
         totalCost: toDouble(json['total_cost']),
         printsByFilamentType: toIntMap(json['prints_by_filament_type']),
         printsByPrinter: toIntMap(json['prints_by_printer']),
+        printerNames: toStringMap(json['printer_names']),
         averageTimeAccuracy: toDouble(json['average_time_accuracy']),
         timeAccuracyByPrinter: toDoubleMap(json['time_accuracy_by_printer']),
         totalEnergyKwh: toDouble(json['total_energy_kwh']),
@@ -68,6 +70,13 @@ class ArchiveStats {
 
   /// Print count per printer (key = `printer_id` as string).
   final Map<String, int> printsByPrinter;
+
+  /// Name each printer id was last recorded under in the print log (key =
+  /// `printer_id` as string; server 1.2.5.4+, `#2873`). Empty on older servers.
+  /// The only source of a name for a printer that has since been deleted — the
+  /// live printer list, which the breakdowns label from first, has no row for
+  /// it and leaves its history reading as a bare id.
+  final Map<String, String> printerNames;
 
   /// Average time estimate accuracy in percent (100% = perfect).
   final double averageTimeAccuracy;

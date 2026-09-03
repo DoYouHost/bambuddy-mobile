@@ -8,6 +8,7 @@ import 'package:bambuddy_mobile/core/slicer/process_schema_catalog.dart';
 import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +80,9 @@ class _CapturingRepository extends SlicerRepository {
 
   Map<String, dynamic>? body;
 
+  /// What the finished job reports back, as the server's `SliceResponse`.
+  Map<String, dynamic> result = const {'library_file_id': 9, 'name': 'out.gcode.3mf'};
+
   @override
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) async {
     body = request;
@@ -86,8 +90,8 @@ class _CapturingRepository extends SlicerRepository {
   }
 
   @override
-  Future<SliceJob> job(int jobId) async =>
-      SliceJob.fromJson({'job_id': jobId, 'status': 'completed'});
+  Future<SliceJob> job(int jobId) async => SliceJob.fromJson(
+      {'job_id': jobId, 'status': 'completed', 'result': result});
 }
 
 void main() {
@@ -643,6 +647,56 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('use_embedded_settings'), isFalse,
           reason: 'the default path must stay byte-identical to before');
+    });
+  });
+
+  group('where the sliced file landed', () {
+    /// The result dialog's text, read through the localization API rather than
+    /// spelled out — the harness runs in Polish.
+    AppLocalizations l10n(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(AlertDialog)));
+
+    testWidgets('a file filed somewhere else says so, and why', (tester) async {
+      // The slice succeeded; it just did not land in the external folder the
+      // source lives in. Silence here is what made #2810 unreproducible from
+      // the UI: the row appears in the right folder, the file never arrives.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_readonly',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(
+        find.text('${l10n(tester).sliceExternalFallback} '
+            '${l10n(tester).sliceExternalReadonly}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a reason this build has no sentence for still says where',
+        (tester) async {
+      // A newer server may name a reason this app does not know. The half that
+      // matters — where the file is — must not depend on recognizing it.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_something_new',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.text(l10n(tester).sliceExternalFallback), findsOneWidget);
+    });
+
+    testWidgets('a normal slice says nothing about folders', (tester) async {
+      // Null on every ordinary slice, and on every server older than 1.2.5.4.
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.textContaining(l10n(tester).sliceExternalFallback),
+          findsNothing);
     });
   });
 }

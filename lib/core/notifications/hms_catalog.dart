@@ -43,6 +43,13 @@ class HmsCatalog {
   /// is the server's own (`HMSErrorModal.tsx::lookupDescription`): the lossless
   /// full code first, the lossy short form as the fallback that carries the
   /// bulk of the table.
+  ///
+  /// A code this table does not name falls back to [HmsError.description], the
+  /// sentence a 1.2.5.4+ server attaches to the fault itself. The bundled table
+  /// stays first because it is localized and the server's is English only, so
+  /// the fallback only ever replaces *no text at all* — which, through
+  /// [hmsIsDisplayable], is the difference between a named fault and a card the
+  /// app refuses to show.
   String? describe(HmsError e) {
     final full = e.fullCode?.toUpperCase();
     if (full != null) {
@@ -50,7 +57,8 @@ class HmsCatalog {
       if (hit != null) return hit;
     }
     final short = e.shortCode;
-    return short == null ? null : _map[short.replaceAll('_', '')];
+    final local = short == null ? null : _map[short.replaceAll('_', '')];
+    return local ?? e.description;
   }
 }
 

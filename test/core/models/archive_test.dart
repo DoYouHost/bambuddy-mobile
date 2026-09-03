@@ -36,6 +36,29 @@ void main() {
       expect(withoutName.displayName, 'plik.gcode.3mf');
     });
 
+    test('plate_id names the plate a multi-plate file printed', () {
+      // Real value only since server 1.2.5.4 (#2796 reported null for every
+      // archive); a run with no plate chosen still has to come back null, which
+      // is what keeps the card from claiming "Plate 1" for every print.
+      final chosen = Archive.fromJson(const {
+        'id': 1,
+        'filename': 'multi.3mf',
+        'status': 'completed',
+        'plate_id': 3,
+      });
+      final none = Archive.fromJson(const {
+        'id': 2,
+        'filename': 'single.3mf',
+        'status': 'completed',
+        'plate_id': null,
+      });
+
+      expect(chosen.plateId, 3);
+      expect(none.plateId, isNull);
+      // Carried through the one local mutation the app makes.
+      expect(chosen.withFavorite(true).plateId, 3);
+    });
+
     test('nieznane klucze nie wywołują wyjątku', () {
       expect(
         () => Archive.fromJson(const {

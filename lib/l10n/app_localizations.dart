@@ -1394,6 +1394,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{View photo} other{View photos ({count})}}'**
   String archivePhotos(int count);
 
+  /// No description provided for @archivePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate {plate}'**
+  String archivePlate(int plate);
+
   /// No description provided for @archivePhotosTitle.
   ///
   /// In en, this message translates to:
@@ -7495,6 +7501,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slice failed'**
   String get sliceFailed;
+
+  /// No description provided for @sliceExternalFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved in the server\'s library — the file\'s own folder could not take it.'**
+  String get sliceExternalFallback;
+
+  /// No description provided for @sliceExternalReadonly.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder is set to read-only.'**
+  String get sliceExternalReadonly;
+
+  /// No description provided for @sliceExternalNoPath.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder has no path configured.'**
+  String get sliceExternalNoPath;
+
+  /// No description provided for @sliceExternalUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'That folder\'s path is not reachable right now.'**
+  String get sliceExternalUnreachable;
+
+  /// No description provided for @sliceExternalNotWritable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server cannot write to that folder.'**
+  String get sliceExternalNotWritable;
 
   /// No description provided for @sliceClose.
   ///
