@@ -71,7 +71,9 @@ class DashTokens {
   ///
   /// `theme_contrast_test.dart` computes the ratios from these very values, so
   /// a palette edit that drops one below the floor fails there rather than in a
-  /// store review.
+  /// store review. It measures against every surface a theme can put behind
+  /// text and keeps the worst — which for a dark ink is the *darkest* surface,
+  /// the bare background corner, and not the white card that flatters it.
   final Color textSecondary;
   final Color textTertiary;
 
@@ -79,6 +81,14 @@ class DashTokens {
   final Color accentGreen;
 
   /// Green used for text/icons on cards (deepened in light mode for contrast).
+  /// The accent as **ink** — text and icons on a pale surface, which is what
+  /// every `TextButton` in the app is painted with, and `colorScheme.primary`.
+  /// Never a fill: the solid green is [accentGreen], and it keeps its vivid
+  /// swatch precisely because this one had to darken instead.
+  ///
+  /// Held to the same 4.5:1 as body text and for the same reason — a dialog's
+  /// "Cancel" is text. The light theme's #1F8F4D read 3.45:1 against the palest
+  /// card, which is a button label nobody with low vision could pick out.
   final Color accentGreenInk;
 
   /// Nozzle/heat orange and chamber/cooling blue (gauge fills + accents).
@@ -170,9 +180,9 @@ class DashTokens {
         groupCardBorder = const Color(0x12000000),
         textPrimary = const Color(0xFF10130E),
         textSecondary = const Color(0xC4202318),
-        textTertiary = const Color(0xA3202318),
+        textTertiary = const Color(0xAC202318),
         accentGreen = const Color(0xFF34C46E),
-        accentGreenInk = const Color(0xFF1F8F4D),
+        accentGreenInk = const Color(0xFF18733D),
         accentOrange = const Color(0xFFE07C36),
         accentBlue = const Color(0xFF2C7FE0),
         danger = const Color(0xFFD64545),

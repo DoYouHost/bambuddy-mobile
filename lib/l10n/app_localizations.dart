@@ -1475,14 +1475,8 @@ abstract class AppLocalizations {
   /// No description provided for @archiveFilamentLabel.
   ///
   /// In en, this message translates to:
-  /// **'Weight'**
+  /// **'Weight (g)'**
   String get archiveFilamentLabel;
-
-  /// No description provided for @archiveFilamentUnit.
-  ///
-  /// In en, this message translates to:
-  /// **'g'**
-  String get archiveFilamentUnit;
 
   /// No description provided for @archiveFilamentNotANumber.
   ///

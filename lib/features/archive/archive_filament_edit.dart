@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -122,6 +123,9 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     return MergeSemantics(
       child: Semantics(
         button: true,
+        // Not just greyed: while the request is out the row does not answer a
+        // tap, and a screen reader that still calls it a button invites one.
+        enabled: !_saving,
         child: _card(context, l10n, t, grams, actual),
       ),
     );
@@ -297,10 +301,20 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
     final parsed = parseFilamentGrams(_controller.text);
     if (parsed.error != null) {
       setState(() => _error = parsed.error);
-      // Focus goes back to what has to change. A screen reader is otherwise
-      // left on the Save button, where nothing announces that a message under
-      // the field appeared at all.
+      // Focus goes back to what has to change — but that alone is not the
+      // announcement. `errorText` is no live region, and coming from the IME's
+      // Done key the field already *has* focus, so the move is a no-op and a
+      // screen reader would say nothing at all. The sentence is spoken
+      // outright, and the focus move is what makes the next keystroke land in
+      // the field it is about.
       _field.requestFocus();
+      if (MediaQuery.supportsAnnounceOf(context)) {
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          _message(AppLocalizations.of(context), parsed.error!),
+          Directionality.of(context),
+        );
+      }
       return;
     }
     Navigator.pop(context, (grams: parsed.grams));
@@ -334,8 +348,11 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\s]')),
             ],
             decoration: InputDecoration(
+              // The unit is in the label, not a `suffixText`: a suffix is a
+              // sibling node a screen reader reaches separately from the field,
+              // if at all, so the one thing a weight field cannot leave unsaid
+              // would be the one thing it left unsaid.
               labelText: l10n.archiveFilamentLabel,
-              suffixText: l10n.archiveFilamentUnit,
               errorText: _error == null ? null : _message(l10n, _error!),
               // The refusals are a sentence, and one line cuts them off at any
               // text scale above the smallest.

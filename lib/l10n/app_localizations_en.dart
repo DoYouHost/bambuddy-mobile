@@ -791,10 +791,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveFilamentNone => 'Not recorded';
 
   @override
-  String get archiveFilamentLabel => 'Weight';
-
-  @override
-  String get archiveFilamentUnit => 'g';
+  String get archiveFilamentLabel => 'Weight (g)';
 
   @override
   String get archiveFilamentNotANumber =>

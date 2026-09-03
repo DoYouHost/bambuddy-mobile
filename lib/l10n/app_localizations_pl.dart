@@ -808,10 +808,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveFilamentNone => 'Nie zapisano';
 
   @override
-  String get archiveFilamentLabel => 'Masa';
-
-  @override
-  String get archiveFilamentUnit => 'g';
+  String get archiveFilamentLabel => 'Masa (g)';
 
   @override
   String get archiveFilamentNotANumber =>

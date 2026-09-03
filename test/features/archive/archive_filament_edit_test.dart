@@ -11,6 +11,7 @@ import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -303,6 +304,39 @@ void main() {
       expect(repository.sent, isEmpty);
       expect(find.text(l10n(tester).archiveFilamentNotANumber), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget, reason: 'still open');
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isTrue,
+        reason: 'the next keystroke lands in the field the message is about',
+      );
+    });
+
+    // `errorText` is not a live region, and Save does not always move the
+    // focus either — from the IME's Done key the field already has it, so the
+    // move is a no-op. Without saying the sentence out loud, a screen reader
+    // user presses Save and the dialog appears to do nothing.
+    testWidgets('a refused weight is read out, not just drawn', (tester) async {
+      final announced = <String>[];
+      tester.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<dynamic>(SystemChannels.accessibility,
+              (message) async {
+        final event = (message as Map<Object?, Object?>?) ?? const {};
+        if (event['type'] == 'announce') {
+          final data = event['data'] as Map<Object?, Object?>;
+          announced.add(data['message'] as String);
+        }
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<dynamic>(
+              SystemChannels.accessibility, null));
+
+      await tester.pumpWidget(row(archive(grams: 17.1)));
+      await tester.pumpAndSettle();
+
+      await edit(tester, '1.2.3');
+
+      expect(announced, [l10n(tester).archiveFilamentNotANumber]);
     });
 
     testWidgets('a refusal is worded, and the row keeps the stored weight',
