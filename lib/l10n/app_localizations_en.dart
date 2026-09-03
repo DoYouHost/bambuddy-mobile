@@ -766,11 +766,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get archiveFilamentNone => 'Not recorded';
+  String archiveFilamentActual(String grams, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Used $grams over $count runs',
+      one: 'Used $grams',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get archiveFilamentHint =>
-      'A print archived without its .gcode.3mf has no weight of its own, and nothing can read one afterwards. What you enter here also counts towards your statistics and project totals.';
+  String get archiveFilamentNoActual => 'No usage recorded';
+
+  @override
+  String get archiveFilamentNone => 'Not recorded';
 
   @override
   String get archiveFilamentLabel => 'Weight';

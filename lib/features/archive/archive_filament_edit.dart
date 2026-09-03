@@ -6,6 +6,7 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/format/user_number.dart';
 import '../../core/models/archive.dart';
+import '../../data/archive_repository.dart';
 import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -56,6 +57,34 @@ String filamentGramsText(double? grams) {
   return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
+/// What the runs of this file say about its filament, as a line under the
+/// archive's own figure — or null where they say nothing worth one.
+///
+/// The two numbers answer different questions. The archive's is the slicer's
+/// estimate for the whole file (or a typed correction of it); this one is what
+/// the runs actually drew, summed over all of them — a tracked spool's measured
+/// delta where the slots were mapped to inventory, and only the estimate again
+/// where they were not.
+///
+/// Silent in the two cases where a second line would be noise: a file with no
+/// logged runs, which is also every server too old to send the aggregate, and a
+/// sum that came out as the archive's own figure, which is what a single
+/// completed print without spool tracking always looks like.
+String? filamentActualCaption(Archive archive, AppLocalizations l10n) {
+  if (archive.runCount == 0) return null;
+  final actual = archive.totalFilamentActualGrams;
+  // Runs that recorded nothing. The wire cannot tell that from a sum of zero
+  // (`float(total) if total else None`), and it does not have to: a print
+  // stopped before its first layer and one whose figure was never written both
+  // mean there is no measurement to show.
+  if (actual == null) return l10n.archiveFilamentNoActual;
+  if (sameFilamentGrams(actual, archive.filamentUsedGrams)) return null;
+  return l10n.archiveFilamentActual(
+    l10n.archiveFilamentGrams(filamentGramsText(actual)),
+    archive.runCount,
+  );
+}
+
 /// The filament weight of one print, and the only field of an archive the app
 /// writes by hand.
 ///
@@ -82,7 +111,9 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
     // The list is the screen's copy of this print, and the save writes the
     // stored row back into it — so the value here follows the edit without the
     // sheet being reopened.
-    final grams = _live(ref.watch(archiveProvider).valueOrNull).filamentUsedGrams;
+    final live = _live(ref.watch(archiveProvider).valueOrNull);
+    final grams = live.filamentUsedGrams;
+    final actual = filamentActualCaption(live, l10n);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -118,6 +149,10 @@ class _ArchiveFilamentRowState extends ConsumerState<ArchiveFilamentRow> {
                                   filamentGramsText(grams)),
                           style: t.titleSm,
                         ),
+                        if (actual != null) ...[
+                          const SizedBox(height: 2),
+                          Text(actual, style: t.micro),
+                        ],
                       ],
                     ),
                   ),
@@ -249,8 +284,6 @@ class _FilamentGramsDialogState extends State<_FilamentGramsDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.archiveFilamentHint),
-          const SizedBox(height: 12),
           TextField(
             controller: _controller,
             autofocus: true,

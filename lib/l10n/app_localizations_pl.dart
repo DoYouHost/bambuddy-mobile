@@ -781,11 +781,23 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get archiveFilamentNone => 'Nie zapisano';
+  String archiveFilamentActual(String grams, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zużyto $grams w $count przebiegach',
+      many: 'Zużyto $grams w $count przebiegach',
+      few: 'Zużyto $grams w $count przebiegach',
+      one: 'Zużyto $grams',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get archiveFilamentHint =>
-      'Wydruk zarchiwizowany bez pliku .gcode.3mf nie ma własnej masy i nic jej już potem nie odczyta. To, co tu wpiszesz, wlicza się też do statystyk i podsumowań projektów.';
+  String get archiveFilamentNoActual => 'Bez zapisanego zużycia';
+
+  @override
+  String get archiveFilamentNone => 'Nie zapisano';
 
   @override
   String get archiveFilamentLabel => 'Masa';

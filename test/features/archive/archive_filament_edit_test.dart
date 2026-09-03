@@ -87,6 +87,74 @@ void main() {
     });
   });
 
+  // The archive's figure is the whole file's estimate; the runs' is what they
+  // drew. The second line exists for where they disagree — a print stopped
+  // partway, a tracked spool that measured its own delta, a file printed more
+  // than once.
+  group('what the runs say', () {
+    Archive archive({
+      double? grams = 15.8,
+      double? actual,
+      int runCount = 1,
+    }) =>
+        Archive(
+          id: 1,
+          filename: 'benchy.gcode.3mf',
+          status: 'completed',
+          filamentUsedGrams: grams,
+          totalFilamentActualGrams: actual,
+          runCount: runCount,
+        );
+
+    late AppLocalizations l10n;
+
+    setUpAll(() async => l10n = await AppLocalizations.delegate.load(
+          const Locale('pl'),
+        ));
+
+    // The usual print: one run, no tracked spool, so the entry inherited the
+    // estimate. A line saying the same number twice is noise.
+    test('a run that used what the file estimated adds nothing', () {
+      expect(filamentActualCaption(archive(actual: 15.8), l10n), isNull);
+    });
+
+    // Every server older than the run aggregate reports no runs, so the row
+    // has to look exactly as it did before the field existed.
+    test('a file with no logged runs adds nothing', () {
+      expect(filamentActualCaption(archive(actual: null, runCount: 0), l10n),
+          isNull);
+    });
+
+    test('a run that stopped partway shows what it drew', () {
+      expect(filamentActualCaption(archive(grams: 88.1, actual: 35.2), l10n),
+          l10n.archiveFilamentActual(l10n.archiveFilamentGrams('35.2'), 1));
+    });
+
+    test('several runs say so, since the sum is not comparable to one print',
+        () {
+      final caption =
+          filamentActualCaption(archive(actual: 47.4, runCount: 3), l10n);
+      expect(caption, contains('47.4'));
+      expect(caption, contains('3'));
+    });
+
+    // A print cancelled before its first layer. The wire cannot tell a sum of
+    // zero from no sum at all — the route answers `float(total) if total else
+    // None` — and it does not have to: neither is a measurement.
+    test('runs that recorded nothing say that, rather than claiming a zero',
+        () {
+      expect(filamentActualCaption(archive(actual: null), l10n),
+          l10n.archiveFilamentNoActual);
+    });
+
+    // The case the manual edit exists for, seen from the other side: no
+    // estimate either, and a run that measured something.
+    test('a measured run counts even where the file estimated nothing', () {
+      expect(filamentActualCaption(archive(grams: null, actual: 6.3), l10n),
+          l10n.archiveFilamentActual(l10n.archiveFilamentGrams('6.3'), 1));
+    });
+  });
+
   group('the row', () {
     late _FakeArchives repository;
 

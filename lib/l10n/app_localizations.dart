@@ -1442,17 +1442,23 @@ abstract class AppLocalizations {
   /// **'{grams} g'**
   String archiveFilamentGrams(String grams);
 
+  /// No description provided for @archiveFilamentActual.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Used {grams}} other{Used {grams} over {count} runs}}'**
+  String archiveFilamentActual(String grams, int count);
+
+  /// No description provided for @archiveFilamentNoActual.
+  ///
+  /// In en, this message translates to:
+  /// **'No usage recorded'**
+  String get archiveFilamentNoActual;
+
   /// No description provided for @archiveFilamentNone.
   ///
   /// In en, this message translates to:
   /// **'Not recorded'**
   String get archiveFilamentNone;
-
-  /// No description provided for @archiveFilamentHint.
-  ///
-  /// In en, this message translates to:
-  /// **'A print archived without its .gcode.3mf has no weight of its own, and nothing can read one afterwards. What you enter here also counts towards your statistics and project totals.'**
-  String get archiveFilamentHint;
 
   /// No description provided for @archiveFilamentLabel.
   ///

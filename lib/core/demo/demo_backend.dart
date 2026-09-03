@@ -1382,6 +1382,15 @@ class DemoBackend {
       double? energyKwh,
       int quantity = 1,
       int? plateId,
+      // What the run actually drew — what the print log stores and every
+      // statistic sums, as against the whole-file estimate in [grams]. The two
+      // are the same figure for a print that ran to the end without a tracked
+      // spool, which is the usual case and the default here. [actualGrams] is
+      // for one that stopped partway; [noUsageRecorded] for one that stopped
+      // before it drew anything, where the server keeps no figure at all rather
+      // than a zero.
+      double? actualGrams,
+      bool noUsageRecorded = false,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -1431,7 +1440,8 @@ class DemoBackend {
         'created_at': _iso(started),
         'run_count': 1,
         'last_run_at': _iso(started),
-        'total_filament_actual_grams': grams,
+        'total_filament_actual_grams':
+            noUsageRecorded ? null : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
       };
@@ -1449,15 +1459,19 @@ class DemoBackend {
       a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
       a('Spiral vase', 2, 6,
           estSec: 10680, grams: 88.1, color: '#D4AF37',
-          status: 'failed', failureReason: 'Spaghetti detected'),
+          status: 'failed', failureReason: 'Spaghetti detected',
+          actualGrams: 35.2),
       a('Cable clips x8', 1, 7,
           estSec: 5520, grams: 42.3, type: 'PETG', color: '#FFFFFF', quantity: 8),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
       a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
+      // Stopped on the first layer, so there is no measured figure at all —
+      // the case the archive sheet has a line for.
       a('Wall hook x4', 1, 18,
           estSec: 4980, grams: 38.2, type: 'PETG', color: '#FFFFFF',
-          status: 'failed', failureReason: 'Bed adhesion'),
+          status: 'failed', failureReason: 'Bed adhesion',
+          noUsageRecorded: true),
       a('Desk drawer divider', 2, 22, estSec: 9840, grams: 104.6, color: '#000000'),
       a('Flexi dragon', 1, 26,
           estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
@@ -1493,7 +1507,10 @@ class DemoBackend {
           'duration_seconds': archive['actual_time_seconds'],
           'filament_type': archive['filament_type'],
           'filament_color': archive['filament_color'],
-          'filament_used_grams': archive['filament_used_grams'],
+          // The run's own figure, not the file's estimate — the same
+          // distinction the server keeps, and what makes the archive sheet's
+          // second line agree with this table.
+          'filament_used_grams': archive['total_filament_actual_grams'],
           'cost': archive['cost'],
           'energy_kwh': archive['energy_kwh'],
           'energy_cost': archive['energy_cost'],

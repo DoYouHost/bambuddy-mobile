@@ -129,6 +129,39 @@ void main() {
     expect(deleted, 7);
   });
 
+  // The archive's own weight is the file's estimate; the run aggregate is what
+  // the runs drew. The fixture is a captured response, so it also pins that the
+  // two arrive together and, for an ordinary completed print, agree.
+  group('the run aggregate', () {
+    test('is read alongside the archive it belongs to', () async {
+      adapter.onGet(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+      );
+
+      final archive = await repo.byId(82);
+
+      expect(archive.filamentUsedGrams, 17.1);
+      expect(archive.totalFilamentActualGrams, 17.1);
+      expect(archive.runCount, 1);
+    });
+
+    // A server older than the aggregate sends none of it, and the row has to
+    // read as "nothing to add" rather than "no runs used no filament".
+    test('a server that does not send it reports no runs', () async {
+      final old = {...readFixture('archive.json') as Map<String, dynamic>}
+        ..remove('run_count')
+        ..remove('total_filament_actual_grams');
+      adapter.onGet('/api/v1/archives/82', (server) => server.reply(200, old));
+
+      final archive = await repo.byId(82);
+
+      expect(archive.runCount, 0);
+      expect(archive.totalFilamentActualGrams, isNull);
+      expect(archive.filamentUsedGrams, 17.1, reason: 'its own figure is not the aggregate');
+    });
+  });
+
   group('setFilamentGrams', () {
     Map<String, dynamic> archiveWith(Object? grams) => {
           ...readFixture('archive.json') as Map<String, dynamic>,
