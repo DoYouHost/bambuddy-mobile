@@ -806,7 +806,10 @@ final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
 
 /// Filament inventory. Facade over chosen source.
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
+  (ref) => InventoryRepository(
+    ref.watch(inventorySourceProvider),
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Service minting camera stream token (print cover; from M2 also camera

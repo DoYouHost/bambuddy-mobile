@@ -93,6 +93,23 @@ final slotPresetSourcesProvider = FutureProvider<SlotPresetSources>((ref) async 
   );
 });
 
+/// `{"Bambu Lab X1 Carbon": "X1C", …}` on its own, for callers that want to
+/// classify a preset name by printer without pulling the three preset tiers
+/// down with it (the spool form's picker).
+///
+/// Static reference data, so it is fetched once per server profile rather than
+/// auto-disposed. Degrades to empty, which costs the two name shapes that need
+/// it to resolve; those presets then classify as "names no printer" and are
+/// kept, never guessed at.
+final printerModelRegistryProvider =
+    FutureProvider<Map<String, String>>((ref) async {
+  try {
+    return await ref.watch(amsSlotConfigRepositoryProvider).printerModels();
+  } on AppApiException {
+    return const {};
+  }
+});
+
 /// Which printer's calibration table to read, and for which nozzle.
 typedef KProfileKey = ({int printerId, String nozzleDiameter});
 

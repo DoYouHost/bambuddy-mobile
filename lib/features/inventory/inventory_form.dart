@@ -35,6 +35,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   String? _slicerFilament;
   String? _slicerFilamentName;
 
+  /// Per-printer-model preset overrides as they will be written, keyed by
+  /// [SpoolPresetOverride.key].
+  ///
+  /// Null until the server's rows have arrived, and null is also "do not
+  /// write": the route replaces the whole list, so saving from a failed read
+  /// would delete overrides the user never saw. [_overridesDirty] is the other
+  /// half of that — an untouched section writes nothing at all.
+  Map<String, SpoolPresetOverride>? _overrides;
+  bool _overridesDirty = false;
+
   String _colorQuery = '';
   bool _materialMissing = false;
   bool _saving = false;
@@ -158,18 +168,28 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     );
     setState(() => _saving = true);
     final notifier = ref.read(inventoryProvider.notifier);
+    // Read before the first await: a WidgetRef is not usable once the sheet it
+    // belongs to is gone, and the spool write is what closes it.
+    final repo = ref.read(inventoryRepositoryProvider);
     try {
       final String message;
+      // Which spool the per-model presets belong to. Null for a restock, which
+      // creates several and names none of them.
+      final int? spoolId;
       if (_isEdit) {
         await notifier.updateSpool(widget.existing!.id, draft);
+        spoolId = widget.existing!.id;
         message = l10n.inventorySpoolUpdated;
       } else if (_quantity > 1) {
         final created = await notifier.bulkCreateSpools(draft, _quantity);
+        spoolId = null;
         message = l10n.inventorySpoolsCreated(created);
       } else {
-        await notifier.createSpool(draft);
+        final created = await notifier.createSpool(draft);
+        spoolId = created?.id;
         message = l10n.inventorySpoolCreated;
       }
+      if (!await _savePresetOverrides(repo, spoolId, l10n, messenger)) return;
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.snack(message);
@@ -184,6 +204,37 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     }
   }
 
+  /// Writes the per-model preset overrides for the spool just saved, and says
+  /// whether the form may close.
+  ///
+  /// Nothing is sent unless the section was both read and touched: the route
+  /// replaces the whole list, so a blind write is a delete. A failure here
+  /// leaves the sheet open with the picks still in it — the spool itself is
+  /// already saved, and the retry costs one idempotent PATCH.
+  Future<bool> _savePresetOverrides(
+    InventoryRepository repo,
+    int? spoolId,
+    AppLocalizations l10n,
+    ScaffoldMessengerState messenger,
+  ) async {
+    final overrides = _overrides;
+    if (spoolId == null || overrides == null || !_overridesDirty) return true;
+    try {
+      await repo.savePresetOverrides(spoolId, overrides.values.toList());
+      _overridesDirty = false;
+      return true;
+    } on AppApiException catch (e) {
+      if (mounted) setState(() => _saving = false);
+      showApiFailure(mounted ? messenger : null, e, l10n,
+          action: 'spool_form.save_model_presets');
+      return false;
+    } on Object {
+      if (mounted) setState(() => _saving = false);
+      messenger.snack(l10n.inventoryPrinterPresetsSaveFailed);
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = DashTokens.of(context);
@@ -194,6 +245,21 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
     final subtypes = ref.watch(subtypeOptionsProvider);
     final locations = ref.watch(locationOptionsProvider);
     final cores = ref.watch(coreWeightsProvider).valueOrNull ?? const [];
+    // Per-model presets: only asked for on a server that has the routes, and
+    // only for a spool that exists — a new one has no rows to read.
+    final overridesSupported =
+        ref.watch(presetOverridesSupportedProvider).valueOrNull ?? false;
+    final showOverrides = _showsPresetOverrides(overridesSupported);
+    final stored = showOverrides && _isEdit
+        ? ref.watch(spoolPresetOverridesProvider(widget.existing!.id))
+        : const AsyncValue<List<SpoolPresetOverride>>.data([]);
+    if (showOverrides) {
+      final rows = stored.valueOrNull;
+      if (rows != null) _seedOverrides(rows);
+    }
+    final models = showOverrides
+        ? ref.watch(printerModelsProvider).valueOrNull ?? const <String>[]
+        : const <String>[];
 
     return DraggableSheetSurface(
       initialSize: 0.9,
@@ -311,6 +377,9 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
             ),
             _combo('location', l10n.inventoryFieldLocation, locations),
             _field('note', l10n.inventoryFieldNote, maxLines: 3),
+
+            if (showOverrides)
+              ..._presetOverridesSection(l10n, stored.hasError, models),
 
             const SizedBox(height: 20),
             SizedBox(
@@ -583,7 +652,7 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Future<void> _openSlicerPresetPicker(AppLocalizations l10n) async {
     final picked = await dashSurfaceSheet<SlicerPreset>(
       context,
-      builder: (_) => const _SlicerPresetPicker(),
+      builder: (_) => _SlicerPresetPicker(material: _c['material']!.text),
     );
     if (picked == null || !mounted) return;
     setState(() {
@@ -594,6 +663,137 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         _c['material']!.text = mat;
         _materialMissing = false;
       }
+    });
+  }
+
+  /// Whether the per-model preset section is offered: the server has to have
+  /// the routes, and a bulk "restock" has no spool to write them to —
+  /// `bulkCreateSpools` answers with a count, not with the rows it created.
+  bool _showsPresetOverrides(bool supported) =>
+      supported && (_isEdit || _quantity == 1);
+
+  /// Takes the editable copy from what the server holds, once.
+  ///
+  /// Assigned during build rather than from a listener: [rows] arrived with the
+  /// watch that scheduled this build, so the frame already reflects them and a
+  /// `setState` here would only ask for the same one again.
+  void _seedOverrides(List<SpoolPresetOverride> rows) {
+    _overrides ??= {for (final row in rows) row.key: row};
+  }
+
+  /// The rows the section offers: one per printer model in the fleet, plus any
+  /// stored override the fleet does not account for — a model that is no longer
+  /// there, and the per-nozzle rows the web spool form writes, which the app
+  /// shows and carries through rather than silently replacing with its own
+  /// whole-model row.
+  List<SpoolPresetOverride> _overrideRows(List<String> models) {
+    final fleet = [
+      for (final model in models) SpoolPresetOverride(printerModel: model),
+    ];
+    final known = {for (final row in fleet) row.key};
+    final stored = [
+      for (final row in _overrides?.values ?? const <SpoolPresetOverride>[])
+        if (!known.contains(row.key)) row,
+    ]..sort((a, b) => a.key.compareTo(b.key));
+    return [...fleet, ...stored];
+  }
+
+  /// Which slicer preset this spool uses on one printer model, when that is not
+  /// the single preset it carries for the whole fleet.
+  ///
+  /// A read that failed leaves the rows out entirely and says so: the route
+  /// replaces the whole list, so offering an edit on top of rows nobody could
+  /// read is offering to delete them.
+  List<Widget> _presetOverridesSection(
+    AppLocalizations l10n,
+    bool loadFailed,
+    List<String> models,
+  ) {
+    final rows = _overrideRows(models);
+    if (rows.isEmpty && !loadFailed) return const [];
+    return [
+      const SizedBox(height: 8),
+      _FormSection(label: l10n.inventorySectionPrinterPresets),
+      InlineNote(
+        l10n.inventoryPrinterPresetsHint,
+        icon: Icons.info_outline,
+        padding: const EdgeInsets.only(bottom: 2),
+      ),
+      if (loadFailed)
+        InlineNote(l10n.inventoryPrinterPresetsLoadFailed, urgent: true)
+      else
+        for (final row in rows) _presetOverrideField(l10n, row),
+    ];
+  }
+
+  /// One model's row. Same chrome as [_slicerPresetField], which is the field
+  /// it overrides — the model is the label, the preset is the value.
+  Widget _presetOverrideField(AppLocalizations l10n, SpoolPresetOverride row) {
+    final t = DashTokens.of(context);
+    final current = _overrides?[row.key];
+    final chosen = current?.slicerFilamentName ?? current?.slicerFilament;
+    // No row at all means the spool's own preset applies. A row that carries no
+    // preset is a different answer — "use none here" — and the server honours
+    // it instead of falling back, so the two must not read alike.
+    final value = current == null
+        ? l10n.inventoryPrinterPresetDefault
+        : chosen ?? l10n.inventorySlicerPresetNone;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _pickOverridePreset(l10n, row),
+        child: InputDecorator(
+          decoration: dashDecoration(
+            t,
+            labelText: row.nozzleDiameter.isEmpty
+                ? row.printerModel
+                : l10n.inventoryPrinterPresetNozzle(
+                    row.printerModel,
+                    row.nozzleDiameter,
+                  ),
+            prefixIcon: Icon(Icons.print_outlined, color: t.textTertiary),
+            suffixIcon: current == null
+                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
+                : IconButton(
+                    icon: Icon(Icons.clear, color: t.textTertiary),
+                    tooltip: l10n.clear,
+                    onPressed: () => setState(() {
+                      _overrides?.remove(row.key);
+                      _overridesDirty = true;
+                    }),
+                  ).tagged('spool_form.model_preset.clear'),
+          ),
+          child: Text(
+            value,
+            style: t.body.copyWith(
+              color: current == null ? t.textTertiary : t.textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ).tagged('spool_form.model_preset'),
+    );
+  }
+
+  /// Picks the preset for one model. The app writes the whole-model level
+  /// (`nozzle_diameter: ""`), which the route documents for a client that wants
+  /// one value to cover a model; a row that already names a nozzle keeps it.
+  Future<void> _pickOverridePreset(
+    AppLocalizations l10n,
+    SpoolPresetOverride row,
+  ) async {
+    final picked = await dashSurfaceSheet<SlicerPreset>(
+      context,
+      builder: (_) => _SlicerPresetPicker(
+        printerModel: row.printerModel,
+        material: _c['material']!.text,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      (_overrides ??= {})[row.key] = row.withPreset(picked.id, picked.name);
+      _overridesDirty = true;
     });
   }
 
@@ -885,7 +1085,16 @@ class _ColorChip extends StatelessWidget {
 /// the chosen [SlicerPreset] via `Navigator.pop`, or null on dismiss. Degrades
 /// with a clear message when slicing is disabled or presets are unavailable.
 class _SlicerPresetPicker extends ConsumerStatefulWidget {
-  const _SlicerPresetPicker();
+  const _SlicerPresetPicker({this.printerModel, this.material});
+
+  /// The printer model the preset is being chosen for, when the picker was
+  /// opened from a per-model row. Null from the spool's own preset field —
+  /// that one is not about any particular printer.
+  final String? printerModel;
+
+  /// What the spool is made of, as the form has it. Empty while the material
+  /// field is still blank, which is the normal case on a new spool.
+  final String? material;
 
   @override
   ConsumerState<_SlicerPresetPicker> createState() =>
@@ -895,11 +1104,23 @@ class _SlicerPresetPicker extends ConsumerStatefulWidget {
 class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
   String _query = '';
 
+  /// Both filters start on: the caller only passes a value it is sure of, and
+  /// the list they narrow runs to hundreds of entries. Off is one tap away,
+  /// which is what makes hiding anything at all defensible.
+  bool _byModel = true;
+  bool _byMaterial = true;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final async = ref.watch(slicerPresetsProvider);
+    final model = widget.printerModel?.trim() ?? '';
+    final material = widget.material?.trim() ?? '';
+    // Without the registry the model filter classifies nothing and hides
+    // nothing, so the chip stays honest while it loads.
+    final registry =
+        ref.watch(printerModelRegistryProvider).valueOrNull ?? const {};
 
     return DraggableSheetSurface(
       builder: (context, controller) => Column(
@@ -920,6 +1141,31 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                   hintText: l10n.inventorySlicerPresetSearch,
                   onChanged: (v) => setState(() => _query = v),
                 ),
+                if (model.isNotEmpty || material.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        // No avatar: the app's chips say "on" with the
+                        // theme's checkmark, and an icon sits in exactly that
+                        // slot — a filter that looked unlike every other
+                        // filter in the app.
+                        if (model.isNotEmpty)
+                          FilterChip(
+                            label: Text(model),
+                            selected: _byModel,
+                            onSelected: (v) => setState(() => _byModel = v),
+                          ).tagged('spool_form.preset_filter_model'),
+                        if (material.isNotEmpty)
+                          FilterChip(
+                            label: Text(material),
+                            selected: _byMaterial,
+                            onSelected: (v) => setState(() => _byMaterial = v),
+                          ).tagged('spool_form.preset_filter_material'),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -933,14 +1179,13 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                 l10n.inventorySlicerPresetUnavailable,
               ),
               data: (presets) {
-                final q = _query.trim().toLowerCase();
-                final items = [
-                  for (final p in presets.filaments)
-                    if (q.isEmpty ||
-                        p.name.toLowerCase().contains(q) ||
-                        p.id.toLowerCase().contains(q))
-                      p,
-                ];
+                final items = filterFilamentPresets(
+                  presets.filaments,
+                  query: _query,
+                  printerModel: _byModel ? model : null,
+                  printerModels: registry,
+                  material: _byMaterial ? material : null,
+                );
                 if (items.isEmpty) {
                   return _message(
                     context,
@@ -950,7 +1195,13 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                         : l10n.inventoryNoMatches,
                   );
                 }
-                return ListView.builder(
+                // The rows are `ListTile`s and the sheet's surface is a
+                // painted `DecoratedBox`, which would swallow their ink: a
+                // tile paints its splash on the nearest Material ancestor,
+                // and without one here the framework says so on every build.
+                return Material(
+                  type: MaterialType.transparency,
+                  child: ListView.builder(
                   controller: controller,
                   itemCount: items.length,
                   itemBuilder: (context, i) {
@@ -971,6 +1222,7 @@ class _SlicerPresetPickerState extends ConsumerState<_SlicerPresetPicker> {
                       onTap: () => Navigator.of(context).pop(p),
                     ).tagged('spool_form.preset_option');
                   },
+                  ),
                 );
               },
             ),

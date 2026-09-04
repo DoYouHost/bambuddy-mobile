@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
+import '../core/api/server_version_service.dart';
 import '../core/models/inventory.dart';
 import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/spool_label.dart';
+import '../core/models/spool_preset_override.dart';
 import 'inventory_source.dart';
 
 /// Facade for filament inventory over a selected [SpoolInventorySource]. A thin
@@ -11,9 +15,20 @@ import 'inventory_source.dart';
 /// Backend choice (native/Spoolman) is made in the provider, which injects the
 /// ready-made source here.
 class InventoryRepository {
-  InventoryRepository(this._source);
+  InventoryRepository(this._source, [this._serverVersion]);
 
   final SpoolInventorySource _source;
+
+  /// Answers [supportsPresetOverrides] until the route itself has.
+  final ServerVersionService? _serverVersion;
+
+  /// Whether this server has the per-model preset routes at all. One latch for
+  /// both backends: the native pair and the Spoolman twin landed in the same
+  /// release, and only one source is ever live.
+  late final _presetOverrides = ObservedCapability(
+    ServerFeature.spoolModelPresets,
+    _serverVersion,
+  );
 
   Future<List<Spool>> fetchSpools({bool includeArchived = false}) =>
       _source.fetchSpools(includeArchived: includeArchived);
@@ -85,4 +100,30 @@ class InventoryRepository {
 
   Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
       _source.renderLabels(request);
+
+  Future<bool> supportsPresetOverrides() => _presetOverrides.supported;
+
+  /// One spool's per-printer-model preset overrides. A server without the route
+  /// answers with an empty list rather than throwing — the section reading this
+  /// is additive, and the latch has already recorded why there is nothing.
+  ///
+  /// A **403** throws, unlike the 404: `inventory:read` is a permission the key
+  /// either has or does not, and a spool form that quietly showed no overrides
+  /// would invite a save that wipes them.
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _presetOverrides.watching(
+        () => _source.fetchPresetOverrides(spoolId),
+        absent: () => const [],
+        absentOn: const {404},
+      );
+
+  /// Replaces every override on [spoolId]. Throws on any failure: the user
+  /// pressed Save, so a refusal has to reach them.
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _presetOverrides.watching(
+        () => _source.savePresetOverrides(spoolId, overrides),
+      );
 }

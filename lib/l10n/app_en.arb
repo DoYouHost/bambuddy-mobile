@@ -919,6 +919,19 @@
   "inventorySlicerPresetNone": "No preset",
   "inventorySlicerPresetSearch": "Search presets…",
   "inventorySlicerPresetUnavailable": "No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).",
+  "inventorySectionPrinterPresets": "Presets per printer model",
+  "inventoryPrinterPresetsHint": "A pick here wins over the spool's own preset.",
+  "inventoryPrinterPresetDefault": "As on the spool",
+  "inventoryPrinterPresetNozzle": "{model} · {diameter} nozzle",
+  "@inventoryPrinterPresetNozzle": {
+    "description": "Label of a per-model preset row that applies to one nozzle size only. Written by the web spool form; the app writes rows that cover the whole model.",
+    "placeholders": {
+      "model": {"type": "String"},
+      "diameter": {"type": "String"}
+    }
+  },
+  "inventoryPrinterPresetsLoadFailed": "Not read — saving leaves them alone.",
+  "inventoryPrinterPresetsSaveFailed": "Spool saved, its per-model presets were not.",
   "inventoryFieldMaterial": "Material",
   "inventoryFieldBrand": "Brand",
   "inventoryFieldSubtype": "Variant",

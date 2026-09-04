@@ -2448,6 +2448,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'No slicer presets available. Enable slicing on the server (and connect Bambu Cloud for cloud presets).';
 
   @override
+  String get inventorySectionPrinterPresets => 'Presets per printer model';
+
+  @override
+  String get inventoryPrinterPresetsHint =>
+      'A pick here wins over the spool\'s own preset.';
+
+  @override
+  String get inventoryPrinterPresetDefault => 'As on the spool';
+
+  @override
+  String inventoryPrinterPresetNozzle(String model, String diameter) {
+    return '$model · $diameter nozzle';
+  }
+
+  @override
+  String get inventoryPrinterPresetsLoadFailed =>
+      'Not read — saving leaves them alone.';
+
+  @override
+  String get inventoryPrinterPresetsSaveFailed =>
+      'Spool saved, its per-model presets were not.';
+
+  @override
   String get inventoryFieldMaterial => 'Material';
 
   @override
