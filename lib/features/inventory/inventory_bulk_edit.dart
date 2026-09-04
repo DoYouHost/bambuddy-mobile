@@ -323,48 +323,34 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   /// Slicer preset for the whole selection. Clearing it means "leave every
   /// spool's preset as it is" — it does not unset the preset server-side.
   Widget _presetField(AppLocalizations l10n) {
-    final t = DashTokens.of(context);
     final selected = _slicerFilamentName ?? _slicerFilament;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () async {
-          final picked = await dashSurfaceSheet<SlicerPreset>(
-            context,
-            builder: (_) => const _SlicerPresetPicker(),
-          );
-          if (picked == null || !mounted) return;
-          setState(() {
-            _slicerFilament = picked.id;
-            _slicerFilamentName = picked.name;
-          });
-        },
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.inventoryFieldSlicerPreset,
-            prefixIcon: Icon(Icons.tune, color: t.textTertiary),
-            suffixIcon: selected == null
-                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => setState(() {
-                      _slicerFilament = null;
-                      _slicerFilamentName = null;
-                    }),
-                  ),
-          ),
-          child: Text(
-            selected ?? l10n.inventoryBulkEditUnchanged,
-            style: t.body.copyWith(
-              color: selected == null ? t.textTertiary : t.textPrimary,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ).tagged('bulk_edit.preset'),
+    return dashPickerField(
+      context,
+      id: 'bulk_edit.preset',
+      label: l10n.inventoryFieldSlicerPreset,
+      placeholder: l10n.inventoryBulkEditUnchanged,
+      value: selected,
+      prefixIcon: Icons.tune,
+      onTap: () async {
+        final picked = await dashSurfaceSheet<SlicerPreset>(
+          context,
+          // No material to narrow by: the selection can hold several, and a
+          // filter taken from one of them would hide the rest.
+          builder: (_) => const _SlicerPresetPicker(),
+        );
+        if (picked == null || !mounted) return;
+        setState(() {
+          _slicerFilament = picked.id;
+          _slicerFilamentName = picked.name;
+        });
+      },
+      clear: (
+        id: 'bulk_edit.preset.clear',
+        onPressed: () => setState(() {
+          _slicerFilament = null;
+          _slicerFilamentName = null;
+        }),
+      ),
     );
   }
 
@@ -374,42 +360,20 @@ class _BulkEditSheetState extends ConsumerState<_BulkEditSheet> {
   Widget _colorField(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final hex = _c['rgba']!.text.trim();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _pickColor(l10n),
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.inventoryFieldColorHex,
-            suffixIcon: hex.isEmpty
-                ? Icon(Icons.colorize, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => _c['rgba']!.clear(),
-                  ),
-          ),
-          child: Row(
-            children: [
-              SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  hex.isEmpty
-                      ? l10n.inventoryBulkEditUnchanged
-                      : hex.toUpperCase(),
-                  style: t.monoValue.copyWith(
-                    color: hex.isEmpty ? t.textTertiary : t.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ).tagged('bulk_edit.color'),
+    return dashPickerField(
+      context,
+      id: 'bulk_edit.color',
+      label: l10n.inventoryFieldColorHex,
+      placeholder: l10n.inventoryBulkEditUnchanged,
+      value: hex.isEmpty ? null : hex.toUpperCase(),
+      valueStyle: t.monoValue,
+      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      trailingIcon: Icons.colorize,
+      onTap: () => _pickColor(l10n),
+      clear: (
+        id: 'bulk_edit.color.clear',
+        onPressed: () => _c['rgba']!.clear(),
+      ),
     );
   }
 

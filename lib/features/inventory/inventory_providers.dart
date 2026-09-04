@@ -457,9 +457,15 @@ final filamentPresetsProvider =
     });
 
 /// The printer models the fleet actually has, spelled exactly as the server
-/// reports them — the key a per-model preset override is matched on, so no
-/// case folding and no display name (`ownedPrinterCodesProvider` upper-cases
-/// for a different job and must not be reused here).
+/// reports them.
+///
+/// Not `ownedPrinterCodesProvider`, which reads the same fleet for the same
+/// field and upper-cases it: that one narrows a preset *list* by name, where
+/// case cannot matter, while this one is the key the server matches an
+/// override on — `printer_model` is compared for plain string equality
+/// (`services/spool_filament_preset.py::_pick`), so a case-folded key writes a
+/// row nothing will ever resolve to. Two readers, deliberately, and neither is
+/// safe to point at the other.
 ///
 /// Sorted for a stable order in the spool form; a printer that has not reported
 /// a model is left out, having no model to key a row by.

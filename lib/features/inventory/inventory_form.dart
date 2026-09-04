@@ -499,22 +499,16 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+            child: dashPickerField(
+              context,
+              id: 'spool_form.core_weight',
+              label: l10n.inventoryFieldEmptySpoolWeight,
+              placeholder: l10n.inventoryCoreWeightSelect,
+              value: selected?.name,
               onTap: () => _openCoreWeightPicker(l10n),
-              child: InputDecorator(
-                decoration: dashDecoration(
-                  t,
-                  labelText: l10n.inventoryFieldEmptySpoolWeight,
-                  suffixIcon: Icon(Icons.arrow_drop_down, color: t.textTertiary),
-                ),
-                child: Text(
-                  selected?.name ?? l10n.inventoryCoreWeightSelect,
-                  style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ).tagged('spool_form.core_weight'),
+              // The row this sits in carries the field spacing already.
+              padding: EdgeInsets.zero,
+            ),
           ),
           const SizedBox(width: 8),
           weightField,
@@ -613,37 +607,23 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// (`slicer_filament`). Tapping opens a searchable picker; the current
   /// selection (or "None") shows inline, with a clear button once set.
   Widget _slicerPresetField(AppLocalizations l10n) {
-    final t = DashTokens.of(context);
     final selected = _slicerFilamentName ?? _slicerFilament;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _openSlicerPresetPicker(l10n),
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: l10n.inventoryFieldSlicerPreset,
-            helperText: l10n.inventorySlicerPresetHint,
-            prefixIcon: Icon(Icons.tune, color: t.textTertiary),
-            suffixIcon: selected == null
-                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => setState(() {
-                      _slicerFilament = null;
-                      _slicerFilamentName = null;
-                    }),
-                  ),
-          ),
-          child: Text(
-            selected ?? l10n.inventorySlicerPresetNone,
-            style: t.body.copyWith(color: selected == null ? t.textTertiary : t.textPrimary),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ).tagged('spool_form.preset'),
+    return dashPickerField(
+      context,
+      id: 'spool_form.preset',
+      label: l10n.inventoryFieldSlicerPreset,
+      helperText: l10n.inventorySlicerPresetHint,
+      placeholder: l10n.inventorySlicerPresetNone,
+      value: selected,
+      prefixIcon: Icons.tune,
+      onTap: () => _openSlicerPresetPicker(l10n),
+      clear: (
+        id: 'spool_form.preset.clear',
+        onPressed: () => setState(() {
+          _slicerFilament = null;
+          _slicerFilamentName = null;
+        }),
+      ),
     );
   }
 
@@ -729,50 +709,33 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   /// One model's row. Same chrome as [_slicerPresetField], which is the field
   /// it overrides — the model is the label, the preset is the value.
   Widget _presetOverrideField(AppLocalizations l10n, SpoolPresetOverride row) {
-    final t = DashTokens.of(context);
     final current = _overrides?[row.key];
     final chosen = current?.slicerFilamentName ?? current?.slicerFilament;
-    // No row at all means the spool's own preset applies. A row that carries no
-    // preset is a different answer — "use none here" — and the server honours
-    // it instead of falling back, so the two must not read alike.
-    final value = current == null
-        ? l10n.inventoryPrinterPresetDefault
-        : chosen ?? l10n.inventorySlicerPresetNone;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _pickOverridePreset(l10n, row),
-        child: InputDecorator(
-          decoration: dashDecoration(
-            t,
-            labelText: row.nozzleDiameter.isEmpty
-                ? row.printerModel
-                : l10n.inventoryPrinterPresetNozzle(
-                    row.printerModel,
-                    row.nozzleDiameter,
-                  ),
-            prefixIcon: Icon(Icons.print_outlined, color: t.textTertiary),
-            suffixIcon: current == null
-                ? Icon(Icons.arrow_drop_down, color: t.textTertiary)
-                : IconButton(
-                    icon: Icon(Icons.clear, color: t.textTertiary),
-                    tooltip: l10n.clear,
-                    onPressed: () => setState(() {
-                      _overrides?.remove(row.key);
-                      _overridesDirty = true;
-                    }),
-                  ).tagged('spool_form.model_preset.clear'),
-          ),
-          child: Text(
-            value,
-            style: t.body.copyWith(
-              color: current == null ? t.textTertiary : t.textPrimary,
+    return dashPickerField(
+      context,
+      id: 'spool_form.model_preset',
+      label: row.nozzleDiameter.isEmpty
+          ? row.printerModel
+          : l10n.inventoryPrinterPresetNozzle(
+              row.printerModel,
+              row.nozzleDiameter,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ).tagged('spool_form.model_preset'),
+      // No row at all is the placeholder: the spool's own preset applies. A row
+      // that carries no preset is a different answer — "use none here", which
+      // the server honours instead of falling back — so it is a value.
+      placeholder: l10n.inventoryPrinterPresetDefault,
+      value: current == null
+          ? null
+          : chosen ?? l10n.inventorySlicerPresetNone,
+      prefixIcon: Icons.print_outlined,
+      onTap: () => _pickOverridePreset(l10n, row),
+      clear: (
+        id: 'spool_form.model_preset.clear',
+        onPressed: () => setState(() {
+          _overrides?.remove(row.key);
+          _overridesDirty = true;
+        }),
+      ),
     );
   }
 
@@ -803,31 +766,22 @@ class _SpoolFormSheetState extends ConsumerState<_SpoolFormSheet> {
   Widget _hexColorPickerField(AppLocalizations l10n) {
     final t = DashTokens.of(context);
     final hex = _c['rgba']!.text.trim();
+    // Unparseable reads as unset, which is what it looks like next to the
+    // swatch: the swatch has nothing to show for it either.
     final color = parseSpoolColor(hex);
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
+    return dashPickerField(
+      context,
+      id: 'spool_form.color',
+      label: l10n.inventoryFieldColorHex,
+      placeholder: l10n.inventoryColorNone,
+      value: color == null ? null : hex.toUpperCase(),
+      valueStyle: t.monoValue,
+      leading: SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
+      trailingIcon: Icons.colorize,
       onTap: () => _openColorPicker(l10n),
-      child: InputDecorator(
-        decoration: dashDecoration(
-          t,
-          labelText: l10n.inventoryFieldColorHex,
-          suffixIcon: Icon(Icons.colorize, color: t.textTertiary),
-        ),
-        child: Row(
-          children: [
-            SpoolSwatch(rgba: hex.isEmpty ? null : hex, size: 24, radius: 6),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                hex.isEmpty ? l10n.inventoryColorNone : hex.toUpperCase(),
-                style: t.monoValue.copyWith(color: color == null ? t.textTertiary : t.textPrimary),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).tagged('spool_form.color');
+      // The row this shares with the colour-name field carries the spacing.
+      padding: EdgeInsets.zero,
+    );
   }
 
   /// Color picker dialog. Starts from current color (or white), saves chosen hex
