@@ -30,6 +30,7 @@ class DashTokens {
     required this.accentGreen,
     required this.accentGreenInk,
     required this.accentOrange,
+    required this.accentOrangeInk,
     required this.accentBlue,
     required this.danger,
     required this.gaugeTrack,
@@ -58,6 +59,22 @@ class DashTokens {
   final Color groupCardBorder;
 
   final Color textPrimary;
+
+  /// The two muted inks, and the reason they are as opaque as they are.
+  ///
+  /// Both carry ordinary body text — `label` and `micro` are 11-12 px, a hint
+  /// inside a field is [textTertiary] — so both have to clear WCAG AA's 4.5:1
+  /// against the surface they sit on, and the surface is the *lightest* card a
+  /// theme has, not its background. At the 0x66 they used to share, the muted
+  /// caption on a light card measured 2.4:1 and the same caption in the dark
+  /// theme 3.5:1: legible to whoever picked them, and not to a reader who needs
+  /// the contrast.
+  ///
+  /// `theme_contrast_test.dart` computes the ratios from these very values, so
+  /// a palette edit that drops one below the floor fails there rather than in a
+  /// store review. It measures against every surface a theme can put behind
+  /// text and keeps the worst — which for a dark ink is the *darkest* surface,
+  /// the bare background corner, and not the white card that flatters it.
   final Color textSecondary;
   final Color textTertiary;
 
@@ -65,11 +82,30 @@ class DashTokens {
   final Color accentGreen;
 
   /// Green used for text/icons on cards (deepened in light mode for contrast).
+  /// The accent as **ink** — text and icons on a pale surface, which is what
+  /// every `TextButton` in the app is painted with, and `colorScheme.primary`.
+  /// Never a fill: the solid green is [accentGreen], and it keeps its vivid
+  /// swatch precisely because this one had to darken instead.
+  ///
+  /// Held to the same 4.5:1 as body text and for the same reason — a dialog's
+  /// "Cancel" is text. The light theme's #1F8F4D read 3.45:1 against the palest
+  /// card, which is a button label nobody with low vision could pick out.
   final Color accentGreenInk;
 
   /// Nozzle/heat orange and chamber/cooling blue (gauge fills + accents).
   final Color accentOrange;
   final Color accentBlue;
+
+  /// The warm accent as **ink** — a caveat's mark, a "held"/"paused" label, the
+  /// star on a favourite. The vivid [accentOrange] reads 2.7:1 on the palest
+  /// card, which is under the 3:1 a meaningful mark has to clear and nowhere
+  /// near the 4.5:1 a word does, so anything painted *with* it rather than
+  /// *filled* with it takes this instead.
+  ///
+  /// Same relationship as [accentGreenInk] to [accentGreen], and the same
+  /// numbers: 5.3:1 on the palest card. In the dark theme both are the one
+  /// value — a light accent on a dark ground has the contrast already.
+  final Color accentOrangeInk;
 
   /// Warning/low/error accent (e.g. LOW filament, urgent maintenance, delete).
   final Color danger;
@@ -122,11 +158,12 @@ class DashTokens {
         groupCard = const Color(0x06FFFFFF),
         groupCardBorder = const Color(0x0FFFFFFF),
         textPrimary = const Color(0xFFFBFCF9),
-        textSecondary = const Color(0x8CF2F4EF),
-        textTertiary = const Color(0x66F2F4EF),
+        textSecondary = const Color(0xB0F2F4EF),
+        textTertiary = const Color(0x88F2F4EF),
         accentGreen = const Color(0xFF5FE08A),
         accentGreenInk = const Color(0xFF5FE08A),
         accentOrange = const Color(0xFFFF9F5C),
+        accentOrangeInk = const Color(0xFFFF9F5C),
         accentBlue = const Color(0xFF4FA6F7),
         danger = const Color(0xFFFF6B6B),
         gaugeTrack = const Color(0x10FFFFFF),
@@ -155,11 +192,12 @@ class DashTokens {
         groupCard = const Color(0x04000000),
         groupCardBorder = const Color(0x12000000),
         textPrimary = const Color(0xFF10130E),
-        textSecondary = const Color(0x99202318),
-        textTertiary = const Color(0x66202318),
+        textSecondary = const Color(0xC4202318),
+        textTertiary = const Color(0xAC202318),
         accentGreen = const Color(0xFF34C46E),
-        accentGreenInk = const Color(0xFF1F8F4D),
+        accentGreenInk = const Color(0xFF18733D),
         accentOrange = const Color(0xFFE07C36),
+        accentOrangeInk = const Color(0xFFA05019),
         accentBlue = const Color(0xFF2C7FE0),
         danger = const Color(0xFFD64545),
         gaugeTrack = const Color(0x14000000),
@@ -252,21 +290,35 @@ class DashPill extends StatelessWidget {
     this.accentInk,
     this.leadingDot = false,
     this.icon,
+    this.dense = false,
   });
 
   final String label;
+
+  /// The swatch the pill is *filled* and outlined with, at low alpha.
   final Color accent;
+
+  /// The swatch its label and icon are *painted* with. Defaults to [accent],
+  /// which is right for a colour that reads on a pale surface — and wrong for
+  /// the vivid ones, which is what the `…Ink` tokens are for.
   final Color? accentInk;
+
   final bool leadingDot;
   final IconData? icon;
+
+  /// The smaller pill: a status marker crowded in beside a title or wrapped
+  /// several to a row, rather than a badge standing on its own.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final ink = accentInk ?? accent;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: dense
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 3)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.16),
+        color: accent.withValues(alpha: dense ? 0.14 : 0.16),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accent.withValues(alpha: 0.4)),
       ),
@@ -281,16 +333,16 @@ class DashPill extends StatelessWidget {
             ),
             const SizedBox(width: 6),
           ] else if (icon != null) ...[
-            Icon(icon, size: 13, color: ink),
-            const SizedBox(width: 6),
+            Icon(icon, size: dense ? 12 : 13, color: ink),
+            SizedBox(width: dense ? 4 : 6),
           ],
           Text(
             label,
             style: TextStyle(
               fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+              fontSize: dense ? 11 : 12,
+              fontWeight: dense ? FontWeight.w600 : FontWeight.w700,
+              letterSpacing: dense ? 0 : 0.3,
               color: ink,
             ),
           ),
@@ -309,6 +361,7 @@ InputDecoration dashFieldDecoration(
   String? hintText,
   String? helperText,
   String? errorText,
+  String? suffixText,
   Widget? suffixIcon,
   Widget? prefixIcon,
 }) {
@@ -324,6 +377,7 @@ InputDecoration dashFieldDecoration(
     hintText: hintText,
     helperText: helperText,
     errorText: errorText,
+    suffixText: suffixText,
     suffixIcon: suffixIcon,
     prefixIcon: prefixIcon,
     labelStyle: TextStyle(
@@ -342,6 +396,11 @@ InputDecoration dashFieldDecoration(
     helperStyle: TextStyle(
       fontFamily: DashTokens.fontUi,
       fontSize: 11,
+      color: t.textTertiary,
+    ),
+    suffixStyle: TextStyle(
+      fontFamily: DashTokens.fontMono,
+      fontSize: 11.5,
       color: t.textTertiary,
     ),
     border: border(t.subCardBorder),

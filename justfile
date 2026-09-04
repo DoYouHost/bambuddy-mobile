@@ -33,6 +33,11 @@ emulator_bin := "$HOME/Android/Sdk/emulator/emulator"
 # depends on boot order.
 avd := "pixel35"
 
+# Default watch AVD. The wear flavor needs its own recipe rather than an `avd=`
+# on `run`: it is a different flavor AND a different entry point, and pointing
+# the phone build at a watch installs an app whose UI does not fit the screen.
+wear_avd := "wear_round"
+
 [doc('show available commands')]
 default:
     @just --list --unsorted
@@ -53,6 +58,15 @@ run avd=avd: (emu-boot avd)
     #!/usr/bin/env bash
     set -euo pipefail
     flutter run -d "$(just _emu-serial {{avd}})" --flavor mobile
+
+# Same loop as `run`, for the watch: wear flavor, wear entry point.
+# usage: just run-wear [AVD]
+[doc('run the watch app on a local Wear AVD, booting it first')]
+[group('1-develop')]
+run-wear avd=wear_avd: (emu-boot avd)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flutter run -d "$(just _emu-serial {{avd}})" --flavor wear --target lib/wear/main_wear.dart
 
 [doc('run the app on the shared LAN emulator')]
 [group('1-develop')]
@@ -242,6 +256,17 @@ build-aab name='' code='': (_build "appbundle" "mobile" name code)
 [group('3-build')]
 build-wear-aab name='' code='': (_build "appbundle" "wear" name code)
 
+# Reads the manifest out of each bundle instead of echoing back what we handed
+# to gradle: the flavor offset is applied on the gradle side, so what it baked in
+# is the only number Play will judge — and a wrong one stays invisible until the
+# upload is rejected. Takes explicit paths from `ship`/`ship-dev` so it can only
+# ever report the bundles that run just built, never a leftover in build/dist.
+# usage: just aab-show [BUNDLE...]
+[doc('print the versions baked into the built Play bundles')]
+[group('3-build')]
+aab-show *paths:
+    @python3 tool/aab_versions.py {{paths}}
+
 [doc('delete local build outputs')]
 [group('3-build')]
 clean:
@@ -254,10 +279,30 @@ clean:
 # *before* publishing the GitHub release, so a bundle that fails to build cannot
 # leave a published release with nothing to promote.
 
-# versionCode = (major*10000 + minor*100 + patch) * 1000 (e.g. 1.2.3 → 10203000).
-# The trailing three zeros are the dev slots `ship-dev` numbers its builds into,
-# so a dev build can never block the release it precedes. The old bare
+# versionCode = (major*10000 + minor*100 + patch) * 20 + 2_000_000
+# (e.g. 1.2.3 → 2_204_060). The *20 opens 19 slots under each release for
+# `ship-dev` to number its builds into, so a dev build can never block the
+# release it precedes; the busiest cycle so far used 8 of them. The old bare
 # major*10000+minor*100+patch left no integer at all between two patches.
+#
+# The + 2_000_000 is what makes the narrower multiplier safe. Up to 0.13.0 the
+# multiplier was 1000, so the phone shipped 1_300_000 and the watch
+# 1_001_300_000; going to *20 without the offset would hand the next release a
+# LOWER code than installs already carry, which Play refuses to accept and
+# Android refuses to install over. The offset lifts the series clear of that
+# history — the next patch, 0.13.1, lands on 2_026_020.
+#
+# Flavors add their own offset on top of this, in android/app/build.gradle.kts.
+# A band is ~20 M wide (major up to 99) and they are spaced 100 M apart:
+#
+#   mobile   +0                    2_000_000 ..    21_999_980
+#   tv       +100_000_000        102_000_000 ..   121_999_980
+#   (free)   +200_000_000        202_000_000 ..   221_999_980
+#   wear     +1_000_000_000    1_002_000_000 .. 1_021_999_980
+#
+# wear sits a billion up because 1_001_300_000 is already published and cannot
+# be moved down. That leaves 300 M..1_000 M and 1_022 M..2_100 M (Play's
+# ceiling) empty — room for 17 more bands beyond the one reserved above.
 #
 # Idempotent: safe to re-run after a partially-completed `ship` — it skips the
 # edit/commit when the version is already bumped, so the pipeline can resume.
@@ -268,7 +313,7 @@ _bump ver:
     major=$(echo "{{ver}}" | cut -d. -f1)
     minor=$(echo "{{ver}}" | cut -d. -f2)
     patch=$(echo "{{ver}}" | cut -d. -f3)
-    code=$(((major * 10000 + minor * 100 + patch) * 1000))
+    code=$(((major * 10000 + minor * 100 + patch) * 20 + 2000000))
     target="version: {{ver}}+${code}"
     if [ "$(grep '^version: ' pubspec.yaml)" = "$target" ]; then
         echo "pubspec.yaml already at {{ver}}+${code}, skipping bump"
@@ -318,10 +363,11 @@ ship ver:
     just build-aab
     just build-wear-aab
     just release-publish {{ver}}
+    just aab-show {{aab}} {{wear_aab}}
 
 # Test, build both flavors and publish the current commit as a dev prerelease.
 #
-#   versionName  X.Y.Z-dev.N    versionCode  (X.Y.Z as in _bump) - 1000 + N
+#   versionName  X.Y.Z-dev.N    versionCode  (X.Y.Z as in _bump) - 20 + N
 #
 # X.Y.Z is the release this build is heading for (default: the next patch after
 # the last tag) and N counts the dev builds of that target — so every dev build
@@ -426,14 +472,14 @@ ship-dev target='' bundles='yes':
         highest=$(dev_n)
         n=$(( ${highest:-0} + 1 ))
     fi
-    if [ "$n" -gt 999 ]; then
-        echo "$n dev builds under $target — past the 999 slots. Ship a release." >&2
+    if [ "$n" -gt 19 ]; then
+        echo "$n dev builds under $target — past the 19 slots. Ship a release." >&2
         exit 1
     fi
     maj=$(cut -d. -f1 <<<"$target")
     min=$(cut -d. -f2 <<<"$target")
     pat=$(cut -d. -f3 <<<"$target")
-    code=$(( (maj * 10000 + min * 100 + pat) * 1000 - 1000 + n ))
+    code=$(( (maj * 10000 + min * 100 + pat) * 20 + 2000000 - 20 + n ))
     name="$target-dev.$n"
     sha=$(git rev-parse HEAD)
     # The release is created around a commit, so the server needs it first. Said
@@ -470,7 +516,7 @@ ship-dev target='' bundles='yes':
     echo "Published $tag"
     if [ '{{bundles}}' != 'no' ]; then
         echo "Upload to Play internal testing ($name):"
-        ls -1 {{aab}} {{wear_aab}}
+        just aab-show {{aab}} {{wear_aab}}
     fi
 
 # Assumes both APKs are already built. Phone and watch share an applicationId but

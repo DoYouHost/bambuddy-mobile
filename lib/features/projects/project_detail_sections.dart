@@ -4,18 +4,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
 import '../../core/models/library_file.dart';
 import '../../core/models/library_folder.dart';
 import '../../core/models/project.dart';
 import '../../core/models/queue_item.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/api_failure_snack.dart';
+import '../common/dash_async.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../files/library_thumbnail.dart';
 import '../queue/queue_edit_screen.dart';
-import 'project_files.dart';
 import 'projects_providers.dart';
 
 /// Card wrapper for a detail section: header (icon + title + optional action)
@@ -55,12 +61,7 @@ class SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleSm,
                 ),
               ),
               ?action,
@@ -97,12 +98,7 @@ Widget _emptyHint(BuildContext context, String text) {
     padding: const EdgeInsets.symmetric(vertical: 12),
     child: Text(
       text,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: t.textTertiary,
-      ),
+      style: t.bodySoft.copyWith(color: t.textTertiary),
     ),
   );
 }
@@ -129,13 +125,11 @@ class ProjectFilesSection extends ConsumerWidget {
         label: l10n.projectLinkFolder,
         onPressed: () => _linkFolder(context, ref),
       ),
-      child: foldersAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => _emptyHint(
-            context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
+      child: dashAsyncStrip(
+        context,
+        foldersAsync,
+        padding: const EdgeInsets.all(12),
+        failureBuilder: (message) => _emptyHint(context, message),
         data: (folders) {
           if (folders.isEmpty) {
             return _emptyHint(context, l10n.projectFilesEmpty);
@@ -183,9 +177,9 @@ class ProjectFilesSection extends ConsumerWidget {
     }
     if (!context.mounted) return;
 
-    final folderId = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
+    final folderId = await dashSheet<int>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -225,7 +219,7 @@ class ProjectFilesSection extends ConsumerWidget {
       await ref.read(projectsRepositoryProvider).setFolderProject(folderId, projectId);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderLinked)));
+      messenger.snack(l10n.projectFolderLinked);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.link_folder');
     }
@@ -239,7 +233,7 @@ class ProjectFilesSection extends ConsumerWidget {
       await ref.read(projectsRepositoryProvider).setFolderProject(folder.id, null);
       await _refresh(ref);
       ref.invalidate(projectDetailProvider(projectId));
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFolderUnlinked)));
+      messenger.snack(l10n.projectFolderUnlinked);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.unlink_folder');
     }
@@ -292,20 +286,11 @@ class _FolderTile extends StatelessWidget {
         leading: Icon(Icons.folder_outlined, color: t.accentGreenInk),
         title: Text(
           folder.name,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         subtitle: Text(
           l10n.projectFolderFileCount(folder.fileCount),
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 12,
-            color: t.textTertiary,
-          ),
+          style: t.labelSoft,
         ),
         trailing: IconButton(
           icon: Icon(Icons.link_off, color: t.textSecondary),
@@ -329,12 +314,7 @@ class _FolderTile extends StatelessWidget {
                   f.displayName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.body,
                 ),
                 trailing: f.isPrintable
                     ? IconButton(
@@ -385,12 +365,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.body,
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -417,17 +392,23 @@ class ProjectAttachmentsSection extends ConsumerWidget {
   Future<void> _upload(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickSingleFile();
-    if (picked == null) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.projectUploading)));
+    final picked = await pickFileFromDevice();
+    final chosen = picked.file;
+    if (chosen == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.filePickerFailed);
+      }
+      return;
+    }
+    messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).uploadAttachment(
             project.id,
-            filePath: picked.path,
-            filename: picked.name,
+            filePath: chosen.path,
+            filename: chosen.name,
           );
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentUploaded)));
+      messenger.snack(l10n.projectAttachmentUploaded);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.attachment_upload');
     }
@@ -439,12 +420,15 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     try {
       final bytes =
           await ref.read(projectsRepositoryProvider).downloadAttachment(project.id, name);
-      final path = await saveBytesToFile(fileName: name, bytes: bytes);
-      if (path == null) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.projectSaveCancelled)));
-        return;
+      final saved = await saveBytesToDevice(fileName: name, bytes: bytes);
+      switch (saved.outcome) {
+        case DeviceFileOutcome.cancelled:
+          return;
+        case DeviceFileOutcome.failed:
+          messenger.snack(l10n.filePickerFailed);
+        case DeviceFileOutcome.done:
+          messenger.snack(l10n.projectFileSaved(saved.path!));
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectFileSaved(path))));
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n,
           action: 'project.attachment_download',
@@ -458,7 +442,7 @@ class ProjectAttachmentsSection extends ConsumerWidget {
     try {
       await ref.read(projectsRepositoryProvider).deleteAttachment(project.id, name);
       await ref.read(projectDetailProvider(project.id).notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectAttachmentDeleted)));
+      messenger.snack(l10n.projectAttachmentDeleted);
     } on AppApiException catch (e) {
       showApiFailure(messenger, e, l10n, action: 'project.attachment_delete');
     }
@@ -485,13 +469,11 @@ class ProjectBomSection extends ConsumerWidget {
         label: l10n.bomAdd,
         onPressed: () => _editItem(context, ref, null),
       ),
-      child: async.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => _emptyHint(
-            context, e is AppApiException ? e.localized(l10n) : l10n.connectFailed),
+      child: dashAsyncStrip(
+        context,
+        async,
+        padding: const EdgeInsets.all(12),
+        failureBuilder: (message) => _emptyHint(context, message),
         data: (items) => items.isEmpty
             ? _emptyHint(context, l10n.projectBomEmpty)
             : Column(
@@ -527,21 +509,11 @@ class ProjectBomSection extends ConsumerWidget {
       ).tagged('project.bom_done'),
       title: Text(
         item.name,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w600,
-          decoration: item.isComplete ? TextDecoration.lineThrough : null,
-          color: item.isComplete ? t.textTertiary : t.textPrimary,
-        ),
+        style: t.body.copyWith(color: item.isComplete ? t.textTertiary : t.textPrimary, decoration: item.isComplete ? TextDecoration.lineThrough : null),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11.5,
-          color: t.textTertiary,
-        ),
+        style: t.monoMicro,
       ),
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: t.textSecondary),
@@ -587,9 +559,7 @@ class ProjectBomSection extends ConsumerWidget {
     final result =
         item == null ? await notifier.add(input) : await notifier.edit(item.id, input);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
   }
 }
 
@@ -608,12 +578,14 @@ class ProjectTimelineSection extends ConsumerWidget {
     return SectionCard(
       icon: Icons.history,
       title: l10n.projectTabTimeline,
-      child: async.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (_, _) => _emptyHint(context, l10n.projectTimelineEmpty),
+      child: dashAsyncStrip(
+        context,
+        async,
+        padding: const EdgeInsets.all(12),
+        // A timeline nobody could load reads as one nothing happened on: this
+        // section is a sidebar of a screen that has already said the project
+        // failed to load, and does not need to say it twice.
+        failureBuilder: (_) => _emptyHint(context, l10n.projectTimelineEmpty),
         data: (events) => events.isEmpty
             ? _emptyHint(context, l10n.projectTimelineEmpty)
             : Column(
@@ -625,24 +597,16 @@ class ProjectTimelineSection extends ConsumerWidget {
                       leading: Icon(_eventIcon(e.eventType), color: t.accentGreenInk),
                       title: Text(
                         e.title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                        ),
+                        style: t.body,
                       ),
                       subtitle: Text(
                         [
                           if (e.description != null) e.description!,
                           if (e.timestampParsed != null)
-                            _fmtDateTime(e.timestampParsed!),
+                            DateTimeFormats.of(context)
+                                .dateTime(e.timestampParsed!),
                         ].join('\n'),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11.5,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                       isThreeLine: e.description != null,
                     ),
@@ -663,9 +627,6 @@ class ProjectTimelineSection extends ConsumerWidget {
     return Icons.fiber_manual_record_outlined;
   }
 
-  String _fmtDateTime(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }
 
 /// Add / edit dialog for a BOM line item.
@@ -751,14 +712,14 @@ class _BomItemDialogState extends State<BomItemDialog> {
             onPressed: () {
               if (_name.text.trim().isEmpty) return;
               final item = widget.item;
-              final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+              final price = parseUserDecimal(_price.text);
               final url = _url.text.trim();
               final remarks = _remarks.text.trim();
               Navigator.pop(
                 context,
                 BomItemInput(
                   name: _name.text.trim(),
-                  quantityNeeded: int.tryParse(_needed.text.trim()),
+                  quantityNeeded: parseUserInt(_needed.text),
                   unitPrice: price,
                   // Editing an existing value down to empty must actively clear
                   // it server-side (see [BomItemInput]) — a fresh item has

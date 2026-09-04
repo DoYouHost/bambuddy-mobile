@@ -9,19 +9,24 @@ import 'features/admin/api_keys_screen.dart';
 import 'features/admin/group_detail_screen.dart';
 import 'features/admin/groups_screen.dart';
 import 'features/admin/users_screen.dart';
+import 'features/archive/archive_photos_screen.dart';
 import 'features/archive/archive_screen.dart';
+import 'features/archive/timelapse_editor_screen.dart';
+import 'features/archive/timelapse_screen.dart';
 import 'features/bug_report/bug_report_screen.dart';
 import 'features/bug_report/recording_banner.dart';
 import 'features/dashboard/add_printer_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/files/file_manager_screen.dart';
 import 'features/files/trash_screen.dart';
+import 'features/gcode/gcode_viewer_route.dart';
 import 'features/gcode/gcode_viewer_screen.dart';
 import 'features/inventory/inventory_screen.dart';
 import 'features/maintenance/maintenance_screen.dart';
 import 'features/maintenance/maintenance_settings.dart';
 import 'features/makerworld/makerworld_screen.dart';
 import 'features/notifications/notification_settings_screen.dart';
+import 'features/print_log/print_log_screen.dart';
 import 'features/projects/projects_screen.dart';
 import 'features/projects/project_detail_screen.dart';
 import 'features/settings/cloud_account_screen.dart';
@@ -112,6 +117,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/pipelines',
         builder: (_, _) => const PipelinesScreen(),
+      ),
+
+      // Print log — per-run history, full screen outside shell (opened from the
+      // archive's menu and from the Stats failure card).
+      GoRoute(
+        path: '/print-log',
+        builder: (_, _) => const PrintLogScreen(),
       ),
 
       // File manager (library) — full screen outside shell (pushed from drawer).
@@ -212,14 +224,66 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // G-code viewer (WebView) — full screen outside shell. Source in query:
       // `archive` or `library_file` (+ optionally `plate`); `name` sets title.
+      // Links to it are built by `gcodeViewerRoute`, which owns these names.
       GoRoute(
-        path: '/gcode-viewer',
+        path: gcodeViewerPath,
         builder: (_, state) {
           final q = state.uri.queryParameters;
           return GcodeViewerScreen(
             archiveId: int.tryParse(q['archive'] ?? ''),
             libraryFileId: int.tryParse(q['library_file'] ?? ''),
             plate: int.tryParse(q['plate'] ?? ''),
+            title: q['name'],
+          );
+        },
+      ),
+
+      // Timelapse player — full screen outside shell. `archive` is required;
+      // `name` sets the title. Malformed ids fall back to the archive list
+      // rather than opening a player with nothing to play.
+      GoRoute(
+        path: '/timelapse',
+        redirect: (_, state) =>
+            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+            ? '/archive'
+            : null,
+        builder: (_, state) {
+          final q = state.uri.queryParameters;
+          return TimelapseScreen(
+            archiveId: int.parse(q['archive']!),
+            title: q['name'],
+          );
+        },
+      ),
+
+      // Photos of a finished print — same shape as the timelapse route above.
+      GoRoute(
+        path: '/archive/photos',
+        redirect: (_, state) =>
+            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+            ? '/archive'
+            : null,
+        builder: (_, state) {
+          final q = state.uri.queryParameters;
+          return ArchivePhotosScreen(
+            archiveId: int.parse(q['archive']!),
+            title: q['name'],
+          );
+        },
+      ),
+
+      // Trim/speed editor for a timelapse, pushed from the player. Pops `true`
+      // when the server re-encoded, which is the player's cue to reload.
+      GoRoute(
+        path: '/timelapse/edit',
+        redirect: (_, state) =>
+            int.tryParse(state.uri.queryParameters['archive'] ?? '') == null
+            ? '/archive'
+            : null,
+        builder: (_, state) {
+          final q = state.uri.queryParameters;
+          return TimelapseEditorScreen(
+            archiveId: int.parse(q['archive']!),
             title: q['name'],
           );
         },

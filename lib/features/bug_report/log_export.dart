@@ -17,13 +17,12 @@ library;
 
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum LogSaveResult { saved, cancelled, failed }
+import '../common/device_files.dart';
 
-typedef LogFileSaver = Future<LogSaveResult> Function({
+typedef LogFileSaver = Future<DeviceFileOutcome> Function({
   required String fileName,
   required String log,
   String? dialogTitle,
@@ -33,23 +32,21 @@ typedef LogFileSaver = Future<LogSaveResult> Function({
 /// the picker is a platform channel with no test double.
 final logFileSaverProvider = Provider<LogFileSaver>((_) => saveLogFile);
 
+/// A session's log is text — a few hundred kilobytes at worst — so the system
+/// save dialog is the right hand-off, unlike the downloads in
+/// `common/file_export.dart` that have to stream.
 @visibleForTesting
-Future<LogSaveResult> saveLogFile({
+Future<DeviceFileOutcome> saveLogFile({
   required String fileName,
   required String log,
   String? dialogTitle,
 }) async {
-  try {
-    final path = await FilePicker.platform.saveFile(
-      dialogTitle: dialogTitle,
-      fileName: fileName,
-      bytes: Uint8List.fromList(utf8.encode(log)),
-    );
-    // Null is the user backing out of the picker, which is not a failure.
-    return path == null ? LogSaveResult.cancelled : LogSaveResult.saved;
-  } on Exception {
-    return LogSaveResult.failed;
-  }
+  final saved = await saveBytesToDevice(
+    fileName: fileName,
+    bytes: Uint8List.fromList(utf8.encode(log)),
+    dialogTitle: dialogTitle,
+  );
+  return saved.outcome;
 }
 
 /// `bambuddy-log-20260728-143005.txt`, in local time — the time the user saved

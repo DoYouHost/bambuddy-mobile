@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/ws_client.dart';
+import '../../../core/theme/dash_text.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/theme/dash_theme.dart';
 import '../ws_providers.dart';
@@ -21,7 +22,7 @@ class ConnectionModeChip extends ConsumerWidget {
         WsConnectionState.connected;
 
     final accent = live ? t.accentGreen : t.accentOrange;
-    final ink = live ? t.accentGreenInk : t.accentOrange;
+    final ink = live ? t.accentGreenInk : t.accentOrangeInk;
     final tooltip = live ? l10n.connLiveTooltip : l10n.connPollingTooltip;
     final label = live ? l10n.connLive : l10n.connPolling;
 
@@ -49,12 +50,7 @@ class ConnectionModeChip extends ConsumerWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                color: ink,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+              style: t.label.copyWith(color: ink),
             ),
           ],
         ),

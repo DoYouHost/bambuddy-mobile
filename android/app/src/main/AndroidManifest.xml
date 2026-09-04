@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Saving a print's timelapse to the gallery. Android 11 (API 30) and up
+         need nothing: MediaStore lets an app write its own entries. Below that
+         — and this flavor still supports API 24 — writing into an album is a
+         storage write, which is what `gal` checks for (hasAccess(toAlbum) is
+         false for SDK 23..29), so the video would silently fail to save.
+         maxSdkVersion keeps the request off every device that does not need
+         it; the app asks for it at the moment of the first save, not at
+         startup. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
     <!-- Ongoing print notification + background alerts (Android 13+ needs the
          runtime permission). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -64,6 +74,25 @@
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
+
+        <!-- Watch relay on a phone whose app is not running: Play services
+             binds a listener service that is declared here and starts the
+             process for it (wear/WearRelayListenerService.kt has the why).
+             Exported because the binder comes from Play services' own process
+             — the callback verifies the sending node rather than the caller.
+             No `pathPrefix` on purpose: `watch_connectivity` sends every
+             message on a path with no leading slash, so a path filter is a coin
+             toss on how Play services builds the URI. This matches any wear
+             message (only our own watch install can send one) and the path is
+             checked in code. -->
+        <service
+            android:name=".wear.WearRelayListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" />
+            </intent-filter>
+        </service>
 
         <!-- flutter_local_notifications: receiver for taps on notification action
              buttons (e.g. "Mark done" for maintenance). Required by the plugin so

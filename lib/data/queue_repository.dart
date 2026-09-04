@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
+import '../core/api/observed_capability.dart';
+import '../core/api/server_version.dart';
 import '../core/api/server_version_service.dart';
 import '../core/models/calibration_option.dart';
 import '../core/models/json_utils.dart';
@@ -12,6 +14,16 @@ import '../core/models/queue_item.dart';
 /// a nullable column server-side. Public so callers can request an explicit
 /// omission (e.g. keep `ams_mapping` untouched in model-based assignment).
 const Object kQueueUpdateUnset = Object();
+
+/// `{groupId: position}` as JSON can carry it — with the group ids stringified,
+/// which every JSON object must do and `jsonEncode` refuses to do itself.
+///
+/// An empty pick is sent as `null`: the server reads either as "assign them for
+/// me", and null is what clears a stored pick on a PATCH.
+Map<String, int>? rackChoiceWire(Object? choice) {
+  if (choice is! Map<int, int> || choice.isEmpty) return null;
+  return {for (final e in choice.entries) '${e.key}': e.value};
+}
 
 /// Everything the print form decides before a queue item exists — the create
 /// counterpart of [QueueRepository.updateItem]'s named parameters.
@@ -45,6 +57,7 @@ class QueueCreateOptions {
     this.gcodeInjection,
     this.preheatOverride,
     this.preheatChamberTargetOverride,
+    this.nozzleRackChoice,
   });
 
   final String? targetModel;
@@ -77,6 +90,12 @@ class QueueCreateOptions {
   final String? preheatOverride;
   final int? preheatChamberTargetOverride;
 
+  /// Which rack position each filament group prints from, `{groupId: position}`
+  /// (H2C, server #1784). Null leaves every group to the scheduler, which is
+  /// also the only thing a server that predates the field can do — the print
+  /// form only offers the pick once a printer has reported a rack.
+  final Map<int, int>? nozzleRackChoice;
+
   /// Body fragment merged into the POST. Null fields are absent, not null-valued.
   ///
   /// [triState] says whether the server can store `auto` on the three
@@ -103,6 +122,7 @@ class QueueCreateOptions {
         'gcode_injection': ?gcodeInjection,
         'preheat_override': ?preheatOverride,
         'preheat_chamber_target_override': ?preheatChamberTargetOverride,
+        'nozzle_rack_choice': ?rackChoiceWire(nozzleRackChoice),
       };
 }
 
@@ -121,16 +141,19 @@ class QueueRepository {
   /// unknown version: the boolean form, which every server generation accepts.
   final ServerVersionService? _serverVersion;
 
-  /// What the server's own queue payload showed, once one has arrived.
+  /// Whether this server stores the calibration options as `off`/`on`/`auto`.
   ///
-  /// This outranks the version number, because the version number cannot always
-  /// answer the question. bambuddy renumbered the 0.2.5 development cycle to
-  /// 1.2.5 partway through, so a server reporting `0.2.5b2` is a beta of the very
-  /// release that introduced the tri-state options — yet `0.2.5b2` sorts below
-  /// `1.2.5` on every sane comparison, and no ordering of those two strings can
-  /// tell you whether that particular beta predates the change. What the server
-  /// puts in `bed_levelling` answers it outright.
-  bool? _observedTriState;
+  /// What the server puts in `bed_levelling` outranks its version number, and
+  /// here that is not a nicety: bambuddy renumbered the 0.2.5 development cycle
+  /// to 1.2.5 partway through, so `0.2.5b2` is a beta of the very release that
+  /// introduced the tri-state options — yet it sorts below `1.2.5` on every
+  /// sane comparison, and no ordering of those two strings can tell you whether
+  /// that particular beta predates the change. The field's type says it
+  /// outright. Unknown → the boolean form, which every server accepts.
+  late final _triState = ObservedCapability(
+    ServerFeature.triStateCalibration,
+    _serverVersion,
+  );
 
   static const _calibrationKeys = [
     'bed_levelling',
@@ -138,12 +161,7 @@ class QueueRepository {
     'nozzle_offset_cali',
   ];
 
-  /// Whether this server stores the calibration options as `off`/`on`/`auto`.
-  /// Observed contract first, version second, and `false` when neither knows —
-  /// the boolean form is the one every server accepts.
-  Future<bool> supportsTriStateCalibration() async =>
-      _observedTriState ??
-      (await _serverVersion?.supportsTriStateCalibration() ?? false);
+  Future<bool> supportsTriStateCalibration() => _triState.supported;
 
   /// Records which spelling a queue payload used. Reads the raw JSON rather than
   /// the parsed [QueueItem], because the whole point of the parsed form is that
@@ -154,11 +172,11 @@ class QueueRepository {
       for (final key in _calibrationKeys) {
         final value = record[key];
         if (value is String) {
-          _observedTriState = true;
+          _triState.observe(present: true);
           return;
         }
         if (value is bool) {
-          _observedTriState = false;
+          _triState.observe(present: false);
           return;
         }
       }
@@ -273,6 +291,7 @@ class QueueRepository {
     bool? gcodeInjection,
     String? preheatOverride,
     Object? preheatChamberTargetOverride = kQueueUpdateUnset,
+    Object? nozzleRackChoice = kQueueUpdateUnset,
   }) async {
     final triState = await supportsTriStateCalibration();
     final body = <String, dynamic>{
@@ -300,6 +319,8 @@ class QueueRepository {
       'preheat_override': ?preheatOverride,
       if (preheatChamberTargetOverride != kQueueUpdateUnset)
         'preheat_chamber_target_override': preheatChamberTargetOverride,
+      if (nozzleRackChoice != kQueueUpdateUnset)
+        'nozzle_rack_choice': rackChoiceWire(nozzleRackChoice),
     };
     return guard(
         () => _dio.patch<dynamic>(Endpoints.queueItem(itemId), data: body));

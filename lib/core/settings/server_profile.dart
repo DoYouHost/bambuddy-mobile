@@ -30,6 +30,17 @@ class ServerProfile {
   /// `DemoBackend`, no network traffic. See [DemoConfig].
   bool get isDemo => DemoConfig.isDemoUrl(baseUrl);
 
+  /// Shortest thing that still identifies this server, for UI with no room for
+  /// the whole URL (the watch). The label when there is one — it is what the
+  /// user chose to call it — the host otherwise, since two servers on a LAN
+  /// usually differ only there.
+  String get displayName {
+    final named = label;
+    if (named != null && named.trim().isNotEmpty) return named.trim();
+    final host = Uri.tryParse(baseUrl)?.host;
+    return host == null || host.isEmpty ? baseUrl : host;
+  }
+
   Map<String, dynamic> toJson() => {
         'baseUrl': baseUrl,
         'authMode': authMode.name,

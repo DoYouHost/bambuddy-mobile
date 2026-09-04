@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format/duration_format.dart';
 import '../common/api_failure_snack.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
@@ -17,12 +18,16 @@ import '../../core/models/process_option.dart';
 import '../../core/slicer/filament_slot_options.dart';
 import '../../core/slicer/process_settings_codec.dart';
 import '../../core/theme/dash_theme.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
 import '../common/dash_search_field.dart';
 import '../../core/models/slicer_pipeline.dart';
+import '../common/dash_sheet.dart';
+import '../common/hex_color.dart';
 import '../pipelines/pipeline_presets.dart';
 import '../pipelines/pipeline_slice_bar.dart';
-import '../stats/stats_common.dart' show fmtDuration, colorFromHex;
 import 'process_settings_screen.dart';
+import 'slice_filament_colours.dart';
 import 'slice_providers.dart';
 
 /// What gets sliced — an archive or a library file. Both use the same
@@ -115,7 +120,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final owned =
         ref.watch(ownedFilamentsProvider).valueOrNull ?? const <OwnedFilament>[];
     final reqs = ref
-            .watch(filamentRequirementsProvider(_sourceKey))
+            .watch(filamentRequirementsProvider(_filamentKey))
             .valueOrNull ??
         const <FilamentRequirement>[];
     final embeddedAsync = ref.watch(embeddedSettingsProvider(_sourceKey));
@@ -125,14 +130,11 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       appBar: dashAppBar(context, title: l10n.sliceTitle),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: presetsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(err is AppApiException
-                ? err.localized(l10n)
-                : l10n.sliceNoPresets),
-          ),
+        child: dashAsyncStrip(
+          context,
+          presetsAsync,
+          padding: const EdgeInsets.all(24),
+          failureMessage: l10n.sliceNoPresets,
           data: (presets) {
             // One picker per *project* slot, because `filament_presets` is
             // positional — see [SlicerRepository.filamentRequirements].
@@ -392,10 +394,7 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           width: double.infinity,
           child: FilledButton.icon(
             icon: _submitting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? const DashSpinner()
                 : const Icon(Icons.layers_outlined),
             label: Text(l10n.sliceStart),
             onPressed: ready ? _submit : null,
@@ -509,6 +508,16 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       enabled ? card : Opacity(opacity: 0.4, child: card);
 
   (bool, int) get _sourceKey => (widget.target.isArchive, widget.target.id);
+
+  /// Plate 1, because this screen has no plate picker and the slice it posts
+  /// leaves `SliceRequest.plate` null — which the sidecar reads as plate 1. The
+  /// two have to name the same plate or the slots offered are not the slots the
+  /// slice will use.
+  PlateSource get _filamentKey => (
+        isArchive: widget.target.isArchive,
+        id: widget.target.id,
+        plate: 1,
+      );
 
   /// Re-checked against the gate, so a switch left on by a stale read cannot
   /// reach the request.
@@ -674,9 +683,9 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
           title: Text(label),
           onTap: () => Navigator.pop(context, value),
         ).tagged('slice.bed_type');
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
+    final picked = await dashSheet<String>(
+      context,
+      scrollControlled: false,
       builder: (ctx) => SafeArea(
         child: ListView(
           shrinkWrap: true,
@@ -696,10 +705,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     required List<SlicerPreset> filtered,
     required List<SlicerPreset> all,
   }) {
-    return showModalBottomSheet<SlicerPreset>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    return dashSheet<SlicerPreset>(
+      context,
       builder: (_) => _PresetPicker(title: title, filtered: filtered, all: all),
     );
   }
@@ -710,6 +717,19 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
     final target = widget.target;
     final refs = [for (final f in _filaments) f!.toRef()];
     final asDesigned = _asDesigned;
+    // Slot colours, positional like `refs`. Empty on the "as designed" path:
+    // the file's own project settings carry the colours it was drawn with, and
+    // the server ignores the resolved filament profiles there anyway.
+    final colours = asDesigned
+        ? const <String>[]
+        : sliceFilamentColours(
+            picked: _filaments,
+            owned: ref.read(ownedFilamentsProvider).valueOrNull ??
+                const <OwnedFilament>[],
+            requirements:
+                ref.read(filamentRequirementsProvider(_filamentKey)).valueOrNull ??
+                    const <FilamentRequirement>[],
+          );
     final overrides = asDesigned
         ? const <String, Object>{}
         : _overridesFrom(
@@ -736,6 +756,13 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
       // that also hides which servers actually honoured it.
       if (_autoOrient) 'auto_orient': true,
       if (_autoArrange) 'auto_arrange': true,
+      // What each slot actually prints in, so the output records the spool's
+      // colour rather than the slicer's compiled-in green (server #2977). No
+      // version gate, unlike the switches above: this is derived from the
+      // pickers rather than being a control of its own, so an older server that
+      // drops the key just slices as it did before and there is nothing that
+      // could appear to work while doing nothing.
+      if (colours.isNotEmpty) 'filament_colours': colours,
       // Only genuine deviations, so an untouched screen leaves this slice
       // byte-identical to one from before the feature existed.
       if (overrides.isNotEmpty) 'process_overrides': overrides,
@@ -822,8 +849,8 @@ class _SliceScreenState extends ConsumerState<_SliceScreen> {
         for (final o in owned)
           if (req.type == null || _typeMatches(o.material, req.type!)) o,
       ]..sort((a, b) =>
-          _colorDistance(a.color, req.color)
-              .compareTo(_colorDistance(b.color, req.color)));
+          colorDistance(a.color, req.color)
+              .compareTo(colorDistance(b.color, req.color)));
       for (final o in ofType) {
         final match = filtered.where((p) => p.name == o.name);
         if (match.isNotEmpty) return match.first;
@@ -844,27 +871,6 @@ bool _typeMatches(String material, String type) {
   final m = material.toUpperCase();
   final t = type.toUpperCase();
   return m == t || m.startsWith(t) || t.startsWith(m);
-}
-
-/// Squared RGB distance between two colours; large when either is missing so
-/// known colours win. Accepts `#RRGGBB` (requirement) and `RRGGBBAA` (spool).
-double _colorDistance(String? a, String? b) {
-  final ca = _rgb(a);
-  final cb = _rgb(b);
-  if (ca == null || cb == null) return double.maxFinite;
-  final dr = ca.$1 - cb.$1, dg = ca.$2 - cb.$2, db = ca.$3 - cb.$3;
-  return (dr * dr + dg * dg + db * db).toDouble();
-}
-
-/// Parse the leading `RRGGBB` of a hex colour (with or without `#`/alpha).
-(int, int, int)? _rgb(String? hex) {
-  if (hex == null) return null;
-  var h = hex.trim();
-  if (h.startsWith('#')) h = h.substring(1);
-  if (h.length < 6) return null;
-  final v = int.tryParse(h.substring(0, 6), radix: 16);
-  if (v == null) return null;
-  return ((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
 }
 
 /// A preset's name contains the printer [code] as a whole token, so "X1"
@@ -1048,6 +1054,19 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
     }
   }
 
+  /// Second half of the "it did not land where you asked" sentence. Unknown
+  /// keys (a reason a newer server adds) get no clause rather than their raw
+  /// wire value — the first half already says where the file actually is.
+  String? _externalFallbackReason(AppLocalizations l10n, String reason) =>
+      switch (reason) {
+        'external_readonly' => l10n.sliceExternalReadonly,
+        'external_no_path' => l10n.sliceExternalNoPath,
+        'external_unreachable' => l10n.sliceExternalUnreachable,
+        'external_not_writable' => l10n.sliceExternalNotWritable,
+        'external_invalid_name' => l10n.sliceExternalInvalidName,
+        _ => null,
+      };
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -1075,9 +1094,20 @@ class _SliceProgressDialogState extends ConsumerState<_SliceProgressDialog> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
           if (r?.printTimeSeconds != null)
-            Text(l10n.sliceResultTime(fmtDuration(r!.printTimeSeconds!))),
+            Text(l10n.sliceResultTime(formatSeconds(l10n, r!.printTimeSeconds!))),
           if (r?.filamentUsedG != null)
             Text(l10n.sliceResultFilament(r!.filamentUsedG!.toStringAsFixed(1))),
+          if (r?.externalWriteFallback != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              [
+                l10n.sliceExternalFallback,
+                ?_externalFallbackReason(l10n, r!.externalWriteFallback!),
+              ].join(' '),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
         ],
       );
     } else {

@@ -30,21 +30,23 @@ class PrinterMaintenanceOverview {
   final String printerName;
   final String? printerModel;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double totalPrintHours;
 
   @JsonKey(fromJson: _maintenanceItemsFromJson)
   final List<MaintenanceStatus> maintenanceItems;
 
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int dueCount;
 
-  @JsonKey(fromJson: _toInt)
+  @JsonKey(fromJson: toInt)
   final int warningCount;
 
-  /// Overdue items (disappear after counter reset).
+  /// Overdue items (disappear after counter reset). Excludes tasks the user
+  /// muted server-side — [MaintenanceStatus.enabled] — so a disabled task
+  /// never resurfaces here even while its counter stays overdue.
   List<MaintenanceStatus> get dueItems =>
-      [for (final i in maintenanceItems) if (i.isDue) i];
+      [for (final i in maintenanceItems) if (i.enabled && i.isDue) i];
 }
 
 /// State of a single maintenance task (`MaintenanceStatus`).
@@ -89,25 +91,25 @@ class MaintenanceStatus {
 
   final bool enabled;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double intervalHours;
 
   /// Interval unit (e.g. "hours"). Raw, not enum-backed.
   final String intervalType;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double currentHours;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double hoursSinceMaintenance;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double hoursUntilDue;
 
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? daysSinceMaintenance;
 
-  @JsonKey(fromJson: _toDoubleOrNull)
+  @JsonKey(fromJson: toDoubleOrNull)
   final double? daysUntilDue;
 
   final bool isDue;
@@ -154,7 +156,7 @@ class MaintenanceType {
   final String name;
   final String? description;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double defaultIntervalHours;
 
   /// "hours" (print hours) or "days" (calendar days).
@@ -227,7 +229,7 @@ class MaintenanceHistoryEntry {
   @JsonKey(name: 'performed_at')
   final String? performedAt;
 
-  @JsonKey(fromJson: _toDouble)
+  @JsonKey(fromJson: toDouble)
   final double hoursAtMaintenance;
 
   final String? notes;
@@ -237,17 +239,3 @@ class MaintenanceHistoryEntry {
 
 List<MaintenanceStatus> _maintenanceItemsFromJson(dynamic value) =>
     parseJsonList(value, MaintenanceStatus.fromJson);
-
-double _toDouble(dynamic value) => _toDoubleOrNull(value) ?? 0;
-
-double? _toDoubleOrNull(dynamic value) => switch (value) {
-      num n => n.toDouble(),
-      String s => double.tryParse(s),
-      _ => null,
-    };
-
-int _toInt(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s) ?? 0,
-      _ => 0,
-    };

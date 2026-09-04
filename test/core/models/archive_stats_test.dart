@@ -37,6 +37,24 @@ void main() {
       expect(stats.isEmpty, isFalse);
     });
 
+    test('printer_names carries the name of a printer that is gone', () {
+      // Server 1.2.5.4+ (#2873): the name each id was last recorded under in
+      // the print log — the only source for a deleted printer, whose history
+      // the live printer list cannot name at all.
+      final stats = ArchiveStats.fromJson(const {
+        'total_prints': 4,
+        'prints_by_printer': {'71': 4},
+        'printer_names': {'71': 'Ultron'},
+      });
+
+      expect(stats.printerNames['71'], 'Ultron');
+    });
+
+    test('an older server sends no printer_names at all', () {
+      final stats = ArchiveStats.fromJson(const {'total_prints': 4});
+      expect(stats.printerNames, isEmpty);
+    });
+
     test('successRate liczony z sukcesów względem rozstrzygniętych', () {
       final stats = ArchiveStats.fromJson(const {
         'successful_prints': 77,

@@ -29,6 +29,9 @@ void main() {
     'pipeline_run.check':
         'the eligibility pre-flight, which runs itself between the pipeline '
             'pick and the start button rather than from a control',
+    'spool_form.save_model_presets':
+        'the second write the Save button makes, after the spool itself — '
+        'a step in that flow, not a control of its own',
   };
 
   /// Every way a control declares its id, including the material variant and

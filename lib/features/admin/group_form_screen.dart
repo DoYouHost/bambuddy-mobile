@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/group_summary.dart';
 import '../../core/models/group_write.dart';
 import '../../core/models/permission_catalog.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
-import '../common/state_views.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
 import 'users_providers.dart';
@@ -69,12 +70,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final catalog = ref.watch(permissionCatalogProvider);
-    final fieldStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: t.textPrimary,
-    );
+    final fieldStyle = t.bodyStrong;
 
     return DashBackground(
       child: Scaffold(
@@ -95,7 +91,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 if (_locked) ...[
                   _LockedNotice(text: l10n.groupsSystemFormNote),
@@ -123,19 +122,13 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   maxLines: 2,
                 ).tagged('group_form.description'),
                 const SizedBox(height: 20),
-                catalog.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (err, _) => AsyncErrorView(
-                    message: err is AppApiException
-                        ? err.localized(l10n)
-                        : l10n.connectFailed,
-                    retryLabel: l10n.retry,
-                    onRetry: () => ref.invalidate(permissionCatalogProvider),
-                    icon: null,
-                  ),
+                dashAsync(
+                  context,
+                  catalog,
+                  onRetry: () => ref.invalidate(permissionCatalogProvider),
+                  errorIcon: null,
+                  skipLoadingOnReload: false,
+                  skipLoadingOnRefresh: false,
                   data: _permissionEditor,
                 ),
               ],
@@ -166,23 +159,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             Expanded(
               child: Text(
                 l10n.groupsPermissionsHeader,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                  color: t.textSecondary,
-                ),
+                style: t.bodyBold.copyWith(letterSpacing: 0.3),
               ),
             ),
             Text(
               l10n.groupsPermissionsSelected(_permissions.length),
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.monoLabel,
             ),
           ],
         ),
@@ -215,18 +197,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                     Expanded(
                       child: Text(
                         l10n.groupsAdvancedPermissions,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.bodyBold.copyWith(color: t.textPrimary),
                       ),
                     ),
                     if (advancedSelected > 0)
                       DashPill(
                         label: '$advancedSelected',
                         accent: t.accentOrange,
+                        accentInk: t.accentOrangeInk,
                       ),
                   ],
                 ),
@@ -237,11 +215,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               l10n.groupsAdvancedHint,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.microSoft,
             ),
           ),
           if (_showAdvanced)
@@ -315,11 +289,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.groupsSaved : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.groupsSaved : userWriteMessage(l10n, result));
     if (result.ok) navigator.pop();
   }
 
@@ -378,22 +348,12 @@ class _CategoryTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     category.name,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                    ),
+                    style: t.titleSm,
                   ),
                 ),
                 Text(
                   '$count/${category.permissions.length}',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: count > 0 ? t.accentGreenInk : t.textTertiary,
-                  ),
+                  style: t.monoLabel.copyWith(color: count > 0 ? t.accentGreenInk : t.textTertiary),
                 ),
                 Checkbox(
                   value: all,
@@ -417,20 +377,11 @@ class _CategoryTile extends StatelessWidget {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   title: Text(
                     p.label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
+                    style: t.body,
                   ),
                   subtitle: Text(
                     p.value,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 10.5,
-                      color: t.textTertiary,
-                    ),
+                    style: t.monoMicro,
                   ),
                 ).tagged('group_form.permission'),
             ],
@@ -459,17 +410,12 @@ class _LockedNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, size: 18, color: t.accentOrange),
+          Icon(Icons.lock_outline, size: 18, color: t.accentOrangeInk),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.label.copyWith(color: t.textPrimary),
             ),
           ),
         ],

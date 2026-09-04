@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
 import 'api_keys_screen.dart';
@@ -65,7 +68,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
     final printers = ref.watch(apiKeyPrinterOptionsProvider).valueOrNull ?? const [];
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
 
     return DashBackground(
       child: Scaffold(
@@ -86,16 +89,14 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 TextFormField(
                   controller: _name,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: t.textPrimary,
-                  ),
+                  style: t.bodyStrong,
                   decoration: dashFieldDecoration(
                     t,
                     labelText: l10n.apiKeysFieldName,
@@ -120,11 +121,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                 const SizedBox(height: 4),
                 Text(
                   l10n.apiKeysScopesHint,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    color: t.textTertiary,
-                  ),
+                  style: t.microSoft,
                 ),
                 for (final scope in ApiKeyScope.values)
                   SwitchListTile(
@@ -180,7 +177,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
                   title: Text(
                     _expiresAt == null
                         ? l10n.apiKeysNoExpiry
-                        : DateFormat.yMMMd(locale).format(_expiresAt!),
+                        : fmt.dateNamedMonth(_expiresAt!),
                   ),
                   subtitle: Text(l10n.apiKeysExpiryHint),
                   trailing: _expiresAt == null
@@ -253,9 +250,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     setState(() => _saving = false);
 
     if (!result.ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(userWriteMessage(l10n, result))),
-      );
+      messenger.snack(userWriteMessage(l10n, result));
       return;
     }
     // Leave the form first: the key dialog is the last chance to read the key,
@@ -266,7 +261,7 @@ class _ApiKeyFormScreenState extends ConsumerState<ApiKeyFormScreen> {
     if (key != null && key.isNotEmpty) {
       await showCreatedKeyDialog(navigator.context, key);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.apiKeysSaved)));
+      messenger.snack(l10n.apiKeysSaved);
     }
   }
 
@@ -284,13 +279,7 @@ class _SectionLabel extends StatelessWidget {
     final t = DashTokens.of(context);
     return Text(
       text,
-      style: TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.3,
-        color: t.textSecondary,
-      ),
+      style: t.bodyBold.copyWith(letterSpacing: 0.3),
     );
   }
 }

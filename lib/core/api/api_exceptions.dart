@@ -159,6 +159,29 @@ Future<T?> guardOrNull<T>(Future<T?> Function() body) async {
   }
 }
 
+/// [guardOrNull] for a read that only decorates a screen — an optional badge, a
+/// nudge, a picker that is hidden when there is nothing to pick.
+///
+/// Same as [guardOrNull] except that a **403 also degrades to `null`**. A 401
+/// still bubbles up: the session really is over and the app has to redirect. A
+/// 403 is a permanent per-permission answer about one route, and throwing it out
+/// of a decorative read would put a session dialog in front of a user over a
+/// control they simply cannot have (`slicer_repository.presetValues` learned
+/// this the hard way and handles the two apart for the same reason).
+Future<T?> guardOrNullAllowingForbidden<T>(Future<T?> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    final mapped = mapDioException(e);
+    if (mapped is AuthException && mapped.code != AppErrorCode.forbidden) {
+      throw mapped;
+    }
+    return null;
+  } on Object {
+    return null;
+  }
+}
+
 /// [mapDioException] keeping what the server wrote in a 400 or 422. For routes
 /// enforcing rules the app deliberately does not re-implement — "Cannot delete
 /// the last admin user", "Cannot rename system groups" — the reason exists only
@@ -172,7 +195,7 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   if (mapped is! ApiException || (status != 400 && status != 422)) {
     return mapped;
   }
-  final detail = _detailOf(e.response?.data);
+  final detail = serverDetailOf(e.response?.data);
   if (detail == null) return mapped;
   return ApiException(
     mapped.code,
@@ -183,10 +206,16 @@ AppApiException mapDioExceptionKeepingDetail(DioException e) {
   );
 }
 
-/// FastAPI answers a rule violation with `{"detail": "..."}` and a schema
-/// violation with `{"detail": [{"msg": "..."}, ...]}` — the password
-/// complexity validator produces the second shape.
-String? _detailOf(Object? data) {
+/// What the server wrote, out of a FastAPI error body.
+///
+/// It answers a rule violation with `{"detail": "..."}` and a schema violation
+/// with `{"detail": [{"msg": "..."}, ...]}` — the password complexity
+/// validator produces the second shape.
+///
+/// Public because a route can answer one status for two unrelated reasons, and
+/// then the text is the only thing that tells them apart — see
+/// `_guardKeeping404Detail` in `data/inventory_source.dart`.
+String? serverDetailOf(Object? data) {
   if (data is! Map) return null;
   final detail = data['detail'];
   if (detail is String) return detail.isEmpty ? null : detail;
@@ -232,7 +261,7 @@ AppApiException mapDioException(DioException e) {
         // covers the owner-narrowing refusals that are new to existing keys.
         return AuthException(
           AppErrorCode.forbidden,
-          detail: _detailOf(e.response?.data),
+          detail: serverDetailOf(e.response?.data),
           method: method,
           path: path,
         );

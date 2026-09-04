@@ -10,6 +10,10 @@ on:
   pull_request_review:
     types: [submitted]
 
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   gate:
     if: |
@@ -40,30 +44,58 @@ jobs:
     needs: gate
     if: needs.gate.outputs.allowed == 'true'
     runs-on: [self-hosted, flutter]
+    timeout-minutes: 30
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
       actions: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
-
       - name: Fetch bambuddy server reference
+        timeout-minutes: 3
         run: |
-          rm -rf /tmp/bambuddy-server-ref
-          git clone --depth 1 --single-branch \
-            https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref
+          for attempt in 1 2; do
+            rm -rf /tmp/bambuddy-server-ref
+            if timeout -k 5 60 git clone --progress --depth 1 --single-branch \
+                 https://github.com/maziggy/bambuddy.git /tmp/bambuddy-server-ref; then
+              exit 0
+            fi
+            echo "::warning::clone attempt $attempt failed or hit the 60s cap"
+            [ "$attempt" = 2 ] || sleep 5
+          done
+          exit 1
+
+      # The action's own setup-bun runs with caching disabled, so it refetches the
+      # release asset every run; the runners have hit connection resets on that host.
+      - name: Ensure Bun
+        id: bun
+        env:
+          BUN_VERSION: "1.3.14" # keep in sync with the pin in claude-code-action
+        run: |
+          BUN_BIN="$HOME/.bun/bin/bun"
+          if [ "$("$BUN_BIN" --version 2>/dev/null)" != "$BUN_VERSION" ]; then
+            TMP=$(mktemp -d)
+            curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "$TMP/bun.zip" \
+              "https://github.com/oven-sh/bun/releases/download/bun-v$BUN_VERSION/bun-linux-x64.zip"
+            unzip -qo "$TMP/bun.zip" -d "$TMP"
+            mkdir -p "$HOME/.bun/bin"
+            install -m 755 "$TMP/bun-linux-x64/bun" "$BUN_BIN"
+            rm -rf "$TMP"
+          fi
+          echo "path=$BUN_BIN" >>"$GITHUB_OUTPUT"
 
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY }}
+          path_to_bun_executable: ${{ steps.bun.outputs.path }}
           additional_permissions: |
             actions: read
           claude_args: |
@@ -75,6 +107,7 @@ jobs:
             "Bash(flutter pub get:*)" "Bash(flutter gen-l10n:*)" "Bash(dart run build_runner build:*)"
             "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)"
             "Bash(gh run list:*)" "Bash(gh run view:*)" "Bash(gh pr view:*)" "Bash(gh pr diff:*)" "Bash(gh issue view:*)"
+            "mcp__github_inline_comment__create_inline_comment" "Bash(gh pr comment:*)"
             "Bash(curl -sL https://raw.githubusercontent.com/DoYouHost/bambuddy-mobile/bug-report-assets/*)" "Bash(zcat:*)" "Bash(gunzip:*)"
             "WebSearch" "WebFetch(domain:pub.dev)" "WebFetch(domain:wiki.bambuddy.cool)"
 

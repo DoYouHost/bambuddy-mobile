@@ -29,7 +29,7 @@ This app is a companion to the bambuddy server — get and set it up here first:
 
 Phone and watch share one `applicationId` (a single Play listing) and differ only by flavor (`mobile` / `wear`).
 
-**Version codes.** A release is `(major*10000 + minor*100 + patch) * 1000`, so `0.12.1` → `1201000`; the watch APK adds `1_000_000_000` (Play needs a distinct code per APK in one listing). The trailing three digits are the dev slots: `X.Y.Z-dev.N` takes `code(X.Y.Z) - 1000 + N`, landing every dev build above the last release and below the one it is heading for. `N` counts the dev builds of that target, so the first one is `dev.1`; it is read off the existing tags rather than stored anywhere. A dev build never touches `pubspec.yaml` — the version is passed to `flutter build` and the release points at the commit.
+**Version codes.** A release is `(major*10000 + minor*100 + patch) * 20 + 2_000_000`, so `0.13.1` → `2026020`; the watch APK adds `1_000_000_000` (Play needs a distinct code per APK in one listing). The `* 20` opens 19 dev slots under each release: `X.Y.Z-dev.N` takes `code(X.Y.Z) - 20 + N`, landing every dev build above the last release and below the one it is heading for. The `+ 2_000_000` clears the codes published up to `0.13.0` under the earlier `* 1000` scheme, which the narrower multiplier would otherwise undercut. `N` counts the dev builds of that target, so the first one is `dev.1`; it is read off the existing tags rather than stored anywhere. A dev build never touches `pubspec.yaml` — the version is passed to `flutter build` and the release points at the commit.
 
 ## Demo user
 

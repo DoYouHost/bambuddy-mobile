@@ -13,15 +13,17 @@ import '../api/api_exceptions.dart';
 import '../api/endpoints.dart';
 import '../models/json_utils.dart';
 import '../models/queue_item.dart';
+import 'wear_relay_claim.dart';
 import 'wear_rpc.dart';
 
 /// PHONE side of the watch relay (plan 05, M-R3 "app alive" variant): answers
 /// [WearRpcRequest]s from the paired watch using the phone's authenticated
 /// connection, so the watch doesn't need its own WiFi/server session.
 ///
-/// Runs only while a Flutter engine hosts it (started from the phone app's
-/// root widget). With the app fully dead nothing answers and the watch falls
-/// back to direct REST — waking the phone without a live engine is M-R4.
+/// Runs only while a Flutter engine hosts it: the app's own, the foreground
+/// service's, or the headless one the native listener service starts when the
+/// process was dead (`wear_relay_engine.dart`). Which of them may answer at any
+/// moment is decided by [WearRelayClaim].
 ///
 /// Fleet statuses are fetched as raw JSON (models are parse-only, no toJson)
 /// and passed through untouched; the watch parses them with the same
@@ -34,37 +36,87 @@ class WearRelayHandler {
   /// frame for a printer, or null when there's nothing trustworthy (WS down /
   /// printer never seen) — the handler then falls back to a REST status fetch
   /// for that printer.
+  /// [claim] tells the native listener service that this process is answering,
+  /// so a request never reaches both a listener and a freshly woken engine.
+  /// Null where there is nothing to coordinate with: tests, and the woken
+  /// engine itself — that one never listens, the service hands it each request.
+  ///
+  /// [plateGateAcknowledged] lets that cache be told the plate-clear gate is
+  /// down. The server pushes a fresh frame for the flag only while the printer
+  /// has a live MQTT client, so after acknowledging a printer that Auto Power
+  /// Off already switched off nothing would ever correct the cached `true`, and
+  /// the watch's own post-action refresh would draw the button again.
   WearRelayHandler({
     required WatchConnectivity watch,
     required Dio? Function() dio,
     Map<String, dynamic>? Function(int printerId)? liveStatus,
+    WearRelayClaim? claim,
+    void Function(int printerId)? plateGateAcknowledged,
   })  : _watch = watch,
         _dio = dio,
-        _liveStatus = liveStatus;
+        _liveStatus = liveStatus,
+        _claim = claim,
+        _plateGateAcknowledged = plateGateAcknowledged;
 
   final WatchConnectivity _watch;
   final Dio? Function() _dio;
   final Map<String, dynamic>? Function(int printerId)? _liveStatus;
+  final WearRelayClaim? _claim;
+  final void Function(int printerId)? _plateGateAcknowledged;
 
   StreamSubscription<Map<String, dynamic>>? _sub;
+
+  /// The tail of the start/stop chain — see [_sequenced].
+  Future<void> _pending = Future<void>.value();
 
   /// Idempotent. Requests are handled sequentially per message (each handled
   /// in its own async task; the stream isn't awaited) — fine for a watch that
   /// sends one request at a time per screen.
-  void start() {
-    _sub ??= _watch.messageStream.listen((map) {
-      final req = WearRpcRequest.decode(map);
-      if (req == null) return; // foreign message or our own response echo
-      unawaited(_handle(req));
-    });
+  ///
+  /// Claim first, listener second — and the reverse in [stop]. Between those
+  /// two acts the native service believes nobody is answering, and a request
+  /// arriving then would be answered by a woken engine as well as by this
+  /// listener. A claim that could not be written means no listener at all, for
+  /// the same reason.
+  Future<void> start() => _sequenced(() async {
+        if (_sub != null) return;
+        final claim = _claim;
+        if (claim != null && !await claim.take()) return;
+        _sub = _watch.messageStream.listen((map) {
+          final req = WearRpcRequest.decode(map);
+          if (req == null) return; // foreign message or our own response echo
+          unawaited(handle(req));
+        });
+      });
+
+  Future<void> stop() => _sequenced(() async {
+        await _sub?.cancel();
+        _sub = null;
+        await _claim?.release();
+      });
+
+  /// Runs start/stop one at a time.
+  ///
+  /// Each of them is two steps — the claim and the subscription — and every
+  /// caller is a lifecycle callback that fires them without awaiting, so the
+  /// next one arrives while the previous is still in flight. Interleaved, they
+  /// leave either a listener with no claim (a woken engine answers the same
+  /// request) or a claim with no listener (nothing answers at all), and
+  /// `start`'s own `_sub` check would read a subscription that `stop` is
+  /// half-way through cancelling.
+  Future<void> _sequenced(Future<void> Function() step) {
+    final done = _pending.then((_) => step());
+    // A step that failed must not wedge the ones queued behind it.
+    _pending = done.catchError((_) {});
+    return done;
   }
 
-  void stop() {
-    _sub?.cancel();
-    _sub = null;
-  }
-
-  Future<void> _handle(WearRpcRequest req) async {
+  /// Executes one request and sends the reply back to the watch.
+  ///
+  /// Public for the one caller that has no stream to receive from: the request
+  /// that woke a dead process was consumed by the native listener service
+  /// before this engine existed, so it is handed over directly.
+  Future<void> handle(WearRpcRequest req) async {
     WearRpcResponse res;
     try {
       res = await _execute(req);
@@ -107,8 +159,22 @@ class WearRelayHandler {
         await commands.stop(printerId);
       case WearRpcAction.clearPlate:
         await commands.clearPlate(printerId);
+        _plateGateAcknowledged?.call(printerId);
       case WearRpcAction.startNext:
         await QueueRepository(dio).startNextPending(printerId);
+      case WearRpcAction.hmsClear:
+        await commands.clearHmsErrors(printerId);
+      case WearRpcAction.hmsAction:
+        final printError = req.printError;
+        final hmsAction = req.hmsAction;
+        // Neither is recoverable here: the firmware matches on the code and the
+        // route rejects anything that is not 8 or 16 hex digits, so a request
+        // missing either was malformed before it left the watch.
+        if (printError == null || hmsAction == null) {
+          return WearRpcResponse.failure(req.id, 'bad-request');
+        }
+        await commands.executeHmsAction(printerId,
+            printError: printError, action: hmsAction, jobId: req.jobId);
       case WearRpcAction.getFleet:
         throw StateError('unreachable'); // handled above
     }

@@ -8,10 +8,14 @@ import '../../core/api/api_exceptions.dart';
 import '../../core/models/discovery.dart';
 import '../../core/models/printer_create.dart';
 import '../../core/models/printer_diagnostic.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_input.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
 import 'providers.dart';
 
 /// Bambu Lab model options for the (optional) model dropdown, grouped by series
@@ -246,7 +250,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           );
       await ref.read(dashboardProvider.notifier).refresh();
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.addPrinterSuccess)));
+      messenger.snack(l10n.addPrinterSuccess);
       navigator.pop();
     } on CreatePrinterException catch (e) {
       if (!mounted) return;
@@ -371,12 +375,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                       checkColor: const Color(0xFF0A0C08),
                       title: Text(
                         l10n.addPrinterAutoArchive,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                        ),
+                        style: t.bodyStrong,
                       ),
                     ).tagged('add_printer.auto_archive'),
                     const SizedBox(height: 4),
@@ -387,23 +386,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           _error!,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: t.danger,
-                          ),
+                          style: t.body.copyWith(color: t.danger),
                         ),
                       ),
                     FilledButton(
                       style: dashPrimaryButtonStyle(t),
                       onPressed: _busy ? null : _submit,
                       child: _busy
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const DashSpinner(size: 20)
                           : Text(l10n.addPrinterSubmit),
                     ).tagged('add_printer.submit'),
                     const SizedBox(height: 10),
@@ -443,15 +433,13 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         // Detected subnets → dropdown (+ "Custom…" sentinel). No detected
         // subnets → a plain CIDR field below is the only input.
         if (subnets.isNotEmpty)
-          DropdownMenu<String>(
+          dashCombo<String>(
+            context,
+            id: 'add_printer.subnet',
             initialSelection: _useCustomSubnet ? _customSubnetOption : _subnet,
             enabled: !_scanning,
-            expandedInsets: EdgeInsets.zero,
-            menuHeight: 320,
-            requestFocusOnTap: false,
             label: Text(l10n.addPrinterSubnet),
             textStyle: _fieldTextStyle(t),
-            inputDecorationTheme: _fieldTheme(t),
             onSelected: (v) => setState(() {
               if (v == _customSubnetOption) {
                 _useCustomSubnet = true;
@@ -460,7 +448,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                 _subnet = v;
               }
             }),
-            dropdownMenuEntries: [
+            entries: [
               // The menu is a route of its own, so the field's tag does not
               // reach these — each option carries one on its label widget.
               for (final s in subnets)
@@ -477,7 +465,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     Text(l10n.addPrinterSubnetCustomOption)),
               ),
             ],
-          ).tagged('add_printer.subnet'),
+          ),
         if (custom) ...[
           if (subnets.isNotEmpty) const SizedBox(height: 8),
           TextField(
@@ -498,21 +486,13 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           isDocker
               ? l10n.addPrinterSubnetDockerNote
               : l10n.addPrinterSubnetCustomNote,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11,
-            color: t.textTertiary,
-          ),
+          style: t.microSoft,
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: _scanning ? null : _scan,
           icon: _scanning
-              ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner(size: 16)
               : const Icon(Icons.search),
           label: Text(_scanButtonLabel(l10n, progress)),
         ).tagged('add_printer.scan_network'),
@@ -535,11 +515,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           const SizedBox(height: 8),
           Text(
             l10n.addPrinterScanNoResults,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              color: t.textSecondary,
-            ),
+            style: t.labelSoft.copyWith(color: t.textSecondary),
           ),
         ],
       ],
@@ -578,20 +554,11 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
                     children: [
                       Text(
                         p.name.isNotEmpty ? p.name : p.serial,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       Text(
                         [p.ipAddress, if (p.model != null) p.model!].join(' · '),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 12,
-                          color: t.textSecondary,
-                        ),
+                        style: t.monoMicro.copyWith(color: t.textSecondary),
                       ),
                     ],
                   ),
@@ -615,11 +582,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
         OutlinedButton.icon(
           onPressed: _diagnosing ? null : _runDiagnostic,
           icon: _diagnosing
-              ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner(size: 16)
               : const Icon(Icons.troubleshoot),
           label: Text(
             _diagnosing
@@ -643,12 +606,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           const SizedBox(height: 10),
           Text(
             _overallText(l10n, result.overall),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: _overallColor(t, result.overall),
-            ),
+            style: t.bodyBold.copyWith(color: _overallColor(t, result.overall)),
           ),
           const SizedBox(height: 6),
           for (final c in result.checks) _checkRow(t, l10n, c),
@@ -673,11 +631,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
           Expanded(
             child: Text(
               _checkTitle(l10n, c.id),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                color: t.textPrimary,
-              ),
+              style: t.bodyPlain.copyWith(color: t.textPrimary),
             ),
           ),
         ],
@@ -713,18 +667,16 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
   // --- Shared field helpers ----------------------------------------------
 
   Widget _modelDropdown(DashTokens t, AppLocalizations l10n) {
-    return DropdownMenu<String>(
+    return dashCombo<String>(
+      context,
+      id: 'add_printer.model',
       initialSelection: _model,
       enabled: !_busy,
-      expandedInsets: EdgeInsets.zero,
-      menuHeight: 320,
-      requestFocusOnTap: false,
       label: Text(l10n.addPrinterModel),
       helperText: l10n.addPrinterModelOptional,
       textStyle: _fieldTextStyle(t),
-      inputDecorationTheme: _fieldTheme(t),
       onSelected: (v) => setState(() => _model = v ?? _modelNone),
-      dropdownMenuEntries: [
+      entries: [
         DropdownMenuEntry(
           value: _modelNone,
           label: l10n.addPrinterModelNone,
@@ -738,12 +690,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             enabled: false,
             labelWidget: Text(
               series,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
           for (final (value, label) in models)
@@ -755,7 +702,7 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
             ),
         ],
       ],
-    ).tagged('add_printer.model');
+    );
   }
 
   Widget _field(
@@ -787,55 +734,14 @@ class _AddPrinterScreenState extends ConsumerState<AddPrinterScreen> {
     ).tagged('add_printer.field');
   }
 
-  TextStyle _fieldTextStyle(DashTokens t) => TextStyle(
-        fontFamily: DashTokens.fontUi,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: t.textPrimary,
-      );
+  TextStyle _fieldTextStyle(DashTokens t) => t.bodyStrong;
 
   Widget _sectionLabel(DashTokens t, String label) => Align(
         alignment: Alignment.centerLeft,
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: t.textSecondary,
-          ),
+          style: t.bodyBold,
         ),
       );
 }
 
-/// Input chrome for the [DropdownMenu]s — they build their own internal text
-/// field and can't take a plain [InputDecoration], so they need a matching
-/// theme (same rounded [DashTokens.subCard] fill as [dashFieldDecoration]).
-InputDecorationTheme _fieldTheme(DashTokens t) {
-  final radius = BorderRadius.circular(14);
-  OutlineInputBorder border(Color color, [double width = 1]) =>
-      OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: BorderSide(color: color, width: width),
-      );
-  return InputDecorationTheme(
-    isDense: true,
-    filled: true,
-    fillColor: t.subCard,
-    labelStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: t.textSecondary,
-    ),
-    helperStyle: TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 11,
-      color: t.textTertiary,
-    ),
-    border: border(t.subCardBorder),
-    enabledBorder: border(t.subCardBorder),
-    focusedBorder: border(t.accentGreen, 1.5),
-    errorBorder: border(t.danger),
-  );
-}

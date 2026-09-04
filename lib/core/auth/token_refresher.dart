@@ -1,5 +1,12 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart' as ambient;
+
+import '../diagnostics/auth_probe.dart';
+import 'auth_service.dart';
+import 'credentials_store.dart';
+import 'jwt.dart';
+
 /// Injectable so tests can drive the schedule without waiting clock hours.
 typedef RefreshTimerFactory = Timer Function(Duration, void Function());
 
@@ -20,7 +27,8 @@ class ProactiveTokenRefresher {
     required Future<DateTime?> Function() refresh,
     this.leadTime = const Duration(minutes: 5),
     this.minDelay = const Duration(seconds: 30),
-    this.fallbackDelay = const Duration(hours: 6),
+    this.fallbackDelay = const Duration(hours: 2),
+    Future<bool> Function()? canRetry,
     DateTime Function()? clock,
     RefreshTimerFactory? timerFactory,
   })  :
@@ -30,7 +38,9 @@ class ProactiveTokenRefresher {
         _readExpiry = readExpiry,
         // ignore: prefer_initializing_formals
         _refresh = refresh,
-        _now = clock ?? DateTime.now,
+        // ignore: prefer_initializing_formals
+        _canRetry = canRetry,
+        _now = clock ?? (() => ambient.clock.now()),
         _timerFactory = timerFactory ?? Timer.new;
 
   /// `null` when the expiry cannot be read.
@@ -48,6 +58,12 @@ class ProactiveTokenRefresher {
   /// Used whenever the next expiry is unknown; a reactive 401 remains the
   /// safety net underneath all of this.
   final Duration fallbackDelay;
+
+  /// Whether a failed [_refresh] is worth repeating. A refusal ends the
+  /// schedule: the two ways a refresh fails are "the network was in the way"
+  /// and "the credentials this retries with are gone", and only the first one
+  /// can be fixed by waking up later. `null` retries either way.
+  final Future<bool> Function()? _canRetry;
 
   final DateTime Function() _now;
   final RefreshTimerFactory _timerFactory;
@@ -75,9 +91,27 @@ class ProactiveTokenRefresher {
   }
 
   Future<void> _schedule(int generation) async {
-    final expiry = await _readExpiry();
+    final DateTime? expiry;
+    try {
+      expiry = await _readExpiry();
+    } on Object catch (error) {
+      return _recoverFromStepFailure(error, generation);
+    }
     if (!_running || generation != _generation) return;
     _armTimer(_delayFor(expiry), generation);
+  }
+
+  /// Keeps the schedule alive after a step threw.
+  ///
+  /// Nothing awaits the async steps, so an escaping error would leave the timer
+  /// unarmed for good while `_running` still says otherwise — and `start` is
+  /// idempotent, so nothing would ever arm it again. A throw also says nothing
+  /// about the credentials, unlike a null answer, so it always earns another
+  /// try rather than ending the schedule.
+  void _recoverFromStepFailure(Object error, int generation) {
+    AuthProbe.refreshStepFailed(error);
+    if (!_running || generation != _generation) return;
+    _armTimer(fallbackDelay, generation);
   }
 
   void _armTimer(Duration delay, int generation) {
@@ -93,10 +127,50 @@ class ProactiveTokenRefresher {
 
   Future<void> _fire(int generation) async {
     if (!_running || generation != _generation) return;
-    final freshExpiry = await _refresh();
+    final DateTime? freshExpiry;
+    try {
+      freshExpiry = await _refresh();
+    } on Object catch (error) {
+      return _recoverFromStepFailure(error, generation);
+    }
     if (!_running || generation != _generation) return;
-    _armTimer(
-        freshExpiry != null ? _delayFor(freshExpiry) : fallbackDelay,
-        generation);
+    if (freshExpiry != null) {
+      _armTimer(_delayFor(freshExpiry), generation);
+      return;
+    }
+    if (_canRetry != null) {
+      final bool retry;
+      try {
+        retry = await _canRetry();
+      } on Object catch (error) {
+        // An unanswered question keeps the schedule alive: stopping it on a
+        // store that merely threw is the heavier of the two mistakes.
+        return _recoverFromStepFailure(error, generation);
+      }
+      if (!_running || generation != _generation) return;
+      // Nothing left to retry with, so stop rather than repeat a login that
+      // cannot succeed until the user signs in again — which restarts this.
+      if (!retry) return stop();
+    }
+    _armTimer(fallbackDelay, generation);
   }
 }
+
+/// The JWT refresher both isolates run.
+///
+/// They renew the same session from the same saved login, so the wiring is the
+/// same by necessity rather than by coincidence — and a difference between the
+/// two would show up only as one of them quietly not renewing, which is the
+/// hardest kind of difference to notice.
+ProactiveTokenRefresher jwtTokenRefresher({
+  required CredentialsStore credentials,
+  required AuthService auth,
+  required String baseUrl,
+}) =>
+    ProactiveTokenRefresher(
+      readExpiry: () async => jwtExpiry(await credentials.readJwt()),
+      refresh: () async => jwtExpiry(await auth.silentReLogin(baseUrl)),
+      // `silentReLogin` clears the saved login only when the server rejected it,
+      // so an empty store separates that from the network being in the way.
+      canRetry: () async => await credentials.readRememberedLogin() != null,
+    );

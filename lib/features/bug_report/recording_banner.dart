@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_store.dart'
     show recordingLimit, recordingSizeLimit;
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../router.dart';
+import '../common/dash_snack.dart';
 import 'bug_report_controller.dart';
 
 /// Route of the report screen. Named here because the banner has to know
@@ -61,17 +63,10 @@ class RecordingBannerScaffold extends ConsumerWidget {
 
   void _announceLimit(BuildContext context, String limit) {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(
-          limit == 'size'
+    ScaffoldMessenger.of(context).snack(limit == 'size'
               ? l10n.bugReportSizeLimitReached(
                   recordingSizeLimit ~/ (1024 * 1024))
-              : l10n.bugReportLimitReached(recordingLimit.inMinutes),
-        ),
-        duration: const Duration(seconds: 8),
-        action: SnackBarAction(
+              : l10n.bugReportLimitReached(recordingLimit.inMinutes), action: SnackBarAction(
           label: l10n.bugReportShow,
           onPressed: () {
             final navigator = rootNavigatorKey.currentContext;
@@ -80,8 +75,7 @@ class RecordingBannerScaffold extends ConsumerWidget {
               navigator.push(bugReportRoute);
             }
           },
-        ),
-      ));
+        ), duration: const Duration(seconds: 8), replaceCurrent: true);
   }
 }
 
@@ -251,12 +245,7 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
 
   Widget _clock(DashTokens t, String elapsed) => Text(
         elapsed,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: t.textSecondary,
-        ),
+        style: t.monoValue.copyWith(color: t.textSecondary),
       );
 
   Widget _bar(BuildContext context, String elapsed) {
@@ -302,11 +291,7 @@ class _RecordingLayerState extends ConsumerState<_RecordingLayer> {
                 color: t.textSecondary,
                 onPressed: () {
                   ref.read(bugReportProvider.notifier).mark();
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      SnackBar(content: Text(l10n.bugReportMarked)),
-                    );
+                  ScaffoldMessenger.of(context).snack(l10n.bugReportMarked, replaceCurrent: true);
                 },
               ),
             ),

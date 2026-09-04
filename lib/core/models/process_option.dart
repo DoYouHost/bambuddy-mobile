@@ -1,3 +1,4 @@
+
 /// The vendored OrcaSlicer process-option metadata under `assets/slicer/` —
 /// what options exist, how each is edited, how they are grouped.
 ///
@@ -6,6 +7,7 @@
 /// describe that generated shape: what the generator could not express
 /// faithfully keeps the loose type it arrives in rather than being coerced.
 library;
+
 
 /// OrcaSlicer's `ConfigOptionType` names. The plural forms are per-extruder
 /// vectors, stored in a process preset as a list rather than a scalar.

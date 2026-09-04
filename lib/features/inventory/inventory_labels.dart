@@ -80,165 +80,143 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final allVisibleChecked =
         visible.isNotEmpty && visible.every((s) => _selected.contains(s.id));
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (context, controller) => _SheetSurface(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.print_outlined,
-                        size: 20,
-                        color: t.accentGreenInk,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          l10n.inventoryLabelsTitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: t.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        l10n.inventorySelectedCount(_selected.length),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: t.textTertiary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  DashSearchField(
-                    id: 'spool_labels.search',
-                    hintText: l10n.inventoryLabelsSearchHint,
-                    onChanged: (v) => setState(() => _query = v),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_materials.length > 1) ...[
-                    _ChipRow(
-                      label: l10n.inventoryLabelsMaterial,
-                      options: {
-                        null: l10n.inventoryLabelsAllMaterials,
-                        for (final m in _materials) m: m,
-                      },
-                      value: _material,
-                      onChanged: (v) => setState(() => _material = v),
+    return DraggableSheetSurface(
+      initialSize: 0.85,
+      minSize: 0.5,
+      builder: (context, controller) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.print_outlined,
+                      size: 20,
+                      color: t.accentGreenInk,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.inventoryLabelsTitle,
+                        style: t.display,
+                      ),
+                    ),
+                    Text(
+                      l10n.inventorySelectedCount(_selected.length),
+                      style: t.monoLabel,
+                    ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                DashSearchField(
+                  id: 'spool_labels.search',
+                  hintText: l10n.inventoryLabelsSearchHint,
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+                const SizedBox(height: 10),
+                if (_materials.length > 1) ...[
                   _ChipRow(
-                    label: l10n.inventoryLabelsSort,
+                    label: l10n.inventoryLabelsMaterial,
                     options: {
-                      _LabelSort.id: l10n.inventoryLabelsSortById,
-                      _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                      null: l10n.inventoryLabelsAllMaterials,
+                      for (final m in _materials) m: m,
                     },
-                    value: _sort,
-                    onChanged: (v) => setState(() => _sort = v),
+                    value: _material,
+                    onChanged: (v) => setState(() => _material = v),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.inventoryLabelsPickSpools,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12.5,
-                            color: t.textSecondary,
-                          ),
-                        ),
-                      ),
-                      _TextAction(
-                        label: allVisibleChecked
-                            ? l10n.inventoryLabelsDeselectVisible
-                            : l10n.inventoryLabelsSelectVisible,
-                        onPressed: visible.isEmpty
-                            ? null
-                            : () => setState(() {
-                                final ids = visible.map((s) => s.id);
-                                if (allVisibleChecked) {
-                                  _selected.removeAll(ids);
-                                } else {
-                                  _selected.addAll(ids);
-                                }
-                              }),
-                      ),
-                      const SizedBox(width: 12),
-                      _TextAction(
-                        label: l10n.inventoryLabelsClearAll,
-                        muted: true,
-                        onPressed: _selected.isEmpty
-                            ? null
-                            : () => setState(_selected.clear),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 6),
                 ],
-              ),
-            ),
-
-            Expanded(
-              child: visible.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          l10n.inventoryLabelsNoMatches,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 13,
-                            color: t.textTertiary,
-                          ),
-                        ),
+                _ChipRow(
+                  label: l10n.inventoryLabelsSort,
+                  options: {
+                    _LabelSort.id: l10n.inventoryLabelsSortById,
+                    _LabelSort.color: l10n.inventoryLabelsSortByColor,
+                  },
+                  value: _sort,
+                  onChanged: (v) => setState(() => _sort = v),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.inventoryLabelsPickSpools,
+                        style: t.labelSoft.copyWith(color: t.textSecondary),
                       ),
-                    )
-                  : ListView.builder(
-                      controller: controller,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: visible.length,
-                      itemBuilder: (context, i) {
-                        final spool = visible[i];
-                        return _LabelSpoolRow(
-                          spool: spool,
-                          checked: _selected.contains(spool.id),
-                          onTap: () => setState(() {
-                            if (!_selected.remove(spool.id)) {
-                              _selected.add(spool.id);
-                            }
-                          }),
-                        );
-                      },
                     ),
+                    _TextAction(
+                      label: allVisibleChecked
+                          ? l10n.inventoryLabelsDeselectVisible
+                          : l10n.inventoryLabelsSelectVisible,
+                      onPressed: visible.isEmpty
+                          ? null
+                          : () => setState(() {
+                              final ids = visible.map((s) => s.id);
+                              if (allVisibleChecked) {
+                                _selected.removeAll(ids);
+                              } else {
+                                _selected.addAll(ids);
+                              }
+                            }),
+                    ),
+                    const SizedBox(width: 12),
+                    _TextAction(
+                      label: l10n.inventoryLabelsClearAll,
+                      muted: true,
+                      onPressed: _selected.isEmpty
+                          ? null
+                          : () => setState(_selected.clear),
+                    ),
+                  ],
+                ),
+              ],
             ),
+          ),
 
-            _LabelFooter(
-              monochrome: _monochrome,
-              share: _share,
-              busy: _busy,
-              count: _selected.length,
-              onMonochrome: (v) => setState(() => _monochrome = v),
-              onShare: (v) => setState(() => _share = v),
-              onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
-            ),
-          ],
-        ),
+          Expanded(
+            child: visible.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        l10n.inventoryLabelsNoMatches,
+                        textAlign: TextAlign.center,
+                        style: t.bodyPlain.copyWith(color: t.textTertiary),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: controller,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    itemCount: visible.length,
+                    itemBuilder: (context, i) {
+                      final spool = visible[i];
+                      return _LabelSpoolRow(
+                        spool: spool,
+                        checked: _selected.contains(spool.id),
+                        onTap: () => setState(() {
+                          if (!_selected.remove(spool.id)) {
+                            _selected.add(spool.id);
+                          }
+                        }),
+                      );
+                    },
+                  ),
+          ),
+
+          _LabelFooter(
+            monochrome: _monochrome,
+            share: _share,
+            busy: _busy,
+            count: _selected.length,
+            onMonochrome: (v) => setState(() => _monochrome = v),
+            onShare: (v) => setState(() => _share = v),
+            onPrint: _selected.isEmpty || _busy ? null : _pickTemplate,
+          ),
+        ],
       ),
     );
   }
@@ -249,24 +227,21 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     final messenger = ScaffoldMessenger.of(context);
 
     if (_selected.length > maxSpoolLabelsPerRequest) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest),
-          ),
-        ),
-      );
+      messenger.snack(l10n.inventoryLabelsTooMany(maxSpoolLabelsPerRequest));
       return;
     }
 
-    final template = await showModalBottomSheet<SpoolLabelTemplate>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: _sheetBarrier,
+    final template = await dashSurfaceSheet<SpoolLabelTemplate>(
+      context,
       builder: (_) => const _TemplateSheet(),
     );
     if (template == null || !mounted) return;
+
+    // Step 3, sheet stock only: which slot of a part-used sheet to start at.
+    // Asked after the stock is picked rather than before it, so a roll template
+    // — where the server refuses anything but 1 — never sees the question.
+    final startingPosition = await _pickStartingPosition(template);
+    if (startingPosition == null || !mounted) return;
 
     // Keep the sorted order — that's what makes "by colour" flow into an
     // Avery sheet instead of being re-sorted by id server-side.
@@ -277,9 +252,14 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
 
     setState(() => _busy = true);
     try {
-      final pdf = await ref
-          .read(inventoryRepositoryProvider)
-          .renderLabels(ids, template, monochrome: _monochrome);
+      final pdf = await ref.read(inventoryRepositoryProvider).renderLabels(
+            SpoolLabelRequest(
+              spoolIds: ids,
+              template: template,
+              monochrome: _monochrome,
+              startingPosition: startingPosition,
+            ),
+          );
       if (!mounted) return;
       Navigator.of(context).pop();
       final filename = 'bambuddy-labels-${template.wire}.pdf';
@@ -301,10 +281,26 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.inventoryLabelsFailed)),
-      );
+      messenger.snack(l10n.inventoryLabelsFailed);
     }
+  }
+
+  /// Where on the sheet the first label goes, or null when the question was
+  /// dismissed — which cancels the print rather than defaulting to 1, since a
+  /// swipe-away is how someone backs out of the flow.
+  ///
+  /// Answers 1 without asking for a roll template, and for a server that would
+  /// take the field and print from 1 anyway: an older `LabelRequest` ignores
+  /// unknown keys, and a picker that quietly wastes a sheet of Avery stock is
+  /// worse than one that never appears.
+  Future<int?> _pickStartingPosition(SpoolLabelTemplate template) async {
+    if (template.sheetCapacity == null) return 1;
+    if (!await ref.read(labelStartingPositionProvider.future)) return 1;
+    if (!mounted) return null;
+    return dashSurfaceSheet<int>(
+      context,
+      builder: (_) => _StartingPositionSheet(template: template),
+    );
   }
 }
 
@@ -358,22 +354,13 @@ class _LabelSpoolRow extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
-                ),
+                style: t.body,
               ),
             ),
             const SizedBox(width: 8),
             Text(
               '#${spool.id}',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11.5,
-                color: t.textTertiary,
-              ),
+              style: t.monoMicro,
             ),
           ],
         ),
@@ -407,12 +394,7 @@ class _LabelFooter extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        16 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.subCardBorder)),
       ),
@@ -444,14 +426,7 @@ class _LabelFooter extends StatelessWidget {
               ),
               onPressed: onPrint,
               icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _onAccentGreen,
-                      ),
-                    )
+                  ? DashSpinner(color: _onAccentGreen)
                   : Icon(share ? Icons.ios_share : Icons.print_outlined,
                       size: 18),
               label: Text(
@@ -510,70 +485,134 @@ class _TemplateSheet extends StatelessWidget {
       ),
     ];
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, controller) => _SheetSurface(
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Text(
-              l10n.inventoryLabelsPickTemplate,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: t.textPrimary,
+    return DraggableSheetSurface(
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Text(
+            l10n.inventoryLabelsPickTemplate,
+            style: t.titleLg,
+          ),
+          const SizedBox(height: 12),
+          for (final (template, label, hint) in options)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Material(
+                color: t.subCard,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.of(context).pop(template),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.subCardBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: t.titleSm,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hint,
+                          style: t.labelSoft,
+                        ),
+                      ],
+                    ),
+                  ),
+                ).tagged('labels.template'),
               ),
             ),
-            const SizedBox(height: 12),
-            for (final (template, label, hint) in options)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Material(
-                  color: t.subCard,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.of(context).pop(template),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: t.subCardBorder),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: t.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            hint,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 12,
-                              color: t.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).tagged('labels.template'),
-                ),
-              ),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Step 3 of label printing, for sheet stock only: which slot the first label
+/// goes in.
+///
+/// Drawn as the sheet itself rather than asked as a number, because that is the
+/// thing the user is looking at — a page with the first few labels already
+/// peeled off — and counting slots on paper is easier than counting them in
+/// your head. The slots keep the proportions of the stock they stand for, which
+/// is what tells the two Avery sheets apart at a glance. Tapping one prints,
+/// the same way tapping a stock card in [_TemplateSheet] does.
+class _StartingPositionSheet extends StatelessWidget {
+  const _StartingPositionSheet({required this.template});
+
+  final SpoolLabelTemplate template;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    final layout = template.sheet!;
+
+    return DraggableSheetSurface(
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Text(l10n.inventoryLabelsStartTitle, style: t.titleLg),
+          const SizedBox(height: 6),
+          Text(l10n.inventoryLabelsStartHint, style: t.labelSoft),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: layout.columns * layout.rows,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: layout.columns,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              childAspectRatio: layout.widthMm / layout.heightMm,
+            ),
+            itemBuilder: (context, i) => _StartingPositionSlot(
+              position: i + 1,
+              onTap: () => Navigator.of(context).pop(i + 1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One slot of the sheet in [_StartingPositionSheet].
+class _StartingPositionSlot extends StatelessWidget {
+  const _StartingPositionSlot({required this.position, required this.onTap});
+
+  final int position;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = DashTokens.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      button: true,
+      label: l10n.inventoryLabelsStartSlot(position),
+      child: Material(
+        color: t.subCard,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.subCardBorder),
+            ),
+            child: Text('$position', style: t.monoLabel),
+          ),
+        ).tagged('labels.start_position'),
       ),
     );
   }
@@ -600,11 +639,7 @@ class _ChipRow<T> extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            color: t.textTertiary,
-          ),
+          style: t.microSoft,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -662,12 +697,7 @@ class _MiniChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: selected ? t.accentGreenInk : t.textSecondary,
-            ),
+            style: t.micro.copyWith(color: selected ? t.accentGreenInk : t.textSecondary),
           ),
         ),
       ).tagged('labels.chip'),
@@ -698,12 +728,7 @@ class _TextAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            color: onPressed == null ? color.withValues(alpha: 0.4) : color,
-          ),
+          style: t.micro.copyWith(color: onPressed == null ? color.withValues(alpha: 0.4) : color),
         ),
       ),
     ).tagged('labels.text_action');
@@ -747,21 +772,12 @@ class _CheckRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
+                    style: t.body,
                   ),
                   if (hint != null)
                     Text(
                       hint!,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 11.5,
-                        color: t.textTertiary,
-                      ),
+                      style: t.microSoft,
                     ),
                 ],
               ),

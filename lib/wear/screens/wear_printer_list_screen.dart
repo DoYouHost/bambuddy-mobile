@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
+import '../widgets/wear_header.dart';
+import '../widgets/wear_scroll_view.dart';
+import '../widgets/wear_settings_entry.dart';
 import 'wear_printer_control_screen.dart';
 
 /// Printer picker (shown only when more than one printer). Tapping a row pushes
@@ -15,41 +19,40 @@ class WearPrinterListBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fleet = ref.watch(wearFleetProvider);
     final printers = fleet.valueOrNull?.printers ?? const [];
-    return RefreshIndicator(
+    return WearScrollView(
+      // Uniform short rows, which is exactly what curving is for: the picker
+      // was handing 36% of the face to a margin nothing could ever enter.
+      curved: true,
+      // Every row here is the same rounded card, so the curve may stop
+      // shrinking them to protect a square corner none of them has.
+      itemCornerRadius: wearRadiusRow,
       onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-      child: ListView(
-        // Always scrollable so the pull gesture works even when the short
-        // printer list doesn't fill the screen.
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(8, 20, 8, 28),
-        children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(AppLocalizations.of(context).printersTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-          for (final p in printers)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: _PrinterRow(
-                name: p.printer.name,
-                stateLabel: wearStateOf(p.status).label(
-                  AppLocalizations.of(context),
-                ),
-                stateColor: wearStateOf(p.status).color,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => WearPrinterControlScreen(
-                      printerId: p.printer.id,
-                    ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: WearHeader(AppLocalizations.of(context).printersTitle),
+        ),
+        for (final p in printers)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: _PrinterRow(
+              name: p.printer.name,
+              stateLabel: wearStateOf(p.status).label(
+                AppLocalizations.of(context),
+              ),
+              stateColor: wearStateOf(p.status).color,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => WearPrinterControlScreen(
+                    printerId: p.printer.id,
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+        const SizedBox(height: 4),
+        const WearSettingsEntry(),
+      ],
     );
   }
 }
@@ -69,10 +72,14 @@ class _PrinterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(20),
+        color: wearSurface,
+        borderRadius: BorderRadius.circular(wearRadiusRow),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          // The same radius twice is not a repetition to fold away: Material
+          // clips the fill and InkWell clips the splash, and a splash with
+          // squarer corners than the row it lands in is what a literal here
+          // used to drift into.
+          borderRadius: BorderRadius.circular(wearRadiusRow),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -92,10 +99,16 @@ class _PrinterRow extends StatelessWidget {
                       Text(name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: WearText.strong),
+                      // One line, like the name above it. Without this the
+                      // row grows a second line for any state whose label does
+                      // not fit — "Oczekiwanie na płytę" is 20 characters in a
+                      // ~100 dp column — and 16 dp of a 75 dp row is a lot to
+                      // spend on a wrapped word nobody needs to read twice.
                       Text(stateLabel,
-                          style: TextStyle(fontSize: 11, color: stateColor)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: WearText.small.copyWith(color: stateColor)),
                     ],
                   ),
                 ),

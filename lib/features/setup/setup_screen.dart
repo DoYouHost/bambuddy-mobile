@@ -6,10 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/two_factor.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/demo/demo_config.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../bug_report/recording_banner.dart';
+import '../common/dash_progress.dart';
 import '../common/qr_scanner_screen.dart';
+import '../common/system_insets.dart';
 import 'api_key_qr.dart';
 import 'providers.dart';
 import 'setup_error_text.dart';
@@ -112,7 +115,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ],
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: withSystemNavInset(context, const EdgeInsets.all(16)),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
@@ -131,12 +134,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     enabled: !state.busy,
                     keyboardType: TextInputType.url,
                     autocorrect: false,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                    ),
+                    style: t.bodyStrong,
                     decoration: dashFieldDecoration(
                       t,
                       labelText: l10n.serverAddressLabel,
@@ -185,19 +183,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 if (state.busy)
                   const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: DashLoading(),
                   ),
                 if (state.error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       setupErrorText(l10n, state.error!),
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.danger,
-                      ),
+                      style: t.body.copyWith(color: t.danger),
                     ),
                   ),
                 if (state.twoFactor case final challenge?)
@@ -229,12 +222,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       const SizedBox(height: 24),
       Text(
         l10n.twoFactorTitle,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: t.textPrimary,
-        ),
+        style: t.titleSm,
       ),
       const SizedBox(height: 8),
       if (challenge.methods.length > 1) ...[
@@ -257,12 +245,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ],
       Text(
         _methodExplain(l10n, method, sent: state.emailCodeSent),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: t.textSecondary,
-        ),
+        style: t.bodySoft,
       ),
       const SizedBox(height: 12),
       logTag(
@@ -284,13 +267,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             else
               FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
           ],
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 4,
-            color: t.textPrimary,
-          ),
+          style: t.monoHeadline.copyWith(letterSpacing: 4),
           decoration: dashFieldDecoration(t, labelText: l10n.twoFactorCodeLabel),
           onSubmitted: (v) =>
               controller.verifyTwoFactor(method: method, code: v),
@@ -352,12 +329,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       const SizedBox(height: 4),
       Text(
         l10n.twoFactorSessionNote,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: t.textTertiary,
-        ),
+        style: t.label,
       ),
     ];
   }
@@ -387,12 +359,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         const SizedBox(height: 24),
         Text(
           l10n.serverRequiresAuth,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: t.textPrimary,
-          ),
+          style: t.titleSm,
         ),
         const SizedBox(height: 8),
         SegmentedButton<bool>(
@@ -407,12 +374,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         if (!_useLogin) ...[
           Text(
             l10n.apiKeyExplain,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: t.textSecondary,
-            ),
+            style: t.bodySoft,
           ),
           const SizedBox(height: 12),
           logTag(
@@ -420,12 +382,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             TextField(
               controller: _apiKey,
               autocorrect: false,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.monoValue,
               decoration: dashFieldDecoration(
                 t,
                 labelText: l10n.apiKeyLabel,
@@ -447,12 +404,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ] else ...[
           Text(
             l10n.loginExplain,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: t.textSecondary,
-            ),
+            style: t.bodySoft,
           ),
           const SizedBox(height: 12),
           logTag(
@@ -460,12 +412,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             TextField(
               controller: _username,
               autocorrect: false,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(t, labelText: l10n.usernameLabel),
             ),
           ),
@@ -475,12 +422,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             TextField(
               controller: _password,
               obscureText: true,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
               decoration: dashFieldDecoration(t, labelText: l10n.passwordLabel),
             ),
           ),
@@ -489,20 +431,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             onChanged: (v) => setState(() => _remember = v ?? false),
             title: Text(
               l10n.rememberMe,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.bodyStrong,
             ),
             subtitle: Text(
               l10n.rememberMeSubtitle,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textSecondary,
-              ),
+              style: t.labelSoft.copyWith(color: t.textSecondary),
             ),
             activeColor: t.accentGreen,
             checkColor: const Color(0xFF0A0C08),

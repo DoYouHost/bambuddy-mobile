@@ -1,18 +1,30 @@
+import 'dart:io';
+
+import 'package:bambuddy_mobile/core/api/server_version.dart';
 import 'package:bambuddy_mobile/core/api/server_version_service.dart';
 import 'package:bambuddy_mobile/core/api/ws_messages.dart';
 import 'package:bambuddy_mobile/core/demo/demo_config.dart';
 import 'package:bambuddy_mobile/core/demo/demo_http_adapter.dart';
 import 'package:bambuddy_mobile/core/demo/demo_ws.dart';
+import 'package:bambuddy_mobile/core/ams/slot_configuration.dart';
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/ams_filament_preset.dart';
 import 'package:bambuddy_mobile/data/ams_history_repository.dart';
+import 'package:bambuddy_mobile/data/ams_slot_config_repository.dart';
+import 'package:bambuddy_mobile/core/models/archive_media.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:bambuddy_mobile/data/cloud_repository.dart';
 import 'package:bambuddy_mobile/data/firmware_repository.dart';
 import 'package:bambuddy_mobile/data/inventory_source.dart';
+import 'package:bambuddy_mobile/core/models/location_sensor.dart';
 import 'package:bambuddy_mobile/data/library_repository.dart';
+import 'package:bambuddy_mobile/data/location_sensors_repository.dart';
 import 'package:bambuddy_mobile/data/maintenance_repository.dart';
 import 'package:bambuddy_mobile/data/makerworld_repository.dart';
 import 'package:bambuddy_mobile/data/printer_commands_repository.dart';
+import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
+import 'package:bambuddy_mobile/data/print_log_repository.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/data/projects_repository.dart';
 import 'package:bambuddy_mobile/data/queue_repository.dart';
@@ -21,6 +33,7 @@ import 'package:bambuddy_mobile/data/smart_plugs_repository.dart';
 import 'package:bambuddy_mobile/data/stats_repository.dart';
 import 'package:bambuddy_mobile/core/models/calibration_option.dart';
 import 'package:bambuddy_mobile/core/models/inventory.dart';
+import 'package:bambuddy_mobile/core/models/inventory_bulk.dart';
 import 'package:bambuddy_mobile/core/models/queue_item.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,7 +96,20 @@ void main() {
       final version = ServerVersionService(dio);
 
       expect(await version.reportedVersion(), isNotNull);
-      expect(await version.supportsTriStateCalibration(), isTrue);
+      expect(await version.supports(ServerFeature.triStateCalibration), isTrue);
+    });
+
+    test('the reported version matches what this backend actually serves',
+        () async {
+      // A version claiming less than the payload hides a control over data that
+      // is there; claiming more shows one over data that is not. Both read as
+      // "the app is broken", so the two are pinned together here.
+      final version = ServerVersionService(dio);
+
+      expect(await version.supports(ServerFeature.printLogCostEnergy), isTrue,
+          reason: 'the print log serves cost, energy and sorting');
+      expect(await version.supports(ServerFeature.crossModelVariants), isTrue,
+          reason: 'library variant groups are served below');
     });
 
     test('archive list, search and purge preview', () async {
@@ -95,6 +121,90 @@ void main() {
       expect(found, isNotEmpty);
       final preview = await repo.purgePreview(olderThanDays: 5);
       expect(preview.count, greaterThan(0));
+    });
+
+    test('plates: one demo print is multi-plate, the rest are not', () async {
+      final repo = ArchiveRepository(dio);
+      final list = await repo.list();
+      final multi = list.where((a) => a.plateId != null).toList();
+      final single = list.where((a) => a.plateId == null).first;
+
+      expect(multi, hasLength(1),
+          reason: 'the demo needs one, to have a plate picker to show');
+      final plates = await repo.plates(multi.single.id);
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.plates.map((p) => p.index), [1, 2, 3]);
+      expect(plates.byIndex(multi.single.plateId), isNotNull,
+          reason: 'the plate the print ran on has to be one of the choices');
+
+      expect((await repo.plates(single.id)).isMultiPlate, isFalse);
+    });
+
+    test('printer media: the three outcomes the sheet has to render', () async {
+      final repo = ArchiveRepository(dio);
+      final printed =
+          (await repo.list()).where((a) => a.printerId != null).toList();
+      final media = [
+        for (final a in printed) (await repo.printerMedia(a.id))!,
+      ];
+
+      // Nothing the demo server keeps: a viewer row would open onto
+      // `http://demo`, which resolves nowhere.
+      expect(media.every((m) => m.localTimelapse == null), isTrue);
+
+      // All three faces of the printer section, so browsing the archive list
+      // shows each of them rather than the same answer every time.
+      expect(
+        media.where((m) => m.remoteFiles.isEmpty && m.warnings.isEmpty),
+        isNotEmpty,
+        reason: 'a print whose card has been cleared since',
+      );
+      expect(
+        media.where((m) =>
+            m.remoteFiles.any((f) => f.kind == ArchiveMediaKind.ipcam)),
+        isNotEmpty,
+        reason: 'a print with the camera chunks still there',
+      );
+      expect(
+        media.where(
+            (m) => m.warnings.contains(ArchiveMediaWarning.ipcamUnavailable)),
+        isNotEmpty,
+        reason: 'a printer with camera recording turned off',
+      );
+
+      expect(
+        media.expand((m) => m.remoteFiles).every((f) => f.size > 0),
+        isTrue,
+        reason: 'sizes are all-or-nothing on the way to the download job',
+      );
+    });
+
+    test('a video the sheet offers is the one the file manager lists',
+        () async {
+      // The two views are generated from the same prints, so a file named in
+      // one has to be findable in the other — otherwise the demo teaches a
+      // relationship the real server does not have.
+      final archives = ArchiveRepository(dio);
+      final files = PrinterFilesRepository(dio);
+      final print = (await archives.list())
+          .firstWhere((a) => a.printerId != null && a.id % 3 == 1);
+      final offered = (await archives.printerMedia(print.id))!.remoteFiles;
+      expect(offered, isNotEmpty);
+
+      for (final file in offered) {
+        final dir = file.path.substring(0, file.path.lastIndexOf('/'));
+        final listed = await files.listFiles(print.printerId!, dir);
+        final match =
+            listed.files.where((f) => f.path == file.path).singleOrNull;
+        expect(match, isNotNull, reason: '${file.path} is not in $dir');
+        expect(match!.size, file.size);
+      }
+    });
+
+    test('no-3mf nudge: the demo has nothing to complain about', () async {
+      // Unrouted in the demo backend, which answers 404 — the same answer an
+      // older server gives, and the same "no banner" for both.
+      expect((await ArchiveRepository(dio).no3mfWarning()).hasFallback, isFalse);
     });
 
     test('stats, slim, failures, users', () async {
@@ -110,6 +220,68 @@ void main() {
       expect(failures.failuresByReason, isNotEmpty);
       final users = await repo.fetchUsers();
       expect(users, hasLength(1));
+    });
+  });
+
+  group('print log', () {
+    final repo = PrintLogRepository(dio);
+
+    test('the page carries the runs, the orphans among them', () async {
+      final page = await repo.list();
+      expect(page.items, isNotEmpty);
+      expect(page.total, greaterThanOrEqualTo(page.items.length));
+      // The runs whose archive is gone are the half of this table nothing else
+      // in the app can reach — a demo without them misrepresents the screen.
+      expect(page.items.where((e) => e.isOrphan), isNotEmpty);
+      expect(page.items.first.printerName, isNotNull);
+    });
+
+    test('filters narrow it the way the server does', () async {
+      final failed = await repo.list(status: 'failed');
+      expect(failed.items, isNotEmpty);
+      expect(failed.items.every((e) => e.status == 'failed'), isTrue);
+
+      final searched = await repo.list(search: 'benchy');
+      expect(searched.items, hasLength(1));
+      expect(searched.total, 1);
+    });
+
+    test('cost and energy come through, and a plugless run stays null',
+        () async {
+      final page = await repo.list();
+      final withPlug = page.items.firstWhere((e) => e.energyKwh != null);
+
+      expect(withPlug.cost, isNotNull);
+      expect(withPlug.energyCost, isNotNull);
+      // Null, not zero: "no smart plug behind this printer" has to read
+      // differently from a run that drew nothing.
+      expect(page.items.any((e) => e.energyKwh == null), isTrue);
+    });
+
+    test('sorting is applied, not accepted and ignored', () async {
+      final cheapest = await repo.list(
+        sort: PrintLogSort.filamentUsed,
+        descending: false,
+      );
+      final heaviest = await repo.list(sort: PrintLogSort.filamentUsed);
+
+      final light = cheapest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      final heavy = heaviest.items.map((e) => e.filamentUsedGrams).nonNulls;
+      expect(light.first, lessThanOrEqualTo(light.last));
+      expect(heavy.first, greaterThanOrEqualTo(heavy.last));
+    });
+
+    test('paging walks the log without repeating a row', () async {
+      final first = await repo.list(limit: 3, offset: 0);
+      final second = await repo.list(limit: 3, offset: 3);
+      expect(first.items, hasLength(3));
+      expect(first.total, second.total);
+      expect(
+        first.items.map((e) => e.id).toSet().intersection(
+              second.items.map((e) => e.id).toSet(),
+            ),
+        isEmpty,
+      );
     });
   });
 
@@ -168,7 +340,30 @@ void main() {
       expect(await source.fetchCoreWeights(), isNotEmpty);
       expect(await source.fetchColors(), isNotEmpty);
       expect(await source.fetchFilamentPresets(), isNotEmpty);
-      expect(await source.fetchLocations(), contains('Dry box'));
+      final locations = await source.fetchLocations();
+      expect(locations.map((l) => l.name), contains('Dry box'));
+      // The id is what the location's sensors are keyed by, so a catalog row
+      // that arrives without one takes the storage-conditions pills with it.
+      expect(locations.every((l) => l.id > 0), isTrue);
+    });
+
+    test('the consumed counter is a separate number from remaining', () async {
+      final spools = await source.fetchSpools();
+      // One demo spool has had its counter reset before, so the two numbers
+      // must not be reconstructible from each other.
+      final reset = spools.firstWhere((s) => s.weightUsedBaseline > 0);
+      expect(reset.consumedWeight, lessThan(reset.weightUsed));
+      expect(spools.map((s) => s.consumedWeight).reduce((a, b) => a + b),
+          greaterThan(0),
+          reason: 'the shelf total the list header shows');
+
+      // Resetting zeroes the counter and leaves the spool as empty as it was.
+      final target = spools.firstWhere((s) => s.consumedWeight > 0);
+      await source.resetUsage(target.id);
+      final after = (await source.fetchSpools())
+          .firstWhere((s) => s.id == target.id);
+      expect(after.consumedWeight, 0);
+      expect(after.remainingWeight, target.remainingWeight);
     });
 
     test('spool CRUD round-trip', () async {
@@ -195,6 +390,147 @@ void main() {
       await source.deleteSpool(created.id);
       final after = await source.fetchSpools(includeArchived: true);
       expect(after.any((s) => s.id == created.id), isFalse);
+    });
+
+    test('bulk operations on a selection round-trip', () async {
+      // Spools of its own, deleted at the end, so the counts the first test
+      // asserts stay true whatever order the group runs in.
+      final ids = <int>[
+        for (var i = 0; i < 3; i++)
+          (await source.createSpool(
+            SpoolDraft(material: 'PLA', colorName: 'Bulk $i'),
+          )).id,
+      ];
+      const unknown = 999999;
+
+      final updated =
+          await source.bulkUpdate([...ids, unknown], const SpoolBulkPatch(
+        brand: 'Bulked',
+        note: 'mass edit',
+      ));
+      expect((updated.ok, updated.failed), (3, 1));
+      expect(updated.notFound, [unknown]);
+      final shelf = await source.fetchSpools(includeArchived: true);
+      final touched = shelf.where((s) => ids.contains(s.id));
+      expect(touched.every((s) => s.brand == 'Bulked'), isTrue);
+      expect(touched.every((s) => s.note == 'mass edit'), isTrue);
+
+      final archived = await source.bulkArchive(ids);
+      expect((archived.ok, archived.skipped), (3, 0));
+      // Asking twice is not a failure — the shelf already reads as intended.
+      final again = await source.bulkArchive(ids);
+      expect((again.ok, again.skipped, again.failed), (0, 3, 0));
+
+      final restored = await source.bulkRestore(ids);
+      expect((restored.ok, restored.skipped), (3, 0));
+
+      final reset = await source.bulkResetUsage([...ids, unknown]);
+      // The route answers with a count and nothing else, so the unknown id
+      // shows up only as the gap against what was asked for.
+      expect((reset.ok, reset.failed), (3, 1));
+
+      final deleted = await source.bulkDelete(ids);
+      expect((deleted.ok, deleted.failed), (3, 0));
+      final after = await source.fetchSpools(includeArchived: true);
+      expect(after.any((s) => ids.contains(s.id)), isFalse);
+    });
+
+    test('an empty selection and an empty edit are refused', () async {
+      // Posted raw: the source short-circuits both before they leave the
+      // phone, so going through it would assert the client guard and never
+      // reach the refusal these routes actually answer with.
+      Matcher rejects(int status) => throwsA(isA<DioException>()
+          .having((e) => e.response?.statusCode, 'status', status));
+
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-archive',
+          data: {'ids': <int>[]},
+        ),
+        rejects(400),
+      );
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/inventory/spools/bulk-update',
+          data: {'ids': [1], 'update': <String, dynamic>{}},
+        ),
+        rejects(400),
+      );
+    });
+
+    // Last in the group on purpose: it registers a spool and pins it to a
+    // slot, and the counts asserted above are taken before that.
+    test('registering an AMS slot creates the spool and pins it there',
+        () async {
+      // P1S slot 3 holds a tagged Bambu spool the shelf has never seen — the
+      // state the affordance exists for.
+      final id = await source.createSpoolFromSlot(
+        printerId: 2,
+        amsId: 0,
+        trayId: 2,
+      );
+      expect(id, isNotNull);
+
+      final spools = await source.fetchSpools();
+      final created = spools.firstWhere((s) => s.id == id);
+      expect(created.material, 'PLA');
+      expect(created.subtype, 'Basic');
+      expect(created.rgba, '00AE42FF');
+      expect(normalizeTagUid(created.tagUid), 'B7A21C0439E5D168');
+
+      final assignments = await source.fetchAssignments();
+      final pinned = assignments.firstWhere((a) => a.spoolId == id);
+      expect(pinned.printerId, 2);
+      expect(pinned.amsId, 0);
+      expect(pinned.trayId, 2);
+    });
+
+    test('a slot without a tag is refused, not silently duplicated', () async {
+      // X1C slot 3 runs a third-party PETG: filament, but no identity.
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 1, amsId: 0, trayId: 2),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+
+    test('an empty slot is refused too', () async {
+      await expectLater(
+        () => source.createSpoolFromSlot(printerId: 2, amsId: 0, trayId: 3),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'status', 400)),
+      );
+    });
+  });
+
+  group('storage-location sensors', () {
+    test('bindings and readings parse, with all three pill states', () async {
+      final repo = LocationSensorsRepository(dio, ServerVersionService(dio));
+      expect(await repo.supportsLocationSensors(), isTrue);
+
+      final bindings = await repo.listBindings();
+      expect(bindings, hasLength(3));
+      // All on "Dry box", the one demo location the reading is about.
+      expect(bindings.every((b) => b.locationId == 3), isTrue);
+      expect(bindings.every((b) => b.showOnCard), isTrue);
+
+      final readings = await repo.readings(3);
+      expect(
+        readings.map((r) => r.category),
+        [
+          LocationSensorCategory.temperature,
+          LocationSensorCategory.humidity,
+          LocationSensorCategory.battery,
+        ],
+      );
+      expect(readings.map((r) => r.formattedValue), ['24.4°C', '47.2%', '78%']);
+      // The three states the pills draw differently: plain, over threshold,
+      // and last-known because the poller could not reach it.
+      expect(readings.map((r) => r.alerting), [false, true, false]);
+      expect(readings.map((r) => r.reachable), [true, true, false]);
+
+      // A location nobody measures answers with nothing, not a 404.
+      expect(await repo.readings(1), isEmpty);
     });
   });
 
@@ -247,14 +583,106 @@ void main() {
     });
 
     test('printer files + storage + AMS history', () async {
-      final files = await PrinterFilesRepository(dio).listFiles(1, '/');
-      expect(files, isNotEmpty);
-      expect(files.any((f) => f.isDirectory), isTrue);
+      final listing = await PrinterFilesRepository(dio).listFiles(1, '/');
+      expect(listing.files, isNotEmpty);
+      expect(listing.files.any((f) => f.isDirectory), isTrue);
+      expect(listing.printerUnavailable, isFalse);
       final storage = await PrinterFilesRepository(dio).fetchStorage(1);
       expect(storage.hasData, isTrue);
 
+      // Downloading is served, not faked with a fallback: a single file comes
+      // back as bytes, capped at 2 MB so a demo download stays a download rather
+      // than a memory test, and the bundle as a ZIP a tool can open.
+      final dir = Directory.systemTemp.createTempSync('demo-printer-files');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final one = '${dir.path}/one.3mf';
+      await PrinterFilesRepository(dio)
+          .downloadFileTo(1, '/cache/Benchy.gcode.3mf', one);
+      // The listing claims 2 108 509 bytes for this one; the cap is what lands.
+      expect(File(one).lengthSync(), 2 * 1024 * 1024);
+
+      final small = '${dir.path}/small.3mf';
+      await PrinterFilesRepository(dio)
+          .downloadFileTo(1, '/cache/Cable clips x8.gcode.3mf', small);
+      expect(File(small).lengthSync(), 1524736);
+
+      final zip = '${dir.path}/bundle.zip';
+      await PrinterFilesRepository(dio).downloadZipTo(
+        1,
+        const ['/cache/Benchy.gcode.3mf', '/cache/Cable clips x8.gcode.3mf'],
+        zip,
+      );
+      // The 22 bytes of an empty archive, starting with the ZIP signature.
+      expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
+
       final history = await AmsHistoryRepository(dio).fetch(1, 0, hours: 6);
       expect(history.points, isNotEmpty);
+    });
+
+    test('a download the server prepares first runs end to end', () async {
+      final repo = PrinterFilesRepository(dio);
+      final paths = const [
+        '/cache/Benchy.gcode.3mf',
+        '/cache/Cable clips x8.gcode.3mf',
+      ];
+
+      final started = await repo.startDownloadJob(
+        1,
+        paths: paths,
+        sizes: const {},
+        filename: 'X1-files.zip',
+      );
+      expect(started, isNotNull);
+      expect(started!.state, PrinterDownloadJobState.preparing);
+      expect(started.requested, 2);
+
+      // Polling is the demo's clock: one file is staged per poll, so the
+      // counter on screen moves and the bundle is ready on the second.
+      final half = await repo.downloadJob(1, started.jobId);
+      expect(half!.successful, 1);
+      expect(half.state, PrinterDownloadJobState.preparing);
+      final ready = await repo.downloadJob(1, started.jobId);
+      expect(ready!.state, PrinterDownloadJobState.ready);
+      expect(ready.token, isNotNull);
+
+      final dir = Directory.systemTemp.createTempSync('demo-prepared');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final zip = '${dir.path}/bundle.zip';
+      await repo.downloadPreparedTo(
+        1,
+        token: ready.token!,
+        filename: ready.filename ?? 'X1-files.zip',
+        savePath: zip,
+      );
+      expect(File(zip).readAsBytesSync().take(4), [0x50, 0x4B, 0x05, 0x06]);
+
+      // Single-use, as on the real server: the token is spent and the job is
+      // gone with it.
+      await expectLater(
+        repo.downloadPreparedTo(
+          1,
+          token: ready.token!,
+          filename: 'X1-files.zip',
+          savePath: '${dir.path}/again.zip',
+        ),
+        throwsA(isA<AppApiException>()),
+      );
+      expect(await repo.downloadJob(1, started.jobId), isNull);
+    });
+
+    test('a prepared download can be called off', () async {
+      final repo = PrinterFilesRepository(dio);
+      final started = await repo.startDownloadJob(
+        1,
+        paths: const ['/cache/Benchy.gcode.3mf'],
+        sizes: const {},
+        filename: 'Benchy.gcode.3mf',
+        asZip: false,
+      );
+
+      await repo.cancelDownloadJob(1, started!.jobId);
+
+      expect(await repo.downloadJob(1, started.jobId), isNull);
     });
   });
 
@@ -268,6 +696,87 @@ void main() {
       final status =
           messages.whereType<WsPrinterStatus>().first.status;
       expect(status.id, isPositive);
+    });
+  });
+
+  group('AMS slot configuration', () {
+    final repo = AmsSlotConfigRepository(dio);
+
+    test('the picker has a built-in tier and imported presets', () async {
+      // No cloud login in the demo, which the sheet is built to survive: the
+      // other two tiers are what it falls back to.
+      expect(repo.cloudFilaments(),
+          throwsA(isA<AuthException>()
+              .having((e) => e.code, 'code', AppErrorCode.unauthorized)));
+
+      final builtin = await repo.builtinFilaments();
+      expect(builtin, isNotEmpty);
+      expect(builtin.map((p) => p.id), contains('GFA00'),
+          reason: 'the id the demo trays report, so a slot can be named');
+
+      final local = await repo.localFilaments();
+      expect(local, isNotEmpty);
+      expect(local.first.filamentType, isNotNull);
+      expect(local.first.compatiblePrinters, isNotNull,
+          reason: 'the printer filter needs something to filter on');
+    });
+
+    test('the printer-model registry resolves the demo printers', () async {
+      final models = await repo.printerModels();
+      expect(models['Bambu Lab X1 Carbon'], 'X1C');
+    });
+
+    test('K profiles come back filtered by nozzle', () async {
+      final fine = await repo.kProfiles(1, nozzleDiameter: '0.4');
+      expect(fine, isNotEmpty);
+      expect(fine.every((p) => p.nozzleDiameter == '0.4'), isTrue);
+
+      final coarse = await repo.kProfiles(1, nozzleDiameter: '0.6');
+      expect(coarse.map((p) => p.slotId),
+          isNot(anyElement(isIn(fine.map((p) => p.slotId)))));
+    });
+
+    test('configuring a slot shows on the card, and clearing it undoes that',
+        () async {
+      const preset = AmsFilamentPreset(
+        source: AmsPresetSource.builtin,
+        id: 'GFB99',
+        name: 'Generic ABS',
+      );
+      await repo.configureSlot(
+        1,
+        amsId: 0,
+        trayId: 3,
+        configuration: SlotConfiguration.forPreset(
+          preset: preset,
+          colourHex: '1A1A1A',
+          nozzleDiameter: '0.4',
+        ),
+      );
+      await repo.saveSlotPreset(1, amsId: 0, trayId: 3,
+          preset: preset, presetName: preset.name);
+
+      var tray = (await PrintersRepository(dio).fetchStatus(1))!
+          .ams!
+          .first
+          .trays!
+          .firstWhere((t) => t.id == 3);
+      expect(tray.trayType, 'ABS', reason: 'the empty slot now holds something');
+      expect(tray.trayColor, '1A1A1AFF');
+      expect(tray.trayInfoIdx, 'GFB99');
+      expect((await repo.slotPreset(1, amsId: 0, trayId: 3))?.presetName,
+          'Generic ABS');
+
+      await repo.resetSlot(1, amsId: 0, trayId: 3);
+
+      tray = (await PrintersRepository(dio).fetchStatus(1))!
+          .ams!
+          .first
+          .trays!
+          .firstWhere((t) => t.id == 3);
+      expect(tray.trayType, isNull);
+      expect(await repo.slotPreset(1, amsId: 0, trayId: 3), isNull,
+          reason: 'the reset drops the mapping too');
     });
   });
 
@@ -293,6 +802,80 @@ void main() {
       await commands.stop(1);
       status = await printers.fetchStatus(1);
       expect(status!.state, 'IDLE');
+    });
+  });
+
+  group('library variant groups', () {
+    final library = LibraryRepository(dio);
+
+    test('a group across two models, then dissolved again', () async {
+      final files = await library.listAllFiles();
+      final x1c = files.firstWhere((f) => f.slicedForModel == 'X1C');
+      final p1s = files.firstWhere((f) => f.slicedForModel == 'P1S');
+
+      final group = await library.createVariantGroup([x1c.id, p1s.id]);
+      expect(group.targetModels, ['X1C', 'P1S'],
+          reason: 'selection order is the priority order');
+
+      // The listing has to show it too, or the file rows would not know they
+      // are grouped.
+      final grouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(grouped.variantGroupId, group.id);
+      expect(grouped.hasVariants, isTrue);
+
+      expect((await library.variantGroupForFile(p1s.id))?.id, group.id);
+
+      await library.deleteVariantGroup(group.id);
+      final ungrouped = (await library.listAllFiles())
+          .firstWhere((f) => f.id == x1c.id);
+      expect(ungrouped.variantGroupId, isNull);
+      expect(await library.variantGroupForFile(p1s.id), isNull);
+    });
+
+    test('two files sliced for the same printer are refused', () async {
+      // The refusal is the point of the feature: a group is a choice between
+      // printers, and two X1C files express none.
+      final files = await library.listAllFiles();
+      final sameModel =
+          files.where((f) => f.slicedForModel == 'X1C').take(2).toList();
+
+      await expectLater(
+        library.createVariantGroup([for (final f in sameModel) f.id]),
+        throwsA(isA<AppApiException>()),
+      );
+    });
+  });
+
+  group('print log edits (empties the fake log — keep last)', () {
+    final repo = PrintLogRepository(dio);
+
+    test('classify, refuse a value off the list, delete, clear', () async {
+      final target = (await repo.list(status: 'failed')).items.first;
+
+      final classified =
+          await repo.updateEntry(target.id, failureReason: 'layerShift');
+      expect(classified.failureReason, 'layerShift');
+
+      final cleared =
+          await repo.updateEntry(target.id, clearFailureReason: true);
+      expect(cleared.failureReason, isNull);
+
+      // The demo refuses what the real server refuses; an editor that looked
+      // like it accepted anything would hide the 400 until a real server.
+      await expectLater(
+        repo.updateEntry(target.id, failureReason: 'nonsense'),
+        throwsA(isA<ApiException>()),
+      );
+
+      final before = await repo.list();
+      await repo.deleteEntry(target.id);
+      final after = await repo.list();
+      expect(after.total, before.total - 1);
+      expect(after.items.map((e) => e.id), isNot(contains(target.id)));
+
+      expect(await repo.clearAll(), after.total);
+      expect((await repo.list()).items, isEmpty);
     });
   });
 }

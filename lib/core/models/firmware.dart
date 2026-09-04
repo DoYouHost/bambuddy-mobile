@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'json_utils.dart';
+
 part 'firmware.g.dart';
 
 /// Firmware information for a single printer from
@@ -25,7 +27,7 @@ class FirmwareUpdateInfo {
 
   /// Printer ID — for mapping to status/card. Tolerant parser; if server
   /// omits/breaks it, entry can still be skipped by provider.
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? printerId;
 
   final String? printerName;
@@ -38,7 +40,7 @@ class FirmwareUpdateInfo {
   final String? latestVersion;
 
   /// Whether server detected newer version than installed.
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool updateAvailable;
 
   final String? downloadUrl;
@@ -69,7 +71,7 @@ class AvailableFirmwareVersion {
   final String? version;
 
   /// Whether firmware file is available for download/upload.
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool fileAvailable;
 
   final String? downloadUrl;
@@ -92,7 +94,7 @@ class FirmwareUpdatesResponse {
   final List<FirmwareUpdateInfo> updates;
 
   /// How many printers have updates available (for optional global badge).
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? updatesAvailable;
 }
 
@@ -119,17 +121,17 @@ class FirmwareUploadPrepare {
   factory FirmwareUploadPrepare.fromJson(Map<String, dynamic> json) =>
       _$FirmwareUploadPrepareFromJson(json);
 
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool canProceed;
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool sdCardPresent;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? sdCardFreeSpace;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? firmwareSize;
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool spaceSufficient;
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool updateAvailable;
   final String? currentVersion;
   final String? latestVersion;
@@ -147,7 +149,7 @@ class FirmwareUploadStartResult {
   factory FirmwareUploadStartResult.fromJson(Map<String, dynamic> json) =>
       _$FirmwareUploadStartResultFromJson(json);
 
-  @JsonKey(fromJson: _toBoolOrFalse)
+  @JsonKey(fromJson: toBoolOrFalse)
   final bool started;
   final String? message;
 }
@@ -169,7 +171,7 @@ class FirmwareUploadStatus {
 
   /// Raw status from server (e.g. idle/uploading/done/error) — not enum-backed.
   final String? status;
-  @JsonKey(fromJson: _toIntOrNull)
+  @JsonKey(fromJson: toIntOrNull)
   final int? progress;
   final String? message;
   final String? error;
@@ -177,36 +179,19 @@ class FirmwareUploadStatus {
   final String? firmwareVersion;
 }
 
-int? _toIntOrNull(dynamic value) => switch (value) {
-      num n => n.toInt(),
-      String s => int.tryParse(s),
-      _ => null,
-    };
+List<FirmwareUpdateInfo> _toUpdateListOrEmpty(dynamic value) =>
+    parseJsonList(value, FirmwareUpdateInfo.fromJson);
 
-bool _toBoolOrFalse(dynamic value) => switch (value) {
-      bool b => b,
-      num n => n != 0,
-      String s => s.toLowerCase() == 'true' || s == '1',
-      _ => false,
-    };
+/// Null rather than empty: an absent list is a server that does not offer the
+/// catalogue, an empty one is a printer with nothing to install, and the screen
+/// says different things about the two.
+List<AvailableFirmwareVersion>? _toAvailableVersionsOrNull(dynamic value) =>
+    parseJsonListOrNull(value, AvailableFirmwareVersion.fromJson);
 
-List<FirmwareUpdateInfo> _toUpdateListOrEmpty(dynamic value) {
-  if (value is! List) return const [];
-  return [
-    for (final e in value)
-      if (e is Map) FirmwareUpdateInfo.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
-
-List<AvailableFirmwareVersion>? _toAvailableVersionsOrNull(dynamic value) {
-  if (value is! List) return null;
-  return [
-    for (final e in value)
-      if (e is Map)
-        AvailableFirmwareVersion.fromJson(Map<String, dynamic>.from(e)),
-  ];
-}
-
+/// Private on purpose, next to `json_utils`'s [toStringList]: this one
+/// stringifies whatever arrives, because the field carries printer-reported
+/// module versions that have shown up as numbers. Unifying the two would change
+/// what one of them parses.
 List<String> _toStringListOrEmpty(dynamic value) {
   if (value is! List) return const [];
   return [for (final e in value) e.toString()];

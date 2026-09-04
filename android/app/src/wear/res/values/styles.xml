@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Branded launch, required by Play's Wear quality check: the app icon on
+         black for the whole startup instead of the blank window Flutter's stock
+         theme leaves. Named apart from the phone's LaunchTheme on purpose — that
+         one comes as a day/night pair, and in night mode the phone's black-but-
+         iconless variant would win over a same-named override here. -->
+    <style name="WearLaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/wear_launch_background</item>
+    </style>
+
+    <!-- Behind the Flutter UI once the engine has taken over. Spelled out as
+         black rather than `?android:colorBackground` (what the phone uses):
+         that resolves to white on a watch set to the light system theme, which
+         flashes between the splash and the app's own black face. -->
+    <style name="WearNormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

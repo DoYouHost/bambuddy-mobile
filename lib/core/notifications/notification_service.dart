@@ -6,10 +6,37 @@ import 'notification_prefs.dart';
 /// Notification action button (e.g., "Mark Done" for maintenance).
 /// Independent of the plugin so tests can inject a fake and assert.
 class NotificationAction {
-  const NotificationAction({required this.id, required this.title});
+  const NotificationAction({
+    required this.id,
+    required this.title,
+    this.opensApp = false,
+  });
 
   final String id;
   final String title;
+
+  /// Bring the app up instead of running the action where it was tapped. For
+  /// the one action that cannot be taken back — stopping a print — the app is
+  /// the only place a confirmation can be shown.
+  final bool opensApp;
+}
+
+/// Photo attached to an alert that was already posted — the finish shot the
+/// server takes when a print ends.
+///
+/// Both are paths to files on this device, and both are read on **this** device
+/// at post time: the plugin decodes them and puts the resulting bitmaps inside
+/// the notification. That is what makes the photo survive the trip to a paired
+/// watch, which mirrors the notification but cannot open a file path from the
+/// phone — a `content://`-style image would leave the watch card empty.
+class AlertPicture {
+  const AlertPicture({required this.photoPath, this.thumbnailPath});
+
+  /// Full-size shot, shown when the notification is expanded.
+  final String photoPath;
+
+  /// Small square shown while the notification is collapsed.
+  final String? thumbnailPath;
 }
 
 /// Notification contract seen by [PrintMonitor]. Extracted so tests can inject
@@ -49,6 +76,11 @@ abstract class NotificationService {
   /// from the arguments that were already here: [title] and [body] are the user's
   /// own file and printer names and never enter a log, and [id] is a one-way hash
   /// for HMS alerts (see `_errorAlertId` in `print_monitor.dart`).
+  ///
+  /// [picture] marks this call as an **update** of an alert already on screen
+  /// (the finish photo lands after the print-finished alert, never with it), so
+  /// it re-posts silently: same [id], no second sound or buzz — on the phone and
+  /// on a paired watch alike.
   Future<void> showAlert({
     required NotifEvent event,
     required int printerId,
@@ -57,7 +89,13 @@ abstract class NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   });
+
+  /// Whether the notification [id] is still on screen. False for one the user
+  /// swiped away — re-posting that one to add a photo would resurrect a
+  /// notification they already dealt with.
+  Future<bool> isAlertActive(int id);
 }
 
 /// Production implementation using `flutter_local_notifications`.
@@ -80,9 +118,10 @@ class LocalNotificationService implements NotificationService {
     );
     await _plugin.initialize(
       settings,
-      // Tapping "Mark Done" on maintenance notification: both foreground and background
-      // (app closed) route to the same handler.
-      onDidReceiveNotificationResponse: handleMaintenanceAction,
+      // Tapping an action button — "Mark Done" on maintenance, a remediation on
+      // an HMS alert: foreground and background (app closed) route to the same
+      // dispatcher.
+      onDidReceiveNotificationResponse: handleNotificationAction,
       onDidReceiveBackgroundNotificationResponse:
           maintenanceNotificationBackgroundHandler,
     );
@@ -150,7 +189,10 @@ class LocalNotificationService implements NotificationService {
     required String body,
     String? payload,
     List<NotificationAction>? actions,
+    AlertPicture? picture,
   }) async {
+    final photo = picture;
+    final thumbnail = photo?.thumbnailPath;
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _alertsChannelId,
@@ -158,20 +200,46 @@ class LocalNotificationService implements NotificationService {
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.status,
+        // A picture only ever arrives late, on an alert that already rang.
+        onlyAlertOnce: photo != null,
+        largeIcon: thumbnail == null ? null : FilePathAndroidBitmap(thumbnail),
+        styleInformation: photo == null
+            ? null
+            : BigPictureStyleInformation(
+                FilePathAndroidBitmap(photo.photoPath),
+                contentTitle: title,
+                summaryText: body,
+                // The thumbnail is the collapsed state's; expanded, the photo
+                // itself is already there and the duplicate only takes room.
+                hideExpandedLargeIcon: true,
+              ),
         actions: [
           if (actions != null)
             for (final a in actions)
               AndroidNotificationAction(
                 a.id,
                 a.title,
-                // Action handled in background (counter reset) without opening UI;
-                // notification dismisses after tap.
-                showsUserInterface: false,
+                // Most actions are handled in the background (counter reset,
+                // HMS remediation) without opening UI; the notification
+                // dismisses after the tap either way.
+                showsUserInterface: a.opensApp,
                 cancelNotification: true,
               ),
         ],
       ),
     );
     await _plugin.show(id, title, body, details, payload: payload);
+  }
+
+  @override
+  Future<bool> isAlertActive(int id) async {
+    try {
+      final active = await _plugin.getActiveNotifications();
+      return active.any((n) => n.id == id);
+    } on Object {
+      // A platform that will not answer must not stop the photo: treating the
+      // notification as gone would drop it for everyone on such a device.
+      return true;
+    }
   }
 }

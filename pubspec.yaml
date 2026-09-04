@@ -2,7 +2,7 @@ name: bambuddy_mobile
 description: "Natywna aplikacja Android dla bambuddy - self-hosted menedżera drukarek Bambu Lab."
 publish_to: 'none'
 
-version: 0.12.2+1202000
+version: 0.13.1+2026020
 
 environment:
   sdk: ^3.12.2
@@ -20,6 +20,7 @@ dependencies:
       url: https://github.com/DoYouHost/app-shared.git
       ref: v0.1.1
       path: packages/app_report_client
+  clock: ^1.1.2
   collection: ^1.19.0
   cupertino_icons: ^1.0.8
   dio: ^5.7.0
@@ -28,6 +29,10 @@ dependencies:
   go_router: ^16.0.0
   intl: ^0.20.2
   json_annotation: ^4.9.0
+  # Annotations only; the generator behind them is a dev dependency. Both models
+  # that carry a full-field copy are annotated, so the field list lives in the
+  # constructor alone — a new field can no longer be dropped on the copy.
+  copy_with_extension: ^17.0.0
   shared_preferences: ^2.3.3
   web_socket_channel: ^3.0.3
   flutter_mjpeg: ^2.0.4
@@ -45,6 +50,10 @@ dependencies:
   file_picker: ^8.1.6
   watch_connectivity: ^0.2.9
   printing: ^5.14.3
+  video_player: ^2.14.0
+  gal: ^2.3.3
+  share_plus: ^12.0.2
+  flutter_file_dialog: ^3.3.2
 
 dev_dependencies:
   flutter_test:
@@ -53,9 +62,15 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   http_mock_adapter: ^0.6.1
   json_serializable: ^6.8.0
+  copy_with_extension_gen: ^17.0.0
   mocktail: ^1.0.4
   fake_async: ^1.3.3
   flutter_launcher_icons: ^0.14.4
+  # Test-only: swaps the temporary directory for one the test owns, so the
+  # cache a download lands in can be inspected. Already in the tree as a
+  # transitive dependency of path_provider; named here because the analyzer
+  # will not let a test import what the pubspec does not list.
+  path_provider_platform_interface: ^2.1.2
 
 flutter:
   uses-material-design: true

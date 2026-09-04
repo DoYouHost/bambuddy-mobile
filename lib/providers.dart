@@ -7,10 +7,10 @@ import 'package:watch_connectivity/watch_connectivity.dart';
 
 import 'core/api/api_client.dart';
 import 'core/api/camera_token.dart';
+import 'core/api/server_version.dart';
 import 'core/api/server_version_service.dart';
 import 'core/auth/auth_service.dart';
 import 'core/auth/credentials_store.dart';
-import 'core/auth/jwt.dart';
 import 'core/auth/token_refresher.dart';
 import 'core/diagnostics/diagnostic_recorder.dart';
 import 'core/diagnostics/report_config.dart';
@@ -20,8 +20,10 @@ import 'core/notifications/notification_prefs.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/settings/gcode_snippets.dart';
 import 'core/settings/server_profile.dart';
+import 'core/settings/server_settings.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/watch/watch_config_sync.dart';
+import 'core/watch/wear_relay_claim.dart';
 import 'core/watch/wear_relay_handler.dart';
 import 'core/models/cloud_auth.dart';
 import 'core/models/current_user.dart';
@@ -34,22 +36,29 @@ import 'data/cloud_repository.dart';
 import 'data/discovery_repository.dart';
 import 'data/firmware_repository.dart';
 import 'data/groups_repository.dart';
+import 'data/heater_history_repository.dart';
+import 'data/location_sensors_repository.dart';
 import 'data/makerworld_repository.dart';
 import 'data/pipelines_repository.dart';
 import 'data/inventory_repository.dart';
 import 'data/inventory_source.dart';
 import 'data/library_repository.dart';
+import 'data/ams_slot_config_repository.dart';
 import 'data/printer_commands_repository.dart';
 import 'data/printer_files_repository.dart';
 import 'data/maintenance_repository.dart';
+import 'data/print_log_repository.dart';
 import 'data/printers_repository.dart';
 import 'data/projects_repository.dart';
 import 'data/queue_repository.dart';
+import 'data/scheduled_drying_repository.dart';
 import 'data/skip_objects_repository.dart';
 import 'data/slicer_repository.dart';
 import 'data/smart_plugs_repository.dart';
 import 'data/stats_repository.dart';
+import 'data/timelapse_repository.dart';
 import 'data/users_repository.dart';
+import 'features/common/currency_symbol.dart';
 
 /// Overridden in main() after SharedPreferences.getInstance().
 final sharedPreferencesProvider = Provider<SharedPreferences>(
@@ -89,6 +98,7 @@ final wearRelayHandlerProvider = Provider<WearRelayHandler>((ref) {
     dio: () => ref.read(serverProfileProvider) == null
         ? null
         : ref.read(apiClientProvider).dio,
+    claim: WearRelayClaim(ref.watch(settingsRepositoryProvider)),
   );
   ref.onDispose(handler.stop);
   return handler;
@@ -137,6 +147,9 @@ class NotificationPrefsNotifier extends Notifier<NotificationPrefs> {
 
   Future<void> setEvent(NotifEvent event, bool on) =>
       _save(state.withEvent(event, on));
+
+  Future<void> setFinishPhoto(bool on) =>
+      _save(state.copyWith(finishPhoto: on));
 
   Future<void> setBedCooledTemp(int value) =>
       _save(state.copyWith(bedCooledTemp: value));
@@ -238,9 +251,10 @@ final tokenRefresherProvider = Provider<ProactiveTokenRefresher?>((ref) {
   if (profile == null || profile.authMode != AuthMode.jwt) return null;
   final creds = ref.watch(credentialsStoreProvider);
   final auth = ref.watch(authServiceProvider);
-  final refresher = ProactiveTokenRefresher(
-    readExpiry: () async => jwtExpiry(await creds.readJwt()),
-    refresh: () async => jwtExpiry(await auth.silentReLogin(profile.baseUrl)),
+  final refresher = jwtTokenRefresher(
+    credentials: creds,
+    auth: auth,
+    baseUrl: profile.baseUrl,
   );
   ref.onDispose(refresher.stop);
   return refresher;
@@ -500,10 +514,45 @@ final printerCommandsRepositoryProvider = Provider<PrinterCommandsRepository>(
   (ref) => PrinterCommandsRepository(ref.watch(apiClientProvider).dio),
 );
 
+/// Filament presets and the two slot-configuration commands. Shares the
+/// authenticated Dio.
+final amsSlotConfigRepositoryProvider = Provider<AmsSlotConfigRepository>(
+  (ref) => AmsSlotConfigRepository(ref.watch(apiClientProvider).dio),
+);
+
 /// AMS sensor history (temperature + humidity charts). Shares authenticated
 /// Dio.
 final amsHistoryRepositoryProvider = Provider<AmsHistoryRepository>(
   (ref) => AmsHistoryRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Delayed AMS drying runs. Shares authenticated Dio; the version service
+/// answers whether to offer scheduling until the listing itself has.
+final scheduledDryingRepositoryProvider = Provider<ScheduledDryingRepository>(
+  (ref) => ScheduledDryingRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Home Assistant sensors bound to a storage location — read-only. Shares
+/// authenticated Dio; the version service answers whether the route family is
+/// there until the listing itself has.
+final locationSensorsRepositoryProvider = Provider<LocationSensorsRepository>(
+  (ref) => LocationSensorsRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Printer heater history (nozzle / bed / chamber charts). Shares authenticated
+/// Dio; the version service answers whether to offer the chart until the route
+/// itself has.
+final heaterHistoryRepositoryProvider = Provider<HeaterHistoryRepository>(
+  (ref) => HeaterHistoryRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Connected server's version, read once per profile. Rebuilt with
@@ -542,8 +591,11 @@ final triStateCalibrationProvider = FutureProvider.autoDispose<bool>(
 /// [serverVersionServiceProvider] is, so switching servers cannot carry the old
 /// ceiling over.
 ///
-/// The one gate here with nothing to observe — see
-/// [ServerVersion.chamberMaxTargetC].
+/// One of the two gates with nothing to observe — see
+/// [ServerVersion.chamberMaxTargetC]; [labelStartingPositionProvider] is the
+/// other. Every other capability provider here asks a repository instead,
+/// because a repository has seen the server's own answers and that outranks
+/// reasoning from a version number.
 final chamberMaxTargetProvider = FutureProvider<int>(
   (ref) => ref.watch(serverVersionServiceProvider).chamberMaxTargetC(),
 );
@@ -570,9 +622,27 @@ final processOverridesProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(slicerRepositoryProvider).supportsProcessOverrides(),
 );
 
+/// Whether the label sheet may ask where on the sheet to start printing
+/// (server #2879). Version-only: see [ServerFeature.labelStartingPosition] for
+/// why a PDF response cannot answer it.
+final labelStartingPositionProvider = FutureProvider<bool>(
+  (ref) => ref
+      .watch(serverVersionServiceProvider)
+      .supports(ServerFeature.labelStartingPosition),
+);
+
 /// Archive of prints (M5). Shares authenticated Dio.
 final archiveRepositoryProvider = Provider<ArchiveRepository>(
-  (ref) => ArchiveRepository(ref.watch(apiClientProvider).dio),
+  (ref) => ArchiveRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Timelapse metadata, filmstrip, server-side re-encode and download. Shares
+/// authenticated Dio.
+final timelapseRepositoryProvider = Provider<TimelapseRepository>(
+  (ref) => TimelapseRepository(ref.watch(apiClientProvider).dio),
 );
 
 /// Projects (group prints toward a goal + BOM/stats/timeline). Shares
@@ -584,6 +654,23 @@ final projectsRepositoryProvider = Provider<ProjectsRepository>(
 /// Smart plugs (M7). Shares authenticated Dio.
 final smartPlugsRepositoryProvider = Provider<SmartPlugsRepository>(
   (ref) => SmartPlugsRepository(ref.watch(apiClientProvider).dio),
+);
+
+/// Print log — one row per run, in a table that outlives the archives it
+/// points at. Shares authenticated Dio; the version service gates the
+/// cost/energy columns and the sort control.
+final printLogRepositoryProvider = Provider<PrintLogRepository>(
+  (ref) => PrintLogRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
+);
+
+/// Whether this server sends per-run cost and energy, and honours a sort order
+/// (server #2636). Below it both are silent, so the columns and the sort
+/// control stay off rather than showing blanks and an order nobody applied.
+final printLogCostEnergyProvider = FutureProvider<bool>(
+  (ref) => ref.watch(printLogRepositoryProvider).supportsCostEnergy(),
 );
 
 /// Archive statistics. Shares authenticated Dio.
@@ -611,7 +698,10 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
 
 /// Printer on-device storage (file manager). Shares authenticated Dio.
 final printerFilesRepositoryProvider = Provider<PrinterFilesRepository>(
-  (ref) => PrinterFilesRepository(ref.watch(apiClientProvider).dio),
+  (ref) => PrinterFilesRepository(
+    ref.watch(apiClientProvider).dio,
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Server-side slicing (sidecar). Shares authenticated Dio.
@@ -645,9 +735,16 @@ final serverSettingsProvider = FutureProvider<Map<String, dynamic>>(
 /// (`routes/pipeline_runs.py::run_pipeline`).
 final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
   final settings = await ref.watch(serverSettingsProvider.future);
-  final raw = settings['pipeline_max_copies'];
-  final parsed = raw is num ? raw.toInt() : int.tryParse('$raw');
-  return parsed != null && parsed > 0 ? parsed : 50;
+  final parsed = settings.settingDouble('pipeline_max_copies', 50).toInt();
+  return parsed > 0 ? parsed : 50;
+});
+
+/// The symbol for the currency the server keeps prices in, or `''` when it has
+/// not said. Reads the settings the app already fetches once per session.
+final currencySymbolProvider = Provider<String>((ref) {
+  final code = (ref.watch(serverSettingsProvider).valueOrNull ?? const {})
+      .settingString('currency');
+  return currencySymbol(code is String ? code : null);
 });
 
 /// Whether the scheduler requires per-printer plate-clear confirmation before
@@ -655,8 +752,8 @@ final pipelineMaxCopiesProvider = FutureProvider<int>((ref) async {
 /// pre-start confirmation.
 final requirePlateClearProvider = FutureProvider<bool>(
   (ref) async =>
-      (await ref.watch(serverSettingsProvider.future))['require_plate_clear'] ==
-      true,
+      (await ref.watch(serverSettingsProvider.future))
+          .settingBool('require_plate_clear'),
 );
 
 /// Printer models with an auto-print G-code snippet configured on the server.
@@ -731,7 +828,10 @@ final inventorySourceProvider = Provider<SpoolInventorySource>((ref) {
 
 /// Filament inventory. Facade over chosen source.
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepository(ref.watch(inventorySourceProvider)),
+  (ref) => InventoryRepository(
+    ref.watch(inventorySourceProvider),
+    ref.watch(serverVersionServiceProvider),
+  ),
 );
 
 /// Service minting camera stream token (print cover; from M2 also camera

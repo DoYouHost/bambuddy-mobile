@@ -3,9 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/notifications/notification_prefs.dart';
+import '../../core/notifications/notification_service.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
+
+/// Whether the system is currently swallowing every alert, which the switches
+/// below cannot show on their own: they keep reading "on" while nothing is
+/// delivered, and the app has no other place that says why it went quiet.
+///
+/// Two separate ways to end up there — the app-level permission refused, and the
+/// alerts channel muted by itself, which looks like a granted permission. Kept
+/// `autoDispose` so re-entering the screen asks again after a trip to the system
+/// settings. False whenever the platform does not answer: a banner that might be
+/// wrong is worse than none.
+final _notificationsBlockedProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final service = ref.watch(notificationServiceProvider);
+  if (service is! LocalNotificationService) return false;
+  if (await service.notificationsEnabled() == false) return true;
+  return await service.alertsChannelImportance() == 0;
+});
 
 /// Settings screen to choose which local events trigger notifications, with
 /// thresholds for threshold-based events. Reads/writes [notificationPrefsProvider];
@@ -25,16 +44,16 @@ class NotificationSettingsScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.notifSettingsTitle),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          ),
           children: [
+            if (ref.watch(_notificationsBlockedProvider).valueOrNull ?? false)
+              _BlockedBanner(l10n.notificationsBlocked),
             Text(
               l10n.notifSettingsHint,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: t.textTertiary,
-              ),
+              style: t.label,
             ),
             const SizedBox(height: 12),
             _DashSection(
@@ -62,6 +81,25 @@ class NotificationSettingsScreen extends ConsumerWidget {
                         ? (v) => notifier.setEvent(e.event, v)
                         : null,
                   ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _Header(l10n.notifExtrasHeader),
+            _DashSection(
+              rows: [
+                _DashSwitchRow(
+                  tag: 'notification_settings.finish_photo',
+                  title: l10n.notifFinishPhotoTitle,
+                  subtitle: l10n.notifFinishPhotoDesc,
+                  value: prefs.finishPhoto,
+                  // It decorates the two print-ended alerts, so it is only worth
+                  // touching while at least one of them can fire.
+                  onChanged:
+                      prefs.isOn(NotifEvent.printFinished) ||
+                          prefs.isOn(NotifEvent.printFailed)
+                      ? notifier.setFinishPhoto
+                      : null,
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -124,6 +162,40 @@ class _EventRow {
   final String description;
 }
 
+/// Says the switches below are being overruled by the system. Sits above them
+/// because every one of them reads "on" while nothing gets through.
+class _BlockedBanner extends StatelessWidget {
+  const _BlockedBanner(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.notifications_off_outlined,
+              size: 18, color: scheme.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: DashTokens.of(context).body.copyWith(color: scheme.onErrorContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header(this.text);
   final String text;
@@ -135,13 +207,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
         text.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-          color: t.accentGreenInk,
-        ),
+        style: t.label.copyWith(color: t.accentGreenInk, letterSpacing: 0.4),
       ),
     );
   }
@@ -186,12 +252,18 @@ class _DashSwitchRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.tag = 'notification_settings.event',
   });
 
   final String title;
   final String subtitle;
   final bool value;
   final ValueChanged<bool>? onChanged;
+
+  /// Name this row taps under in a diagnostic log. Defaults to the per-event
+  /// rows, which is what most of this screen is; a row that switches something
+  /// other than an event passes its own.
+  final String tag;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +272,7 @@ class _DashSwitchRow extends StatelessWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: logTag(
-        'notification_settings.event',
+        tag,
         InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: enabled ? () => onChanged!(!value) : null,
@@ -215,22 +287,12 @@ class _DashSwitchRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleSm,
                       ),
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: t.textTertiary,
-                        ),
+                        style: t.label,
                       ),
                     ],
                   ),
@@ -281,12 +343,7 @@ class _ThresholdSlider extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(

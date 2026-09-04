@@ -80,6 +80,28 @@ DateTime? calendarDateFromJson(dynamic value) {
       : DateTime(parsed.year, parsed.month, parsed.day);
 }
 
+/// Inverse of [calendarDateFromJson]: the date as the user picked it, with no
+/// zone conversion. `toIso8601String` cannot stand in — it would carry a time,
+/// and on a UTC-negative device `toUtc` first would move the day.
+String calendarDateToJson(DateTime date) =>
+    '${_pad(date.year, 4)}-${_pad(date.month, 2)}-${_pad(date.day, 2)}';
+
+/// An instant the server can compare against its own columns.
+///
+/// UTC but **without** the `Z`: the columns are naive UTC (`DateTime` with no
+/// timezone), and a tz-aware bind param compares against those differently
+/// depending on the database behind the server. Sending a bare `YYYY-MM-DD`
+/// instead — as the web does — lands on UTC midnight and quietly shifts the
+/// range for anyone not on UTC. `toIso8601String` would append the `Z` and the
+/// milliseconds, so the string is built here.
+String instantToJson(DateTime value) {
+  final utc = value.toUtc();
+  return '${calendarDateToJson(utc)}T'
+      '${_pad(utc.hour, 2)}:${_pad(utc.minute, 2)}:${_pad(utc.second, 2)}';
+}
+
+String _pad(int value, int width) => value.toString().padLeft(width, '0');
+
 /// Tolerant list parse: skips elements that aren't the expected shape, and
 /// skips (rather than propagates) any element [fromJson] itself fails to
 /// parse — one malformed record drops just that entry instead of the whole
@@ -99,13 +121,18 @@ List<T> parseJsonList<T>(
   var dropped = 0;
   String? cause;
   for (final item in value) {
-    if (item is! Map<String, dynamic>) {
-      dropped++;
-      cause ??= 'not an object: ${item.runtimeType}';
-      continue;
-    }
     try {
-      out.add(fromJson(item));
+      // `Map`, not `Map<String, dynamic>`: a record that did not come straight
+      // out of `jsonDecode` — one relayed over a platform channel, which Dart
+      // types as `Map<Object?, Object?>`, or built by an untyped `Map.from` —
+      // is an object all the same, and the private list parsers this replaced
+      // all accepted it. Testing for the exact type would drop it silently.
+      if (item is! Map) {
+        dropped++;
+        cause ??= 'not an object: ${item.runtimeType}';
+        continue;
+      }
+      out.add(fromJson(asJsonRecord(item)));
     } on Object catch (e) {
       dropped++;
       // The first failure only: a field the server renamed fails the same way
@@ -127,6 +154,65 @@ List<T> parseJsonList<T>(
       },
     );
   }
+  return out;
+}
+
+/// One decoded record as the generated `fromJson` factories want it. Free when
+/// the value already has that type, which is the case for everything
+/// `jsonDecode` produced.
+Map<String, dynamic> asJsonRecord(Map<dynamic, dynamic> value) =>
+    value is Map<String, dynamic> ? value : Map<String, dynamic>.from(value);
+
+/// [parseJsonList] for a field whose **absence** has to stay distinguishable
+/// from an empty list, and which therefore cannot fall back to `const []`.
+///
+/// `PrinterStatus` is the reason this exists: its two lanes carry disjoint
+/// subsets of the status, so `mergedWith` reads a null as "this frame did not
+/// mention it" and inherits the last known value. An empty list there is news —
+/// the AMS was unplugged — and answering one for a frame that simply did not
+/// carry the block would blank the card on every poll.
+List<T>? parseJsonListOrNull<T>(
+  dynamic value,
+  T Function(Map<String, dynamic>) fromJson,
+) =>
+    value is List ? parseJsonList(value, fromJson) : null;
+
+/// One tolerant nested record: anything that is not an object, and any record
+/// [fromJson] itself chokes on, reads as absent rather than throwing through
+/// the parent.
+T? parseJsonObjectOrNull<T>(
+  dynamic value,
+  T Function(Map<String, dynamic>) fromJson,
+) {
+  if (value is! Map) return null;
+  try {
+    return fromJson(asJsonRecord(value));
+  } on Object catch (e) {
+    DiagnosticRecorder.active?.add(
+      LogSource.app,
+      'parse_drop',
+      lvl: LogLevel.warn,
+      fields: {'type': T.toString(), 'n': 1, 'of': 1, 'cause': e.toString()},
+    );
+    return null;
+  }
+}
+
+/// Tolerant map keyed by a numeric id the server stringifies (`{"0": …}`), with
+/// absence kept distinct from emptiness for the same reason
+/// [parseJsonListOrNull] is. [valueOf] reads one entry; an entry whose key or
+/// value it cannot read is dropped rather than guessed at.
+Map<int, V>? parseJsonMapByIdOrNull<V>(
+  dynamic value,
+  V? Function(dynamic value) valueOf,
+) {
+  if (value is! Map) return null;
+  final out = <int, V>{};
+  value.forEach((key, raw) {
+    final id = toIntOrNull(key);
+    final entry = valueOf(raw);
+    if (id != null && entry != null) out[id] = entry;
+  });
   return out;
 }
 
@@ -176,6 +262,31 @@ Map<String, double> toDoubleMap(dynamic value) {
   value.forEach((key, v) => out['$key'] = toDouble(v));
   return out;
 }
+
+/// Tolerant `Map<String, String>` coercion, see [toIntMap]. An entry whose
+/// value is not a non-blank string is dropped rather than kept as an empty
+/// label — the caller's own fallback names that row better than nothing does.
+Map<String, String> toStringMap(dynamic value) {
+  if (value is! Map) return const {};
+  final out = <String, String>{};
+  value.forEach((key, v) {
+    final text = toStringOrNull(v);
+    if (text != null) out['$key'] = text;
+  });
+  return out;
+}
+
+/// Tolerant `bool` coercion with a `false` fallback: accepts a real boolean,
+/// a number (`0` is false) and the strings the server and the printer both use
+/// for one. False is the fallback because every flag read through it names a
+/// capability or an accessory, where "not reported" and "not there" are the
+/// same answer.
+bool toBoolOrFalse(dynamic value) => switch (value) {
+      bool b => b,
+      num n => n != 0,
+      String s => s.toLowerCase() == 'true' || s == '1',
+      _ => false,
+    };
 
 /// Tolerant `List<String>` coercion: keeps only string elements.
 List<String> toStringList(dynamic value) {

@@ -9,6 +9,10 @@ part of 'printer_card.dart';
 /// active heater) are tappable and open [_TempControlSheet]. Setpoint and
 /// airduct glyph overlay the optimistic override from [controlsProvider] so a
 /// just-sent change shows instantly. Read-only when control is forbidden.
+///
+/// Sensors the server keeps history for also carry a chart glyph next to the
+/// label, opening [showHeaterHistorySheet] — the tile's own tap is taken by the
+/// setpoint sheet, and history stays reachable on read-only tiles too.
 class _GaugeTile extends ConsumerWidget {
   const _GaugeTile({
     required this.reading,
@@ -18,11 +22,16 @@ class _GaugeTile extends ConsumerWidget {
     required this.dualNozzle,
     required this.activeExtruder,
     required this.printing,
+    required this.historyKinds,
   });
 
   final _TempReading reading;
   final int printerId;
   final String? model;
+
+  /// Every sensor on this printer the history sheet can switch between; empty
+  /// when none of them is recorded (then no tile shows the chart glyph).
+  final List<HeaterKindOption> historyKinds;
 
   /// Hardware nozzle index (0=right/default, 1=left) for nozzle tiles; null for
   /// non-nozzle sensors.
@@ -49,7 +58,7 @@ class _GaugeTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     // Only the chamber gauge scales against the ceiling, so watching it on every
     // tile rebuilds nozzle and bed for nothing when the probe answers. 60 until
     // the server's version is known — see [chamberMaxTargetProvider].
@@ -78,6 +87,47 @@ class _GaugeTile extends ConsumerWidget {
         : (airduct ? Icons.local_fire_department : Icons.ac_unit);
 
     final editable = _isEditable && !forbidden;
+    // Hidden until the server is known to have the route: a shortcut that can
+    // only ever error is worse than no shortcut.
+    final hasHistory = historyKinds.any((k) => k.kind == reading.raw) &&
+        ref
+            .watch(heaterHistorySupportedProvider)
+            .maybeWhen(data: (v) => v, orElse: () => false);
+
+    // The sensor label, preceded by the chart glyph when this sensor is
+    // recorded. The whole strip is the history button, not just the glyph: a
+    // 14 px icon is a 22 px target sitting inside the tile's own InkWell, so a
+    // near-miss opened the setpoint sheet instead of the chart. Taking the
+    // label's full width and the 6 px gap below it costs no tile height — the
+    // strip ends up exactly as tall as a label with no glyph at all.
+    Widget labelStrip = Row(
+      children: [
+        if (hasHistory) ...[
+          Icon(Icons.show_chart, size: 14, color: t.textSecondary),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            reading.label(l10n).toUpperCase(),
+            style: t.micro.copyWith(color: t.textSecondary, letterSpacing: 0.3),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+    if (hasHistory) {
+      labelStrip = _HistoryButton(
+        logId: reading.historyLogId,
+        onTap: () => showHeaterHistorySheet(
+          context,
+          printerId: printerId,
+          kinds: historyKinds,
+          initialKind: reading.raw,
+        ),
+        child: labelStrip,
+      );
+    }
 
     final tile = Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -107,20 +157,10 @@ class _GaugeTile extends ConsumerWidget {
               // Reserve the gauge's corner: pad the label so it never collides.
               Padding(
                 padding: const EdgeInsets.only(right: 40),
-                child: Text(
-                  reading.label(l10n).toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: labelStrip,
               ),
-              const SizedBox(height: 6),
+              // With the glyph the gap belongs to the button (see [labelStrip]).
+              if (!hasHistory) const SizedBox(height: 6),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -131,13 +171,7 @@ class _GaugeTile extends ConsumerWidget {
                   ],
                   Text(
                     actual == null ? '—' : '${actual.toStringAsFixed(0)}°',
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      height: 1.0,
-                      color: t.textPrimary,
-                    ),
+                    style: t.monoDisplay.copyWith(height: 1.0),
                   ),
                 ],
               ),
@@ -167,10 +201,8 @@ class _GaugeTile extends ConsumerWidget {
   }
 
   void _openSheet(BuildContext context, int initialTarget) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    dashSurfaceSheet<void>(
+      context,
       builder: (_) => _TempControlSheet(
         printerId: printerId,
         reading: reading,
@@ -185,19 +217,74 @@ class _GaugeTile extends ConsumerWidget {
   }
 }
 
-/// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
-/// green; offline → red tinted with a vivid border.
-class _StateChip extends StatelessWidget {
-  const _StateChip({
-    required this.label,
-    required this.connected,
-    this.active = false,
-    this.offline = false,
+/// The tile's label strip turned into a button that opens the heater history
+/// sheet. Brings its own [Material] because read-only tiles are not wrapped in
+/// one, and the ink would have nowhere to draw. The 6 px of air above the
+/// temperature reading is the button's own padding: it is hit area the tile
+/// cannot spare in height, since the big number owns the rest of it.
+class _HistoryButton extends StatelessWidget {
+  const _HistoryButton({
+    required this.logId,
+    required this.onTap,
+    required this.child,
   });
 
+  final String logId;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return logTag(
+      logId,
+      Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Tooltip(
+            message: AppLocalizations.of(context).heaterHistoryOpen,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sensor keys the server records history for — bambuddy's own `VALID_KINDS`
+/// (`printer_sensor_history.py`). A key outside this set gets no chart glyph:
+/// the endpoint would answer with an empty series for it.
+const _heaterHistoryKinds = {'nozzle', 'nozzle_2', 'bed', 'chamber'};
+
+/// The sensors of one printer the history sheet can switch between, labelled
+/// exactly as their tiles are.
+List<HeaterKindOption> _heaterKindOptions(
+  List<_TempReading> readings,
+  AppLocalizations l10n,
+) =>
+    [
+      for (final r in readings)
+        if (_heaterHistoryKinds.contains(r.raw))
+          (kind: r.raw, label: r.label(l10n)),
+    ];
+
+/// Status pill in the card header ("IDLE", "RUNNING", "OFFLINE"). Connected →
+/// green; offline → red tinted with a vivid border.
+///
+/// [offline] is the only thing that decides the paint, so it must be passed
+/// wherever the printer is unreachable — including the window in which the card
+/// still shows its body (see the grace period in `PrinterCard`). A chip that
+/// took "connected" as a hint and painted green anyway is how an OFFLINE label
+/// ended up in the green pill.
+class _StateChip extends StatelessWidget {
+  const _StateChip({required this.label, this.offline = false});
+
   final String label;
-  final bool connected;
-  final bool active;
   final bool offline;
 
   @override
@@ -225,13 +312,7 @@ class _StateChip extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-          color: fg,
-        ),
+        style: t.micro.copyWith(color: fg, letterSpacing: 0.4),
       ),
     );
   }
@@ -265,9 +346,14 @@ class _TempReading {
   /// (`nozzle`, `nozzle_2`, `bed`), which keeps the log's vocabulary the same on
   /// both sides — but it is the server's string, so anything not shaped like an
   /// identifier falls back to the bare tile name rather than going in verbatim.
-  String get logId => RegExp(r'^\w+$').hasMatch(raw)
-      ? 'printer.temperature_$raw'
-      : 'printer.temperature';
+  String get logId => _logId('printer.temperature');
+
+  /// Identifier of the tile's history shortcut, sensor by sensor for the same
+  /// reason [logId] is.
+  String get historyLogId => _logId('printer.temperature_history');
+
+  String _logId(String base) =>
+      RegExp(r'^\w+$').hasMatch(raw) ? '${base}_$raw' : base;
 
   String label(AppLocalizations l10n) => switch (kind) {
         _TempKind.nozzle =>
@@ -399,17 +485,9 @@ _TempReading _readingFor(
   );
 }
 
-String _durationText(AppLocalizations l10n, int minutes) => minutes < 60
-    ? l10n.durationMinutes(minutes)
-    : l10n.durationHoursMinutes(minutes ~/ 60, minutes % 60);
-
-/// ETA as HH:mm = now + remaining minutes.
-String _etaTime(int remainingMinutes) {
-  final eta = DateTime.now().add(Duration(minutes: remainingMinutes));
-  final hh = eta.hour.toString().padLeft(2, '0');
-  final mm = eta.minute.toString().padLeft(2, '0');
-  return '$hh:$mm';
-}
+/// ETA as a clock reading = now + remaining minutes.
+String _etaTime(DateTimeFormats fmt, int remainingMinutes) =>
+    fmt.time(DateTime.now().add(Duration(minutes: remainingMinutes)));
 
 /// Bottom sheet to set a sensor's target temperature: a slider with fine −/+
 /// steppers, plus Off/Set. For the chamber on airduct-capable models it also
@@ -483,9 +561,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -501,9 +577,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure != null) {
       setState(() => _airductHeating = previous); // revert on failure
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(failure)));
+      messenger.snack(failure, clearQueue: true);
     }
   }
 
@@ -520,11 +594,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
     final failure = result.messageFor(l10n);
     if (failure == null) return; // keep locked until live confirms
     setState(() => _switchingTo = null); // command failed — release the lock
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(failure),
-      ));
+    messenger.snack(failure, clearQueue: true);
   }
 
   /// Active-extruder control shown in the nozzle sheet on dual-head printers:
@@ -546,12 +616,7 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
             const SizedBox(width: 6),
             Text(
               l10n.ctrlNozzleActive,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: t.accentGreenInk,
-              ),
+              style: t.label.copyWith(color: t.accentGreenInk),
             ),
           ],
         )
@@ -575,23 +640,14 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const DashSpinner(size: 16)
                     : Icon(Icons.swap_horiz,
                         size: 16,
                         color: enabled ? t.textPrimary : t.textTertiary),
                 const SizedBox(width: 6),
                 Text(
                   l10n.ctrlActivate,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: enabled ? t.textPrimary : t.textTertiary,
-                  ),
+                  style: t.bodyBold.copyWith(color: enabled ? t.textPrimary : t.textTertiary),
                 ),
               ],
             ),
@@ -663,21 +719,15 @@ class _TempControlSheetState extends ConsumerState<_TempControlSheet> {
                     children: [
                       Text(
                         _reading.label(l10n),
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontUi,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: t.textPrimary,
-                        ),
+                        style: t.titleLg,
                       ),
                       const Spacer(),
                       Text(
                         _reading.actual == null
                             ? '—'
                             : '${_reading.actual!.toStringAsFixed(0)}°',
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 16,
+                        style: t.monoTitle.copyWith(
+                          fontWeight: FontWeight.w400,
                           color: t.textSecondary,
                         ),
                       ),
@@ -847,15 +897,12 @@ class _PresetChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: fg,
-            ),
+            style: t.monoValue.copyWith(color: fg),
           ),
         ),
-      ).tagged(id),
+        // Which chip is the current one is otherwise painted and nothing else:
+        // a reader would announce seven identical buttons.
+      ).tagged(id, selected: selected),
     );
   }
 }
@@ -916,12 +963,7 @@ class _AirductToggle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           l10n.ctrlAirduct,
-          style: TextStyle(
-            fontFamily: DashTokens.fontUi,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
+          style: t.body.copyWith(color: t.textSecondary),
         ),
         const Spacer(),
         SegmentedButton<bool>(
@@ -989,19 +1031,10 @@ class _SheetButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const DashSpinner()
               : Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                  ),
+                  style: t.titleSm.copyWith(color: fg),
                 ),
         ),
       ).tagged(id),

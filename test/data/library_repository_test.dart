@@ -328,4 +328,51 @@ void main() {
       expect(group.id, 3);
     });
   });
+
+  // The library twin of `ArchiveRepository.plates` — same payload shape, so one
+  // model reads both. This is also where the slice screen's "as designed" gate
+  // gets its answer now, instead of from a second request to the same route.
+  group('plates', () {
+    test('reads plates and design presets off the library route', () async {
+      adapter.onGet(
+        '/api/v1/library/files/9/plates',
+        (s) => s.reply(200, {
+          'file_id': 9,
+          'plates': [
+            {'index': 1, 'name': 'Left', 'has_thumbnail': false},
+            {'index': 2, 'name': 'Right', 'has_thumbnail': false},
+          ],
+          'is_multi_plate': true,
+          'embedded_printer': 'Bambu Lab X2D 0.4 nozzle',
+          'embedded_process': '0.20mm Standard @BBL X2D',
+          'design_overrides': [
+            {'key': 'wall_loops', 'value': '4', 'printer_coupled': false},
+          ],
+        }),
+      );
+
+      final plates = await repo.plates(9);
+
+      expect(plates.plates.map((p) => p.index), [1, 2]);
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.embedded.printer, 'Bambu Lab X2D 0.4 nozzle');
+      expect(plates.embedded.serverSupportsAsDesigned, isTrue);
+      expect(plates.hasGcode, isFalse,
+          reason: 'the library route does not answer has_gcode at all');
+    });
+
+    // The picker and the "as designed" switch are both niceties on top of a
+    // form that works without them; an unreadable 3MF must not take the screen
+    // down with it, and neither must a route that is not there.
+    test('a failure and a missing route both leave nothing to offer', () async {
+      adapter
+        ..onGet('/api/v1/library/files/9/plates',
+            (s) => s.reply(500, {'detail': 'boom'}))
+        ..onGet('/api/v1/library/files/8/plates',
+            (s) => s.reply(404, {'detail': 'Not Found'}));
+
+      expect((await repo.plates(9)).embedded.isAvailable, isFalse);
+      expect((await repo.plates(8)).plates, isEmpty);
+    });
+  });
 }

@@ -1,43 +1,11 @@
+import 'dart:async';
+
 import 'package:bambuddy_mobile/core/watch/wear_rpc.dart';
 import 'package:bambuddy_mobile/wear/wear_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers.dart';
 import '../helpers/fake_watch_connectivity.dart';
-
-/// Scriptable transport for hybrid-policy tests.
-class FakeTransport implements WearTransport {
-  FakeTransport({this.error});
-
-  /// Thrown by every call when set; otherwise calls succeed.
-  final Exception? error;
-  final calls = <String>[];
-
-  Future<T> _run<T>(String name, T value) {
-    calls.add(name);
-    final e = error;
-    if (e != null) throw e;
-    return Future.value(value);
-  }
-
-  @override
-  Future<WearFleet> getFleet() =>
-      _run('getFleet', const WearFleet(printers: []));
-
-  @override
-  Future<void> pause(int printerId) => _run('pause', null);
-
-  @override
-  Future<void> resume(int printerId) => _run('resume', null);
-
-  @override
-  Future<void> stop(int printerId) => _run('stop', null);
-
-  @override
-  Future<void> clearPlate(int printerId) => _run('clearPlate', null);
-
-  @override
-  Future<void> startNext(int printerId) => _run('startNext', null);
-}
 
 void main() {
   group('RelayTransport', () {
@@ -126,6 +94,35 @@ void main() {
       );
     });
 
+    test('wake ack pushes the deadline out: a late reply still lands', () async {
+      // A phone that was dead acks first and answers only after the base
+      // deadline has passed — the case the ack exists for.
+      watch.autoRespond = (req) {
+        final id = req['id'] as String;
+        Timer(
+          const Duration(milliseconds: 300),
+          () => watch.deliver(WearRpcResponse.ok(id).encode()),
+        );
+        return WearRpcAck(id).encode();
+      };
+      await relay.pause(1);
+    });
+
+    test('an acked request still gives up in the end', () async {
+      relay = RelayTransport(
+        watch,
+        timeout: const Duration(milliseconds: 50),
+        wakeTimeout: const Duration(milliseconds: 150),
+      );
+      watch.autoRespond = (req) => WearRpcAck(req['id'] as String).encode();
+      await expectLater(relay.pause(1), throwsA(isA<WearRelayTimeout>()));
+    });
+
+    test('ack for another id does not extend this request', () async {
+      watch.autoRespond = (req) => const WearRpcAck('some-other-id').encode();
+      await expectLater(relay.pause(1), throwsA(isA<WearRelayTimeout>()));
+    });
+
     test('other remote errors surface as WearRelayRemoteError with the code',
         () async {
       watch.autoRespond = (req) =>
@@ -140,8 +137,8 @@ void main() {
 
   group('HybridWearTransport', () {
     test('relay success → no REST call, lastMode=relay', () async {
-      final relay = FakeTransport();
-      final rest = FakeTransport();
+      final relay = FakeWearTransport();
+      final rest = FakeWearTransport();
       final hybrid = HybridWearTransport(relay: relay, rest: rest);
       await hybrid.getFleet();
       expect(relay.calls, ['getFleet']);
@@ -149,11 +146,25 @@ void main() {
       expect(hybrid.lastMode, WearTransportMode.relay);
     });
 
+    test('no relay (demo) goes straight to REST, and never asks the phone',
+        () async {
+      // Demo lives in this process. A phone answering the relay would answer
+      // from its own server, so a demo watch would list the real fleet.
+      final rest = FakeWearTransport();
+      final hybrid = HybridWearTransport.restOnly(rest);
+
+      await hybrid.getFleet();
+      await hybrid.pause(1);
+
+      expect(rest.calls, ['getFleet', 'pause:1']);
+      expect(hybrid.lastMode, WearTransportMode.rest);
+    });
+
     test('read falls back to REST on unreachable AND on timeout', () async {
       for (final error in [WearRelayUnreachable(), WearRelayTimeout()]) {
-        final rest = FakeTransport();
+        final rest = FakeWearTransport();
         final hybrid = HybridWearTransport(
-            relay: FakeTransport(error: error), rest: rest);
+            relay: FakeWearTransport(error: error), rest: rest);
         await hybrid.getFleet();
         expect(rest.calls, ['getFleet'], reason: '$error');
         expect(hybrid.lastMode, WearTransportMode.rest);
@@ -162,26 +173,26 @@ void main() {
 
     test('command falls back on unreachable (definitely not executed)',
         () async {
-      final rest = FakeTransport();
+      final rest = FakeWearTransport();
       final hybrid = HybridWearTransport(
-          relay: FakeTransport(error: WearRelayUnreachable()), rest: rest);
+          relay: FakeWearTransport(error: WearRelayUnreachable()), rest: rest);
       await hybrid.pause(1);
-      expect(rest.calls, ['pause']);
+      expect(rest.calls, ['pause:1']);
     });
 
     test('command does NOT fall back on timeout (may have executed)',
         () async {
-      final rest = FakeTransport();
+      final rest = FakeWearTransport();
       final hybrid = HybridWearTransport(
-          relay: FakeTransport(error: WearRelayTimeout()), rest: rest);
+          relay: FakeWearTransport(error: WearRelayTimeout()), rest: rest);
       await expectLater(hybrid.startNext(1), throwsA(isA<WearRelayTimeout>()));
       expect(rest.calls, isEmpty);
     });
 
     test('remote errors propagate without REST retry', () async {
-      final rest = FakeTransport();
+      final rest = FakeWearTransport();
       final hybrid = HybridWearTransport(
-          relay: FakeTransport(error: WearRelayRemoteError('forbidden')),
+          relay: FakeWearTransport(error: WearRelayRemoteError('forbidden')),
           rest: rest);
       await expectLater(
           hybrid.clearPlate(1), throwsA(isA<WearRelayRemoteError>()));
@@ -190,7 +201,7 @@ void main() {
 
     test('no REST configured → relay error propagates', () async {
       final hybrid = HybridWearTransport(
-          relay: FakeTransport(error: WearRelayUnreachable()), rest: null);
+          relay: FakeWearTransport(error: WearRelayUnreachable()), rest: null);
       await expectLater(
           hybrid.getFleet(), throwsA(isA<WearRelayUnreachable>()));
     });

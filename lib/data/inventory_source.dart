@@ -5,13 +5,43 @@ import 'package:dio/dio.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 import '../core/models/inventory.dart';
+import '../core/models/inventory_bulk.dart';
 import '../core/models/inventory_reference.dart';
 import '../core/models/json_utils.dart';
 import '../core/models/spool_label.dart';
+import '../core/models/spool_preset_override.dart';
 
 /// Filament inventory backend. User has native, but app should also work on Spoolman —
 /// selected via setting (see `inventoryBackendProvider`).
 enum InventoryBackend { native, spoolman }
+
+/// [guard] that also keeps what the server wrote when it answers 404.
+///
+/// The from-slot routes spend that status on two unrelated failures — the
+/// printer is not connected, or the route does not exist on this server at all
+/// — and the base mapper keeps `detail` only for 403, so without this the two
+/// are indistinguishable and the user is told the wrong thing about half the
+/// time.
+Future<T> _guardKeeping404Detail<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on DioException catch (e) {
+    final mapped = mapDioException(e);
+    final detail = serverDetailOf(e.response?.data);
+    if (mapped is! ApiException ||
+        e.response?.statusCode != 404 ||
+        detail == null) {
+      throw mapped;
+    }
+    throw ApiException(
+      mapped.code,
+      statusCode: 404,
+      detail: detail,
+      method: mapped.method,
+      path: mapped.path,
+    );
+  }
+}
 
 /// Common interface for inventory data source — UI and providers don't know which
 /// backend is running (swappable pattern like `BackgroundMonitor`). Each implementation
@@ -32,6 +62,19 @@ abstract class SpoolInventorySource {
 
   /// Unassigns a spool from a slot.
   Future<void> unassignSpool(int printerId, int amsId, int trayId);
+
+  /// Registers whatever the AMS slot currently holds as a new spool and pins
+  /// it to that slot in one call. Returns the new spool's id, or null when the
+  /// backend created one without saying which.
+  ///
+  /// The slot must carry a readable RFID tag: without one the server refuses
+  /// (400), because a tagless slot has no identity to re-link to and every
+  /// confirm would mint another row.
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  });
 
   /// Usage history for a single spool (loaded on-demand in details).
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId);
@@ -54,8 +97,21 @@ abstract class SpoolInventorySource {
   Future<void> archiveSpool(int spoolId);
   Future<void> restoreSpool(int spoolId);
 
-  /// Resets spool usage (full again).
+  /// Resets the spool's "Total Consumed" counter. Remaining weight is
+  /// preserved and the weight lock is left alone, so the spool keeps taking
+  /// AMS auto-sync from the next print on.
   Future<void> resetUsage(int spoolId);
+
+  /// Bulk operations on a selection. Each returns what the server did, chunked
+  /// to the 500-id cap and summed. All of them throw with `statusCode == 404`
+  /// on a server older than the routes (0.2.5b1) — unknown ids are reported in
+  /// the body, never as a status, so the caller can read that 404 as "this
+  /// server has no bulk routes" and fall back to per-spool calls.
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch);
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds);
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds);
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds);
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds);
 
   /// Form reference data (core weight catalog, color database, filament profiles).
   /// Degrade to empty lists — form allows manual entry.
@@ -63,19 +119,32 @@ abstract class SpoolInventorySource {
   Future<List<ColorEntry>> fetchColors();
   Future<List<FilamentPreset>> fetchFilamentPresets();
 
-  /// Storage-location catalog names for the location picker. Native only;
-  /// Spoolman degrades to empty (the picker still accepts free text).
-  Future<List<String>> fetchLocations();
+  /// Storage-location catalog for the location picker, and for matching a
+  /// spool's free-text location to the row the server keys its Home Assistant
+  /// sensors by. Native only; Spoolman degrades to empty (the picker still
+  /// accepts free text).
+  Future<List<StorageLocation>> fetchLocations();
 
-  /// Renders labels for [spoolIds] onto [template] and returns the PDF bytes.
-  /// Label order follows [spoolIds], so a caller-chosen sort carries through to
-  /// a sheet print. [monochrome] drops the colour swatch for B&W thermal
-  /// printers.
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  });
+  /// Renders the labels [request] describes and returns the PDF bytes.
+  Future<Uint8List> renderLabels(SpoolLabelRequest request);
+
+  /// One spool's per-printer-model preset overrides, and the replace that
+  /// writes them back (server 1.2.6; see [SpoolPresetOverride]).
+  ///
+  /// The two exceptions to the rule that everything here answers with a mapped
+  /// [AppApiException]: [InventoryRepository] runs them inside the latch that
+  /// reads a 404 as "this server has no such route", and that latch needs the
+  /// [DioException] itself to read the status off. It maps what it rethrows,
+  /// so nothing above the repository sees the difference.
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId);
+
+  /// Replaces the whole list — an empty one clears every override. The route
+  /// has no merge, so a caller that could not read the current rows must not
+  /// call this: it would delete what it never saw.
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  );
 }
 
 /// Whether [bytes] open with `%PDF`, the magic number every PDF starts with.
@@ -98,17 +167,11 @@ bool _looksLikePdf(Uint8List bytes) =>
 Future<Uint8List> _postLabels(
   Dio dio,
   String path,
-  List<int> spoolIds,
-  SpoolLabelTemplate template,
-  bool monochrome,
+  SpoolLabelRequest request,
 ) => guard(() async {
   final res = await dio.post<List<int>>(
     path,
-    data: {
-      'spool_ids': spoolIds,
-      'template': template.wire,
-      'monochrome': monochrome,
-    },
+    data: request.toJson(),
     // The response is a PDF stream, not JSON — without this Dio's default
     // JSON transformer would try to decode it and throw.
     options: Options(responseType: ResponseType.bytes),
@@ -122,6 +185,128 @@ Future<Uint8List> _postLabels(
     );
   }
   return bytes;
+});
+
+/// Shared per-model preset override calls — the two backends differ only in
+/// path, since both routes take and answer the same body.
+///
+/// Deliberately unguarded: the latch in [InventoryRepository] reads the status
+/// off the [DioException] and maps what it rethrows. See
+/// [SpoolInventorySource.fetchPresetOverrides].
+Future<List<SpoolPresetOverride>> _getPresetOverrides(
+  Dio dio,
+  String path,
+) async {
+  final res = await dio.get<List<dynamic>>(path);
+  return parseJsonList(res.data, SpoolPresetOverride.fromJson);
+}
+
+Future<void> _putPresetOverrides(
+  Dio dio,
+  String path,
+  List<SpoolPresetOverride> overrides,
+) async {
+  await dio.put<dynamic>(path, data: [for (final o in overrides) o.toJson()]);
+}
+
+/// A JSON object out of a response body, or null when the server answered with
+/// something else — the demo backend replies `{}` to unrouted POSTs and an old
+/// build could answer a bare list, and neither may crash a bulk tally.
+Map<String, dynamic>? _objectOf(Object? data) =>
+    data is Map ? data.cast<String, dynamic>() : null;
+
+/// Sends one request per chunk of the 500-id cap and sums what came back.
+///
+/// A refusal part-way through keeps what the earlier chunks already did: those
+/// rows are mutated on the server, and throwing here would report the whole
+/// selection as failed while hundreds of spools had in fact been archived. The
+/// ids from the failing chunk on are counted as failed, since none of them took
+/// effect.
+///
+/// With nothing accumulated yet the error propagates instead — that is the path
+/// carrying "no permission" to the user, and the 404 the caller reads as "this
+/// server has no bulk routes" before falling back to per-spool calls.
+Future<BulkOutcome> _postChunked(
+  List<int> ids,
+  Future<BulkOutcome> Function(List<int> chunk) send,
+) async {
+  var total = BulkOutcome.empty;
+  var done = 0;
+  for (final chunk in chunkIds(ids)) {
+    try {
+      total += await send(chunk);
+    } on Object {
+      if (done == 0) rethrow;
+      return total + BulkOutcome(failed: ids.length - done);
+    }
+    done += chunk.length;
+  }
+  return total;
+}
+
+/// The three `{ids: […]}` routes — archive, restore, delete. [okKey] and
+/// [skippedKey] name the counters this particular route answers with.
+Future<BulkOutcome> _postBulkIds(
+  Dio dio,
+  String path,
+  List<int> ids, {
+  required String okKey,
+  String? skippedKey,
+}) => _postChunked(ids, (chunk) => guard(() async {
+      final res = await dio.post<dynamic>(path, data: {'ids': chunk});
+      return BulkOutcome.fromJson(
+        _objectOf(res.data),
+        okKey: okKey,
+        skippedKey: skippedKey,
+      );
+    }));
+
+/// `bulk-update`. [update] is the backend's own serialization of the patch, so
+/// an edit that only touches native-only columns arrives here empty on
+/// Spoolman — nothing to apply, and the route answers 400 to an empty `update`,
+/// so it is not sent at all.
+Future<BulkOutcome> _postBulkUpdate(
+  Dio dio,
+  String path,
+  List<int> ids,
+  Map<String, dynamic> update,
+) async {
+  if (update.isEmpty) return BulkOutcome.empty;
+  return _postChunked(ids, (chunk) => guard(() async {
+        final res = await dio.post<dynamic>(
+          path,
+          data: {'ids': chunk, 'update': update},
+        );
+        return BulkOutcome.fromJson(_objectOf(res.data), okKey: 'updated');
+      }));
+}
+
+/// `reset-consumed-counter-bulk` — the one route keyed on `spool_ids` rather
+/// than `ids`, and the one that reports only a count.
+Future<BulkOutcome> _postBulkReset(Dio dio, String path, List<int> ids) =>
+    _postChunked(ids, (chunk) => guard(() async {
+          final res = await dio.post<dynamic>(path, data: {'spool_ids': chunk});
+          return BulkOutcome.fromResetJson(_objectOf(res.data), chunk.length);
+        }));
+
+/// POSTs [path], and on 404 posts [legacyPath] instead.
+///
+/// For a route the server renamed without leaving an alias: the two names never
+/// coexist, so a 404 on the current one identifies an older server rather than
+/// a missing spool. Written for `reset-consumed-counter`, which replaced
+/// `reset-usage` (server issue #1644) — the app has to keep working on both
+/// sides of that rename.
+Future<void> _postWithLegacyFallback(
+  Dio dio,
+  String path,
+  String legacyPath,
+) => guard(() async {
+  try {
+    await dio.post<dynamic>(path);
+  } on DioException catch (e) {
+    if (e.response?.statusCode != 404) rethrow;
+    await dio.post<dynamic>(legacyPath);
+  }
 });
 
 /// Native backend `/inventory/*` (default). Auth adds shared `AuthInterceptor`;
@@ -164,6 +349,24 @@ class NativeInventorySource implements SpoolInventorySource {
           Endpoints.inventoryAssignment(printerId, amsId, trayId),
         ),
       );
+
+  @override
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  }) =>
+      _guardKeeping404Detail(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.inventorySpoolFromSlot,
+          data: {
+            'printer_id': printerId,
+            'ams_id': amsId,
+            'tray_id': trayId,
+          },
+        );
+        return toIntOrNull(res.data?['id']);
+      });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async {
@@ -217,8 +420,53 @@ class NativeInventorySource implements SpoolInventorySource {
       guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.inventorySpoolResetUsage(spoolId)));
+  Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
+        _dio,
+        Endpoints.inventorySpoolResetConsumedCounter(spoolId),
+        Endpoints.inventorySpoolResetUsage(spoolId),
+      );
+
+  @override
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
+      _postBulkUpdate(
+        _dio,
+        Endpoints.inventorySpoolsBulkUpdate,
+        spoolIds,
+        patch.toNativeJson(),
+      );
+
+  @override
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkArchive,
+        spoolIds,
+        okKey: 'archived',
+        skippedKey: 'already_archived',
+      );
+
+  @override
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkRestore,
+        spoolIds,
+        okKey: 'restored',
+        skippedKey: 'already_active',
+      );
+
+  @override
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.inventorySpoolsBulkDelete,
+        spoolIds,
+        okKey: 'deleted',
+      );
+
+  @override
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
+        _dio,
+        Endpoints.inventorySpoolsResetConsumedCounterBulk,
+        spoolIds,
+      );
 
   @override
   Future<List<CoreWeightEntry>> fetchCoreWeights() async {
@@ -248,26 +496,35 @@ class NativeInventorySource implements SpoolInventorySource {
   }
 
   @override
-  Future<List<String>> fetchLocations() => guard(() async {
+  Future<List<StorageLocation>> fetchLocations() => guard(() async {
         final res = await _dio.get<List<dynamic>>(Endpoints.inventoryLocations);
         return [
-          for (final e in res.data ?? const [])
-            if (e is Map && (e['name'] as String?)?.trim().isNotEmpty == true)
-              (e['name'] as String).trim(),
+          for (final loc
+              in parseJsonList(res.data, StorageLocation.fromJson))
+            if (loc.name.isNotEmpty) loc,
         ];
       });
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.inventoryLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
         _dio,
-        Endpoints.inventoryLabels,
-        spoolIds,
-        template,
-        monochrome,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.inventorySpoolFilamentPresets(spoolId),
+        overrides,
       );
 }
 
@@ -310,6 +567,27 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   @override
   Future<void> unassignSpool(int printerId, int amsId, int trayId) async =>
       throw UnsupportedError('Spoolman backend does not support slot assignment');
+
+  /// The one slot write Spoolman does expose — and it answers with
+  /// `{success, spool_id}` rather than the spool itself
+  /// (`backend/app/api/routes/spoolman.py::create_spool_from_slot`).
+  @override
+  Future<int?> createSpoolFromSlot({
+    required int printerId,
+    required int amsId,
+    required int trayId,
+  }) =>
+      _guardKeeping404Detail(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          Endpoints.spoolmanSpoolFromSlot,
+          data: {
+            'printer_id': printerId,
+            'ams_id': amsId,
+            'tray_id': trayId,
+          },
+        );
+        return toIntOrNull(res.data?['spool_id']);
+      });
 
   @override
   Future<List<SpoolUsageEntry>> fetchUsage(int spoolId) async => const [];
@@ -362,8 +640,57 @@ class SpoolmanInventorySource implements SpoolInventorySource {
       guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolRestore(spoolId)));
 
   @override
-  Future<void> resetUsage(int spoolId) =>
-      guard(() => _dio.post<dynamic>(Endpoints.spoolmanSpoolResetUsage(spoolId)));
+  Future<void> resetUsage(int spoolId) => _postWithLegacyFallback(
+        _dio,
+        Endpoints.spoolmanSpoolResetConsumedCounter(spoolId),
+        Endpoints.spoolmanSpoolResetUsage(spoolId),
+      );
+
+  /// Spoolman's `update` is the narrower one: `category` and
+  /// `low_stock_threshold_pct` have no column there, so an edit that touches
+  /// only those reaches the backend as nothing to do.
+  @override
+  Future<BulkOutcome> bulkUpdate(List<int> spoolIds, SpoolBulkPatch patch) =>
+      _postBulkUpdate(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkUpdate,
+        spoolIds,
+        patch.toSpoolmanJson(),
+      );
+
+  // No `skippedKey` on either of these: Spoolman re-issues the archive/restore
+  // call per spool and counts it as done whatever state the spool was in, so
+  // there is no already-in-state list to read.
+  @override
+  Future<BulkOutcome> bulkArchive(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkArchive,
+        spoolIds,
+        okKey: 'archived',
+      );
+
+  @override
+  Future<BulkOutcome> bulkRestore(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkRestore,
+        spoolIds,
+        okKey: 'restored',
+      );
+
+  @override
+  Future<BulkOutcome> bulkDelete(List<int> spoolIds) => _postBulkIds(
+        _dio,
+        Endpoints.spoolmanSpoolsBulkDelete,
+        spoolIds,
+        okKey: 'deleted',
+      );
+
+  @override
+  Future<BulkOutcome> bulkResetUsage(List<int> spoolIds) => _postBulkReset(
+        _dio,
+        Endpoints.spoolmanSpoolsResetConsumedCounterBulk,
+        spoolIds,
+      );
 
   // Reference data comes from native backend catalogs — on Spoolman, form uses
   // manual entry (empty lists).
@@ -379,18 +706,27 @@ class SpoolmanInventorySource implements SpoolInventorySource {
   // Location catalog is a native-backend feature; on Spoolman the picker falls
   // back to free text + locations already used by spools.
   @override
-  Future<List<String>> fetchLocations() async => const [];
+  Future<List<StorageLocation>> fetchLocations() async => const [];
 
   @override
-  Future<Uint8List> renderLabels(
-    List<int> spoolIds,
-    SpoolLabelTemplate template, {
-    bool monochrome = false,
-  }) => _postLabels(
+  Future<Uint8List> renderLabels(SpoolLabelRequest request) =>
+      _postLabels(_dio, Endpoints.spoolmanLabels, request);
+
+  @override
+  Future<List<SpoolPresetOverride>> fetchPresetOverrides(int spoolId) =>
+      _getPresetOverrides(
         _dio,
-        Endpoints.spoolmanLabels,
-        spoolIds,
-        template,
-        monochrome,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+      );
+
+  @override
+  Future<void> savePresetOverrides(
+    int spoolId,
+    List<SpoolPresetOverride> overrides,
+  ) =>
+      _putPresetOverrides(
+        _dio,
+        Endpoints.spoolmanSpoolFilamentPresets(spoolId),
+        overrides,
       );
 }

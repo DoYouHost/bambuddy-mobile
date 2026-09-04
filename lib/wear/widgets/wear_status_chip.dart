@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 
 /// Printer state as a pill, using the same per-state palette as the phone app
 /// ([WearState.color]). Tinted fill + matching border/text so the state reads
@@ -16,11 +17,7 @@ class WearStatusChip extends StatelessWidget {
     final color = state.color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
+      decoration: wearTintedBox(color),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -30,10 +27,17 @@ class WearStatusChip extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 7),
-          Text(
-            state.label(AppLocalizations.of(context)),
-            style: TextStyle(
-                color: color, fontWeight: FontWeight.w600, fontSize: 13),
+          // Flexible, not bare: the round-safe content width on a 225 dp face is
+          // 166 dp, and "Zatrzymywanie"/"Oczekiwanie na płytę" in Polish
+          // overflow it — the chip drew its own striped overflow bar right where
+          // Play looks for text cut off by the edge.
+          Flexible(
+            child: Text(
+              state.label(AppLocalizations.of(context)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: WearText.strong.copyWith(color: color),
+            ),
           ),
         ],
       ),

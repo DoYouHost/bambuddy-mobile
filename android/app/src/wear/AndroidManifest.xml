@@ -10,6 +10,8 @@
          declaration + video, battery-optimization exemption), so declaring
          them in an APK that can't exercise them only invites rejection. -->
     <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
+    <!-- The watch has no gallery screen and starts at API 30 anyway. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove" />
@@ -38,7 +40,19 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="nosensor"
-            tools:node="merge" />
+            android:theme="@style/WearLaunchTheme"
+            tools:replace="android:theme"
+            tools:node="merge">
+            <!-- Branded launch (Play's Wear quality check): the app icon on
+                 black from the first pixel to Flutter's first frame. The phone's
+                 LaunchTheme/NormalTheme pair is white in the day variant and
+                 carries no icon at all, so the watch gets its own pair rather
+                 than an override of theirs — see res/values/styles.xml. -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/WearNormalTheme"
+                tools:replace="android:resource" />
+        </activity>
 
         <!-- Required by Play for Wear OS distribution: the watch app is fully
              usable without the phone app installed (direct REST fallback). -->
@@ -47,9 +61,13 @@
             android:value="true" />
 
         <!-- Phone-only components: home-screen widget, the FGS host for the
-             background monitor, and the notification-action receiver. The wear
-             entry point never starts them — drop them from the watch APK. -->
+             background monitor, the notification-action receiver, and the
+             listener service that wakes the phone app for the watch. The wear
+             entry point never starts them — drop them from the watch APK. (The
+             relay has no watch-side counterpart to declare: the watch app is
+             the one that asks, and it is on screen while it waits.) -->
         <receiver android:name=".BambuddyWidgetProvider" tools:node="remove" />
+        <service android:name=".wear.WearRelayListenerService" tools:node="remove" />
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             tools:node="remove" />

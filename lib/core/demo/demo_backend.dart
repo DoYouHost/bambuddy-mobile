@@ -1,9 +1,23 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import '../models/json_utils.dart';
 import 'demo_config.dart';
 
 /// Result of a routed demo request: HTTP status + JSON-encodable body.
 typedef DemoResult = ({int status, Object? body});
+
+/// A response that is a file rather than a document.
+///
+/// Carried as the result's `body` so every other route keeps its two-field
+/// shape; `DemoHttpClientAdapter` serves this one as bytes with its own content
+/// type instead of JSON-encoding it.
+class DemoFile {
+  const DemoFile(this.bytes, this.contentType);
+
+  final Uint8List bytes;
+  final String contentType;
+}
 
 /// In-process fake bambuddy server for demo mode (see [DemoConfig]).
 ///
@@ -118,7 +132,19 @@ class DemoBackend {
   final Map<String, int> _fanSpeeds = {};
   // AMS drying: minutes remaining keyed by ams id (demo doesn't count down).
   final Map<int, int> _dryTime = {};
+  // Runs the demo "scheduler" is holding. Nothing dispatches them — the demo
+  // has no clock the printer answers to — so a row stays pending until it is
+  // cancelled, which is exactly the state the card's banner is there to show.
+  final List<Map<String, dynamic>> _scheduledDryings = [];
+  int _nextScheduledDryingId = 1;
   final Map<int, bool> _plugOn = {1: true, 2: false};
+  // What the slot-configuration sheet wrote, keyed `printer:ams:tray`. Applied
+  // over the generated status so a demo write shows on the card, the way the
+  // printer's own push would.
+  final Map<String, Map<String, dynamic>> _slotConfig = {};
+  // Which preset each slot was given, keyed the same way — the mapping the real
+  // server keeps so a configured slot can be named, not just shown.
+  final Map<String, Map<String, dynamic>> _slotPreset = {};
 
   /// identify_ids skipped during the current X1 demo print. Reset on stop so a
   /// fresh cycle shows every object again.
@@ -126,12 +152,15 @@ class DemoBackend {
 
   /// Printable objects on the X1's current plate ("Drawer organizer x4"), laid
   /// out 2×2 with plate coordinates (mm) inside [_x1BboxAll] so their markers
-  /// land on the right spots in the skip-objects overlay.
+  /// land on the right spots in the skip-objects overlay. `width`/`height` are
+  /// demo-only illustrative footprints (the real server sends none, see
+  /// [PrintableObject]) — dividers tall and narrow, front/back wide and low —
+  /// so the preview reads as actual parts instead of identical badges.
   static const _x1Objects = [
-    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0},
-    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0},
-    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0},
-    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0},
+    {'id': 421, 'name': 'Divider_left.stl', 'x': 104.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
+    {'id': 512, 'name': 'Divider_right.stl', 'x': 152.0, 'y': 104.0, 'width': 26.0, 'height': 34.0},
+    {'id': 683, 'name': 'Drawer_front.stl', 'x': 104.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
+    {'id': 705, 'name': 'Drawer_back.stl', 'x': 152.0, 'y': 152.0, 'width': 34.0, 'height': 20.0},
   ];
   static const _x1BboxAll = [88.0, 88.0, 168.0, 168.0];
 
@@ -157,6 +186,8 @@ class DemoBackend {
 
   DemoResult _ok(Object? body) => (status: 200, body: body);
   DemoResult _notFound() => (status: 404, body: {'detail': 'Not Found'});
+  DemoResult _file(Uint8List bytes, String contentType) =>
+      (status: 200, body: DemoFile(bytes, contentType));
   DemoResult _fallback(String method) =>
       method == 'GET' ? _notFound() : _ok(const <String, dynamic>{});
 
@@ -183,12 +214,19 @@ class DemoBackend {
         return _notFound();
 
       case 'updates':
-        // The demo queue speaks the 1.2.5 contract (tri-state calibrations), so
-        // it has to report a version that matches, or the print form would offer
-        // two states over three-state data.
+        // The version has to match what this backend actually serves, or a
+        // gated control appears over data that is not there — and the queue
+        // form would offer two states over three-state calibrations.
+        //
+        // 1.2.6 is what serves the print log's cost and energy and its sortable
+        // columns; the beta suffix because that is where the contract really
+        // lives today, 1.2.5.2 being the newest release. Everything else 1.2.6
+        // gates is either served below (library variant groups) or invisible
+        // here anyway: the two slicer features need `use_slicer_api`, which the
+        // demo reports off, and the users listing is decided by probing.
         if (at(1, 'version')) {
           return _ok(const {
-            'version': '1.2.5.1',
+            'version': '1.2.6b1',
             'repo': 'maziggy/bambuddy',
           });
         }
@@ -272,22 +310,84 @@ class DemoBackend {
         }
         if (at(2, 'clear-plate')) return _ok(const {'ok': true});
         if (at(2, 'files')) {
-          if (s.length == 3 && m == 'GET') return _ok(_printerFiles(q['path'] ?? '/'));
+          if (s.length == 3 && m == 'GET') {
+            return _ok(_printerFiles(q['path'] ?? '/', pid));
+          }
+          // Downloading is the one printer-file action with something to hand
+          // back, so demo mode serves it rather than falling through: without
+          // this a tap answered 404 for a single file and, because the fallback
+          // says yes to a POST, handed the ZIP button two bytes of JSON.
+          if (s.length == 4 && at(3, 'download') && m == 'GET') {
+            final path = q['path'] ?? '';
+            if (path.isEmpty) return _notFound();
+            return _file(_printerFileBytes(path, pid), _demoContentType(path));
+          }
+          if (s.length == 4 && at(3, 'download-zip') && m == 'POST') {
+            final paths = (body['paths'] as List?)?.whereType<String>().toList();
+            if (paths == null || paths.isEmpty) {
+              return (status: 400, body: {'detail': 'No files specified'});
+            }
+            return _file(_emptyZip(), 'application/zip');
+          }
+          if (s.length == 4 && at(3, 'download-job') && m == 'POST') {
+            return _startDownloadJob(pid, body);
+          }
+          if (s.length == 5 && at(3, 'download-jobs')) {
+            return _downloadJobRoute(m, pid, s[4]);
+          }
+          if (s.length == 6 && at(3, 'dl')) {
+            return _preparedDownload(pid, s[4]);
+          }
           return _fallback(m);
         }
         if (at(2, 'storage')) {
           return _ok({'used_bytes': 3 * 1024 * 1024 * 1024, 'free_bytes': 24 * 1024 * 1024 * 1024});
+        }
+        if (at(2, 'kprofiles')) {
+          return _ok(_kProfilesResponse(q['nozzle_diameter'] ?? '0.4'));
+        }
+        if (at(2, 'slot-presets')) return _slotPresetRoute(m, pid, s, q);
+        // `slots/{ams}/{tray}/configure` — ids are local to the unit.
+        if (at(2, 'slots') && at(5, 'configure')) {
+          return _configureSlot(pid, id(3) ?? 0, id(4) ?? 0, q);
+        }
+        if (at(2, 'ams')) {
+          // `ams/{ams}/tray/{tray}/reset` — the tray id sits past the literal.
+          if (at(6, 'reset')) return _resetSlot(pid, id(3) ?? 0, id(5) ?? 0);
+          // Load, unload and the RFID re-read change nothing a demo can show:
+          // there is no filament path to move anything along.
+          return _ok(const {'ok': true});
         }
         return _fallback(m);
 
       case 'ams-history':
         return _ok(_amsHistory(id(1) ?? 1, id(2) ?? 0, int.tryParse(q['hours'] ?? '') ?? 24));
 
+      case 'printer-sensor-history':
+        return _ok(_heaterHistory(
+          id(1) ?? 1,
+          int.tryParse(q['hours'] ?? '') ?? 24,
+          (q['kinds'] ?? 'nozzle,bed,chamber').split(','),
+        ));
+
+      case 'scheduled-dryings':
+        return _scheduledDryingRoute(m, s, q, body);
+
+      case 'location-ha-sensors':
+        if (s.length == 1) return _ok(_locationSensors);
+        if (at(1, 'by-location') && at(3, 'readings')) {
+          return _ok(_locationSensorReadings(id(2) ?? 0));
+        }
+        return _notFound();
+
       case 'queue':
         return _queueRoute(m, s, body);
 
       case 'archives':
-        return _archivesRoute(m, s, q);
+        return _archivesRoute(m, s, q, body);
+
+      case 'print-log':
+        return _printLogRoute(m, s, q, body);
 
       case 'smart-plugs':
         return _plugsRoute(m, s, body);
@@ -296,7 +396,7 @@ class DemoBackend {
         return _maintenanceRoute(m, s, body);
 
       case 'inventory':
-        return _inventoryRoute(m, s, q, body);
+        return _inventoryRoute(m, s, q, body, rawBody);
 
       case 'spoolman':
         // Demo runs the native backend; Spoolman variant serves empty data.
@@ -330,7 +430,17 @@ class DemoBackend {
 
       case 'cloud':
         if (at(1, 'status')) return _ok(const {'is_authenticated': false});
+        // Nobody is logged in to Bambu Cloud in the demo, and the slot picker
+        // is built to say so and fall back — serving a cloud tier anyway would
+        // contradict the line above.
+        if (at(1, 'settings')) {
+          return (status: 401, body: {'detail': 'Not authenticated'});
+        }
+        if (at(1, 'builtin-filaments')) return _ok(_builtinFilaments);
         return _fallback(m);
+
+      case 'local-presets':
+        return _ok({'filament': _localPresets});
 
       case 'settings':
         return _ok(const {
@@ -344,9 +454,24 @@ class DemoBackend {
           'gcode_snippets':
               '{"A1 mini":{"start_gcode":"G4 S1\\nM106 P1 S255",'
                   '"end_gcode":"G4 S1\\nG0 Y5 F500\\nG0 Y100 F5000\\n;plate-swap start"}}',
+          // Drying presets as the real server stores them: a JSON string, not
+          // an object. Two rows differ from the built-in defaults (PETG 70 °C /
+          // 8 h) so demo shows the customisation actually reaching the sheet
+          // rather than the bundled table that would look identical.
+          'drying_presets':
+              '{"PLA":{"n3f":45,"n3s":45,"n3f_hours":12,"n3s_hours":12},'
+                  '"PETG":{"n3f":70,"n3s":70,"n3f_hours":8,"n3s_hours":8},'
+                  '"ABS":{"n3f":65,"n3s":80,"n3f_hours":12,"n3s_hours":8}}',
+          // The server's own drying automation, which the sheet reports and
+          // never offers to change — writing these is settings:update, denied
+          // to every API key.
+          'ambient_drying_enabled': true,
+          'queue_drying_enabled': true,
+          'print_drying_enabled': false,
         });
 
       case 'slicer':
+        if (at(1, 'printer-models')) return _ok(_printerModels);
         return _ok(const <String, dynamic>{});
 
       case 'users':
@@ -443,7 +568,8 @@ class DemoBackend {
       };
 
   /// Status payload without `id` — the WS `data` shape.
-  Map<String, dynamic> statusData(int printerId) => switch (printerId) {
+  Map<String, dynamic> statusData(int printerId) =>
+      _withSlotConfig(printerId, switch (printerId) {
         1 => _statusPrinting(),
         2 => _statusIdle(),
         4 => _statusAccessoryFans(),
@@ -453,7 +579,43 @@ class DemoBackend {
             'connected': false,
             'state': null,
           },
-      };
+      });
+
+  /// Lays whatever the slot sheet wrote over the generated trays.
+  ///
+  /// Applied here rather than in the tray builders so both the REST poll and
+  /// the WS frame carry it — a demo write that only one of them saw would flip
+  /// back and forth as the two arrive.
+  Map<String, dynamic> _withSlotConfig(
+    int printerId,
+    Map<String, dynamic> status,
+  ) {
+    if (_slotConfig.isEmpty) return status;
+    final units = status['ams'];
+    if (units is! List) return status;
+    return {
+      ...status,
+      'ams': [
+        for (final unit in units)
+          if (unit is! Map<String, dynamic>)
+            unit
+          else
+            {
+              ...unit,
+              'tray': [
+                for (final tray in (unit['tray'] as List? ?? const []))
+                  if (tray is! Map<String, dynamic>)
+                    tray
+                  else
+                    {
+                      ...tray,
+                      ...?_slotConfig['$printerId:${unit['id']}:${tray['id']}'],
+                    },
+              ],
+            },
+      ],
+    };
+  }
 
   /// Small deterministic wiggle so temperatures/power look alive.
   double _wiggle(double amplitude, {int periodSec = 90, int phase = 0}) {
@@ -610,6 +772,9 @@ class DemoBackend {
         'ipcam': true,
       };
 
+  /// [tagUid] / [trayUuid] are what the AMS read off an RFID spool. Null on a
+  /// third-party spool and on an empty slot, exactly as the server sends it —
+  /// it nulls the firmware's empty and all-zero tags before they leave.
   Map<String, dynamic> _tray(
     int id,
     String? color,
@@ -618,6 +783,8 @@ class DemoBackend {
     String? idName,
     String? infoIdx,
     int remain = -1,
+    String? tagUid,
+    String? trayUuid,
   }) =>
       {
         'id': id,
@@ -627,10 +794,188 @@ class DemoBackend {
         'tray_id_name': idName ?? '',
         'tray_info_idx': infoIdx ?? '',
         'remain': remain,
+        'tag_uid': tagUid,
+        'tray_uuid': trayUuid,
         'nozzle_temp_min': type == null ? null : '190',
         'nozzle_temp_max': type == null ? null : '240',
         'state': type == null ? 9 : 11,
       };
+
+  // --- AMS slot configuration ---
+
+  /// Long printer-preset name → short model code, as `/slicer/printer-models`
+  /// serves it. The picker matches preset names against this.
+  static const _printerModels = {
+    'Bambu Lab X1 Carbon': 'X1C',
+    'Bambu Lab X1': 'X1',
+    'Bambu Lab P1S': 'P1S',
+    'Bambu Lab P2S': 'P2S',
+    'Bambu Lab A1 mini': 'A1M',
+  };
+
+  /// Bambu's built-in filament table. The ids match what the demo trays report,
+  /// so a configured slot reopens on the preset it is actually set to.
+  static const _builtinFilaments = [
+    {'filament_id': 'GFA00', 'name': 'Bambu PLA Basic'},
+    {'filament_id': 'GFA01', 'name': 'Bambu PLA Matte'},
+    {'filament_id': 'GFA05', 'name': 'Bambu PLA Silk'},
+    {'filament_id': 'GFG02', 'name': 'Bambu PETG HF'},
+    {'filament_id': 'GFB00', 'name': 'Bambu ABS'},
+    {'filament_id': 'GFU01', 'name': 'Bambu TPU 95A'},
+    {'filament_id': 'GFL99', 'name': 'Generic PLA'},
+    {'filament_id': 'GFG99', 'name': 'Generic PETG'},
+    {'filament_id': 'GFB99', 'name': 'Generic ABS'},
+  ];
+
+  /// Presets imported from a slicer bundle. The P1S one is here to show the
+  /// printer filter doing something on the X1C card, and the ASA one to show a
+  /// preset that declares no compatibility staying visible anyway.
+  static const _localPresets = [
+    {
+      'id': 1,
+      'name': 'eSUN PLA+ @BBL X1C',
+      'filament_type': 'PLA',
+      'nozzle_temp_min': 205,
+      'nozzle_temp_max': 225,
+      'compatible_printers': '["Bambu Lab X1 Carbon 0.4 nozzle"]',
+    },
+    {
+      'id': 2,
+      'name': 'Devil Design PETG @BBL P1S',
+      'filament_type': 'PETG',
+      'nozzle_temp_min': 230,
+      'nozzle_temp_max': 250,
+      'compatible_printers': '["Bambu Lab P1S 0.4 nozzle"]',
+    },
+    {
+      'id': 3,
+      'name': 'Fiberlogy ASA @BBL X1C',
+      'filament_type': 'ASA',
+      'nozzle_temp_min': 250,
+      'nozzle_temp_max': 270,
+    },
+  ];
+
+  /// Calibrations the demo printer has stored. The 0.6 one is filtered out by
+  /// every slot in this demo — it is here so the nozzle filter is visibly real
+  /// rather than a parameter nothing depends on.
+  static const _kProfiles = [
+    {
+      'slot_id': 1,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFA00',
+      'name': 'Bambu PLA Basic',
+      'k_value': '0.020000',
+      'setting_id': 'GFSA00_00',
+    },
+    {
+      'slot_id': 2,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFG02',
+      'name': 'Bambu PETG HF',
+      'k_value': '0.037000',
+      'setting_id': 'GFSG02_00',
+    },
+    {
+      'slot_id': 3,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.4',
+      'nozzle_diameter': '0.4',
+      'filament_id': 'GFA05',
+      'name': 'Gold silk, slower',
+      'k_value': '0.028000',
+    },
+    {
+      'slot_id': 4,
+      'extruder_id': 0,
+      'nozzle_id': 'HS00-0.6',
+      'nozzle_diameter': '0.6',
+      'filament_id': 'GFA00',
+      'name': 'PLA on the 0.6',
+      'k_value': '0.022000',
+    },
+  ];
+
+  Map<String, dynamic> _kProfilesResponse(String nozzleDiameter) => {
+        'nozzle_diameter': nozzleDiameter,
+        'profiles': [
+          for (final p in _kProfiles)
+            if (p['nozzle_diameter'] == nozzleDiameter) p,
+        ],
+      };
+
+  String _slotKey(int printerId, int amsId, int trayId) =>
+      '$printerId:$amsId:$trayId';
+
+  /// `GET`/`PUT /printers/{id}/slot-presets/{ams}/{tray}`. An unmapped slot
+  /// answers a bare `null`, which is what the real route does and what the
+  /// picker reads as "nothing saved".
+  DemoResult _slotPresetRoute(
+    String m,
+    int printerId,
+    List<String> s,
+    Map<String, String> q,
+  ) {
+    if (s.length < 5) return _ok(const <Object>[]);
+    final amsId = int.tryParse(s[3]) ?? 0;
+    final trayId = int.tryParse(s[4]) ?? 0;
+    final key = _slotKey(printerId, amsId, trayId);
+    if (m == 'PUT') {
+      _slotPreset[key] = {
+        'ams_id': amsId,
+        'tray_id': trayId,
+        'preset_id': q['preset_id'] ?? '',
+        'preset_name': q['preset_name'] ?? '',
+        'preset_source': q['preset_source'],
+      };
+      return _ok(const {'ok': true});
+    }
+    return _ok(_slotPreset[key]);
+  }
+
+  /// `POST /printers/{id}/slots/{ams}/{tray}/configure`. The real route derives
+  /// nothing either — it hands the query straight to the printer — so the demo
+  /// keeps the values verbatim and lets them show on the card.
+  DemoResult _configureSlot(
+    int printerId,
+    int amsId,
+    int trayId,
+    Map<String, String> q,
+  ) {
+    _slotConfig[_slotKey(printerId, amsId, trayId)] = {
+      'tray_color': q['tray_color'],
+      'tray_type': q['tray_type'],
+      'tray_sub_brands': q['tray_sub_brands'] ?? '',
+      'tray_info_idx': q['tray_info_idx'] ?? '',
+      'nozzle_temp_min': q['nozzle_temp_min'],
+      'nozzle_temp_max': q['nozzle_temp_max'],
+      'cali_idx': int.tryParse(q['cali_idx'] ?? ''),
+      'state': 11,
+    };
+    return _ok(const {'success': true});
+  }
+
+  /// `POST /printers/{id}/ams/{ams}/tray/{tray}/reset` — empties the slot and
+  /// drops its saved preset, the pair the real route undoes together.
+  DemoResult _resetSlot(int printerId, int amsId, int trayId) {
+    final key = _slotKey(printerId, amsId, trayId);
+    _slotConfig[key] = const {
+      'tray_color': null,
+      'tray_type': null,
+      'tray_sub_brands': '',
+      'tray_info_idx': '',
+      'cali_idx': null,
+      'nozzle_temp_min': null,
+      'nozzle_temp_max': null,
+      'state': 9,
+    };
+    _slotPreset.remove(key);
+    return _ok(const {'success': true});
+  }
 
   Map<String, dynamic> _amsUnit1() => {
         'id': 0,
@@ -662,20 +1007,146 @@ class DemoBackend {
           _tray(0, '0ACCB8FF', 'PETG', infoIdx: 'GFG02', remain: 92),
           _tray(1, 'D4AF37FF', 'PLA',
               subBrand: 'PLA Silk', infoIdx: 'GFA05', remain: 10),
-          _tray(2, null, null),
+          // A genuine Bambu spool the shelf has never seen: tagged, full, and
+          // deliberately absent from `_assignments`. That is the one state the
+          // slot sheet offers "add to inventory" from.
+          _tray(2, '00AE42FF', 'PLA',
+              subBrand: 'PLA Basic',
+              idName: 'A00-G1',
+              infoIdx: 'GFA00',
+              remain: 100,
+              tagUid: 'B7A21C0439E5D168',
+              trayUuid: '6F2C41D9A87B4E0359CD12FA8B76E430'),
           _tray(3, null, null),
         ],
       };
 
   // --- Printer files (on-device storage) ---
 
-  Object _printerFiles(String path) {
+  /// Filler standing in for a printer's file: the same size the listing claims,
+  /// capped so a demo download stays a download rather than a memory test.
+  ///
+  /// Deliberately not a real 3MF. Demo mode fabricates the whole dataset, and
+  /// what this exercises is the transfer — the progress it reports, the save
+  /// dialog it ends in — not the contents, which no demo screen opens.
+  Uint8List _printerFileBytes(String path, int printerId) {
+    const cap = 2 * 1024 * 1024;
+    final listed = _listedSize(path, printerId);
+    final size = listed <= 0 ? 64 * 1024 : (listed > cap ? cap : listed);
+    // A repeating pattern rather than zeroes, so a saved file is recognisably
+    // this and not an empty allocation.
+    return Uint8List.fromList(
+      List<int>.generate(size, (i) => 0x30 + (i % 10)),
+    );
+  }
+
+  /// Size the listing gives [path], or 0 when nothing lists it.
+  int _listedSize(String path, int printerId) {
+    final parent = path.contains('/')
+        ? path.substring(0, path.lastIndexOf('/'))
+        : '';
+    final listing = _printerFiles(parent.isEmpty ? '/' : parent, printerId);
+    final files = (listing as Map)['files'] as List;
+    for (final file in files.whereType<Map>()) {
+      if (file['path'] == path) return (file['size'] as int?) ?? 0;
+    }
+    return 0;
+  }
+
+  /// One download preparation the demo server is holding, mirroring
+  /// `PrinterFilesJobStatus`.
+  ///
+  /// Real preparations run in the background and are polled; here the polling
+  /// *is* the clock — each `GET` stages one more file — so the demo shows the
+  /// counter moving and the Cancel button doing something without a timer that
+  /// would keep running after the screen is gone.
+  final Map<String, _DemoDownloadJob> _downloadJobs = {};
+
+  /// Tokens minted by finished jobs, each good for exactly one download, as on
+  /// the real server.
+  final Map<String, _DemoDownloadJob> _downloadTokens = {};
+
+  /// Never reused, unlike a count of live jobs: cancelling one and starting
+  /// another would otherwise hand out an id a job still on the map holds.
+  int _downloadJobSeq = 0;
+
+  DemoResult _startDownloadJob(int printerId, Map<String, dynamic> body) {
+    final paths = (body['paths'] as List?)?.whereType<String>().toList();
+    if (paths == null || paths.isEmpty) {
+      return (status: 400, body: {'detail': 'No files specified'});
+    }
+    final asZip = body['as_zip'] != false;
+    if (!asZip && paths.length != 1) {
+      return (
+        status: 400,
+        body: {'detail': 'Native downloads require exactly one file'},
+      );
+    }
+    final job = _DemoDownloadJob(
+      jobId: 'demo-job-${++_downloadJobSeq}',
+      printerId: printerId,
+      paths: paths,
+      asZip: asZip,
+      filename: toStringOrNull(body['filename']) ?? 'printer-files.zip',
+    );
+    _downloadJobs[job.jobId] = job;
+    return _ok(job.toJson());
+  }
+
+  DemoResult _downloadJobRoute(String method, int printerId, String jobId) {
+    final job = _downloadJobs[jobId];
+    if (job == null || job.printerId != printerId) return _notFound();
+    if (method == 'DELETE') {
+      _downloadJobs.remove(jobId);
+      _downloadTokens.remove(job.token);
+      return _ok(const {'status': 'cancelled'});
+    }
+    if (method != 'GET') return _fallback(method);
+    job.advance();
+    if (job.token case final token?) _downloadTokens[token] = job;
+    return _ok(job.toJson());
+  }
+
+  DemoResult _preparedDownload(int printerId, String token) {
+    final job = _downloadTokens.remove(token);
+    if (job == null || job.printerId != printerId) return _notFound();
+    _downloadJobs.remove(job.jobId);
+    return job.asZip
+        ? _file(_emptyZip(), 'application/zip')
+        : _file(
+            _printerFileBytes(job.paths.first, printerId),
+            _demoContentType(job.paths.first),
+          );
+  }
+
+  /// The 22 bytes of an empty ZIP — a valid archive every tool opens, which is
+  /// the honest answer for a bundle of files that do not exist.
+  Uint8List _emptyZip() => Uint8List.fromList([
+        0x50, 0x4B, 0x05, 0x06, // end-of-central-directory signature
+        ...List<int>.filled(18, 0),
+      ]);
+
+  String _demoContentType(String path) {
+    final name = path.toLowerCase();
+    if (name.endsWith('.3mf')) return 'model/3mf';
+    if (name.endsWith('.gcode')) return 'text/x.gcode';
+    if (name.endsWith('.mp4')) return 'video/mp4';
+    return 'application/octet-stream';
+  }
+
+  Object _printerFiles(String path, int printerId) {
     final files = switch (path) {
       '/' => [
           {'name': 'cache', 'path': '/cache', 'is_directory': true, 'size': 0},
           {
             'name': 'timelapse',
             'path': '/timelapse',
+            'is_directory': true,
+            'size': 0,
+          },
+          {
+            'name': 'ipcam',
+            'path': '/ipcam',
             'is_directory': true,
             'size': 0,
           },
@@ -703,9 +1174,88 @@ class DemoBackend {
             'mtime': _iso(_daysAgo(6)),
           },
         ],
+      // The two video directories are what a print leaves behind, so they are
+      // generated from the demo's own prints rather than listed by hand: the
+      // file the media sheet offers for an archive is then the same file this
+      // listing shows, at the same path and the same size.
+      '/timelapse' => [
+          for (final print in _archives)
+            if (print['printer_id'] == printerId)
+              ?_printVideos(print).timelapse,
+        ],
+      '/ipcam' => [
+          for (final print in _archives)
+            if (print['printer_id'] == printerId) ..._printVideos(print).ipcam,
+        ],
       _ => const <Object>[],
     };
     return {'path': path, 'files': files};
+  }
+
+  /// What one demo print left on its printer's storage.
+  ///
+  /// Three outcomes, keyed on the print's own id so a given archive always
+  /// answers the same way — between them they are every face the media sheet
+  /// has, which is the point of varying it at all:
+  ///
+  ///  * **0** — the card has been cleared since. Nothing, and nothing to
+  ///    explain: the sheet says so and offers no download.
+  ///  * **1** — the whole thing: the timelapse nobody attached, plus the camera
+  ///    chunks either side of the halfway mark.
+  ///  * **2** — the printer's camera recording is off, so there is a timelapse
+  ///    and the sheet also has to say why there are no clips.
+  ({
+    Map<String, dynamic>? timelapse,
+    List<Map<String, dynamic>> ipcam,
+    List<String> warnings,
+  }) _printVideos(Map<String, dynamic> archive) {
+    final started = DateTime.tryParse('${archive['started_at']}');
+    final ran = archive['actual_time_seconds'];
+    if (started == null || ran is! int) {
+      return (timelapse: null, ipcam: const [], warnings: const []);
+    }
+    switch (((archive['id'] as int?) ?? 0) % 3) {
+      case 0:
+        return (timelapse: null, ipcam: const [], warnings: const []);
+      case 2:
+        return (
+          timelapse: _video(started, 'timelapse'),
+          ipcam: const [],
+          warnings: const ['ipcam_unavailable'],
+        );
+      default:
+        return (
+          timelapse: _video(started, 'timelapse'),
+          ipcam: [
+            for (var i = 0; i < 2; i++)
+              _video(started.add(Duration(seconds: ran ~/ 2 * i)), 'ipcam'),
+          ],
+          warnings: const [],
+        );
+    }
+  }
+
+  /// One recording, named the way a printer names them: `<kind>_<stamp>.mp4`
+  /// under the directory of its kind.
+  Map<String, dynamic> _video(DateTime at, String kind) {
+    final name = '${kind == 'ipcam' ? 'ipcam' : 'video'}_${_stamp(at)}.mp4';
+    return {
+      'name': name,
+      'path': '/$kind/$name',
+      'is_directory': false,
+      // Roughly what a printer writes: a rendered timelapse is a few tens of
+      // megabytes, a camera chunk a few.
+      'size': kind == 'ipcam' ? 6_291_456 : 18_446_592,
+      'mtime': _iso(at),
+      'kind': kind,
+    };
+  }
+
+  /// `YYYYMMDD_HHMMSS`, the shape a printer stamps its recordings with.
+  String _stamp(DateTime at) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${at.year}${two(at.month)}${two(at.day)}_'
+        '${two(at.hour)}${two(at.minute)}${two(at.second)}';
   }
 
   // --- AMS history ---
@@ -734,6 +1284,59 @@ class DemoBackend {
       'max_temperature': 29.5,
       'avg_temperature': 27.5,
     };
+  }
+
+  // --- Heater history ---
+
+  /// One series per requested sensor: the printer idles, then runs a print over
+  /// the last two hours, so the chart shows a ramp, a hold and the setpoint.
+  Map<String, dynamic> _heaterHistory(
+    int printerId,
+    int hours,
+    List<String> kinds,
+  ) {
+    const idle = {'nozzle': 26.0, 'nozzle_2': 26.0, 'bed': 24.0, 'chamber': 28.0};
+    const hot = {'nozzle': 220.0, 'nozzle_2': 218.0, 'bed': 60.0, 'chamber': 38.0};
+    const printMinutes = 120;
+    const rampMinutes = 10;
+
+    final now = DateTime.now();
+    final samples = math.min(hours * 60, 1000); // every minute, as the server
+    final series = <Map<String, dynamic>>[];
+
+    for (final kind in kinds) {
+      final cold = idle[kind];
+      if (cold == null) continue;
+      final points = <Map<String, dynamic>>[];
+      var min = double.infinity;
+      var max = -double.infinity;
+      var sum = 0.0;
+      for (var i = samples; i >= 0; i--) {
+        final printing = i < printMinutes;
+        final ramp = printing
+            ? math.min(1.0, (printMinutes - i) / rampMinutes)
+            : 0.0;
+        final noise = math.sin(i / 7) * (printing ? 1.2 : 0.3);
+        final value = _r1(cold + (hot[kind]! - cold) * ramp + noise);
+        points.add({
+          'recorded_at': now.subtract(Duration(minutes: i)).toUtc().toIso8601String(),
+          'value': value,
+          'target': printing ? hot[kind] : 0.0,
+        });
+        min = math.min(min, value);
+        max = math.max(max, value);
+        sum += value;
+      }
+      series.add({
+        'sensor_kind': kind,
+        'data': points,
+        'min_value': min,
+        'max_value': max,
+        'avg_value': _r1(sum / points.length),
+      });
+    }
+
+    return {'printer_id': printerId, 'series': series};
   }
 
   // --- Queue ---
@@ -805,6 +1408,7 @@ class DemoBackend {
     required int createdDaysAgo,
     bool gcodeInjection = false,
     String slicedForModel = 'X1C',
+    List<Map<String, dynamic>> variants = const [],
   }) =>
       {
         'id': id,
@@ -845,28 +1449,58 @@ class DemoBackend {
         'layer_height': 0.2,
         'nozzle_diameter': 0.4,
         'sliced_for_model': slicedForModel,
+        // Non-empty only for a cross-model job: the candidates the scheduler
+        // may pick between, in priority order (server #671).
+        'variants': variants,
       };
 
   DemoResult? _queueRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1) {
       if (m == 'GET') return _ok(_queue);
       if (m == 'POST') {
-        // Add from archive ("reprint").
+        // A cross-model job names itself after its first candidate and carries
+        // the rest; anything else is an "add from archive" (reprint).
+        final variantIds = [
+          for (final v in (body['variants'] as List?)?.whereType<Map>() ??
+              const <Map>[])
+            v['library_file_id'] as int?,
+        ].nonNulls.toList();
+        final variantFiles = [
+          for (final id in variantIds)
+            ..._libraryFiles.where((f) => f['id'] == id),
+        ];
         final archive = _archives
             .where((a) => a['id'] == body['archive_id'])
             .firstOrNull;
+        final lead = variantFiles.firstOrNull;
         _queue.add(_queueItem(
           id: _nextQueueId++,
           printerId: body['printer_id'] as int?,
           position: _queue.length + 1,
-          name: (archive?['print_name'] as String?) ?? 'Reprint',
+          name: (lead?['print_name'] as String?) ??
+              (archive?['print_name'] as String?) ??
+              'Reprint',
           status: 'pending',
-          timeSec: (archive?['print_time_seconds'] as int?) ?? 3600,
-          grams: (archive?['filament_used_grams'] as num?)?.toDouble() ?? 20,
+          timeSec: (lead?['print_time_seconds'] as int?) ??
+              (archive?['print_time_seconds'] as int?) ??
+              3600,
+          grams: (lead?['filament_used_grams'] as num?)?.toDouble() ??
+              (archive?['filament_used_grams'] as num?)?.toDouble() ??
+              20,
           type: (archive?['filament_type'] as String?) ?? 'PLA',
           color: (archive?['filament_color'] as String?) ?? '#808080',
           createdDaysAgo: 0,
           gcodeInjection: body['gcode_injection'] == true,
+          slicedForModel: '${lead?['sliced_for_model'] ?? 'X1C'}',
+          variants: [
+            for (final (position, f) in variantFiles.indexed)
+              {
+                'library_file_id': f['id'],
+                'filename': f['filename'],
+                'target_model': f['sliced_for_model'],
+                'position': position,
+              },
+          ],
         ));
         return _ok(_queue.last);
       }
@@ -940,6 +1574,16 @@ class DemoBackend {
       double? cost,
       double? energyKwh,
       int quantity = 1,
+      int? plateId,
+      // What the run actually drew — what the print log stores and every
+      // statistic sums, as against the whole-file estimate in [grams]. The two
+      // are the same figure for a print that ran to the end without a tracked
+      // spool, which is the usual case and the default here. [actualGrams] is
+      // for one that stopped partway; [noUsageRecorded] for one that stopped
+      // before it drew anything, where the server keeps no figure at all rather
+      // than a zero.
+      double? actualGrams,
+      bool noUsageRecorded = false,
     }) {
       final started = _daysAgo(daysAgo, hours: 3);
       final actualSec = status == 'completed'
@@ -959,6 +1603,7 @@ class DemoBackend {
         'duplicate_sequence': 0,
         'object_count': quantity,
         'print_name': name,
+        'plate_id': plateId,
         'print_time_seconds': estSec,
         'actual_time_seconds': actualSec,
         'time_accuracy':
@@ -988,36 +1633,309 @@ class DemoBackend {
         'created_at': _iso(started),
         'run_count': 1,
         'last_run_at': _iso(started),
-        'total_filament_actual_grams': grams,
+        'total_filament_actual_grams':
+            noUsageRecorded ? null : (actualGrams ?? grams),
         'successful_run_count': status == 'completed' ? 1 : 0,
         'failed_run_count': status == 'failed' ? 1 : 0,
       };
     }
 
     return [
-      a('Drawer organizer x4', 1, 1, estSec: 5400, grams: 96.2, color: '#000000'),
+      // The one multi-plate print in the demo: without it the plate line on the
+      // detail sheet and the plate picker in the print form have nothing to
+      // stand on, and both are part of what the demo is showing off.
+      a('Drawer organizer x4', 1, 1,
+          estSec: 5400, grams: 96.2, color: '#000000', plateId: 2),
       a('Benchy', 1, 2, estSec: 3540, grams: 15.8, color: '#FF6A13'),
       a('Raspberry Pi 5 case', 2, 3,
           estSec: 7920, grams: 48.4, type: 'PETG', color: '#FFFFFF'),
       a('Headphone hook', 1, 4, estSec: 4260, grams: 31.7, color: '#3B3B3B'),
       a('Spiral vase', 2, 6,
           estSec: 10680, grams: 88.1, color: '#D4AF37',
-          status: 'failed', failureReason: 'Spaghetti detected'),
+          status: 'failed', failureReason: 'Spaghetti detected',
+          actualGrams: 35.2),
       a('Cable clips x8', 1, 7,
           estSec: 5520, grams: 42.3, type: 'PETG', color: '#FFFFFF', quantity: 8),
       a('Plant pot 120mm', 2, 9, estSec: 12480, grams: 132.5, color: '#0ACCB8'),
       a('SD card holder', 1, 12, estSec: 3120, grams: 22.9, color: '#FF6A13'),
       a('Phone stand', 3, 15, estSec: 8340, grams: 68.9, color: '#FF6A13'),
+      // Stopped on the first layer, so there is no measured figure at all —
+      // the case the archive sheet has a line for.
       a('Wall hook x4', 1, 18,
           estSec: 4980, grams: 38.2, type: 'PETG', color: '#FFFFFF',
-          status: 'failed', failureReason: 'Bed adhesion'),
+          status: 'failed', failureReason: 'Bed adhesion',
+          noUsageRecorded: true),
       a('Desk drawer divider', 2, 22, estSec: 9840, grams: 104.6, color: '#000000'),
       a('Flexi dragon', 1, 26,
           estSec: 14400, grams: 156.3, type: 'TPU', color: '#0ACC38'),
     ];
   }
 
-  DemoResult? _archivesRoute(String m, List<String> s, Map<String, String> q) {
+  // --- Print log ---
+
+  /// One row per run, built from the archives plus the runs whose archive is
+  /// gone — the orphans are the half of this table nothing else in the app can
+  /// reach, so the demo would misrepresent the screen without them.
+  ///
+  /// Carries `cost` / `energy_kwh` / `energy_cost` because the reported version
+  /// is 1.2.6, which sends them (server #2636). The archives already hold both
+  /// figures, so a run reads the same here as it does in the statistics.
+  late final List<Map<String, dynamic>> _printLog = _buildPrintLog();
+
+  List<Map<String, dynamic>> _buildPrintLog() {
+    var id = 900;
+    Map<String, dynamic> row(
+      Map<String, dynamic> archive, {
+      String? failureReason,
+    }) =>
+        {
+          'id': id++,
+          'archive_id': archive['id'],
+          'print_name': archive['print_name'],
+          'printer_name': _printerName(archive['printer_id'] as int?),
+          'printer_id': archive['printer_id'],
+          'status': archive['status'],
+          'started_at': archive['started_at'],
+          'completed_at': archive['completed_at'],
+          'duration_seconds': archive['actual_time_seconds'],
+          'filament_type': archive['filament_type'],
+          'filament_color': archive['filament_color'],
+          // The run's own figure, not the file's estimate — the same
+          // distinction the server keeps, and what makes the archive sheet's
+          // second line agree with this table.
+          'filament_used_grams': archive['total_filament_actual_grams'],
+          'cost': archive['cost'],
+          'energy_kwh': archive['energy_kwh'],
+          'energy_cost': archive['energy_cost'],
+          'failure_reason': failureReason ?? archive['failure_reason'],
+          'thumbnail_path': null,
+          'created_by_id': 1,
+          'created_by_username': DemoConfig.username,
+          'created_at': archive['created_at'],
+        };
+
+    Map<String, dynamic> orphan(
+      String name,
+      int printerId,
+      int daysAgo, {
+      required String status,
+      String? failureReason,
+      int durationSeconds = 1800,
+      double? energyKwh,
+    }) {
+      final started = _daysAgo(daysAgo, hours: 5);
+      return {
+        'id': id++,
+        // The archive is gone; the run survived it (`ON DELETE SET NULL`).
+        'archive_id': null,
+        'print_name': name,
+        'printer_name': _printerName(printerId),
+        'printer_id': printerId,
+        'status': status,
+        'started_at': _iso(started),
+        'completed_at': _iso(started.add(Duration(seconds: durationSeconds))),
+        'duration_seconds': durationSeconds,
+        'filament_type': 'PLA',
+        'filament_color': '#0ACCB8',
+        'filament_used_grams': 18.4,
+        'cost': _r1(18.4 * 0.025),
+        // A run on a printer with a smart plug behind it. The orphan below is
+        // deliberately left without one — a null there is "no plug", and the
+        // screen has to read differently from a zero.
+        'energy_kwh': energyKwh,
+        'energy_cost': energyKwh == null ? null : _r1(energyKwh * 0.3),
+        'failure_reason': failureReason,
+        'thumbnail_path': null,
+        'created_by_id': null,
+        'created_by_username': null,
+        'created_at': _iso(started),
+      };
+    }
+
+    return [
+      // Newest first, the order the server sorts by.
+      orphan('Bracket v3 (deleted archive)', 1, 0,
+          status: 'failed', failureReason: 'cloggedNozzle', energyKwh: 0.06),
+      for (final a in _archives) row(a),
+      orphan('Test cube', 2, 30, status: 'cancelled', durationSeconds: 420),
+    ];
+  }
+
+  String? _printerName(int? printerId) {
+    for (final p in _printers) {
+      if (p['id'] == printerId) return '${p['name']}';
+    }
+    return null;
+  }
+
+  /// Mirrors `print_log.py::_FAILURE_REASON_KEYS` / `_STATUS_KEYS` — the demo
+  /// refuses what the real server refuses, or the editor would look like it
+  /// accepts anything.
+  static const _printLogReasons = {
+    '',
+    'adhesionFailure',
+    'spaghettiDetached',
+    'layerShift',
+    'cloggedNozzle',
+    'filamentRunout',
+    'warping',
+    'stringing',
+    'underExtrusion',
+    'powerFailure',
+    'userCancelled',
+    'other',
+  };
+  static const _printLogStatuses = {
+    'completed',
+    'failed',
+    'stopped',
+    'cancelled',
+    'skipped',
+  };
+
+  DemoResult? _printLogRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1) {
+      if (m == 'GET') {
+        final matched = _sortPrintLog(_filterPrintLog(q), q);
+        final offset = int.tryParse(q['offset'] ?? '') ?? 0;
+        final limit = int.tryParse(q['limit'] ?? '') ?? 50;
+        final page = offset >= matched.length
+            ? const <Map<String, dynamic>>[]
+            : matched.sublist(offset, math.min(offset + limit, matched.length));
+        return _ok({'items': page, 'total': matched.length});
+      }
+      if (m == 'DELETE') {
+        // Clears every row, ignoring the filters above — as the route does.
+        final deleted = _printLog.length;
+        _printLog.clear();
+        return _ok({'deleted': deleted});
+      }
+      return _fallback(m);
+    }
+
+    final entryId = int.tryParse(s[1]);
+    final entry = _printLog.where((e) => e['id'] == entryId).firstOrNull;
+    if (s.length >= 3 && s[2] == 'thumbnail') return _notFound();
+    if (entry == null) return _notFound();
+
+    if (m == 'DELETE') {
+      _printLog.remove(entry);
+      return _ok({'status': 'deleted', 'id': entryId});
+    }
+    if (m == 'PATCH') {
+      if (body.containsKey('failure_reason')) {
+        final reason = '${body['failure_reason'] ?? ''}';
+        if (!_printLogReasons.contains(reason)) {
+          return (
+            status: 400,
+            body: {'detail': "Unknown failure_reason: '$reason'"},
+          );
+        }
+        entry['failure_reason'] = reason.isEmpty ? null : reason;
+      }
+      if (body['status'] != null) {
+        final status = '${body['status']}';
+        if (!_printLogStatuses.contains(status)) {
+          return (status: 400, body: {'detail': "Unknown status: '$status'"});
+        }
+        entry['status'] = status;
+      }
+      return _ok(entry);
+    }
+    return _fallback(m);
+  }
+
+  /// Orders a filtered log the way `_SORTABLE_COLUMNS` does, nulls last in both
+  /// directions.
+  ///
+  /// Served rather than ignored because the app only shows the sort control on
+  /// a server that honours it — a demo that took the parameters and returned
+  /// the same order would be exactly the silent drop the version gate exists to
+  /// avoid.
+  List<Map<String, dynamic>> _sortPrintLog(
+    List<Map<String, dynamic>> rows,
+    Map<String, String> q,
+  ) {
+    final column = q['sort_by'];
+    if (column == null) return rows;
+    Comparable<Object>? key(Map<String, dynamic> e) => switch (column) {
+          'date' => '${e['started_at'] ?? e['created_at']}',
+          'print_name' => '${e['print_name'] ?? ''}'.toLowerCase(),
+          'printer' => '${e['printer_name'] ?? ''}'.toLowerCase(),
+          'user' => '${e['created_by_username'] ?? ''}'.toLowerCase(),
+          'status' => '${e['status']}',
+          'duration' => e['duration_seconds'] as int?,
+          'completed_at' => e['completed_at'] as String?,
+          'filament' => '${e['filament_type'] ?? ''}',
+          'filament_used' => (e['filament_used_grams'] as num?)?.toDouble(),
+          'cost' => (e['cost'] as num?)?.toDouble(),
+          'energy' => (e['energy_kwh'] as num?)?.toDouble(),
+          'energy_cost' => (e['energy_cost'] as num?)?.toDouble(),
+          _ => null,
+        };
+    final descending = q['sort_dir'] != 'asc';
+    final sorted = [...rows]..sort((a, b) {
+        final ka = key(a);
+        final kb = key(b);
+        // Nulls last whichever way the column is pointing, as the server does:
+        // an empty column must not bury the rows that do have a value.
+        if (ka == null) return kb == null ? 0 : 1;
+        if (kb == null) return -1;
+        final cmp = ka.compareTo(kb as Object);
+        return descending ? -cmp : cmp;
+      });
+    return sorted;
+  }
+
+  /// A `date_from` / `date_to` query value as the instant it means.
+  ///
+  /// The app sends those without a zone marker on purpose — the real server's
+  /// columns are naive UTC and a tz-aware bind param compares against them
+  /// differently per database. Dart reads a zoneless string as **local**, so
+  /// taking it as written moved the filter boundary by the device's offset
+  /// against the demo's own timestamps, which are tagged UTC.
+  static DateTime? _utcQueryInstant(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final zoned = RegExp(r'([Zz]|[+-]\d{2}:?\d{2})$').hasMatch(value);
+    return DateTime.tryParse(zoned ? value : '${value}Z');
+  }
+
+  List<Map<String, dynamic>> _filterPrintLog(Map<String, String> q) {
+    final search = (q['search'] ?? '').toLowerCase();
+    final printerId = int.tryParse(q['printer_id'] ?? '');
+    final status = q['status'];
+    final username = q['created_by_username'];
+    final from = _utcQueryInstant(q['date_from']);
+    final to = _utcQueryInstant(q['date_to']);
+    return _printLog.where((e) {
+      if (search.isNotEmpty &&
+          !'${e['print_name'] ?? ''}'.toLowerCase().contains(search)) {
+        return false;
+      }
+      if (printerId != null && e['printer_id'] != printerId) return false;
+      if (status != null && e['status'] != status) return false;
+      if (username != null && e['created_by_username'] != username) {
+        return false;
+      }
+      final created = DateTime.tryParse('${e['created_at']}');
+      if (created == null) return true;
+      if (from != null && created.isBefore(from)) return false;
+      if (to != null && created.isAfter(to)) return false;
+      return true;
+    }).toList();
+  }
+
+  DemoResult? _archivesRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
     if (s.length == 1 && m == 'GET') return _ok(_pageArchives(q));
     if (s.length >= 2) {
       switch (s[1]) {
@@ -1085,10 +2003,92 @@ class DemoBackend {
         if (s.length >= 3 && s[2] == 'filament-requirements') {
           return _ok(const {'filaments': <Object>[]});
         }
+        if (s.length >= 3 && s[2] == 'plates') {
+          return _ok(_demoPlates(archive));
+        }
+        if (s.length == 3 && s[2] == 'printer-media' && m == 'GET') {
+          return _ok(_archiveMedia(archive));
+        }
         if (s.length == 2 && m == 'GET') return _ok(archive);
+        // The demo stands in for a current server, so it knows the key and
+        // answers with the row as stored — which is what tells the app the
+        // edit landed. `containsKey`, not a null check: a present null is how
+        // the weight is cleared.
+        if (s.length == 2 && m == 'PATCH') {
+          if (body.containsKey('filament_used_grams')) {
+            archive['filament_used_grams'] = body['filament_used_grams'];
+          }
+          return _ok(archive);
+        }
       }
     }
     return _fallback(m);
+  }
+
+  /// Recordings the demo offers for one print.
+  ///
+  /// No `local_timelapse` and no photos on any demo archive: both would be
+  /// rows that open a viewer, and a viewer loads its image or video straight
+  /// over the network — which in demo mode goes to `http://demo` and resolves
+  /// nowhere. So the demo shows the half it can actually serve, and the
+  /// printer half is the new one anyway.
+  ///
+  /// The files come from [_printVideos], the same generator the printer's own
+  /// `/timelapse` and `/ipcam` listings use, so what the sheet offers here can
+  /// be found in the file manager at the same path and the same size.
+  Map<String, dynamic> _archiveMedia(Map<String, dynamic> archive) {
+    final printerId = archive['printer_id'];
+    if (printerId == null) {
+      return {
+        'archive_id': archive['id'],
+        'printer_id': null,
+        'local_timelapse': null,
+        'remote_files': const <Object>[],
+        'warnings': const <String>[],
+      };
+    }
+    final videos = _printVideos(archive);
+    return {
+      'archive_id': archive['id'],
+      'printer_id': printerId,
+      'local_timelapse': null,
+      'remote_files': [?videos.timelapse, ...videos.ipcam],
+      'warnings': videos.warnings,
+    };
+  }
+
+  /// Plates of a demo archive. Three for the one print that carries a
+  /// `plate_id`, one for everything else — a single-plate answer is what the
+  /// picker reads as "nothing to choose", which is the state most prints are in.
+  Map<String, dynamic> _demoPlates(Map<String, dynamic> archive) {
+    final multi = archive['plate_id'] != null;
+    final grams = (archive['filament_used_grams'] as num).toDouble();
+    final seconds = archive['print_time_seconds'] as int;
+    final count = multi ? 3 : 1;
+    return {
+      'archive_id': archive['id'],
+      'filename': archive['filename'],
+      'plates': [
+        for (var i = 1; i <= count; i++)
+          {
+            'index': i,
+            'name': null,
+            'objects': <String>[],
+            'object_count': i,
+            'has_thumbnail': false,
+            'thumbnail_url': null,
+            'print_time_seconds': (seconds / count).round(),
+            'filament_used_grams': _r1(grams / count),
+            'filaments': <Object>[],
+            'bed_type': archive['bed_type'],
+          },
+      ],
+      'is_multi_plate': multi,
+      'has_gcode': true,
+      'embedded_printer': null,
+      'embedded_process': null,
+      'design_overrides': <Object>[],
+    };
   }
 
   List<Map<String, dynamic>> _pageArchives(Map<String, String> q) {
@@ -1176,6 +2176,127 @@ class DemoBackend {
   }
 
   // --- Smart plugs ---
+
+  /// `/location-ha-sensors/` — the Home Assistant sensors bound to a storage
+  /// location. Read-only here as in the app: the demo has no Home Assistant to
+  /// pick an entity from.
+  ///
+  /// Bound to "Dry box" (location 3), the one demo location the reading is
+  /// about, and the three rows cover the three states the pills draw
+  /// differently: a plain reading, one over its threshold, and one the poller
+  /// could not reach.
+  static const _locationSensors = [
+    {
+      'id': 1,
+      'location_id': 3,
+      'name': 'Temperature',
+      'entity_id': 'sensor.dry_box_temperature',
+      'kind': 'numeric',
+      'device_class': 'temperature',
+      'unit': '°C',
+      'show_on_card': true,
+      'sort_order': 0,
+    },
+    {
+      'id': 2,
+      'location_id': 3,
+      'name': 'Humidity',
+      'entity_id': 'sensor.dry_box_humidity',
+      'kind': 'numeric',
+      'device_class': 'humidity',
+      'unit': '%',
+      'alert_above': 45.0,
+      'show_on_card': true,
+      'sort_order': 1,
+    },
+    {
+      'id': 3,
+      'location_id': 3,
+      'name': 'Battery',
+      'entity_id': 'sensor.dry_box_battery',
+      'kind': 'numeric',
+      'device_class': 'battery',
+      'unit': '%',
+      'show_on_card': true,
+      'sort_order': 2,
+    },
+  ];
+
+  List<Map<String, dynamic>> _locationSensorReadings(int locationId) => [
+        for (final sensor in _locationSensors)
+          if (sensor['location_id'] == locationId)
+            {
+              ...sensor,
+              'state': switch (sensor['id']) {
+                1 => '24.4',
+                2 => '47.2',
+                _ => '78',
+              },
+              'value': switch (sensor['id']) {
+                1 => 24.4,
+                2 => 47.2,
+                _ => 78.0,
+              },
+              'alerting': sensor['id'] == 2,
+              // The battery sensor is the one the demo leaves unreachable, so
+              // its last value is shown under the struck-through sensor icon
+              // instead of passing for a current one.
+              'reachable': sensor['id'] != 3,
+              'last_changed': _iso(_minutesAgo(sensor['id'] == 3 ? 240 : 6)),
+            },
+      ];
+
+  /// `/scheduled-dryings` — list, schedule, cancel. Served because the demo
+  /// reports 1.2.6b1, which is the release the route shipped in: a version that
+  /// offers the sheet's "later" modes over a 404 would be the one thing the
+  /// gate exists to prevent.
+  DemoResult? _scheduledDryingRoute(
+    String m,
+    List<String> s,
+    Map<String, String> q,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 1 && m == 'GET') {
+      final printerId = int.tryParse(q['printer_id'] ?? '');
+      return _ok([
+        for (final row in _scheduledDryings)
+          if (printerId == null || row['printer_id'] == printerId) row,
+      ]);
+    }
+    if (s.length == 1 && m == 'POST') {
+      // Echoed with the `Z` the real schema appends, not as the app sent it:
+      // the client writes naive UTC because that is what the column compares
+      // against, and reading its own spelling back would hide a parser that
+      // only handles one of the two.
+      final asked = dateTimeFromJson(body['start_after']);
+      final row = <String, dynamic>{
+        'id': _nextScheduledDryingId++,
+        'printer_id': body['printer_id'] ?? 1,
+        'ams_id': body['ams_id'] ?? 0,
+        'temp': body['temp'] ?? 45,
+        'duration_hours': body['duration_hours'] ?? 4,
+        'filament': body['filament'] ?? '',
+        'rotate_tray': body['rotate_tray'] ?? false,
+        'start_after': asked == null ? null : _iso(asked),
+        'status': 'pending',
+        'waiting_reason': null,
+        'error_message': null,
+        'created_at': _iso(DateTime.now()),
+        'started_at': null,
+        'completed_at': null,
+      };
+      _scheduledDryings.add(row);
+      return _ok(row);
+    }
+    final rowId = int.tryParse(s.length > 1 ? s[1] : '');
+    if (rowId != null && m == 'DELETE') {
+      final before = _scheduledDryings.length;
+      _scheduledDryings.removeWhere((row) => row['id'] == rowId);
+      if (_scheduledDryings.length == before) return _notFound();
+      return _ok({'status': 'cancelled', 'id': rowId});
+    }
+    return _fallback(m);
+  }
 
   DemoResult? _plugsRoute(String m, List<String> s, Map<String, dynamic> body) {
     if (s.length == 1 && m == 'GET') {
@@ -1461,6 +2582,7 @@ class DemoBackend {
       String? effect,
       String? archivedAt,
       int? lowStockPct,
+      double baseline = 0,
     }) =>
         {
           'id': id++,
@@ -1474,6 +2596,7 @@ class DemoBackend {
           'label_weight': label,
           'core_weight': 250,
           'weight_used': used,
+          'weight_used_baseline': baseline,
           'cost_per_kg': cost,
           'low_stock_threshold_pct': lowStockPct,
           'storage_location': location,
@@ -1496,8 +2619,11 @@ class DemoBackend {
       spool('PETG', 'Translucent', 'Teal', '0ACCB8FF', used: 80, cost: 29.99, location: 'Dry box'),
       spool('TPU', '95A', 'Green', '0ACC38FF',
           used: 445, cost: 34.99, location: 'Shelf B', lowStockPct: 20),
+      // The one spool whose counter has been reset before: consumed (405 g)
+      // reads lower than used (905 g), which is the split the reset action
+      // makes and the only way to see it without pressing the button.
       spool('PLA', 'Silk', 'Gold', 'D4AF37FF',
-          used: 905, effect: 'silk', location: 'Shelf A'),
+          used: 905, baseline: 500, effect: 'silk', location: 'Shelf A'),
       spool('ABS', null, 'Red', 'C12E1FFF',
           used: 380, archivedAt: _iso(_daysAgo(10))),
     ];
@@ -1510,6 +2636,11 @@ class DemoBackend {
     {'spool_id': 5, 'printer_id': 2, 'ams_id': 0, 'tray_id': 0, 'printer_name': 'P1S'},
     {'spool_id': 7, 'printer_id': 2, 'ams_id': 0, 'tray_id': 1, 'printer_name': 'P1S'},
   ];
+
+  /// Per-printer-model preset overrides, by spool id — written by the spool
+  /// form's PUT and read back by its next open, so the demo shows the replace
+  /// semantics the real route has rather than a list that never changes.
+  final Map<int, List<Map<String, dynamic>>> _presetOverrides = {};
 
   static final List<Map<String, dynamic>> _coreWeights = [
     {'id': 1, 'name': 'Bambu Lab – Plastic', 'weight': 250, 'is_default': true},
@@ -1539,6 +2670,7 @@ class DemoBackend {
     List<String> s,
     Map<String, String> q,
     Map<String, dynamic> body,
+    Object? rawBody,
   ) {
     if (s.length < 2) return _notFound();
     switch (s[1]) {
@@ -1552,6 +2684,9 @@ class DemoBackend {
           }
           if (m == 'POST') return _ok(_createSpool(body));
         }
+        if (s.length >= 3 && s[2] == 'from-slot' && m == 'POST') {
+          return _createSpoolFromSlot(body);
+        }
         if (s.length >= 3 && s[2] == 'bulk' && m == 'POST') {
           final quantity = (body['quantity'] as num?)?.toInt() ?? 1;
           final draft = body['spool'];
@@ -1559,6 +2694,12 @@ class DemoBackend {
             for (var i = 0; i < quantity; i++)
               _createSpool(draft is Map<String, dynamic> ? draft : const {}),
           ]);
+        }
+        // Before the id lookup below: `bulk-archive` and friends are siblings
+        // of `{spool_id}` in the path, and would otherwise be read as an id.
+        if (s.length == 3 && m == 'POST') {
+          final bulk = _bulkSpools(s[2], body);
+          if (bulk != null) return bulk;
         }
         final spoolId = int.tryParse(s.length > 2 ? s[2] : '');
         final spool = _spools.where((x) => x['id'] == spoolId).firstOrNull;
@@ -1572,6 +2713,7 @@ class DemoBackend {
           if (m == 'DELETE') {
             _spools.remove(spool);
             _assignments.removeWhere((a) => a['spool_id'] == spoolId);
+            _presetOverrides.remove(spoolId);
             return _ok(const {'ok': true});
           }
         }
@@ -1583,13 +2725,42 @@ class DemoBackend {
             case 'restore':
               spool['archived_at'] = null;
               return _ok(spool);
-            case 'reset-usage':
-              spool['weight_used'] = 0.0;
+            // Stamps the baseline the "Total Consumed" display counts from,
+            // and leaves `weight_used` — so remaining does NOT jump back to
+            // the label weight. That is what the route does since it was
+            // renamed from `/reset-usage`, which zeroed the weight instead
+            // (server issue #1644); the old name is gone there, so it is gone
+            // here too and the app's fallback to it stays honest.
+            case 'reset-consumed-counter':
+              spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
               return _ok(spool);
             case 'usage':
               return _ok(_spoolUsage(spoolId!));
             case 'k-profiles':
               return _ok(const <Object>[]);
+            case 'filament-presets':
+              if (m == 'GET') {
+                return _ok(_presetOverrides[spoolId] ?? const <Object>[]);
+              }
+              if (m == 'PUT') {
+                // A replace, like the route: whatever arrives becomes the whole
+                // list, and an empty body clears it.
+                final sent = rawBody is List ? rawBody : const [];
+                final rows = <Map<String, dynamic>>[
+                  for (final (i, row) in sent.whereType<Map>().indexed)
+                    {
+                      'id': i + 1,
+                      'spool_id': spoolId,
+                      'printer_model': row['printer_model'],
+                      'nozzle_diameter': row['nozzle_diameter'] ?? '',
+                      'slicer_filament': row['slicer_filament'],
+                      'slicer_filament_name': row['slicer_filament_name'],
+                      'created_at': _iso(DateTime.now()),
+                    },
+                ];
+                _presetOverrides[spoolId!] = rows;
+                return _ok(rows);
+              }
           }
         }
         return _fallback(m);
@@ -1635,6 +2806,192 @@ class DemoBackend {
         ]);
     }
     return _fallback(m);
+  }
+
+  /// The `/inventory/spools/bulk-*` routes plus `reset-consumed-counter-bulk`,
+  /// answering in the shapes the native backend answers in: a count, the ids it
+  /// could not find, and — for archive/restore — the ids that were already in
+  /// the state asked for. Returns null for a path segment that is not one of
+  /// them, so the caller can go on reading it as a spool id.
+  ///
+  /// The refusals are copied deliberately, like [_createSpoolFromSlot]'s: an
+  /// empty selection and an empty patch are both 400 on the server, and a demo
+  /// that accepted them would leave the app's wording for them untried.
+  DemoResult? _bulkSpools(String action, Map<String, dynamic> body) {
+    // `reset-consumed-counter-bulk` is the one route keyed on `spool_ids`.
+    final isReset = action == 'reset-consumed-counter-bulk';
+    if (!isReset && !const {
+      'bulk-update',
+      'bulk-delete',
+      'bulk-archive',
+      'bulk-restore',
+    }.contains(action)) {
+      return null;
+    }
+
+    final key = isReset ? 'spool_ids' : 'ids';
+    final ids = [
+      for (final raw in body[key] as List? ?? const [])
+        if (raw is num) raw.toInt(),
+    ];
+    if (ids.isEmpty) {
+      return (status: 400, body: {'detail': '$key must be a non-empty list'});
+    }
+    if (ids.length > 500) {
+      return (
+        status: 422,
+        body: {'detail': '$key accepts at most 500 entries'},
+      );
+    }
+
+    final found = [
+      for (final id in ids)
+        ?_spools.where((x) => x['id'] == id).firstOrNull,
+    ];
+    final foundIds = {for (final spool in found) spool['id']};
+    final notFound = [
+      for (final id in ids)
+        if (!foundIds.contains(id)) id,
+    ];
+
+    switch (action) {
+      case 'bulk-update':
+        final update = body['update'];
+        if (update is! Map || update.isEmpty) {
+          return (
+            status: 400,
+            body: {'detail': 'update must include at least one field'},
+          );
+        }
+        for (final spool in found) {
+          update.forEach((k, v) => spool['$k'] = v);
+        }
+        return _ok({'updated': found.length, 'not_found': notFound});
+
+      case 'bulk-delete':
+        for (final spool in found) {
+          _spools.remove(spool);
+          _assignments.removeWhere((a) => a['spool_id'] == spool['id']);
+        }
+        return _ok({'deleted': found.length, 'not_found': notFound});
+
+      case 'bulk-archive':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] != null) spool['id'],
+        ];
+        final now = _iso(DateTime.now());
+        for (final spool in found) {
+          spool['archived_at'] ??= now;
+        }
+        return _ok({
+          'archived': found.length - already.length,
+          'already_archived': already,
+          'not_found': notFound,
+        });
+
+      case 'bulk-restore':
+        final already = [
+          for (final spool in found)
+            if (spool['archived_at'] == null) spool['id'],
+        ];
+        for (final spool in found) {
+          spool['archived_at'] = null;
+        }
+        return _ok({
+          'restored': found.length - already.length,
+          'already_active': already,
+          'not_found': notFound,
+        });
+
+      default:
+        // Reset counts the rows it found and reports nothing else, exactly as
+        // the server does — the app reads the gap against what it asked for.
+        for (final spool in found) {
+          spool['weight_used_baseline'] = spool['weight_used'] ?? 0.0;
+        }
+        return _ok({'reset': found.length});
+    }
+  }
+
+  /// `POST /inventory/spools/from-slot` — registers what the AMS reports in one
+  /// slot and pins it there, in one call, like the server does.
+  ///
+  /// The two refusals are copied from it deliberately: they are what the app's
+  /// wording for this action is built on, and a demo that always succeeded
+  /// would leave both untested by hand.
+  DemoResult _createSpoolFromSlot(Map<String, dynamic> body) {
+    final printerId = (body['printer_id'] as num?)?.toInt();
+    final amsId = (body['ams_id'] as num?)?.toInt();
+    final trayId = (body['tray_id'] as num?)?.toInt();
+    if (printerId == null || amsId == null || trayId == null) {
+      return (status: 400, body: {'detail': 'Provide printer_id, ams_id and tray_id'});
+    }
+
+    final units = statusData(printerId)['ams'];
+    Map<String, dynamic>? tray;
+    if (units is List) {
+      for (final unit in units) {
+        if (unit is! Map || (unit['id'] as num?)?.toInt() != amsId) continue;
+        for (final t in (unit['tray'] as List? ?? const [])) {
+          if (t is Map && (t['id'] as num?)?.toInt() == trayId) {
+            tray = Map<String, dynamic>.from(t);
+            break;
+          }
+        }
+        if (tray != null) break;
+      }
+    }
+
+    final material = (tray?['tray_type'] as String?)?.trim() ?? '';
+    if (tray == null || material.isEmpty) {
+      return (
+        status: 400,
+        body: {'detail': 'Slot is empty or has no readable tray data'},
+      );
+    }
+    final tagUid = tray['tag_uid'] as String?;
+    final trayUuid = tray['tray_uuid'] as String?;
+    if ((tagUid ?? '').isEmpty && (trayUuid ?? '').isEmpty) {
+      return (status: 400, body: {'detail': 'Slot has no RFID tag'});
+    }
+
+    // "PLA Basic" → subtype "Basic", the same split the server makes.
+    final subBrands = (tray['tray_sub_brands'] as String?)?.trim() ?? '';
+    final subtype = subBrands.toUpperCase().startsWith('${material.toUpperCase()} ')
+        ? subBrands.substring(material.length + 1)
+        : null;
+
+    // The AMS reports RRGGBBAA; the colour catalogue is keyed on #RRGGBB.
+    final rgba = (tray['tray_color'] as String?) ?? 'FFFFFFFF';
+    final hex = rgba.length >= 6 ? '#${rgba.substring(0, 6)}' : null;
+
+    final spool = _createSpool({
+      'material': material,
+      'subtype': ?subtype,
+      'brand': 'Bambu Lab',
+      'color_name': _colorCatalog
+          .where((c) => c['hex_color'] == hex)
+          .firstOrNull?['color_name'],
+      'rgba': rgba,
+      'label_weight': 1000,
+      'tag_uid': tagUid,
+      'tray_uuid': trayUuid,
+    });
+
+    _assignments.removeWhere((a) =>
+        a['printer_id'] == printerId &&
+        a['ams_id'] == amsId &&
+        a['tray_id'] == trayId);
+    _assignments.add({
+      'spool_id': spool['id'],
+      'printer_id': printerId,
+      'ams_id': amsId,
+      'tray_id': trayId,
+      'printer_name':
+          _printers.where((p) => p['id'] == printerId).firstOrNull?['name'],
+    });
+    return _ok(spool);
   }
 
   Map<String, dynamic> _createSpool(Map<String, dynamic> draft) {
@@ -1713,12 +3070,19 @@ class DemoBackend {
     {'id': 2, 'name': 'Household', 'parent_id': null, 'file_count': 2, 'children': <Object>[]},
   ];
 
+  /// The models are spread across the demo fleet on purpose: a variant group is
+  /// the same job sliced for *different* printers, and the server refuses two
+  /// members that target the same one — so a library sliced entirely for the
+  /// X1C could never demonstrate the feature.
   late final List<Map<String, dynamic>> _libraryFiles = [
     _libFile(1, 'Benchy.gcode.3mf', 1, 2108509, printCount: 3, timeSec: 3540, grams: 15.8),
     _libFile(2, 'Calibration cube.gcode.3mf', 1, 812340, printCount: 1, timeSec: 1620, grams: 6.1),
-    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4),
-    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2),
-    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3),
+    _libFile(3, 'Temp tower PLA.gcode.3mf', 1, 1430200, printCount: 1, timeSec: 5340, grams: 21.4,
+        model: 'P1S'),
+    _libFile(4, 'Drawer organizer x4.gcode.3mf', 2, 4318208, printCount: 2, timeSec: 5400, grams: 96.2,
+        model: 'P1S'),
+    _libFile(5, 'Cable clips x8.gcode.3mf', 2, 1524736, printCount: 1, timeSec: 5520, grams: 42.3,
+        model: 'P2S'),
     _libFile(6, 'SD card adapter.3mf', null, 634212, fileType: '3mf'),
   ];
 
@@ -1734,6 +3098,7 @@ class DemoBackend {
     int? timeSec,
     double? grams,
     String fileType = 'gcode.3mf',
+    String model = 'X1C',
   }) =>
       {
         'id': id,
@@ -1749,8 +3114,120 @@ class DemoBackend {
         'print_name': filename.split('.').first,
         'print_time_seconds': timeSec,
         'filament_used_grams': grams,
-        'sliced_for_model': 'X1C',
+        'sliced_for_model': model,
+        'variant_group_id': null,
+        'variant_count': 0,
       };
+
+  /// Cross-model variant groups (server #671), served because the demo now
+  /// reports 1.2.6 — the file manager's grouping button appears at that version
+  /// and a button that answers nothing is worse than one that is absent.
+  ///
+  /// Refuses what the real route refuses: fewer than two members, a file that
+  /// is already grouped, a file that is not sliced output, and two members
+  /// sliced for the same printer — the last one being the whole point, since a
+  /// group of two X1C files expresses no choice for the scheduler.
+  final List<Map<String, dynamic>> _variantGroups = [];
+  int _nextVariantGroupId = 1;
+
+  DemoResult _variantGroupRoute(
+    String m,
+    List<String> s,
+    Map<String, dynamic> body,
+  ) {
+    if (s.length == 2 && m == 'POST') {
+      final members = (body['members'] as List?) ?? const [];
+      final ids = [
+        for (final member in members.whereType<Map>())
+          member['library_file_id'] as int?,
+      ].nonNulls.toList();
+      if (ids.length < 2) {
+        return (status: 400, body: {'detail': 'A variant group needs at least 2 members'});
+      }
+      final files = [
+        for (final id in ids)
+          ..._libraryFiles.where((f) => f['id'] == id),
+      ];
+      if (files.length != ids.length) {
+        return (status: 404, body: {'detail': 'Library file not found'});
+      }
+      final models = <String, String>{};
+      for (final f in files) {
+        if (f['file_type'] != 'gcode.3mf' && f['file_type'] != 'gcode') {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} is not a sliced file — only sliced '
+                  'output can be a print variant',
+            },
+          );
+        }
+        if (f['variant_group_id'] != null) {
+          return (
+            status: 409,
+            body: {'detail': '${f['filename']} already belongs to a variant group'},
+          );
+        }
+        final model = '${f['sliced_for_model']}';
+        final clash = models[model];
+        if (clash != null) {
+          return (
+            status: 400,
+            body: {
+              'detail': '${f['filename']} and $clash are both sliced for '
+                  '$model — variants must target different printers',
+            },
+          );
+        }
+        models[model] = '${f['filename']}';
+      }
+
+      final group = {
+        'id': _nextVariantGroupId++,
+        'name': body['name'] ?? files.first['filename'],
+        'members': [
+          for (final (position, f) in files.indexed)
+            {
+              'library_file_id': f['id'],
+              'filename': f['filename'],
+              'target_model': f['sliced_for_model'],
+              'position': position,
+            },
+        ],
+      };
+      _variantGroups.add(group);
+      for (final f in files) {
+        f['variant_group_id'] = group['id'];
+        f['variant_count'] = files.length;
+      }
+      return _ok(group);
+    }
+
+    if (s.length == 4 && s[2] == 'by-file' && m == 'GET') {
+      final fileId = int.tryParse(s[3]);
+      final file = _libraryFiles.where((f) => f['id'] == fileId).firstOrNull;
+      final groupId = file?['variant_group_id'];
+      final group =
+          _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+      // 404 is the ordinary answer for an ungrouped file, not an error.
+      return group == null ? _notFound() : _ok(group);
+    }
+
+    final groupId = int.tryParse(s.length > 2 ? s[2] : '');
+    final group = _variantGroups.where((g) => g['id'] == groupId).firstOrNull;
+    if (group == null) return _notFound();
+    if (s.length == 3 && m == 'GET') return _ok(group);
+    if (s.length == 3 && m == 'DELETE') {
+      _variantGroups.remove(group);
+      for (final f in _libraryFiles) {
+        if (f['variant_group_id'] != groupId) continue;
+        f['variant_group_id'] = null;
+        f['variant_count'] = 0;
+      }
+      return _ok(const {'ok': true});
+    }
+    return _fallback(m);
+  }
 
   DemoResult? _libraryRoute(
     String m,
@@ -1829,6 +3306,9 @@ class DemoBackend {
           return _ok(const {'ok': true});
         }
         return _fallback(m);
+
+      case 'variant-groups':
+        return _variantGroupRoute(m, s, body);
 
       case 'folders':
         if (s.length == 2 && m == 'GET') return _ok(_libraryFolders);
@@ -2125,5 +3605,49 @@ class DemoBackend {
   static DateTime _daysAgo(int days, {int hours = 0}) =>
       DateTime.now().subtract(Duration(days: days, hours: hours));
 
+  static DateTime _minutesAgo(int minutes) =>
+      DateTime.now().subtract(Duration(minutes: minutes));
+
   static String _iso(DateTime t) => t.toUtc().toIso8601String();
+}
+
+/// State of one demo download preparation. Advanced by polling it — see
+/// [DemoBackend._downloadJobs].
+class _DemoDownloadJob {
+  _DemoDownloadJob({
+    required this.jobId,
+    required this.printerId,
+    required this.paths,
+    required this.asZip,
+    required this.filename,
+  });
+
+  final String jobId;
+  final int printerId;
+  final List<String> paths;
+  final bool asZip;
+  final String filename;
+
+  int staged = 0;
+  String? token;
+
+  /// Stages one more file, and mints the token once every file is in.
+  void advance() {
+    if (staged < paths.length) staged++;
+    if (staged >= paths.length) token ??= 'demo-token-$jobId';
+  }
+
+  String get state => token == null ? 'preparing' : 'ready';
+
+  Map<String, dynamic> toJson() => {
+        'job_id': jobId,
+        'printer_id': printerId,
+        'state': state,
+        'requested': paths.length,
+        'successful': staged,
+        'failed': 0,
+        'token': token,
+        'filename': filename,
+        'message': null,
+      };
 }

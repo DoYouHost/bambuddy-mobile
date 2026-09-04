@@ -349,4 +349,58 @@ void main() {
       expect(FlutterError.onError, same(mine));
     });
   });
+
+  /// `startAction` is the one call the woken isolates make — a notification
+  /// action, a request relayed from the watch — instead of each spelling out
+  /// the same four arguments.
+  group('an isolate woken for one job', () {
+    Future<BackgroundRecording?> startAction({
+      Future<SettingsRepository> Function()? openSettings,
+    }) =>
+        DiagnosticRecorder.startAction(
+          openSettings: openSettings ?? () async => settings,
+          resolveDirectory: () async => dir,
+          clock: () => now,
+        );
+
+    test('records into the action stream, not the service\'s', () async {
+      // Both are open at once whenever the phone is backgrounded, and two
+      // writers on one file is a torn session.
+      await settings.saveDiagnosticsSession(session);
+      await writeUiStream();
+
+      final recording = await startAction();
+      expect(recording, isNotNull);
+      recording!.store.add(LogSource.app, 'wear_wake');
+      await recording.stop();
+
+      expect(
+        linesOf(LogStream.action).map((r) => r['evt']),
+        contains('wear_wake'),
+      );
+      expect(linesOf(LogStream.fgs), isEmpty);
+    });
+
+    test('stands down when this isolate is already recording', () async {
+      await settings.saveDiagnosticsSession(session);
+      await writeUiStream();
+      final first = await start();
+      addTearDown(() => first!.stop());
+
+      expect(await startAction(), isNull);
+      expect(DiagnosticRecorder.active, same(first!.store));
+    });
+
+    test('a platform read that fails costs the recording, not the job',
+        () async {
+      // The caller is carrying out the user's tap; a keystore that cannot be
+      // read must leave it unrecorded, never undone.
+      expect(
+        await startAction(
+          openSettings: () => Future.error(StateError('keystore')),
+        ),
+        isNull,
+      );
+    });
+  });
 }

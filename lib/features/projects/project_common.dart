@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -51,7 +52,7 @@ String projectPriorityLabel(AppLocalizations l10n, String priority) =>
 Color projectStatusColor(DashTokens t, String status) => switch (status) {
       'active' => t.accentGreenInk,
       'completed' => t.accentBlue,
-      'on_hold' => t.accentOrange,
+      'on_hold' => t.accentOrangeInk,
       'archived' => t.textTertiary,
       _ => t.textTertiary,
     };
@@ -185,13 +186,7 @@ class ProjectStatusChip extends StatelessWidget {
       ),
       child: Text(
         projectStatusLabel(l10n, status),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: color,
-        ),
+        style: t.micro.copyWith(color: color, letterSpacing: 0.2),
       ),
     );
   }

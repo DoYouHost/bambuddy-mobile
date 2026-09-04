@@ -3,12 +3,16 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/diagnostics/log_tag.dart';
+import '../../../core/format/datetime_format.dart';
 import '../../../core/models/ams_history.dart';
+import '../../../core/settings/server_settings.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers.dart';
+import '../../common/dash_async.dart';
+import '../../common/dash_sheet.dart';
+import 'history_chart_parts.dart';
 
 /// Which metric the AMS history chart is showing.
 enum AmsHistoryMetric { humidity, temperature }
@@ -24,6 +28,13 @@ final amsHistoryDataProvider = FutureProvider.autoDispose
       .watch(amsHistoryRepositoryProvider)
       .fetch(q.printerId, q.amsId, hours: q.hours);
 });
+
+/// Whether the AMS humidity/temperature chips open a chart at all: the route is
+/// there and this session may read it. Invalidated by the sheet after a failed
+/// fetch, so a 403 leaves plain readings rather than a tap that only errors.
+final amsHistorySupportedProvider = FutureProvider<bool>(
+  (ref) => ref.watch(amsHistoryRepositoryProvider).supportsHistory(),
+);
 
 /// AMS "Good"/"Fair" status thresholds. Chart reference lines. Sourced from
 /// server settings, with the same keys and defaults as bambuddy.
@@ -43,18 +54,13 @@ const _defaultAmsThresholds = (
 
 final amsThresholdsProvider = FutureProvider<AmsThresholds>((ref) async {
   final s = await ref.watch(serverSettingsProvider.future);
-  double read(String key, double fallback) {
-    final v = s[key];
-    if (v is num) return v.toDouble();
-    if (v is String) return double.tryParse(v) ?? fallback;
-    return fallback;
-  }
-
   return (
-    humidityGood: read('ams_humidity_good', _defaultAmsThresholds.humidityGood),
-    humidityFair: read('ams_humidity_fair', _defaultAmsThresholds.humidityFair),
-    tempGood: read('ams_temp_good', _defaultAmsThresholds.tempGood),
-    tempFair: read('ams_temp_fair', _defaultAmsThresholds.tempFair),
+    humidityGood: s.settingDouble(
+        'ams_humidity_good', _defaultAmsThresholds.humidityGood),
+    humidityFair: s.settingDouble(
+        'ams_humidity_fair', _defaultAmsThresholds.humidityFair),
+    tempGood: s.settingDouble('ams_temp_good', _defaultAmsThresholds.tempGood),
+    tempFair: s.settingDouble('ams_temp_fair', _defaultAmsThresholds.tempFair),
   );
 });
 
@@ -66,10 +72,8 @@ Future<void> showAmsHistorySheet(
   required String amsLabel,
   AmsHistoryMetric initialMetric = AmsHistoryMetric.humidity,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return dashSheet<void>(
+    context,
     builder: (_) => AmsHistorySheet(
       printerId: printerId,
       amsId: amsId,
@@ -108,11 +112,17 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final isHumidity = _metric == AmsHistoryMetric.humidity;
-    final async = ref.watch(amsHistoryDataProvider((
+    final query = (
       printerId: widget.printerId,
       amsId: widget.amsId,
       hours: _hours,
-    )));
+    );
+    // A failure is also an observation about the route: re-ask whether the
+    // chips should still open a chart.
+    ref.listen(amsHistoryDataProvider(query), (_, next) {
+      if (next.hasError) ref.invalidate(amsHistorySupportedProvider);
+    });
+    final async = ref.watch(amsHistoryDataProvider(query));
     final thresholds =
         ref.watch(amsThresholdsProvider).valueOrNull ?? _defaultAmsThresholds;
     final good =
@@ -151,22 +161,18 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
                 onSelectionChanged: (s) => setState(() => _metric = s.first),
               ),
               const SizedBox(height: 8),
-              _RangeSelector(
+              HistoryRangeSelector(
                 ranges: _ranges,
                 selected: _hours,
-                labelOf: (h) => _rangeLabel(l10n, h),
+                labelOf: (h) => sensorRangeLabel(l10n, h),
                 onChanged: (h) => setState(() => _hours = h),
               ),
               const SizedBox(height: 16),
-              async.when(
-                loading: () => const SizedBox(
-                  height: 260,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => SizedBox(
-                  height: 260,
-                  child: Center(child: Text(l10n.amsHistoryError)),
-                ),
+              dashAsyncStrip(
+                context,
+                async,
+                height: 260,
+                failureMessage: l10n.sensorHistoryError,
                 data: (history) => _Content(
                   history: history,
                   isHumidity: isHumidity,
@@ -189,41 +195,6 @@ class _AmsHistorySheetState extends ConsumerState<AmsHistorySheet> {
     );
   }
 
-  String _rangeLabel(AppLocalizations l10n, int hours) => switch (hours) {
-        6 => l10n.amsHistoryRange6h,
-        48 => l10n.amsHistoryRange48h,
-        168 => l10n.amsHistoryRange7d,
-        _ => l10n.amsHistoryRange24h,
-      };
-}
-
-/// Compact segmented time-range picker (its own row so it wraps independently
-/// of the metric toggle on narrow screens).
-class _RangeSelector extends StatelessWidget {
-  const _RangeSelector({
-    required this.ranges,
-    required this.selected,
-    required this.labelOf,
-    required this.onChanged,
-  });
-
-  final List<int> ranges;
-  final int selected;
-  final String Function(int hours) labelOf;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<int>(
-      showSelectedIcon: false,
-      segments: [
-        for (final h in ranges)
-          ButtonSegment(value: h, label: Text(labelOf(h))),
-      ],
-      selected: {selected},
-      onSelectionChanged: (s) => onChanged(s.first),
-    );
-  }
 }
 
 class _Content extends StatelessWidget {
@@ -249,7 +220,7 @@ class _Content extends StatelessWidget {
 
     // Read the selected metric off each point; skip nulls so gaps don't distort.
     final spots = <FlSpot>[
-      for (final p in history.points)
+      for (final p in thinnedForChart(history.points))
         if (_valueOf(p) case final v?)
           FlSpot(p.recordedAt.millisecondsSinceEpoch.toDouble(), v),
     ];
@@ -257,7 +228,7 @@ class _Content extends StatelessWidget {
     if (spots.isEmpty) {
       return SizedBox(
         height: 260,
-        child: Center(child: Text(l10n.amsHistoryEmpty)),
+        child: Center(child: Text(l10n.sensorHistoryEmpty)),
       );
     }
 
@@ -273,10 +244,12 @@ class _Content extends StatelessWidget {
       children: [
         Row(
           children: [
-            _Stat(label: l10n.amsHistoryCurrent, value: _fmt(current, unit)),
-            _Stat(label: l10n.amsHistoryAverage, value: _fmt(avg, unit)),
-            _Stat(label: l10n.amsHistoryMin, value: _fmt(min, unit)),
-            _Stat(label: l10n.amsHistoryMax, value: _fmt(max, unit)),
+            HistoryStat(
+                label: l10n.sensorHistoryCurrent, value: _fmt(current, unit)),
+            HistoryStat(
+                label: l10n.sensorHistoryAverage, value: _fmt(avg, unit)),
+            HistoryStat(label: l10n.sensorHistoryMin, value: _fmt(min, unit)),
+            HistoryStat(label: l10n.sensorHistoryMax, value: _fmt(max, unit)),
           ],
         ),
         const SizedBox(height: 16),
@@ -301,7 +274,8 @@ class _Content extends StatelessWidget {
     // Fix X domain to the full window so a sparse series still reads correctly.
     final maxX = DateTime.now().millisecondsSinceEpoch.toDouble();
     final minX = maxX - hours * 3600 * 1000;
-    final timeFmt = hours > 24 ? DateFormat.Md() : DateFormat.Hm();
+    final fmt = DateTimeFormats.of(context);
+    final axisLabel = hours > 24 ? fmt.dayMonthNumeric : fmt.time;
 
     // Humidity has a natural 0..100 scale; temperature auto-scales but must keep
     // the Good/Fair lines in view, so widen the range to include them.
@@ -356,7 +330,7 @@ class _Content extends StatelessWidget {
             getTitlesWidget: (v, meta) => Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                timeFmt.format(
+                axisLabel(
                   DateTime.fromMillisecondsSinceEpoch(v.toInt()),
                 ),
                 style: axis,
@@ -397,35 +371,6 @@ class _Content extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
         labelResolver: (_) => label,
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }

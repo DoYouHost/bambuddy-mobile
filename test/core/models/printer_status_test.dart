@@ -28,6 +28,46 @@ void main() {
       expect(status.isPrinting, isTrue);
     });
 
+    test('a real WS frame from a print start reports its stage', () {
+      // The captured frame is a printer that has just been sent a job: RUNNING,
+      // layer 0, 0%, and `stg_cur: 54` — "Waiting for heatbed temperature".
+      // This is the frame the first-layer alert has to keep quiet through, and
+      // proof that the number really does arrive on the WebSocket lane, where
+      // `mc_print_sub_stage` never does.
+      final frame = readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      final status = PrinterStatus.fromJson(data);
+
+      expect(status.state, 'RUNNING');
+      expect(status.layerNum, 0);
+      expect(status.stgCur, 54);
+      expect(status.inNamedStage, isTrue);
+    });
+
+    test('the stage number decides what a stage is, not its name', () {
+      // `stg_cur_name` is derived server-side and says "Printing" at stage 0,
+      // so a non-null name is no evidence of a stage. Both lanes carry the
+      // number; the REST-only `mc_print_sub_stage` bambuddy reads is not an
+      // option for the app.
+      PrinterStatus parse(Object? stage) => PrinterStatus.fromJson(
+          {'id': 1, 'stg_cur': stage, 'stg_cur_name': 'Printing'});
+
+      expect(parse(0).stgCur, 0);
+      expect(parse(0).inNamedStage, isFalse, reason: '0 is "Printing"');
+      expect(parse(9).inNamedStage, isTrue, reason: '9 is scanning the bed');
+      expect(parse(254).inNamedStage, isTrue);
+      // The two idle codes: -1 on X1, 255 on A1/P1.
+      expect(parse(-1).inNamedStage, isFalse);
+      expect(parse(255).inNamedStage, isFalse);
+      // A server that sends no number at all keeps the previous behaviour.
+      expect(parse(null).stgCur, isNull);
+      expect(parse(null).inNamedStage, isFalse);
+      // Tolerant parsing like every other number here.
+      expect(parse('9').stgCur, 9);
+      expect(parse('nonsense').stgCur, isNull);
+    });
+
     test('parsuje pola sterowania (wentylatory, prędkość, światło)', () {
       final status = PrinterStatus.fromJson(
           readFixture('printer_status_printing.json') as Map<String, dynamic>);
@@ -400,6 +440,37 @@ void main() {
       expect(merged.hmsErrors, isNotNull);
     });
 
+    test('the stage number is dropped when the printer goes offline', () {
+      // Live telemetry, unlike the plate gate below: a printer nobody can reach
+      // is not levelling its bed, and a stale stage would keep the first-layer
+      // and milestone gates shut for a print that starts after it wakes.
+      const prev = PrinterStatus(id: 1, connected: true, stgCur: 9);
+      const offline = PrinterStatus(id: 1, connected: false);
+
+      expect(prev.inNamedStage, isTrue);
+      expect(offline.mergedWith(prev).stgCur, isNull);
+      expect(offline.mergedWith(prev).inNamedStage, isFalse);
+    });
+
+    test('the plate-clear gate survives the printer going offline', () {
+      // Not telemetry: the gate is bambuddy's own flag, persisted so it outlives
+      // the printer being switched off. Under Auto Power Off that is how every
+      // print ends, and dropping the flag here hid the only control that
+      // releases it (server #2864).
+      const prev =
+          PrinterStatus(id: 1, connected: true, awaitingPlateClear: true);
+      const offline =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: true);
+
+      expect(offline.mergedWith(prev).awaitingPlateClear, isTrue);
+      // Same normalisation with nothing to merge onto (first frame after start).
+      expect(offline.mergedWith(null).awaitingPlateClear, isTrue);
+      // The server releasing the gate still propagates — this is not stickiness.
+      const cleared =
+          PrinterStatus(id: 1, connected: false, awaitingPlateClear: false);
+      expect(cleared.mergedWith(prev).awaitingPlateClear, isFalse);
+    });
+
     test('powrót online repopuluje telemetrię ze świeżej ramki', () {
       const offline = PrinterStatus(id: 1, connected: false, model: 'P1S');
       const online = PrinterStatus(
@@ -566,6 +637,341 @@ void main() {
     test('brak nazwy pliku → nie kalibracja', () {
       const s = PrinterStatus(id: 1, state: 'IDLE');
       expect(s.isCalibration, isFalse);
+    });
+  });
+
+  group('nozzles', () {
+    PrinterStatus withNozzles(List<Map<String, String>> nozzles,
+            {Map<String, int>? extruderMap, Map<String, String>? inlets}) =>
+        PrinterStatus.fromJson({
+          'id': 1,
+          'nozzles': nozzles,
+          'ams_extruder_map': ?extruderMap,
+          'ams_switch_inlet': ?inlets,
+        });
+
+    test('parses the fitted nozzles', () {
+      final status = withNozzles([
+        {'nozzle_type': 'hardened_steel', 'nozzle_diameter': '0.4'},
+      ]);
+
+      expect(status.nozzles, hasLength(1));
+      expect(status.nozzles!.single.nozzleType, 'hardened_steel');
+      expect(status.nozzleDiameterFor(0, 0), '0.4');
+    });
+
+    test('answers the diameter of the nozzle the AMS unit feeds', () {
+      // Dual-head printers can carry two different sizes, and the slot
+      // configuration has to name the one that will actually melt this spool.
+      final status = withNozzles(
+        [
+          {'nozzle_diameter': '0.4'},
+          {'nozzle_diameter': '0.8'},
+        ],
+        extruderMap: {'0': 1},
+      );
+
+      expect(status.nozzleDiameterFor(0, 0), '0.8');
+      expect(status.nozzleDiameterFor(1, 0), isNull,
+          reason: 'two sizes and no mapping for this unit — the caller guesses');
+    });
+
+    test('answers per side for the external holder', () {
+      // Unit 255 is in no extruder map: the tray id is the whole answer, and
+      // reading it as extruder 0 gave Ext-L the right-hand nozzle's size.
+      final status = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.8'},
+      ]);
+
+      expect(status.nozzleDiameterFor(255, 0), '0.8',
+          reason: 'tray 0 is Ext-L, extruder 1');
+      expect(status.nozzleDiameterFor(255, 1), '0.4');
+    });
+
+    test('a matched pair needs no side', () {
+      // The stub second entry a single-nozzle printer reports, and the common
+      // dual machine wearing two 0.4s, both answer without knowing the side.
+      final single = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': ''},
+      ]);
+      final matched = withNozzles([
+        {'nozzle_diameter': '0.4'},
+        {'nozzle_diameter': '0.4'},
+      ]);
+
+      expect(single.nozzleDiameterFor(3, 0), '0.4');
+      expect(matched.nozzleDiameterFor(255, 0), '0.4');
+    });
+
+    test('reads the side off the switch inlet when the map is empty', () {
+      // An FTS machine reports 0xE for every AMS, so `ams_extruder_map` is
+      // empty and the inlet binding is the only side there is.
+      final status = withNozzles(
+        [
+          {'nozzle_diameter': '0.4'},
+          {'nozzle_diameter': '0.8'},
+        ],
+        extruderMap: const {},
+        inlets: {'0': 'A', '1': 'B'},
+      );
+
+      expect(status.nozzleDiameterFor(0, 0), '0.8', reason: 'inlet A → left');
+      expect(status.nozzleDiameterFor(1, 0), '0.4', reason: 'inlet B → right');
+      expect(status.nozzleDiameterFor(2, 0), isNull,
+          reason: 'a unit on neither inlet stays unknown');
+    });
+
+    test('answers null when the printer reported no nozzles', () {
+      // Guessing 0.4 here would hide the gap; the caller decides what to send.
+      expect(const PrinterStatus(id: 1).nozzleDiameterFor(0, 0), isNull);
+      expect(withNozzles(const []).nozzleDiameterFor(0, 0), isNull);
+      expect(
+          withNozzles([
+            {'nozzle_diameter': ''},
+            {'nozzle_diameter': ''},
+          ]).nozzleDiameterFor(0, 0),
+          isNull);
+    });
+
+    test('survives the printer going offline', () {
+      // Which nozzle is fitted does not change while the printer is
+      // unreachable, unlike the telemetry around it.
+      final offline = const PrinterStatus(id: 1, connected: false)
+          .mergedWith(withNozzles([
+        {'nozzle_diameter': '0.6'},
+      ]));
+
+      expect(offline.nozzleDiameterFor(0, 0), '0.6');
+    });
+  });
+
+  group('slot addressing', () {
+    test('a single external holder feeds the only nozzle there is', () {
+      // One holder means one nozzle, and that one is extruder 0 — the inverted
+      // 254/255 pair only describes a dual-head machine.
+      final single = PrinterStatus.fromJson(const {
+        'id': 1,
+        'vt_tray': [
+          {'id': 254, 'tray_type': 'PLA'},
+        ],
+      });
+
+      expect(single.extruderForExternal(254), 0);
+      expect(single.extruderForExternal(255), isNull,
+          reason: 'a spool this printer does not report');
+    });
+
+    test('an AMS-HT slot is found by tray_now', () {
+      // An HT unit holds one tray and is numbered from 128, so `unit * 4 + slot`
+      // put it at 512 and `tray_now: 128` matched nothing.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 128,
+        'ams': [
+          {
+            'id': 128,
+            'tray': [
+              {'id': 0, 'tray_type': 'PA-CF'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray?.trayType, 'PA-CF');
+    });
+
+    test('a tray without an id matches nothing rather than something else', () {
+      // Reading a missing slot id as 0 made unit 1's phantom slot collide with
+      // unit 0's fourth one.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'tray_now': 3,
+        'ams': [
+          {
+            'id': 0,
+            'tray': [
+              {'tray_type': 'PLA'},
+            ],
+          },
+          {
+            'id': 1,
+            'tray': [
+              {'tray_type': 'PETG'},
+            ],
+          },
+        ],
+      });
+
+      expect(status.activeTray, isNull);
+    });
+  });
+
+  group('ams_switch_inlet', () {
+    PrinterStatus withInlets(Object? raw) =>
+        PrinterStatus.fromJson({'id': 1, 'ams_switch_inlet': raw});
+
+    test('parses the string-keyed inlet map', () {
+      expect(withInlets({'0': 'A', '1': 'B'}).amsSwitchInlet, {0: 'A', 1: 'B'});
+    });
+
+    test('an older server that never sends it leaves it null', () {
+      // The whole compatibility story: no field, no FTS assumptions, and
+      // `ams_extruder_map` keeps answering exactly as it did before.
+      final status = PrinterStatus.fromJson(const {
+        'id': 1,
+        'ams_extruder_map': {'0': 1},
+      });
+
+      expect(status.amsSwitchInlet, isNull);
+      expect(status.extruderForSlot(0, 0), 1);
+      expect(status.extruderForSlot(1, 0), isNull);
+    });
+
+    test('a non-map value does not take the parser down', () {
+      expect(withInlets('nonsense').amsSwitchInlet, isNull);
+      expect(withInlets({'0': 7, 'x': 'A'}).amsSwitchInlet, isEmpty);
+    });
+
+    test('a frame without the field keeps the last known binding', () {
+      // Same rule as the rest of the merge: a WebSocket push that omits it
+      // must not unbind the AMS the REST snapshot had bound.
+      final previous = withInlets({'0': 'A'});
+      final merged = const PrinterStatus(id: 1, progress: 12).mergedWith(previous);
+
+      expect(merged.amsSwitchInlet, {0: 'A'});
+    });
+
+    test('the binding survives the printer going offline', () {
+      // Plumbing does not change while the machine is unreachable — and the
+      // AMS inventory it belongs to is kept for the same reason.
+      final offline = const PrinterStatus(id: 1, connected: false)
+          .mergedWith(withInlets({'0': 'B'}));
+
+      expect(offline.amsSwitchInlet, {0: 'B'});
+    });
+
+    test('an FTS machine still counts as dual-extruder', () {
+      // Its AMS units drop out of `ams_extruder_map`, which used to be the
+      // signal — losing it hid the extruder badges and the side labels.
+      expect(withInlets({'0': 'A'}).isDualExtruder, isTrue);
+      expect(withInlets(const {}).isDualExtruder, isFalse);
+    });
+
+    test('an emptied binding wins over the last known one', () {
+      // The server sends `{}` once the accessory is unplugged, and an empty
+      // map is a value, not a gap — the stale binding has to go.
+      final merged = withInlets(const {}).mergedWith(withInlets({'0': 'A'}));
+
+      expect(merged.amsSwitchInlet, isEmpty);
+    });
+  });
+
+  group('tray configuration fields', () {
+    test('parses the filament id and calibration index of a slot', () {
+      final frame =
+          readFixture('ws_printer_status.json') as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(frame['data'] as Map);
+      data['id'] = frame['printer_id'];
+      final status = PrinterStatus.fromJson(data);
+
+      // The name alone cannot identify which preset a slot holds — two presets
+      // share one, and a user preset resolves to no name at all.
+      expect(status.ams!.first.trays![3].trayInfoIdx, 'GFA00');
+      expect(status.ams!.first.trays![3].caliIdx, -1);
+      expect(status.vtTray!.first.trayInfoIdx, 'GFU01');
+    });
+
+    test('a slot whose filament id changed is not equal to the old one', () {
+      // Equality drives whether a fresh poll is published at all — a slot
+      // reconfigured to another preset has to get through.
+      expect(const AmsTray(id: 0, trayType: 'PLA', trayInfoIdx: 'GFL99'),
+          isNot(const AmsTray(id: 0, trayType: 'PLA', trayInfoIdx: 'GFL05')));
+    });
+  });
+
+  group('Filament Track Switch', () {
+    test('parses the switch and which hotend holds which slot', () {
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true, 'ready': true},
+        'extruder_slots': {
+          '0': {'ams_id': 1, 'slot_id': 2, 'has_filament': true},
+          '1': {'ams_id': null, 'slot_id': null, 'has_filament': false},
+        },
+      });
+
+      expect(status.filaSwitch!.installed, isTrue);
+      expect(status.filaSwitch!.ready, isTrue);
+      expect(status.extruderSlots![0]!.holds(amsId: 1, slotId: 2), isTrue);
+      expect(status.extruderSlots![0]!.holds(amsId: 1, slotId: 3), isFalse);
+      expect(status.extruderSlots![1]!.holds(amsId: 1, slotId: 2), isFalse,
+          reason: 'a hotend fed from nothing holds no slot');
+    });
+
+    test('reads a server that never mentions the switch as not having one', () {
+      // Every server older than the one that added the field, and every printer
+      // without the accessory, answer the same way — and the same way matters,
+      // because it is what keeps the load command shaped as it always was.
+      final status = PrinterStatus.fromJson({'id': 1});
+
+      expect(status.filaSwitch, isNull);
+      expect(status.extruderSlots, isNull);
+    });
+
+    test('a switch reported without `ready` is not ready', () {
+      // False blocks the load with an explanation. True would send a command
+      // the firmware drops without a word, which is the bug being fixed.
+      final status = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true},
+      });
+
+      expect(status.filaSwitch!.installed, isTrue);
+      expect(status.filaSwitch!.ready, isFalse);
+    });
+
+    test('a frame that omits the switch keeps the one already known', () {
+      // The two lanes carry disjoint subsets, so absence is silence, not news —
+      // the same rule the rest of the status follows.
+      final known = PrinterStatus.fromJson({
+        'id': 1,
+        'fila_switch': {'installed': true, 'ready': true},
+        'extruder_slots': {
+          '0': {'ams_id': 0, 'slot_id': 1},
+        },
+      });
+
+      final merged = const PrinterStatus(id: 1, progress: 12).mergedWith(known);
+
+      expect(merged.filaSwitch!.installed, isTrue);
+      expect(merged.extruderSlots![0]!.holds(amsId: 0, slotId: 1), isTrue);
+    });
+
+    test('the fitted switch survives the printer going offline', () {
+      // Hardware, like the nozzles: unplugging the printer does not remove it,
+      // and the slot sheet still has to ask the question on reconnect.
+      final offline = const PrinterStatus(id: 1, connected: false).mergedWith(
+        PrinterStatus.fromJson({
+          'id': 1,
+          'fila_switch': {'installed': true, 'ready': true},
+        }),
+      );
+
+      expect(offline.filaSwitch!.installed, isTrue);
+    });
+
+    test('a switch that changed makes the status unequal', () {
+      // Equality decides whether a fresh poll is published at all: a switch that
+      // has just become ready has to reach the sheet that is blocking on it.
+      PrinterStatus withReady(bool ready) => PrinterStatus.fromJson({
+            'id': 1,
+            'fila_switch': {'installed': true, 'ready': ready},
+          });
+
+      expect(withReady(true), isNot(withReady(false)));
+      expect(withReady(true), withReady(true));
     });
   });
 

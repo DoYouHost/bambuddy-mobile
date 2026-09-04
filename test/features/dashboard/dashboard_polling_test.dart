@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:bambuddy_mobile/core/api/ws_client.dart';
 import 'package:bambuddy_mobile/core/models/printer_status.dart';
-import 'package:bambuddy_mobile/core/settings/server_profile.dart';
 import 'package:bambuddy_mobile/data/printers_repository.dart';
 import 'package:bambuddy_mobile/features/dashboard/providers.dart';
 import 'package:bambuddy_mobile/features/dashboard/ws_providers.dart';
@@ -12,13 +11,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProfileNotifier extends ServerProfileNotifier {
-  @override
-  ServerProfile? build() => const ServerProfile(
-        baseUrl: 'http://s.local:8000',
-        authMode: AuthMode.none,
-      );
-}
+import '../../helpers.dart';
 
 /// Statuses go nowhere: this is about who asks the server and when.
 class _InertStatusesNotifier extends PrinterStatusesNotifier {
@@ -50,7 +43,7 @@ void main() {
   ProviderContainer makeContainer() {
     final container = ProviderContainer(
       overrides: [
-        serverProfileProvider.overrideWith(_FakeProfileNotifier.new),
+        fakeServerProfileOverride(),
         printerStatusesProvider.overrideWith(_InertStatusesNotifier.new),
         printersRepositoryProvider.overrideWithValue(repo),
         wsConnectionStateProvider.overrideWith((ref) => socket.stream),

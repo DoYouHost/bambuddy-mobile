@@ -4,11 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/action_outcome.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
+import '../../core/format/user_number.dart';
+import '../../core/models/json_utils.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_snack.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'projects_providers.dart';
 
@@ -88,12 +94,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = DashTokens.of(context);
-    final fieldStyle = TextStyle(
-      fontFamily: DashTokens.fontUi,
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: t.textPrimary,
-    );
+    final fieldStyle = t.bodyStrong;
     return DashBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -113,7 +114,10 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: withSystemNavInset(
+                context,
+                const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              ),
               children: [
                 TextFormField(
                   controller: _name,
@@ -263,12 +267,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
           alignment: AlignmentDirectional.centerStart,
           child: Text(
             l10n.projectColor,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: t.textSecondary,
-            ),
+            style: t.label.copyWith(color: t.textSecondary),
           ),
         ),
         const SizedBox(height: 8),
@@ -283,7 +282,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
   Widget _dueDateRow(AppLocalizations l10n, DashTokens t) {
     final label = _dueDate == null
         ? l10n.projectDueDate
-        : '${l10n.projectDueDate}: ${_fmtDate(_dueDate!)}';
+        : '${l10n.projectDueDate}: ${DateTimeFormats.of(context).date(_dueDate!)}';
     return Row(
       children: [
         Icon(Icons.event_outlined, color: t.textSecondary),
@@ -291,12 +290,7 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.body,
           ),
         ),
         if (_dueDate != null)
@@ -381,11 +375,8 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     final navigator = Navigator.of(context);
     setState(() => _saving = true);
 
-    final dueIso = _dueDate == null
-        ? null
-        : '${_dueDate!.year.toString().padLeft(4, '0')}-'
-            '${_dueDate!.month.toString().padLeft(2, '0')}-'
-            '${_dueDate!.day.toString().padLeft(2, '0')}';
+    final dueIso =
+        _dueDate == null ? null : calendarDateToJson(_dueDate!);
 
     ActionOutcome result;
     try {
@@ -437,18 +428,13 @@ class _ProjectFormScreenState extends ConsumerState<ProjectFormScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    messenger.showSnackBar(SnackBar(
-      content: Text(result.messageFor(l10n) ?? l10n.projectSaved),
-    ));
+    messenger.snack(result.messageFor(l10n) ?? l10n.projectSaved);
     if (result.isOk) navigator.pop();
   }
 
-  String _fmtDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   String? _emptyToNull(String s) => s.trim().isEmpty ? null : s.trim();
-  int? _intOrNull(String s) => int.tryParse(s.trim());
-  double? _doubleOrNull(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
+  int? _intOrNull(String s) => parseUserInt(s);
+  double? _doubleOrNull(String s) => parseUserDecimal(s);
 }
 
 /// Imperative entry: open the create form.

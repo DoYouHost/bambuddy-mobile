@@ -8,9 +8,44 @@
 /// ignored, numbers accept int/num/string.
 library;
 
+import '../ams/slot_addressing.dart';
 import 'json_utils.dart';
 
-/// Pojedyncza szpula w magazynie. Pola wagowe w gramach.
+/// Strips everything that is not a hex digit and upper-cases the rest — the
+/// form the server stores RFID identifiers in, so comparing a printer-reported
+/// tag against a stored one has to go through here first
+/// (`backend/app/utils/tag_normalization.py::normalize_hex`).
+String normalizeTagHex(String? value) {
+  if (value == null) return '';
+  final buffer = StringBuffer();
+  for (final unit in value.trim().codeUnits) {
+    final isDigit = unit >= 0x30 && unit <= 0x39;
+    final isUpper = unit >= 0x41 && unit <= 0x46;
+    final isLower = unit >= 0x61 && unit <= 0x66;
+    if (isDigit || isUpper) {
+      buffer.writeCharCode(unit);
+    } else if (isLower) {
+      buffer.writeCharCode(unit - 0x20);
+    }
+  }
+  return buffer.toString();
+}
+
+/// A tag UID as the server keys on it: the column holds 16 characters, and a
+/// longer value keeps its least-significant bytes.
+String normalizeTagUid(String? value) {
+  final uid = normalizeTagHex(value);
+  return uid.length > 16 ? uid.substring(uid.length - 16) : uid;
+}
+
+/// A tray UUID as the server keys on it: 32 characters, truncated from the
+/// front — the opposite end from [normalizeTagUid], mirroring the server.
+String normalizeTrayUuid(String? value) {
+  final uuid = normalizeTagHex(value);
+  return uuid.length >= 32 ? uuid.substring(0, 32) : uuid;
+}
+
+/// One spool on the shelf. Every weight field is in grams.
 class Spool {
   const Spool({
     required this.id,
@@ -23,6 +58,7 @@ class Spool {
     this.brand,
     this.labelWeight = 0,
     this.weightUsed = 0,
+    this.weightUsedBaseline = 0,
     this.coreWeight = 250,
     this.coreWeightCatalogId,
     this.lastScaleWeight,
@@ -34,6 +70,7 @@ class Spool {
     this.nozzleTempMin,
     this.nozzleTempMax,
     this.tagUid,
+    this.trayUuid,
     this.archivedAt,
     this.lastUsed,
     this.slicerFilament,
@@ -55,6 +92,7 @@ class Spool {
         brand: toStringOrNull(json['brand']),
         labelWeight: toIntOrNull(json['label_weight']) ?? 0,
         weightUsed: toDoubleOrNull(json['weight_used']) ?? 0,
+        weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
         coreWeight: toIntOrNull(json['core_weight']) ?? 250,
         coreWeightCatalogId: toIntOrNull(json['core_weight_catalog_id']),
         lastScaleWeight: toIntOrNull(json['last_scale_weight']),
@@ -66,6 +104,7 @@ class Spool {
         nozzleTempMin: toIntOrNull(json['nozzle_temp_min']),
         nozzleTempMax: toIntOrNull(json['nozzle_temp_max']),
         tagUid: toStringOrNull(json['tag_uid']),
+        trayUuid: toStringOrNull(json['tray_uuid']),
         archivedAt: toStringOrNull(json['archived_at']),
         lastUsed: toStringOrNull(json['last_used']),
         slicerFilament: toStringOrNull(json['slicer_filament']),
@@ -93,12 +132,17 @@ class Spool {
           toIntOrNull(fil['weight']) ??
           0,
       weightUsed: toDoubleOrNull(json['weight_used']) ?? toDoubleOrNull(json['used_weight']) ?? 0,
+      // Spoolman has no such column: the backend derives the baseline from its
+      // `used_weight` vs `remaining_weight` pair and hands it over under the
+      // native name (`routes/_spoolman_helpers.py::_map_spoolman_spool`).
+      weightUsedBaseline: toDoubleOrNull(json['weight_used_baseline']) ?? 0,
       costPerKg: toDoubleOrNull(json['cost_per_kg']) ?? toDoubleOrNull(fil['price']),
       lowStockThresholdPct: toIntOrNull(json['low_stock_threshold_pct']),
       storageLocation: toStringOrNull(json['storage_location']) ?? toStringOrNull(json['location']),
       category: toStringOrNull(json['category']),
       note: toStringOrNull(json['note']) ?? toStringOrNull(json['comment']),
       tagUid: toStringOrNull(json['tag_uid']),
+      trayUuid: toStringOrNull(json['tray_uuid']),
       archivedAt: toStringOrNull(json['archived_at']) ?? toStringOrNull(json['archived']),
       lastUsed: toStringOrNull(json['last_used']),
     );
@@ -125,6 +169,11 @@ class Spool {
   /// Used filament [g].
   final double weightUsed;
 
+  /// Where the resettable consumption counter starts from [g]. Stamped equal to
+  /// [weightUsed] by the reset action, which is why resetting the counter does
+  /// not give the spool its remaining weight back.
+  final double weightUsedBaseline;
+
   /// Empty spool/core weight [g] (`core_weight`).
   final int coreWeight;
 
@@ -141,6 +190,13 @@ class Spool {
   final int? nozzleTempMin;
   final int? nozzleTempMax;
   final String? tagUid;
+
+  /// The other half of the RFID identity. The server matches a slot to a spool
+  /// on `tray_uuid` first and falls back to `tag_uid`, because only the UUID
+  /// survives a re-spool (`GET /inventory/spools/by-tag`,
+  /// `backend/app/api/routes/inventory.py`).
+  final String? trayUuid;
+
   final String? archivedAt;
   final String? lastUsed;
 
@@ -157,6 +213,18 @@ class Spool {
   double get remainingWeight {
     final r = labelWeight - weightUsed;
     return r < 0 ? 0 : r;
+  }
+
+  /// Filament consumed since the counter was last reset [g].
+  ///
+  /// The resettable counter, not lifetime use: `weight_used` keeps climbing
+  /// while the reset action moves [weightUsedBaseline] up to meet it. It is
+  /// therefore independent of [remainingWeight] — resetting this to zero leaves
+  /// the spool as empty as it was, which is the whole point of the split
+  /// (server issue #1390).
+  double get consumedWeight {
+    final c = weightUsed - weightUsedBaseline;
+    return c < 0 ? 0 : c;
   }
 
   /// Remaining filament fraction (0..1); null if label weight unknown.
@@ -180,6 +248,21 @@ class Spool {
   String get displayName {
     final parts = <String>[?brand, material, ?subtype];
     return parts.join(' ');
+  }
+
+  /// Whether a free-text search matches this spool. An empty query matches
+  /// everything.
+  ///
+  /// Lives on the model because more than one screen searches spools, and a
+  /// second spelling of "what counts as a match" is how the same word starts
+  /// finding different things in two places.
+  bool matchesSearch(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    for (final field in [material, subtype, brand, colorName, storageLocation, category]) {
+      if (field != null && field.toLowerCase().contains(q)) return true;
+    }
+    return false;
   }
 }
 
@@ -345,26 +428,20 @@ class SpoolAssignment {
   final String? printerName;
   final String? amsLabel;
 
-  /// External spool (external holder), NOT in AMS unit — inventory backend
-  /// marks as `ams_id` 254/255. Then "slot" is extruder (dual-head printers),
-  /// not "AMS·tray".
-  bool get isExternalSpool => amsId >= 254;
+  /// External spool (external holder), NOT in an AMS unit — the inventory
+  /// backend marks it with an `ams_id` of 254 or 255. Then "slot" is the
+  /// extruder (dual-head printers), not "AMS·tray".
+  bool get isExternalSpool => isExternalHolder(amsId);
 
-  /// Extruder fed by external spool (X2D/H2D). NOTE: inventory backend has
-  /// BOTH external spools with `ams_id=255` — distinguished by `tray_id`.
-  /// Verified live on X2D from raw assignments:
-  /// TPU `ams=255, tray=0` sits physically LEFT, PLA `ams=255, tray=1` RIGHT.
-  /// (Different from MQTT `vtTray` 254/255 from dashboard — don't confuse.)
-  /// Convention as in `printer_status`: 1 = left, 0 = right;
-  /// null for regular AMS slot or unexpected `tray_id`.
-  int? get extruder {
-    if (!isExternalSpool) return null;
-    return switch (trayId) {
-      0 => 1, // tray 0 → left extruder
-      1 => 0, // tray 1 → right extruder
-      _ => null,
-    };
-  }
+  /// Extruder fed by this external spool, null for a regular AMS slot or an
+  /// unexpected `tray_id`.
+  ///
+  /// Verified live on an X2D from raw assignments: TPU `ams=255, tray=0` sits
+  /// physically LEFT, PLA `ams=255, tray=1` RIGHT. Note that [trayId] here is
+  /// the holder **side**, not the `vt_tray` id the dashboard shows — see
+  /// [slot_addressing] for the two.
+  int? get extruder =>
+      isExternalSpool ? extruderForExternalSide(trayId) : null;
 
   /// AMS slot label for UI: `ams_label` from server or `AMS{ams}·{tray+1}`.
   /// For external spool, label built in UI (needs l10n) — see `assignmentSlotLabel`.
@@ -416,7 +493,7 @@ class SpoolUsageEntry {
         percentUsed: toIntOrNull(json['percent_used']) ?? 0,
         status: toStringOrNull(json['status']),
         cost: toDoubleOrNull(json['cost']),
-        createdAt: toStringOrNull(json['created_at']),
+        createdAt: dateTimeFromJson(json['created_at']),
       );
 
   final int id;
@@ -425,7 +502,7 @@ class SpoolUsageEntry {
   final int percentUsed;
   final String? status;
   final double? cost;
-  final String? createdAt;
+  final DateTime? createdAt;
 }
 
 /// K-calibration profile pinned to spool (`SpoolKProfileResponse`) — show

@@ -9,10 +9,14 @@ import '../../core/diagnostics/log_store.dart' show recordingLimit;
 import '../../core/diagnostics/log_summary.dart';
 import '../../core/diagnostics/log_tag.dart';
 import 'package:app_report_client/app_report_client.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import 'bug_report_controller.dart';
 import 'log_export.dart';
 import 'log_preview.dart';
@@ -247,9 +251,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
     final messenger = ScaffoldMessenger.of(context);
     final description = _description.text.trim();
     if (description.isEmpty) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestRequired)));
+      messenger.snack(l10n.bugReportRequestRequired, replaceCurrent: true);
       return;
     }
     // False means the app could not even describe itself — nothing was queued,
@@ -257,9 +259,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
     if (await ref.read(bugReportProvider.notifier).sendRequest(description)) {
       return;
     }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(l10n.bugReportRequestNotPrepared)));
+    messenger.snack(l10n.bugReportRequestNotPrepared, replaceCurrent: true);
   }
 
   /// Nothing to delete here — a request leaves no recording behind — so this
@@ -267,9 +267,7 @@ class _IdleViewState extends ConsumerState<_IdleView> {
   void _finishRequest() {
     final l10n = AppLocalizations.of(context);
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(l10n.bugReportSent)));
+    ScaffoldMessenger.of(context).snack(l10n.bugReportSent, replaceCurrent: true);
     _description.clear();
     ref.read(bugReportProvider.notifier).reset();
     GoRouter.of(context).go(home);
@@ -309,12 +307,7 @@ class _KindChoice extends StatelessWidget {
           padding: const EdgeInsets.only(left: 2, bottom: 8),
           child: Text(
             l10n.bugReportKindQuestion,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: t.textSecondary,
-            ),
+            style: t.bodyBold,
           ),
         ),
         SizedBox(
@@ -375,9 +368,7 @@ class _RecordingView extends ConsumerWidget {
             label: Text(l10n.bugReportMark),
             onPressed: () {
               ref.read(bugReportProvider.notifier).mark();
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(content: Text(l10n.bugReportMarked)));
+              ScaffoldMessenger.of(context).snack(l10n.bugReportMarked, replaceCurrent: true);
             },
           ),
         ),
@@ -551,11 +542,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     final messenger = ScaffoldMessenger.of(context);
     final description = _description.text.trim();
     if (description.isEmpty) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(l10n.bugReportDescriptionRequired)),
-        );
+      messenger.snack(l10n.bugReportDescriptionRequired, replaceCurrent: true);
       return;
     }
     await ref.read(bugReportProvider.notifier).sendToIssue(description);
@@ -575,13 +562,11 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     switch (result) {
       // Backing out of the picker is an answer, not a failure: nothing to say,
       // and the review stays open.
-      case LogSaveResult.cancelled:
+      case DeviceFileOutcome.cancelled:
         return;
-      case LogSaveResult.failed:
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(l10n.bugReportSaveFailed)));
-      case LogSaveResult.saved:
+      case DeviceFileOutcome.failed:
+        messenger.snack(l10n.bugReportSaveFailed, replaceCurrent: true);
+      case DeviceFileOutcome.done:
         await _finish(messenger, l10n.bugReportSaved);
     }
   }
@@ -598,9 +583,7 @@ class _ReviewViewState extends ConsumerState<_ReviewView> {
     final home = ref.read(serverProfileProvider) == null ? '/setup' : '/';
     final controller = ref.read(bugReportProvider.notifier);
     // Shown by the messenger above the routes, so it survives the trip back.
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    messenger.snack(message, replaceCurrent: true);
     await controller.discard();
     router.go(home);
   }
@@ -682,7 +665,7 @@ class _DestinationChoice extends StatelessWidget {
             height: 1.4,
             // The public, permanent option says so in the colour the app uses
             // for "read this before you tap it".
-            color: toIssue ? t.accentOrange : t.textSecondary,
+            color: toIssue ? t.accentOrangeInk : t.textSecondary,
           ),
         ),
       ],
@@ -810,12 +793,7 @@ class _Waiting extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   l10n.bugReportSendWaitingBody,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    height: 1.4,
-                    color: t.textSecondary,
-                  ),
+                  style: t.labelSoft.copyWith(color: t.textSecondary, height: 1.4),
                 ),
               ],
             ),
@@ -837,19 +815,11 @@ class _Working extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          const DashSpinner(size: 12),
           const SizedBox(width: 8),
           Text(
             l10n.bugReportSending,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12,
-              color: t.textSecondary,
-            ),
+            style: t.labelSoft.copyWith(color: t.textSecondary),
           ),
         ],
       ),
@@ -872,12 +842,7 @@ class _Failed extends StatelessWidget {
         kind.needsLog
             ? _failureText(AppLocalizations.of(context), failure)
             : _requestFailureText(AppLocalizations.of(context), failure),
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 12,
-          height: 1.4,
-          color: t.danger,
-        ),
+        style: t.labelSoft.copyWith(color: t.danger, height: 1.4),
       ),
     );
   }
@@ -978,12 +943,7 @@ class _SentActions extends StatelessWidget {
             Expanded(
               child: Text(
                 '${l10n.bugReportSent} — ${body ?? l10n.bugReportSentBody}',
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 12,
-                  height: 1.4,
-                  color: t.textSecondary,
-                ),
+                style: t.labelSoft.copyWith(color: t.textSecondary, height: 1.4),
               ),
             ),
           ],
@@ -1048,33 +1008,20 @@ class _SummaryCard extends StatelessWidget {
               summary.errors,
               summary.warnings,
             ),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.bodyBold.copyWith(color: t.textPrimary),
           ),
           if (summary.markers > 0) ...[
             const SizedBox(height: 4),
             Text(
               l10n.bugReportMarkers(summary.markers),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.accentGreen,
-              ),
+              style: t.labelSoft.copyWith(color: t.accentGreen),
             ),
           ],
           if (summary.truncated) ...[
             const SizedBox(height: 4),
             Text(
               l10n.bugReportTruncated,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.accentOrange,
-              ),
+              style: t.labelSoft.copyWith(color: t.accentOrangeInk),
             ),
           ],
           const SizedBox(height: 12),
@@ -1123,25 +1070,18 @@ class _LineRowState extends State<_LineRow> {
   Widget build(BuildContext context) {
     final line = widget.line;
     final t = DashTokens.of(context);
+    // Inks, not the vivid swatches: this feeds the line's header text as well
+    // as its dot, and a 2.3:1 word is one nobody reads.
     final accent = line.isError
         ? t.danger
         : line.isWarning
-            ? t.accentOrange
+            ? t.accentOrangeInk
             : line.isMarker
-                ? t.accentGreen
+                ? t.accentGreenInk
                 : t.textTertiary;
-    final detailStyle = TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 11,
-      color: t.textSecondary,
-    );
+    final detailStyle = t.monoMicro.copyWith(color: t.textSecondary);
 
-    final headerStyle = TextStyle(
-      fontFamily: DashTokens.fontMono,
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      color: line.isError || line.isWarning ? accent : t.textPrimary,
-    );
+    final headerStyle = t.monoLabel.copyWith(color: line.isError || line.isWarning ? accent : t.textPrimary);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -1152,11 +1092,7 @@ class _LineRowState extends State<_LineRow> {
             width: 54,
             child: Text(
               line.offset,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                color: t.textTertiary,
-              ),
+              style: t.monoMicro,
             ),
           ),
           Container(
@@ -1265,11 +1201,7 @@ class _RawBlock extends StatelessWidget {
           ],
           SelectableText(
             preview.text,
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 10,
-              color: t.textSecondary,
-            ),
+            style: t.monoMicro.copyWith(color: t.textSecondary),
           ),
         ],
       ),
@@ -1329,12 +1261,7 @@ class _Card extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.bodyBold.copyWith(color: t.textPrimary),
                 ),
               ),
             ],
@@ -1343,12 +1270,7 @@ class _Card extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               lead,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                height: 1.45,
-                color: t.textSecondary,
-              ),
+              style: t.bodyPlain.copyWith(height: 1.45),
             ),
           ],
           if (rows.isNotEmpty) ...[const SizedBox(height: 10), ...rows],
@@ -1356,13 +1278,7 @@ class _Card extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               closing,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-                color: t.textTertiary,
-              ),
+              style: t.label.copyWith(height: 1.4),
             ),
           ],
           if (footer != null) ...[const SizedBox(height: 14), footer!],
@@ -1407,12 +1323,7 @@ class _Fact extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                height: 1.35,
-                color: included ? t.textSecondary : t.textTertiary,
-              ),
+              style: t.bodyPlain.copyWith(color: included ? t.textSecondary : t.textTertiary, height: 1.35),
             ),
           ),
         ],
@@ -1447,12 +1358,7 @@ class _Step extends StatelessWidget {
             ),
             child: Text(
               '$number',
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: t.textSecondary,
-              ),
+              style: t.monoLabel.copyWith(color: t.textSecondary),
             ),
           ),
           const SizedBox(width: 10),
@@ -1461,13 +1367,7 @@ class _Step extends StatelessWidget {
               padding: const EdgeInsets.only(top: 1),
               child: Text(
                 text,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 13,
-                  height: 1.35,
-                  fontWeight: FontWeight.w600,
-                  color: t.textSecondary,
-                ),
+                style: t.body.copyWith(color: t.textSecondary, height: 1.35),
               ),
             ),
           ),

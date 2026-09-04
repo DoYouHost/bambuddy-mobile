@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/group_summary.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
+import '../common/dash_async.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 
@@ -43,17 +44,10 @@ class GroupsScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(groupsListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(groupsListProvider.notifier).refresh(),
           data: (groups) => RefreshIndicator(
             onRefresh: () => ref.read(groupsListProvider.notifier).refresh(),
             child: groups.isEmpty
@@ -62,7 +56,10 @@ class GroupsScreen extends ConsumerWidget {
                     icon: Icons.group_outlined,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                    ),
                     itemCount: groups.length,
                     itemBuilder: (_, i) => GroupCard(
                       group: groups[i],
@@ -89,6 +86,9 @@ class GroupCard extends StatelessWidget {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
     final accent = group.isSystem ? t.accentOrange : t.accentBlue;
+    // The tile's tint and border take the vivid swatch; the icon inside it is
+    // ink, and the warm one is the only accent whose vivid form fails there.
+    final accentInk = group.isSystem ? t.accentOrangeInk : t.accentBlue;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -119,7 +119,7 @@ class GroupCard extends StatelessWidget {
                       border:
                           Border.all(color: accent.withValues(alpha: 0.4)),
                     ),
-                    child: Icon(Icons.group_outlined, size: 20, color: accent),
+                    child: Icon(Icons.group_outlined, size: 20, color: accentInk),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -133,24 +133,14 @@ class GroupCard extends StatelessWidget {
                                 group.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.titleMd,
                               ),
                             ),
                             if (group.isSystem) ...[
                               const SizedBox(width: 8),
                               Text(
                                 l10n.usersGroupSystem,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.accentOrange,
-                                ),
+                                style: t.micro.copyWith(color: t.accentOrangeInk),
                               ),
                             ],
                           ],
@@ -163,23 +153,14 @@ class GroupCard extends StatelessWidget {
                                 : l10n.groupsNoDescription,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: DashTokens.fontUi,
-                              fontSize: 12.5,
-                              color: t.textSecondary,
-                            ),
+                            style: t.labelSoft.copyWith(color: t.textSecondary),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           '${l10n.groupsMemberCount(group.userCount)}'
                           ' · ${l10n.groupsPermissionCount(group.permissions.length)}',
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoLabel,
                         ),
                       ],
                     ),

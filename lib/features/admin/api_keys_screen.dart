@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/api_key.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'api_key_form_screen.dart';
 import 'api_key_labels.dart';
 import 'api_keys_providers.dart';
@@ -49,17 +51,10 @@ class ApiKeysScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(apiKeysListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(apiKeysListProvider.notifier).refresh(),
           data: (keys) => RefreshIndicator(
             onRefresh: () => ref.read(apiKeysListProvider.notifier).refresh(),
             child: keys.isEmpty
@@ -68,8 +63,10 @@ class ApiKeysScreen extends ConsumerWidget {
                     icon: Icons.key_outlined,
                   )
                 : ListView.builder(
-                    padding:
-                        EdgeInsets.fromLTRB(12, 8, 12, canCreate ? 88 : 24),
+                    padding: withSystemNavInset(
+                      context,
+                      EdgeInsets.fromLTRB(12, 8, 12, canCreate ? 88 : 24),
+                    ),
                     itemCount: keys.length,
                     itemBuilder: (_, i) => _ApiKeyCard(apiKey: keys[i]),
                   ),
@@ -89,7 +86,7 @@ class _ApiKeyCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
     final canEdit = ref.watch(canUpdateApiKeysProvider);
     final canRevoke = ref.watch(canRevokeApiKeysProvider);
     final expired = apiKey.isExpired(DateTime.now());
@@ -99,7 +96,7 @@ class _ApiKeyCard extends ConsumerWidget {
     final subtitle = <String>[
       '${apiKey.keyPrefix}••••••••',
       if (apiKey.lastUsed != null)
-        l10n.apiKeysLastUsed(DateFormat.yMMMd(locale).format(apiKey.lastUsed!))
+        l10n.apiKeysLastUsed(fmt.dateNamedMonth(apiKey.lastUsed!))
       else
         l10n.apiKeysNeverUsed,
     ];
@@ -136,21 +133,12 @@ class _ApiKeyCard extends ConsumerWidget {
                               apiKey.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w700,
-                                color: live ? t.textPrimary : t.textTertiary,
-                              ),
+                              style: t.titleMd.copyWith(color: live ? t.textPrimary : t.textTertiary),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               subtitle.join(' · '),
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontMono,
-                                fontSize: 11,
-                                color: t.textTertiary,
-                              ),
+                              style: t.monoMicro,
                             ),
                           ],
                         ),
@@ -184,8 +172,9 @@ class _ApiKeyCard extends ConsumerWidget {
                       if (apiKey.expiresAt != null && !expired)
                         DashPill(
                           label: l10n.apiKeysExpiresOn(
-                              DateFormat.yMMMd(locale).format(apiKey.expiresAt!)),
+                              fmt.dateNamedMonth(apiKey.expiresAt!)),
                           accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
                           icon: Icons.schedule,
                         ),
                       if (apiKey.printerIds != null)
@@ -199,6 +188,7 @@ class _ApiKeyCard extends ConsumerWidget {
                         DashPill(
                           label: l10n.apiKeysLegacy,
                           accent: t.accentOrange,
+                          accentInk: t.accentOrangeInk,
                           icon: Icons.history,
                         ),
                       for (final scope in ApiKeyScope.values)
@@ -236,11 +226,7 @@ class _ApiKeyCard extends ConsumerWidget {
       'api_keys.revoke',
     );
     await ref.read(apiKeysListProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.apiKeysRevoked : userWriteMessage(l10n, result));
   }
 }
 
@@ -290,11 +276,7 @@ class _CreatedKeyDialogState extends State<_CreatedKeyDialog> {
             ),
             child: SelectableText(
               apiKey,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 12.5,
-                color: t.accentGreenInk,
-              ),
+              style: t.monoValue.copyWith(color: t.accentGreenInk),
             ),
           ),
         ],

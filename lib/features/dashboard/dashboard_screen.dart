@@ -9,20 +9,30 @@ import '../../core/api/ws_client.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/duration_format.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/background_sync.dart';
 import '../../core/notifications/battery_optimization.dart';
+import '../../core/settings/settings_repository.dart';
 import '../../core/settings/sign_in_reason.dart';
+import '../../core/theme/dash_text.dart';
 import '../../data/printers_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
 import '../admin/admin_screen.dart' show canOpenAdminProvider;
 import '../pipelines/pipelines_providers.dart' show pipelinesSupportedProvider;
 import '../bug_report/recording_banner.dart' show bugReportRoute;
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
+import '../common/filter_controls.dart';
+import '../notifications/finish_photo_providers.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
 import '../common/dash_search_field.dart';
 import 'dashboard_filters.dart';
 import 'providers.dart';
+import 'scheduled_drying_providers.dart';
 import 'smart_plugs_providers.dart';
 import '../../core/theme/dash_theme.dart';
 import 'widgets/connection_banner.dart';
@@ -44,6 +54,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Whether the "sign in again" warning already ran in this launch.
   bool _signInWarned = false;
+
+  /// Whether a check for it is in flight — a resume landing mid-check would
+  /// otherwise walk past the guard and open a second dialog.
+  bool _signInChecking = false;
 
   static const _onboardingFlag = 'notif_onboarded';
 
@@ -72,14 +86,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _logBgService('start', started: started);
               // Already running, so its start-up never ran for this recording and
               // it has no idea one exists. This is the normal state after the
-              // user has swiped the app away once.
-              if (!started) monitor.syncDiagnostics();
+              // user has swiped the app away once. (The clock format is synced
+              // from `SystemClockSync`, once its own write has landed.)
+              if (!started) monitor.sync(BackgroundSync.diagnostics);
             }),
           );
           // Hand the watch relay over to the FGS isolate. Exactly one
           // responder may listen at a time — a request answered twice is a
           // command executed twice (e.g. double startNext).
-          ref.read(wearRelayHandlerProvider).stop();
+          unawaited(ref.read(wearRelayHandlerProvider).stop());
         }
         ref.read(printerStatusesProvider.notifier).suspend();
         ref.read(dashboardProvider.notifier).pausePolling();
@@ -88,16 +103,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ref.read(tokenRefresherProvider)?.stop();
         // No thumbnails render in background; FGS cover fetch re-mints reactively.
         ref.read(cameraTokenRefresherProvider)?.stop();
+        // The service isolate carries its own from here. Both would poll the
+        // same archives and, worse, both write the shared alert memory — a
+        // read-modify-write, so the loser's entry is dropped and its photo never
+        // reaches the notification.
+        final finishPhoto = ref.read(finishPhotoNotifierProvider);
+        if (finishPhoto != null) unawaited(finishPhoto.stop());
       },
       onResume: () {
         _logBgService('stop');
-        // Take the watch relay back only once the FGS isolate is stopped, so
-        // the two responders never overlap (see onPause).
+        // Take the watch relay and the finish-photo search back only once the
+        // FGS isolate is stopped, so neither pair ever overlaps (see onPause).
         unawaited(
-          ref
-              .read(backgroundMonitorProvider)
-              .stop()
-              .then((_) => ref.read(wearRelayHandlerProvider).start()),
+          ref.read(backgroundMonitorProvider).stop().then((_) {
+            unawaited(ref.read(wearRelayHandlerProvider).start());
+            ref.read(finishPhotoNotifierProvider)?.start();
+          }),
         );
         ref.read(dashboardProvider.notifier).resumePolling();
         ref.read(printerStatusesProvider.notifier).resume();
@@ -117,8 +138,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _onFirstFrame() async {
+    await _takeOverFromSurvivingService();
     await _maybeOnboardNotifications();
     await _maybeWarnSignInRequired();
+  }
+
+  /// Stops a service that outlived the app it was started from.
+  ///
+  /// Not `onResume`: that fires on a *transition*, and a cold start is already
+  /// resumed. A service Android restarted after a swipe-away runs on whatever
+  /// it froze at *its* own start-up, and its watch relay answers alongside this
+  /// isolate's.
+  Future<void> _takeOverFromSurvivingService() async {
+    final monitor = ref.read(backgroundMonitorProvider);
+    if (!await monitor.isRunning()) return;
+    _logBgService('stop_survivor');
+    await monitor.stop();
   }
 
   /// Warns once per app open that the server rejected the remembered login.
@@ -132,8 +167,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// failed-attempt budget. Cleared when a profile is saved again
   /// (`ServerProfileNotifier.save`), so it keeps reappearing until then.
   Future<void> _maybeWarnSignInRequired() async {
-    if (_signInWarned || !mounted) return;
-    final settings = ref.read(settingsRepositoryProvider);
+    // `_signInWarned` cannot stand in for `_signInChecking`: it is only set once
+    // the flag turns out to be on, and a check that found it off has to leave
+    // the door open for the next resume.
+    if (_signInWarned || _signInChecking || !mounted) return;
+    _signInChecking = true;
+    final SettingsRepository settings;
+    try {
+      // Both writers are other isolates, so the rejection this asks about is
+      // only on disk.
+      settings = await ref.read(settingsRepositoryProvider).reloaded();
+    } finally {
+      _signInChecking = false;
+    }
+    if (!mounted) return;
     if (!settings.loadSignInRequired()) return;
     // Once per launch: a resume must not re-open it, but the next open must.
     _signInWarned = true;
@@ -167,8 +214,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _maybeOnboardNotifications() async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(_onboardingFlag) ?? false) return;
-    await prefs.setBool(_onboardingFlag, true);
-    await _runNotificationOnboarding();
+    final granted = await _runNotificationOnboarding();
+    // Marked done only once it actually landed. Writing the flag before asking
+    // spent the one automatic prompt on a run the user may have dismissed by
+    // accident — and Android keeps showing its dialog until it is refused twice,
+    // so a first "no" is worth another launch rather than permanent silence.
+    if (granted) await prefs.setBool(_onboardingFlag, true);
   }
 
   /// Requests notification permission, and if app is not exempt from battery
@@ -177,31 +228,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// `manual` = triggered by button (not auto-onboarding): then on "quiet"
   /// paths (permission denied / already set up) show SnackBar
   /// so button doesn't look dead.
-  Future<void> _runNotificationOnboarding({bool manual = false}) async {
+  ///
+  /// Answers whether the permission is in hand, which is what decides if the
+  /// automatic run counts as done.
+  Future<bool> _runNotificationOnboarding({bool manual = false}) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final granted = await ref
         .read(notificationServiceProvider)
         .requestPermission();
-    if (!mounted) return;
+    if (!mounted) return granted;
     if (!granted) {
       if (manual) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsBlocked)),
-        );
+        messenger.snack(l10n.notificationsBlocked);
       }
-      return;
+      return false;
     }
     final battery = BatteryOptimization();
     if (await battery.isIgnoring()) {
       if (manual && mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.notificationsReady)),
-        );
+        messenger.snack(l10n.notificationsReady);
       }
-      return;
+      return true;
     }
-    if (!mounted) return;
+    if (!mounted) return true;
     final open = await confirmDialog(
       context,
       title: l10n.batteryOptTitle,
@@ -211,13 +261,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       id: 'battery_opt',
     );
     if (open) await battery.request();
+    return true;
   }
 
   /// Notification menu: background monitoring toggle + re-onboard
   /// (permission/battery). Opened from bell icon.
   void _openNotificationMenu(BuildContext context, AppLocalizations l10n) {
-    showModalBottomSheet<void>(
-      context: context,
+    dashSheet<void>(
+      context,
+      scrollControlled: false,
       builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -277,11 +329,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // takes effect at next background transition (FGS not needed in foreground).
     if (!enabled) await ref.read(backgroundMonitorProvider).stop();
     if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff),
-      ),
-    );
+    messenger.snack(enabled ? l10n.bgMonitoringOn : l10n.bgMonitoringOff);
   }
 
   @override
@@ -299,7 +347,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (expired) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.sessionExpired)));
+        ).snack(l10n.sessionExpired);
         context.go('/setup');
       }
     });
@@ -315,6 +363,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // screen, and start them (idempotently). Lifecycle pauses/resumes them.
     ref.watch(tokenRefresherProvider)?.start();
     ref.watch(cameraTokenRefresherProvider)?.start();
+
+    // Not read — watched so it exists while this screen (and with it the UI's
+    // socket) does. It waits for the finish photo the server attaches after a
+    // print, which lands once the print-ended notification is already out.
+    ref.watch(finishPhotoNotifierProvider);
 
     // Full-screen dark/light gradient backdrop behind a transparent Scaffold —
     // gives the seamless "designed screen" look through the app bar.
@@ -333,13 +386,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             leading: logTag('chrome.drawer', const DrawerButton()),
             title: Text(
               l10n.printersTitle,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: t.textPrimary,
-              ),
+              style: t.displayLg.copyWith(letterSpacing: -0.5),
             ),
             iconTheme: IconThemeData(color: t.textPrimary),
             actions: [
@@ -373,11 +420,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         profile!.label!,
-                        style: TextStyle(
-                          fontFamily: DashTokens.fontMono,
-                          fontSize: 11.5,
-                          color: t.textTertiary,
-                        ),
+                        style: t.monoMicro,
                       ),
                     ),
                   ),
@@ -414,7 +457,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AppLocalizations l10n,
   ) {
     if (state.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashLoading();
     }
 
     // Initial load failed — nothing to show but error.
@@ -472,7 +515,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // reclaiming space; scrolling back to the top restores both. Being driven
     // by the sliver's own shrinkOffset (not a scroll listener) keeps it smooth.
     return RefreshIndicator(
-      onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+      onRefresh: () {
+        // Also forget what the two history routes last answered. A 403 or 404
+        // takes their chart shortcuts off the cards, and with the shortcut gone
+        // nothing calls the route again — so a permission granted on the server
+        // would otherwise need an app restart to show up. Recreating the
+        // repositories drops the latch; the "supported" providers watch them.
+        ref.invalidate(heaterHistoryRepositoryProvider);
+        ref.invalidate(amsHistoryRepositoryProvider);
+        // Nothing polls the scheduled runs, so this is where a row someone
+        // added from the web — or one the scheduler has since picked up —
+        // reaches the card.
+        ref.invalidate(scheduledDryingsProvider);
+        return ref.read(dashboardProvider.notifier).refresh();
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -511,6 +567,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 itemBuilder: (_, i) => PrinterCard(
                   key: ValueKey(filtered[i].printer.id),
                   item: filtered[i],
+                  inTouchSince:
+                      ref.read(printerStatusesProvider.notifier).inTouchSince,
                 ),
               ),
             ),
@@ -602,13 +660,7 @@ class _AppDrawer extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Bambuddy',
-                                  style: TextStyle(
-                                    fontFamily: DashTokens.fontUi,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.2,
-                                    color: t.textPrimary,
-                                  ),
+                                  style: t.display.copyWith(letterSpacing: 0.2),
                                 ),
                                 const SizedBox(height: 4),
                                 _ProfileChip(label: profileLabel),
@@ -765,11 +817,7 @@ class _AppDrawer extends ConsumerWidget {
                       snap.hasData
                           ? 'Bambuddy v${snap.data!.version}+${snap.data!.buildNumber}'
                           : 'Bambuddy',
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 12,
-                        color: t.textTertiary,
-                      ),
+                      style: t.labelSoft,
                     ),
                   ),
                 ],
@@ -833,12 +881,7 @@ class _ProfileChip extends StatelessWidget {
               label!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
         ],
@@ -896,12 +939,7 @@ class _DrawerTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: t.textPrimary,
-                      ),
+                      style: t.bodyStrong,
                     ),
                   ),
                   Icon(
@@ -994,8 +1032,11 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _FilterButton(
+                          FilterButton(
                             count: filterCount,
+                            tooltip: AppLocalizations.of(context)
+                                .dashboardFilters,
+                            id: 'dashboard.filters',
                             onTap: onOpenFilters,
                           ),
                         ],
@@ -1031,57 +1072,6 @@ class _DashHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.hasSearch != hasSearch ||
       old.hint != hint ||
       old.filterCount != filterCount;
-}
-
-/// Square button opening the dashboard filter sheet; a badge shows the count of
-/// active filters. Mirrors the inventory screen's filter button.
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    final l10n = AppLocalizations.of(context);
-    final active = count > 0;
-    return Tooltip(
-      message: l10n.dashboardFilters,
-      child: Badge(
-        isLabelVisible: active,
-        label: Text('$count'),
-        backgroundColor: t.accentGreen,
-        textColor: const Color(0xFF08150D),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Material(
-            color: active ? t.accentGreen.withValues(alpha: 0.16) : t.subCard,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: active
-                        ? t.accentGreen.withValues(alpha: 0.4)
-                        : t.subCardBorder,
-                  ),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: active ? t.accentGreenInk : t.textSecondary,
-                ),
-              ),
-            ).tagged('dashboard.filters'),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Opaque backdrop for the pinned header. A flat color can't match the screen's
@@ -1233,12 +1223,7 @@ class _SummaryHeader extends ConsumerWidget {
             active.isEmpty
                 ? l10n.noActivePrints
                 : l10n.printingCount(active.length),
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: active.isEmpty ? t.textSecondary : t.textPrimary,
-            ),
+            style: t.body.copyWith(color: active.isEmpty ? t.textSecondary : t.textPrimary),
           ),
           if (next != null) ...[
             const SizedBox(width: 12),
@@ -1260,11 +1245,7 @@ class _SummaryHeader extends ConsumerWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 12,
-                    color: t.textSecondary,
-                  ),
+                  style: t.labelSoft.copyWith(color: t.textSecondary),
                 ),
               ),
             ),
@@ -1280,13 +1261,7 @@ class _SummaryHeader extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Text(
                     l10n.powerWatts(totalPowerW.round()),
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontMono,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: t.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    style: t.monoValue.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ],
               ),
@@ -1302,10 +1277,7 @@ class _SummaryHeader extends ConsumerWidget {
     final r = next.status?.remainingTime;
     final parts = [
       if (p != null) '${p.toStringAsFixed(0)}%',
-      if (r != null)
-        r < 60
-            ? l10n.durationMinutes(r)
-            : l10n.durationHoursMinutes(r ~/ 60, r % 60),
+      if (r != null) formatMinutes(l10n, r),
     ];
     return parts.isEmpty ? '' : ' (${parts.join(' · ')})';
   }

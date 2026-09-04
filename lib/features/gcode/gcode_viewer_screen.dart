@@ -10,9 +10,11 @@ import '../../core/api/endpoints.dart';
 import '../../core/diagnostics/diagnostic_recorder.dart';
 import '../../core/diagnostics/log_event.dart';
 import '../../core/settings/server_profile.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/dash_progress.dart';
 import '../common/state_views.dart';
 import 'gcode_viewer_page.dart';
 
@@ -109,18 +111,11 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     super.dispose();
   }
 
-  /// Path of the G-code for whichever source this screen was opened on.
-  ///
-  /// The plate rides as a query on the archive route only: the library route
-  /// takes no plate — it answers with the first `.gcode` in the file whatever
-  /// is asked (`library.py::get_gcode` reads `gcode_files[0]`).
-  String get _gcodeUrl {
-    if (widget.archiveId == null) {
-      return Endpoints.libraryFileGcode(widget.libraryFileId!);
-    }
-    final path = Endpoints.archiveGcode(widget.archiveId!);
-    return widget.plate == null ? path : '$path?plate=${widget.plate}';
-  }
+  String get _gcodeUrl => gcodeSourceUrl(
+        archiveId: widget.archiveId,
+        libraryFileId: widget.libraryFileId,
+        plate: widget.plate,
+      );
 
   /// Loads the preview, in two halves that one gate separates.
   ///
@@ -345,20 +340,14 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
           iconTheme: IconThemeData(color: t.textPrimary),
           title: Text(
             widget.title ?? l10n.gcodeViewerTitle,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: t.textPrimary,
-            ),
+            style: t.display.copyWith(letterSpacing: -0.3),
           ),
         ),
       ),
       body: failure != null
           ? _errorView(l10n, failure)
           : controller == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const DashLoading()
               // The page keeps its controls at its own edges, so it must not
               // extend under the navigation bar: down there the system takes
               // the touch and the slider never sees it.
@@ -371,7 +360,7 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
                       // own progress, and two spinners would sit one on top of
                       // the other with the page's text between them.
                       if (!_alive)
-                        const Center(child: CircularProgressIndicator()),
+                        const DashLoading(),
                     ],
                   ),
                 ),
@@ -405,4 +394,32 @@ class _GcodeViewerScreenState extends ConsumerState<GcodeViewerScreen> {
     });
     _load();
   }
+}
+
+/// Path of the G-code for whichever source the viewer was opened on.
+///
+/// The plate rides as a query on the archive route only: the library route takes
+/// no plate — it answers with the first `.gcode` in the file whatever is asked
+/// (`library.py::get_gcode` reads `gcode_files[0]`).
+///
+/// Sending the plate matters on a multi-plate archive: without it the server
+/// picks for us, and *which* plate that is has changed — newer servers take the
+/// lowest-numbered plate, older ones the zip's first member — so the same
+/// archive could preview as two different plates depending on the server.
+///
+/// Pure and top-level so it can be tested without a WebView: the screen it
+/// serves cannot be built in a unit test, which is how the plate came to be
+/// accepted here and passed by nobody.
+String gcodeSourceUrl({
+  required int? archiveId,
+  required int? libraryFileId,
+  int? plate,
+}) {
+  if (archiveId == null) {
+    return Endpoints.libraryFileGcode(libraryFileId!);
+  }
+  final path = Endpoints.archiveGcode(archiveId);
+  // A plate below 1 is not a plate; `Metadata/plate_0.gcode` does not exist and
+  // asking for it would 404 a preview that would otherwise have worked.
+  return plate == null || plate < 1 ? path : '$path?plate=$plate';
 }

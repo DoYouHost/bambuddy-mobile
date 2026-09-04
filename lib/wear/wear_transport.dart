@@ -67,6 +67,13 @@ abstract interface class WearTransport {
   Future<void> stop(int printerId);
   Future<void> clearPlate(int printerId);
   Future<void> startNext(int printerId);
+  Future<void> clearHmsErrors(int printerId);
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  });
 }
 
 /// Relay over the Wear Data Layer: every call is one `sendMessage` to the
@@ -74,16 +81,33 @@ abstract interface class WearTransport {
 /// is nearby the bridge rides Bluetooth/BLE — much cheaper than the watch
 /// holding its own WiFi connection.
 class RelayTransport implements WearTransport {
-  RelayTransport(this._watch, {this.timeout = const Duration(seconds: 4)});
+  RelayTransport(
+    this._watch, {
+    this.timeout = const Duration(seconds: 4),
+    this.wakeTimeout = wearRpcWakeTimeout,
+  });
 
   final WatchConnectivity _watch;
   final Duration timeout;
 
-  final _pending = <String, Completer<WearRpcResponse>>{};
+  /// Replaces [timeout] for a request the phone acked as waking — its process
+  /// was dead and a Flutter engine is booting to answer this one. Injectable so
+  /// a test does not have to wait out the real one.
+  final Duration wakeTimeout;
+
+  final _pending = <String, _PendingCall>{};
   StreamSubscription<Map<String, dynamic>>? _sub;
 
   void _ensureListening() {
     _sub ??= _watch.messageStream.listen((map) {
+      final ack = WearRpcAck.decode(map);
+      if (ack != null) {
+        // The phone had nothing listening and its process is starting one now.
+        // Only this request waits longer for it — a phone that is merely slow
+        // never acks, and keeps the deadline it always had.
+        _pending[ack.id]?.arm(wakeTimeout);
+        return;
+      }
       final res = WearRpcResponse.decode(map);
       if (res == null) return;
       // Unknown/duplicate id (late reply after timeout, or a second engine on
@@ -97,8 +121,13 @@ class RelayTransport implements WearTransport {
     _sub = null;
   }
 
-  Future<Map<String, dynamic>?> _call(WearRpcAction action,
-      {int? printerId}) async {
+  Future<Map<String, dynamic>?> _call(
+    WearRpcAction action, {
+    int? printerId,
+    String? printError,
+    String? hmsAction,
+    String? jobId,
+  }) async {
     _ensureListening();
     // Cheap local check (connected nodes) before paying the send + timeout.
     var reachable = false;
@@ -107,21 +136,31 @@ class RelayTransport implements WearTransport {
     } catch (_) {}
     if (!reachable) throw WearRelayUnreachable();
 
-    final req = WearRpcRequest.create(action, printerId: printerId);
-    final completer = Completer<WearRpcResponse>();
-    _pending[req.id] = completer;
+    final req = WearRpcRequest.create(
+      action,
+      printerId: printerId,
+      printError: printError,
+      hmsAction: hmsAction,
+      jobId: jobId,
+    );
+    final pending = _PendingCall();
+    _pending[req.id] = pending;
     try {
       await _watch.sendMessage(req.encode());
     } catch (_) {
       _pending.remove(req.id);
       throw WearRelayUnreachable();
     }
+    // Armed after the send, so a slow bridge write is not counted against the
+    // phone's time to answer.
+    pending.arm(timeout);
     final WearRpcResponse res;
     try {
-      res = await completer.future.timeout(timeout);
+      res = await pending.reply;
     } on TimeoutException {
       throw WearRelayTimeout();
     } finally {
+      pending.dispose();
       _pending.remove(req.id);
     }
     if (!res.ok) {
@@ -191,7 +230,67 @@ class RelayTransport implements WearTransport {
   @override
   Future<void> startNext(int printerId) =>
       _call(WearRpcAction.startNext, printerId: printerId);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _call(WearRpcAction.hmsClear, printerId: printerId);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _call(
+        WearRpcAction.hmsAction,
+        printerId: printerId,
+        printError: printError,
+        hmsAction: action,
+        jobId: jobId,
+      );
 }
+
+/// One relay request waiting for its reply, with a deadline the phone can push
+/// out once — see [WearRpcAck].
+///
+/// A rearmable `Timer` rather than `Future.timeout`, which fixes its deadline
+/// at the moment it is awaited and cannot be told that the other side has since
+/// announced it is waking up.
+class _PendingCall {
+  final _completer = Completer<WearRpcResponse>();
+
+  Timer? _timer;
+  DateTime? _expiry;
+
+  Future<WearRpcResponse> get reply => _completer.future;
+
+  /// Waits at least [timeout] from now — and **never less**, which is what
+  /// makes the order of the two callers irrelevant: the ack may reach the
+  /// stream before the send that armed the base deadline has returned, and a
+  /// deadline that could be shortened would quietly cancel the wake it was
+  /// granted for.
+  void arm(Duration timeout) {
+    final until = DateTime.now().add(timeout);
+    final current = _expiry;
+    if (current != null && !until.isAfter(current)) return;
+    _expiry = until;
+    _timer?.cancel();
+    _timer = Timer(timeout, () {
+      if (!_completer.isCompleted) {
+        _completer.completeError(TimeoutException('wear relay', timeout));
+      }
+    });
+  }
+
+  void complete(WearRpcResponse res) {
+    _timer?.cancel();
+    if (!_completer.isCompleted) _completer.complete(res);
+  }
+
+  void dispose() => _timer?.cancel();
+}
+
 
 /// Direct REST to the server — the pre-relay behavior, kept as the fallback
 /// when the phone is out of reach. Requires a configured profile on the watch.
@@ -241,6 +340,20 @@ class RestTransport implements WearTransport {
 
   @override
   Future<void> startNext(int printerId) => _queue.startNextPending(printerId);
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _commands.clearHmsErrors(printerId);
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _commands.executeHmsAction(printerId,
+          printError: printError, action: action, jobId: jobId);
 }
 
 /// Which side actually served the last successful call.
@@ -248,16 +361,32 @@ enum WearTransportMode { relay, rest }
 
 /// Relay-first with REST fallback (the "hybrid" from plan 05).
 ///
-/// Reads fall back on both [WearRelayUnreachable] and [WearRelayTimeout] —
-/// re-reading is always safe. Commands fall back only on
-/// [WearRelayUnreachable]: after a timeout the phone may have already executed
-/// the command (e.g. startNext), and repeating it over REST could double it.
+/// Every call falls back on [WearRelayUnreachable] — the phone was never
+/// reached, so nothing ran there. On [WearRelayTimeout] the answer depends on
+/// the action, and the table is [WearRpcActionRetry.mayRepeatOverRest]: a
+/// timed-out command may have executed on the phone with the reply lost, which
+/// re-reading survives and re-commanding does not.
 class HybridWearTransport implements WearTransport {
+  /// The configured watch: relay through the phone, with [rest] behind it where
+  /// the watch has a server profile of its own.
   HybridWearTransport({required WearTransport relay, WearTransport? rest})
       : _relay = relay,
         _rest = rest;
 
-  final WearTransport _relay;
+  /// Demo mode, the one case with no relay at all: relaying would be actively
+  /// wrong there, because the phone answers from *its* server and a watch
+  /// showing the fabricated dataset would quietly start listing the user's real
+  /// printers.
+  ///
+  /// A constructor rather than a null [relay], so "at least one path" is a fact
+  /// the compiler checks at every call site. As an assert it held only in debug,
+  /// and the release build met it as a null-check crash inside a request.
+  HybridWearTransport.restOnly(WearTransport rest)
+      : _relay = null,
+        _rest = rest;
+
+  /// Null only via [HybridWearTransport.restOnly].
+  final WearTransport? _relay;
 
   /// Null when the watch has no server profile (relay is then the only path).
   final WearTransport? _rest;
@@ -266,17 +395,27 @@ class HybridWearTransport implements WearTransport {
   /// the phone over the bridge). Null until the first successful call.
   WearTransportMode? lastMode;
 
+  /// [action] is what [op] asks of a transport, named so the retry policy is
+  /// read off the protocol rather than restated per method here.
   Future<T> _run<T>(
-    Future<T> Function(WearTransport t) op, {
-    required bool fallbackOnTimeout,
-  }) async {
+    WearRpcAction action,
+    Future<T> Function(WearTransport t) op,
+  ) async {
+    final relay = _relay;
+    if (relay == null) {
+      // No relay is [HybridWearTransport.restOnly], which takes REST as a
+      // required argument — the constructors are what make this total.
+      final result = await op(_rest!);
+      lastMode = WearTransportMode.rest;
+      return result;
+    }
     try {
-      final result = await op(_relay);
+      final result = await op(relay);
       lastMode = WearTransportMode.relay;
       return result;
     } on Exception catch (e) {
       final canFallback = e is WearRelayUnreachable ||
-          (fallbackOnTimeout && e is WearRelayTimeout);
+          (action.mayRepeatOverRest && e is WearRelayTimeout);
       final rest = _rest;
       if (!canFallback || rest == null) rethrow;
       final result = await op(rest);
@@ -287,25 +426,46 @@ class HybridWearTransport implements WearTransport {
 
   @override
   Future<WearFleet> getFleet() =>
-      _run((t) => t.getFleet(), fallbackOnTimeout: true);
+      _run(WearRpcAction.getFleet, (t) => t.getFleet());
 
   @override
   Future<void> pause(int printerId) =>
-      _run((t) => t.pause(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.pause, (t) => t.pause(printerId));
 
   @override
   Future<void> resume(int printerId) =>
-      _run((t) => t.resume(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.resume, (t) => t.resume(printerId));
 
   @override
   Future<void> stop(int printerId) =>
-      _run((t) => t.stop(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.stop, (t) => t.stop(printerId));
 
   @override
   Future<void> clearPlate(int printerId) =>
-      _run((t) => t.clearPlate(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.clearPlate, (t) => t.clearPlate(printerId));
 
   @override
   Future<void> startNext(int printerId) =>
-      _run((t) => t.startNext(printerId), fallbackOnTimeout: false);
+      _run(WearRpcAction.startNext, (t) => t.startNext(printerId));
+
+  @override
+  Future<void> clearHmsErrors(int printerId) =>
+      _run(WearRpcAction.hmsClear, (t) => t.clearHmsErrors(printerId));
+
+  @override
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      // The class doc's rule bites hardest here: a resume that ran on the
+      // phone and lost its reply must not be sent again over REST, and a phone
+      // too old to know these actions stays silent — which is that same
+      // timeout. The buttons fail rather than risk running twice.
+      _run(
+        WearRpcAction.hmsAction,
+        (t) => t.executeHmsAction(printerId,
+            printError: printError, action: action, jobId: jobId),
+      );
 }

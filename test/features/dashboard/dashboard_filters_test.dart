@@ -8,12 +8,18 @@ import 'package:flutter_test/flutter_test.dart';
 /// the app cannot name must not push a printer into it — that badge was the
 /// second half of the "app reports a fatal mainboard issue" report.
 ///
-/// Codes are real: `0x1000a` @ `0x03000100` is catalogued (heatbed), `0x20070`
-/// @ `0x05000600` is not, and both were captured from one live printer.
+/// Codes are real. `0300_8004` is a print error the catalog names ("Filament
+/// ran out") — the class of fault the card exists for. `0x20070` @ `0x05000600`
+/// is an `hms[]` component-diagnostics code the catalog deliberately does not
+/// carry; it was captured from a live printer that was printing perfectly.
 const _uncataloged =
     HmsError(code: '0x20070', attr: 83887616, module: 5, severity: 1);
-const _catalogued =
-    HmsError(code: '0x1000a', attr: 50331904, module: 3, severity: 1);
+const _catalogued = HmsError(
+    code: '0x8004',
+    attr: 0x03008004,
+    module: 3,
+    severity: 3,
+    fullCode: '03008004');
 
 PrinterStatus _status({
   String? state,

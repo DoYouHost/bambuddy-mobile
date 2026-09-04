@@ -23,12 +23,7 @@ class _InfoRow extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               text,
-              style: TextStyle(
-                fontFamily: DashTokens.fontMono,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: t.monoLabel.copyWith(color: color),
             ),
           ],
         );
@@ -51,7 +46,7 @@ class _InfoRow extends StatelessWidget {
             item(
               doorOpen ? Icons.meeting_room : Icons.meeting_room_outlined,
               (doorOpen ? l10n.doorOpen : l10n.doorClosed).toUpperCase(),
-              doorOpen ? t.accentOrange : t.textTertiary,
+              doorOpen ? t.accentOrangeInk : t.textTertiary,
             )
           else
             const SizedBox.shrink(),
@@ -153,12 +148,7 @@ class _TotalPrintTimeLine extends ConsumerWidget {
       child: Text(
         l10n.maintenanceTotalHours(hours.round()),
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: DashTokens.fontMono,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          color: t.textTertiary,
-        ),
+        style: t.monoLabel,
       ),
     );
   }
@@ -188,19 +178,19 @@ class _PrintPanel extends StatelessWidget {
     final name = status.currentPrint ?? status.gcodeFile;
 
     final remaining = status.remainingTime;
-    final meta = <Widget>[
+    final meta = <PrintMetaItem>[
       if (remaining != null && remaining > 0)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.schedule,
-          text: l10n.remaining(_durationText(l10n, remaining)),
+          text: l10n.remaining(formatMinutes(l10n, remaining)),
         ),
       if (remaining != null && remaining > 0)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.flag_outlined,
-          text: l10n.eta(_etaTime(remaining)),
+          text: l10n.eta(_etaTime(DateTimeFormats.of(context), remaining)),
         ),
       if (status.layerNum != null && status.totalLayers != null)
-        _MetaItem(
+        PrintMetaItem(
           icon: Icons.layers_outlined,
           text: '${status.layerNum}/${status.totalLayers}',
         ),
@@ -218,12 +208,7 @@ class _PrintPanel extends StatelessWidget {
         if (name != null)
           Text(
             name,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: t.textPrimary,
-            ),
+            style: t.body,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -237,11 +222,7 @@ class _PrintPanel extends StatelessWidget {
               Flexible(
                 child: Text(
                   stage,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    color: t.accentGreenInk,
-                  ),
+                  style: t.microSoft.copyWith(color: t.accentGreenInk),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -292,51 +273,17 @@ class _PrintPanel extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   '${progress.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontMono,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.monoValue,
                 ),
               ],
             ],
           ),
           if (meta.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(spacing: 14, runSpacing: 6, children: meta),
+            PrintMetaRow(items: meta),
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Print-panel metadata item (remaining/ETA/layers): mono text with a leading icon.
-class _MetaItem extends StatelessWidget {
-  const _MetaItem({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = DashTokens.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: t.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontFamily: DashTokens.fontMono,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: t.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -429,6 +376,10 @@ class _TempGrid extends StatelessWidget {
     // plain `nozzle` is the default → index 0.
     final hasSecondNozzle =
         readings.any((r) => r.kind == _TempKind.nozzle && r.index != null);
+    // Built once for the whole grid: every tile's chart glyph opens the same
+    // sheet, which switches between all of this printer's recorded sensors.
+    final historyKinds =
+        _heaterKindOptions(readings, AppLocalizations.of(context));
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -451,6 +402,7 @@ class _TempGrid extends StatelessWidget {
                   dualNozzle: hasSecondNozzle,
                   activeExtruder: activeExtruder,
                   printing: printing,
+                  historyKinds: historyKinds,
                 ),
               ),
           ],
@@ -553,7 +505,7 @@ class _FanCell extends ConsumerWidget {
     final tokens = DashTokens.of(context);
     final pending =
         ref.watch(controlsProvider.select((s) => s.pendingFor(printerId)));
-    final forbidden = ref.watch(controlsProvider.select((s) => s.forbidden));
+    final forbidden = ref.watch(controlRefusedProvider(ControlPermission.control));
     // Optimistic overlay until real status catches up.
     final shown = pending.fanSpeed(fan) ?? value;
     // Spinning fan gets the cool blue accent; idle stays neutral.
@@ -572,23 +524,12 @@ class _FanCell extends ConsumerWidget {
             label.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: tokens.textTertiary,
-            ),
+            style: tokens.micro,
           ),
           const SizedBox(height: 3),
           Text(
             '$shown%',
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: valueColor,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: tokens.monoTitle.copyWith(color: valueColor, fontFeatures: const [FontFeature.tabularFigures()]),
           ),
         ],
       ),
@@ -606,10 +547,8 @@ class _FanCell extends ConsumerWidget {
         // user opened. Same fix as the temperature tiles.
         'printer.fan_$fan',
         InkWell(
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
+          onTap: () => dashSurfaceSheet<void>(
+            context,
             builder: (_) => _FanControlSheet(
               printerId: printerId,
               fan: fan,
@@ -665,9 +604,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
     navigator.pop();
     final msg = result.messageFor(l10n);
     if (msg != null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text(msg)));
+      messenger.snack(msg, clearQueue: true);
     }
   }
 
@@ -708,12 +645,7 @@ class _FanControlSheetState extends ConsumerState<_FanControlSheet> {
                   children: [
                     Text(
                       widget.label,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: t.textPrimary,
-                      ),
+                      style: t.titleLg,
                     ),
                     const SizedBox(height: 16),
                     Center(

@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 /// Slice job from `GET /slice-jobs/{id}` — the background job spawned by a
 /// `POST .../slice`. The client enqueues, then polls this until terminal.
 ///
@@ -66,6 +68,7 @@ class SliceResult {
     this.name,
     this.printTimeSeconds,
     this.filamentUsedG,
+    this.externalWriteFallback,
   });
 
   factory SliceResult.fromJson(Map<String, dynamic> json) => SliceResult(
@@ -73,10 +76,20 @@ class SliceResult {
         name: json['name'] as String?,
         printTimeSeconds: (json['print_time_seconds'] as num?)?.toInt(),
         filamentUsedG: (json['filament_used_g'] as num?)?.toDouble(),
+        externalWriteFallback: toStringOrNull(json['external_write_fallback']),
       );
 
   final int? libraryFileId;
   final String? name;
   final int? printTimeSeconds;
   final double? filamentUsedG;
+
+  /// Why the result was filed in the server's managed library instead of the
+  /// external folder the source lives in — `external_readonly`,
+  /// `external_no_path`, `external_unreachable`, `external_not_writable` or
+  /// `external_invalid_name` (server 1.2.5.4+, `#2810`). Null on every normal
+  /// slice and on older servers, which fell back just as silently but never
+  /// said so. The slice succeeded either way: this only tells the user where to
+  /// look for the file.
+  final String? externalWriteFallback;
 }

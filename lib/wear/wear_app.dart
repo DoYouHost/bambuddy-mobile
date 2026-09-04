@@ -9,14 +9,18 @@ import '../providers.dart';
 import 'screens/wear_home.dart';
 import 'screens/wear_setup_screen.dart';
 import 'wear_providers.dart';
+import 'wear_shape.dart';
+import 'wear_theme.dart';
 
-/// Root of the Wear app. Dark, black-background theme (OLED-friendly) with
-/// larger tap targets. Routes purely on whether a server profile exists —
-/// no bottom nav, no drawer; drill-down uses a plain [Navigator].
+/// Root of the Wear app. Routes purely on whether a server profile exists —
+/// no bottom nav, no drawer; drill-down uses a plain [Navigator]. The look lives
+/// in [wearTheme].
 ///
 /// Also the receiver end of the phone→watch config handoff: on launch it reads
-/// any latched config and listens for live pushes, applying them into local
-/// storage so the user never has to type the server details on the watch.
+/// any latched config and listens for live pushes, so the user never has to type
+/// the server details on the watch. What arrives is adopted straight away only
+/// when it names the server already in use; a different one is offered through
+/// [pendingWatchConfigProvider] and waits for a tap — see [_routeConfig].
 class WearApp extends ConsumerStatefulWidget {
   const WearApp({super.key});
 
@@ -36,7 +40,7 @@ class _WearAppState extends ConsumerState<WearApp>
     _configSub = ref
         .read(watchConfigSyncProvider)
         .configStream()
-        .listen(_applyConfig);
+        .listen(_routeConfig);
   }
 
   @override
@@ -58,20 +62,37 @@ class _WearAppState extends ConsumerState<WearApp>
     }
   }
 
-  /// Cold start: the phone may have pushed while the watch app was closed —
-  /// pick up the latest latched context. Only adopt it when we have no profile
-  /// yet, so a locally-completed setup isn't clobbered.
+  /// Cold start: the phone may have pushed while the watch app was closed, so
+  /// read the latest latched context and route it the same way a live push goes.
   Future<void> _ingestPendingConfig() async {
-    if (ref.read(serverProfileProvider) != null) return;
-    final configs = await ref.read(watchConfigSyncProvider).pendingConfigs();
-    if (configs.isNotEmpty) await _applyConfig(configs.last);
+    final config = await ref.read(watchConfigSyncProvider).latestPending();
+    if (config != null) await _routeConfig(config);
+  }
+
+  /// Decides what an incoming config is allowed to do on its own.
+  ///
+  /// Only a push naming the server already running is adopted silently — that
+  /// one carries a refreshed secret for a server the user has already chosen.
+  /// Anything else is a switch, so it is offered rather than applied: the phone
+  /// pushes on every launch, and this app used to let those overwrite a watch
+  /// that was working, with nothing on screen to say so.
+  Future<void> _routeConfig(WatchConfig config) async {
+    if (config.isSameServerAs(ref.read(serverProfileProvider))) {
+      await _applyConfig(config);
+      return;
+    }
+    if (!mounted) return;
+    ref.read(pendingWatchConfigProvider.notifier).offer(config);
   }
 
   Future<void> _applyConfig(WatchConfig config) async {
-    await ref.read(watchConfigSyncProvider).apply(config);
-    if (!mounted) return;
-    // Re-read the freshly persisted profile → re-routes to WearHome.
-    ref.invalidate(serverProfileProvider);
+    try {
+      await ref.read(pendingWatchConfigProvider.notifier).adopt(config);
+    } catch (_) {
+      // Nothing on screen to tell: this runs without anyone having asked for it.
+      // A failed write leaves the profile as it was and the config on the Data
+      // Layer latch, so the setup screen can offer it again.
+    }
   }
 
   @override
@@ -81,30 +102,14 @@ class _WearAppState extends ConsumerState<WearApp>
     return MaterialApp(
       title: 'Bambuddy Watch',
       debugShowCheckedModeBanner: false,
-      theme: _wearTheme(),
+      theme: wearTheme(),
       // Follow the watch's system language (same l10n set as the phone app).
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Above the navigator, so routes *and* dialogs read the same shape: the
+      // round face is what every layout under here insets itself against.
+      builder: (context, child) => WearShapeScope(child: child!),
       home: hasProfile ? const WearHome() : const WearSetupScreen(),
     );
   }
-}
-
-ThemeData _wearTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Colors.green,
-    brightness: Brightness.dark,
-  ).copyWith(surface: Colors.black);
-  return ThemeData(
-    colorScheme: scheme,
-    scaffoldBackgroundColor: Colors.black,
-    useMaterial3: true,
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
 }

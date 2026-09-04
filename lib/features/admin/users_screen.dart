@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/format/datetime_format.dart';
 import '../../core/models/current_user.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
+import '../common/dash_progress.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import '../common/state_views.dart';
 import 'user_delete_dialog.dart';
 import 'user_form_screen.dart';
@@ -47,17 +50,10 @@ class UsersScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(usersListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(usersListProvider.notifier).refresh(),
           data: (users) => RefreshIndicator(
             onRefresh: () => ref.read(usersListProvider.notifier).refresh(),
             child: users.isEmpty
@@ -124,24 +120,14 @@ class _UserCard extends ConsumerWidget {
                                 user.username,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.titleMd,
                               ),
                             ),
                             if (isSelf) ...[
                               const SizedBox(width: 8),
                               Text(
                                 l10n.usersYou,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.accentGreenInk,
-                                ),
+                                style: t.micro.copyWith(color: t.accentGreenInk),
                               ),
                             ],
                           ],
@@ -153,11 +139,7 @@ class _UserCard extends ConsumerWidget {
                               user.email!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 12.5,
-                                color: t.textSecondary,
-                              ),
+                              style: t.labelSoft.copyWith(color: t.textSecondary),
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -188,6 +170,7 @@ class _UserCard extends ConsumerWidget {
                               DashPill(
                                 label: user.authSource.toUpperCase(),
                                 accent: t.accentOrange,
+                                accentInk: t.accentOrangeInk,
                                 icon: Icons.dns_outlined,
                               ),
                             for (final g in user.groups)
@@ -234,12 +217,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: TextStyle(
-          fontFamily: DashTokens.fontUi,
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: user.isActive ? accent : t.textTertiary,
-        ),
+        style: t.titleLg.copyWith(color: user.isActive ? accent : t.textTertiary),
       ),
     );
   }
@@ -248,10 +226,8 @@ class _Avatar extends StatelessWidget {
 /// Opens the per-account detail: what the list has no room for, plus what the
 /// account owns (one request, made only when someone opens this).
 Future<void> showUserDetailSheet(BuildContext context, CurrentUser user) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<void>(
+      context,
       builder: (_) => _UserDetailSheet(user: user),
     );
 
@@ -264,7 +240,7 @@ class _UserDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toString();
+    final fmt = DateTimeFormats.of(context);
     final created = user.createdAt;
 
     return logTag(
@@ -279,12 +255,7 @@ class _UserDetailSheet extends ConsumerWidget {
               children: [
                 Text(
                   user.username,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.display,
                 ),
                 const SizedBox(height: 16),
                 _DetailRow(
@@ -321,18 +292,12 @@ class _UserDetailSheet extends ConsumerWidget {
                   _DetailRow(
                     icon: Icons.event_outlined,
                     label: l10n.usersCreatedLabel,
-                    value: DateFormat.yMMMd(locale).add_Hm().format(created),
+                    value: fmt.dateNamedMonthTime(created),
                   ),
                 const SizedBox(height: 16),
                 Text(
                   l10n.usersOwnedTitle,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
                 const SizedBox(height: 8),
                 _OwnedCounts(userId: user.id),
@@ -412,11 +377,7 @@ class _SheetActions extends ConsumerWidget {
       'user_detail.delete',
     );
     await ref.read(usersListProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.usersDeleted : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.usersDeleted : userWriteMessage(l10n, result));
     // The sheet describes an account that is gone; close it either way — on a
     // refusal the list underneath still shows the account and its reason.
     if (sheet.canPop()) sheet.pop();
@@ -433,26 +394,14 @@ class _OwnedCounts extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = DashTokens.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return ref.watch(userItemsCountProvider(userId)).when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-          error: (_, _) => Text(
-            l10n.usersOwnedFailed,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 12.5,
-              color: t.textTertiary,
-            ),
-          ),
+    return dashAsyncStrip(
+          context,
+          ref.watch(userItemsCountProvider(userId)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          loading: const DashSpinner(size: 20),
+          failureMessage: l10n.usersOwnedFailed,
           data: (counts) => Row(
             children: [
               Expanded(
@@ -511,24 +460,14 @@ class _CountTile extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '$value',
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            style: t.monoHeadline,
           ),
           const SizedBox(height: 2),
           Text(
             label,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.micro,
           ),
         ],
       ),
@@ -561,23 +500,13 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.textSecondary,
-              ),
+              style: t.label.copyWith(color: t.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.textPrimary,
-              ),
+              style: t.body,
             ),
           ),
         ],

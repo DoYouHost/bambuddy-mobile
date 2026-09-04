@@ -4,15 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/printer_status.dart';
+import '../../core/notifications/hms_actions.dart';
+import '../../core/notifications/hms_catalog.dart';
 import '../../data/printers_repository.dart';
+import '../../features/common/plate_clear.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/error_messages.dart';
-import '../../providers.dart';
+import '../wear_action.dart';
+import '../wear_error.dart';
 import '../wear_providers.dart';
 import '../wear_status.dart';
+import '../wear_theme.dart';
 import '../wear_transport.dart';
 import '../widgets/wear_confirm_dialog.dart';
+import '../widgets/wear_face.dart';
+import '../widgets/wear_header.dart';
+import '../widgets/wear_screen.dart';
+import '../widgets/wear_scroll_view.dart';
+import '../widgets/wear_settings_entry.dart';
+import '../widgets/wear_spinner.dart';
 import '../widgets/wear_status_chip.dart';
+import '../widgets/wear_toast.dart';
 
 /// Full-screen control page (pushed from the picker). Wraps the body in a
 /// Scaffold so it gets its own back-swipe route.
@@ -22,15 +34,23 @@ class WearPrinterControlScreen extends StatelessWidget {
   final int printerId;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(child: WearPrinterControlBody(printerId: printerId)),
-      );
+  Widget build(BuildContext context) =>
+      WearScreen(child: WearPrinterControlBody(printerId: printerId));
 }
 
 /// Status readout + the four watch actions for one printer. Reads live data
 /// from the polled [wearFleetProvider]; actions go through [wearActionsProvider].
 class WearPrinterControlBody extends ConsumerStatefulWidget {
-  const WearPrinterControlBody({super.key, required this.printerId});
+  const WearPrinterControlBody({
+    super.key,
+    required this.printerId,
+    this.showSettings = false,
+  });
+
+  /// Whether to park the settings entry at the end of the scroll. True only
+  /// where this body *is* the home screen (a single printer, no picker to hang
+  /// it off); pushed from the list it would be a second door to the same place.
+  final bool showSettings;
 
   final int printerId;
 
@@ -40,8 +60,7 @@ class WearPrinterControlBody extends ConsumerStatefulWidget {
 }
 
 class _WearPrinterControlBodyState
-    extends ConsumerState<WearPrinterControlBody> {
-  bool _busy = false;
+    extends ConsumerState<WearPrinterControlBody> with WearAction {
 
   PrinterWithStatus? _find(List<PrinterWithStatus> printers) =>
       printers.firstWhereOrNull((p) => p.printer.id == widget.printerId);
@@ -53,59 +72,51 @@ class _WearPrinterControlBodyState
     final l10n = AppLocalizations.of(context);
     final item = _find(printers);
     if (item == null) {
-      return Center(child: Text(l10n.wearPrinterUnavailable));
+      // The one thing on this screen that never reaches `WearScrollView`, so
+      // the only one that has to ask for the round-safe rectangle itself.
+      return WearFace(
+        child: Center(
+          child: Text(l10n.wearPrinterUnavailable,
+              textAlign: TextAlign.center, style: WearText.body),
+        ),
+      );
     }
     final status = item.status;
     final state = wearStateOf(status);
-    final requirePlateClear =
-        ref.watch(requirePlateClearProvider).valueOrNull ?? false;
 
     return Stack(
       children: [
-        RefreshIndicator(
+        WearScrollView(
+          // Short items all the way down — a title, a chip, a readout, buttons
+          // — which is what the curve is for. The one exception carries itself:
+          // a fault card is taller than the radius, so `WearFaceCurve` clips it
+          // to the round-safe band exactly as the rectangle viewport used to.
+          curved: true,
           onRefresh: () => ref.read(wearFleetProvider.notifier).refresh(),
-          child: ListView(
-            // Always scrollable so the pull gesture works even when the few
-            // action buttons don't fill the screen.
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-            children: [
-              Center(
-                child: Text(
-                  item.printer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Center(child: WearStatusChip(state: state)),
-              const SizedBox(height: 10),
-              if (state == WearState.printing || state == WearState.paused)
-                _progress(status),
-              const SizedBox(height: 10),
-              ..._actions(item, state, requirePlateClear, fleet?.queuePending),
+          children: [
+            WearHeader(item.printer.name),
+            const SizedBox(height: 6),
+            Center(child: WearStatusChip(state: state)),
+            const SizedBox(height: 10),
+            if (state == WearState.printing || state == WearState.paused)
+              _progress(l10n, status),
+            const SizedBox(height: 10),
+            ..._faults(item),
+            ..._actions(item, state, fleet?.queuePending),
+            if (widget.showSettings) ...[
+              const SizedBox(height: 4),
+              const WearSettingsEntry(),
             ],
-          ),
+          ],
         ),
-        if (_busy)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Color(0x99000000),
-              child: Center(
-                  child: SizedBox(
-                      width: 30, height: 30, child: CircularProgressIndicator())),
-            ),
-          ),
+        if (busy) wearBusyVeil,
       ],
     );
   }
 
-  Widget _progress(PrinterStatus? s) {
+  Widget _progress(AppLocalizations l10n, PrinterStatus? s) {
     final pct = (s?.progress ?? 0).clamp(0, 100).toDouble();
-    final eta = formatEta(s?.remainingTime);
+    final eta = formatEta(l10n, s?.remainingTime);
     final layers = (s?.layerNum != null && s?.totalLayers != null)
         ? 'L ${s!.layerNum}/${s.totalLayers}'
         : '';
@@ -114,42 +125,147 @@ class _WearPrinterControlBodyState
       if (eta.isNotEmpty) eta,
       if (layers.isNotEmpty) layers,
     ].join('  ·  ');
+    // The radius is the height so the bar's ends are round rather than merely
+    // softened; two numbers that have to agree, written once.
+    const barHeight = 6.0;
     return Column(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(barHeight),
           child: LinearProgressIndicator(
             value: pct / 100,
-            minHeight: 6,
-            backgroundColor: const Color(0xFF2A2A2C),
+            minHeight: barHeight,
+            backgroundColor: wearSurfaceHigh,
           ),
         ),
         const SizedBox(height: 6),
-        Text(line, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+        // One line whatever the watch's font scale is: wrapped, its second line
+        // lands in the viewport's fade, and a half-dimmed "111/264" reads as a
+        // rendering fault rather than a readout. Only ever shrinks — at the
+        // default scale nothing is scaled at all.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            line,
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: WearText.body,
+          ),
+        ),
       ],
     );
   }
 
-  List<Widget> _actions(PrinterWithStatus item, WearState state,
-      bool requirePlateClear, int? queuePending) {
+  /// Faults worth putting on screen. The shared filter already answers "none"
+  /// for a printer out of reach, which matters more here than on the phone: the
+  /// watch has no collapsed-card state to hide them in, so last-known faults
+  /// would sit under the OFFLINE chip looking current, each offering a button
+  /// the server answers with "Printer not connected".
+  List<HmsError> _displayableFaults(PrinterWithStatus item) =>
+      displayableHmsErrors(item.status,
+          describe: HmsCatalog.instance.describe);
+
+  /// Every action the faults on screen are offering, so the generic lifecycle
+  /// buttons can stand down where they would duplicate one.
+  Set<String> _faultActions(PrinterWithStatus item) => {
+        for (final e in _displayableFaults(item))
+          if (e.fullCode != null) ...hmsRenderableActions(e.actions),
+      };
+
+  /// Active faults, each with the buttons its firmware offers.
+  ///
+  /// The same rule as the phone decides what appears: a fault the catalog
+  /// cannot name is not shown, and a fault without a `full_code` gets no
+  /// buttons because nothing would identify it to the printer. What differs is
+  /// the shape — a watch has no room for a row of buttons, so each action is a
+  /// full-width row, and the description is capped at three lines with the rest
+  /// a tap away.
+  List<Widget> _faults(PrinterWithStatus item) {
+    final l10n = AppLocalizations.of(context);
+    final faults = _displayableFaults(item);
+    if (faults.isEmpty) return const [];
+
+    final actions = ref.read(wearActionsProvider);
+    final id = widget.printerId;
+    return [
+      for (final fault in faults)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _WearFault(
+            fault: fault,
+            busy: busy,
+            onAction: (action) => action == hmsStopAction
+                ? _confirmHmsStop(actions, id, fault, item.printer.name)
+                : _run(() => actions.executeHmsAction(id,
+                    printError: fault.fullCode!,
+                    action: action,
+                    jobId: fault.jobId)),
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _btn(
+          l10n.hmsDismissAll,
+          Icons.done_all,
+          () => actions.clearHmsErrors(id),
+          okMsg: l10n.hmsDismissed,
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _confirmHmsStop(
+      WearActions actions, int id, HmsError fault, String name) async {
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).hmsStopConfirmTitle,
+      subtitle: name,
+    );
+    if (!ok) return;
+    await _run(() => actions.executeHmsAction(id,
+        printError: fault.fullCode!,
+        action: hmsStopAction,
+        jobId: fault.jobId));
+  }
+
+  List<Widget> _actions(
+      PrinterWithStatus item, WearState state, int? queuePending) {
     final l10n = AppLocalizations.of(context);
     final status = item.status;
     final id = widget.printerId;
     final actions = ref.read(wearActionsProvider);
+    // Read out at build time rather than inside the failure callback: the
+    // callback is the one place `ref` would already be safe (it only fires
+    // while mounted), and this way every surface reaches the latch the same way.
+    final plateGate = ref.read(offlinePlateClearProvider.notifier);
     final buttons = <Widget>[];
+    // What the faults above already offer. Two identical buttons stacked on a
+    // 1.4" screen is a coin flip, and the fault's own is the one that carries
+    // the code the firmware needs — so the generic one steps aside.
+    final offeredByFaults = _faultActions(item);
 
     if (state == WearState.printing) {
       buttons.add(_btn(l10n.ctrlPause, Icons.pause, () => actions.pause(id)));
-    } else if (state == WearState.paused) {
+    } else if (state == WearState.paused &&
+        offeredByFaults.intersection(hmsResumeActions).isEmpty) {
       buttons.add(
           _btn(l10n.ctrlResume, Icons.play_arrow, () => actions.resume(id)));
     }
 
-    // Clear plate: only when the printer is waiting AND the server enforces it.
-    if (requirePlateClear && (status?.awaitingPlateClear ?? false)) {
+    // Clear plate: when it is offered — an unreachable printer included, and
+    // why — is [plateClearOffered], the same reading the phone card uses. The
+    // failure it words itself is the pre-#2864 server refusing to release the
+    // gate on a printer it cannot reach; that also withdraws this button.
+    if (plateClearOffered(ref, status)) {
       buttons.add(_btn(l10n.wearClearPlate, Icons.cleaning_services,
           () => actions.clearPlate(id),
-          okMsg: l10n.wearPlateCleared));
+          okMsg: l10n.wearPlateCleared,
+          errMsg: (error) =>
+              recordPlateClearRefusal(plateGate, _serverSaid(error))
+                  ? l10n.wearPlateNeedsOnline
+                  : null));
     }
 
     // Start next from queue: offered when the printer isn't actively printing
@@ -165,11 +281,13 @@ class _WearPrinterControlBodyState
       }
     }
 
-    // Stop: destructive → behind a confirm dialog.
-    if (state == WearState.printing || state == WearState.paused) {
+    // Stop: destructive → behind a confirm dialog. Skipped when a fault already
+    // offers its own stop, for the same reason as resume above.
+    if ((state == WearState.printing || state == WearState.paused) &&
+        !offeredByFaults.contains(hmsStopAction)) {
       buttons.add(_btn(l10n.ctrlStop, Icons.stop,
           () => _confirmStop(actions, id, item.printer.name),
-          color: const Color(0xFFB3261E)));
+          color: wearDestructive));
     }
 
     if (buttons.isEmpty) {
@@ -182,81 +300,193 @@ class _WearPrinterControlBodyState
   }
 
   Widget _btn(String label, IconData icon, Future<void> Function() action,
-          {String? okMsg, Color? color}) =>
+          {String? okMsg, Color? color, _WearFailureText? errMsg}) =>
       FilledButton.icon(
-        onPressed: _busy ? null : () => _run(action, okMsg: okMsg),
-        icon: Icon(icon, size: 18),
-        label: Text(label),
+        onPressed:
+            busy ? null : () => _run(action, okMsg: okMsg, errMsg: errMsg),
+        icon: Icon(icon),
+        label: _label(label),
         style: color != null
             ? FilledButton.styleFrom(backgroundColor: color)
             : null,
       );
 
-  /// Non-actionable placeholder (empty queue / no actions). Shares the button
-  /// row's height and shape so the layout doesn't jump, but reads as inert:
-  /// a muted fill instead of the accent, with an icon + brighter-than-white54
-  /// label so it's actually legible on the OLED black.
-  Widget _hint(IconData icon, String label) => Container(
-        height: 44,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2C),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: Colors.white70),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500)),
-            ),
-          ],
+  /// Non-actionable placeholder (empty queue / no actions): a button that is
+  /// not on offer, so an actually disabled one rather than a pill shaped to
+  /// pass for it.
+  ///
+  /// It used to restate the theme by hand — height 44, radius 22,
+  /// `WearText.strong` — which is the trap this repo has a rule about: three
+  /// numbers that have to be edited in two places to stay true, and the button
+  /// theme is the one that moves. Disabled, it takes its height, its stadium
+  /// and its type from the same place as the buttons it stands among, and a
+  /// screen reader gets "dimmed button" instead of a shape it cannot name.
+  Widget _hint(IconData icon, String label) => FilledButton.icon(
+        onPressed: null,
+        icon: Icon(icon),
+        label: _label(label),
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: wearSurfaceHigh,
+          disabledForegroundColor: wearInert,
         ),
       );
 
+  /// Ellipsized rather than wrapped, for every button on this screen: a label
+  /// that wraps takes the row's height with it, and the round-safe width is
+  /// narrower than any of these labels was written against.
+  Widget _label(String label) =>
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
+
   Future<void> _confirmStop(WearActions actions, int id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => WearConfirmDialog(
-        icon: Icons.stop_rounded,
-        title: AppLocalizations.of(ctx).ctrlStopConfirmTitle,
-        subtitle: name,
-        confirmColor: const Color(0xFFB3261E),
-      ),
+    final ok = await wearConfirm(
+      context,
+      icon: Icons.stop_rounded,
+      title: AppLocalizations.of(context).ctrlStopConfirmTitle,
+      subtitle: name,
     );
-    if (ok == true) await actions.stop(id);
+    // Called directly, and correctly so: this whole method already runs inside
+    // `_run`, because `_btn` wraps whatever it is given. Wrapping again is not
+    // belt and braces — `WearAction.run` opens with `if (_busy) return`, so the
+    // inner call is a silent no-op and the button stops working. The fault
+    // card's own stop looks different for the same reason: it reaches
+    // `_confirmHmsStop` without passing through `_btn`, so it wraps itself.
+    if (ok) await actions.stop(id);
   }
 
-  /// Runs an action with a full-screen busy veil, then refreshes the poll.
-  /// Errors surface as a short SnackBar; the screen never crashes on failure.
-  Future<void> _run(Future<void> Function() action, {String? okMsg}) async {
-    setState(() => _busy = true);
-    try {
-      await action();
-      await ref.read(wearFleetProvider.notifier).refresh();
-      if (okMsg != null && mounted) _toast(okMsg);
-    } catch (e) {
-      if (mounted) _toast(_shortError(AppLocalizations.of(context), e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  /// Runs an action behind the full-screen busy veil, then refreshes the poll.
+  ///
+  /// Both outcomes go to a passing message rather than to text on the screen:
+  /// these are commands on live printer state, repeatable by tapping again, and
+  /// a red line under one of eight buttons in a scrolling list is missed. The
+  /// refresh is why this wrapper still exists on top of [run] — nothing else on
+  /// the watch has a poll to pull.
+  Future<void> _run(Future<void> Function() action,
+          {String? okMsg, _WearFailureText? errMsg}) =>
+      run(
+        () async {
+          await action();
+          await ref.read(wearFleetProvider.notifier).refresh();
+        },
+        onDone: () {
+          if (okMsg != null) {
+            wearToast(context, okMsg, tone: WearToastTone.success);
+          }
+        },
+        onError: (error) => wearToast(
+          context,
+          errMsg?.call(error) ??
+              _shortError(AppLocalizations.of(context), error),
+          tone: WearToastTone.failure,
+        ),
+      );
+}
 
-  void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontSize: 12)),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
+/// A button's own wording for a failure, where the generic [_shortError] would
+/// send the user the wrong way. Null falls back to it.
+typedef _WearFailureText = String? Function(Object error);
+
+/// What the server wrote, out of whatever this screen's transport threw: the
+/// relay forwards the detail without its status code, direct REST keeps both.
+String? _serverSaid(Object error) => switch (error) {
+      WearRelayRemoteError e => e.reason,
+      AppApiException e => e.detail,
+      _ => null,
+    };
+
+/// One fault on the watch: what it is, then a full-width button per action.
+///
+/// Buttons never share a row here — a 1.4" screen turns two side by side into
+/// two things nobody can hit, and hitting the wrong one means stopping a print.
+class _WearFault extends StatefulWidget {
+  const _WearFault({
+    required this.fault,
+    required this.busy,
+    required this.onAction,
+  });
+
+  final HmsError fault;
+  final bool busy;
+  final void Function(String action) onAction;
+
+  @override
+  State<_WearFault> createState() => _WearFaultState();
+}
+
+class _WearFaultState extends State<_WearFault> {
+  bool _fullText = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final description = hmsLabel(
+      widget.fault,
+      description: HmsCatalog.instance.describe(widget.fault),
+    );
+    // Bambu's descriptions run to 330 characters; three lines is what a watch
+    // can spend before the buttons fall off the screen.
+    final actions = widget.fault.fullCode == null
+        ? const <String>[]
+        : hmsRenderableActions(widget.fault.actions);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: wearTintedBox(wearDestructive),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  size: 14, color: wearFaultText),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  widget.fault.displayCode,
+                  style: WearText.small
+                      .copyWith(color: wearFaultText, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          if (description != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => setState(() => _fullText = !_fullText),
+              child: Text(
+                description,
+                maxLines: _fullText ? null : 3,
+                overflow: _fullText ? null : TextOverflow.ellipsis,
+                // Looser lines: this runs to three of them and is the only
+                // paragraph on the watch anyone has to actually read.
+                style: WearText.body.copyWith(height: 1.25),
+              ),
+            ),
+          ],
+          for (final action in actions) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed:
+                    widget.busy ? null : () => widget.onAction(action),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  // A step down from the theme's button text: these stack one
+                  // per action inside an already-boxed fault.
+                  textStyle:
+                      WearText.body.copyWith(fontWeight: FontWeight.w600),
+                  backgroundColor:
+                      action == hmsStopAction ? wearDestructive : null,
+                ),
+                child: Text(
+                  hmsActionLabel(l10n, action),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -274,6 +504,7 @@ String _shortError(AppLocalizations l10n, Object e) {
     return reason == null ? l10n.errForbidden : l10n.errForbiddenDetail(reason);
   }
   if (e is AppApiException) return e.localized(l10n);
-  final s = e.toString();
-  return s.length > 60 ? '${s.substring(0, 60)}…' : s;
+  // Not localizable, so it is quoted as-is — trimmed to what the message can
+  // hold before it takes itself away.
+  return wearShortText(e.toString(), max: wearToastMaxChars);
 }

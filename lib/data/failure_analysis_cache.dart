@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models/failure_analysis.dart';
+import '../core/models/json_utils.dart';
 import '../features/stats/stats_providers.dart';
 
 /// Failure analysis cache entry: an aggregate plus the extent of coverage.
@@ -79,14 +80,23 @@ class FailureAnalysisCache {
         '$_prefix${signature(filter)}',
         jsonEncode(entry.toJson()),
       );
+
+  /// Drop every bucket, for when a run's classification changed underneath
+  /// them (the print-log editor).
+  ///
+  /// Deliberately not narrowed to one filter: the edited run belongs to some
+  /// range and some user, and this side cannot tell which. The "all time"
+  /// bucket is the load-bearing case — it banks complete days and only ever
+  /// appends, so it can never notice a value that changed behind it.
+  Future<void> clear() async {
+    final keys = _prefs.getKeys().where((k) => k.startsWith(_prefix)).toList();
+    for (final key in keys) {
+      await _prefs.remove(key);
+    }
+  }
 }
 
-String? _ymd(DateTime? d) {
-  if (d == null) return null;
-  final m = d.month.toString().padLeft(2, '0');
-  final day = d.day.toString().padLeft(2, '0');
-  return '${d.year}-$m-$day';
-}
+String? _ymd(DateTime? d) => d == null ? null : calendarDateToJson(d);
 
 DateTime? _parseDate(Object? v) {
   if (v is! String || v.isEmpty) return null;

@@ -1,3 +1,5 @@
+import 'package:bambuddy_mobile/core/api/api_exceptions.dart';
+import 'package:bambuddy_mobile/core/models/no_3mf_warning.dart';
 import 'package:bambuddy_mobile/data/archive_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +29,23 @@ void main() {
     expect(archives, hasLength(1));
     expect(archives.first.id, 82);
     expect(archives.first.displayName, 'The Smoothy - Y Splitter Connector');
+  });
+
+  test('byId: GET /archives/82 zwraca pojedynczy wpis ze zdjęciami', () async {
+    final withPhoto = {
+      ...readFixture('archive.json') as Map<String, dynamic>,
+      'photos': ['finish_20260815_120000_ab12cd34.jpg'],
+    };
+    adapter.onGet(
+      '/api/v1/archives/82',
+      (server) => server.reply(200, withPhoto),
+    );
+
+    final archive = await repo.byId(82);
+
+    expect(archive.id, 82);
+    expect(archive.photos, ['finish_20260815_120000_ab12cd34.jpg']);
+    expect(archive.hasPhotos, isTrue);
   });
 
   test('search: parsuje listę wyników wyszukiwania', () async {
@@ -108,5 +127,236 @@ void main() {
     final deleted = await repo.purge(olderThanDays: 30, purgeStats: true);
 
     expect(deleted, 7);
+  });
+
+  // The archive's own weight is the file's estimate; the run aggregate is what
+  // the runs drew. The fixture is a captured response, so it also pins that the
+  // two arrive together and, for an ordinary completed print, agree.
+  group('the run aggregate', () {
+    test('is read alongside the archive it belongs to', () async {
+      adapter.onGet(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, readFixture('archive.json')),
+      );
+
+      final archive = await repo.byId(82);
+
+      expect(archive.filamentUsedGrams, 17.1);
+      expect(archive.totalFilamentActualGrams, 17.1);
+      expect(archive.runCount, 1);
+    });
+
+    // A server older than the aggregate sends none of it, and the row has to
+    // read as "nothing to add" rather than "no runs used no filament".
+    test('a server that does not send it reports no runs', () async {
+      final old = {...readFixture('archive.json') as Map<String, dynamic>}
+        ..remove('run_count')
+        ..remove('total_filament_actual_grams');
+      adapter.onGet('/api/v1/archives/82', (server) => server.reply(200, old));
+
+      final archive = await repo.byId(82);
+
+      expect(archive.runCount, 0);
+      expect(archive.totalFilamentActualGrams, isNull);
+      expect(archive.filamentUsedGrams, 17.1, reason: 'its own figure is not the aggregate');
+    });
+  });
+
+  group('setFilamentGrams', () {
+    Map<String, dynamic> archiveWith(Object? grams) => {
+          ...readFixture('archive.json') as Map<String, dynamic>,
+          'filament_used_grams': grams,
+        };
+
+    test('sends the weight and reads back the stored one', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(42.0)),
+        data: {'filament_used_grams': 42.0},
+      );
+
+      final result = await repo.setFilamentGrams(82, 42.0);
+
+      expect(result.archive.filamentUsedGrams, 42.0);
+      expect(result.applied, isTrue);
+    });
+
+    // The case the whole return type exists for. A server older than the field
+    // still has the route and still answers 200 — its request model just drops
+    // the key it cannot name — so the archive comes back with the weight it had
+    // and the status code says nothing at all.
+    test('a server that drops the key answers 200 and changes nothing',
+        () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(17.1)),
+        data: {'filament_used_grams': 42.0},
+      );
+
+      final result = await repo.setFilamentGrams(82, 42.0);
+
+      expect(result.applied, isFalse);
+      expect(result.archive.filamentUsedGrams, 17.1,
+          reason: 'the row the user is looking at, not the one they asked for');
+    });
+
+    // A present null, never an omitted key: the server applies `exclude_unset`,
+    // so leaving it out means "do not touch this column" and would clear
+    // nothing.
+    test('clearing sends the key with a null', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(null)),
+        data: {'filament_used_grams': null},
+      );
+
+      final result = await repo.setFilamentGrams(82, null);
+
+      expect(result.archive.filamentUsedGrams, isNull);
+      expect(result.applied, isTrue);
+    });
+
+    test('a clear an old server ignored is not reported as done', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(17.1)),
+        data: {'filament_used_grams': null},
+      );
+
+      expect((await repo.setFilamentGrams(82, null)).applied, isFalse);
+    });
+
+    // Why the comparison has a tolerance: the figure goes out as JSON, through
+    // a float column and back, and a difference in the fourth decimal is the
+    // same weight. The case it must not swallow is a whole typed number apart.
+    test('a float round trip is still the weight that was sent', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(200, archiveWith(42.30000000000001)),
+        data: {'filament_used_grams': 42.3},
+      );
+
+      expect((await repo.setFilamentGrams(82, 42.3)).applied, isTrue);
+    });
+
+    // The field checks the server's own bounds before sending, so a refusal
+    // here means the two drifted apart — and then the server's sentence is
+    // worth more than ours.
+    test('a refused weight keeps what the server said', () async {
+      adapter.onPatch(
+        '/api/v1/archives/82',
+        (server) => server.reply(422, {
+          'detail': [
+            {'msg': 'Input should be less than or equal to 100000'},
+          ],
+        }),
+        data: {'filament_used_grams': 200000.0},
+      );
+
+      await expectLater(
+        repo.setFilamentGrams(82, 200000.0),
+        throwsA(isA<ApiException>().having((e) => e.detail, 'detail',
+            contains('less than or equal to 100000'))),
+      );
+    });
+  });
+
+  group('plates', () {
+    test('reads the plate rows of a multi-plate archive', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(200, {
+          'archive_id': 82,
+          'filename': 'multi.gcode.3mf',
+          'plates': [
+            {'index': 1, 'name': 'Left', 'has_thumbnail': true,
+              'thumbnail_url': '/api/v1/archives/82/plate-thumbnail/1'},
+            {'index': 2, 'name': 'Right', 'has_thumbnail': false},
+          ],
+          'is_multi_plate': true,
+          'has_gcode': true,
+        }),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.isMultiPlate, isTrue);
+      expect(plates.plates.map((p) => p.index), [1, 2]);
+      expect(plates.byIndex(1)?.thumbnailPath,
+          '/api/v1/archives/82/plate-thumbnail/1');
+    });
+
+    // One request, both answers: the slice screen's "as designed" gate used to
+    // ask the same route a second time through the slicer repository.
+    test('the same read carries what the 3MF was prepared with', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(200, {
+          'plates': [
+            {'index': 1, 'has_thumbnail': false},
+          ],
+          'embedded_printer': 'Bambu Lab X2D 0.6 nozzle',
+          'embedded_process': '0.30mm Standard @BBL X2D 0.6 nozzle',
+          'design_overrides': [],
+        }),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.embedded.printer, 'Bambu Lab X2D 0.6 nozzle');
+      expect(plates.embedded.isAvailable, isTrue);
+    });
+
+    // A server older than the route, an archive whose file is gone, a plain
+    // .gcode that was never a 3MF: three causes, one correct answer — there is
+    // no plate to pick, so the form must look exactly as it did before.
+    test('a 404 leaves no plate to choose instead of throwing', () async {
+      adapter.onGet(
+        '/api/v1/archives/82/plates',
+        (server) => server.reply(404, {'detail': 'Not Found'}),
+      );
+
+      final plates = await repo.plates(82);
+
+      expect(plates.plates, isEmpty);
+      expect(plates.isMultiPlate, isFalse);
+    });
+  });
+
+  group('no3mfWarning', () {
+    test('reads the flag and the reason', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) =>
+            server.reply(200, {'has_fallback': true, 'reason': 'internal_storage'}),
+      );
+
+      final warning = await repo.no3mfWarning();
+
+      expect(warning.hasFallback, isTrue);
+      expect(warning.reason, No3mfReason.internalStorage);
+    });
+
+    // A 401 is the session ending, which the app has to act on; a 403 is one
+    // route the account cannot have. Only the first may reach the UI.
+    test('an expired session still bubbles up', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) => server.reply(401, {'detail': 'Not authenticated'}),
+      );
+
+      await expectLater(repo.no3mfWarning(), throwsA(isA<AuthException>()));
+    });
+
+    test('an unreachable route means no nudge, not an error', () async {
+      adapter.onGet(
+        '/api/v1/archives/no-3mf-warning',
+        (server) => server.reply(403, {'detail': 'Forbidden'}),
+      );
+
+      final warning = await repo.no3mfWarning();
+
+      expect(warning.hasFallback, isFalse);
+    });
   });
 }

@@ -55,6 +55,7 @@ ENDPOINTS=(
   "available_filaments:/api/v1/printers/available-filaments?model=X2D"
   "archives_list:/api/v1/archives/"
   "archive_stats:/api/v1/archives/stats"
+  "print_log:/api/v1/print-log/"
   "inventory_spools:/api/v1/inventory/spools"
   "smart_plugs:/api/v1/smart-plugs/"
   "maintenance_overview:/api/v1/maintenance/overview"

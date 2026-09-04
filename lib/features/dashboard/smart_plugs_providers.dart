@@ -39,13 +39,22 @@ class SmartPlugsState {
   /// Sticky: command returned 403 (key lacks permissions) → block control.
   final bool forbidden;
 
-  /// Plug to show on printer card: assigned, enabled, and marked visible.
-  /// First match (usually one).
+  /// Plug the printer card shows as its power: assigned, enabled and marked
+  /// visible, and — when several qualify — the one the server would call the
+  /// main plug ([SmartPlug.compareAsMainPlug]). Taking the first match instead
+  /// put the power button on whichever plug the server listed first, an
+  /// enclosure fan as readily as the outlet the printer is plugged into.
+  ///
+  /// Unlike the server we still drop disabled and hidden plugs rather than only
+  /// ranking them down: hiding a plug is a preference the user set here, and we
+  /// poll live status for enabled plugs only.
   SmartPlug? plugForPrinterCard(int printerId) {
+    SmartPlug? best;
     for (final p in plugs) {
-      if (p.printerId == printerId && p.visibleOnCard) return p;
+      if (p.printerId != printerId || !p.visibleOnCard) continue;
+      if (best == null || SmartPlug.compareAsMainPlug(p, best) < 0) best = p;
     }
-    return null;
+    return best;
   }
 
   SmartPlugStatus? statusFor(int plugId) => statuses[plugId];

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/diagnostics/log_tag.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../common/system_insets.dart';
 import 'api_keys_providers.dart';
 import 'groups_providers.dart';
 import 'users_providers.dart';
@@ -26,7 +28,10 @@ class AdminScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         appBar: dashAppBar(context, title: l10n.adminTitle),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+          padding: withSystemNavInset(
+            context,
+            const EdgeInsets.fromLTRB(12, 8, 12, 24),
+          ),
           children: [
             if (user != null) _SignedInAs(username: user.username),
             if (ref.watch(canReadUsersProvider))
@@ -80,11 +85,7 @@ class _SignedInAs extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.adminSignedInAs(username),
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12.5,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ),
         ],
@@ -149,21 +150,12 @@ class _AdminEntry extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                          ),
+                          style: t.titleMd,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontUi,
-                            fontSize: 12.5,
-                            color: t.textSecondary,
-                          ),
+                          style: t.labelSoft.copyWith(color: t.textSecondary),
                         ),
                       ],
                     ),

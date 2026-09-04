@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/notifications/hms_catalog.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/watch/wear_relay_engine.dart';
 import 'features/notifications/print_monitor.dart' show systemLocale;
 import 'providers.dart';
 
@@ -47,3 +48,16 @@ Future<void> main() async {
     ),
   );
 }
+
+/// Entry point of the headless engine that answers the watch when this app's
+/// process is dead — `WearRelayListenerService` (Kotlin) launches it by name.
+///
+/// **It has to live in this library, next to `main`.** The pragma keeps a
+/// declaration the Dart program never calls, but it cannot keep a *library*
+/// nothing imports: with this function in `wear_relay_engine.dart` alone, the
+/// name was absent from the release AOT snapshot (verified by grepping
+/// `libapp.so` — `startCallback` was there, this was not), so the engine
+/// started and never installed its channel handler. A debug build hides it,
+/// and CI only builds debug.
+@pragma('vm:entry-point')
+void wearRelayMain() => serveWearRelay();

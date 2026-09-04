@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
+import '../core/ams/slot_addressing.dart';
 import '../core/api/api_exceptions.dart';
 import '../core/api/endpoints.dart';
 
@@ -24,8 +27,14 @@ class PrinterCommandsRepository {
 
   /// Acknowledge the build plate has been cleared (lets the scheduler start the
   /// next queued print). Empty body.
+  ///
+  /// Keeps what the server wrote on a 400: this route answers that status for
+  /// two unrelated reasons, and only the text tells them apart — a printer that
+  /// is not awaiting an acknowledgement at all, or a pre-#2864 server refusing
+  /// to release the gate on a printer it cannot reach. See
+  /// `isOfflinePlateClearRefusal`.
   Future<void> clearPlate(int printerId) =>
-      _post(Endpoints.printerClearPlate(printerId));
+      _post(Endpoints.printerClearPlate(printerId), keepDetail: true);
 
   /// Chamber light: `on=true|false`.
   Future<void> setChamberLight(int printerId, {required bool on}) =>
@@ -141,11 +150,130 @@ class PrinterCommandsRepository {
   Future<void> homeAxes(int printerId) =>
       _post(Endpoints.homeAxes(printerId), query: {'axes': 'all'});
 
-  Future<void> _post(String path, {Map<String, dynamic>? query}) async {
+  /// Clear the printer's active error dialog. Printer-wide by nature: the
+  /// firmware command behind it (`clean_print_error`) takes no code and drops
+  /// whatever is on screen, so there is no per-error variant to offer.
+  Future<void> clearHmsErrors(int printerId) =>
+      _post(Endpoints.hmsClear(printerId));
+
+  /// Run one of the firmware's remediation actions for a fault.
+  ///
+  /// [printError] must be the fault's `full_code` **verbatim** — the server
+  /// validates it as 8 or 16 hex digits and the firmware matches on it; a code
+  /// rebuilt from `attr`/`code` is silently ignored by the printer. [jobId] is
+  /// the fault's own `job_id` snapshot, omitted for an idle-state error.
+  ///
+  /// Throws `ApiException(statusCode: 502)` when the publish succeeded but the
+  /// printer sent nothing back within the server's 2.5s window — a real outcome
+  /// worth its own message, not a transport failure.
+  Future<void> executeHmsAction(
+    int printerId, {
+    required String printError,
+    required String action,
+    String? jobId,
+  }) =>
+      _post(Endpoints.hmsExecuteAction(printerId), data: {
+        'print_error': printError,
+        'action': action,
+        if (jobId != null && jobId.isNotEmpty) 'job_id': jobId,
+      });
+
+  /// Nudge the printer into republishing its full state. Read-level route, so
+  /// it works with a key that may not control anything; callers treat it as a
+  /// hint and ignore both the answer and a 400 from a disconnected printer.
+  Future<void> refreshStatus(int printerId) =>
+      _post(Endpoints.printerRefreshStatus(printerId));
+
+  /// [refreshStatus] as the hint it is: sent for each printer and then
+  /// forgotten.
+  ///
+  /// Nothing useful comes back — the republish arrives over the WebSocket, not
+  /// in this response — and every way it can fail is one the caller already
+  /// accepts: an offline printer answers 400, a narrow key may be refused, and
+  /// neither is a reason to fail whatever the user actually asked for. Returning
+  /// void rather than a future says that out loud, so no call site has to
+  /// re-derive the same `unawaited(...).catchError(...)` and get it right.
+  void nudgeRepublish(Iterable<int> printerIds) {
+    for (final id in printerIds) {
+      unawaited(refreshStatus(id).catchError((Object _) {}));
+    }
+  }
+
+  /// Load filament from one slot. [trayId] is the global tray number from
+  /// [amsLoadTrayId] — not the slot's local id.
+  ///
+  /// [extruderId] names the hotend to feed (0 = right/main, 1 = left/deputy)
+  /// and is sent only when given, exactly as Bambu Studio sends it: without a
+  /// Filament Track Switch the AMS is wired to a hotend and the firmware works
+  /// the target out itself, so a value there says nothing the printer does not
+  /// already know. See `PrinterStatus.filaSwitch` for when it is needed.
+  Future<void> amsLoad(int printerId, int trayId, {int? extruderId}) {
+    assert(_isLoadableTrayId(trayId), 'tray id not loadable: $trayId');
+    assert(extruderId == null || extruderId == 0 || extruderId == 1,
+        'extruder id out of range: $extruderId');
+    return _post(Endpoints.amsLoad(printerId), query: {
+      'tray_id': trayId,
+      'extruder_id': ?extruderId,
+    });
+  }
+
+  /// Unload filament. [trayId] — the global number from [amsLoadTrayId], as on
+  /// [amsLoad] — names the slot to unload; omitted, the printer unloads whatever
+  /// its own `tray_now` names. See [Endpoints.amsUnload] for why naming it
+  /// matters on a dual-nozzle machine.
+  Future<void> amsUnload(int printerId, {int? trayId}) {
+    assert(trayId == null || _isLoadableTrayId(trayId),
+        'tray id not loadable: $trayId');
+    return _post(
+      Endpoints.amsUnload(printerId),
+      query: {'tray_id': ?trayId},
+    );
+  }
+
+  /// Re-read the RFID tag of one AMS slot. Ids are local to the unit.
+  Future<void> refreshAmsSlot(
+    int printerId, {
+    required int amsId,
+    required int slotId,
+  }) =>
+      _post(Endpoints.amsSlotRfidRefresh(printerId, amsId, slotId));
+
+  Future<void> _post(
+    String path, {
+    Map<String, dynamic>? query,
+    Map<String, dynamic>? data,
+    bool keepDetail = false,
+  }) async {
     try {
-      await _dio.post<dynamic>(path, queryParameters: query);
+      await _dio.post<dynamic>(path, queryParameters: query, data: data);
     } on DioException catch (e) {
-      throw mapDioException(e);
+      throw keepDetail ? mapDioExceptionKeepingDetail(e) : mapDioException(e);
     }
   }
 }
+
+/// The global tray number `POST /ams/load` takes for a slot, or null where the
+/// server has no encoding for it.
+///
+/// Ids in are **local**, like every other slot route: an AMS unit and a slot
+/// within it, or [externalHolderUnit] and a holder side. [globalTrayId] does
+/// the encoding; the only thing added here is the route's own acceptance, which
+/// AMS-HT falls outside of — its units are numbered from 128, the server
+/// answers 400, and the caller hides the action rather than offer a button that
+/// cannot work.
+int? amsLoadTrayId({required int amsId, required int trayId}) {
+  // Guarded before encoding, not after: an out-of-range holder side would
+  // otherwise land on a perfectly valid AMS slot number, and the printer would
+  // load a different spool with nothing on the way flagging it.
+  if (isExternalHolder(amsId) && trayId != 0 && trayId != 1) return null;
+  final global = globalTrayId(amsId: amsId, trayId: trayId);
+  return _isLoadableTrayId(global) ? global : null;
+}
+
+/// Mirrors the server's own validation (`printers.py` `ams_load`): AMS slots
+/// 0..15, the A2L AMS-Lite's normalised 24..27, and the two external ids.
+bool _isLoadableTrayId(int trayId) =>
+    (trayId >= 0 && trayId <= 15) ||
+    (trayId >= 24 && trayId <= 27) ||
+    trayId == 254 ||
+    trayId == 255;

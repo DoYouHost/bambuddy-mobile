@@ -39,18 +39,6 @@ class _FakeUsersList extends UsersListNotifier {
   Future<List<CurrentUser>> build() async => _users;
 }
 
-/// How the session authenticates — the administration gate refuses an API key
-/// outright, so the tests have to be able to say which it is.
-class _FakeProfile extends ServerProfileNotifier {
-  _FakeProfile({this.authMode = AuthMode.jwt});
-
-  final AuthMode authMode;
-
-  @override
-  ServerProfile? build() =>
-      ServerProfile(baseUrl: 'http://s.local:8000', authMode: authMode);
-}
-
 class _FakeCurrentUser extends CurrentUserNotifier {
   _FakeCurrentUser(this._user);
 
@@ -70,7 +58,7 @@ Widget _app(
       overrides: [
         usersListProvider.overrideWith(() => _FakeUsersList(users)),
         currentUserProvider.overrideWith(() => _FakeCurrentUser(signedInAs)),
-        serverProfileProvider.overrideWith(_FakeProfile.new),
+        fakeServerProfileOverride(authMode: AuthMode.jwt),
         userItemsCountProvider.overrideWith((ref, id) async => counts),
       ],
       child: plApp(const UsersScreen()),
@@ -193,8 +181,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           currentUserProvider.overrideWith(() => _FakeCurrentUser(user)),
-          serverProfileProvider
-              .overrideWith(() => _FakeProfile(authMode: authMode)),
+          fakeServerProfileOverride(authMode: authMode),
         ],
       );
       addTearDown(container.dispose);
@@ -243,8 +230,9 @@ void main() {
         () async {
       // The server hands a key the synthetic admin with every permission
       // (`routes/auth.py::_api_key_to_user_response`) and then refuses it every
-      // administrative route (`core/auth.py::_resolve_apikey_scope`). Believing
-      // the first is how the account list ended up 403-ing on a key session.
+      // administrative route (`core/auth.py::_check_apikey_permissions`).
+      // Believing the first is how the account list ended up 403-ing on a key
+      // session.
       final container = containerFor(
         const CurrentUser(
           id: 0,

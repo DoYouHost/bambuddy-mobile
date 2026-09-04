@@ -24,8 +24,29 @@ class SettingsRepository {
   static const _swatchCodesKey = 'swatch_codes';
   static const _printOptionsKey = 'print_options';
   static const _diagnosticsSessionKey = 'diagnostics_session';
+  static const _clock24hKey = 'clock_24h';
+  static const _wearRelayClaimKey = 'wear_relay_claim';
+  static const _no3mfDismissedKey = 'archive_no3mf_dismissed';
 
   final SharedPreferences _prefs;
+
+  /// This repository again, after re-reading what another isolate wrote.
+  ///
+  /// `SharedPreferences` gives every isolate its own in-memory copy of the file,
+  /// so a handle keeps serving the snapshot it was opened with: the maintenance
+  /// item the service marked done, the sign-in it saw rejected, the clock the
+  /// app has just written down — none of it is visible on the other side until
+  /// this. Every read of a value the *other* isolate writes goes through here,
+  /// and the ones that forgot it each cost a debugging session.
+  Future<SettingsRepository> reloaded() async {
+    await _prefs.reload();
+    return this;
+  }
+
+  /// The same thing where no handle is open yet — a background isolate that was
+  /// woken by a notification action rather than started by the app.
+  static Future<SettingsRepository> opened() async =>
+      SettingsRepository(await SharedPreferences.getInstance()).reloaded();
 
   ServerProfile? loadProfile() {
     final raw = _prefs.getString(_profileKey);
@@ -78,6 +99,30 @@ class SettingsRepository {
 
   Future<void> saveBgMonitoringEnabled(bool enabled) =>
       _prefs.setBool(_bgMonitoringKey, enabled);
+
+  /// The platform's 12/24-hour switch, as the UI last saw it. It travels through
+  /// preferences because the only isolate that can read the switch is the one
+  /// with a view attached: the foreground service gets a bare engine, where the
+  /// setting is not missing but *wrong* — a default `false` that spelled every
+  /// notification ETA in AM/PM on a 24-hour phone.
+  ///
+  /// Null until an install has run a version that writes it, and null is not
+  /// "12-hour": `DateTimeFormats` then follows the locale's own convention.
+  bool? loadUse24HourClock() => _prefs.getBool(_clock24hKey);
+
+  Future<void> saveUse24HourClock(bool use24Hour) =>
+      _prefs.setBool(_clock24hKey, use24Hour);
+  /// Whether the user has waved off the "archived without its 3MF" nudge.
+  ///
+  /// One-shot and permanent, like the web's own `localStorage` flag: fixing the
+  /// cause stops new fallbacks anyway, so there is nothing to re-warn about.
+  /// Absent — which is every install that upgrades into this — reads as not
+  /// dismissed, so the banner appears once and only if the server says there is
+  /// something to say.
+  bool loadNo3mfDismissed() => _prefs.getBool(_no3mfDismissedKey) ?? false;
+
+  Future<void> saveNo3mfDismissed() =>
+      _prefs.setBool(_no3mfDismissedKey, true);
 
   /// Notification preferences (which events, what thresholds). Stored as a single
   /// JSON string so the background isolate parses it the same way as the UI.
@@ -167,4 +212,16 @@ class SettingsRepository {
   Future<void> saveDiagnosticsSession(String? session) => session == null
       ? _prefs.remove(_diagnosticsSessionKey)
       : _prefs.setString(_diagnosticsSessionKey, session);
+
+  /// Which watch-relay responder is listening, as `<pid>:<nonce>` —
+  /// `WearRelayClaim` has the why for both halves. Also read natively, as
+  /// `flutter.wear_relay_claim` in `FlutterSharedPreferences`
+  /// (`WearRelayListenerService.kt`, which only reads the pid): rename it here
+  /// and the phone stops waking up for the watch, with nothing to show for it.
+  /// `wear_relay_native_contract_test` is what notices.
+  String? loadWearRelayClaim() => _prefs.getString(_wearRelayClaimKey);
+
+  Future<void> saveWearRelayClaim(String? claim) => claim == null
+      ? _prefs.remove(_wearRelayClaimKey)
+      : _prefs.setString(_wearRelayClaimKey, claim);
 }

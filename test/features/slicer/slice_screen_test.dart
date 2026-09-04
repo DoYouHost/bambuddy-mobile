@@ -10,6 +10,7 @@ import 'package:bambuddy_mobile/data/slicer_repository.dart';
 import 'package:bambuddy_mobile/features/pipelines/pipelines_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_providers.dart';
 import 'package:bambuddy_mobile/features/slicer/slice_screen.dart';
+import 'package:bambuddy_mobile/l10n/app_localizations.dart';
 import 'package:bambuddy_mobile/providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,9 @@ class _CapturingRepository extends SlicerRepository {
 
   Map<String, dynamic>? body;
 
+  /// What the finished job reports back, as the server's `SliceResponse`.
+  Map<String, dynamic> result = const {'library_file_id': 9, 'name': 'out.gcode.3mf'};
+
   @override
   Future<int> sliceArchive(int archiveId, Map<String, dynamic> request) async {
     body = request;
@@ -88,8 +92,8 @@ class _CapturingRepository extends SlicerRepository {
   }
 
   @override
-  Future<SliceJob> job(int jobId) async =>
-      SliceJob.fromJson({'job_id': jobId, 'status': 'completed'});
+  Future<SliceJob> job(int jobId) async => SliceJob.fromJson(
+      {'job_id': jobId, 'status': 'completed', 'result': result});
 }
 
 void main() {
@@ -114,6 +118,7 @@ void main() {
     Set<String> ownedCodes = const {},
     List<SlicerPipeline> pipelines = const [],
     bool pipelinesSupported = false,
+    List<OwnedFilament> owned = const [],
   }) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
@@ -122,8 +127,7 @@ void main() {
         embeddedSettingsProvider.overrideWith((ref, arg) async => embedded),
         sliceLayoutOptionsProvider.overrideWith((ref) async => layoutOptions),
         ownedPrinterCodesProvider.overrideWith((ref) async => ownedCodes),
-        ownedFilamentsProvider
-            .overrideWith((ref) async => const <OwnedFilament>[]),
+        ownedFilamentsProvider.overrideWith((ref) async => owned),
         filamentRequirementsProvider.overrideWith((ref, arg) async => requirements),
         processSettingsAvailableProvider.overrideWith((ref) async => available),
         processSchemaProvider.overrideWith((ref) async => catalog),
@@ -333,6 +337,32 @@ void main() {
       final body = await slice(tester);
       expect(body.containsKey('process_overrides'), isFalse,
           reason: 'an override equal to the preset is noise in the process JSON');
+    });
+  });
+
+  group('the colour each slot prints in', () {
+    // Without it the slicer writes its compiled-in green onto every slot, and
+    // the print dialog then reports a colour mismatch against the AMS slot the
+    // print was mapped to (server #2977).
+    const shelf = [
+      (name: 'Bambu PLA Basic', material: 'PLA', color: 'ff0000ff'),
+      (name: 'Bambu PLA Basic', material: 'PLA', color: '0000ffff'),
+    ];
+
+    testWidgets('reaches the body as the picked spool colour', (tester) async {
+      await openSheet(tester, owned: shelf, requirements: const [
+        FilamentRequirement(slotId: 1, type: 'PLA', color: '#0000FF'),
+      ]);
+      final body = await slice(tester);
+      expect(body['filament_colours'], ['#0000FF']);
+    });
+
+    testWidgets('is absent when the inventory names no colour', (tester) async {
+      // Nothing to say: the request has to stay identical to one from before
+      // the field existed, so the server's own fallback chain still runs.
+      await openSheet(tester);
+      final body = await slice(tester);
+      expect(body.containsKey('filament_colours'), isFalse);
     });
   });
 
@@ -793,6 +823,82 @@ void main() {
       final body = await slice(tester);
       expect(body['process_preset'], {'source': 'local', 'id': '99'});
       expect(body['filament_preset'], {'source': 'local', 'id': '31'});
+    });
+  });
+
+  group('where the sliced file landed', () {
+    /// The result dialog's text, read through the localization API rather than
+    /// spelled out — the harness runs in Polish.
+    AppLocalizations l10n(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(AlertDialog)));
+
+    testWidgets('a file filed somewhere else says so, and why', (tester) async {
+      // The slice succeeded; it just did not land in the external folder the
+      // source lives in. Silence here is what made #2810 unreproducible from
+      // the UI: the row appears in the right folder, the file never arrives.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_readonly',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(
+        find.text('${l10n(tester).sliceExternalFallback} '
+            '${l10n(tester).sliceExternalReadonly}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('every reason the server can send has a sentence',
+        (tester) async {
+      // The five `_resolve_slice_destination` returns (library.py). A reason
+      // the app knows but has no clause for reads as the generic half alone,
+      // which is indistinguishable from a reason it has never heard of.
+      for (final reason in const [
+        'external_readonly',
+        'external_no_path',
+        'external_unreachable',
+        'external_not_writable',
+        'external_invalid_name',
+      ]) {
+        repo.result = {
+          'library_file_id': 9,
+          'name': 'out.gcode.3mf',
+          'external_write_fallback': reason,
+        };
+        await openSheet(tester);
+        await slice(tester);
+
+        expect(find.text(l10n(tester).sliceExternalFallback), findsNothing,
+            reason: '$reason rendered without a reason clause');
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('a reason this build has no sentence for still says where',
+        (tester) async {
+      // A newer server may name a reason this app does not know. The half that
+      // matters — where the file is — must not depend on recognizing it.
+      repo.result = const {
+        'library_file_id': 9,
+        'name': 'out.gcode.3mf',
+        'external_write_fallback': 'external_something_new',
+      };
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.text(l10n(tester).sliceExternalFallback), findsOneWidget);
+    });
+
+    testWidgets('a normal slice says nothing about folders', (tester) async {
+      // Null on every ordinary slice, and on every server older than 1.2.5.4.
+      await openSheet(tester);
+      await slice(tester);
+
+      expect(find.textContaining(l10n(tester).sliceExternalFallback),
+          findsNothing);
     });
   });
 }

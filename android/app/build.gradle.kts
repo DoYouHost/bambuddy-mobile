@@ -75,16 +75,15 @@ android {
         }
         create("wear") {
             dimension = "device"
-            // Play requires a distinct versionCode per APK under one listing.
-            // Offset the wear series well clear of the phone one, which tops out
-            // at 999_999_000 ((major*10000+minor*100+patch)*1000, see `_bump` in
-            // the justfile). A billion keeps every watch build above every phone
-            // build ever numbered, and the highest reachable code — 1_999_999_000
-            // — still fits under Play's 2_100_000_000 ceiling.
+            // Play requires a distinct versionCode per APK under one listing,
+            // so every flavor adds its own offset on top of the phone code. The
+            // band layout, and the arithmetic that keeps the bands apart, is
+            // documented next to `_bump` in the justfile — read it before you
+            // give a new flavor an offset here.
             //
-            // The offset used to be 1_000_000, from before dev builds needed the
-            // extra three digits; at that width the two series overlap (watch
-            // 0.11.0 and phone 0.21.0 both land on 2_100_000).
+            // A billion is far more room than a band needs (~20 M), but this
+            // number can no longer be lowered: 1_001_300_000 is already
+            // published, and Play refuses a code at or below one it has seen.
             versionCode = (flutter.versionCode ?: 0) + 1_000_000_000
             // Wear OS 3+ only (API 30). Keeps Play from serving the watch APK
             // to Wear OS 2 devices, where nothing has ever been tested.
@@ -120,4 +119,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Already on the classpath through watch_connectivity's `api` dependency,
+    // declared here because `wear/WearRelayListenerService.kt` is our own code
+    // and must not break if that plugin ever narrows it to `implementation`.
+    // Keep the version equal to the plugin's.
+    implementation("com.google.android.gms:play-services-wearable:19.0.0")
 }

@@ -5,14 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/api/api_exceptions.dart';
 import '../../core/models/project.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
+import '../common/dash_async.dart';
+import '../common/dash_snack.dart';
+import '../common/device_files.dart';
 import '../common/state_views.dart';
+import '../common/system_insets.dart';
 import 'project_common.dart';
 import 'project_cover_image.dart';
-import 'project_files.dart';
 import 'project_form_screen.dart';
 import 'projects_providers.dart';
 
@@ -83,16 +86,10 @@ class ProjectsScreen extends ConsumerWidget {
             label: Text(l10n.projectCreate),
           ),
         ),
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message:
-                err is AppApiException ? err.localized(l10n) : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(projectsListProvider.notifier).refresh(),
           data: (projects) => RefreshIndicator(
             onRefresh: () => ref.read(projectsListProvider.notifier).refresh(),
             child: projects.isEmpty
@@ -101,7 +98,10 @@ class ProjectsScreen extends ConsumerWidget {
                     icon: Icons.folder_special_outlined,
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                    padding: withSystemNavInset(
+                      context,
+                      const EdgeInsets.fromLTRB(12, 8, 12, 88),
+                    ),
                     itemCount: projects.length,
                     itemBuilder: (_, i) => _ProjectCard(
                       project: projects[i],
@@ -121,18 +121,24 @@ class ProjectsScreen extends ConsumerWidget {
   Future<void> _importProject(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final picked = await pickSingleFile();
-    if (picked == null) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.projectUploading)));
+    final picked = await pickFileFromDevice();
+    final file = picked.file;
+    if (file == null) {
+      if (picked.outcome == DeviceFileOutcome.failed) {
+        messenger.snack(l10n.filePickerFailed);
+      }
+      return;
+    }
+    messenger.snack(l10n.projectUploading);
     try {
       await ref.read(projectsRepositoryProvider).importFile(
-            filePath: picked.path,
-            filename: picked.name,
+            filePath: file.path,
+            filename: file.name,
           );
       await ref.read(projectsListProvider.notifier).refresh();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectImported)));
+      messenger.snack(l10n.projectImported);
     } on AppApiException {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.projectImportFailed)));
+      messenger.snack(l10n.projectImportFailed);
     }
   }
 }
@@ -195,12 +201,7 @@ class _ProjectCard extends StatelessWidget {
                                 project.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: DashTokens.fontUi,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.textPrimary,
-                                ),
+                                style: t.titleMd,
                               ),
                             ),
                             ProjectStatusChip(status: project.status),
@@ -214,12 +215,7 @@ class _ProjectCard extends StatelessWidget {
                               project.description!,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: DashTokens.fontUi,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                color: t.textSecondary,
-                              ),
+                              style: t.label.copyWith(color: t.textSecondary),
                             ),
                           ),
                         const SizedBox(height: 8),
@@ -237,12 +233,7 @@ class _ProjectCard extends StatelessWidget {
                         ],
                         Text(
                           counts.join(' · '),
-                          style: TextStyle(
-                            fontFamily: DashTokens.fontMono,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: t.textTertiary,
-                          ),
+                          style: t.monoLabel,
                         ),
                       ],
                     ),

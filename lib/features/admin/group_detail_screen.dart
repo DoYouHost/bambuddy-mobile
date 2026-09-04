@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exceptions.dart';
 import '../../core/diagnostics/log_tag.dart';
 import '../../core/models/current_user.dart';
 import '../../core/models/group_summary.dart';
+import '../../core/theme/dash_text.dart';
 import '../../core/theme/dash_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/error_messages.dart';
 import '../../providers.dart';
 import '../common/confirm_dialog.dart';
-import '../common/state_views.dart';
+import '../common/dash_async.dart';
+import '../common/dash_sheet.dart';
+import '../common/dash_snack.dart';
 import 'group_form_screen.dart';
 import 'groups_providers.dart';
 import 'user_messages.dart';
@@ -57,18 +58,10 @@ class GroupDetailScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        body: async.when(
-          skipLoadingOnReload: true,
-          skipLoadingOnRefresh: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => AsyncErrorView(
-            message: err is AppApiException
-                ? err.localized(l10n)
-                : l10n.connectFailed,
-            retryLabel: l10n.retry,
-            onRetry: () =>
-                ref.read(groupDetailProvider(groupId).notifier).refresh(),
-          ),
+        body: dashAsync(
+          context,
+          async,
+          onRetry: () => ref.read(groupDetailProvider(groupId).notifier).refresh(),
           data: (group) => RefreshIndicator(
             onRefresh: () =>
                 ref.read(groupDetailProvider(groupId).notifier).refresh(),
@@ -79,23 +72,13 @@ class GroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Text(
                   l10n.groupsMembersHeader,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: t.textSecondary,
-                  ),
+                  style: t.bodyBold.copyWith(letterSpacing: 0.3),
                 ),
                 const SizedBox(height: 8),
                 if (group.members.isEmpty)
                   Text(
                     l10n.groupsNoMembers,
-                    style: TextStyle(
-                      fontFamily: DashTokens.fontUi,
-                      fontSize: 13,
-                      color: t.textTertiary,
-                    ),
+                    style: t.bodyPlain.copyWith(color: t.textTertiary),
                   )
                 else
                   for (final member in group.members)
@@ -171,9 +154,7 @@ class GroupDetailScreen extends ConsumerWidget {
     // app offers you changes with it.
     await ref.read(currentUserProvider.notifier).refresh();
     if (!result.ok) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(userWriteMessage(l10n, result))),
-      );
+      messenger.snack(userWriteMessage(l10n, result));
     }
   }
 }
@@ -237,11 +218,7 @@ class _GroupMenu extends ConsumerWidget {
     ref.invalidate(groupsListProvider);
     ref.invalidate(usersListProvider);
     await ref.read(currentUserProvider.notifier).refresh();
-    messenger.showSnackBar(SnackBar(
-      content: Text(
-        result.ok ? l10n.groupsDeleted : userWriteMessage(l10n, result),
-      ),
-    ));
+    messenger.snack(result.ok ? l10n.groupsDeleted : userWriteMessage(l10n, result));
     if (result.ok) navigator.pop();
   }
 }
@@ -270,18 +247,14 @@ class _GroupHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   group.name,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                  style: t.titleLg,
                 ),
               ),
               if (group.isSystem)
                 DashPill(
                   label: l10n.groupsSystemPill,
                   accent: t.accentOrange,
+                  accentInk: t.accentOrangeInk,
                   icon: Icons.lock_outline,
                 ),
             ],
@@ -291,21 +264,12 @@ class _GroupHeader extends StatelessWidget {
             (group.description?.isNotEmpty ?? false)
                 ? group.description!
                 : l10n.groupsNoDescription,
-            style: TextStyle(
-              fontFamily: DashTokens.fontUi,
-              fontSize: 13,
-              color: t.textSecondary,
-            ),
+            style: t.bodyPlain,
           ),
           const SizedBox(height: 12),
           Text(
             l10n.groupsPermissionCount(group.permissions.length),
-            style: TextStyle(
-              fontFamily: DashTokens.fontMono,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: t.textTertiary,
-            ),
+            style: t.monoLabel,
           ),
           if (group.isSystem) ...[
             const SizedBox(height: 8),
@@ -314,11 +278,7 @@ class _GroupHeader extends StatelessWidget {
             // moves.
             Text(
               l10n.groupsSystemNote,
-              style: TextStyle(
-                fontFamily: DashTokens.fontUi,
-                fontSize: 12,
-                color: t.textTertiary,
-              ),
+              style: t.labelSoft,
             ),
           ],
         ],
@@ -359,12 +319,7 @@ class _MemberRow extends StatelessWidget {
                 member.username,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: member.isActive ? t.textPrimary : t.textTertiary,
-                ),
+                style: t.bodyStrong.copyWith(color: member.isActive ? t.textPrimary : t.textTertiary),
               ),
             ),
             if (!member.isActive)
@@ -372,12 +327,7 @@ class _MemberRow extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   l10n.usersInactive,
-                  style: TextStyle(
-                    fontFamily: DashTokens.fontUi,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.danger,
-                  ),
+                  style: t.micro.copyWith(color: t.danger),
                 ),
               ),
             if (onRemove != null)
@@ -400,10 +350,8 @@ Future<CurrentUser?> pickAccountForGroup(
   BuildContext context,
   GroupDetail group,
 ) =>
-    showModalBottomSheet<CurrentUser>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    dashSheet<CurrentUser>(
+      context,
       builder: (_) => _AccountPickerSheet(group: group),
     );
 
@@ -430,32 +378,14 @@ class _AccountPickerSheet extends ConsumerWidget {
             children: [
               Text(
                 l10n.groupsAddMemberTitle(group.name),
-                style: TextStyle(
-                  fontFamily: DashTokens.fontUi,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: t.textPrimary,
-                ),
+                style: t.titleMd,
               ),
               const SizedBox(height: 12),
               Flexible(
-                child: async.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (err, _) => Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      err is AppApiException
-                          ? err.localized(l10n)
-                          : l10n.connectFailed,
-                      style: TextStyle(
-                        fontFamily: DashTokens.fontUi,
-                        color: t.textSecondary,
-                      ),
-                    ),
-                  ),
+                child: dashAsyncStrip(
+                  context,
+                  async,
+                  padding: const EdgeInsets.all(24),
                   data: (users) {
                     final candidates = [
                       for (final u in users)
