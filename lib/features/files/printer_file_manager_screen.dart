@@ -234,9 +234,9 @@ class _PrinterFileManagerScreenState
     File? cached;
     try {
       final single = paths.length == 1;
-      final safeName = widget.printerName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
-      final fileName =
-          single ? paths.first.split('/').last : '$safeName-files.zip';
+      final fileName = single
+          ? paths.first.split('/').last
+          : '${safeFileStem(widget.printerName, fallback: 'printer')}-files.zip';
       final run = PrinterSelectionDownload(repo, printerId: widget.printerId);
       _run = run;
       cached = await run.run(

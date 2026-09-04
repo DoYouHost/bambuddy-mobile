@@ -862,6 +862,19 @@ class AppLocalizationsPl extends AppLocalizations {
   String get archiveMediaNothingOnPrinter => 'Nic na drukarce';
 
   @override
+  String archiveMediaPhotoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count zdjęcia',
+      many: '$count zdjęć',
+      few: '$count zdjęcia',
+      one: 'jedno zdjęcie',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get archiveMediaKindTimelapse => 'Timelapse';
 
   @override

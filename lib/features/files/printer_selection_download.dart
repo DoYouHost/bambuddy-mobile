@@ -38,6 +38,15 @@ class PrinterSelectionDownload {
 
   PrinterDownloadRun? _run;
 
+  /// A Cancel that arrived before there was a run to name.
+  ///
+  /// [_asJob] awaits the capability latch before it builds one, and on the
+  /// first download of a session that latch may itself be waiting on the
+  /// server's version. A sheet dismissed inside that window used to leave the
+  /// preparation to start afterwards and run to completion — the server pulling
+  /// gigabytes off a printer for a screen that had gone.
+  bool _cancelled = false;
+
   /// Downloads [files] under [fileName] and answers with the cache copy.
   ///
   /// [scratchName] is the part-file's name while the transfer runs; naming it
@@ -67,6 +76,7 @@ class PrinterSelectionDownload {
     return downloadToCacheFile(
       scratchName: scratchName,
       download: (savePath) async {
+        _throwIfCancelled();
         if (!await _asJob(
           files,
           fileName,
@@ -103,8 +113,18 @@ class PrinterSelectionDownload {
   }
 
   /// Asks for the download to stop, wherever it has got to. Safe before a job
-  /// exists and after one has finished.
-  Future<void> cancel() async => _run?.cancel();
+  /// exists and after one has finished; a cancellation that lands before there
+  /// is anything to name is remembered rather than dropped.
+  Future<void> cancel() async {
+    _cancelled = true;
+    await _run?.cancel();
+  }
+
+  void _throwIfCancelled() {
+    if (_cancelled) {
+      throw const PrinterDownloadFailure(PrinterDownloadStopped.cancelled);
+    }
+  }
 
   /// Runs the download as a server-side preparation job, when this server has
   /// one. False means it has not, and the caller falls back to the legacy
@@ -124,6 +144,11 @@ class PrinterSelectionDownload {
     void Function(int received, int total)? onProgress,
   }) async {
     if (!await _repo.supportsDownloadJobs()) return false;
+    // Checked after the await, not only before it: this is the window
+    // [_cancelled] exists for. The legacy path is guarded the same way, at the
+    // top of the download callback — it cannot be called off once it is in
+    // flight, which is all the more reason not to start one nobody wants.
+    _throwIfCancelled();
     final run = PrinterDownloadRun(_repo, printerId: printerId);
     _run = run;
     return run.download(

@@ -337,6 +337,8 @@
   "@archiveMediaOnPrinter": { "description": "Section header: what is still only on the printer's own storage. These rows are ticked and downloaded.", "placeholders": { "count": { "type": "int" } } },
   "archiveMediaSearching": "Looking on the printer\u2026",
   "archiveMediaNothingOnPrinter": "Nothing on the printer",
+  "archiveMediaPhotoCount": "{count, plural, one{one photo} other{{count} photos}}",
+  "@archiveMediaPhotoCount": { "description": "Subtitle of the photos row in the media sheet — the row's own count, beside the timelapse row's size.", "placeholders": { "count": { "type": "int" } } },
   "archiveMediaKindTimelapse": "Timelapse",
   "archiveMediaKindIpcam": "Camera",
   "archiveMediaDownloadSelected": "Download {count, plural, =0{selected} one{one file} other{{count} files}}",

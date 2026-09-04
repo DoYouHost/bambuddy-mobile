@@ -100,6 +100,10 @@ void main() {
     expect(find.text(l10n.archiveMediaOnServer), findsOneWidget);
     expect(find.text(l10n.archiveMediaOnPrinter(1)), findsOneWidget);
 
+    // The photos row carries its own count, the way the timelapse row carries
+    // its size — a bare digit read as part of the file name beside it.
+    expect(find.text(l10n.archiveMediaPhotoCount(1)), findsOneWidget);
+
     // The server's copies open their viewer rather than downloading here.
     await tester.tap(find.text('benchy.mp4'));
     await tester.tap(find.text(l10n.archivePhotosTitle));
@@ -191,6 +195,37 @@ void main() {
     final l10n = await open(tester, archive());
 
     expect(find.text(l10n.archiveMediaNothingOnPrinter), findsNothing);
+  });
+
+  testWidgets('a search that broke can be tried again without leaving',
+      (tester) async {
+    // Five FTP listings fail for reasons that pass. Dismissing the sheet and
+    // finding the button again is not a retry the user should have to perform.
+    adapter.onGet(_media, (s) => s.reply(500, {'detail': 'boom'}));
+
+    final l10n = await open(tester, archive());
+
+    // A fresh adapter rather than a counter inside the handler: http_mock_adapter
+    // runs the handler once, when the route is declared, so a closure that
+    // counts calls answers the same thing every time.
+    adapter = DioAdapter(dio: dio);
+    replyWith(const {
+      'archive_id': 1,
+      'printer_id': 2,
+      'remote_files': [
+        {
+          'name': 'ipcam_1.mp4',
+          'path': '/ipcam/ipcam_1.mp4',
+          'size': 10,
+          'kind': 'ipcam',
+        },
+      ],
+    });
+
+    await tester.tap(find.text(l10n.retry));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ipcam_1.mp4'), findsOneWidget);
   });
 
   testWidgets('an older server leaves the printer section out altogether',

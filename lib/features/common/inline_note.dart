@@ -15,6 +15,12 @@ import '../../core/theme/dash_text.dart';
 /// for every other note and the wrong one for that, and amber that appears next
 /// to things that turn out not to matter stops being read at all.
 ///
+/// **[urgent] colours the icon, not the sentence.** The light theme's amber is
+/// `#E07C36`, which reads 2.7:1 against the palest card — fine for a 16 px
+/// mark, and well under the 4.5:1 a 12 px line has to clear, so the one note
+/// the user most needs to read was the hardest one to. The tertiary ink it
+/// keeps instead clears it at 4.6:1, and the amber still marks the row.
+///
 /// [announce] reads the note out when it appears. Only for a note that is the
 /// answer to the tap just made, and only where one of them appears at a time: a
 /// change that raises several would read them all out in a row, which is worse
@@ -50,10 +56,7 @@ class InlineNote extends StatelessWidget {
           Icon(icon, size: 16, color: ink),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              text,
-              style: urgent ? t.labelSoft.copyWith(color: ink) : t.labelSoft,
-            ),
+            child: Text(text, style: t.labelSoft),
           ),
         ],
       ),

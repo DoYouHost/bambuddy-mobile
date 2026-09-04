@@ -123,13 +123,5 @@ String timelapseMimeType(String path) {
 
 /// `<print name>_timelapse.<extension>`, with anything a filesystem or a share
 /// target could choke on replaced. Mirrors the web UI's download name.
-String exportFilename(String name, [String extension = 'mp4']) {
-  final safe = name
-      .replaceAll(RegExp(r'[^\w\s.-]'), '')
-      .trim()
-      // Leading dots would make it a hidden file; a trailing one (or the
-      // underscore a trailing space turns into) collides with the suffix.
-      .replaceAll(RegExp(r'\s+'), '_')
-      .replaceAll(RegExp(r'^[._]+|[._]+$'), '');
-  return '${safe.isEmpty ? 'timelapse' : safe}_timelapse.$extension';
-}
+String exportFilename(String name, [String extension = 'mp4']) =>
+    '${safeFileStem(name, fallback: 'timelapse')}_timelapse.$extension';

@@ -1586,6 +1586,12 @@ abstract class AppLocalizations {
   /// **'Nothing on the printer'**
   String get archiveMediaNothingOnPrinter;
 
+  /// Subtitle of the photos row in the media sheet — the row's own count, beside the timelapse row's size.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{one photo} other{{count} photos}}'**
+  String archiveMediaPhotoCount(int count);
+
   /// No description provided for @archiveMediaKindTimelapse.
   ///
   /// In en, this message translates to:

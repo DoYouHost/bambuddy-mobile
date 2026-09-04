@@ -205,14 +205,19 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       // that does not say so hands the user a ZIP they would have to count
       // themselves.
       final skipped = _job?.failed ?? 0;
-      if (skipped > 0) _record('partial');
       final saved = await _save(
         cached,
         fileName,
         l10n,
         extra: skipped > 0 ? l10n.pfmDownloadPartial(skipped) : null,
       );
-      if (saved) setState(_selected.clear);
+      if (saved) {
+        setState(_selected.clear);
+        // Recorded only once the user actually has the bundle. A save dialog
+        // backed out of produced nothing, and a warning about a download that
+        // never landed reads, in a report, like a failure that happened.
+        if (skipped > 0) _record('partial');
+      }
     } on PrinterDownloadFailure catch (e) {
       _record(e.reason.name);
       if (mounted) _snack(_prepareFailureText(e, l10n));
@@ -273,12 +278,11 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       (name == null || name.isEmpty) ? fallback : name;
 
   /// `<print name>-videos.zip`, with anything a filesystem could choke on
-  /// replaced — the same shape the web UI downloads under.
-  String _bundleName() {
-    final safe =
-        widget.archive.displayName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_');
-    return '${safe.isEmpty ? 'archive' : safe}-videos.zip';
-  }
+  /// replaced — the same shape the web UI downloads under, and the same rule
+  /// the timelapse export saves under ([safeFileStem]).
+  String _bundleName() =>
+      '${safeFileStem(widget.archive.displayName, fallback: 'archive')}'
+      '-videos.zip';
 
   /// Dio reports progress per received chunk, which on a gigabyte of video is
   /// thousands of callbacks. Only a change the bar can show is worth a frame; a
@@ -400,7 +404,7 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
                     id: 'archive_media.photos',
                     icon: Icons.photo_camera_outlined,
                     title: l10n.archivePhotosTitle,
-                    subtitle: '${archive.photos.length}',
+                    subtitle: l10n.archiveMediaPhotoCount(archive.photos.length),
                     onTap: widget.onPhotos,
                   ),
               ],
@@ -433,8 +437,19 @@ class _ArchiveMediaSheetState extends ConsumerState<_ArchiveMediaSheet> {
       ),
       if (_loading)
         _Searching(label: l10n.archiveMediaSearching, t: t)
-      else if (_error case final error?)
-        Text(error, style: t.body.copyWith(color: t.danger))
+      else if (_error case final error?) ...[
+        Text(error, style: t.body.copyWith(color: t.danger)),
+        // A search over five FTP listings fails for reasons that pass — the
+        // printer busy, the phone's Wi-Fi dropping. Without this the only way
+        // to try again is to dismiss the sheet and find the button again.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: logTag(
+            'archive_media.retry',
+            TextButton(onPressed: _search, child: Text(l10n.retry)),
+          ),
+        ),
+      ]
       else ...[
         if (files.isEmpty)
           Text(l10n.archiveMediaNothingOnPrinter, style: t.bodySoft),
@@ -616,18 +631,22 @@ class _MediaRow extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: picked ? t.accentGreen.withValues(alpha: 0.10) : t.subCard,
-          border: Border.all(color: picked ? t.accentGreen : t.subCardBorder),
+          border: Border.all(color: picked ? t.accentGreenInk : t.subCardBorder),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
+            // `accentGreenInk`, not `accentGreen`: the token doc draws the
+            // line at text and icons on a pale surface, and the vivid swatch
+            // reads 2.1:1 on the light card — under the 3:1 a control that
+            // signals its own state has to clear.
             if (selected == null)
-              Icon(icon, size: 20, color: t.accentGreen)
+              Icon(icon, size: 20, color: t.accentGreenInk)
             else
               Icon(
                 picked ? Icons.check_box : Icons.check_box_outline_blank,
                 size: 20,
-                color: picked ? t.accentGreen : t.textTertiary,
+                color: picked ? t.accentGreenInk : t.textTertiary,
               ),
             const SizedBox(width: 10),
             Expanded(
@@ -655,9 +674,14 @@ class _MediaRow extends StatelessWidget {
       child: logTag(
         id,
         // The tick is the row's state, not a separate control: a screen reader
-        // that read the checkbox alone would announce "selected" with nothing
-        // to say what was selected.
-        selected == null ? row : Semantics(selected: picked, child: row),
+        // that read it alone would announce "ticked" with nothing to say what
+        // was ticked. `checked` rather than `selected` because a checkbox is
+        // what the row draws, and `MergeSemantics` so the name, the size and
+        // the state arrive as one thing rather than three nodes to swipe
+        // through.
+        selected == null
+            ? row
+            : MergeSemantics(child: Semantics(checked: picked, child: row)),
       ),
     );
   }
@@ -709,6 +733,10 @@ class _DownloadBar extends StatelessWidget {
           // waiting for the transfer, and a change of text alone is announced
           // to nobody.
           child: Semantics(
+            // `container: true` with it, or the phase text merges into the row
+            // and the change is announced to nobody — the same pairing
+            // [InlineNote] makes for its announcing note.
+            container: true,
             liveRegion: true,
             child: Text(
               label,

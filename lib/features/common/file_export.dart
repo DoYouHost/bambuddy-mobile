@@ -119,6 +119,31 @@ Future<SavedFileResult> saveDownloadedFile(
   }
 }
 
+/// A print's name reduced to something a filesystem and a share target will
+/// both accept, for a file named after what it holds.
+///
+/// Strips the separators and wildcards that break a save (`/`, `\\`, `:`, `*`,
+/// `?`), collapses runs of whitespace, and drops leading and trailing dots and
+/// underscores — a leading dot makes a hidden file, and a trailing one collides
+/// with whatever suffix the caller appends. `..` disappears with the
+/// separators, so a name cannot walk out of the directory it is saved into.
+///
+/// [fallback] is the answer when nothing usable survives, which is why it has
+/// no default: `timelapse` and `archive` are the right words in their own
+/// places and the wrong one in the other's.
+///
+/// **Not Unicode-aware**: `\w` is ASCII here, so `Łódź` reduces to `d`. That is
+/// the behaviour this app has shipped and it is pinned by tests; widening it is
+/// a change to file names users already have.
+String safeFileStem(String name, {required String fallback}) {
+  final safe = name
+      .replaceAll(RegExp(r'[^\w\s.-]'), '')
+      .trim()
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll(RegExp(r'^[._]+|[._]+$'), '');
+  return safe.isEmpty ? fallback : safe;
+}
+
 /// Media types for the files a printer keeps, by extension.
 ///
 /// Only the ones the printer actually stores are listed; `null` for anything

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bambuddy_mobile/core/models/printer_download_job.dart';
 import 'package:bambuddy_mobile/data/printer_files_repository.dart';
+import 'package:bambuddy_mobile/features/files/printer_download_job.dart';
 import 'package:bambuddy_mobile/features/files/printer_selection_download.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,17 +18,24 @@ import '../../helpers.dart';
 
 /// A repository that records what it was asked for and writes the bytes itself.
 class _Repo extends PrinterFilesRepository {
-  _Repo({this.hasJobs = true}) : super(Dio());
+  _Repo({this.hasJobs = true, this.jobsAnswer}) : super(Dio());
 
   /// Whether this stands for a server with the preparation routes.
   final bool hasJobs;
+
+  /// Holds the capability answer open, for the window between "Download" and
+  /// there being a run to cancel.
+  final Completer<void>? jobsAnswer;
 
   final List<String> calls = [];
   Map<String, int>? sentSizes;
   bool? sentAsZip;
 
   @override
-  Future<bool> supportsDownloadJobs() async => hasJobs;
+  Future<bool> supportsDownloadJobs() async {
+    await jobsAnswer?.future;
+    return hasJobs;
+  }
 
   @override
   Future<PrinterDownloadJob?> startDownloadJob(
@@ -159,5 +168,54 @@ void main() {
     // server has the route has nothing to name yet, and must not throw on the
     // way out of a disposed screen.
     await PrinterSelectionDownload(_Repo(), printerId: 1).cancel();
+  });
+
+  test('a cancellation inside the capability window still stops the download',
+      () async {
+    // The window: the screen is dismissed while `supportsDownloadJobs()` is
+    // still awaiting the server's version. Nothing exists to cancel yet, and
+    // without the latch the preparation started afterwards and ran to
+    // completion — the server pulling files off a printer for a screen that had
+    // gone.
+    final answer = Completer<void>();
+    final repo = _Repo(jobsAnswer: answer);
+    final download = PrinterSelectionDownload(repo, printerId: 1);
+
+    final running = download.run(
+      files: const [(path: '/a.3mf', size: 10)],
+      fileName: 'a.3mf',
+      scratchName: 'test.download',
+    );
+    await download.cancel();
+    answer.complete();
+
+    await expectLater(
+      running,
+      throwsA(isA<PrinterDownloadFailure>().having(
+        (e) => e.reason,
+        'reason',
+        PrinterDownloadStopped.cancelled,
+      )),
+    );
+    expect(repo.calls, isEmpty, reason: 'no job was ever started');
+  });
+
+  test('the same holds for a server that has no preparation routes', () async {
+    // The legacy route cannot be called off once it is in flight, which is all
+    // the more reason not to start one nobody wants.
+    final answer = Completer<void>();
+    final repo = _Repo(hasJobs: false, jobsAnswer: answer);
+    final download = PrinterSelectionDownload(repo, printerId: 1);
+
+    final running = download.run(
+      files: const [(path: '/a.3mf', size: 10)],
+      fileName: 'a.3mf',
+      scratchName: 'test.download',
+    );
+    await download.cancel();
+    answer.complete();
+
+    await expectLater(running, throwsA(isA<PrinterDownloadFailure>()));
+    expect(repo.calls, isEmpty);
   });
 }

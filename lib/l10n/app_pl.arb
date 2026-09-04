@@ -289,6 +289,8 @@
   "@archiveMediaOnPrinter": { "placeholders": { "count": { "type": "int" } } },
   "archiveMediaSearching": "Szukam na drukarce\u2026",
   "archiveMediaNothingOnPrinter": "Nic na drukarce",
+  "archiveMediaPhotoCount": "{count, plural, one{jedno zdjęcie} few{{count} zdjęcia} many{{count} zdjęć} other{{count} zdjęcia}}",
+  "@archiveMediaPhotoCount": { "placeholders": { "count": { "type": "int" } } },
   "archiveMediaKindTimelapse": "Timelapse",
   "archiveMediaKindIpcam": "Kamera",
   "archiveMediaDownloadSelected": "Pobierz {count, plural, =0{zaznaczone} one{jeden plik} few{{count} pliki} many{{count} plików} other{{count} pliku}}",
